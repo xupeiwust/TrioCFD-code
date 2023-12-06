@@ -1957,7 +1957,7 @@ void IJK_FT_double::run()
 
   // On utilise aussi rhov pour le bilan de forces et pour d'autres formes de convection...
   //  if (!(expression_derivee_acceleration_ == Nom("0")))
-  allocate_velocity(rho_v_, splitting_, 1);
+  allocate_velocity(rho_v_, splitting_, 2);
 
   pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
 
@@ -3087,6 +3087,11 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
       else if (type_velocity_convection_form_== Nom("non_conservative_rhou"))
         {
           update_rho_v();
+
+          rho_v_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          rho_v_[1].echange_espace_virtuel(2);
+          rho_v_[2].echange_espace_virtuel(2);
+
           // Non optimise car la methode calculer_avec_u_div_rhou inexistante.
           // Alors on initialise a 0 puis on fait ajouter :
           d_velocity_[0].data() = 0.;
@@ -3115,6 +3120,11 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
       else if (type_velocity_convection_form_== Nom("conservative"))
         {
           update_rho_v();
+
+          rho_v_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          rho_v_[1].echange_espace_virtuel(2);
+          rho_v_[2].echange_espace_virtuel(2);
+
           switch (type_velocity_convection_op_)
             {
             case 0:
