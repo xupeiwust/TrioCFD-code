@@ -164,10 +164,12 @@ void OpConvIJKElemCommon_double::compute_curv_fram(DIRECTION _DIR_, int k_layer)
   const int imax = _DIR_==DIRECTION::X ? ni + 1 : ni;
   const int imax1 = imax - (vsize-1); // test to check for end of vectorizable part
   const int jmax =  _DIR_==DIRECTION::Y ? nj + 1 : nj;
-  for (int j = 0; ; j++)
+  const int imin = _DIR_ == DIRECTION::X ? -1:0;
+  const int jmin = _DIR_ == DIRECTION::Y ? -1:0;
+  for (int j = jmin; ; j++)
     {
       int i;
-      for (i = -1; i < 0; i++)
+      for (i = imin; i < 0; i++)
         compute_curv_fram_loop_(_DIR_, i, factor12, factor01, input_field, curv_values, fram_values );
 
       for (i = 0; i < imax1; i += vsize)
