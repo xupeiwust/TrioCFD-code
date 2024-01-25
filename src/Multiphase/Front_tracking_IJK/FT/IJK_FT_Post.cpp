@@ -23,12 +23,14 @@
 #include <EFichier.h>
 #include <SFichier.h>
 #include <IJK_FT_Post.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Splitting.h>
 #include <Process.h>    // Process::Journal()
 #include <stat_counters.h>
+#include <Cut_cell_FT_Disc.h>
+#include <IJK_FT_cut_cell.h>
 
 #include <sstream>
 
@@ -36,9 +38,9 @@
 /*
  * Take as main parameter reference to FT to be able to use its members.
  */
-IJK_FT_Post::IJK_FT_Post(IJK_FT_double& ijk_ft) :
+IJK_FT_Post::IJK_FT_Post(IJK_FT_base& ijk_ft) :
   statistiques_FT_(ijk_ft), ref_ijk_ft_(ijk_ft), disable_diphasique_(ijk_ft.disable_diphasique_), interfaces_(ijk_ft.interfaces_), kappa_ft_(ijk_ft.kappa_ft_), pressure_(ijk_ft.pressure_), velocity_(ijk_ft.velocity_),
-  d_velocity_(ijk_ft.d_velocity_), splitting_(ijk_ft.splitting_), splitting_ft_(ijk_ft.splitting_ft_), thermique_(ijk_ft.thermique_), energie_(ijk_ft.energie_)
+  d_velocity_(ijk_ft.d_velocity_), splitting_(ijk_ft.splitting_), splitting_ft_(ijk_ft.splitting_ft_), thermique_(ijk_ft.thermique_), energie_(ijk_ft.energie_), cut_cell_post_activated_(0)
 {
   groups_statistiques_FT_.dimensionner(0);
 }
@@ -545,11 +547,11 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
     {
       double ct = current_time;
-      if (ref_ijk_ft_.get_time_scheme() == IJK_FT_double::EULER_EXPLICITE)
+      if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::EULER_EXPLICITE)
         {
           ct -= ref_ijk_ft_.timestep_;
         }
-      else if (ref_ijk_ft_.get_time_scheme() == IJK_FT_double::RK3_FT)
+      else if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::RK3_FT)
         {
           Cerr << "rkstep " << ref_ijk_ft_.rk_step_ << finl;
           int rk_step_before = ref_ijk_ft_.rk_step_;
@@ -903,6 +905,32 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
     {
       interfaces_.update_surface_normale(); // necessaire avant posttraiter_champs_instantanes_thermique_interfaciaux
       n -= interfaces_.posttraiter_champs_instantanes(liste_post_instantanes_, lata_name, latastep);
+    }
+
+
+  // Post-traitement des champs cut-cell
+  // Note : Pas de mots-cles, tous les champs sont toujours ecrits dans le cas IJK_FT_cut_cell.
+  if (cut_cell_post_activated_)
+    {
+      Cut_cell_FT_Disc* cut_fields = ref_ijk_ft_.get_cut_fields();
+
+      if (!cut_fields)
+        {
+          Cerr << "Error: In IJK_FT_Post, the cut_fields pointer is invalid, although the post-treatment of cut-cell fields is activated." << finl;
+          Process::exit();
+        }
+      else
+        {
+          for (int j = 0; j < 3; j++)
+            {
+              cut_fields->fill_buffer_with_variable(cut_fields->coord_, j);
+              dumplata_scalar(lata_name, Nom("CUT_FIELDS_COORD_") + Nom(j), cut_fields->write_buffer_, latastep);
+            }
+
+          cut_fields->fill_buffer_with_variable(cut_fields->rho_);
+          dumplata_scalar(lata_name, "CUT_FIELDS_RHO", cut_fields->write_buffer_, latastep);
+        }
+
     }
 
   {

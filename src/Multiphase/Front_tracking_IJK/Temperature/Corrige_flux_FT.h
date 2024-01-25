@@ -46,7 +46,7 @@
 #include <Ouvrir_fichier.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 
 /*! @brief : class Corrige_flux_FT
  *
@@ -123,7 +123,7 @@ public:
   virtual ~Corrige_flux_FT() {};
   void initialize(const IJK_Splitting& splitting,
                   const IJK_Field_double& field,
-                  const IJK_Interfaces& interfaces, const IJK_FT_double& ijk_ft);
+                  const IJK_Interfaces& interfaces, const IJK_FT_base& ijk_ft);
   // On va calculer sur la grille IJ de la layer k tous les flux a proximite de
   // l'interface. On remplace les flux donnes en entree par ces flux la.
   virtual void corrige_flux_faceIJ(IJK_Field_local_double *const flux,
@@ -134,7 +134,7 @@ protected:
   const IJK_Interfaces *interfaces_;
   const IJK_Field_double *field_;
   const IJK_Splitting *splitting_;
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
 
   // TODO: mettre ces méthodes dans une petite classe pour parcourir
   // les trois directions.
@@ -155,7 +155,7 @@ public:
   virtual ~Corrige_flux_FT_temperature_conv() {};
 
   void initialize(const IJK_Splitting& splitting, const IJK_Field_double& field,
-                  const IJK_Interfaces& interfaces, const IJK_FT_double& ijk_ft,
+                  const IJK_Interfaces& interfaces, const IJK_FT_base& ijk_ft,
                   const double rhocp_l, const double rhocp_v, const double lda_l,
                   const double lda_v);
 

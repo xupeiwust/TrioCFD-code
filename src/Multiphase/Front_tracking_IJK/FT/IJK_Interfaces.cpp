@@ -22,7 +22,7 @@
 #include <Connex_components.h>
 #include <Connex_components_FT.h>
 #include <EcrFicPartageBin.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Interfaces.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -714,7 +714,7 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
     }
 }
 
-void IJK_Interfaces::associer(const IJK_FT_double& ijk_ft)
+void IJK_Interfaces::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   is_diphasique_ =  1 - ref_ijk_ft_->disable_diphasique();
@@ -6123,7 +6123,7 @@ void IJK_Interfaces::verif_indic()
   Process::Journal() << indic.get_str() << group_indic.get_str() << finl;
   if (!egalite)
     {
-      Cerr << "IJK_FT:: calcul de l'indicatrice faux ! (iteration " << tstep_ << " sur " << nb_timesteps_ << " )"
+      Cerr << "IJK_FT_base:: calcul de l'indicatrice faux ! (iteration " << tstep_ << " sur " << nb_timesteps_ << " )"
            << finl;
       Process::exit();
     }

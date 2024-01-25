@@ -26,7 +26,7 @@
 #include <TRUSTArrays.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 class IJK_Grid_Geometry;
 
 class Statistiques_dns_ijk_FT : public Statistiques_dns_ijk
@@ -34,16 +34,16 @@ class Statistiques_dns_ijk_FT : public Statistiques_dns_ijk
   Declare_instanciable_sans_constructeur(Statistiques_dns_ijk_FT);
 public:
   Statistiques_dns_ijk_FT(); // Je ne sais pas compiler le Vect(Statistiques_dns_ijk_FT) sans lui...
-  Statistiques_dns_ijk_FT(IJK_FT_double& ijk_ft);
+  Statistiques_dns_ijk_FT(IJK_FT_base& ijk_ft);
   using Statistiques_dns_ijk::initialize;
-  void initialize(const IJK_FT_double& ijk_ft,const IJK_Grid_Geometry&);
-  int initialize(const IJK_FT_double& ijk_ft,const IJK_Splitting& splitting,
+  void initialize(const IJK_FT_base& ijk_ft,const IJK_Grid_Geometry&);
+  int initialize(const IJK_FT_base& ijk_ft,const IJK_Splitting& splitting,
                  const int check_stats);
   Sortie& completer_print(Sortie& os) const override;
   void completer_read(Param& param) override;
   int lire_motcle_non_standard(const Motcle& mot, Entree& is) override;
 
-  void update_stat(IJK_FT_double& cas, const double dt);
+  void update_stat(IJK_FT_base& cas, const double dt);
 
   void postraiter(Sortie&, int flag_valeur_instantanee = 0) const;
   void postraiter_thermique(const double t) const;
@@ -70,7 +70,7 @@ protected:
   int check_stats_;
   int nb_thermal_fields_; // Number of objects thermique_ in the list
   int nvalt_;             // Number of variables post-processed per field
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
   // Last instantaneous value of the space average (only on processor 0)
   DoubleTab moyenne_spatiale_instantanee_temperature_; // (i,j,k) ->  (nvalt_,nb_elem_k_tot,nb_thermal_fields_)
   // Temporal integral of statistics variables

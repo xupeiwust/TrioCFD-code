@@ -27,7 +27,7 @@
 #include <IJK_Field.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 
 /*! @brief : class Sonde_IJK
  *
@@ -43,7 +43,7 @@ class Sonde_IJK : public Sonde
 
 public :
   inline Sonde_IJK(const Nom& );
-  void completer_IJK(const IJK_FT_double& ijk_ft);
+  void completer_IJK(const IJK_FT_base& ijk_ft);
   void initialiser();
   void nommer(const Nom& nom) override
   {
@@ -53,7 +53,7 @@ public :
   void postraiter();
 protected :
 
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
   REF(IJK_Field_double) ref_ijk_field_;
   Postraitement post_bidon_;
   Nom nom_;                                // le nom de la sonde

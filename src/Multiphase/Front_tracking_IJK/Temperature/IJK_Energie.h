@@ -48,7 +48,7 @@
 #include <Parser.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 
 /*! @brief : class IJK_Energie
  *
@@ -57,7 +57,7 @@ class IJK_FT_double;
  *
  *
  */
-class IJK_FT_double;
+class IJK_FT_base;
 
 
 class IJK_Energie : public Objet_U
@@ -69,7 +69,7 @@ public:
   int initialize(const IJK_Splitting& splitting, const int idx);
   void update_thermal_properties();
   double compute_timestep(const double timestep, const double dxmin) const;
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void euler_time_step(const FixedVector<IJK_Field_double, 3>& velocity);
   const IJK_Field_double& get_temperature() const { return temperature_; }
 
@@ -122,7 +122,7 @@ protected:
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,
                                         ArrOfDouble& interfacial_phin_ai) const;
 
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
   int rang_;
 
   Boundary_Conditions_Thermique boundary_conditions_;

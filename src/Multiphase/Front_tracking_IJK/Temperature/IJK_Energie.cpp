@@ -34,7 +34,7 @@
 
 #include <DebogIJK.h>
 #include <IJK_Energie.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <Param.h>
 #include <stat_counters.h>
@@ -258,7 +258,7 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
   return nalloc;
 }
 
-void IJK_Energie::associer(const IJK_FT_double& ijk_ft)
+void IJK_Energie::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.get_post().get_liste_post_instantanes();

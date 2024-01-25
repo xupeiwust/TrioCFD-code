@@ -14,35 +14,47 @@
 *****************************************************************************/
 /////////////////////////////////////////////////////////////////////////////
 //
-// File      : IJK_FT.h
+// File      : IJK_FT_cut_cell.h
 // Directory : $IJK_ROOT/src/FT
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef IJK_FT_included
-#define IJK_FT_included
+#ifndef IJK_FT_cut_cell_included
+#define IJK_FT_cut_cell_included
 
 #include <IJK_FT_base.h>
+#include <Cut_cell_FT_Disc.h>
+#include <IJK_FT_Post.h>
 
-/*! @brief : class IJK_FT
+
+/*! @brief : class IJK_FT_cut_cell
  *
- *  <Description of class IJK_FT>
+ *  <Description of class IJK_FT_cut_cell>
  *
  *
- *  La classe IJK_FT herite de la classe IJK_FT_base.
+ *  La classe IJK_FT_cut_cell herite de la classe IJK_FT_base.
  *
  */
-class IJK_FT : public IJK_FT_base
+class IJK_FT_cut_cell : public IJK_FT_base
 {
   friend class IJK_Thermique;
   friend class Statistiques_dns_ijk_FT;
-  Declare_instanciable(IJK_FT) ;
+  Declare_instanciable_sans_constructeur(IJK_FT_cut_cell) ;
 
 public :
+  IJK_FT_cut_cell();
   Entree& interpreter(Entree&) override;
   void run() override;
 
+  Cut_cell_FT_Disc* get_cut_fields() override
+  {
+    return &cut_fields_;
+  }
+
+
 protected :
+  friend class IJK_FT_Post_cut_cell;
+  Cut_cell_FT_Disc cut_fields_;
 };
 
-#endif /* IJK_FT_included */
+#endif /* IJK_FT_cut_cell_included */

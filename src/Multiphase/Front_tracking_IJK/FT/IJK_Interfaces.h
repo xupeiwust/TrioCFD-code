@@ -37,7 +37,7 @@
 #include <ComputeValParCompoInCell.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 class Domaine_dis;
 
 #define VERIF_INDIC 0
@@ -61,7 +61,7 @@ public :
                   const IJK_Splitting& splitting_NS,
                   const Domaine_dis& domaine_dis,
                   const bool compute_vint=true);
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
                                      const char *lata_name,
@@ -458,6 +458,9 @@ public :
   const double& I_ft(const int i, const int j, const int k) const { return indicatrice_ft_[old()](i, j, k); }
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
 
+  const FixedVector<IJK_Field_double, 3>& BoI() const { return bary_of_interf_ns_[old()]; }
+  const FixedVector<IJK_Field_double, 3>& BoIn() const { return bary_of_interf_ns_[next()]; }
+
   const IJK_Field_double& I() const { return indicatrice_ns_[old()]; }
   const IJK_Field_double& In() const { return indicatrice_ns_[next()]; }
   const double& I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
@@ -664,7 +667,7 @@ protected:
 // reference vers le splitting_ft_ pour les interfaces :
   REF(IJK_Splitting) ref_splitting_;
   REF(Domaine_dis) refdomaine_dis_;
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres
   IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x)

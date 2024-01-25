@@ -14,30 +14,37 @@
 *****************************************************************************/
 /////////////////////////////////////////////////////////////////////////////
 //
-// File      : IJK_FT.cpp
+// File      : IJK_FT_cut_cell.cpp
 // Directory : $IJK_ROOT/src/FT
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#include <IJK_FT.h>
 #include <IJK_FT_base.h>
+#include <IJK_FT_cut_cell.h>
+#include <Cut_cell_FT_Disc.h>
+#include <IJK_FT_Post.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
 
 
-Implemente_instanciable(IJK_FT, "IJK_FT_double", IJK_FT_base);
+Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
+IJK_FT_cut_cell::IJK_FT_cut_cell():
+  cut_fields_(splitting_)
+{
+  post_.activate_cut_cell_post_treatment();
+}
 
-Sortie& IJK_FT::printOn(Sortie& os) const
+Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
 {
   return os;
 }
 
-Entree& IJK_FT::readOn(Entree& is)
+Entree& IJK_FT_cut_cell::readOn(Entree& is)
 {
   return is;
 }
 
-Entree& IJK_FT::interpreter(Entree& is)
+Entree& IJK_FT_cut_cell::interpreter(Entree& is)
 {
   IJK_FT_base::interpreter(is);
 
@@ -51,11 +58,11 @@ static int decoder_numero_bulle(const int code)
   return num_bulle;
 }
 
-void IJK_FT::run()
+void IJK_FT_cut_cell::run()
 {
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
-  Cerr << "IJK_FT::run()" << finl;
+  Cerr << "IJK_FT_cut_cell::run()" << finl;
   allocate_velocity(velocity_, splitting_, 2);
   allocate_velocity(d_velocity_, splitting_, 1);
   // GAB, qdm
@@ -392,6 +399,10 @@ void IJK_FT::run()
         }
     }
 
+  // Initialisation des structures cut-cell
+  // Pour tester, je donne la masse volumique diphasique et le barycentre de l'interface.
+  cut_fields_.initialise(interfaces_.I(), interfaces_.BoI(), rho_field_);
+
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
     interfaces_.compute_vinterp();
@@ -509,6 +520,9 @@ void IJK_FT::run()
             }
 
         }
+
+      // Mise a jour des structures cut-cell
+      cut_fields_.update(interfaces_.I(), interfaces_.BoI(), rho_field_);
 
 #endif
       // Choix de l'avancement en temps :
@@ -948,3 +962,4 @@ void IJK_FT::run()
   statistiques().begin_count(temps_total_execution_counter_);
 
 }
+

@@ -33,7 +33,7 @@
 #include <Multigrille_Adrien.h>
 
 
-class IJK_FT;
+class IJK_FT_base;
 class IJK_Splitting;
 class IJK_Thermique;
 class IJK_Energie;
@@ -44,7 +44,7 @@ class List_IJK_Energie;
 class list_curseurIJK_Energie;
 class const_list_curseurIJK_Energie;
 /**
- * All the post-processing stuff of IJK_FT delegated into this helper class:
+ * All the post-processing stuff of IJK_FT_base delegated into this helper class:
  */
 class IJK_FT_Post
 {
@@ -52,7 +52,7 @@ class IJK_FT_Post
   friend class Statistiques_dns_ijk_FT;
 
 public:
-  IJK_FT_Post(IJK_FT_double& ijk_ft);
+  IJK_FT_Post(IJK_FT_base& ijk_ft);
   void complete_interpreter(Param& param, Entree& e);
   int initialise(int reprise);
   void complete(int reprise);
@@ -65,6 +65,7 @@ public:
   void update_stat_ft(const double dt);
   void get_update_lambda2();
   void get_update_lambda2_and_rot_and_curl();
+  void activate_cut_cell_post_treatment() { cut_cell_post_activated_ = 1; };
 
   IJK_Field_double& rebuilt_indic()
   {
@@ -116,7 +117,7 @@ public:
   void fill_op_conv();
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
-  // Part of the run() method in IJK_FT:
+  // Part of the run() method in IJK_FT_base:
   int alloc_fields();
   int alloc_velocity_and_co(bool flag_variable_source);
   void completer_sondes();
@@ -296,9 +297,9 @@ protected:
   Sondes_IJK les_sondes_;           // Sondes a traiter
 
   //
-  // References to various members of IJK_FT_double that are heavily used in the post:
+  // References to various members of IJK_FT_base that are heavily used in the post:
   //
-  IJK_FT_double& ref_ijk_ft_;
+  IJK_FT_base& ref_ijk_ft_;
 
   const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;
@@ -322,6 +323,9 @@ protected:
 
 
   Multigrille_Adrien poisson_solver_post_;
+
+  // Pour le post-traitement des champs cut-cell
+  int cut_cell_post_activated_;
 };
 
 

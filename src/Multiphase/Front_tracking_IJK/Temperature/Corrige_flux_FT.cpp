@@ -34,7 +34,7 @@
 
 #include <Corrige_flux_FT.h>
 #include <DebogIJK.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Thermique.h>
 #include <Intersection_Interface_ijk.h>
@@ -44,7 +44,7 @@
 void Corrige_flux_FT::initialize(const IJK_Splitting& splitting,
                                  const IJK_Field_double& field,
                                  const IJK_Interfaces& interfaces,
-                                 const IJK_FT_double& ijk_ft)
+                                 const IJK_FT_base& ijk_ft)
 {
   // TODO: est-ce que les pointeurs restent bien toujours les meme ?
   // Si oui je peux ne les initialiser qu'une fois, sinon il faudra
@@ -57,7 +57,7 @@ void Corrige_flux_FT::initialize(const IJK_Splitting& splitting,
 
 void Corrige_flux_FT_temperature_conv::initialize(
   const IJK_Splitting& splitting, const IJK_Field_double& field,
-  const IJK_Interfaces& interfaces, const IJK_FT_double& ijk_ft,
+  const IJK_Interfaces& interfaces, const IJK_FT_base& ijk_ft,
   const double rhocpl, const double rhocpv, const double ldal,
   const double ldav)
 {
