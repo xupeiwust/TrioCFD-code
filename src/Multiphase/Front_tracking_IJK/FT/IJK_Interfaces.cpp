@@ -528,6 +528,19 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
           bary_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
         }
     }
+
+  allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 1);
+  allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 1);
+  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, 1);
+  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, 1);
+  for (int d = 0; d < 3; d++)
+    {
+      indicatrice_surfacique_face_ft_[old()][d].data() = 0.;
+      indicatrice_surfacique_face_ft_[next()][d].data() = 0.;
+      indicatrice_surfacique_face_ns_[old()][d].data() = 0.;
+      indicatrice_surfacique_face_ns_[next()][d].data() = 0.;
+    }
+
   allocate_velocity(normal_of_interf_[old()], splitting_FT, 2);
   allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
   allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, 1);
@@ -3383,6 +3396,7 @@ static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
 //
 //
 
+
 // The method have to recieve the extended field indic_ft because
 // the splitting and the conversion "num_elem = s.convert_ijk_cell_to_packed(i,
 // j, k);" are required for num_compo_ which is on domaineVDF which is on the
@@ -3803,7 +3817,6 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
 
 void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic)
 {
-
   static Stat_Counter_Id calculer_indicatrice_counter_ =
     statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
@@ -3881,6 +3894,98 @@ void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3
     }
 
   statistiques().end_count(calculer_indicatrice_counter_);
+}
+
+void IJK_Interfaces::calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
+{
+  static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
+    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice surface face");
+  statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
+
+  const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
+  const IJK_Splitting& s = indic_surfacique_face.get_splitting();
+
+  const int ni = indic_surfacique_face[0].ni();
+  const int nj = indic_surfacique_face[0].nj();
+  const int nk = indic_surfacique_face[0].nk();
+
+  // Initialisation
+  {
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                if ((indic(i, j, k) == 0.) or (indic(i, j, k) == 1.))
+                  {
+                    // Dans les cellules pures, on utilise l'indicatrice pour determiner la phase
+                    indic_surfacique_face[0](i, j, k) = indic(i, j, k);
+                    indic_surfacique_face[1](i, j, k) = indic(i, j, k);
+                    indic_surfacique_face[2](i, j, k) = indic(i, j, k);
+                  }
+                else
+                  {
+                    // Dans les cellules diphasiques, on determine la phase a partir de la normale a l'interface
+                    // Ce calcul est important si la maille est diphasique mais que l'interface ne coupe pas la face
+                    indic_surfacique_face[0](i, j, k) = norme[0](i, j, k) == 0. ? 0. : (norme[0](i, j, k) > 0. ? 0. : 1.);
+                    indic_surfacique_face[1](i, j, k) = norme[1](i, j, k) == 0. ? 0. : (norme[1](i, j, k) > 0. ? 0. : 1.);
+                    indic_surfacique_face[2](i, j, k) = norme[2](i, j, k) == 0. ? 0. : (norme[2](i, j, k) > 0. ? 0. : 1.);
+                  }
+              }
+          }
+      }
+  }
+
+  // Correction pour les faces coupees par l'interface
+  // Note : methode similaire a calculer_indicatrice
+  {
+    const ArrOfInt& index_elem = intersec.index_elem();
+    //    const int nb_elem = index_elem.size_array();
+    // Boucle sur les elements euleriens
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                // Anciennement la methode etait portee par le mesh :
+                //    const int num_elem =
+                // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
+                // A present, elle est dans le splitting :
+                assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
+                const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
+                int index = index_elem[num_elem];
+                double somme_contrib[3] = {0., 0., 0.};
+                // Boucle sur les facettes qui traversent cet element
+                while (index >= 0)
+                  {
+                    const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                    somme_contrib[0] += data.contrib_aire_faces_phase1_[0];
+                    somme_contrib[1] += data.contrib_aire_faces_phase1_[1];
+                    somme_contrib[2] += data.contrib_aire_faces_phase1_[2];
+
+                    index = data.index_facette_suivante_;
+                  };
+
+                for (int dir=0; dir<3; dir++)
+                  {
+                    // Dans chaque direction, on ne touche qu'aux faces coupees
+                    if (somme_contrib[dir]*somme_contrib[dir] > 0)
+                      {
+                        while (somme_contrib[dir] > 1.)
+                          somme_contrib[dir] -= 1.;
+                        while (somme_contrib[dir] < 0.)
+                          somme_contrib[dir] += 1.;
+
+                        indic_surfacique_face[dir](i, j, k) = somme_contrib[dir];
+                      }
+                  }
+              }
+          }
+      }
+  }
+  statistiques().end_count(calculer_indicatrice_surfacique_face_counter_);
 }
 
 int IJK_Interfaces::update_indicatrice(IJK_Field_double& indic)
@@ -6050,6 +6155,14 @@ void IJK_Interfaces::calculer_indicatrice_next(
   mean_over_compo(normale_par_compo_[next()], nb_compo_traversante_[next()], normal_of_interf_[next()]);
   mean_over_compo(bary_par_compo_[next()], nb_compo_traversante_[next()], bary_of_interf_[next()]);
 
+  calculer_indicatrice_surfacique_face(indicatrice_surfacique_face_ft_[next()], indicatrice_ft_[next()], normal_of_interf_[next()]);
+  indicatrice_surfacique_face_ft_[next()].echange_espace_virtuel();
+
+  // Passage au domaine NS
+  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+    indicatrice_surfacique_face_ft_[next()],
+    indicatrice_surfacique_face_ns_[next()]);
+
   for (int c=0; c < 3; c++)
     {
       ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
@@ -6148,6 +6261,9 @@ void IJK_Interfaces::switch_indicatrice_next_old()
   normale_par_compo_[old()].echange_espace_virtuel();
   bary_par_compo_[old()].echange_espace_virtuel();
   surface_par_compo_[old()].echange_espace_virtuel();
+
+  indicatrice_surfacique_face_ft_[old()].echange_espace_virtuel();
+  indicatrice_surfacique_face_ns_[old()].echange_espace_virtuel();
 
   normal_of_interf_[old()].echange_espace_virtuel();
   bary_of_interf_[old()].echange_espace_virtuel();

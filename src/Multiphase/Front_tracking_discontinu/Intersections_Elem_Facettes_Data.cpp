@@ -33,6 +33,7 @@ void Intersections_Elem_Facettes::ajoute_intersection(int num_facette,
                                                       int num_element,
                                                       double fraction_surface_intersection,
                                                       double contrib_volume_phase1,
+                                                      double contrib_aire_faces_phase1[3],
                                                       double barycentre_phase1[3],
                                                       double barycentre_u,
                                                       double barycentre_v,
@@ -80,6 +81,9 @@ void Intersections_Elem_Facettes::ajoute_intersection(int num_facette,
     new_entry.fraction_surface_intersection_ = fraction_surface_intersection;
 #endif
     new_entry.contrib_volume_phase1_ = contrib_volume_phase1;
+    new_entry.contrib_aire_faces_phase1_[0] = contrib_aire_faces_phase1[0];
+    new_entry.contrib_aire_faces_phase1_[1] = contrib_aire_faces_phase1[1];
+    new_entry.contrib_aire_faces_phase1_[2] = contrib_aire_faces_phase1[2];
     new_entry.barycentre_phase1_[0] = barycentre_phase1[0];
     new_entry.barycentre_phase1_[1] = barycentre_phase1[1];
     new_entry.barycentre_phase1_[2] = barycentre_phase1[2];

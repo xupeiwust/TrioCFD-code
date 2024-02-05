@@ -129,6 +129,13 @@ protected:
                          const ArrOfInt& polygone_plan_coupe,
                          double epsilon) const;
 
+  double aire_face_rectangulaire(const Domaine_VF& domaine_vf, int num_element,
+                                 int num_face,
+                                 const DoubleTab& poly_reelles,
+                                 const FTd_vecteur3& norme,
+                                 const ArrOfInt& polygone_plan_coupe,
+                                 double epsilon) const;
+
   void matrice_triangle(int num_element,
                         FTd_vecteur2& origine,
                         FTd_matrice22& matrice,

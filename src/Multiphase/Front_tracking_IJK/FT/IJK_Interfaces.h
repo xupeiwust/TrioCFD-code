@@ -348,6 +348,14 @@ public :
   {
     return surface_vapeur_par_face_ns_[old()];
   }
+  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_ft() const
+  {
+    return indicatrice_surfacique_face_ft_[old()];
+  }
+  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face() const
+  {
+    return indicatrice_surfacique_face_ns_[old()];
+  }
   // Getter des surfaces par face
   // void get_surface_vapeur_par_face_ns(FixedVector<IJK_Field_double, 3> &surfs) const ;
   // Getter des barycentres par face
@@ -618,6 +626,8 @@ protected:
   void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
   void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
 
+  void calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
+
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
   // ne le sont plus a l'iteration courante ces elements ont ete marques au
@@ -813,6 +823,12 @@ protected:
 
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
+
+  // Indicatrice surfacique aux faces du maillage cartesien,
+  // indiquant la fraction de la surface de chaque face associee a la phase.
+  // Note : similaire a surface_vapeur_par_face_, mais sans medcoupling.
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ns_;
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
