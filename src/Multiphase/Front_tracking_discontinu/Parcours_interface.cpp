@@ -1969,7 +1969,7 @@ inline int select(int a, int x, int y,int z)
 
 /*! @brief Calcul de la contribution de surface d'une facette a la valeur de l'indicatrice surfacique sur une face d'un element.
  *
- * C'est une fraction de surface de la face 
+ * C'est une fraction de surface de la face
  *    comprise entre epsilon et 1.-epsilon
  *
  * Precondition: dimension = 3
@@ -2064,25 +2064,25 @@ double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
           // /  Segment
           // +  Points du segment
           // -  Aire associee au segment
-          //                           
+          //
           //     dir2                       dir2
           // max2 .------------.        max2 .------------.
           //      |            |             |------------|
           //      |-------+B   |             |------------|
           //      |------/     |             |------------|
-          //      |-----/      |             |------------+D  
+          //      |-----/      |             |------------+D
           //      |----+A      |             |-----------/|
           //      |            |             |----------/ |
           // min2 '------------' dir1   min2 '--------C+--' dir1
           //     min1        max1           min1        max1
           //           (a)                        (b)
-          //                           
-          //     dir2                       dir2         
+          //
+          //     dir2                       dir2
           // max2 .------------.H       max2 .------G+----.H
           //      |------------|             |--------\   |
           //      |--------F+--|             |--------F+  |
           //      |          \-|             |            |
-          //      |           \|             |            |   
+          //      |           \|             |            |
           //      |            +E            |            |
           //      |            |             |            |
           // min2 '------------' dir1   min2 '------------' dir1
