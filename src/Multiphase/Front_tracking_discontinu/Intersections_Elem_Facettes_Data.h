@@ -38,6 +38,7 @@ public:
 #endif
   double contrib_volume_phase1_;
   double contrib_aire_faces_phase1_[3];
+  double contrib_barycentre_faces_phase1_[3][2];
   // Coordonnees barycentriques du centre de gravite de l'intersection
   // par rapport aux trois sommets de la facette. On a toujours
   // barycentre[0] + barycentre[1] + barycentre[2] = 1.
@@ -92,6 +93,7 @@ public:
                            double surface_intersection,
                            double contrib_volume_phase1,
                            double contrib_aire_faces_phase1[3],
+                           double contrib_barycentre_faces_phase1[3][2],
                            double barycentre_phase1[3],
                            double barycentre_u,
                            double barycentre_v,

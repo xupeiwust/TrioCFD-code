@@ -611,7 +611,9 @@ int Parcours_interface::calcul_intersection_facelem_2D(
   if (inf_strict(surface,0.)) surface = 0.;
   // Contribution de volume :
   double volume = 0.;
+  // Contribution d'aire et de barycentre aux faces :
   double aire_faces[3] = {0., 0., 0.};
+  double barycentre_faces[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
   // Computation of barycenter in phase 1 :
   double barycentre_phase1[3] = {0.,0.,0.};
 
@@ -655,6 +657,7 @@ int Parcours_interface::calcul_intersection_facelem_2D(
                                                             surface,
                                                             volume,
                                                             aire_faces,
+                                                            barycentre_faces,
                                                             barycentre_phase1,
                                                             u_centre,
                                                             1. - u_centre,
@@ -1009,6 +1012,12 @@ inline double Parcours_interface::volume_triangle(const Domaine_VF& domaine_vf,
   return vol;
 }
 
+struct CutFace_Properties
+{
+  double area;
+  double barycentre[2];
+};
+
 /*! @brief Cette methode permet de calculer l'intersection entre une facette et un element du maillage eulerien
  *
  * Precondition: dimension = 3
@@ -1180,9 +1189,11 @@ int Parcours_interface::calcul_intersection_facelem_3D(
     }
   // *********************************************************************
   const int nb_sommets_poly = poly_.dimension(0);
+  // Contribution d'aire et de barycentre aux faces :
+  double aire_faces[3] = {0., 0., 0.};
+  double barycentre_faces[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
   // Calcul du centre de gravite et de la surface de l'intersection
   double volume = 0.;
-  double aire_faces[3] = {0., 0., 0.};
   double surface = 0.;
   double u_centre = 0.;
   double v_centre = 0.;
@@ -1316,24 +1327,20 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                    polygone_plan_coupe_,
                                    Erreur_max_coordonnees_);
 
-          static const int NUM_FACE_GAUCHE = 0;
-          static const int NUM_FACE_BAS = 1;
-          static const int NUM_FACE_ARRIERE = 2;
-          aire_faces[0] = aire_face_rectangulaire(domaine_vf, num_element, NUM_FACE_GAUCHE,
-                                                  poly_reelles_,
-                                                  norme,
-                                                  polygone_plan_coupe_,
-                                                  Erreur_max_coordonnees_);
-          aire_faces[1] = aire_face_rectangulaire(domaine_vf, num_element, NUM_FACE_BAS,
-                                                  poly_reelles_,
-                                                  norme,
-                                                  polygone_plan_coupe_,
-                                                  Erreur_max_coordonnees_);
-          aire_faces[2] = aire_face_rectangulaire(domaine_vf, num_element, NUM_FACE_ARRIERE,
-                                                  poly_reelles_,
-                                                  norme,
-                                                  polygone_plan_coupe_,
-                                                  Erreur_max_coordonnees_);
+          for (int i_face = 0; i_face < 3; i_face++)
+            {
+              // 0 = NUM_FACE_GAUCHE;
+              // 1 = NUM_FACE_BAS;
+              // 2 = NUM_FACE_ARRIERE;
+              CutFace_Properties cut_face_properties = coupe_face_rectangulaire(domaine_vf, num_element, i_face,
+                                                                                poly_reelles_,
+                                                                                norme,
+                                                                                polygone_plan_coupe_,
+                                                                                Erreur_max_coordonnees_);
+              aire_faces[i_face] = cut_face_properties.area;
+              barycentre_faces[i_face][0] = cut_face_properties.barycentre[0];
+              barycentre_faces[i_face][1] = cut_face_properties.barycentre[1];
+            }
           break;
         default:
           // qu'est-ce qu'on fout la ?
@@ -1348,6 +1355,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                                                 surface * 2.,
                                                                 volume,
                                                                 aire_faces,
+                                                                barycentre_faces,
                                                                 barycentre_phase1,
                                                                 u_centre,
                                                                 v_centre,
@@ -1362,6 +1370,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                                                 0.,
                                                                 0.,
                                                                 aire_faces,
+                                                                barycentre_faces,
                                                                 barycentre_phase1,
                                                                 0., 0., 0.);
     }
@@ -1967,10 +1976,7 @@ inline int select(int a, int x, int y,int z)
   return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
 }
 
-/*! @brief Calcul de la contribution de surface d'une facette a la valeur de l'indicatrice surfacique sur une face d'un element.
- *
- * C'est une fraction de surface de la face
- *    comprise entre epsilon et 1.-epsilon
+/*! @brief Calcul de la contribution d'une facette a l'indicatrice surfacique et au barycentre sur une face d'un element.
  *
  * Precondition: dimension = 3
  *
@@ -1980,15 +1986,15 @@ inline int select(int a, int x, int y,int z)
  * @param (poly_reelles) coordonnees (reelles) des sommets definissant une surface contenue dans l'element (en pratique : surface d'intersection entre une facette d'interface et l'element)
  * @param (norme) normale a la facette
  * @param (epsilon) erreur relative
- * @return (double) contribution de la surface engendre par le segment sur la face
+ * @return (CutFace_Properties) contribution de la surface engendre par le segment sur la face, et au barycentre de cette surface
  */
-double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
-                                                   int num_element,
-                                                   int num_face,
-                                                   const DoubleTab& poly_reelles,
-                                                   const FTd_vecteur3& norme,
-                                                   const ArrOfInt& polygone_plan_coupe,
-                                                   double epsilon) const
+CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF& domaine_vf,
+                                                                int num_element,
+                                                                int num_face,
+                                                                const DoubleTab& poly_reelles,
+                                                                const FTd_vecteur3& norme,
+                                                                const ArrOfInt& polygone_plan_coupe,
+                                                                double epsilon) const
 {
   // Conventions TRUST VDF :
   //static const int NUM_FACE_GAUCHE = 0;
@@ -2020,7 +2026,7 @@ double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
   double min2 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir2), dir2);;
   double max2 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir2+3), dir2);;
 
-  //determination des signes pour les differentes composantes :
+  // Determination des signes pour les differentes composantes :
   double signe1, signe2;
   if (norme[dir1]>0.)
     {
@@ -2054,53 +2060,82 @@ double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
   const int nb_sommets_poly = poly_reelles.dimension(0);
 
   double aire = 0.;
+  double barycentre[2] = {0};
   for (int i = 0; i < nb_sommets_poly; i++)
     {
       // On ne considere que les segments sur la face consideree
       // Normalement, il ne peut y en avoir qu'un par facette
       if (polygone_plan_coupe[i] == num_face)
         {
+          // Calcul de la contribution de l'arete a l'aire projetee dans le plan (dir1,dir2)
+          // par la somme algebrique des aires des trapezes generes par la projection de l'arete sur l'axe dir1=min1
+          // Le signe de l'aire indique la phase correspondante (positive pour la phase disperse).
+          //
           // Representation graphique de la methode :
           // /  Segment
           // +  Points du segment
-          // -  Aire associee au segment
+          // =  Aire associee au segment (partie rectangle)
+          // .  Aire associee au segment (partie triangle)
+          // -  Aire associee au segment (partie coupe_max1)
+          // :  Separation entre le rectangle et le triangle
           //
           //     dir2                       dir2
           // max2 .------------.        max2 .------------.
           //      |            |             |------------|
-          //      |-------+B   |             |------------|
-          //      |------/     |             |------------|
-          //      |-----/      |             |------------+D
-          //      |----+A      |             |-----------/|
-          //      |            |             |----------/ |
-          // min2 '------------' dir1   min2 '--------C+--' dir1
+          //      |====...+B   |             |------------|
+          //      |====../     |             |------------|
+          //      |====./      |             |=========...+D
+          //      |====+A      |             |=========../|
+          //      |            |             |=========./ |
+          // min2 '------------' dir1   min2 '========C+--' dir1
           //     min1        max1           min1        max1
           //           (a)                        (b)
           //
           //     dir2                       dir2
-          // max2 .------------.H       max2 .------G+----.H
-          //      |------------|             |--------\   |
-          //      |--------F+--|             |--------F+  |
-          //      |          \-|             |            |
-          //      |           \|             |            |
-          //      |            +E            |            |
+          // max2 .------------.H       max2 .======G+----.H
+          //      |------------|             |=======.\   |
+          //      |--------F+--|             |=======+F+  |
+          //      |         :\-|             |            |
+          //      |         : \|             |            |
+          //      |         +  +E            |            |
           //      |            |             |            |
           // min2 '------------' dir1   min2 '------------' dir1
           //     min1        max1           min1        max1
           //           (c)                        (d)
           //
+          // Note : Dans le cas (c), l'aire du triangle et du rectangle
+          // sont compenses par une partie de l'aire de coupe_max1.
           // En sommant algebriquement les surfaces des cas (c) et (d),
           // on doit retrouver l'aire du triangle EGH (au signe pres)
 
           const int i_moins_1 = (i == 0) ? (nb_sommets_poly - 1) : (i-1);
           const int i_plus_1 = (i == (nb_sommets_poly-1)) ? 0 : (i+1);
 
-          // Calcul de la contribution de l'arete a l'aire projetee dans le plan (dir1,dir2) :
-          // par la somme algebrique des aires des trapezes (generes par la projection de l'arete sur l'axe dir1=min1)
-          double contrib = (poly_reelles(i,dir2) - poly_reelles(i_moins_1,dir2)) * (((poly_reelles(i,dir1) + poly_reelles(i_moins_1,dir1)) * 0.5) - min1);
+          int i_long_side = poly_reelles(i,dir1) < poly_reelles(i_moins_1,dir1) ? i_moins_1 : i;
+          int i_short_side = poly_reelles(i,dir1) < poly_reelles(i_moins_1,dir1) ? i : i_moins_1;
 
-          // Aire de la partie "projection sur dir1=min1"
-          aire += signe1 * std::fabs(contrib);
+          // Aire et barycentre de la partie 'rectangle'
+          double area_rectangle = abs(poly_reelles(i,dir2) - poly_reelles(i_moins_1,dir2)) * abs(poly_reelles(i_short_side,dir1) - min1);
+          double barycentre_rectangle[2] =
+          {
+            (.5*(poly_reelles(i_short_side,dir1) - min1))/(max1 - min1),
+            (.5*(poly_reelles(i,dir2) + poly_reelles(i_moins_1,dir2)) - min2)/(max2 - min2)
+          };
+
+          // Aire et barycentre de la partie 'triangle'
+          double area_triangle = abs(poly_reelles(i,dir2) - poly_reelles(i_moins_1,dir2)) * .5*(poly_reelles(i_long_side,dir1) - poly_reelles(i_short_side,dir1));
+          double barycentre_triangle[2] =
+          {
+            (poly_reelles(i_short_side,dir1) - min1 + 1./3.*(poly_reelles(i_long_side,dir1) - poly_reelles(i_short_side,dir1)))/(max1 - min1),
+            (poly_reelles(i_long_side,dir2) - min2 + 1./3.*(poly_reelles(i_short_side,dir2) - poly_reelles(i_long_side,dir2)))/(max2 - min2)
+          };
+
+          assert(area_rectangle + area_triangle >= 0.);
+
+          // Aire et barycentre (pondere par l'aire) de la partie 'projection = triangle + rectangle'
+          aire += signe1 * (area_rectangle + area_triangle);
+          barycentre[0] += signe1 * (area_triangle*barycentre_triangle[0] + area_rectangle*barycentre_rectangle[0]);
+          barycentre[1] += signe1 * (area_triangle*barycentre_triangle[1] + area_rectangle*barycentre_rectangle[1]);
 
           // Un segment voisin est-il sur dir1=max1
           int coupe_max1 = -1;
@@ -2111,21 +2146,48 @@ double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
 
           if (coupe_max1 >= 0)
             {
-              // Les sommets coupe_haut et coupe_haut_p1 coupent le dir2=max2
-              // -> ajoute la composante de surface associee = (max1-min1) * (x2 - max2)
-              double surf_2 =
-                (max1 - min1)
-                * (poly_reelles(coupe_max1,dir2) - max2);
+              // Aire et barycentre de la partie 'coupe_max1'
+              double area_coupe_max1 = (max1 - min1) * abs(max2 - poly_reelles(coupe_max1,dir2));
+              double barycentre_coupe_max1[2] =
+              {
+                .5,
+                (.5*(poly_reelles(coupe_max1,dir2) + max2) - min2)/(max2 - min2)
+              };
 
-              aire += signe2 * std::fabs(surf_2);
+              assert(area_coupe_max1 >= 0.);
 
+              // Ajout de la contribution de 'coupe_max1' a l'aire et au barycentre (pondere par l'aire)
+              aire += signe2 * area_coupe_max1;
+              barycentre[0] += barycentre_coupe_max1[0] * signe2 * area_coupe_max1;
+              barycentre[1] += barycentre_coupe_max1[1] * signe2 * area_coupe_max1;
             }
 
         }
     }
 
-  //normalisation par le volume de l'element
+  // Normalisation par l'aire de la face
   aire /= aire_face;
+  barycentre[0] /= aire_face;
+  barycentre[1] /= aire_face;
+
+  assert((aire >= -1) && (aire <= 1));
+
+  if (aire == 0.)
+    {
+      barycentre[0] = 1./2.;
+      barycentre[1] = 1./2.;
+    }
+  else
+    {
+      // Division par l'aire pour calcul du barycentre
+      barycentre[0] /= abs(aire);
+      barycentre[1] /= abs(aire);
+
+      assert((barycentre[0] >= -1) && (barycentre[0] <= 1));
+      assert((barycentre[1] >= -1) && (barycentre[1] <= 1));
+      assert(((aire < 0.) && (barycentre[0] < 0.)) || ((aire > 0.) && (barycentre[0] > 0.)));
+      assert(((aire < 0.) && (barycentre[1] < 0.)) || ((aire > 0.) && (barycentre[1] > 0.)));
+    }
 
   // On force la valeur entre 0 et 1 strictement.
 #if 0
@@ -2135,7 +2197,7 @@ double Parcours_interface::aire_face_rectangulaire(const Domaine_VF& domaine_vf,
     aire = 1. - Erreur_relative_maxi_;
 #endif
 
-  return aire;
+  return {aire, {barycentre[0], barycentre[1]}};
 }
 
 /*! @brief Pour un point P0 (x0, y0, z0) a l'INTERIEUR de l'element num_element et un autre point P1 (x1, y1, z1), calcule l'intersection du segment (P0,P1)

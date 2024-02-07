@@ -367,6 +367,25 @@ public :
   {
     return barycentre_vapeur_par_face_ns_[old()];
   }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face_ft() const
+  {
+    return barycentre_phase1_face_ft_[old()];
+  }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face() const
+  {
+    return barycentre_phase1_face_ns_[old()];
+  }
+  static inline double opposing_barycentre(double initial_barycentre, double initial_area)
+  {
+    double weighted_barycentre = initial_barycentre*initial_area;
+    double opposing_area = 1 - initial_area;
+    double opposing_barycentre = ((opposing_area == 0.) || (opposing_area == 1.)) ? 1./2. : (1./2. - weighted_barycentre)/opposing_area;
+    if (opposing_barycentre == .5 && (opposing_area > 0. && opposing_area < 1.))
+      {
+        assert(false);
+      }
+    return opposing_barycentre;
+  }
 
   int get_nb_face_mouillees() const { return n_faces_mouilles_[old()]; }
 
@@ -626,7 +645,7 @@ protected:
   void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
   void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
 
-  void calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
+  void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
 
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
@@ -829,6 +848,9 @@ protected:
   // Note : similaire a surface_vapeur_par_face_, mais sans medcoupling.
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ns_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ft_;
+
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ns_;
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
