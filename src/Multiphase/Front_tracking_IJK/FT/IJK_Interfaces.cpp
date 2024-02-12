@@ -529,6 +529,19 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
         }
     }
 
+  for (int d = 0; d < 3; d++)
+    {
+      barycentre_phase1_ft_[old()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+      barycentre_phase1_ft_[next()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
+      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
+
+      barycentre_phase1_ft_[old()][d].data() = 0.;
+      barycentre_phase1_ft_[next()][d].data() = 0.;
+      barycentre_phase1_ns_[old()][d].data() = 0.;
+      barycentre_phase1_ns_[next()][d].data() = 0.;
+    }
+
   allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 1);
   allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 1);
   allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, 1);
@@ -3412,143 +3425,6 @@ static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
 //
 //
 
-void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
-{
-  static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice surface face");
-  statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
-
-  const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic_surfacique_face.get_splitting();
-
-  const int ni = indic_surfacique_face[0].ni();
-  const int nj = indic_surfacique_face[0].nj();
-  const int nk = indic_surfacique_face[0].nk();
-
-  // Initialisation
-  {
-    for (int k = 0; k < nk; k++)
-      {
-        for (int j = 0; j < nj; j++)
-          {
-            for (int i = 0; i < ni; i++)
-              {
-                if ((indic(i, j, k) == 0.) or (indic(i, j, k) == 1.))
-                  {
-                    // Dans les cellules pures, on utilise l'indicatrice pour determiner la phase
-                    indic_surfacique_face[0](i, j, k) = indic(i, j, k);
-                    indic_surfacique_face[1](i, j, k) = indic(i, j, k);
-                    indic_surfacique_face[2](i, j, k) = indic(i, j, k);
-                  }
-                else
-                  {
-                    // Dans les cellules diphasiques, on determine la phase a partir de la normale a l'interface
-                    // Ce calcul est important si la maille est diphasique mais que l'interface ne coupe pas la face
-                    indic_surfacique_face[0](i, j, k) = norme[0](i, j, k) == 0. ? 0. : (norme[0](i, j, k) > 0. ? 0. : 1.);
-                    indic_surfacique_face[1](i, j, k) = norme[1](i, j, k) == 0. ? 0. : (norme[1](i, j, k) > 0. ? 0. : 1.);
-                    indic_surfacique_face[2](i, j, k) = norme[2](i, j, k) == 0. ? 0. : (norme[2](i, j, k) > 0. ? 0. : 1.);
-                  }
-
-                // Le barycentre est par defaut au milieu de la maille
-                baric_face[0][0](i, j, k) = 0.5;
-                baric_face[0][1](i, j, k) = 0.5;
-                baric_face[1][0](i, j, k) = 0.5;
-                baric_face[1][1](i, j, k) = 0.5;
-                baric_face[2][0](i, j, k) = 0.5;
-                baric_face[2][1](i, j, k) = 0.5;
-              }
-          }
-      }
-  }
-
-  // Correction pour les faces coupees par l'interface
-  // Note : methode similaire a calculer_indicatrice
-  {
-    const ArrOfInt& index_elem = intersec.index_elem();
-    //    const int nb_elem = index_elem.size_array();
-    // Boucle sur les elements euleriens
-    for (int k = 0; k < nk; k++)
-      {
-        for (int j = 0; j < nj; j++)
-          {
-            for (int i = 0; i < ni; i++)
-              {
-                // Puisqu'il y a une tolerance sur le calcul de l'indicatrice, il se peut
-                // qu'une cellule consideree pure soit traversee par l'interface.
-                // Pour coherence, on considere les faces non coupees dans ce cas.
-                if ((indic(i, j, k) != 0.) || (indic(i, j, k) != 1.))
-                  {
-                    // Anciennement la methode etait portee par le mesh :
-                    //    const int num_elem =
-                    // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
-                    // A present, elle est dans le splitting :
-                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
-                    const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
-                    int index = index_elem[num_elem];
-                    double somme_contrib[3] = {0., 0., 0.};
-                    double somme_contrib_baryc[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
-                    // Boucle sur les facettes qui traversent cet element
-                    while (index >= 0)
-                      {
-                        const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-                        somme_contrib[0] += data.contrib_aire_faces_phase1_[0];
-                        somme_contrib[1] += data.contrib_aire_faces_phase1_[1];
-                        somme_contrib[2] += data.contrib_aire_faces_phase1_[2];
-
-                        somme_contrib_baryc[0][0] += data.contrib_barycentre_faces_phase1_[0][0]*abs(data.contrib_aire_faces_phase1_[0]);
-                        somme_contrib_baryc[0][1] += data.contrib_barycentre_faces_phase1_[0][1]*abs(data.contrib_aire_faces_phase1_[0]);
-                        somme_contrib_baryc[1][0] += data.contrib_barycentre_faces_phase1_[1][0]*abs(data.contrib_aire_faces_phase1_[1]);
-                        somme_contrib_baryc[1][1] += data.contrib_barycentre_faces_phase1_[1][1]*abs(data.contrib_aire_faces_phase1_[1]);
-                        somme_contrib_baryc[2][0] += data.contrib_barycentre_faces_phase1_[2][0]*abs(data.contrib_aire_faces_phase1_[2]);
-                        somme_contrib_baryc[2][1] += data.contrib_barycentre_faces_phase1_[2][1]*abs(data.contrib_aire_faces_phase1_[2]);
-
-                        index = data.index_facette_suivante_;
-                      };
-
-                    for (int dir=0; dir<3; dir++)
-                      {
-                        // Dans chaque direction, on ne touche qu'aux faces coupees
-                        if (somme_contrib[dir]*somme_contrib[dir] > 0)
-                          {
-                            while (somme_contrib[dir] > 1.)
-                              {
-                                somme_contrib[dir] -= 1.;
-                                somme_contrib_baryc[dir][0] -= 1./2.;
-                                somme_contrib_baryc[dir][1] -= 1./2.;
-                              }
-                            while (somme_contrib[dir] < 0.)
-                              {
-                                somme_contrib[dir] += 1.;
-                                somme_contrib_baryc[dir][0] += 1./2.;
-                                somme_contrib_baryc[dir][1] += 1./2.;
-                              }
-
-                            indic_surfacique_face[dir](i, j, k) = somme_contrib[dir];
-                            if ((somme_contrib[dir] == 0.) || (somme_contrib[dir] == 1.))
-                              {
-                                baric_face[dir][0](i, j, k) = 1./2.;
-                                baric_face[dir][1](i, j, k) = 1./2.;
-                              }
-                            else
-                              {
-                                baric_face[dir][0](i, j, k) = somme_contrib_baryc[dir][0]/abs(somme_contrib[dir]);
-                                baric_face[dir][1](i, j, k) = somme_contrib_baryc[dir][1]/abs(somme_contrib[dir]);
-
-                                assert((baric_face[dir][0](i, j, k) >= -1) && (baric_face[dir][0](i, j, k) <= 1));
-                                assert((baric_face[dir][1](i, j, k) >= -1) && (baric_face[dir][1](i, j, k) <= 1));
-                                assert(((indic_surfacique_face[dir](i, j, k) < 0.) && (baric_face[dir][0](i, j, k) < 0.)) || ((indic_surfacique_face[dir](i, j, k) > 0.) && (baric_face[dir][0](i, j, k) > 0.)));
-                                assert(((indic_surfacique_face[dir](i, j, k) < 0.) && (baric_face[dir][1](i, j, k) < 0.)) || ((indic_surfacique_face[dir](i, j, k) > 0.) && (baric_face[dir][1](i, j, k) > 0.)));
-                              }
-                          }
-                      }
-                  }
-              }
-          }
-      }
-  }
-  statistiques().end_count(calculer_indicatrice_surfacique_face_counter_);
-}
-
 // The method have to recieve the extended field indic_ft because
 // the splitting and the conversion "num_elem = s.convert_ijk_cell_to_packed(i,
 // j, k);" are required for num_compo_ which is on domaineVDF which is on the
@@ -4159,6 +4035,250 @@ int IJK_Interfaces::update_indicatrice(IJK_Field_double& indic)
   while (continuer);
 
   return 0;
+}
+
+void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
+{
+  static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
+    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice surface face");
+  statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
+
+  const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
+  const IJK_Splitting& s = indic_surfacique_face.get_splitting();
+
+  const int ni = indic_surfacique_face[0].ni();
+  const int nj = indic_surfacique_face[0].nj();
+  const int nk = indic_surfacique_face[0].nk();
+
+  // Initialisation
+  {
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                if ((indic(i, j, k) == 0.) or (indic(i, j, k) == 1.))
+                  {
+                    // Dans les cellules pures, on utilise l'indicatrice pour determiner la phase
+                    indic_surfacique_face[0](i, j, k) = indic(i, j, k);
+                    indic_surfacique_face[1](i, j, k) = indic(i, j, k);
+                    indic_surfacique_face[2](i, j, k) = indic(i, j, k);
+                  }
+                else
+                  {
+                    // Dans les cellules diphasiques, on determine la phase a partir de la normale a l'interface
+                    // Ce calcul est important si la maille est diphasique mais que l'interface ne coupe pas la face
+                    indic_surfacique_face[0](i, j, k) = norme[0](i, j, k) == 0. ? 0. : (norme[0](i, j, k) > 0. ? 0. : 1.);
+                    indic_surfacique_face[1](i, j, k) = norme[1](i, j, k) == 0. ? 0. : (norme[1](i, j, k) > 0. ? 0. : 1.);
+                    indic_surfacique_face[2](i, j, k) = norme[2](i, j, k) == 0. ? 0. : (norme[2](i, j, k) > 0. ? 0. : 1.);
+                  }
+
+                // Le barycentre est par defaut au milieu de la maille
+                baric_face[0][0](i, j, k) = 0.5;
+                baric_face[0][1](i, j, k) = 0.5;
+                baric_face[1][0](i, j, k) = 0.5;
+                baric_face[1][1](i, j, k) = 0.5;
+                baric_face[2][0](i, j, k) = 0.5;
+                baric_face[2][1](i, j, k) = 0.5;
+              }
+          }
+      }
+  }
+
+  // Correction pour les faces coupees par l'interface
+  // Note : methode similaire a calculer_indicatrice
+  {
+    const ArrOfInt& index_elem = intersec.index_elem();
+    //    const int nb_elem = index_elem.size_array();
+    // Boucle sur les elements euleriens
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                // Puisqu'il y a une tolerance sur le calcul de l'indicatrice, il se peut
+                // qu'une cellule consideree pure soit traversee par l'interface.
+                // Pour coherence, on considere les faces non coupees dans ce cas.
+                if ((indic(i, j, k) != 0.) && (indic(i, j, k) != 1.))
+                  {
+                    // Anciennement la methode etait portee par le mesh :
+                    //    const int num_elem =
+                    // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
+                    // A present, elle est dans le splitting :
+                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
+                    const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
+                    int index = index_elem[num_elem];
+                    double somme_contrib[3] = {0., 0., 0.};
+                    double somme_contrib_baryc[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
+                    // Boucle sur les facettes qui traversent cet element
+                    while (index >= 0)
+                      {
+                        const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                        somme_contrib[0] += data.contrib_aire_faces_phase1_[0];
+                        somme_contrib[1] += data.contrib_aire_faces_phase1_[1];
+                        somme_contrib[2] += data.contrib_aire_faces_phase1_[2];
+
+                        somme_contrib_baryc[0][0] += data.contrib_barycentre_faces_phase1_[0][0]*abs(data.contrib_aire_faces_phase1_[0]);
+                        somme_contrib_baryc[0][1] += data.contrib_barycentre_faces_phase1_[0][1]*abs(data.contrib_aire_faces_phase1_[0]);
+                        somme_contrib_baryc[1][0] += data.contrib_barycentre_faces_phase1_[1][0]*abs(data.contrib_aire_faces_phase1_[1]);
+                        somme_contrib_baryc[1][1] += data.contrib_barycentre_faces_phase1_[1][1]*abs(data.contrib_aire_faces_phase1_[1]);
+                        somme_contrib_baryc[2][0] += data.contrib_barycentre_faces_phase1_[2][0]*abs(data.contrib_aire_faces_phase1_[2]);
+                        somme_contrib_baryc[2][1] += data.contrib_barycentre_faces_phase1_[2][1]*abs(data.contrib_aire_faces_phase1_[2]);
+
+                        index = data.index_facette_suivante_;
+                      };
+
+                    for (int dir=0; dir<3; dir++)
+                      {
+                        // Dans chaque direction, on ne touche qu'aux faces coupees
+                        if (somme_contrib[dir]*somme_contrib[dir] > 0)
+                          {
+                            while (somme_contrib[dir] > 1.)
+                              {
+                                somme_contrib[dir] -= 1.;
+                                somme_contrib_baryc[dir][0] -= 1./2.;
+                                somme_contrib_baryc[dir][1] -= 1./2.;
+                              }
+                            while (somme_contrib[dir] < 0.)
+                              {
+                                somme_contrib[dir] += 1.;
+                                somme_contrib_baryc[dir][0] += 1./2.;
+                                somme_contrib_baryc[dir][1] += 1./2.;
+                              }
+
+                            indic_surfacique_face[dir](i, j, k) = somme_contrib[dir];
+                            if ((somme_contrib[dir] == 0.) || (somme_contrib[dir] == 1.))
+                              {
+                                baric_face[dir][0](i, j, k) = 1./2.;
+                                baric_face[dir][1](i, j, k) = 1./2.;
+                              }
+                            else
+                              {
+                                baric_face[dir][0](i, j, k) = somme_contrib_baryc[dir][0]/abs(somme_contrib[dir]);
+                                baric_face[dir][1](i, j, k) = somme_contrib_baryc[dir][1]/abs(somme_contrib[dir]);
+
+                                assert((baric_face[dir][0](i, j, k) >= 0) && (baric_face[dir][0](i, j, k) <= 1));
+                                assert((baric_face[dir][1](i, j, k) >= 0) && (baric_face[dir][1](i, j, k) <= 1));
+                                assert(((indic_surfacique_face[dir](i, j, k) < 0.) && (baric_face[dir][0](i, j, k) < 0.)) || ((indic_surfacique_face[dir](i, j, k) > 0.) && (baric_face[dir][0](i, j, k) > 0.)));
+                                assert(((indic_surfacique_face[dir](i, j, k) < 0.) && (baric_face[dir][1](i, j, k) < 0.)) || ((indic_surfacique_face[dir](i, j, k) > 0.) && (baric_face[dir][1](i, j, k) > 0.)));
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
+  }
+  statistiques().end_count(calculer_indicatrice_surfacique_face_counter_);
+}
+
+void IJK_Interfaces::calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic)
+{
+  static Stat_Counter_Id calculer_barycentre_counter_ =
+    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul du barycentre");
+  statistiques().begin_count(calculer_barycentre_counter_);
+
+  const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
+  const IJK_Splitting& s = baric.get_splitting();
+
+  const int ni = baric[0].ni();
+  const int nj = baric[0].nj();
+  const int nk = baric[0].nk();
+
+  // Initialisation
+  {
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                // Le barycentre est par defaut au milieu de la maille
+                baric[0](i, j, k) = 0.5;
+                baric[1](i, j, k) = 0.5;
+                baric[2](i, j, k) = 0.5;
+              }
+          }
+      }
+  }
+
+  // Correction pour les faces coupees par l'interface
+  // Note : methode similaire a calculer_indicatrice
+  {
+    const ArrOfInt& index_elem = intersec.index_elem();
+    //    const int nb_elem = index_elem.size_array();
+    // Boucle sur les elements euleriens
+    for (int k = 0; k < nk; k++)
+      {
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                // Puisqu'il y a une tolerance sur le calcul de l'indicatrice, il se peut
+                // qu'une cellule consideree pure soit traversee par l'interface.
+                if ((indic(i, j, k) != 0.) && (indic(i, j, k) != 1.))
+                  {
+                    // Anciennement la methode etait portee par le mesh :
+                    //    const int num_elem =
+                    // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
+                    // A present, elle est dans le splitting :
+                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
+                    const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
+                    int index = index_elem[num_elem];
+                    double somme_contrib = 0.;
+                    double somme_contrib_baryc[3] = {0., 0., 0.};
+                    // Boucle sur les facettes qui traversent cet element
+                    while (index >= 0)
+                      {
+                        const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                        somme_contrib += data.contrib_volume_phase1_;
+
+                        somme_contrib_baryc[0] += data.contrib_barycentre_phase1_[0]*abs(data.contrib_volume_phase1_);
+                        somme_contrib_baryc[1] += data.contrib_barycentre_phase1_[1]*abs(data.contrib_volume_phase1_);
+                        somme_contrib_baryc[2] += data.contrib_barycentre_phase1_[2]*abs(data.contrib_volume_phase1_);
+
+                        index = data.index_facette_suivante_;
+                      };
+
+                    while (somme_contrib > 1.)
+                      {
+                        somme_contrib -= 1.;
+                        somme_contrib_baryc[0] -= 1./2.;
+                        somme_contrib_baryc[1] -= 1./2.;
+                        somme_contrib_baryc[2] -= 1./2.;
+                      }
+                    while (somme_contrib < 0.)
+                      {
+                        somme_contrib += 1.;
+                        somme_contrib_baryc[0] += 1./2.;
+                        somme_contrib_baryc[1] += 1./2.;
+                        somme_contrib_baryc[2] += 1./2.;
+                      }
+
+                    // Note : On recalcule l'indicatrice, c'est un peu dommage
+                    if (indic(i, j, k) != somme_contrib)
+                      {
+                        assert(false);
+                      }
+
+                    baric[0](i, j, k) = somme_contrib_baryc[0]/abs(somme_contrib);
+                    baric[1](i, j, k) = somme_contrib_baryc[1]/abs(somme_contrib);
+                    baric[2](i, j, k) = somme_contrib_baryc[2]/abs(somme_contrib);
+
+                    assert((baric[0](i, j, k) >= 0) && (baric[0](i, j, k) <= 1));
+                    assert((baric[1](i, j, k) >= 0) && (baric[1](i, j, k) <= 1));
+                    assert((baric[2](i, j, k) >= 0) && (baric[2](i, j, k) <= 1));
+                    assert(((indic(i, j, k) < 0.) && (baric[0](i, j, k) < 0.)) || ((indic(i, j, k) > 0.) && (baric[0](i, j, k) > 0.)));
+                    assert(((indic(i, j, k) < 0.) && (baric[1](i, j, k) < 0.)) || ((indic(i, j, k) > 0.) && (baric[1](i, j, k) > 0.)));
+                    assert(((indic(i, j, k) < 0.) && (baric[2](i, j, k) < 0.)) || ((indic(i, j, k) > 0.) && (baric[2](i, j, k) > 0.)));
+                  }
+              }
+          }
+      }
+  }
+  statistiques().end_count(calculer_barycentre_counter_);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -6215,8 +6335,15 @@ void IJK_Interfaces::calculer_indicatrice_next(
   mean_over_compo(normale_par_compo_[next()], nb_compo_traversante_[next()], normal_of_interf_[next()]);
   mean_over_compo(bary_par_compo_[next()], nb_compo_traversante_[next()], bary_of_interf_[next()]);
 
+  calculer_barycentre(barycentre_phase1_ft_[next()], indicatrice_ft_[next()]);
+  for (int d = 0; d < 3; d++)
+    {
+      barycentre_phase1_ft_[next()][d].echange_espace_virtuel(barycentre_phase1_ft_[next()][d].ghost());
+    }
+
   calculer_indicatrice_surfacique_barycentre_face(indicatrice_surfacique_face_ft_[next()], barycentre_phase1_face_ft_[next()], indicatrice_ft_[next()], normal_of_interf_[next()]);
   indicatrice_surfacique_face_ft_[next()].echange_espace_virtuel();
+
   for (int d = 0; d < 3; d++)
     {
       for (int dir = 0; dir < 2; dir++)
@@ -6226,6 +6353,12 @@ void IJK_Interfaces::calculer_indicatrice_next(
     }
 
   // Passage au domaine NS
+  for (int d = 0; d < 3; d++)
+    {
+      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_ft_[next()][d], barycentre_phase1_ns_[next()][d]);
+      barycentre_phase1_ns_[next()][d].echange_espace_virtuel(barycentre_phase1_ns_[next()][d].ghost());
+    }
+
   ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
     indicatrice_surfacique_face_ft_[next()],
     indicatrice_surfacique_face_ns_[next()]);
@@ -6337,6 +6470,12 @@ void IJK_Interfaces::switch_indicatrice_next_old()
   normale_par_compo_[old()].echange_espace_virtuel();
   bary_par_compo_[old()].echange_espace_virtuel();
   surface_par_compo_[old()].echange_espace_virtuel();
+
+  for (int d = 0; d < 3; d++)
+    {
+      barycentre_phase1_ft_[next()][d].echange_espace_virtuel(barycentre_phase1_ft_[next()][d].ghost());
+      barycentre_phase1_ns_[next()][d].echange_espace_virtuel(barycentre_phase1_ns_[next()][d].ghost());
+    }
 
   indicatrice_surfacique_face_ft_[old()].echange_espace_virtuel();
   indicatrice_surfacique_face_ns_[old()].echange_espace_virtuel();

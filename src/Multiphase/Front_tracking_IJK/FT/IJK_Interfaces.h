@@ -339,6 +339,15 @@ public :
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
 
+  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_ft() const
+  {
+    return barycentre_phase1_ft_[old()];
+  }
+  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1() const
+  {
+    return barycentre_phase1_ns_[old()];
+  }
+
   // Getter des surfaces par face
   const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face_ft() const
   {
@@ -645,13 +654,14 @@ protected:
   void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
   void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
 
-  void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
-
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
   // ne le sont plus a l'iteration courante ces elements ont ete marques au
   // prealable
   int update_indicatrice(IJK_Field_double& indic);
+
+  void calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic);
+  void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
 
 
   // Cette methode appelle la methode statique get_maillage_MED_from_IJK_FT sur
@@ -842,6 +852,9 @@ protected:
 
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
+
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ns_;
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ft_;
 
   // Indicatrice surfacique aux faces du maillage cartesien,
   // indiquant la fraction de la surface de chaque face associee a la phase.

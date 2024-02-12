@@ -34,6 +34,7 @@ class Domaine;
 class Domaine_dis;
 class Connectivite_frontieres;
 
+struct CutCell_Properties;
 struct CutFace_Properties;
 
 class Parcours_interface : public Objet_U
@@ -124,12 +125,12 @@ protected:
                                     const FTd_vecteur3& centre_de_gravite_ref,
                                     double epsilon) const;
 
-  double volume_hexaedre(const Domaine_VF& domaine_vf, int num_element,
-                         const DoubleTab& poly_reelles,
-                         const FTd_vecteur3& norme,
-                         const FTd_vecteur3& centre_de_gravite,
-                         const ArrOfInt& polygone_plan_coupe,
-                         double epsilon) const;
+  CutCell_Properties volume_barycentre_hexaedre(const Domaine_VF& domaine_vf, int num_element,
+                                                const DoubleTab& poly_reelles,
+                                                const FTd_vecteur3& norme,
+                                                const FTd_vecteur3& centre_de_gravite,
+                                                const ArrOfInt& polygone_plan_coupe,
+                                                double epsilon) const;
 
   CutFace_Properties coupe_face_rectangulaire(const Domaine_VF& domaine_vf, int num_element,
                                               int num_face,
