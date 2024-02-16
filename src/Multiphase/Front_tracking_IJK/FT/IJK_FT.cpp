@@ -56,64 +56,99 @@ void IJK_FT::run()
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
   Cerr << "IJK_FT::run()" << finl;
-  allocate_velocity(velocity_, splitting_, 2);
+  int nalloc = 0;
+  thermal_probes_ghost_cells_ = 2;
+  thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
+  thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
+  allocate_velocity(velocity_, splitting_, thermal_probes_ghost_cells_);
   allocate_velocity(d_velocity_, splitting_, 1);
+  nalloc += 6;
   // GAB, qdm
-  if (test_etapes_et_bilan)
+  if (test_etapes_et_bilan_)
     {
-      allocate_velocity(rho_u_euler_av_prediction_champ, splitting_, 1);
-      allocate_velocity(rho_u_euler_av_rho_mu_ind_champ, splitting_, 1);
-      allocate_velocity(rho_du_euler_ap_prediction_champ, splitting_, 1);
-      allocate_velocity(rho_u_euler_ap_projection_champ, splitting_, 1);
-      allocate_velocity(rho_du_euler_ap_projection_champ, splitting_, 1);
-      allocate_velocity(rho_u_euler_ap_rho_mu_ind_champ, splitting_, 1);
-      allocate_velocity(terme_diffusion_local, splitting_, 1);
-      allocate_velocity(terme_pression_local, splitting_, 1);
-      allocate_velocity(terme_pression_in_ustar_local, splitting_, 1);
-      allocate_velocity(d_v_diff_et_conv, splitting_, 1);
+      allocate_velocity(rho_u_euler_av_prediction_champ_, splitting_, 1);
+      allocate_velocity(rho_u_euler_av_rho_mu_ind_champ_, splitting_, 1);
+      allocate_velocity(rho_du_euler_ap_prediction_champ_, splitting_, 1);
+      allocate_velocity(rho_u_euler_ap_projection_champ_, splitting_, 1);
+      allocate_velocity(rho_du_euler_ap_projection_champ_, splitting_, 1);
+      allocate_velocity(rho_u_euler_ap_rho_mu_ind_champ_, splitting_, 1);
+      allocate_velocity(terme_diffusion_local_, splitting_, 1);
+      allocate_velocity(terme_pression_local_, splitting_, 1);
+      allocate_velocity(terme_pression_in_ustar_local_, splitting_, 1);
+      allocate_velocity(d_v_diff_et_conv_, splitting_, 1);
       allocate_velocity(terme_convection_mass_solver_, splitting_, 1);
       allocate_velocity(terme_diffusion_mass_solver_, splitting_, 1);
+      nalloc += 36;
     }
+  //
+  pressure_ghost_cells_.allocate(splitting_, IJK_Splitting::ELEM, thermal_probes_ghost_cells_);
+  pressure_ghost_cells_.data() = 0.;
+  pressure_ghost_cells_.echange_espace_virtuel(pressure_ghost_cells_.ghost());
+  nalloc += 1;
 
   if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide())
     {
       pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_vapeur_, rho_liquide_);
-
     }
   else
     {
       pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3);
     }
+  nalloc += 1;
 
   if (include_pressure_gradient_in_ustar_)
     {
       d_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 1);
       if (get_time_scheme() == RK3_FT)
-        RK3_F_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+        {
+          RK3_F_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+          nalloc += 1;
+        }
+      nalloc += 1;
     }
 
   // On utilise aussi rhov pour le bilan de forces et pour d'autres formes de convection...
   //  if (!(expression_derivee_acceleration_ == Nom("0")))
   allocate_velocity(rho_v_, splitting_, 2);
+  nalloc += 3;
 
   pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+  nalloc += 1;
+
 
   if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide())
     {
       molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, mu_vapeur_, mu_liquide_);
       rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, rho_vapeur_, rho_liquide_);
+      nalloc += 2;
       if (use_inv_rho_)
-        inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_vapeur_, 1./rho_liquide_);
+        {
+          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_vapeur_, 1./rho_liquide_);
+          nalloc += 1;
+        }
     }
   else
     {
       molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      nalloc += 2;
       if (use_inv_rho_)
-        inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+        {
+          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+          nalloc += 1;
+        }
     }
 
   //  rho_batard_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+
+  if (first_step_interface_smoothing_)
+    {
+      allocate_velocity(zero_field_ft_, splitting_ft_, thermal_probes_ghost_cells_);
+      for (int dir = 0; dir < 3; dir++)
+        zero_field_ft_[dir].data() = 0.;
+      zero_field_ft_.echange_espace_virtuel();
+      nalloc += 3;
+    }
 
   if (diffusion_alternative_)
     {
@@ -121,20 +156,25 @@ void IJK_FT::run()
       unit_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       unit_.data() = 1.;
       unit_.echange_espace_virtuel(unit_.ghost());
+      nalloc += 4;
     }
 
-  if (type_velocity_convection_form_ == Nom("non_conservative_rhou"))
+  if (velocity_convection_op_.get_convection_op_option() == Nom("non_conservative_rhou").majuscule())
     {
       div_rhou_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      nalloc += 1;
     }
   allocate_velocity(psi_velocity_, splitting_, 2);
+  nalloc += 3;
 
 #ifdef SMOOTHING_RHO
   // Pour le smoothing :
   rho_field_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 2);
+  nalloc += 1;
 #endif
   // champs pour post-traitement :
-  post_.alloc_fields();
+  // post_.alloc_fields();
+  nalloc += post_.alloc_fields();
 
   // Allocation du terme source variable spatialement:
   int flag_variable_source = false;
@@ -146,16 +186,32 @@ void IJK_FT::run()
       allocate_velocity(variable_source_, splitting_, 1);
       flag_variable_source = true;
       potential_phi_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      nalloc += 4;
       for (int dir = 0; dir < 3; dir++)
         variable_source_[dir].data() = 0.;
       potential_phi_.data() = 0.;
     }
 
-  //GB : Je ne sais pas si on a besoin d'un ghost... Je crois que oui. Lequel?
+  // thermals_.initialize(splitting_, nalloc);
+
+  // GB : Je ne sais pas si on a besoin d'un ghost... Je crois que oui. Lequel?
   // Si la a vitesse ft doit transporter les sommets virtuels des facettes reelles,
   // alors il faut un domaine ghost de la taille de la longueur maximale des arretes.
-  //  allocate_velocity(velocity_ft_, splitting_ft_, 0);
-  allocate_velocity(velocity_ft_, splitting_ft_, 4);
+  // allocate_velocity(velocity_ft_, splitting_ft_, 0);
+  /*
+   * FIXME: Allocate based on the thermal subproblems
+   * as the thermal probes necessitates several ghost cells to interpolate velocity !
+   * Check the difference between elem and faces ? and for interpolation of the velocity ?
+   */
+  /*
+   * Finally use the ns velocity field for the thermal sub-problems
+   */
+  // thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, ft_ghost_cells);
+  // ft_ghost_cells = thermals_.get_probes_ghost_cells(ft_ghost_cells);
+  int ft_ghost_cells = 4;
+  allocate_velocity(velocity_ft_, splitting_ft_, ft_ghost_cells);
+  //  allocate_velocity(velocity_ft_, splitting_ft_, 4);
+  nalloc += 3;
 
   // pour les conditions de shear-periodicite --> interpolation de la pression monofluide
   kappa_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 2);
@@ -170,9 +226,11 @@ void IJK_FT::run()
       allocate_velocity(terme_repulsion_interfaces_ft_, splitting_ft_, 1);
       allocate_velocity(terme_abs_repulsion_interfaces_ns_, splitting_, 1);
       allocate_velocity(terme_abs_repulsion_interfaces_ft_, splitting_ft_, 1);
+      nalloc += 18;
     }
 
-  int nalloc = 24;
+  // FIXME: on a oublie pleins de choses la !
+  // int nalloc = 24;
   nalloc += post_.alloc_velocity_and_co(flag_variable_source);
   if (get_time_scheme() == RK3_FT)
     {
@@ -185,39 +243,9 @@ void IJK_FT::run()
       Cout << "Schema temps de type : euler_explicite" << finl;
     }
 
-  //velocity_diffusion_op_.initialize(splitting_, boundary_conditions_);
-  if (type_velocity_diffusion_form_ == Nom("simple_arithmetic"))
-    {
-      velocity_diffusion_op_simple_.initialize(splitting_,
-                                               boundary_conditions_);
-    }
-  else if (type_velocity_diffusion_form_ == Nom("full_arithmetic"))
-    {
-      velocity_diffusion_op_full_.initialize(splitting_,
-                                             boundary_conditions_);
-    }
-  else
-    {
-      Cerr << "Unknown velocity diffusion operator! " << finl;
-      Process::exit();
-    }
-
-  //  velocity_convection_op(type_velocity_convection_op_).initialize(splitting_);
-  switch (type_velocity_convection_op_)
-    {
-    case 0:
-      velocity_convection_op_sharp_.initialize(splitting_);
-      break;
-    case 1:
-      velocity_convection_op_centre_.initialize(splitting_, boundary_conditions_);
-      break;
-    case 2:
-      velocity_convection_op_amont_.initialize(splitting_);
-      break;
-    default:
-      Cerr << "Error, unknown type of velocity_convection_op" << finl;
-      Process::exit();
-    }
+  velocity_diffusion_op_.initialize(splitting_);
+  velocity_diffusion_op_.set_bc(boundary_conditions_);
+  velocity_convection_op_.initialize(splitting_);
 
 // Economise la memoire si pas besoin
   if (!disable_solveur_poisson_)
@@ -227,6 +255,7 @@ void IJK_FT::run()
 
 // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();
+
 //  rho_field_.echange_espace_virtuel(2);
 //  recalculer_rho_de_chi(chi_, rho_field_, 2);
   Cerr << " Allocating " << nalloc << " arrays, approx total size= "
@@ -250,11 +279,16 @@ void IJK_FT::run()
           maj_indicatrice_rho_mu();
           if (!disable_diphasique_)
             {
+              /*
+               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               */
               for (auto& itr : thermique_)
                 itr.update_thermal_properties();
 
               for (auto& itr : energie_)
                 itr.update_thermal_properties();
+
+              thermals_.update_thermal_properties();
             }
           // La pression n'est pas encore initialisee. elle est donc nulle.
           // Avec cette option, on essaye une initialisation basee sur le champ de pression diphasique
@@ -348,6 +382,7 @@ void IJK_FT::run()
                                   pressure_, 1., pressure_rhs_, check_divergence_,
                                   poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
             }
+          copy_field_values(pressure_ghost_cells_, pressure_);
         }
     }
 
@@ -359,29 +394,40 @@ void IJK_FT::run()
       rho_field_.data() = rho_liquide_;
       rho_moyen_ = rho_liquide_;
       molecular_mu_.data() = mu_liquide_;
+
       // C'est deja fait dans l'initialize (aucune raison de ne pas le faire)
       // indicatrice_ns_.data() = 1.;
       // indicatrice_ns_next_.data() = 1.;
 
+      /*
+       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       */
       for (auto& itr : thermique_)
         {
-          // To fill in fields for cp (with cp_liq) and lambda (with labda_liq)
+          // To fill in fields for cp (with cp_liq) and lambda (with lambda_liq)
           itr.update_thermal_properties();
         }
       for (auto& itr : energie_)
         {
-          // To fill in fields for cp (with cp_liq) and lambda (with labda_liq)
+          // To fill in fields for cp (with cp_liq) and lambda (with lambda_liq)
           itr.update_thermal_properties();
         }
+      thermals_.update_thermal_properties();
     }
   else
     {
-      Cerr << "Cas normal diphasique l2158" << finl;
+      Cerr << "Cas normal diphasique IJK_FT::run()" << finl;
+
+      /*
+       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       */
       for (auto& itr : thermique_)
         itr.update_thermal_properties();
 
       for (auto& itr : energie_)
         itr.update_thermal_properties();
+
+      thermals_.update_thermal_properties();
 
       const double indic_moyen = calculer_v_moyen(interfaces_.I());
       rho_moyen_ = indic_moyen*rho_liquide_ + (1-indic_moyen)*rho_vapeur_;
@@ -415,10 +461,15 @@ void IJK_FT::run()
   post_.compute_extended_pressures(interfaces_.maillage_ft_ijk());
 //post_.compute_phase_pressures_based_on_poisson(0);
 //post_.compute_phase_pressures_based_on_poisson(1);
-  Cout << "BF posttraiter_champs_instantanes "
-       << current_time_ << " " << tstep_ << finl;
-  post_.posttraiter_champs_instantanes(lata_name, current_time_, tstep_);
-  Cout << "AF posttraiter_champs_instantanes" << finl;
+  current_time_ = thermals_.get_modified_time();
+  if (!first_step_interface_smoothing_)
+    {
+      Cout << "BF posttraiter_champs_instantanes "
+           << current_time_ << " " << tstep_ << finl;
+      post_.posttraiter_champs_instantanes(lata_name, current_time_, tstep_);
+      thermals_.thermal_subresolution_outputs(); // for thermal counters
+      Cout << "AF posttraiter_champs_instantanes" << finl;
+    }
 
 // GB 2019.01.01 Why immobilisation? if (!disable_diphasique_ && coef_immobilisation_==0.)
   if ((!disable_diphasique_) && suppression_rejetons_)
@@ -520,9 +571,21 @@ void IJK_FT::run()
             {
               // TODO: aym pour GAB, si tu veux gagner en memoire et virer le doublon n/np1 il faut
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
-              deplacer_interfaces(timestep_,
-                                  -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
-                                  var_volume_par_bulle);
+              do
+                {
+                  deplacer_interfaces(timestep_,
+                                      -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
+                                      var_volume_par_bulle);
+                  counter_first_iter_--;
+                  if(counter_first_iter_ && first_step_interface_smoothing_)
+                    {
+                      Cout << "BF posttraiter_champs_instantanes " << current_time_ << " " << tstep_ << finl;
+                      post_.posttraiter_champs_instantanes(lata_name, current_time_, tstep_);
+                      Cout << "AF posttraiter_champs_instantanes" << finl;
+                    }
+                }
+              while (counter_first_iter_ && first_step_interface_smoothing_);
+              first_step_interface_smoothing_ = 0;
               parcourir_maillage();
             }
           // Mise a jour de la vitesse (utilise les positions des marqueurs, rho, mu et indic a l'instant n)
@@ -546,14 +609,17 @@ void IJK_FT::run()
               // GB 2019.01.01 It is important to keep that calculation, because without it, the interface status would be
               // set to "minimal" where it should be "parcouru".
               // GAB, qdm : rho_n v_n+1
-              if (test_etapes_et_bilan)
+              if (test_etapes_et_bilan_)
                 {
-                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_av_rho_mu_ind_champ);
+                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_av_rho_mu_ind_champ_);
                   for (int dir=0; dir<3; dir++)
-                    rho_u_euler_av_rho_mu_ind[dir] = calculer_v_moyen(rho_u_euler_av_rho_mu_ind_champ[dir]);
+                    rho_u_euler_av_rho_mu_ind_[dir] = calculer_v_moyen(rho_u_euler_av_rho_mu_ind_champ_[dir]);
                 }
               maj_indicatrice_rho_mu();
 
+              /*
+               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               */
               for (auto& itr : thermique_)
                 {
                   itr.update_thermal_properties();
@@ -564,26 +630,28 @@ void IJK_FT::run()
                     }
                 }
 
+              thermals_.euler_rustine_step(timestep_);
+
               // GAB, qdm rho_n+1 v_n+1 :
-              if (test_etapes_et_bilan)
+              if (test_etapes_et_bilan_)
                 {
-                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ);
+                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ_);
                   for (int dir=0; dir<3; dir++)
                     {
-                      rho_u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ[dir]);
-                      u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(velocity_[dir]);
+                      rho_u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ_[dir]);
+                      u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(velocity_[dir]);
                     }
                 }
             }
           else
             {
-              if (test_etapes_et_bilan)
+              if (test_etapes_et_bilan_)
                 {
-                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ);
+                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ_);
                   for (int dir=0; dir<3; dir++)
                     {
-                      rho_u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ[dir]);
-                      u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(velocity_[dir]);
+                      rho_u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ_[dir]);
+                      u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(velocity_[dir]);
                     }
                 }
             }
@@ -631,11 +699,11 @@ void IJK_FT::run()
               // GAB patch qdm : choix 1
 
               // GAB, qdm : rho_n v_n+1
-              if (test_etapes_et_bilan)
+              if (test_etapes_et_bilan_)
                 {
-                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_av_rho_mu_ind_champ);
+                  calculer_rho_v(rho_field_,velocity_,rho_u_euler_av_rho_mu_ind_champ_);
                   for (int dir=0; dir<3; dir++)
-                    rho_u_euler_av_rho_mu_ind[dir] = calculer_v_moyen(rho_u_euler_av_rho_mu_ind_champ[dir]);
+                    rho_u_euler_av_rho_mu_ind_[dir] = calculer_v_moyen(rho_u_euler_av_rho_mu_ind_champ_[dir]);
                 }
 
               // Mise a jour rho, mu et l'indicatrice a partir de la nouvelle position de l'interface :
@@ -656,6 +724,10 @@ void IJK_FT::run()
                                                    current_time_at_rk3_step, dE);
                         }
                     }
+
+                  thermals_.rk3_rustine_sub_step(rk_step_, timestep_, fractionnal_timestep,
+                                                 current_time_at_rk3_step);
+
                 }
               // Calcul du terme source force acceleration :
               // GAB, rotation
@@ -696,15 +768,17 @@ void IJK_FT::run()
 
               for (auto& itr : energie_)
                 itr.update_thermal_properties();
+
+              thermals_.update_thermal_properties();
             }
           // GAB, qdm rho_n+1 v_n+1 :
-          if (test_etapes_et_bilan)
+          if (test_etapes_et_bilan_)
             {
-              calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ);
+              calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_rho_mu_ind_champ_);
               for (int dir=0; dir<3; dir++)
                 {
-                  rho_u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ[dir]);
-                  u_euler_ap_rho_mu_ind[dir] = calculer_v_moyen(velocity_[dir]);
+                  rho_u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(rho_u_euler_ap_rho_mu_ind_champ_[dir]);
+                  u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(velocity_[dir]);
                 }
             }
           if (!disable_diphasique_ && !(qdm_corrections_.is_type_none()) )

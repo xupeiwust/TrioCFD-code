@@ -31,16 +31,18 @@
 #include <stat_counters.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_cut_cell.h>
-
 #include <sstream>
+#include <IJK_Thermals.h>
 
-//Implemente_liste(IJK_Thermique);
 /*
  * Take as main parameter reference to FT to be able to use its members.
  */
 IJK_FT_Post::IJK_FT_Post(IJK_FT_base& ijk_ft) :
-  statistiques_FT_(ijk_ft), ref_ijk_ft_(ijk_ft), disable_diphasique_(ijk_ft.disable_diphasique_), interfaces_(ijk_ft.interfaces_), kappa_ft_(ijk_ft.kappa_ft_), pressure_(ijk_ft.pressure_), velocity_(ijk_ft.velocity_),
-  d_velocity_(ijk_ft.d_velocity_), splitting_(ijk_ft.splitting_), splitting_ft_(ijk_ft.splitting_ft_), thermique_(ijk_ft.thermique_), energie_(ijk_ft.energie_), cut_cell_post_activated_(0)
+  statistiques_FT_(ijk_ft), ref_ijk_ft_(ijk_ft), disable_diphasique_(ijk_ft.disable_diphasique_),
+  interfaces_(ijk_ft.interfaces_), kappa_ft_(ijk_ft.kappa_ft_), pressure_(ijk_ft.pressure_), velocity_(ijk_ft.velocity_),
+  d_velocity_(ijk_ft.d_velocity_), splitting_(ijk_ft.splitting_), splitting_ft_(ijk_ft.splitting_ft_),
+  thermique_(ijk_ft.thermique_), energie_(ijk_ft.energie_),
+  thermals_(ijk_ft.thermals_)
 {
   groups_statistiques_FT_.dimensionner(0);
 }
@@ -57,6 +59,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   fichier_reprise_integrated_timescale_ = "??"; // par defaut, invalide
   compteur_post_instantanes_ = 0;
   dt_post_ = 100;
+  dt_post_thermals_probes_ = 100;
   dt_post_stats_plans_ = 1;
   dt_post_stats_bulles_ = 1;
   //poisson_solver_post_ = xxxx;
@@ -64,6 +67,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
 
   param.ajouter_flag("check_stats", &check_stats_);
   param.ajouter("dt_post", &dt_post_);
+  param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
   param.ajouter("dt_post_stats_plans", &dt_post_stats_plans_);
   param.ajouter("dt_post_stats_bulles", &dt_post_stats_bulles_);
   param.ajouter("champs_a_postraiter", &liste_post_instantanes_);
@@ -407,11 +411,11 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       interfaces_.posttraiter_tous_champs(liste_post_instantanes_);
 
       {
-        int idx_th = 0;
+        int idx_thermique = 0;
         for (auto&& itr = thermique_.begin(); itr != thermique_.end(); ++itr)
           {
-            posttraiter_tous_champs_thermique(liste_post_instantanes_, idx_th);
-            ++idx_th;
+            posttraiter_tous_champs_thermique(liste_post_instantanes_, idx_thermique);
+            ++idx_thermique;
           }
       }
       {
@@ -422,6 +426,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
             ++idx_en;
           }
       }
+      thermals_.posttraiter_tous_champs_thermal(liste_post_instantanes_);
     }
   int n = liste_post_instantanes_.size();
   if (liste_post_instantanes_.contient_("CURL"))
@@ -937,17 +942,17 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
     }
 
   {
-    int idx_th = 0;
+    int idx_therm = 0;
     for (auto &itr : thermique_)
       {
-        int nb = posttraiter_champs_instantanes_thermique(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_th);
+        int nb = posttraiter_champs_instantanes_thermique(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
         // Interfacial thermal fields :
         if (!disable_diphasique_)
-          nb += posttraiter_champs_instantanes_thermique_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_th);
+          nb += posttraiter_champs_instantanes_thermique_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
 
-        if (idx_th == 0)
+        if (idx_therm == 0)
           n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
-        ++idx_th;
+        ++idx_therm;
       }
     // TODO: finir post-traitement de l'energie, choisir a quel niveau le faire.
     int idx_en = 0;
@@ -962,7 +967,10 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
           n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
         ++idx_en;
       }
-
+    /*
+     * TODO: Clean IJK_Thermique et IJK_Energie
+     */
+    thermals_.posttraiter_champs_instantanes_thermal(liste_post_instantanes_, lata_name, latastep, current_time, n);
     Cerr << "les champs postraites sont: " << liste_post_instantanes_ << finl;
   }
 
@@ -1777,6 +1785,7 @@ int IJK_FT_Post::alloc_fields()
   int nalloc = 0;
   rebuilt_indic_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
   potentiel_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
+  nalloc += 2;
   if ((!disable_diphasique_) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
       ai_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
@@ -2005,10 +2014,16 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
 
 void IJK_FT_Post::postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
 {
-  if (tstep % dt_post_ == dt_post_ - 1 || stop)
+  thermals_.set_first_step_thermals_post(first_step_thermals_post_);
+  if (tstep % dt_post_ == dt_post_ - 1 || stop || first_step_thermals_post_)
     {
       Cout << "tstep : " << tstep << finl;
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
+    }
+  if (tstep % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1 || stop || first_step_thermals_post_)
+    {
+      Cout << "tstep : " << tstep << finl;
+      thermals_.thermal_subresolution_outputs();
     }
   if (tstep % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1 || stop)
     {
@@ -2672,6 +2687,11 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
 
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
 // Elle ajoute a la liste tous les noms de champs postraitables par IJK_Interfaces
+
+/*
+ * TODO: Clean IJK_Thermique et IJK_Energie
+ */
+
 void IJK_FT_Post::posttraiter_tous_champs_thermique(Motcles& liste, const int idx) const
 {
   liste.add("TEMPERATURE");
@@ -2720,7 +2740,11 @@ void IJK_FT_Post::posttraiter_tous_champs_energie(Motcles& liste, const int idx)
 }
 
 // idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, IJK_Thermique& itr,
+int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_post_instantanes,
+                                                          const char *lata_name,
+                                                          const int latastep,
+                                                          const double current_time,
+                                                          IJK_Thermique& itr,
                                                           const int idx)
 {
   Cerr << liste_post_instantanes << finl;
@@ -2904,7 +2928,11 @@ int IJK_FT_Post::posttraiter_champs_instantanes_energie(const Motcles& liste_pos
 }
 
 // idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_thermique_interfaciaux(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, IJK_Thermique& itr,
+int IJK_FT_Post::posttraiter_champs_instantanes_thermique_interfaciaux(const Motcles& liste_post_instantanes,
+                                                                       const char *lata_name,
+                                                                       const int latastep,
+                                                                       const double current_time,
+                                                                       IJK_Thermique& itr,
                                                                        const int idx)
 {
   Cerr << liste_post_instantanes << finl;
@@ -2947,7 +2975,11 @@ int IJK_FT_Post::posttraiter_champs_instantanes_thermique_interfaciaux(const Mot
 }
 
 // idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_energie_interfaciaux(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, IJK_Energie& itr,
+int IJK_FT_Post::posttraiter_champs_instantanes_energie_interfaciaux(const Motcles& liste_post_instantanes,
+                                                                     const char *lata_name,
+                                                                     const int latastep,
+                                                                     const double current_time,
+                                                                     IJK_Energie& itr,
                                                                      const int idx)
 {
   Cerr << liste_post_instantanes << finl;

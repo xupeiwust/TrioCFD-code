@@ -466,13 +466,15 @@ void IJK_Interfaces::compute_vinterp()
     }
 }
 
-void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
-                                const IJK_Splitting& splitting_NS,
-                                const Domaine_dis& domaine_dis,
-                                const bool compute_vint)
+int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
+                               const IJK_Splitting& splitting_NS,
+                               const Domaine_dis& domaine_dis,
+                               const int thermal_probes_ghost_cells,
+                               const bool compute_vint)
 {
   Cerr << "Entree dans IJK_Interfaces::initialize" << finl;
 
+  int nalloc = 0;
   // normale_par_compo_is_set_ = false;
   set_recompute_indicator(CLASSIC_METHOD);
 
@@ -481,29 +483,35 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   surface_vapeur_par_face_computation_.initialize(splitting_FT);
   val_par_compo_in_cell_computation_.initialize(splitting_FT, maillage_ft_ijk_);
 
+  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, 2);
+
   indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   indicatrice_ft_[old()].data() = 1.;
   indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
   indicatrice_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   indicatrice_ft_[next()].data() = 1.;
   indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
-  indicatrice_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+  indicatrice_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   indicatrice_ns_[old()].data() = 1.;
   allocate_cell_vector(groups_indicatrice_ns_[old()], splitting_NS, 1);
   allocate_cell_vector(groups_indicatrice_ns_[next()], splitting_NS, 1);
   indicatrice_ns_[old()].echange_espace_virtuel(indicatrice_ns_[old()].ghost());
-  indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+  indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   indicatrice_ns_[next()].data() = 1.;
   indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
+  nalloc += 4;
   allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
   allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
+  nalloc += 6;
 #if VERIF_INDIC
   indicatrice_ft_test_.allocate(splitting_FT, IJK_Splitting::ELEM, 1);
   allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
   allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
+  nalloc += 7;
 #endif
   nb_compo_traversante_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
   nb_compo_traversante_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
+  nalloc += 2;
   for (int i = 0; i < max_authorized_nb_of_components_; i++)
     {
       compos_traversantes_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
@@ -518,6 +526,7 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
       phi_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
       repuls_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
       courbure_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+      nalloc += 12;
       // Et pour les vecteurs :
       for (int dir = 0; dir < 3; dir++)
         {
@@ -526,6 +535,7 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
           bary_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
           normale_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
           bary_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          nalloc += 4;
         }
     }
 
@@ -574,16 +584,20 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
   allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, 1);
   allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, 1);
+  nalloc += 12;
 
   allocate_velocity(bary_of_interf_[old()], splitting_FT, 1);
   allocate_velocity(bary_of_interf_[next()], splitting_FT, 1);
   allocate_velocity(bary_of_interf_ns_[old()], splitting_NS, 1);
   allocate_velocity(bary_of_interf_ns_[next()], splitting_NS, 1);
+  nalloc += 12;
 
   allocate_velocity(surface_vapeur_par_face_[old()], splitting_FT, 1);
   allocate_velocity(surface_vapeur_par_face_[next()], splitting_FT, 1);
   allocate_velocity(surface_vapeur_par_face_ns_[old()], splitting_NS, 1);
   allocate_velocity(surface_vapeur_par_face_ns_[next()], splitting_NS, 1);
+  nalloc += 12;
+
   for (int d = 0; d < 3; d++)
     {
       surface_vapeur_par_face_[old()][d].data() = 0.;
@@ -594,10 +608,11 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
       surface_vapeur_par_face_ns_[next()][d].data() = 0.;
       allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], splitting_NS, 1);
       allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], splitting_NS, 1);
+      nalloc += 12;
     }
 
   if (!is_diphasique_)
-    return;
+    return nalloc;
 
   refdomaine_dis_ = domaine_dis;
 
@@ -754,12 +769,21 @@ void IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
       const Domaine& domaine = domaine_vf.domaine();
       domaine.creer_tableau_elements(num_compo_);
     }
+
+  /*
+   * TODO: Add nalloc
+   */
+  intersection_ijk_cell_.initialize(splitting_NS, *this);
+  intersection_ijk_face_.initialize(splitting_NS, *this);
+  nalloc += ijk_compo_connex_.initialize(splitting_NS, *this);
+  return nalloc;
 }
 
 void IJK_Interfaces::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   is_diphasique_ =  1 - ref_ijk_ft_->disable_diphasique();
+  ijk_compo_connex_.associer(ijk_ft);
   // liste_post_instantanes_ = ijk_ft.post_.get_liste_post_instantanes();
 }
 
@@ -1237,6 +1261,7 @@ void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& cen
     }
   mp_sum_for_each_item(volumes);
   mp_sum_for_each_item(centre_gravite);
+  Cerr << "volumes : " << volumes << finl;
   for (int i = 0; i < nbulles_tot; i++)
     {
       // const double x = 1./volumes[i];
@@ -2196,9 +2221,8 @@ void IJK_Interfaces::calculer_bounding_box_bulles(DoubleTab& bounding_box, int o
   mp_min_for_each_item(bounding_box);
   for (int ibulle = 0; ibulle < nbulles; ibulle++)
     for (direction = 0; direction < 3; direction++)
-      {
-        bounding_box(ibulle, direction, 1) = -bounding_box(ibulle, direction, 1); // a present on a le max.
-      }
+      bounding_box(ibulle, direction, 1) = -bounding_box(ibulle, direction, 1); // a present on a le max.
+
 }
 
 // Methode pour creer les duplication de bulles lorsquelles sorte du
@@ -3425,7 +3449,7 @@ static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
 //
 //
 
-// The method have to recieve the extended field indic_ft because
+// The method have to receive the extended field indic_ft because
 // the splitting and the conversion "num_elem = s.convert_ijk_cell_to_packed(i,
 // j, k);" are required for num_compo_ which is on domaineVDF which is on the
 // extended domain
