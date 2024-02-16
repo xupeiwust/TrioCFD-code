@@ -101,6 +101,10 @@ public :
   {
     return timestep_ ;
   }
+  const int& get_nb_timesteps() const
+  {
+    return nb_timesteps_ ;
+  }
   const int& get_splitting_extension() const
   {
     return ijk_splitting_ft_extension_ ;
@@ -227,16 +231,24 @@ public :
   {
     return disable_convection_qdm_;
   }
-//  Intersection_Interface_ijk_cell& get_intersection_ijk_cell()
-//  {
-//    return intersection_ijk_cell_;
-//  }
-//  Intersection_Interface_ijk_face& get_intersection_ijk_face()
-//  {
-//    return intersection_ijk_face_;
-//  }
-//  const Intersection_Interface_ijk_cell& get_intersection_ijk_cell() const {return intersection_ijk_cell_;}
-//  const Intersection_Interface_ijk_face& get_intersection_ijk_face() const {return intersection_ijk_face_;}
+  const int& get_compute_rising_velocities() const
+  {
+    return compute_rising_velocities_;
+  }
+  const int& get_fill_rising_velocities() const
+  {
+    return fill_rising_velocities_;
+  }
+  //  Intersection_Interface_ijk_cell& get_intersection_ijk_cell()
+  //  {
+  //    return intersection_ijk_cell_;
+  //  }
+  //  Intersection_Interface_ijk_face& get_intersection_ijk_face()
+  //  {
+  //    return intersection_ijk_face_;
+  //  }
+  //  const Intersection_Interface_ijk_cell& get_intersection_ijk_cell() const {return intersection_ijk_cell_;}
+  //  const Intersection_Interface_ijk_face& get_intersection_ijk_face() const {return intersection_ijk_face_;}
 
   virtual void run() = 0;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle);
@@ -255,6 +267,7 @@ public :
   //void compute_and_add_source_qdm_gr(const double threshold_0, const double threshold_1, const double threshold_2, const double threshold_3);
   void set_time_for_corrections();
   void compute_and_add_qdm_corrections();
+  void compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle);
 
   // SURCHARGE DES OPERATEURS : dans FixedVector, on ajoute le produit_scalaire
   //  mais il faut que les operateur * et += soient definis pour IJK_FT_base
@@ -314,6 +327,8 @@ public :
   void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                            IJK_Field_double& output_field);
   void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
+  void update_indicator_field();
+  void update_twice_indicator_field();
 
   virtual Cut_cell_FT_Disc* get_cut_fields()
   {
@@ -338,7 +353,8 @@ protected :
   //ab-sauv/repr-deb
   void ecrire_donnees(const FixedVector<IJK_Field_double, 3>& f3compo, SFichier& le_fichier, const int compo, bool binary) const;
   void dumpxyz_vector(const FixedVector<IJK_Field_double, 3>& f3compo, const char * filename, bool binary) const;
-  void sauvegarder_probleme(const char *fichier_sauvegarde); //  const;
+  void sauvegarder_probleme(const char *fichier_sauvegarde,
+                            const int& stop); //  const;
   void reprendre_probleme(const char *fichier_reprise);
   //ab-sauv/repr-fin
 
@@ -352,7 +368,10 @@ protected :
   void calculer_rho_mu_indicatrice(const bool parcourir = true);
   void maj_indicatrice_rho_mu(const bool parcourir = true);
   void ajout_dTrustine();
-  void deplacer_interfaces(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
+  void deplacer_interfaces(const double timestep,
+                           const int rk_step,
+                           ArrOfDouble& var_volume_par_bulle,
+                           const int first_step_interface_smoothing);
   void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
   void calculer_gradient_indicatrice_et_repul_ns(const IJK_Field_double& indic);
 
@@ -597,6 +616,7 @@ protected :
    *     mu : switch from arithmetic to geometric mean depending on the direction (Not available yet)
    */
   Operateur_IJK_faces_diff velocity_diffusion_op_;
+  enum velocity_diffusion_options_ { simple_arithmetic, full_arithmetic, full_adaptative};
 
   /*
    * Velocity convection operator
@@ -605,16 +625,19 @@ protected :
    * conservative            : div(rho u u)
    */
   Operateur_IJK_faces_conv velocity_convection_op_;
+  enum velocity_convection_options_ { non_conservative_simple, non_conservative_rhou, conservative};
 
   Multigrille_Adrien poisson_solver_;
   // Simulation parameters
   int nb_timesteps_;
+  int max_simu_time_;
   double timestep_;
   double timestep_facsec_;
   double cfl_, fo_, oh_;
 
   double vitesse_entree_;
   double vitesse_upstream_;
+  Nom expression_vitesse_upstream_;
   int upstream_dir_; // static
   int upstream_stencil_;
   double nb_diam_upstream_;
@@ -672,6 +695,7 @@ protected :
   int time_scheme_;
   double store_RK3_source_acc_;
   double store_RK3_fac_sv_;
+  double modified_time_ini_;
   double current_time_;
   double current_time_at_rk3_step_;
   int tstep_; // The iteration number
@@ -712,6 +736,9 @@ protected :
 
   int counter_first_iter_ = 2;
   int first_step_interface_smoothing_ = 0;
+
+  int compute_rising_velocities_ = 0;
+  int fill_rising_velocities_ = 0;
 };
 
 #endif /* IJK_FT_base_included */

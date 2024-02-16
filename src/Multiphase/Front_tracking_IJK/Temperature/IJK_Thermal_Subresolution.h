@@ -55,13 +55,13 @@ class IJK_Thermal_Subresolution : public IJK_Thermal_base
 {
 
   Declare_instanciable( IJK_Thermal_Subresolution ) ;
-  friend class IJK_One_Dimensional_Subresolutions;
   friend class IJK_One_Dimensional_Subproblems;
   friend class IJK_One_Dimensional_Subproblem;
 
 public :
 
   int initialize(const IJK_Splitting& splitting, const int idx) override;
+  // void sauvegarder_temperature(Nom& lata_name, int idx) override;
   void update_thermal_properties() override;
   void post_process_after_temperature_increment() override;
   void set_param(Param& param) override;
@@ -109,21 +109,21 @@ public :
   }
   const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_diffusive() const override
   {
-    if (diffusive_flux_correction_)
+    if((convective_flux_correction_ || diffusive_flux_correction_) && store_cell_faces_corrected_)
       return cell_faces_corrected_diffusive_;
     else
       return dummy_double_vect_;
   }
   const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_convective() const override
   {
-    if (convective_flux_correction_)
+    if((convective_flux_correction_ || diffusive_flux_correction_) && store_cell_faces_corrected_)
       return cell_faces_corrected_convective_;
     else
       return dummy_double_vect_;
   }
   const FixedVector<IJK_Field_int,3>& get_cell_faces_corrected_bool() const override
   {
-    if (convective_flux_correction_ || diffusive_flux_correction_)
+    if ((convective_flux_correction_ || diffusive_flux_correction_) && store_cell_faces_corrected_)
       return cell_faces_corrected_bool_;
     else
       return dummy_int_vect_;
@@ -177,6 +177,13 @@ public :
     else
       return dummy_int_field_;
   }
+  const IJK_Field_double& get_probe_collision_debug_field() const override
+  {
+    if (debug_probe_collision_)
+      return probe_collision_debug_field_;
+    else
+      return dummy_double_field_;
+  }
   int get_disable_post_processing_probes_out_files() const override
   {
     return disable_post_processing_probes_out_files_;
@@ -202,13 +209,17 @@ protected :
   void correct_any_temperature_field_for_visu(IJK_Field_double& temperature);
   void correct_temperature_for_visu() override;
   void clip_temperature_values() override;
+  void clip_max_temperature_values() override;
   void compute_mean_liquid_temperature();
   void compute_overall_probes_parameters();
 
   void pre_initialise_thermal_subproblems_any_matrices();
   void pre_initialise_thermal_subproblems_matrices();
 
+  void interpolate_indicator_on_probes();
+  void clear_sort_problems_colliding_bubbles();
   void interpolate_project_velocities_on_probes();
+  void reajust_probes_length_collisions();
   void reajust_probes_length();
   void compute_radial_subresolution_convection_diffusion_operators();
   void compute_local_substep();
@@ -241,9 +252,11 @@ protected :
   void convert_into_sparse_matrix();
   void compute_md_vector();
   void retrieve_temperature_solution();
+  void store_previous_temperature_indicator_velocities();
   void check_wrong_values_rhs();
   void initialise_thermal_subproblems_list();
   void initialise_thermal_subproblems();
+  void detect_probe_collision();
   void solve_thermal_subproblems();
   void prepare_thermal_flux_correction();
   void compute_min_max_reachable_fluxes();
@@ -263,7 +276,6 @@ protected :
   void enforce_periodic_temperature_boundary_value() override;
   void correct_operators_for_visu() override;
 
-  // void set_field_T_ana() override;
   double get_modified_time() override;
   void compute_temperature_init() override;
   void set_field_temperature_per_bubble(const int index_bubble);
@@ -283,8 +295,18 @@ protected :
   /* compute_rho_cp_u_mean() May be clearly overridden later */
   double compute_rho_cp_u_mean(const IJK_Field_double& vx) override { return IJK_Thermal_base::compute_rho_cp_u_mean(vx); };
 
+  int enable_probe_collision_detection_;
+  int enable_resize_probe_collision_;
+  int debug_probe_collision_;
+  IJK_Field_double probe_collision_debug_field_;
   int reference_gfm_on_probes_;
   int compute_normal_derivatives_on_reference_probes_;
+
+  int disable_probe_weak_gradient_;
+  int disable_probe_weak_gradient_gfm_;
+
+  int reconstruct_previous_probe_field_;
+  int implicit_solver_from_previous_probe_field_;
 
   int disable_spherical_diffusion_start_;
   int single_centred_bubble_;
@@ -298,8 +320,9 @@ protected :
   double nusselt_spherical_diffusion_;
   double nusselt_spherical_diffusion_liquid_;
   double heat_flux_spherical_;
-  enum temperature_ini_dict { local_criteria, integral_criteria, derivative_criteria };
+  enum temperature_ini_dict { local_criteria, integral_criteria, derivative_criteria, time_criteria };
   double mean_liquid_temperature_;
+  double time_ini_user_;
 
   int disable_mixed_cells_increment_;
   int enable_mixed_cells_increment_;
@@ -308,6 +331,7 @@ protected :
   int diffusive_flux_correction_;
   int convective_flux_correction_;
   int impose_fo_flux_correction_;
+  int disable_fo_flux_correction_;
   int subproblem_temperature_extension_; // ghost fluid extension based on the interfacial gradient computed with the subproblem
 
   int override_vapour_mixed_values_; // For debug purposes
@@ -359,17 +383,19 @@ protected :
   Nom fd_solver_type_;
   int discrete_integral_;
   int quadtree_levels_;
-  // DoubleVect radial_convective_vector_prefactor_;
-  // DoubleVect diffusive_vector_prefactor_;
+
   int compute_tangential_variables_;
 
   int boundary_condition_interface_;
+  Motcles boundary_condition_interface_dict_;
   double interfacial_boundary_condition_value_;
   int impose_boundary_condition_interface_from_simulation_;
   int boundary_condition_end_;
+  Motcles boundary_condition_end_dict_;
   double end_boundary_condition_value_;
   int impose_user_boundary_condition_end_value_;
   int source_terms_type_;
+  Motcles source_terms_type_dict_;
   int source_terms_correction_;
   int advected_frame_of_reference_;
   int neglect_frame_of_reference_radial_advection_;
@@ -411,6 +437,7 @@ protected :
 
   IJK_Field_double debug_LRS_cells_;
   int distance_cell_faces_from_lrs_;
+  int  disable_distance_cell_faces_from_lrs_;
 
   int pre_initialise_thermal_subproblems_list_;
   double pre_factor_subproblems_number_;
@@ -428,6 +455,8 @@ protected :
   int neighbours_colinearity_weighting_;
   int neighbours_distance_weighting_;
   int neighbours_colinearity_distance_weighting_;
+  int smooth_temperature_field_;
+  int readjust_probe_length_from_vertices_;
   IJK_Field_double temperature_cell_neighbours_;
   IJK_Field_double temperature_cell_neighbours_debug_;
   IJK_Field_int neighbours_temperature_to_correct_;
@@ -480,6 +509,7 @@ protected :
 
   int interp_eulerian_;
   int first_step_thermals_post_;
+  int disable_first_step_thermals_post_;
 
   int copy_fluxes_on_every_procs_;
   int copy_temperature_on_every_procs_;

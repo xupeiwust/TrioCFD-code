@@ -47,6 +47,7 @@ Corrige_flux_FT_temperature_subresolution::Corrige_flux_FT_temperature_subresolu
   flux_init_ = 0;
   convective_flux_correction_ = 0;
   diffusive_flux_correction_ = 0;
+  smooth_temperature_field_=0;
 
   copy_fluxes_on_every_procs_ = 1;
   copy_temperature_on_every_procs_ = 1;
@@ -200,15 +201,18 @@ void Corrige_flux_FT_temperature_subresolution::initialize_with_subproblems(cons
 void Corrige_flux_FT_temperature_subresolution::update_intersections()
 {
 
-  // On commence par calculer les temperatures aux faces mouillées
-  intersection_ijk_cell_->update_interpolations_cell_centres_on_interface();
-  /*
-   * TODO update with face cell centres positions
-   */
-  if (!convection_negligible_ || !diffusion_negligible_)
-    intersection_ijk_cell_->update_interpolations_cell_faces_on_interface();
+  // if (!distance_cell_faces_from_lrs_)
+  {
+    // On commence par calculer les temperatures aux faces mouillées
+    intersection_ijk_cell_->update_interpolations_cell_centres_on_interface();
+    /*
+     * TODO update with face cell centres positions
+     */
+    if (!convection_negligible_ || !diffusion_negligible_)
+      intersection_ijk_cell_->update_interpolations_cell_faces_on_interface();
 
-  Cerr << "The intersections have been updated" << finl;
+    Cerr << "The intersections have been updated" << finl;
+  }
 }
 
 void Corrige_flux_FT_temperature_subresolution::update()
@@ -222,15 +226,16 @@ void Corrige_flux_FT_temperature_subresolution::associate_indices_and_check_subp
     {
       const int nb_diph = intersection_ijk_cell_->get_nb_diph();
       const int nb_subproblems = thermal_subproblems_->get_subproblems_counter();
+      const int nb_effective_subproblems = thermal_subproblems_->get_effective_subproblems_counter();
       has_checked_consistency_ = (nb_diph==nb_subproblems);
       assert(has_checked_consistency_);
       ijk_intersections_subproblems_indices_.reset();
-      ijk_intersections_subproblems_indices_.resize(nb_subproblems);
+      ijk_intersections_subproblems_indices_.resize(nb_effective_subproblems);
       int index_i_problem = 0;
       int index_j_problem = 0;
       int index_k_problem = 0;
       int problem_index;
-      for (problem_index=0; problem_index<nb_subproblems; problem_index++)
+      for (problem_index=0; problem_index<nb_effective_subproblems; problem_index++)
         {
           thermal_subproblems_->get_subproblem_ijk_indices(index_i_problem, index_j_problem, index_k_problem, problem_index);
           const int ijk_intersections_index = (*intersection_ijk_cell_)(index_i_problem, index_j_problem, index_k_problem);
@@ -258,8 +263,11 @@ void Corrige_flux_FT_temperature_subresolution::associate_indices_and_check_subp
 
 void Corrige_flux_FT_temperature_subresolution::clean()
 {
-  has_checked_consistency_=false;
-  intersection_ijk_cell_->set_pas_a_jour();
+  // if (!distance_cell_faces_from_lrs_)
+  {
+    has_checked_consistency_=false;
+    intersection_ijk_cell_->set_pas_a_jour();
+  }
 }
 
 
@@ -268,47 +276,63 @@ void Corrige_flux_FT_temperature_subresolution::compute_temperature_cell_centre(
   /*
    * For each subproblem fill the right interfacial_cell
    */
-  const DoubleTab dist_interf = intersection_ijk_cell_->dist_interf();
+  DoubleTab dist_interf;
+  if (!distance_cell_faces_from_lrs_)
+    dist_interf = intersection_ijk_cell_->dist_interf();
+
   const double min_temperature = thermal_subproblems_->get_min_temperature_domain_ends();
   const double max_temperature = thermal_subproblems_->get_max_temperature_domain_ends();
-  for (int i=0; i<ijk_intersections_subproblems_indices_.size_array(); i++)
+
+  for (int i=0; i<thermal_subproblems_->get_effective_subproblems_counter(); i++)
     {
-      const int intersection_ijk_cell_index = ijk_intersections_subproblems_indices_[i];
-      const double dist = dist_interf(intersection_ijk_cell_index, 0);
-      const double dist_sub_res = thermal_subproblems_->get_dist_cell_interface(i);
-
+      double dist = 0;
+      double dist_sub_res = 0;
       double temperature_ghost = 0.;
-      if (distance_cell_faces_from_lrs_)
-        temperature_ghost = thermal_subproblems_->get_temperature_profile_at_point(i, dist_sub_res);
+      int intersection_ijk_cell_index = 0;
+      int ijk_indices_i = 0;
+      int ijk_indices_j = 0;
+      int ijk_indices_k = 0;
+      dist_sub_res = thermal_subproblems_->get_dist_cell_interface(i);
+      if (!distance_cell_faces_from_lrs_)
+        {
+          intersection_ijk_cell_index = ijk_intersections_subproblems_indices_[i];
+          dist = dist_interf(intersection_ijk_cell_index, 0);
+          temperature_ghost = thermal_subproblems_->get_temperature_profile_at_point(i, dist);
+          ijk_indices_i = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 0);
+          ijk_indices_j = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 1);
+          ijk_indices_k = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 2);
+        }
       else
-        temperature_ghost = thermal_subproblems_->get_temperature_profile_at_point(i, dist);
+        {
+          temperature_ghost = thermal_subproblems_->get_temperature_profile_at_point(i, dist_sub_res);
+          thermal_subproblems_->get_subproblem_ijk_indices(ijk_indices_i, ijk_indices_j, ijk_indices_k, i);
+        }
 
-      const int ijk_indices_i = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 0);
-      const int ijk_indices_j = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 1);
-      const int ijk_indices_k = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 2);
+      temperature(ijk_indices_i, ijk_indices_j, ijk_indices_k) = temperature_ghost;
 
       if (debug_)
         {
           Cerr << "Time-step: " << ref_ijk_ft_->get_tstep() << "--" << ref_ijk_ft_->get_timestep() << " s" << finl;
-          Cerr << "Distance at cell : " << intersection_ijk_cell_index <<
-               ", subproblem " << i << "."<<
-               " -- (" << ijk_indices_i << ", " << ijk_indices_j << ", " << ijk_indices_k << ")" << finl;
-          Cerr << "Distance from intersection_ijk_cell: " << dist << finl;
+          if (!distance_cell_faces_from_lrs_)
+            {
+              Cerr << "Distance at cell : " << intersection_ijk_cell_index <<
+                   ", subproblem " << i << "."<<
+                   " -- (" << ijk_indices_i << ", " << ijk_indices_j << ", " << ijk_indices_k << ")" << finl;
+              Cerr << "Distance from intersection_ijk_cell: " << dist << finl;
+            }
           Cerr << "Distance from sub-resolution: " << dist_sub_res << finl;
           Vecteur3 bary_facet_debug = thermal_subproblems_->get_bary_facet(i);
           Cerr << "Facet barycentre: " << bary_facet_debug[0] << ";"
                << bary_facet_debug[1] << ";"
                << bary_facet_debug[2] << finl;
+
+          const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
+          const double indic = indicator(ijk_indices_i, ijk_indices_j, ijk_indices_k);
+          if (temperature_ghost < min_temperature && indic > 0.5)
+            Cerr << "Ghost temperature: " << temperature_ghost << " is lower than the minimum temperature:" << min_temperature << finl;
+          if (temperature_ghost > max_temperature && indic > 0.5)
+            Cerr << "Ghost temperature: " << temperature_ghost << " is higher than the maximum temperature:" << max_temperature << finl;
         }
-
-      const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
-      const double indic = indicator(ijk_indices_i, ijk_indices_j, ijk_indices_k);
-      if (temperature_ghost < min_temperature && indic > 0.5)
-        Cerr << "Ghost temperature: " << temperature_ghost << " is lower than the minimum temperature:" << min_temperature << finl;
-      if (temperature_ghost > max_temperature && indic > 0.5)
-        Cerr << "Ghost temperature: " << temperature_ghost << " is higher than the maximum temperature:" << max_temperature << finl;
-
-      temperature(ijk_indices_i, ijk_indices_j, ijk_indices_k) = temperature_ghost;
     }
 }
 
@@ -441,6 +465,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_temperature_cell_centre_
 
 void Corrige_flux_FT_temperature_subresolution::receive_temperature_cell_centre_neighbours_from_procs()
 {
+  Cerr << "Copy temperature on every processors" << finl;
   if (copy_temperature_on_every_procs_)
     {
       const int nb_procs = Process::nproc();
@@ -460,7 +485,7 @@ void Corrige_flux_FT_temperature_subresolution::receive_temperature_cell_centre_
           mp_sum_for_each_item(overall_numerotation);
           int l;
           for (l=1; l<overall_numerotation.size_array(); l++)
-            start_indices(l) = start_indices(l-1) + overall_numerotation(l);
+            start_indices(l) = start_indices(l-1) + overall_numerotation(l-1);
 
           for (int c=0; c<3; c++)
             {
@@ -509,6 +534,7 @@ void Corrige_flux_FT_temperature_subresolution::combine_temperature_cell_centre_
                                                                                                       const int& offset_j,
                                                                                                       const int& offset_k)
 {
+  Cerr << "Combine temperature on every processors" << finl;
   if (copy_temperature_on_every_procs_)
     {
       const int size_array = indices_temperature_neighbours_on_procs_[0].size_array();
@@ -893,7 +919,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_mixed_ce
       const int nk = ref_ijk_ft_->itfce().I().nk();
 
       IJK_Field_local_int cell_faces_neighbours_corrected_bool_tmp;
-      cell_faces_neighbours_corrected_bool_tmp.allocate(ni, nj, nk, 0);
+      cell_faces_neighbours_corrected_bool_tmp.allocate(ni, nj, nk, 1);
 
       const int neighbours_i[6] = NEIGHBOURS_I;
       const int neighbours_j[6] = NEIGHBOURS_J;
@@ -924,6 +950,22 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_mixed_ce
                           const int cell_faces_neighbours_ijk = cell_faces_neighbours_corrected_bool_mixed_cell[c](i + ii,j + jj, k + kk);
                           const double indic_neighbour = ref_ijk_ft_->itfce().I()(i+i_neighbour,j+j_neighbour,k+k_neighbour);
                           if (cell_faces_neighbours_ijk && indic_neighbour > LIQUID_INDICATOR_TEST)
+                            cell_faces_neighbours_corrected_bool_tmp(i+ii,j+jj,k+kk) = cell_faces_neighbours_ijk;
+                        }
+                    }
+                  if (indic > LIQUID_INDICATOR_TEST)
+                    {
+                      for (int l=index_ini; l<index_ini + 2; l++)
+                        {
+                          const int i_neighbour = neighbours_i[l];
+                          const int j_neighbour = neighbours_j[l];
+                          const int k_neighbour = neighbours_k[l];
+                          const int ii = neighbours_faces_i[l];
+                          const int jj = neighbours_faces_j[l];
+                          const int kk = neighbours_faces_k[l];
+                          const int cell_faces_neighbours_ijk = cell_faces_neighbours_corrected_bool_mixed_cell[c](i + ii,j + jj, k + kk);
+                          const double indic_neighbour = ref_ijk_ft_->itfce().I()(i+i_neighbour,j+j_neighbour,k+k_neighbour);
+                          if (cell_faces_neighbours_ijk && (indic_neighbour < LIQUID_INDICATOR_TEST && indic_neighbour > VAPOUR_INDICATOR_TEST))
                             cell_faces_neighbours_corrected_bool_tmp(i+ii,j+jj,k+kk) = cell_faces_neighbours_ijk;
                         }
                     }
@@ -980,7 +1022,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_mixed_ce
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             cell_faces_neighbours_corrected_field_mixed_cell[c](i,j,k) = cell_faces_neighbours_corrected_field(i,j,k);
+
     }
+  cell_faces_neighbours_corrected_field_mixed_cell.echange_espace_virtuel();
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_indices_to_correct(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
@@ -1393,12 +1437,12 @@ void Corrige_flux_FT_temperature_subresolution::complete_neighbours_and_weightin
   cell_faces_neighbours_corrected_bool.echange_espace_virtuel();
   if (compute_fluxes_values)
     {
-//      if (convective_flux_correction_)
-//        cell_faces_neighbours_corrected_convective.echange_espace_virtuel();
-//      if (diffusive_flux_correction_)
-//        cell_faces_neighbours_corrected_diffusive.echange_espace_virtuel();
-//			if (neighbours_colinearity_weighting_)
-//				neighbours_weighting_colinearity.echange_espace_virtuel();
+      //      if (convective_flux_correction_)
+      //        cell_faces_neighbours_corrected_convective.echange_espace_virtuel();
+      //      if (diffusive_flux_correction_)
+      //        cell_faces_neighbours_corrected_diffusive.echange_espace_virtuel();
+      //			if (neighbours_colinearity_weighting_)
+      //				neighbours_weighting_colinearity.echange_espace_virtuel();
       const int ni = cell_faces_neighbours_corrected_bool[0].ni();
       const int nj = cell_faces_neighbours_corrected_bool[0].nj();
       const int nk = cell_faces_neighbours_corrected_bool[0].nk();
@@ -1616,56 +1660,25 @@ void Corrige_flux_FT_temperature_subresolution::replace_cell_neighbours_thermal_
                                                                                              const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                                              FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz)
 {
-
-//	FixedVector<FixedVector<std::vector<ArrOfInt>,3>,2> index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_;
-//	FixedVector<FixedVector<std::vector<ArrOfDouble>,3>,2> convective_diffusive_flux_xyz_min_max_faces_sorted_;
-  // index_face_i_sorted[0] = &index_face_i_flux_x_neighbours_min_max_faces_sorted_;
-
   const int ni = cell_faces_neighbours_corrected_min_max_bool[0].ni();
   const int nj = cell_faces_neighbours_corrected_min_max_bool[0].nj();
   const int nk = cell_faces_neighbours_corrected_min_max_bool[0].nk();
+
   for (int c=0; c<3; c++)
-    for (int k = 0; k < nk; k++)
-      for (int j = 0; j < nj; j++)
-        for (int i = 0; i < ni; i++)
-          if (cell_faces_neighbours_corrected_min_max_bool[c](i,j,k))
-            {
-              flux_xyz[c][k].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
-              index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
-              index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
-              /*
-               * Handle the periodicity
-               */
-              switch(c)
-                {
-                case 0:
-                  if (i == 0)
-                    {
-                      flux_xyz[c][k].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(ni);
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
-                    }
-                  break;
-                case 1:
-                  if (j == 0)
-                    {
-                      flux_xyz[c][k].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(nj);
-                    }
-                  break;
-                case 2:
-                  if (k == 0)
-                    {
-                      flux_xyz[c][nk].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
-                      index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
-                    }
-                  break;
-                default:
-                  break;
-                }
-            }
+    {
+      const int ni_max = (c == 0 ? ni + 1 : ni);
+      const int nj_max = (c == 1 ? nj + 1 : nj);
+      const int nk_max = (c == 2 ? nk + 1 : nk);
+      for (int k = 0; k < nk_max; k++)
+        for (int j = 0; j < nj_max; j++)
+          for (int i = 0; i < ni_max; i++)
+            if (cell_faces_neighbours_corrected_min_max_bool[c](i,j,k))
+              {
+                flux_xyz[c][k].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
+                index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
+                index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
+              }
+    }
 }
 
 void Corrige_flux_FT_temperature_subresolution::replace_temperature_cell_centre_neighbours(IJK_Field_double& temperature,
@@ -1673,6 +1686,8 @@ void Corrige_flux_FT_temperature_subresolution::replace_temperature_cell_centre_
                                                                                            IJK_Field_int& neighbours_weighting,
                                                                                            IJK_Field_double& neighbours_weighting_colinearity) const
 {
+  if (debug_)
+    Cerr << "Corrige flux - Replace temperature cell neighbours - INI" << finl;
   if (distance_cell_faces_from_lrs_ && find_temperature_cell_neighbours_)
     {
       temperature_neighbours.echange_espace_virtuel(temperature_neighbours.ghost());
@@ -1682,19 +1697,157 @@ void Corrige_flux_FT_temperature_subresolution::replace_temperature_cell_centre_
       const int ni = temperature.ni();
       const int nj = temperature.nj();
       const int nk = temperature.nk();
+
+      const IJK_Splitting& splitting = temperature.get_splitting();
+      ArrOfInt corrected_values;
+      ArrOfInt out_of_bounds_corrected_values;
+      ArrOfDouble out_of_bounds_values;
+      corrected_values.set_smart_resize(1);
+      out_of_bounds_values.set_smart_resize(1);
+      out_of_bounds_corrected_values.set_smart_resize(1);
+
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
               double neighbours_weighting_ijk;
+              const double temperature_old = temperature(i,j,k);
               if (neighbours_colinearity_weighting_)
                 neighbours_weighting_ijk = neighbours_weighting_colinearity(i,j,k);
               else
                 neighbours_weighting_ijk = (double) neighbours_weighting(i,j,k);
+              const int elem = splitting.convert_ijk_cell_to_packed(i,j,k);
               if (neighbours_weighting(i,j,k))
-                temperature(i,j,k) = temperature_neighbours(i,j,k) / neighbours_weighting_ijk;
+                {
+                  temperature(i,j,k) = temperature_neighbours(i,j,k) / neighbours_weighting_ijk;
+                  if (smooth_temperature_field_)
+                    corrected_values.append_array(elem);
+
+                }
+              if (smooth_temperature_field_)
+                {
+                  const double local_temperature = temperature(i,j,k);
+                  const double indic = ref_ijk_ft_->itfce().I()(i,j,k);
+                  if (local_temperature > 0)
+                    {
+                      if (indic < LIQUID_INDICATOR_TEST && indic > VAPOUR_INDICATOR_TEST)
+                        if (indic > 0.5)
+                          {
+                            const int rank = thermal_subproblems_->get_subproblem_index_from_ijk_indices(i,j,k);
+                            const double dist_sub_res = thermal_subproblems_->get_dist_cell_interface(rank);
+                            if (dist_sub_res > 0)
+                              {
+                                if (debug_)
+                                  {
+                                    Cerr << "Thermal subproblem is: " << rank << finl;
+                                    Cerr << "Temperature value has the wrong sign at i: " << i << ", j: " << j << ", k: " << k << finl;
+                                    Cerr << "Temperature value is: " << local_temperature << finl;
+                                    Cerr << "Distance to cell centre is: " << dist_sub_res << finl;
+                                    Cerr << "Enforce zero value" << finl;
+                                  }
+                                // temperature(i,j,k) = 0.;
+                                out_of_bounds_corrected_values.append_array(elem);
+                                out_of_bounds_values.append_array(local_temperature);
+                                temperature(i,j,k) = temperature_old;
+                              }
+                          }
+                      if (indic > LIQUID_INDICATOR_TEST)
+                        {
+                          if (debug_)
+                            {
+                              Cerr << "Temperature value has the wrong sign at i: " << i << ", j: " << j << ", k: " << k << finl;
+                              Cerr << "Temperature value is: " << local_temperature << finl;
+                              Cerr << "Enforce zero value" << finl;
+                            }
+                          // temperature(i,j,k) = 0.;
+                          out_of_bounds_corrected_values.append_array(elem);
+                          out_of_bounds_values.append_array(local_temperature);
+                          temperature(i,j,k) = temperature_old;
+                        }
+                    }
+                }
             }
       temperature.echange_espace_virtuel(temperature.ghost());
+      smooth_temperature_cell_centre_neighbours(temperature,
+                                                corrected_values,
+                                                out_of_bounds_corrected_values,
+                                                out_of_bounds_values,
+                                                temperature);
+    }
+
+  if (debug_)
+    Cerr << "Corrige flux - Replace temperature cell neighbours - END" << finl;
+}
+
+void Corrige_flux_FT_temperature_subresolution::smooth_temperature_cell_centre_neighbours(IJK_Field_double& temperature,
+                                                                                          ArrOfInt& corrected_values,
+                                                                                          ArrOfInt& out_of_bounds_corrected_values,
+                                                                                          ArrOfDouble& out_of_bounds_values,
+                                                                                          IJK_Field_double& distance) const
+{
+  // const IJK_Splitting& splitting = temperature.get_splitting();
+  //	const Int3 num_elem_ijk = splitting.convert_packed_to_ijk_cell(elem);
+  //	(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
+  if (smooth_temperature_field_)
+    {
+      const IJK_Splitting& splitting = temperature.get_splitting();
+      ArrOfDouble temperature_smoothed;
+      temperature_smoothed.set_smart_resize(1);
+      int counter;
+      double temperature_neighbour;
+      for (int ielem=0; ielem<out_of_bounds_corrected_values.size_array(); ielem++)
+        {
+          const int elem = out_of_bounds_corrected_values[ielem];
+          const Int3 num_elem_ijk = splitting.convert_packed_to_ijk_cell(elem);
+          const int i = num_elem_ijk[DIRECTION_I];
+          const int j = num_elem_ijk[DIRECTION_J];
+          const int k = num_elem_ijk[DIRECTION_K];
+          const int neighbours_i[6] = NEIGHBOURS_I;
+          const int neighbours_j[6] = NEIGHBOURS_J;
+          const int neighbours_k[6] = NEIGHBOURS_K;
+          // const double temperature_old = temperature(i,j,k);
+          const double temperature_old_subres = out_of_bounds_values[ielem];
+          const double temperature_old = temperature(i,j,k);
+          counter=0;
+          temperature_neighbour=0;
+          for (int l=0; l<6; l++)
+            {
+              const int ii = neighbours_i[l];
+              const int jj = neighbours_j[l];
+              const int kk = neighbours_k[l];
+              const double indic = ref_ijk_ft_->itfce().I()(i+ii, j+jj, k+kk);
+              // if (indic > VAPOUR_INDICATOR_TEST)
+              if (indic > LIQUID_INDICATOR_TEST)
+                {
+                  temperature_neighbour += temperature(i+ii, j+jj, k+kk);
+                  counter++;
+                }
+            }
+          double mean_temperature = 1e20;
+          if (counter != 0)
+            mean_temperature = (temperature_neighbour / counter + temperature_old_subres) * 0.5;
+          if (counter != 0)
+            {
+              if (mean_temperature < 0.)
+                temperature_smoothed.append_array(mean_temperature);
+              else
+                temperature_smoothed.append_array(temperature_neighbour/counter);
+            }
+          else
+            temperature_smoothed.append_array(temperature_old);
+        }
+
+      for (int ielem=0; ielem<out_of_bounds_corrected_values.size_array(); ielem++)
+        {
+          const int elem = out_of_bounds_corrected_values[ielem];
+          const Int3 num_elem_ijk = splitting.convert_packed_to_ijk_cell(elem);
+          const int i = num_elem_ijk[DIRECTION_I];
+          const int j = num_elem_ijk[DIRECTION_J];
+          const int k = num_elem_ijk[DIRECTION_K];
+          temperature(i,j,k) = temperature_smoothed(ielem);
+          if (debug_)
+            Cerr << "Smoothed temperature value is:" << temperature_smoothed(ielem) << finl;
+        }
     }
 }
 
@@ -1716,14 +1869,20 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes
 
 void Corrige_flux_FT_temperature_subresolution::set_zero_temperature_increment(IJK_Field_double& d_temperature) const
 {
-  for (int i=0; i<ijk_intersections_subproblems_indices_.size_array(); i++)
+  for (int i=0; i<thermal_subproblems_->get_effective_subproblems_counter(); i++)
     {
-      const int intersection_ijk_cell_index = ijk_intersections_subproblems_indices_[i];
-      const int ijk_indices_i = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 0);
-      const int ijk_indices_j = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 1);
-      const int ijk_indices_k = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 2);
+      int ijk_indices_i, ijk_indices_j, ijk_indices_k;
+      thermal_subproblems_->get_subproblem_ijk_indices(ijk_indices_i, ijk_indices_j, ijk_indices_k, i);
       d_temperature(ijk_indices_i, ijk_indices_j, ijk_indices_k) = 0.;
     }
+  //  for (int i=0; i<ijk_intersections_subproblems_indices_.size_array(); i++)
+  //    {
+  //      const int intersection_ijk_cell_index = ijk_intersections_subproblems_indices_[i];
+  //      const int ijk_indices_i = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 0);
+  //      const int ijk_indices_j = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 1);
+  //      const int ijk_indices_k = (*intersection_ijk_cell_)(intersection_ijk_cell_index, 2);
+  //      d_temperature(ijk_indices_i, ijk_indices_j, ijk_indices_k) = 0.;
+  //    }
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_thermal_convective_fluxes_face_centre()
@@ -2860,7 +3019,8 @@ void Corrige_flux_FT_temperature_subresolution::sort_ijk_intersections_subproble
                                         index_face_ij_flux_xyz_remaining_global,
                                         flux_xyz,
                                         flux_xyz_remaining_global,
-                                        flux_frontier_map);
+                                        flux_frontier_map,
+                                        ini_index);
   if (debug_)
     Cerr << "Fluxes have been combined on procs" << finl;
 }
@@ -2921,11 +3081,15 @@ void Corrige_flux_FT_temperature_subresolution::receive_fluxes_from_frontier_on_
                   overall_numerotation_array[c][k](proc_num) = size_array;
                   mp_sum_for_each_item(overall_numerotation_array[c][k]);
                   for (l=1; l<overall_numerotation_array[c][k].size_array(); l++)
-                    start_indices_array[c][k](l) = start_indices_array[c][k](l-1) + start_indices_array[c][k](l-1);
+                    start_indices_array[c][k](l) = start_indices_array[c][k](l-1) + overall_numerotation_array[c][k](l-1);
+                  // start_indices_array[c][k](l) = start_indices_array[c][k](l-1) + start_indices_array[c][k](l-1);
 
-                  Cerr << "Size array" << size_array << finl;
-                  Cerr << "Size array global" << size_array_global << finl;
-                  Cerr << "Overall_numerotation" << overall_numerotation_array[c][k](0) << "-" << overall_numerotation_array[c][k](1) << finl;
+                  if (debug_)
+                    {
+                      Cerr << "Size array" << size_array << finl;
+                      Cerr << "Size array global" << size_array_global << finl;
+                      Cerr << "Overall_numerotation" << overall_numerotation_array[c][k](0) << "-" << overall_numerotation_array[c][k](1) << finl;
+                    }
 
                   ArrOfDouble local_flux_values_tmp;
                   ArrOfDouble& global_flux_values_tmp = flux_xyz_remaining_global[c][k];
@@ -2984,7 +3148,8 @@ void Corrige_flux_FT_temperature_subresolution::combine_fluxes_from_frontier_on_
                                                                                       FixedVector<FixedVector<std::vector<ArrOfInt>,3>,2>& index_face_ij_flux_xyz_remaining_global,
                                                                                       FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz,
                                                                                       FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz_remaining_global,
-                                                                                      FixedVector<std::map<int, int>, 3>& flux_frontier_map)
+                                                                                      FixedVector<std::map<int, int>, 3>& flux_frontier_map,
+                                                                                      const int ini_index)
 {
 
   const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
@@ -3000,6 +3165,8 @@ void Corrige_flux_FT_temperature_subresolution::combine_fluxes_from_frontier_on_
   FixedVector<std::map<int, int>, 3> multiple_flux_values_k;
   FixedVector<std::map<int, int>, 3> multiple_flux_values_count;
   FixedVector<std::map<int, double>, 3> multiple_flux_values_sum;
+
+  FixedVector<std::map<int, int>, 3> flux_frontier_map_tmp = flux_frontier_map;
 
   for (int dir=0; dir<3; dir++)
     {
@@ -3021,15 +3188,18 @@ void Corrige_flux_FT_temperature_subresolution::combine_fluxes_from_frontier_on_
               if ((0 <= i && i < ni_max) && (0 <= j && j < nj_max) && (0 <= k && k < nk_max))
                 {
                   const int linear_local_index = get_linear_index_local(i, j, k, dir);
-                  const int non_zero_value_local = (int) flux_frontier_map[dir].count(linear_local_index);
+                  const int non_zero_value_local = (int) flux_frontier_map_tmp[dir].count(linear_local_index);
                   if (!non_zero_value_local)
                     {
                       // Add flux at the end of the list if new
                       flux_xyz[dir][k].append_array(flux);
-                      index_face_ij_flux_xyz[0][dir][k].append_array(i);
-                      index_face_ij_flux_xyz[1][dir][k].append_array(j);
+                      if (!ini_index)
+                        {
+                          index_face_ij_flux_xyz[0][dir][k].append_array(i);
+                          index_face_ij_flux_xyz[1][dir][k].append_array(j);
+                        }
                       const int local_size_array = flux_xyz[dir][k].size_array() - 1;
-                      flux_frontier_map[dir][linear_local_index] = local_size_array;
+                      flux_frontier_map_tmp[dir][linear_local_index] = local_size_array;
                       multiple_flux_values_count[dir][linear_local_index] = 1;
                       multiple_flux_values_sum[dir][linear_local_index] = flux;
                       multiple_flux_values_k[dir][linear_local_index] = k;
@@ -3060,11 +3230,13 @@ void Corrige_flux_FT_temperature_subresolution::combine_fluxes_from_frontier_on_
           const int key = it->first;
           const double val_flux_sum = it->second;
           const double count_val = (double) multiple_flux_values_count[dir][key];
-          const int array_index = (int) flux_frontier_map[dir][key];
+          const int array_index = (int) flux_frontier_map_tmp[dir][key];
           const int k_local = (int) multiple_flux_values_k[dir][key];
           flux_xyz[dir][k_local](array_index) =  val_flux_sum / count_val;
         }
     }
+  if (ini_index)
+    flux_frontier_map = flux_frontier_map_tmp;
 }
 
 void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_indices_to_correct_on_processors(FixedVector<FixedVector<std::vector<std::vector<ArrOfInt>>,3>,2>& index_face_ij_flux_xyz,

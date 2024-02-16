@@ -98,7 +98,16 @@ IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::IJK_Finite_Difference_On
 
 Sortie& IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::printOn( Sortie& os ) const
 {
-  Objet_U::printOn( os );
+  // Objet_U::printOn( os );
+  Nom front_space = "    ";
+  Nom end_space = " ";
+  Nom escape = "\n";
+  os << escape;
+  os << front_space << "{" << escape;
+  if (reduce_side_precision_)
+    os << front_space << " reduce_side_precision" << escape;
+  os << front_space << " precision_order" << end_space << precision_order_ << escape;
+  os << front_space << "}" << escape;
   return os;
 }
 
@@ -384,20 +393,23 @@ int IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::build_with_known_pat
       {
         for (int i=0; i < centred_left_offset; i++)
           {
-            matrix_column_indices[non_zero_values_counter] = i + j + FORTRAN_INDEX_INI;
+            // matrix_column_indices[non_zero_values_counter] = i + j + FORTRAN_INDEX_INI; // Add MG 12/02/24
+            matrix_column_indices[non_zero_values_counter] = i + j + FORTRAN_INDEX_INI - centred_left_offset; // Add MG 12/02/24
             non_zero_values_counter++;
           }
         for (int i=0; i < centred_derivative_size; i++)
           {
             const int indices = (int) (*centred_derivative)[precision_order_-1][0](i);
             const double fd_coeff = (*centred_derivative)[precision_order_-1][1](i);
-            matrix_column_indices[non_zero_values_counter] = indices + j + centred_left_offset + FORTRAN_INDEX_INI;
+            // matrix_column_indices[non_zero_values_counter] = indices + j + centred_left_offset + FORTRAN_INDEX_INI;
+            matrix_column_indices[non_zero_values_counter] = indices + j + FORTRAN_INDEX_INI;
             matrix_values[non_zero_values_counter] = fd_coeff;
             non_zero_values_counter++;
           }
         for (int i=0; i < centred_right_offset; i++)
           {
-            matrix_column_indices[non_zero_values_counter] = i + (centred_left_offset + centred_derivative_size) + FORTRAN_INDEX_INI;
+            // matrix_column_indices[non_zero_values_counter] = i + (centred_left_offset + centred_derivative_size) + FORTRAN_INDEX_INI;
+            matrix_column_indices[non_zero_values_counter] = i + j + centred_derivative_size + FORTRAN_INDEX_INI;
             non_zero_values_counter++;
           }
         non_zero_coeff_per_line[j + 1] = non_zero_values_counter + FORTRAN_INDEX_INI;
@@ -565,20 +577,28 @@ int IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::build_with_unknown_p
   return non_zero_elem;
 }
 
-void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::sum_any_matrices_subproblems(Matrice& matrix_A, Matrice& matrix_B, const int& use_sparse_matrix)
+void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::sum_any_matrices_subproblems(Matrice& matrix_A, Matrice& matrix_B,
+                                                                                          const int& use_sparse_matrix,
+                                                                                          const int& debug)
 {
   if (use_sparse_matrix)
-    sum_sparse_matrices_subproblems(matrix_A, matrix_B);
+    sum_sparse_matrices_subproblems(matrix_A, matrix_B, debug);
   else
     sum_matrices_subproblems(matrix_A, matrix_B);
 
 }
 
-void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::sum_sparse_matrices_subproblems(Matrice& matrix_A, Matrice& matrix_B)
+void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::sum_sparse_matrices_subproblems(Matrice& matrix_A, Matrice& matrix_B, const int& debug)
 {
   Matrice_Morse& sparse_matrix_A  = ref_cast(Matrice_Morse, matrix_A.valeur());
   Matrice_Morse& sparse_matrix_B  = ref_cast(Matrice_Morse, matrix_B.valeur());
   sparse_matrix_A += sparse_matrix_B;
+
+  if (debug)
+    {
+      const IntVect& tab1 = sparse_matrix_A.get_tab1();
+      Cerr << "tab1[tab1.size_array() - 1]" << tab1[tab1.size_array() - 1] << finl;
+    }
 
   // Don't forget to call my own sort_stencil() if matrices have been compacted !
   if (!known_pattern_)
@@ -796,19 +816,21 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::reinitialise_any_ma
                                                                                                 const int& nb_subproblems,
                                                                                                 const int& use_sparse_matrix,
                                                                                                 FixedVector<ArrOfInt,6> * first_indices_sparse_matrix,
-                                                                                                const int& first_initialisation)
+                                                                                                const int& first_initialisation,
+                                                                                                const int& keep_global_probes_discretisation)
 {
   if (use_sparse_matrix)
-    reinitialise_sparse_matrix_subproblem(matrix_subproblems, fd_operator, nb_subproblems, first_indices_sparse_matrix, first_initialisation);
+    reinitialise_sparse_matrix_subproblem(matrix_subproblems, fd_operator, nb_subproblems, first_indices_sparse_matrix, first_initialisation, keep_global_probes_discretisation);
   else
-    reinitialise_matrix_subproblem(matrix_subproblems, fd_operator, nb_subproblems);
+    reinitialise_matrix_subproblem(matrix_subproblems, fd_operator, nb_subproblems, keep_global_probes_discretisation);
 }
 
 void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::reinitialise_sparse_matrix_subproblem(Matrice * matrix_subproblems,
                                                                                                    const Matrice * fd_operator,
                                                                                                    const int& nb_subproblems,
                                                                                                    FixedVector<ArrOfInt,6> * first_indices_sparse_matrix,
-                                                                                                   const int& first_initialisation)
+                                                                                                   const int& first_initialisation,
+                                                                                                   const int& keep_global_probes_discretisation)
 {
   Matrice_Morse& sparse_matrix_subproblems =ref_cast(Matrice_Morse, (*matrix_subproblems).valeur());
   IntVect& tab1 = sparse_matrix_subproblems.get_set_tab1();
@@ -832,48 +854,82 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::reinitialise_sparse
   int nb_columns_ini = sparse_matrix_subproblems.nb_colonnes();
   int nb_coeff_ini = sparse_matrix_subproblems.nb_coeff();
 
+  /*
+   * Re-write the entire matrix (can be usefull if probe discretisation changes)
+   */
   if (!nb_subproblems)
     {
-      nb_rows_ini = 0;
-      nb_columns_ini = 0;
-      nb_coeff_ini = 0;
+      if (!keep_global_probes_discretisation)
+        {
+          nb_rows_ini = 0;
+          nb_columns_ini = 0;
+          nb_coeff_ini = 0;
+        }
+      else
+        {
+          nb_rows_ini = (*first_indices_sparse_matrix)[4][nb_subproblems];
+          nb_columns_ini = (*first_indices_sparse_matrix)[2][nb_subproblems];
+          nb_coeff_ini = (*first_indices_sparse_matrix)[0][nb_subproblems];
+        }
     }
   else
     {
-      nb_rows += nb_rows_ini;
-      nb_columns += nb_columns_ini;
-      nb_coeff += nb_coeff_ini;
+      if (!keep_global_probes_discretisation)
+        {
+          nb_rows += nb_rows_ini;
+          nb_columns += nb_columns_ini;
+          nb_coeff += nb_coeff_ini;
+        }
+      else
+        {
+          nb_rows_ini = (*first_indices_sparse_matrix)[4][nb_subproblems];
+          nb_columns_ini = (*first_indices_sparse_matrix)[2][nb_subproblems];
+          nb_coeff_ini = (*first_indices_sparse_matrix)[0][nb_subproblems];
+          nb_rows = nb_rows_ini;
+          nb_columns = nb_columns_ini;
+          nb_coeff = nb_coeff_ini;
+        }
     }
-  sparse_matrix_subproblems.dimensionner(nb_rows, nb_columns, nb_coeff);
+
+  if (!keep_global_probes_discretisation)
+    sparse_matrix_subproblems.dimensionner(nb_rows, nb_columns, nb_coeff);
   assert(nb_rows>=nb_rows_ini && nb_columns>=nb_columns_ini && nb_rows>=nb_rows_ini);
+
+  if (first_initialisation && !keep_global_probes_discretisation)
+    {
+      (*first_indices_sparse_matrix)[0][nb_subproblems] = nb_coeff_ini;
+      (*first_indices_sparse_matrix)[1][nb_subproblems] = nb_coeff_operator;
+      (*first_indices_sparse_matrix)[2][nb_subproblems] = nb_columns_ini;
+      (*first_indices_sparse_matrix)[3][nb_subproblems] = nb_columns_operator;
+      (*first_indices_sparse_matrix)[4][nb_subproblems] = nb_rows_ini;
+      (*first_indices_sparse_matrix)[5][nb_subproblems] = nb_rows_operator;
+      // (*first_indices_sparse_matrix)[4][nb_subproblems] = nb_coeff_ini;
+    }
 
   const int coeff_offset = nb_coeff_ini;
   const int column_offset = nb_columns_ini;
   const int row_offset = nb_coeff_ini;
 
-  if (first_initialisation)
-    {
-      first_indices_sparse_matrix[0][nb_subproblems] = nb_coeff_ini;
-      first_indices_sparse_matrix[1][nb_subproblems] = nb_coeff_operator;
-      first_indices_sparse_matrix[2][nb_subproblems] = nb_columns_ini;
-      first_indices_sparse_matrix[3][nb_subproblems] = nb_columns_operator;
-      first_indices_sparse_matrix[4][nb_subproblems] = nb_coeff_ini;
-      first_indices_sparse_matrix[5][nb_subproblems] = nb_rows_operator;
-    }
-
   int i;
-  for (i=0; i<nb_coeff; i++)
+  if (!keep_global_probes_discretisation)
     {
-      tab2(i + coeff_offset) = tab2_operator(i) + column_offset;
-      coeff(i + coeff_offset) = coeff_operator(i);
+      for (i=0; i<nb_coeff_operator; i++)
+        {
+          tab2(i + coeff_offset) = tab2_operator(i) + column_offset;
+          coeff(i + coeff_offset) = coeff_operator(i);
+        }
+      for (i=1; i<=nb_rows_operator; i++)
+        tab1(i + row_offset) = tab1_operator(i) + coeff_offset;
     }
-  for (i=1; i<=nb_rows; i++)
-    tab1(i + row_offset) = tab1_operator(i) + coeff_offset;
+  else
+    for (i=0; i<nb_coeff_operator; i++)
+      coeff(i + coeff_offset) = coeff_operator(i);
 }
 
 void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::reinitialise_matrix_subproblem(Matrice * matrix_subproblems,
                                                                                             const Matrice * fd_operator,
-                                                                                            const int& nb_subproblems)
+                                                                                            const int& nb_subproblems,
+                                                                                            const int& keep_global_probes_discretisation)
 {
   Matrice_Bloc& block_matrix_subproblems =ref_cast(Matrice_Bloc, (*matrix_subproblems).valeur());
   Matrice_Morse& sparse_matrix  = ref_cast(Matrice_Morse, block_matrix_subproblems.get_bloc(nb_subproblems,nb_subproblems).valeur());
@@ -1122,6 +1178,8 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::impose_boundary_con
       case flux_jump:
         Cerr << "Flux_jump condition necessitates a sub-problem in each phase : not implemented yet !" << finl;
         break;
+      case implicit:
+        break;
       default:
         {
           const int non_zero_elem_ini = non_zero_coeff_per_line[1] - FORTRAN_INDEX_INI;
@@ -1154,8 +1212,9 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::impose_boundary_con
           {
             // Refill with first order finite difference coefficients
             const int non_zero_elem_end = sparse_matrix.nb_vois(nb_lines - 1);
-            const int stencil_backward = non_zero_stencil_values(first_order_derivative_backward_);
-            int counter_fd_coeff = 0;
+            const int stencil_backward = first_order_derivative_backward_[precision_order_-1][1].size_array();
+            // const int stencil_backward = non_zero_stencil_values(first_order_derivative_backward_);
+            int counter_fd_coeff = stencil_backward - 1;
             for (int i=0; i < non_zero_elem_end; i++)
               {
                 const int index = i + nb_coeff - non_zero_elem_end;
@@ -1163,10 +1222,45 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::impose_boundary_con
                   {
                     const double fd_coeff = first_order_derivative_backward_[precision_order_-1][1](counter_fd_coeff);
                     matrix_values[index] = fd_coeff * dr_inv;
-                    counter_fd_coeff++;
+                    counter_fd_coeff--;
                   }
                 else
                   matrix_values[index] = 0.;
+              }
+            modified_rhs[modified_rhs.size() - 1] = end_value;
+          }
+          break;
+        case implicit:
+          {
+            // Refill with first order finite difference coefficients
+            const int non_zero_elem_end = sparse_matrix.nb_vois(nb_lines - 1);
+            const int stencil_backward = first_order_derivative_backward_[precision_order_-1][1].size_array();
+            // const int stencil_backward = non_zero_stencil_values(first_order_derivative_backward_);
+            int counter_fd_coeff = stencil_backward - 1;
+            for (int i=0; i < non_zero_elem_end; i++)
+              {
+                const int index = i + nb_coeff - non_zero_elem_end;
+                if (index + stencil_backward >= nb_coeff)
+                  {
+                    const double fd_coeff = first_order_derivative_backward_[precision_order_-1][1](counter_fd_coeff);
+                    matrix_values[index] = fd_coeff * dr_inv;
+                    counter_fd_coeff--;
+                  }
+                else
+                  matrix_values[index] = 0.;
+              }
+            const int stencil_centred = first_order_derivative_centred_[precision_order_-1][1].size_array();
+            // const int stencil_centred = non_zero_stencil_values(first_order_derivative_centred_);
+            counter_fd_coeff = 0;
+            for (int i=0; i < non_zero_elem_end; i++)
+              {
+                const int index = i + nb_coeff - non_zero_elem_end;
+                if (index + stencil_centred >= nb_coeff)
+                  {
+                    const double fd_coeff = first_order_derivative_centred_[precision_order_-1][1](counter_fd_coeff);
+                    matrix_values[index] += - (fd_coeff * dr_inv);
+                    counter_fd_coeff++;
+                  }
               }
             modified_rhs[modified_rhs.size() - 1] = end_value;
           }
@@ -1218,14 +1312,18 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::modify_rhs_for_bc(M
   const int nb_lines = sparse_matrix.nb_lignes();
   const int nb_column = sparse_matrix.nb_colonnes();
 
-  const DoubleVect rhs = modified_rhs;
+  const DoubleVect rhs_ini = modified_rhs;
+  DoubleVect rhs = modified_rhs;
+
+  const int ini_boundary_bool = ((ini_boundary_conditions==default_bc) || (ini_boundary_conditions==dirichlet));
+  const int end_boundary_bool = ((end_boundary_conditions==default_bc) || (end_boundary_conditions==dirichlet));
   /*
    * Get the modified rhs
    */
   if (ini_boundary_conditions == neumann && ini_boundary_conditions == flux_jump)
-    modified_rhs[0] = 0.;
+    rhs[0] = 0.;
   if (end_boundary_conditions == neumann)
-    modified_rhs[modified_rhs.size() - 1] = 0.;
+    rhs[rhs.size() - 1] = 0.;
 
   /*
    * Build B_BCs = A * X_BC
@@ -1238,6 +1336,11 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::modify_rhs_for_bc(M
   modified_rhs -= rhs;
   modified_rhs *= -1.;
   modified_rhs += rhs;
+
+  if (ini_boundary_conditions == neumann && ini_boundary_conditions == flux_jump)
+    modified_rhs[0] = rhs_ini[0];
+  if (end_boundary_conditions == neumann)
+    modified_rhs[modified_rhs.size() - 1] = rhs_ini[rhs_ini.size() - 1];
 
   /*
    * Remove useless coefficients
@@ -1252,9 +1355,9 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::modify_rhs_for_bc(M
         {
           const int index_sparse = non_zero_elem_core_series - non_zero_elem_core + i;
           const int column_index = matrix_column_indices[index_sparse] - FORTRAN_INDEX_INI;
-          if (column_index == 0)
+          if (column_index == 0 && ini_boundary_bool)
             matrix_values[index_sparse] = 0.;
-          if (column_index == (nb_column - 1))
+          if (column_index == (nb_column - 1) && end_boundary_bool)
             matrix_values[index_sparse] = 0.;
         }
     }
@@ -1271,16 +1374,56 @@ void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::modify_rhs_for_bc(M
 }
 
 void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::add_source_terms(DoubleVect * thermal_subproblems_rhs_assembly,
-                                                                              const DoubleVect& rhs_assembly)
+                                                                              DoubleVect& rhs_assembly,
+                                                                              const DoubleVect& source_terms,
+                                                                              const int& index_start,
+                                                                              const int& boundary_condition_interface,
+                                                                              const int& boundary_condition_end)
 {
   /*
    * Fill global RHS
    */
-  const int global_rhs_size = (*thermal_subproblems_rhs_assembly).size();
-  const int local_rhs_size = rhs_assembly.size();
-  const int index_start = global_rhs_size - local_rhs_size;
-  for (int i=0; i<rhs_assembly.size(); i++)
-    (*thermal_subproblems_rhs_assembly)[i + index_start] = rhs_assembly[i];
+  const int local_rhs_size = source_terms.size();
+  int index_ini = 0;
+  int index_end = local_rhs_size;
+  switch(boundary_condition_interface)
+    {
+    case dirichlet:
+      index_ini++;
+      break;
+    case neumann:
+      index_ini++;
+      break;
+    case flux_jump:
+      break;
+    case implicit:
+      break;
+    default:
+      index_ini++;
+      break;
+    }
+  switch(boundary_condition_end)
+    {
+    case dirichlet:
+      index_end--;
+      break;
+    case neumann:
+      index_end--;
+      break;
+    case flux_jump:
+      break;
+    case implicit:
+      // index_end--;
+      break;
+    default:
+      index_end--;
+      break;
+    }
+  for (int i=index_ini; i<index_end; i++)
+    {
+      (*thermal_subproblems_rhs_assembly)[i + index_start] += source_terms[i];
+      rhs_assembly[i] += source_terms[i];
+    }
 }
 
 void IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::compute_operator(const Matrice * fd_operator, const DoubleVect& solution, DoubleVect& res)

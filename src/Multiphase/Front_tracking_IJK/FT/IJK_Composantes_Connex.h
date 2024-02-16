@@ -49,11 +49,17 @@ class IJK_Composantes_Connex : public Objet_U
   Declare_instanciable( IJK_Composantes_Connex ) ;
 
 public :
-  int initialize(const IJK_Splitting& splitting, const IJK_Interfaces& interfaces);
+  int initialize(const IJK_Splitting& splitting,
+                 const IJK_Interfaces& interfaces,
+                 const bool is_switch);
   void associer(const IJK_FT_base& ijk_ft);
   void initialise_bubbles_params();
+  int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
+                                             const int& compute_rising_velocities,
+                                             const int& fill_rising_velocities);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
+  void compute_rising_velocities();
 
   const IJK_Field_double& get_eulerian_compo_connex_ft() const
   {
@@ -107,6 +113,22 @@ public :
   {
     return bubbles_volume_;
   }
+  const IJK_Field_double& get_eulerian_rising_velocities() const
+  {
+    return eulerian_rising_velocities_;
+  }
+  const ArrOfDouble& get_rising_velocities() const
+  {
+    return rising_velocities_;
+  }
+  const DoubleTab& get_rising_vectors() const
+  {
+    return rising_vectors_;
+  }
+  const Vecteur3& get_liquid_velocity() const
+  {
+    return liquid_velocity_;
+  }
   const DoubleTab& get_min_max_larger_box() const
   {
     return min_max_larger_box_;
@@ -137,6 +159,14 @@ protected :
   DoubleTab bubbles_barycentre_;
   ArrOfDouble bubbles_volume_;
   DoubleTab min_max_larger_box_;
+
+  IJK_Field_double eulerian_rising_velocities_;
+  ArrOfDouble rising_velocities_;
+  DoubleTab rising_vectors_;
+  Vecteur3 liquid_velocity_;
+
+  int compute_rising_velocities_ = 0;
+  int fill_rising_velocities_ = 0;
 
   bool is_updated_ = false;
 };

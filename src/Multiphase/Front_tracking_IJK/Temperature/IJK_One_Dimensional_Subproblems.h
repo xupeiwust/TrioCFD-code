@@ -45,6 +45,7 @@ class IJK_One_Dimensional_Subproblems : public LIST(IJK_One_Dimensional_Subprobl
 {
 
   Declare_instanciable(IJK_One_Dimensional_Subproblems);
+  friend class IJK_One_Dimensional_Subproblem;
 
 public :
   IJK_One_Dimensional_Subproblems(const IJK_FT_base& ijk_ft);
@@ -65,6 +66,20 @@ public :
   void add_subproblems(int n);
   void compute_global_indices();
   void set_global_index();
+  void associate_subproblem_to_ijk_indices(const int& i,
+                                           const int& j,
+                                           const int& k);
+  void get_ijk_indices_from_subproblems(const int& rank,
+                                        int& i,
+                                        int& j,
+                                        int& k);
+  void associate_ijk_indices_to_subproblem(const int& rank,
+                                           const int& i,
+                                           const int& j,
+                                           const int& k);
+  int get_subproblem_index_from_ijk_indices(const int& i,
+                                            const int& j,
+                                            const int& k) const;
   void associate_sub_problem_to_inputs(IJK_Thermal_Subresolution& ref_thermal_subresolution,
                                        int i, int j, int k,
                                        const double& indicator,
@@ -74,8 +89,21 @@ public :
                                        const FixedVector<IJK_Field_double, 3>& velocity,
                                        const FixedVector<IJK_Field_double, 3>& velocity_ft,
                                        const IJK_Field_double& pressure);
+  void store_previous_temperature_indicator_velocities();
+  void share_previous_temperature_indicator_velocities();
+  void retrieve_boundary_previous_values();
+  void share_boundary_previous_values();
+  void complete_boundary_previous_values();
+  int is_in_map_index_ijk(const std::map<int, std::map<int, std::map<int, int>>>& subproblem_to_ijk_indices,
+                          const int& index_i,
+                          const int& index_j,
+                          const int& index_k);
+  void set_effective_subproblems(const int& enable_probe_collision_detection);
+  void interpolate_indicator_on_probes();
+  void clear_sort_problems_colliding_bubbles();
   void interpolate_project_velocities_on_probes();
   void reajust_probes_length();
+  void reajust_probes_length(const int probe_length_condition);
   void compute_modified_probe_length(const int& probe_variations_enabled);
   void compute_radial_convection_diffusion_operators();
   void compute_source_terms_impose_boundary_conditions(const int& boundary_condition_interface,
@@ -136,6 +164,10 @@ public :
   {
     return subproblems_counter_;
   }
+  const int& get_effective_subproblems_counter() const
+  {
+    return effective_subproblems_counter_;
+  }
 
   double get_min_temperature() const;
   double get_max_temperature() const;
@@ -166,20 +198,51 @@ public :
                                            const double& lambda);
   void compute_shear_per_bubbles();
   void compute_overall_bubbles_quantities(IJK_Thermal_Subresolution& ref_thermal_subresolution);
+  void compute_dynamics_per_bubbles();
   void compute_overall_quantities();
   void post_process_overall_bubbles_quantities(const int rank, const Nom& overall_bubbles_quantities);
 
+
 protected :
+  std::vector<IJK_One_Dimensional_Subproblem*> one_dimensional_effective_subproblems_;
+  std::vector<IJK_One_Dimensional_Subproblem*> one_dimensional_disabled_subproblems_;
   int init_ = 1;
   int debug_ = 0;
   int max_subproblems_ = 0;
   int subproblems_counter_ = 0;
+  int effective_subproblems_counter_ = 0;
+  int disabled_subproblems_counter_ = 0;
+  int effective_and_disabled_subproblems_counter_ = 0;
   int global_subproblems_counter_ = 0;
   int index_ini_=0;
   int index_end_=0;
   int reallocate_subproblems_ = 1;
   bool is_updated_ = 0;
   REF(IJK_FT_base) ref_ijk_ft_;
+
+  FixedVector<ArrOfInt, 3> ijk_indices_to_subproblem_;
+  std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_previous_;
+  std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_;
+  std::vector<DoubleVect> temperature_probes_previous_;
+  std::vector<double> indicator_probes_previous_;
+  std::vector<Vecteur3> velocities_probes_previous_;
+  std::vector<Vecteur3> normal_vector_compo_probes_previous_;
+
+  int * points_per_thermal_subproblem_;
+  std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_previous_global_;
+  std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_global_;
+
+  FixedVector<std::vector<ArrOfInt>,2> index_ij_subproblems_local_perio_;
+  std::vector<std::vector<ArrOfDouble>> temperature_probes_previous_local_perio_;
+  std::vector<ArrOfDouble> indicator_probes_previous_local_perio_;
+  std::vector<std::vector<ArrOfDouble>> velocities_probes_previous_local_perio_;
+  std::vector<std::vector<ArrOfDouble>> normal_vector_compo_probes_previous_local_perio_;
+
+  FixedVector<std::vector<ArrOfInt>,2> index_ij_subproblems_global_;
+  std::vector<std::vector<ArrOfDouble>> temperature_probes_previous_global_;
+  std::vector<ArrOfDouble> indicator_probes_previous_global_;
+  std::vector<std::vector<ArrOfDouble>> velocities_probes_previous_global_;
+  std::vector<std::vector<ArrOfDouble>> normal_vector_compo_probes_previous_global_;
 
   int reference_gfm_on_probes_ = 0;
   int pre_initialise_thermal_subproblems_list_ = 0;
@@ -223,16 +286,44 @@ protected :
   double total_surface_ = 0.;
   double total_volume_ = 0.;
   double lambda_=0.;
+  double * prandtl_number_;
 
   double radius_from_surfaces_ = 0.;
   double radius_from_volumes_ = 0.;
 
   double uniform_alpha_ = 0.;
-  double error_temperature_ana_total_=0.;
-  double error_temperature_ana_squared_total_=0.;
-  double error_temperature_ana_rel_total_=0.;
+  double error_temperature_ana_total_ = 0.;
+  double error_temperature_ana_squared_total_ = 0.;
+  double error_temperature_ana_rel_total_ = 0.;
 
-  ArrOfDouble * bubbles_volume_;
+  const ArrOfDouble * bubbles_volume_;
+  const ArrOfDouble * bubbles_rising_velocities_;
+  const DoubleTab * bubbles_rising_vectors_per_bubble_;
+  ArrOfDouble bubbles_rising_relative_velocities_;
+  ArrOfDouble bubbles_rising_relative_velocities_upstream_;
+  ArrOfDouble bubbles_reynolds_numbers_per_bubble_;
+  ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_;
+  ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_;
+  ArrOfDouble bubbles_reynolds_numbers_per_bubble_upstream_;
+  ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_upstream_;
+  ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_upstream_;
+  FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_;
+  FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_upstream_;
+
+  double velocity_upstream_ = 0.;
+  int gravity_dir_ = 0;
+  Vecteur3 total_relative_rising_dir_compo_;
+  Vecteur3 total_relative_rising_dir_compo_upstream_;
+  Vecteur3 total_rising_dir_compo_;
+  double bubbles_total_rising_velocities_ = 0.;
+  double bubbles_total_rising_relative_velocities_ = 0.;
+  double bubbles_total_rising_relative_velocities_upstream_ = 0.;
+  double bubbles_total_reynolds_numbers_ = 0.;
+  double bubbles_total_reynolds_numbers_from_surface_per_bubble_ = 0.;
+  double bubbles_total_reynolds_numbers_from_volume_per_bubble_ = 0.;
+  double bubbles_total_reynolds_numbers_upstream_ = 0.;
+  double bubbles_total_reynolds_numbers_from_surface_per_bubble_upstream_ = 0.;
+  double bubbles_total_reynolds_numbers_from_volume_per_bubble_upstream_ = 0.;
 
   ArrOfDouble radius_outputs_;
   ArrOfDouble theta_outputs_;
@@ -271,7 +362,25 @@ protected :
   ArrOfDouble overall_nusselt_number_per_bubble_liquid_error_rel_;
   ArrOfDouble overall_nusselt_number_per_bubble_gfm_liquid_error_rel_;
 
+  ArrOfDouble bubbles_peclet_numbers_per_bubble_;
+  ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_;
+  ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_;
+  ArrOfDouble bubbles_peclet_numbers_per_bubble_upstream_;
+  ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_upstream_;
+  ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_upstream_;
+  double bubbles_total_peclet_numbers_ = 0.;
+  double bubbles_total_peclet_numbers_from_surface_per_bubble_ = 0.;
+  double bubbles_total_peclet_numbers_from_volume_per_bubble_ = 0.;
+  double bubbles_total_peclet_numbers_upstream_  = 0.;
+  double bubbles_total_peclet_numbers_from_surface_per_bubble_upstream_ = 0.;
+  double bubbles_total_peclet_numbers_from_volume_per_bubble_upstream_  = 0.;
+
+  const Vecteur3 * liquid_velocity_;
+
   int nb_bubbles_ = 0;
+  int * latastep_reprise_;
+
+  ArrOfInt collision_indices_;
 
 };
 

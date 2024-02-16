@@ -470,7 +470,8 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
                                const IJK_Splitting& splitting_NS,
                                const Domaine_dis& domaine_dis,
                                const int thermal_probes_ghost_cells,
-                               const bool compute_vint)
+                               const bool compute_vint,
+                               const bool is_switch)
 {
   Cerr << "Entree dans IJK_Interfaces::initialize" << finl;
 
@@ -483,7 +484,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   surface_vapeur_par_face_computation_.initialize(splitting_FT);
   val_par_compo_in_cell_computation_.initialize(splitting_FT, maillage_ft_ijk_);
 
-  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, 2);
+  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 2);
 
   indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   indicatrice_ft_[old()].data() = 1.;
@@ -775,7 +776,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
    */
   intersection_ijk_cell_.initialize(splitting_NS, *this);
   intersection_ijk_face_.initialize(splitting_NS, *this);
-  nalloc += ijk_compo_connex_.initialize(splitting_NS, *this);
+  nalloc += ijk_compo_connex_.initialize(splitting_NS, *this, is_switch);
   return nalloc;
 }
 
@@ -785,6 +786,11 @@ void IJK_Interfaces::associer(const IJK_FT_base& ijk_ft)
   is_diphasique_ =  1 - ref_ijk_ft_->disable_diphasique();
   ijk_compo_connex_.associer(ijk_ft);
   // liste_post_instantanes_ = ijk_ft.post_.get_liste_post_instantanes();
+}
+
+void IJK_Interfaces::associer_switch(const Switch_FT_double& ijk_ft_switch)
+{
+  ref_ijk_ft_switch_ = ijk_ft_switch;
 }
 
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
@@ -1758,14 +1764,18 @@ static void calculer_normale_sommets_interface(const Maillage_FT_IJK& maillage,
 // Pre-requis : il faut que le tableau dvol soit bien dimensionne a nbulles_tot
 void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol,
                                           const int rk_step = -1,
-                                          const double temps = -1 /*pas de remaillage*/)
+                                          const double temps = -1, /*pas de remaillage*/
+                                          const int first_step_interface_smoothing)
 {
   // nouvelle version:
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const DoubleTab& sommets = mesh.sommets(); // Tableau des coordonnees des marqueurs.
   int nbsom = sommets.dimension(0);
   DoubleTab deplacement(nbsom, 3);
-  compute_vinterp(); // to resize and fill vinterp_
+  // compute_vinterp(); // to resize and fill vinterp_
+  compute_vinterp();
+  if (first_step_interface_smoothing)
+    vinterp_ = 0.;
 
   // Les sommets virtuels sont peut-etre trop loin pour pouvoir interpoler leur
   // vitesse, il faut faire un echange espace virtuel pour avoir leur vitesse.
@@ -1805,6 +1815,8 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
                                      nbulles_ghost,
                                      vinterp_,
                                      vitesses_bulles);
+  if (first_step_interface_smoothing)
+    vitesses_bulles = 0.;
 
 #ifdef GB_VERBOSE
   if (Process::je_suis_maitre())

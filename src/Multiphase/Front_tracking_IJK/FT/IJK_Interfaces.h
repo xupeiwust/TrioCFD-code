@@ -40,6 +40,7 @@
 #include <IJK_Composantes_Connex.h>
 
 class IJK_FT_base;
+class Switch_FT_double;
 class Domaine_dis;
 
 #define VERIF_INDIC 0
@@ -62,9 +63,11 @@ public :
   int initialize(const IJK_Splitting& splitting_FT,
                  const IJK_Splitting& splitting_NS,
                  const Domaine_dis& domaine_dis,
-                 const int thermal_probes_ghost_cells,
-                 const bool compute_vint=true);
+                 const int thermal_probes_ghost_cells=0,
+                 const bool compute_vint=true,
+                 const bool is_switch=false);
   void associer(const IJK_FT_base& ijk_ft);
+  void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
                                      const char *lata_name,
@@ -76,7 +79,8 @@ public :
   void transporter_maillage(const double dt_tot,
                             ArrOfDouble& dvol,
                             const int rk_step,
-                            const double temps);
+                            const double temps,
+                            const int first_step_interface_smoothing = 0);
   void calculer_bounding_box_bulles(DoubleTab& bounding_box, int option_shear = 0) const;
   void preparer_duplicata_bulles(const DoubleTab& bounding_box_of_bubbles,
                                  const DoubleTab& bounding_box_offsetp,
@@ -513,6 +517,7 @@ public :
   const double& I_ft(const int i, const int j, const int k) const { return indicatrice_ft_[old()](i, j, k); }
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
 
+  // @Temporaire
   const FixedVector<IJK_Field_double, 3>& BoI() const { return bary_of_interf_ns_[old()]; }
   const FixedVector<IJK_Field_double, 3>& BoIn() const { return bary_of_interf_ns_[next()]; }
 
@@ -681,6 +686,24 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
+  int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
+                                             const int& compute_rising_velocities,
+                                             const int& fill_rising_velocities)
+  {
+    if (!is_diphasique_)
+      return 0;
+    return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
+                                                                    compute_rising_velocities,
+                                                                    fill_rising_velocities);
+  }
+
+  void compute_rising_velocities_from_compo()
+  {
+    if (!is_diphasique_)
+      return;
+    ijk_compo_connex_.compute_rising_velocities();
+  }
+
 protected:
   // Met a jour les valeurs de surface_vapeur_par_face_ et barycentre_vapeur_par_face_
   SurfaceVapeurIJKComputation surface_vapeur_par_face_computation_;
@@ -768,6 +791,7 @@ protected:
   REF(IJK_Splitting) ref_splitting_;
   REF(Domaine_dis) refdomaine_dis_;
   REF(IJK_FT_base) ref_ijk_ft_;
+  REF(Switch_FT_double) ref_ijk_ft_switch_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres
   IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x)

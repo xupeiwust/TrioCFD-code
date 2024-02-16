@@ -109,12 +109,10 @@ void compute_bounding_box_fill_compo(const IJK_Interfaces& interfaces,
       const int ibulle_reelle = decoder_numero_bulle(-ighost);
       ghost_to_real_bubble(l) = ibulle_reelle;
     }
-  // Cerr << "Ghost to real bubble : " << ghost_to_real_bubble;
+
   ArrOfDouble bubbles_volume;
-  // DoubleTab bubbles_barycentre;
   interfaces.calculer_volume_bulles(bubbles_volume, bubbles_barycentre);
-  // Cerr << "bubbles_volume" << bubbles_volume;
-  // Cerr << "bubbles_barycentre" << bubbles_barycentre;
+
   /*
    * Considered a constant grid spacing
    */
@@ -209,18 +207,24 @@ void compute_interfacial_compo_fill_compo(const IJK_Interfaces& interfaces, IJK_
 }
 
 void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, const IJK_Interfaces& interfaces,
-                             const IJK_Field_int * eulerian_compo_connex_ns, const int& gravity_dir,
-                             ArrOfDouble& rising_velocities, DoubleTab& rising_vectors)
+                             const IJK_Field_int& eulerian_compo_connex_ns, const int& gravity_dir,
+                             ArrOfDouble& rising_velocities, DoubleTab& rising_vectors,
+                             Vecteur3& liquid_velocity)
 {
-  const int nk = (* eulerian_compo_connex_ns).nk();
-  const int nj = (* eulerian_compo_connex_ns).nj();
-  const int ni = (* eulerian_compo_connex_ns).ni();
+  /*
+   * Constant cell volume
+   */
+  const int nk = eulerian_compo_connex_ns.nk();
+  const int nj = eulerian_compo_connex_ns.nj();
+  const int ni = eulerian_compo_connex_ns.ni();
   const IJK_Field_double& indic = interfaces.I();
   int nb_bubbles = interfaces.get_nb_bulles_reelles();
   DoubleTab sum_indicator(nb_bubbles);
   DoubleTab sum_velocity_x_indicator(nb_bubbles);
   DoubleTab sum_velocity_y_indicator(nb_bubbles);
   DoubleTab sum_velocity_z_indicator(nb_bubbles);
+  liquid_velocity = 0.;
+  double sum_indicator_liquid = 0.;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -229,13 +233,20 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
           const double vel_x = velocity[0](i,j,k);
           const double vel_y = velocity[1](i,j,k);
           const double vel_z = velocity[2](i,j,k);
-          int compo_connex = (*eulerian_compo_connex_ns)(i,j,k);
+          int compo_connex = eulerian_compo_connex_ns(i,j,k);
           if (compo_connex >= 0)
             {
               sum_indicator(compo_connex) += chi_v;
               sum_velocity_x_indicator(compo_connex) += chi_v * vel_x;
               sum_velocity_y_indicator(compo_connex) += chi_v * vel_y;
               sum_velocity_z_indicator(compo_connex) += chi_v * vel_z;
+            }
+          if (chi_v > VAPOUR_INDICATOR_TEST)
+            {
+              Vecteur3 liquid_velocity_local = {vel_x, vel_y, vel_z};
+              liquid_velocity_local *= (1-chi_v);
+              sum_indicator_liquid += (1-chi_v);
+              liquid_velocity += liquid_velocity_local;
             }
         }
   for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
@@ -262,10 +273,20 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
           rising_vectors(ibubble, gravity_dir) = 1.;
         }
     }
+  sum_indicator_liquid = Process::mp_sum(sum_indicator_liquid);
+  double liquid_velocity_x = liquid_velocity[0];
+  double liquid_velocity_y = liquid_velocity[1];
+  double liquid_velocity_z = liquid_velocity[2];
+  liquid_velocity_x = Process::mp_sum(liquid_velocity_x);
+  liquid_velocity_y = Process::mp_sum(liquid_velocity_y);
+  liquid_velocity_z = Process::mp_sum(liquid_velocity_z);
+  liquid_velocity = {liquid_velocity_x, liquid_velocity_y, liquid_velocity_z};
+  liquid_velocity *= (1 / (1e-30 + sum_indicator_liquid));
 }
 
-// void fill_rising_velocity(const IJK_Field_double& eulerian_compo_connex_ns, const ArrOfDouble& rising_velocities, IJK_Field_double& eulerian_rising_velocity)
-void fill_rising_velocity(const IJK_Field_double * eulerian_compo_connex_ns, const ArrOfDouble& rising_velocities, IJK_Field_double& eulerian_rising_velocity)
+void fill_rising_velocity_double(const IJK_Field_double * eulerian_compo_connex_ns,
+                                 const ArrOfDouble& rising_velocities,
+                                 IJK_Field_double& eulerian_rising_velocity)
 {
   const int nk = (*eulerian_compo_connex_ns).nk();
   const int nj = (*eulerian_compo_connex_ns).nj();
@@ -276,6 +297,25 @@ void fill_rising_velocity(const IJK_Field_double * eulerian_compo_connex_ns, con
         {
           double compo_connex = (*eulerian_compo_connex_ns)(i,j,k);
           int int_compo_connex = (int) compo_connex;
+          if (int_compo_connex >= 0)
+            {
+              eulerian_rising_velocity(i,j,k) = rising_velocities(int_compo_connex);
+            }
+        }
+}
+
+void fill_rising_velocity_int(const IJK_Field_int& eulerian_compo_connex_ns,
+                              const ArrOfDouble& rising_velocities,
+                              IJK_Field_double& eulerian_rising_velocity)
+{
+  const int nk = eulerian_compo_connex_ns.nk();
+  const int nj = eulerian_compo_connex_ns.nj();
+  const int ni = eulerian_compo_connex_ns.ni();
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          int int_compo_connex = eulerian_compo_connex_ns(i,j,k);
           if (int_compo_connex >= 0)
             {
               eulerian_rising_velocity(i,j,k) = rising_velocities(int_compo_connex);

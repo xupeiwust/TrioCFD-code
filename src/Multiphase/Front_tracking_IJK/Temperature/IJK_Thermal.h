@@ -24,6 +24,7 @@
 
 #include <IJK_Thermal_base.h>
 #include <TRUST_Deriv.h>
+#include <IJK_Ghost_Fluid_Fields.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -44,6 +45,10 @@ public :
   /*
    * Getters
    */
+  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance);
+  void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
+  void set_fichier_reprise(const char *lataname);
+  const Nom& get_fichier_reprise() const { return valeur().get_fichier_reprise(); };
   inline Nom& get_thermal_problem_type() { return thermal_problem_type_; };
   inline int& get_thermal_rank() { return thermal_rank_; };
   inline Motcles& get_thermal_words() { return thermal_words_; };
@@ -59,7 +64,9 @@ public :
   inline const IJK_Field_double& get_ecart_t_ana() const { return valeur().get_ecart_t_ana(); }
   inline const IJK_Field_double& get_ecart_t_ana_rel() const { return valeur().get_ecart_t_ana_rel(); }
   inline const FixedVector<IJK_Field_double, 3>& get_grad_T() const { return valeur().get_grad_T(); }
+  inline const IJK_Field_double& get_div_lambda_grad_T_volume() const { return valeur().get_div_lambda_grad_T_volume(); }
   inline const IJK_Field_double& get_div_lambda_grad_T() const { return valeur().get_div_lambda_grad_T(); }
+  inline const IJK_Field_double& get_u_T_convective_volume() const { return valeur().get_u_T_convective_volume(); }
   inline const IJK_Field_double& get_u_T_convective() const { return valeur().get_u_T_convective(); }
   inline const IJK_Field_double& get_eulerian_distance_ft() const { return valeur().get_eulerian_distance_ft(); }
   inline const IJK_Field_double& get_eulerian_curvature_ft() const { return valeur().get_eulerian_curvature_ft(); }
@@ -97,6 +104,7 @@ public :
   inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const { return valeur().get_cell_faces_neighbours_corrected_diffusive(); }
   inline const FixedVector<IJK_Field_double,3>& get_neighbours_faces_weighting_colinearity() const { return valeur().get_neighbours_faces_weighting_colinearity(); }
   inline const IJK_Field_int& get_cell_neighbours_corrected_trimmed() const { return valeur().get_cell_neighbours_corrected_trimmed(); }
+  inline const IJK_Field_double& get_probe_collision_debug_field() const { return valeur().get_probe_collision_debug_field(); };
 
   inline const double& get_E0() const { return valeur().get_E0(); };
 
@@ -117,6 +125,7 @@ public :
   void set_fichier_sauvegarde(const char *lata_name) { valeur().set_fichier_sauvegarde(lata_name); };
 
   inline int initialize(const IJK_Splitting& splitting, const int idx);
+  inline int initialize_switch(const IJK_Splitting& splitting, const int idx);
   inline void recompute_temperature_init();
   inline void update_thermal_properties();
   inline void euler_time_step(const double timestep);
@@ -128,7 +137,8 @@ public :
   inline void associer_switch(const Switch_FT_double& ijk_ft_switch);
   inline void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                                const Intersection_Interface_ijk_face& intersection_ijk_face);
-  inline void sauvegarder_temperature(Nom& lata_name, int idx);
+  inline void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);
+  inline void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop);
   inline double compute_timestep(const double timestep,
                                  const double dxmin);
   inline double compute_global_energy();
@@ -142,9 +152,11 @@ public :
   inline void update_intersections() { valeur().update_intersections(); };
   inline void clean_ijk_intersections() { valeur().clean_ijk_intersections(); };
 
-  inline void compute_eulerian_curvature_from_interface();
   inline void compute_eulerian_distance();
+  inline void compute_eulerian_curvature();
+  inline void compute_eulerian_curvature_from_interface();
   inline double get_modified_time();
+  inline void get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities);
 
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
   int posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
@@ -167,6 +179,7 @@ public :
                                      const Nom& overall_bubbles_quantities,
                                      const Nom& local_quantities_thermal_probes_time_index_folder);
   int get_first_step_thermals_post() { return valeur().get_first_step_thermals_post(); };
+  inline void compute_temperature_init();
 
 protected:
   int thermal_rank_;
@@ -180,11 +193,17 @@ protected:
   REF(Switch_FT_double) ref_ijk_ft_switch_;
   REF(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   REF(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
+
 };
 
 inline int IJK_Thermal::initialize(const IJK_Splitting& splitting, const int idx)
 {
   return valeur().initialize(splitting, idx);
+}
+
+inline int IJK_Thermal::initialize_switch(const IJK_Splitting& splitting, const int idx)
+{
+  return valeur().initialize_switch(splitting, idx);
 }
 
 inline void IJK_Thermal::recompute_temperature_init()
@@ -200,6 +219,23 @@ inline void IJK_Thermal::update_thermal_properties()
 inline double IJK_Thermal::get_modified_time()
 {
   return valeur().get_modified_time();
+}
+
+inline void IJK_Thermal::get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities)
+{
+  valeur().get_rising_velocities_parameters(compute_rising_velocities, fill_rising_velocities);
+}
+
+inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance)
+{
+  valeur().retrieve_ghost_fluid_params(compute_distance,
+                                       compute_curvature,
+                                       n_iter_distance);
+}
+
+inline void IJK_Thermal::get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax)
+{
+  valeur().get_boundary_fluxes(boundary_flux_kmin, boundary_flux_kmax);
 }
 
 inline void IJK_Thermal::euler_time_step(const double timestep)
@@ -233,9 +269,14 @@ inline void IJK_Thermal::associer_interface_intersections(const Intersection_Int
   valeur().associer_interface_intersections(intersection_ijk_cell, intersection_ijk_face);
 }
 
-inline void IJK_Thermal::sauvegarder_temperature(Nom& lata_name, int idx)
+inline void IJK_Thermal::associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields)
 {
-  valeur().sauvegarder_temperature(lata_name, idx);
+  valeur().associer_ghost_fluid_fields(ghost_fluid_fields);
+}
+
+inline void IJK_Thermal::sauvegarder_temperature(Nom& lata_name, int idx, const int& stop)
+{
+  valeur().sauvegarder_temperature(lata_name, idx, stop);
 }
 
 inline double IJK_Thermal::compute_timestep(const double timestep, const double dxmin)
@@ -277,9 +318,19 @@ inline void IJK_Thermal::compute_eulerian_distance()
   valeur().compute_eulerian_distance();
 }
 
+inline void IJK_Thermal::compute_eulerian_curvature()
+{
+  valeur().compute_eulerian_curvature();
+}
+
 inline void IJK_Thermal::compute_eulerian_curvature_from_interface()
 {
   valeur().compute_eulerian_curvature_from_interface();
+}
+
+inline void IJK_Thermal::compute_temperature_init()
+{
+  valeur().compute_temperature_init();
 }
 
 #endif /* IJK_Thermal_included */

@@ -37,6 +37,16 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   reference_gfm_on_probes_ = 0;
   compute_normal_derivatives_on_reference_probes_ = 0;
 
+  disable_probe_weak_gradient_ = 0;
+  disable_probe_weak_gradient_gfm_=0;
+
+  reconstruct_previous_probe_field_=0;
+  implicit_solver_from_previous_probe_field_=0;
+
+  enable_probe_collision_detection_=0;
+  enable_resize_probe_collision_=0;
+  debug_probe_collision_=0;
+
   disable_spherical_diffusion_start_ = 0;
   probes_end_value_start_ = -1;
   probes_end_value_coeff_ = 0.05;
@@ -44,19 +54,21 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   computed_centred_bubble_start_ = 1.;
   single_centred_bubble_radius_ini_ = 1.e-3;
   temperature_ini_type_ = 1;
+  time_ini_user_ = 0.;
   nusselt_spherical_diffusion_ = 2.;
   nusselt_spherical_diffusion_liquid_ = 2.;
   heat_flux_spherical_ = 0.;
   mean_liquid_temperature_ = -1;
 
-  disable_mixed_cells_increment_=1;
-  enable_mixed_cells_increment_=0;
+  disable_mixed_cells_increment_=0;
+  enable_mixed_cells_increment_=1;
   allow_temperature_correction_for_visu_=0;
   subproblem_temperature_extension_=0;
   disable_subresolution_=0;
   convective_flux_correction_ = 0;
   diffusive_flux_correction_ = 0;
   impose_fo_flux_correction_ = 1;
+  disable_fo_flux_correction_=0;
   override_vapour_mixed_values_ = 0;
   compute_eulerian_compo_ = 1;
 
@@ -68,15 +80,37 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   dr_ = 0.;
   probe_length_=0.;
 
+  boundary_condition_interface_dict_ = Motcles(3);
+  {
+    boundary_condition_interface_dict_[0] = "dirichlet";
+    boundary_condition_interface_dict_[1] = "neumann";
+    boundary_condition_interface_dict_[2] = "flux_jump";
+  }
   boundary_condition_interface_ = -1;
   interfacial_boundary_condition_value_ = 0.;
   impose_boundary_condition_interface_from_simulation_=0;
   boundary_condition_end_ = 0;
+  boundary_condition_end_dict_ = Motcles(2);
+  {
+    boundary_condition_end_dict_[0] = "dirichlet";
+    boundary_condition_end_dict_[1] = "neumann";
+  }
   end_boundary_condition_value_ = -1;
   impose_user_boundary_condition_end_value_=0;
 
   source_terms_type_=2;
+  source_terms_type_dict_ = Motcles(7);
+  {
+    source_terms_type_dict_[0] = "linear_diffusion";
+    source_terms_type_dict_[1] = "spherical_diffusion";
+    source_terms_type_dict_[2] = "spherical_diffusion_approx";
+    source_terms_type_dict_[3] = "tangential_conv_2D";
+    source_terms_type_dict_[4] = "tangential_conv_3D";
+    source_terms_type_dict_[5] = "tangential_conv_2D_tangential_diffusion_3D";
+    source_terms_type_dict_[6] = "tangential_conv_3D_tangentual_diffusion_3D";
+  }
   source_terms_correction_=0;
+
 
   fd_solver_type_ = "Solv_Gen";
   fd_solvers_ = Motcles(4);
@@ -101,7 +135,7 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   discrete_integral_ = 0;
   quadtree_levels_ = 1;
   advected_frame_of_reference_=0;
-  neglect_frame_of_reference_radial_advection_=1;
+  neglect_frame_of_reference_radial_advection_=0;
   approximate_temperature_increment_=0;
 
   is_first_time_step_ = false;
@@ -111,7 +145,8 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   local_fourier_ = 1.;
   local_cfl_ = 1.;
 
-  distance_cell_faces_from_lrs_=0;
+  distance_cell_faces_from_lrs_=1;
+  disable_distance_cell_faces_from_lrs_=0;
 
   pre_initialise_thermal_subproblems_list_ = 0;
   pre_factor_subproblems_number_ = 3.;
@@ -127,6 +162,8 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
   neighbours_colinearity_weighting_ = 0.;
   neighbours_distance_weighting_ = 0;
   neighbours_colinearity_distance_weighting_ = 0;
+  smooth_temperature_field_=0;
+  readjust_probe_length_from_vertices_=0;
 
   clip_temperature_values_ = 0;
   disable_post_processing_probes_out_files_ = 0;
@@ -151,6 +188,7 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
 
   interp_eulerian_ = 0;
   first_step_thermals_post_=1;
+  disable_first_step_thermals_post_=0;
 
   neighbours_last_faces_weighting_ = 0;
   neighbours_last_faces_colinearity_weighting_ = 0;
@@ -170,12 +208,179 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
 
 Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
 {
+  Nom front_space = "    ";
+  Nom end_space = " ";
+  Nom escape = "\n";
+
   IJK_Thermal_base::printOn( os );
-  os << "  {\n";
-  os << "    convective_flux_correction" <<  " " << convective_flux_correction_ << "\n";
-  os << "    diffusive_flux_correction" <<  " " << diffusive_flux_correction_ << "\n";
-  os << "    override_vapour_mixed_values" <<  " " << override_vapour_mixed_values_ << "\n";
-  os << "  \n}";
+
+  os << escape;
+  os << front_space << "# SUBRESOLUTION #" << escape;
+  os << escape;
+  /*
+   * Flags
+   */
+  os << escape;
+  os << front_space << "# SUBRESOLUTION FLAGS #" << escape;
+  os << escape;
+
+  if (disable_probe_weak_gradient_)
+    os << front_space << "disable_probe_weak_gradient " << escape;
+  if (disable_probe_weak_gradient_gfm_)
+    os << front_space << "disable_probe_weak_gradient_gfm " << escape;
+  if (enable_probe_collision_detection_)
+    os << front_space << "enable_probe_collision_detection " << escape;
+  if (enable_resize_probe_collision_)
+    os << front_space << "enable_resize_probe_collision " << escape;
+  if (debug_probe_collision_)
+    os << front_space << "debug_probe_collision " << escape;
+  if (reconstruct_previous_probe_field_)
+    os << front_space << "reconstruct_previous_probe_field " << escape;
+  if (implicit_solver_from_previous_probe_field_)
+    os << front_space << "implicit_solver_from_previous_probe_field " << escape;
+  if (convective_flux_correction_)
+    os << front_space << "convective_flux_correction " << escape;
+  if (diffusive_flux_correction_)
+    os << front_space << "diffusive_flux_correction " << escape;
+  if (reference_gfm_on_probes_)
+    os << front_space << "reference_gfm_on_probes " << escape;
+  if (compute_normal_derivatives_on_reference_probes_)
+    os << front_space << "compute_normal_derivatives_on_reference_probes" << escape;
+  if (disable_spherical_diffusion_start_)
+    os << front_space << "disable_spherical_diffusion_start" << escape;
+  if (disable_subresolution_)
+    os << front_space << "disable_subresolution" << escape;
+  if (disable_fo_flux_correction_)
+    os << front_space << "disable_fo_flux_correction" << escape;
+  if (override_vapour_mixed_values_)
+    os << front_space << "override_vapour_mixed_values" << escape;
+  if (enable_mixed_cells_increment_)
+    os << front_space << "enable_mixed_cells_increment" << escape;
+  if (allow_temperature_correction_for_visu_)
+    os << front_space << "allow_temperature_correction_for_visu" << escape;
+  if (impose_boundary_condition_interface_from_simulation_)
+    os << front_space << "impose_boundary_condition_interface_from_simulation" << escape;
+  if (impose_user_boundary_condition_end_value_)
+    os << front_space << "impose_user_boundary_condition_end_value" << escape;
+  if (discrete_integral_)
+    os << front_space << "discrete_integral" << escape;
+  if (advected_frame_of_reference_)
+    os << front_space << "advected_frame_of_reference" << escape;
+  if (neglect_frame_of_reference_radial_advection_)
+    os << front_space << "neglect_frame_of_reference_radial_advection" << escape;
+  if (approximate_temperature_increment_)
+    os << front_space << "approximate_temperature_increment" << escape;
+  if (first_time_step_temporal_)
+    os << front_space << "first_time_step_temporal" << escape;
+  if (first_time_step_implicit_)
+    os << front_space << "first_time_step_implicit" << escape;
+  if (local_diffusion_fourier_priority_)
+    os << front_space << "local_diffusion_fourier_priority" << escape;
+  if (first_time_step_varying_probes_)
+    os << front_space << "first_time_step_varying_probes" << escape;
+  if (probe_variations_priority_)
+    os << front_space << "probe_variations_priority" << escape;
+  if (max_u_radial_)
+    os << front_space << "max_u_radial" << escape;
+  if (disable_distance_cell_faces_from_lrs_)
+    os << front_space << "disable_distance_cell_faces_from_lrs" << escape;
+  if (pre_initialise_thermal_subproblems_list_)
+    os << front_space << "pre_initialise_thermal_subproblems_list" << escape;
+  if (remove_append_subproblems_)
+    os << front_space << "remove_append_subproblems" << escape;
+  if (use_sparse_matrix_)
+    os << front_space << "use_sparse_matrix" << escape;
+  if (correct_temperature_cell_neighbours_first_iter_)
+    os << front_space << "correct_temperature_cell_neighbours_first_iter" << escape;
+  if (find_temperature_cell_neighbours_)
+    os << front_space << "find_temperature_cell_neighbours" << escape;
+  if (correct_neighbours_using_probe_length_)
+    os << front_space << "correct_neighbours_using_probe_length" << escape;
+  if (neighbours_colinearity_weighting_)
+    os << front_space << "neighbours_colinearity_weighting" << escape;
+  if (neighbours_distance_weighting_)
+    os << front_space << "neighbours_distance_weighting" << escape;
+  if (neighbours_colinearity_distance_weighting_)
+    os << front_space << "neighbours_colinearity_distance_weighting" << escape;
+  if (smooth_temperature_field_)
+    os << front_space << "smooth_temperature_field" << escape;
+  if (readjust_probe_length_from_vertices_)
+    os << front_space << "readjust_probe_length_from_vertices" << escape;
+  if (use_temperature_cell_neighbours_)
+    os << front_space << "use_temperature_cell_neighbours" << escape;
+  if (clip_temperature_values_)
+    os << front_space << "clip_temperature_values" << escape;
+  if (disable_post_processing_probes_out_files_)
+    os << front_space << "disable_post_processing_probes_out_files" << escape;
+  if (enforce_periodic_boundary_value_)
+    os << front_space << "enforce_periodic_boundary_value" << escape;
+  if (disable_post_processing_probes_out_files_)
+    os << front_space << "disable_post_processing_probes_out_files" << escape;
+  if (enforce_periodic_boundary_value_)
+    os << front_space << "enforce_periodic_boundary_value" << escape;
+  if (store_cell_faces_corrected_)
+    os << front_space << "store_cell_faces_corrected" << escape;
+  if (find_cell_neighbours_for_fluxes_spherical_correction_)
+    os << front_space << "find_cell_neighbours_for_fluxes_spherical_correction" << escape;
+  if (use_cell_neighbours_for_fluxes_spherical_correction_)
+    os << front_space << "use_cell_neighbours_for_fluxes_spherical_correction" << escape;
+  if (find_reachable_fluxes_)
+    os << front_space << "find_reachable_fluxes" << escape;
+  if (use_reachable_fluxes_)
+    os << front_space << "use_reachable_fluxes" << escape;
+  if (keep_first_reachable_fluxes_)
+    os << front_space << "keep_first_reachable_fluxes" << escape;
+  if (post_process_all_probes_)
+    os << front_space << "post_process_all_probes" << escape;
+  if (interp_eulerian_)
+    os << front_space << "interp_eulerian" << escape;
+  if (first_step_thermals_post_)
+    os << front_space << "first_step_thermals_post" << escape;
+  if (neighbours_last_faces_colinearity_weighting_)
+    os << front_space << "neighbours_last_faces_colinearity_weighting" << escape;
+  if (neighbours_last_faces_colinearity_face_weighting_)
+    os << front_space << "neighbours_last_faces_colinearity_face_weighting" << escape;
+  if (neighbours_last_faces_distance_weighting_)
+    os << front_space << "neighbours_last_faces_distance_weighting" << escape;
+  if (neighbours_last_faces_distance_weighting_)
+    os << front_space << "neighbours_last_faces_distance_weighting" << escape;
+  if (neighbours_last_faces_distance_colinearity_face_weighting_)
+    os << front_space << "neighbours_last_faces_distance_colinearity_face_weighting" << escape;
+
+  /*
+   * Values
+   */
+  os << escape;
+  os << front_space << "# SUBRESOLUTION PARAMS #" << escape;
+  os << escape;
+
+  os << front_space << "points_per_thermal_subproblem" << end_space << points_per_thermal_subproblem_ << escape;
+  os << front_space << "coeff_distance_diagonal" << end_space << coeff_distance_diagonal_ << escape;
+  os << front_space << "finite_difference_assembler" << end_space << finite_difference_assembler_ << escape;
+  if (boundary_condition_interface_ != -1)
+    os << front_space << "boundary_condition_interface" << end_space << boundary_condition_interface_dict_[boundary_condition_interface_] << escape;
+  os << front_space << "interfacial_boundary_condition_value" << end_space << interfacial_boundary_condition_value_ << escape;
+  if (boundary_condition_end_ != -1)
+    os << front_space << "boundary_condition_end" << end_space << boundary_condition_end_dict_[boundary_condition_end_] << escape;
+  os << front_space << "end_boundary_condition_value" << end_space << end_boundary_condition_value_ << escape;
+  if (source_terms_type_!= -1)
+    os << front_space << "source_terms_type" << end_space << source_terms_type_dict_[source_terms_type_] << escape;
+  os << front_space << "thermal_fd_solver" << end_space << one_dimensional_advection_diffusion_thermal_solver_ << escape;
+  os << front_space << "quadtree_levels" << end_space << quadtree_levels_ << escape;
+  os << front_space << "local_fourier" << end_space << local_fourier_ << escape;
+  os << front_space << "local_cfl" << end_space << local_cfl_ << escape;
+  os << front_space << "delta_T_subcooled_overheated" << end_space << delta_T_subcooled_overheated_ << escape;
+  os << front_space << "pre_factor_subproblems_number" << end_space << pre_factor_subproblems_number_ << escape;
+  os << front_space << "neighbours_corrected_rank" << end_space << neighbours_corrected_rank_ << escape;
+  os << front_space << "probes_end_value_coeff" << end_space << probes_end_value_coeff_ << escape;
+  os << front_space << "temperature_ini_type" << end_space << temperature_ini_type_ << escape;
+  os << front_space << "time_ini_user" << end_space << time_ini_user_ << escape;
+  os << front_space << "nb_theta_post_pro" << end_space << nb_theta_post_pro_ << escape;
+  os << front_space << "nb_phi_post_pro" << end_space << nb_phi_post_pro_ << escape;
+  os << front_space << "nb_probes_post_pro" << end_space << nb_probes_post_pro_ << escape;
+  os << front_space << "modified_time_init" << end_space << modified_time_init_ << escape;
+
+  os << "}" << escape;
   return os;
 }
 
@@ -206,26 +411,40 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
 {
   IJK_Thermal_base::set_param(param);
 
+  param.ajouter("modified_time_init", &modified_time_init_);
+
   param.ajouter_flag("reference_gfm_on_probes", &reference_gfm_on_probes_);
   param.ajouter_flag("compute_normal_derivatives_on_reference_probes", &compute_normal_derivatives_on_reference_probes_);
+
+  param.ajouter_flag("disable_probe_weak_gradient", &disable_probe_weak_gradient_);
+  param.ajouter_flag("disable_probe_weak_gradient_gfm", &disable_probe_weak_gradient_gfm_);
+
+  param.ajouter_flag("enable_probe_collision_detection", &enable_probe_collision_detection_);
+  param.ajouter_flag("enable_resize_probe_collision", &enable_resize_probe_collision_);
+  param.ajouter_flag("debug_probe_collision", &debug_probe_collision_);
+
+  param.ajouter_flag("reconstruct_previous_probe_field", &reconstruct_previous_probe_field_);
+  param.ajouter_flag("implicit_solver_from_previous_probe_field", &implicit_solver_from_previous_probe_field_);
 
   param.ajouter_flag("disable_spherical_diffusion_start", &disable_spherical_diffusion_start_);
   param.ajouter_flag("disable_subresolution", &disable_subresolution_);
   param.ajouter_flag("convective_flux_correction", &convective_flux_correction_);
   param.ajouter_flag("diffusive_flux_correction", &diffusive_flux_correction_);
-  param.ajouter_flag("disable_fo_flux_correction", &impose_fo_flux_correction_);
+  param.ajouter_flag("disable_fo_flux_correction", &disable_fo_flux_correction_);
   param.ajouter_flag("override_vapour_mixed_values", &override_vapour_mixed_values_);
   param.ajouter("points_per_thermal_subproblem", &points_per_thermal_subproblem_);
   param.ajouter("coeff_distance_diagonal", &coeff_distance_diagonal_);
   param.ajouter("finite_difference_assembler", &finite_difference_assembler_);
   // param.ajouter_flag("disable_mixed_cells_increment", &disable_mixed_cells_increment_);
   param.ajouter_flag("enable_mixed_cells_increment", &enable_mixed_cells_increment_);
+  param.ajouter_flag("disable_mixed_cells_increment", &disable_mixed_cells_increment_);
   param.ajouter_flag("allow_temperature_correction_for_visu", &allow_temperature_correction_for_visu_);
 
   param.ajouter("boundary_condition_interface", &boundary_condition_interface_);
   param.dictionnaire("dirichlet", 0);
   param.dictionnaire("neumann", 1);
   param.dictionnaire("flux_jump", 2);
+
   param.ajouter("interfacial_boundary_condition_value", &interfacial_boundary_condition_value_);
   param.ajouter_flag("impose_boundary_condition_interface_from_simulation", &impose_boundary_condition_interface_from_simulation_);
   param.ajouter("boundary_condition_end", &boundary_condition_end_);
@@ -264,7 +483,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("probe_variations_priority", &probe_variations_priority_);
   param.ajouter_flag("max_u_radial", &max_u_radial_);
 
-  param.ajouter_flag("disable_distance_cell_faces_from_lrs", &distance_cell_faces_from_lrs_);
+  param.ajouter_flag("disable_distance_cell_faces_from_lrs", &disable_distance_cell_faces_from_lrs_);
 
   param.ajouter_flag("pre_initialise_thermal_subproblems_list", &pre_initialise_thermal_subproblems_list_);
   param.ajouter("pre_factor_subproblems_number", &pre_factor_subproblems_number_);
@@ -279,6 +498,8 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("neighbours_colinearity_weighting", &neighbours_colinearity_weighting_);
   param.ajouter_flag("neighbours_distance_weighting", &neighbours_distance_weighting_);
   param.ajouter_flag("neighbours_colinearity_distance_weighting", &neighbours_colinearity_distance_weighting_);
+  param.ajouter_flag("smooth_temperature_field", &smooth_temperature_field_);
+  param.ajouter_flag("readjust_probe_length_from_vertices", &readjust_probe_length_from_vertices_);
   param.ajouter_flag("use_temperature_cell_neighbours", &use_temperature_cell_neighbours_);
 
   param.ajouter_flag("clip_temperature_values", &clip_temperature_values_);
@@ -296,6 +517,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
 
   param.ajouter("probes_end_value_coeff", &probes_end_value_coeff_);
   param.ajouter("temperature_ini_type", &temperature_ini_type_);
+  param.ajouter("time_ini_user", &time_ini_user_);
 
   param.ajouter_flag("post_process_all_probes", &post_process_all_probes_);
   param.ajouter("nb_theta_post_pro", &nb_theta_post_pro_);
@@ -304,7 +526,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
 
   param.ajouter_flag("interp_eulerian", &interp_eulerian_);
 
-  param.ajouter_flag("disable_first_step_thermals_post", &first_step_thermals_post_);
+  param.ajouter_flag("disable_first_step_thermals_post", &disable_first_step_thermals_post_);
 
   param.ajouter_flag("neighbours_last_faces_colinearity_weighting", &neighbours_last_faces_colinearity_weighting_);
   param.ajouter_flag("neighbours_last_faces_colinearity_face_weighting", &neighbours_last_faces_colinearity_face_weighting_);
@@ -369,6 +591,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 
   uniform_lambda_ = lambda_liquid_;
   uniform_alpha_ =	lambda_liquid_ / (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+  prandtl_number_ = (ref_ijk_ft_->get_mu_liquid() / ref_ijk_ft_->get_rho_l()) / uniform_alpha_;
   //  calulate_grad_T_ = 1;
   calulate_grad_T_=0;
   /*
@@ -381,15 +604,19 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       compute_curvature_ = 1;
       compute_distance_= 1;
     }
+  compute_rising_velocities_ = 1;
 
-  distance_cell_faces_from_lrs_ = !distance_cell_faces_from_lrs_;
-  first_step_thermals_post_ = !first_step_thermals_post_;
+  distance_cell_faces_from_lrs_ = !disable_distance_cell_faces_from_lrs_;
+  first_step_thermals_post_ = !disable_first_step_thermals_post_;
 
   if (compute_normal_derivatives_on_reference_probes_)
     reference_gfm_on_probes_ = 1;
 
   if (use_sparse_matrix_)
-    pre_initialise_thermal_subproblems_list_ = 0;
+    {
+      pre_initialise_thermal_subproblems_list_ = 0;
+      remove_append_subproblems_ = 1;
+    }
 
   int nalloc = 0;
   nalloc = IJK_Thermal_base::initialize(splitting, idx);
@@ -437,7 +664,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   if (debug_)
     Cerr << "Uniform lambda: " << temperature_diffusion_op_.get_uniform_lambda() << finl;
 
-  impose_fo_flux_correction_ = !impose_fo_flux_correction_;
+  impose_fo_flux_correction_ = !disable_fo_flux_correction_;
   convective_flux_correction_ = convective_flux_correction_ && (!conv_temperature_negligible_);
   diffusive_flux_correction_ = diffusive_flux_correction_ && (!diff_temperature_negligible_);
 
@@ -450,13 +677,18 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   if(find_reachable_fluxes_)
     find_temperature_cell_neighbours_ = 1;
 
-  disable_mixed_cells_increment_ = (!enable_mixed_cells_increment_);
+  if (enable_mixed_cells_increment_)
+    disable_mixed_cells_increment_ = (!enable_mixed_cells_increment_);
+  if (!disable_mixed_cells_increment_)
+    enable_mixed_cells_increment_ = (!disable_mixed_cells_increment_);
 
   corrige_flux_.set_convection_diffusion_correction(convective_flux_correction_, diffusive_flux_correction_);
   corrige_flux_.set_fluxes_feedback_params(discrete_integral_, quadtree_levels_);
   corrige_flux_.set_debug(debug_);
   corrige_flux_.set_distance_cell_faces_from_lrs(distance_cell_faces_from_lrs_);
-  corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_, neighbours_weighting_);
+  corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
+                                               neighbours_weighting_,
+                                               smooth_temperature_field_);
   corrige_flux_.set_eulerian_normal_vectors_ns_normed(eulerian_normal_vectors_ns_normed_);
   corrige_flux_.set_temperature_fluxes_periodic_sharing_strategy_on_processors(copy_fluxes_on_every_procs_,
                                                                                copy_temperature_on_every_procs_);
@@ -519,6 +751,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
     first_time_step_temporal_ = 0;
   probe_variations_enabled_ = first_time_step_varying_probes_;
   compute_overall_probes_parameters();
+  if (readjust_probe_length_from_vertices_)
+    probe_variations_enabled_ = 1;
 
   if (one_dimensional_advection_diffusion_thermal_solver_.est_nul())
     one_dimensional_advection_diffusion_thermal_solver_.cast_direct_solver_by_default();
@@ -630,6 +864,12 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
           neighbours_faces_weighting_colinearity_.echange_espace_virtuel();
         }
     }
+  if (debug_probe_collision_)
+    {
+      probe_collision_debug_field_.allocate(splitting, IJK_Splitting::ELEM, 0); // , 1);
+      nalloc += 1;
+      probe_collision_debug_field_.data() = 0.;
+    }
 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
     fo_ = 0.95 * pow((sqrt(2) / 2), 2); // squared or not?
@@ -641,7 +881,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 double IJK_Thermal_Subresolution::get_modified_time()
 {
   if (!disable_spherical_diffusion_start_)
-    return ref_ijk_ft_->get_current_time() + modified_time_init_;
+    return modified_time_init_; // ref_ijk_ft_->get_current_time();
   else
     return ref_ijk_ft_->get_current_time();
 }
@@ -718,6 +958,11 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
                 time_ini = time_derivative;
               }
               break;
+            case time_criteria:
+              {
+                time_ini = time_ini_user_;
+              }
+              break;
             default:
               break;
             }
@@ -725,7 +970,6 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
             Cerr << "Time ini: " << time_ini << finl;
           const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
           const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
-//					const int nb_bubbles_ghost = ref_ijk_ft_->itfce().get_nb_bulles_ghost();
           for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
             {
               int index_bubble_real = index_bubble;
@@ -738,12 +982,6 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
               set_field_data(temperature_for_ini_per_bubble_, expression_T_ini);
               set_field_temperature_per_bubble(index_bubble);
             }
-
-//          if (liste_post_instantanes_.contient_("TEMPERATURE_ANA") || liste_post_instantanes_.contient_("ECART_T_ANA"))
-//            {
-//              set_field_data(temperature_ana_, expression_T_ini);
-//              correct_any_temperature_field_for_visu(temperature_ana_);
-//            }
           correct_temperature_for_visu();
           modified_time_init_ = time_ini;
         }
@@ -906,12 +1144,11 @@ double IJK_Thermal_Subresolution::compute_spherical_steady_dirichlet_left_right_
   const double Delta_R = R1 - R0;
   temperature_integral = (T1 * R1) / (R1 - R0) * (Delta_R - R0 * (log(R1) - log(R0)));
   temperature_integral /= Delta_R;
-  //  temperature_integral += abs(T1);
-  // temperature_integral positive
   return temperature_integral;
 }
 
-double IJK_Thermal_Subresolution::find_time_dichotomy_integral(const double& temperature_integral, double& temperature_end_prev)
+double IJK_Thermal_Subresolution::find_time_dichotomy_integral(const double& temperature_integral,
+                                                               double& temperature_end_prev)
 {
   // Arbitrary large time
   const double time_integral = 100.;
@@ -1006,9 +1243,10 @@ double IJK_Thermal_Subresolution::get_time_inflection_derivative(double& tempera
   return inflection_time_temperature_derivative;
 }
 
-double IJK_Thermal_Subresolution::find_time_dichotomy_derivative(const double& temperature_derivative, double& temperature_limit_left, double& temperature_limit_right)
+double IJK_Thermal_Subresolution::find_time_dichotomy_derivative(const double& temperature_derivative,
+                                                                 double& temperature_limit_left,
+                                                                 double& temperature_limit_right)
 {
-  // double temperature_incr = 0.001;
   const double time_max = 1000.;
   const double T1 = delta_T_subcooled_overheated_;
   const double R0 = single_centred_bubble_radius_ini_;
@@ -1105,8 +1343,6 @@ void IJK_Thermal_Subresolution::set_field_T_ana()
     }
 }
 
-//
-
 void IJK_Thermal_Subresolution::update_thermal_properties()
 {
   IJK_Thermal_base::update_thermal_properties();
@@ -1115,7 +1351,11 @@ void IJK_Thermal_Subresolution::update_thermal_properties()
 void IJK_Thermal_Subresolution::post_process_after_temperature_increment()
 {
   IJK_Thermal_base::post_process_after_temperature_increment();
+  if (debug_)
+    Cerr << "Compute mean liquid temperature" << finl;
   compute_mean_liquid_temperature();
+  if (debug_)
+    Cerr << "Compute Nusselt spherical diffusion" << finl;
   compute_Nusselt_spherical_diffusion();
 }
 
@@ -1137,7 +1377,10 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
           const double rhocpVol = rhocp_l * vol_;
           const double ope = div_coeff_grad_T_volume_(i,j,k);
           const double resu = ope / rhocpVol;
+          div_coeff_grad_T_volume_(i,j,k) = ope / rhocp_l;
           d_temperature_(i,j,k) += resu;
+          if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T"))
+            div_coeff_grad_T_(i,j,k) = resu;
         }
   if (debug_)
     Cerr << "Uniform lambda: " << temperature_diffusion_op_.get_uniform_lambda() << finl;
@@ -1301,6 +1544,14 @@ void IJK_Thermal_Subresolution::correct_temperature_for_visu()
    */
   if (liste_post_instantanes_.contient_("GRAD_T_ELEM") && allow_temperature_correction_for_visu_)
     correct_any_temperature_field_for_visu(temperature_);
+  if (liste_post_instantanes_.contient_("U_T_CONVECTIVE") && allow_temperature_correction_for_visu_)
+    correct_any_temperature_field_for_visu(u_T_convective_);
+  if (liste_post_instantanes_.contient_("U_T_CONVECTIVE_VOLUME") && allow_temperature_correction_for_visu_)
+    correct_any_temperature_field_for_visu(u_T_convective_volume_);
+  if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T") && allow_temperature_correction_for_visu_)
+    correct_any_temperature_field_for_visu(div_coeff_grad_T_);
+  if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T_VOLUME") && allow_temperature_correction_for_visu_)
+    correct_any_temperature_field_for_visu(div_coeff_grad_T_volume_);
 }
 
 void IJK_Thermal_Subresolution::clip_temperature_values()
@@ -1317,6 +1568,26 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
               const double temperature = temperature_(i,j,k);
               if (temperature < delta_T_subcooled_overheated_)
                 temperature_(i,j,k) = delta_T_subcooled_overheated_;
+            }
+      temperature_.echange_espace_virtuel(temperature_.ghost());
+    }
+}
+
+void IJK_Thermal_Subresolution::clip_max_temperature_values()
+{
+  if (clip_temperature_values_)
+    {
+      const int ni = temperature_.ni();
+      const int nj = temperature_.nj();
+      const int nk = temperature_.nk();
+      for (int k = 0; k < nk; k++)
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            {
+              const double temperature = temperature_(i,j,k);
+              const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+              if (temperature > 0 && indic > LIQUID_INDICATOR_TEST)
+                temperature_(i,j,k) = 0;
             }
       temperature_.echange_espace_virtuel(temperature_.ghost());
     }
@@ -1352,6 +1623,9 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (is_first_time_step_)
     first_time_step_temporal_ = first_time_step_temporal_ && is_first_time_step_;
 
+  if (debug_probe_collision_)
+    probe_collision_debug_field_.data() = 0.;
+
   if (debug_)
     debug_LRS_cells_.data() = -1.;
 
@@ -1359,12 +1633,13 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
     Cerr << "Initialise thermal subproblems" << finl;
   initialise_thermal_subproblems();
 
-  pre_initialise_thermal_subproblems_any_matrices();
-
-  reset_subresolution_distributed_vectors();
+  detect_probe_collision();
 
   int varying_probes_length = 1;
   const int varying_probes = first_time_step_varying_probes_;
+  if (!enable_resize_probe_collision_)
+    if (readjust_probe_length_from_vertices_)
+      probe_variations_enabled_ = 1;
   do
     {
       if (debug_)
@@ -1382,6 +1657,10 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
     if(varying_probes && !first_time_step_varying_probes_)
       Cerr << "Probes length is now fixed" << finl;
 
+  pre_initialise_thermal_subproblems_any_matrices();
+
+  reset_subresolution_distributed_vectors();
+
   if (debug_)
     Cerr << "Compute radial subresolution convection and diffusion operators" << finl;
   compute_radial_subresolution_convection_diffusion_operators();
@@ -1397,19 +1676,21 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   compute_source_terms_impose_subresolution_boundary_conditions();
 
   if (debug_)
+    Cerr << "Solve thermal subproblems" << finl;
+  solve_thermal_subproblems();
+
+  if (debug_)
     Cerr << "Compute material derivative (modelling)" << finl;
   approximate_temperature_increment_material_derivative();
 
   if (debug_)
-    Cerr << "Solve thermal subproblems" << finl;
-  solve_thermal_subproblems();
+    Cerr << "Store probe temperature" << finl;
+  store_previous_temperature_indicator_velocities();
 
   if (debug_)
     Cerr << "Prepare thermal flux correction" << finl;
   update_intersections();
   prepare_thermal_flux_correction();
-
-  // apply_thermal_flux_correction();
 }
 
 void IJK_Thermal_Subresolution::compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init)
@@ -1451,7 +1732,7 @@ void IJK_Thermal_Subresolution::compute_overall_probes_parameters()
        */
       compute_radial_first_second_order_operators(radial_first_order_operator_raw_, radial_second_order_operator_raw_,
                                                   radial_first_order_operator_, radial_second_order_operator_);
-      if (first_time_step_temporal_)
+      if (first_time_step_temporal_ || implicit_solver_from_previous_probe_field_)
         {
           int check_nb_elem;
           check_nb_elem = finite_difference_assembler_.build(identity_matrix_explicit_implicit_, points_per_thermal_subproblem_, -1);
@@ -1486,7 +1767,6 @@ void IJK_Thermal_Subresolution::compute_radial_first_second_order_operators(Matr
 /*
  * TODO : Should be moved to a class of tools ?
  */
-
 void IJK_Thermal_Subresolution::compute_first_order_operator_raw(Matrice& radial_first_order_operator)
 {
   /*
@@ -1562,9 +1842,20 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
                                                                            ref_ijk_ft_->get_pressure_ghost_cells());
                 counter++;
               }
+      thermal_local_subproblems_.set_effective_subproblems(enable_probe_collision_detection_);
       thermal_local_subproblems_.compute_global_indices();
       if (!counter)
         thermal_local_subproblems_.associate_variables_for_post_processing((*this));
+    }
+}
+
+void IJK_Thermal_Subresolution::detect_probe_collision()
+{
+  if (enable_probe_collision_detection_)
+    {
+      interpolate_indicator_on_probes();
+      reajust_probes_length_collisions();
+      clear_sort_problems_colliding_bubbles();
     }
 }
 
@@ -1579,7 +1870,8 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
     {
       if (!disable_subresolution_)
         {
-          int nb_subproblems_ini = thermal_local_subproblems_.get_subproblems_counter();
+          // int nb_subproblems_ini = thermal_local_subproblems_.get_subproblems_counter();
+          int nb_subproblems_ini = thermal_local_subproblems_.get_effective_subproblems_counter();
           if (!(ref_ijk_ft_->get_disable_convection_qdm() && ref_ijk_ft_->get_disable_diffusion_qdm()))
             nb_subproblems_ini = Process::mp_sum(nb_subproblems_ini);
           const int max_subproblems_predicted = (int) ((double) nb_subproblems_ini * pre_factor_subproblems_number_);
@@ -1606,7 +1898,7 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
                                                                               radial_second_order_operator_raw_,
                                                                               nb_subproblems_ini, max_subproblems_predicted);
           if (first_time_step_temporal_)
-            finite_difference_assembler_.complete_empty_matrices_initialisation(radial_diffusion_matrix_,
+            finite_difference_assembler_.complete_empty_matrices_initialisation(identity_matrix_subproblems_,
                                                                                 radial_second_order_operator_raw_,
                                                                                 nb_subproblems_ini, max_subproblems_predicted);
         }
@@ -1629,13 +1921,25 @@ void IJK_Thermal_Subresolution::reset_subresolution_distributed_vectors()
     thermal_subproblems_temperature_solution_ini_.detach_vect();
 
   // For a constant number of points (we can just change the probe size)
-  const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_effective_subproblems_counter();
   thermal_subproblems_rhs_assembly_.resize(nb_points);
   thermal_subproblems_temperature_solution_.resize(nb_points);
   if (first_time_step_temporal_ && first_time_step_explicit_)
     thermal_subproblems_temperature_solution_ini_.resize(nb_points);
 }
 
+void IJK_Thermal_Subresolution::interpolate_indicator_on_probes()
+{
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    thermal_local_subproblems_.interpolate_indicator_on_probes();
+}
+
+void IJK_Thermal_Subresolution::clear_sort_problems_colliding_bubbles()
+{
+  if (!disable_subresolution_) // || reference_gfm_on_probes_)
+    thermal_local_subproblems_.clear_sort_problems_colliding_bubbles();
+}
 
 void IJK_Thermal_Subresolution::interpolate_project_velocities_on_probes()
 {
@@ -1643,15 +1947,28 @@ void IJK_Thermal_Subresolution::interpolate_project_velocities_on_probes()
     thermal_local_subproblems_.interpolate_project_velocities_on_probes();
 }
 
+void IJK_Thermal_Subresolution::reajust_probes_length_collisions()
+{
+  if (!disable_subresolution_)
+    {
+      thermal_local_subproblems_.reajust_probes_length(0);
+      if (!readjust_probe_length_from_vertices_)
+        thermal_local_subproblems_.compute_modified_probe_length(probe_variations_enabled_);
+    }
+}
+
 void IJK_Thermal_Subresolution::reajust_probes_length()
 {
   if (!disable_subresolution_)
-    if (first_time_step_varying_probes_)
+    if (readjust_probe_length_from_vertices_ ||
+        first_time_step_varying_probes_)
       {
         thermal_local_subproblems_.reajust_probes_length();
-        //
-        probe_variations_enabled_ = thermal_local_subproblems_.get_probe_variations_enabled(probe_variations_priority_);
-        first_time_step_varying_probes_ = probe_variations_enabled_;
+        if (first_time_step_varying_probes_)
+          {
+            probe_variations_enabled_ = thermal_local_subproblems_.get_probe_variations_enabled(probe_variations_priority_);
+            first_time_step_varying_probes_ = probe_variations_enabled_;
+          }
         thermal_local_subproblems_.compute_modified_probe_length(probe_variations_enabled_);
       }
 }
@@ -1666,7 +1983,7 @@ void IJK_Thermal_Subresolution::compute_radial_subresolution_convection_diffusio
       if (!pre_initialise_thermal_subproblems_list_)
         {
           initialise_sparse_indices_ = 1;
-          if (first_time_step_temporal_)
+          if (first_time_step_temporal_ || implicit_solver_from_previous_probe_field_)
             {
               if (use_sparse_matrix_)
                 initialise_identity_matrices_sparse(identity_matrix_explicit_implicit_, identity_matrix_subproblems_);
@@ -1696,7 +2013,8 @@ void IJK_Thermal_Subresolution::initialise_identity_matrices(Matrice& identity_m
    */
   if (debug_)
     Cerr << "Initialise the Identity matrix" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
   finite_difference_assembler_.initialise_matrix_subproblems(identity_matrix_subproblems,
                                                              identity_matrix,
                                                              nb_subproblems,
@@ -1714,9 +2032,10 @@ void IJK_Thermal_Subresolution::initialise_identity_matrices_sparse(Matrice& ide
   const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Identity sparse matrix" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
-  finite_difference_assembler_.initialise_sparse_matrix_subproblems(identity_matrix,
-                                                                    identity_matrix_subproblems,
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
+  finite_difference_assembler_.initialise_sparse_matrix_subproblems(identity_matrix_subproblems,
+                                                                    identity_matrix,
                                                                     nb_subproblems,
                                                                     first_time_step_varying_probes_,
                                                                     first_indices_sparse_matrix_,
@@ -1734,7 +2053,8 @@ void IJK_Thermal_Subresolution::initialise_radial_convection_operator(Matrice& r
    */
   if (debug_)
     Cerr << "Initialise the Radial convection operator" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
   finite_difference_assembler_.initialise_matrix_subproblems(radial_convection_matrix,
                                                              radial_first_order_operator,
                                                              nb_subproblems,
@@ -1752,7 +2072,8 @@ void IJK_Thermal_Subresolution::initialise_radial_convection_operator_sparse(Mat
   const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Radial convection sparse operator" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
   finite_difference_assembler_.initialise_sparse_matrix_subproblems(radial_convection_matrix,
                                                                     radial_first_order_operator,
                                                                     nb_subproblems,
@@ -1773,7 +2094,8 @@ void IJK_Thermal_Subresolution::initialise_radial_diffusion_operator(Matrice& ra
    */
   if (debug_)
     Cerr << "Initialise the Radial diffusion operator" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
   finite_difference_assembler_.initialise_matrix_subproblems(radial_diffusion_matrix, radial_second_order_operator, nb_subproblems, first_time_step_varying_probes_);
   if (debug_)
     Cerr << "Radial diffusion operator has been initialised." << finl;
@@ -1788,7 +2110,8 @@ void IJK_Thermal_Subresolution::initialise_radial_diffusion_operator_sparse(Matr
   const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Radial diffusion sparse operator" << finl;
-  const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_subproblems = thermal_local_subproblems_.get_effective_subproblems_counter();
   finite_difference_assembler_.initialise_sparse_matrix_subproblems(radial_diffusion_matrix,
                                                                     radial_second_order_operator,
                                                                     nb_subproblems,
@@ -1845,12 +2168,12 @@ void IJK_Thermal_Subresolution::prepare_temporal_schemes()
 {
   if (!disable_subresolution_)
     {
-      if (first_time_step_temporal_)
+      if (first_time_step_temporal_ || implicit_solver_from_previous_probe_field_)
         thermal_local_subproblems_.prepare_temporal_schemes();
       thermal_subproblems_matrix_assembly_ = radial_convection_matrix_;
-      finite_difference_assembler_.sum_any_matrices_subproblems(thermal_subproblems_matrix_assembly_, radial_diffusion_matrix_, use_sparse_matrix_);
-      if (first_time_step_temporal_)
-        finite_difference_assembler_.sum_any_matrices_subproblems(thermal_subproblems_matrix_assembly_, identity_matrix_subproblems_, use_sparse_matrix_);
+      finite_difference_assembler_.sum_any_matrices_subproblems(thermal_subproblems_matrix_assembly_, radial_diffusion_matrix_, use_sparse_matrix_, debug_);
+      if (first_time_step_temporal_ || implicit_solver_from_previous_probe_field_)
+        finite_difference_assembler_.sum_any_matrices_subproblems(thermal_subproblems_matrix_assembly_, identity_matrix_subproblems_, use_sparse_matrix_, debug_);
     }
 }
 
@@ -1869,17 +2192,14 @@ void IJK_Thermal_Subresolution::compute_source_terms_impose_subresolution_bounda
 
 void IJK_Thermal_Subresolution::approximate_temperature_increment_material_derivative()
 {
-  if (!disable_subresolution_)
-    {
-      thermal_local_subproblems_.approximate_temperature_increment_material_derivative();
-    }
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    thermal_local_subproblems_.approximate_temperature_increment_material_derivative();
 }
 
 void IJK_Thermal_Subresolution::solve_thermal_subproblems()
 {
   if (!disable_subresolution_)
     {
-      // int nb_points = copy_local_unknwowns_rhs();
       check_wrong_values_rhs();
       convert_into_sparse_matrix();
 
@@ -1919,8 +2239,7 @@ void IJK_Thermal_Subresolution::solve_thermal_subproblems()
             }
         }
     }
-  if (!disable_subresolution_ || reference_gfm_on_probes_)
-    retrieve_temperature_solution();
+  retrieve_temperature_solution();
 }
 
 void IJK_Thermal_Subresolution::convert_into_sparse_matrix()
@@ -1928,7 +2247,8 @@ void IJK_Thermal_Subresolution::convert_into_sparse_matrix()
   /*
    * Convert into a huge sparse matrix
    */
-  const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_subproblems_counter();
+  // const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_subproblems_counter();
+  const int nb_points = points_per_thermal_subproblem_ * thermal_local_subproblems_.get_effective_subproblems_counter();
   if (!use_sparse_matrix_)
     {
       Matrice_Morse& sparse_matrix_solver  = ref_cast(Matrice_Morse, thermal_subproblems_matrix_assembly_for_solver_.valeur());
@@ -1956,6 +2276,7 @@ void IJK_Thermal_Subresolution::convert_into_sparse_matrix()
 void IJK_Thermal_Subresolution::compute_md_vector()
 {
   one_dimensional_advection_diffusion_thermal_solver_.reinit();
+
   ArrOfInt pe_voisins_dummy;
   ArrsOfInt items_to_send_dummy;
   ArrsOfInt items_to_recv_dummy;
@@ -1964,8 +2285,7 @@ void IJK_Thermal_Subresolution::compute_md_vector()
   items_to_send_dummy.resize(0);
   items_to_recv_dummy.resize(0);
   blocs_to_recv_dummy.resize(0);
-//          const int last_subproblem_index = thermal_local_subproblems_.get_subproblems_counter();
-//          const int subproblems_vector_size = thermal_local_subproblems_.get_end_index_subproblem(last_subproblem_index-1);
+
   const int subproblems_vector_size = thermal_subproblems_rhs_assembly_.size();
   MD_Vector_std md_std = MD_Vector_std(subproblems_vector_size, subproblems_vector_size,
                                        pe_voisins_dummy, items_to_send_dummy,
@@ -1980,11 +2300,16 @@ void IJK_Thermal_Subresolution::retrieve_temperature_solution()
   /*
    * Retrieve the overall vector
    */
-//  for (int i=0; i<thermal_subproblems_temperature_solution_for_solver_.size(); i++)
-//    thermal_subproblems_temperature_solution_(i) = thermal_subproblems_temperature_solution_for_solver_(i);
-  thermal_local_subproblems_.retrieve_radial_quantities();
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    thermal_local_subproblems_.retrieve_radial_quantities();
 }
 
+void IJK_Thermal_Subresolution::store_previous_temperature_indicator_velocities()
+{
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    if (reconstruct_previous_probe_field_)
+      thermal_local_subproblems_.store_previous_temperature_indicator_velocities();
+}
 
 void IJK_Thermal_Subresolution::check_wrong_values_rhs()
 {
@@ -2049,13 +2374,6 @@ void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()
   const int discontinous_min_max_neighbours_faces = 1;
   const int remove_external_neighbour_values = 1;
   const int check_neighbour_cell_centre = !remove_external_neighbour_values;
-//  corrige_flux_->compute_min_max_ijk_reachable_fluxes(cell_faces_neighbours_corrected_all_bool_,
-//                                                      neighbours_temperature_to_correct_,
-//                                                      cell_faces_neighbours_corrected_min_max_bool_,
-//                                                      discontinous_min_max_neighbours_faces,
-//                                                      check_neighbour_cell_centre,
-//                                                      remove_external_neighbour_values,
-//                                                      neighbours_temperature_to_correct_trimmed_);
   corrige_flux_->compute_min_max_ijk_any_reachable_fluxes(cell_faces_neighbours_corrected_all_bool_,
                                                           neighbours_temperature_to_correct_,
                                                           cell_faces_neighbours_corrected_min_max_bool_,
@@ -2095,16 +2413,25 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 1
                             && !ref_ijk_ft_->get_reprise() != 0);
+  if (debug_)
+    Cerr << "Set correction cell neighbours" << finl;
   if (correct_first_iter_deactivate_cell_neighbours_ && correct_first_iter)
     {
 
       find_temperature_cell_neighbours_ = 0;
       use_temperature_cell_neighbours_ = 0;
-      corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_, neighbours_weighting_);
+      corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
+                                                   neighbours_weighting_,
+                                                   smooth_temperature_field_);
     }
 
+
+  if (debug_)
+    Cerr << "Compute temperature cell centre" << finl;
   corrige_flux_->compute_temperature_cell_centre(temperature_);
 
+  if (debug_)
+    Cerr << "Compute temperature cell centre neighbours" << finl;
   corrige_flux_->compute_temperature_cell_centre_neighbours(temperature_cell_neighbours_,
                                                             neighbours_temperature_to_correct_,
                                                             neighbours_temperature_colinearity_weighting_);
@@ -2117,13 +2444,19 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
                                                                 neighbours_temperature_colinearity_weighting_);
     }
 
+  if (debug_)
+    Cerr << "Replace temperature cell centres neighbours" << finl;
   replace_temperature_cell_centres_neighbours(0);
 }
 
 void IJK_Thermal_Subresolution::compute_temperature_cell_centres_second_correction()
 {
   if (disable_mixed_cells_increment_)
-    replace_temperature_cell_centres_neighbours(use_reachable_fluxes_ && !keep_first_reachable_fluxes_);
+    {
+      if (debug_)
+        Cerr << "Apply second temperature correction (Case C)" << finl;
+      replace_temperature_cell_centres_neighbours(use_reachable_fluxes_ && !keep_first_reachable_fluxes_);
+    }
 }
 
 void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(const int& use_neighbours_temperature_to_correct_trimmed)
@@ -2320,10 +2653,6 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
                                                                         interfacial_quantities_thermal_probes,
                                                                         overall_bubbles_quantities,
                                                                         local_quantities_thermal_probes_time_index_folder);
-//      thermal_local_subproblems_.thermal_subresolution_outputs(rang_,
-//                                                               interfacial_quantities_thermal_probes,
-//                                                               overall_bubbles_quantities,
-//                                                               local_quantities_thermal_probes_time_index_folder);
     }
 }
 
