@@ -1110,6 +1110,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
                                                  "r_sph", "theta_sph", "phi_sph",
                                                  "temperature_interp","temperature_sol", "temperature_prev",
                                                  "temperature_gradient", "temperature_gradient_sol",
+                                                 "temperature_gradient_gfm",
                                                  "temperature_double_deriv", "temperature_double_deriv_sol",
                                                  "temperature_gradient_tangential","temperature_gradient_tangential2",
                                                  "temperature_gradient_tangential_rise","temperature_gradient_azymuthal",
@@ -1228,6 +1229,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs(const int& r
                          "\tr_sph\ttheta_sph\tphi_sph"
                          "\ttemperature_interp\ttemperature_sol\ttemperature_prev"
                          "\ttemperature_gradient\ttemperature_gradient_sol"
+                         "\temperature_gradient_gfm"
                          "\ttemperature_double_deriv\ttemperature_double_deriv_sol"
                          "\ttemperature_gradient_tangential\ttemperature_gradient_tangential2"
                          "\ttemperature_gradient_tangential_rise\ttemperature_gradient_azymuthal"

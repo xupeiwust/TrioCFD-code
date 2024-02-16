@@ -2307,55 +2307,57 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
       return;
     }
   {
-    double imposed[3] = {0., 0., 0.};
-    imposed[dir] = T_imposed;
-    for (int direction = 0; direction < 3; direction++)
-      {
-        int imin;
-        int jmin;
-        int kmin;
-        int imax;
-        int jmax;
-        int kmax;
-        switch (dir)
-          {
-          case 0:
-            imin = index_dir;
-            jmin = 0;
-            kmin = 0;
-            imax = imin+upstream_stencil;
-            jmax = temperature.nj();
-            kmax = temperature.nk();
-            break;
-          case 1:
-            imin = 0;
-            jmin = index_dir;
-            kmin = 0;
-            imax = temperature.ni();
-            jmax = jmin+upstream_stencil;
-            kmax = temperature.nk();
-            break;
-          case 2:
-            imin = 0;
-            jmin = 0;
-            kmin = index_dir;
-            imax = temperature.ni();
-            jmax = temperature.nj();
-            kmax = kmin+upstream_stencil;
-            break;
-          default:
-            imin = index_dir;
-            jmin = 0;
-            kmin = 0;
-            imax = imin+upstream_stencil;
-            jmax = temperature.nj();
-            kmax = temperature.nk();
-            break;
-          }
-        for (int k = kmin; k < kmax; k++)
-          for (int j = jmin; j < jmax; j++)
-            for (int i = imin; i < imax; i++)
-              temperature(i,j,k) = imposed[direction];
-      }
+    // double imposed[3] = {0., 0., 0.};
+    // composed[dir] = T_imposed;
+    const double imposed = T_imposed;
+    // for (int direction = 0; direction < 3; direction++)
+    {
+      int imin;
+      int jmin;
+      int kmin;
+      int imax;
+      int jmax;
+      int kmax;
+      switch (dir)
+        {
+        case 0:
+          imin = index_dir;
+          jmin = 0;
+          kmin = 0;
+          imax = imin+upstream_stencil;
+          jmax = temperature.nj();
+          kmax = temperature.nk();
+          break;
+        case 1:
+          imin = 0;
+          jmin = index_dir;
+          kmin = 0;
+          imax = temperature.ni();
+          jmax = jmin+upstream_stencil;
+          kmax = temperature.nk();
+          break;
+        case 2:
+          imin = 0;
+          jmin = 0;
+          kmin = index_dir;
+          imax = temperature.ni();
+          jmax = temperature.nj();
+          kmax = kmin+upstream_stencil;
+          break;
+        default:
+          imin = index_dir;
+          jmin = 0;
+          kmin = 0;
+          imax = imin+upstream_stencil;
+          jmax = temperature.nj();
+          kmax = temperature.nk();
+          break;
+        }
+      for (int k = kmin; k < kmax; k++)
+        for (int j = jmin; j < jmax; j++)
+          for (int i = imin; i < imax; i++)
+            temperature(i,j,k) = imposed;
+      // temperature(i,j,k) = imposed[direction];
+    }
   }
 }

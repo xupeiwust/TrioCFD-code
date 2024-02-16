@@ -74,6 +74,82 @@ public :
   void set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
                                          const Nom& overall_bubbles_quantities,
                                          const Nom& local_quantities_thermal_probes_time_index_folder) override;
+  void post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder) override;
+  void post_process_thermal_wake_slice(const int& slice,
+                                       const double& nb_diam_slice,
+                                       const Nom& local_quantities_thermal_slices_time_index_folder);
+  double post_process_thermal_wake_slice_index_dir(int& index_dir_local,
+                                                   int& index_dir_global,
+                                                   int& n_cross_section_1,
+                                                   int& n_cross_section_2,
+                                                   int& dir,
+                                                   const double& nb_diam,
+                                                   int upstream_dir,
+                                                   int gravity_dir);
+  void complete_field_thermal_wake_slice_ij_values(int& index_dir_local,
+                                                   const int& dir,
+                                                   const double& slice_pos,
+                                                   FixedVector<IntTab, 2>& ij_indices,
+                                                   FixedVector<DoubleTab, 3>& ij_coords,
+                                                   const IJK_Field_double& field,
+                                                   const FixedVector<IJK_Field_double,3>& field_gradient,
+                                                   const FixedVector<IJK_Field_double,3>& velocity,
+                                                   DoubleTab& values,
+                                                   const int field_type,
+                                                   const int slice_to_nearest_plane,
+                                                   const int compute_indices = 0);
+  void complete_field_thermal_wake_slice_ij_indices_coords(const int& slice,
+                                                           int& index_dir_local,
+                                                           const int& dir,
+                                                           const double& slice_pos,
+                                                           FixedVector<IntTab, 2>& ij_indices,
+                                                           FixedVector<DoubleTab, 3>& ij_coords,
+                                                           DoubleTab& values,
+                                                           const Nom& local_quantities_thermal_slices_time_index_folder);
+  void complete_field_thermal_wake_slice_ij_temperature(const int& slice,
+                                                        int& index_dir_local,
+                                                        const int& dir,
+                                                        const double& slice_pos,
+                                                        FixedVector<IntTab, 2>& ij_indices,
+                                                        FixedVector<DoubleTab, 3>& ij_coords,
+                                                        DoubleTab& values,
+                                                        const Nom& local_quantities_thermal_slices_time_index_folder);
+  void complete_field_thermal_wake_slice_ij_convection(const int& slice,
+                                                       int& index_dir_local,
+                                                       const int& dir,
+                                                       const double& slice_pos,
+                                                       FixedVector<IntTab, 2>& ij_indices,
+                                                       FixedVector<DoubleTab, 3>& ij_coords,
+                                                       DoubleTab& values,
+                                                       DoubleTab& velocity_values,
+                                                       const Nom& local_quantities_thermal_slices_time_index_folder);
+  void complete_field_thermal_wake_slice_ij_diffusion(const int& slice,
+                                                      int& index_dir_local,
+                                                      const int& dir,
+                                                      const double& slice_pos,
+                                                      FixedVector<IntTab, 2>& ij_indices,
+                                                      FixedVector<DoubleTab, 3>& ij_coords,
+                                                      DoubleTab& values,
+                                                      const Nom& local_quantities_thermal_slices_time_index_folder);
+  void complete_field_thermal_wake_slice_ij_temperature_incr(const int& slice,
+                                                             int& index_dir_local,
+                                                             const int& dir,
+                                                             const double& slice_pos,
+                                                             FixedVector<IntTab, 2>& ij_indices,
+                                                             FixedVector<DoubleTab, 3>& ij_coords,
+                                                             DoubleTab& values,
+                                                             const Nom& local_quantities_thermal_slices_time_index_folder);
+  void post_processed_field_thermal_wake_slice_ij(const int& slice,
+                                                  const Nom& local_quantities_thermal_slices_time_index_folder,
+                                                  const double& nb_diam_slice,
+                                                  const int& n_cross_section_1,
+                                                  const int& n_cross_section_2,
+                                                  const FixedVector<IntTab, 2> ij_indices,
+                                                  const FixedVector<DoubleTab, 3>& ij_coords,
+                                                  const DoubleTab& temperature_slice,
+                                                  const DoubleTab& convection_slice,
+                                                  const DoubleTab& diffusion_slice,
+                                                  const DoubleTab& temperature_incr_slice);
 
   const IJK_Field_double& get_debug_lrs_cells() const override
   {
@@ -513,6 +589,12 @@ protected :
 
   int copy_fluxes_on_every_procs_;
   int copy_temperature_on_every_procs_;
+
+  int post_process_thermal_slices_ = 0;
+  double nb_diam_slice_ = -1;
+  int nb_slices_ = 1;
+  int upstream_dir_slice_ = -1;
+  int disable_slice_to_nearest_plane_ = 0;
 
 };
 

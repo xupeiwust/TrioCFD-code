@@ -3996,6 +3996,7 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
     r_sph_, theta_sph_, phi_sph_,
     temperature_interp_[0], temperature_solution_[0], temperature_previous_[0],
     normal_temperature_gradient_interp_[0], normal_temperature_gradient_solution_[0],
+    (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_),
     hess_diag_T_elem_spherical_[0][0], normal_temperature_double_derivative_solution_[0],
     tangential_temperature_gradient_first_[0],
     tangential_temperature_gradient_second_[0],
@@ -4068,6 +4069,7 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << r_sph_ << " " << theta_sph_ << " " << phi_sph_ << " ";
         fic << temperature_interp_[0] << " " << temperature_solution_[0] << " " << temperature_previous_[0] << " ";
         fic << normal_temperature_gradient_interp_[0] << " " << normal_temperature_gradient_solution_[0] << " ";
+        fic << (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_) << " ";
         fic << hess_diag_T_elem_spherical_[0][0] << " " << normal_temperature_double_derivative_solution_[0] << " ";
         fic << tangential_temperature_gradient_first_[0] << " ";
         fic << tangential_temperature_gradient_second_[0] << " ";

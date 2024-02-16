@@ -177,7 +177,8 @@ public :
   Entree& typer_thermal( Entree& is );
   void thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
                                      const Nom& overall_bubbles_quantities,
-                                     const Nom& local_quantities_thermal_probes_time_index_folder);
+                                     const Nom& local_quantities_thermal_probes_time_index_folder,
+                                     const Nom& local_quantities_thermal_slices_time_index_folder);
   int get_first_step_thermals_post() { return valeur().get_first_step_thermals_post(); };
   inline void compute_temperature_init();
 

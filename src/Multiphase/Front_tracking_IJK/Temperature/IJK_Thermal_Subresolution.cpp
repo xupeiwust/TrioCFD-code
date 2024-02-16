@@ -346,7 +346,10 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "neighbours_last_faces_distance_weighting" << escape;
   if (neighbours_last_faces_distance_colinearity_face_weighting_)
     os << front_space << "neighbours_last_faces_distance_colinearity_face_weighting" << escape;
-
+  if (post_process_thermal_slices_)
+    os << front_space << "post_process_thermal_slices" << escape;
+  if (disable_slice_to_nearest_plane_)
+    os << front_space << "disable_slice_to_nearest_plane" << escape;
   /*
    * Values
    */
@@ -379,6 +382,9 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
   os << front_space << "nb_phi_post_pro" << end_space << nb_phi_post_pro_ << escape;
   os << front_space << "nb_probes_post_pro" << end_space << nb_probes_post_pro_ << escape;
   os << front_space << "modified_time_init" << end_space << modified_time_init_ << escape;
+  os << front_space << "nb_slices" << end_space << nb_slices_ << escape;
+  os << front_space << "nb_diam_slice" << end_space << nb_diam_slice_ << escape;
+  os << front_space << "upstream_dir_slice" << end_space << upstream_dir_slice_ << escape;
 
   os << "}" << escape;
   return os;
@@ -533,6 +539,13 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("neighbours_last_faces_distance_weighting", &neighbours_last_faces_distance_weighting_);
   param.ajouter_flag("neighbours_last_faces_distance_colinearity_weighting", &neighbours_last_faces_distance_colinearity_weighting_);
   param.ajouter_flag("neighbours_last_faces_distance_colinearity_face_weighting", &neighbours_last_faces_distance_colinearity_face_weighting_);
+
+
+  param.ajouter_flag("post_process_thermal_slices", &post_process_thermal_slices_);
+  param.ajouter_flag("disable_slice_to_nearest_plane", &disable_slice_to_nearest_plane_);
+  param.ajouter("nb_slices", &nb_slices_);
+  param.ajouter("nb_diam_slice", &nb_diam_slice_);
+  param.ajouter("upstream_dir_slice", &upstream_dir_slice_);
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);
@@ -2656,5 +2669,594 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
     }
 }
 
+void IJK_Thermal_Subresolution::post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  if (post_process_thermal_slices_)
+    {
+      ArrOfDouble nb_diam_slices;
+      nb_diam_slices.set_smart_resize(1);
+      nb_diam_slices.append_array(nb_diam_slice_);
+      const double diam_incr = nb_diam_slice_ / nb_slices_;
+      for (int slice = nb_slices_ - 2; slice >= 0; slice--)
+        nb_diam_slices.append_array((slice + 1) * diam_incr);
+      for (int slice = 0; slice < nb_slices_; slice++)
+        post_process_thermal_wake_slice(slice,
+                                        nb_diam_slices[slice],
+                                        local_quantities_thermal_slices_time_index_folder);
+    }
+}
 
+void IJK_Thermal_Subresolution::post_process_thermal_wake_slice(const int& slice,
+                                                                const double& nb_diam_slice,
+                                                                const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  int index_dir_local = -1;
+  int index_dir_global = -1;
+  int dir;
+  int n_cross_section_1, n_cross_section_2;
+  const double slice_pos = post_process_thermal_wake_slice_index_dir(index_dir_local,
+                                                                     index_dir_global,
+                                                                     n_cross_section_1,
+                                                                     n_cross_section_2,
+                                                                     dir,
+                                                                     nb_diam_slice,
+                                                                     upstream_dir_slice_,
+                                                                     ref_ijk_ft_->get_direction_gravite());
+  DoubleTab slice_values(n_cross_section_1, n_cross_section_2);
+  DoubleTab slice_velocity_values(n_cross_section_1, n_cross_section_2);
+  FixedVector<IntTab, 2> ij_indices;
+  for (int l=0; l<2; l++)
+    ij_indices[l] = IntTab(n_cross_section_1, n_cross_section_2);
+  FixedVector<DoubleTab, 3> ij_coords;
+  for (int c=0; c<3; c++)
+    ij_coords[c] = DoubleTab(n_cross_section_1, n_cross_section_2);
+
+  complete_field_thermal_wake_slice_ij_indices_coords(slice,
+                                                      index_dir_local,
+                                                      dir,
+                                                      slice_pos,
+                                                      ij_indices,
+                                                      ij_coords,
+                                                      slice_values,
+                                                      local_quantities_thermal_slices_time_index_folder);
+  complete_field_thermal_wake_slice_ij_temperature(slice,
+                                                   index_dir_local,
+                                                   dir,
+                                                   slice_pos,
+                                                   ij_indices,
+                                                   ij_coords,
+                                                   slice_values,
+                                                   local_quantities_thermal_slices_time_index_folder);
+  DoubleTab temperature_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_convection(slice,
+                                                  index_dir_local,
+                                                  dir,
+                                                  slice_pos,
+                                                  ij_indices,
+                                                  ij_coords,
+                                                  slice_values,
+                                                  slice_velocity_values,
+                                                  local_quantities_thermal_slices_time_index_folder);
+  DoubleTab convection_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_diffusion(slice,
+                                                 index_dir_local,
+                                                 dir,
+                                                 slice_pos,
+                                                 ij_indices,
+                                                 ij_coords,
+                                                 slice_values,
+                                                 local_quantities_thermal_slices_time_index_folder);
+  DoubleTab diffusion_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_temperature_incr(slice,
+                                                        index_dir_local,
+                                                        dir,
+                                                        slice_pos,
+                                                        ij_indices,
+                                                        ij_coords,
+                                                        slice_values,
+                                                        local_quantities_thermal_slices_time_index_folder);
+  DoubleTab temperature_incr_slice = slice_values;
+
+  post_processed_field_thermal_wake_slice_ij(slice,
+                                             local_quantities_thermal_slices_time_index_folder,
+                                             nb_diam_slice,
+                                             n_cross_section_1,
+                                             n_cross_section_2,
+                                             ij_indices,
+                                             ij_coords,
+                                             temperature_slice,
+                                             convection_slice,
+                                             diffusion_slice,
+                                             temperature_incr_slice);
+}
+
+double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int& index_dir_local,
+                                                                            int& index_dir_global,
+                                                                            int& n_cross_section_1,
+                                                                            int& n_cross_section_2,
+                                                                            int& dir,
+                                                                            const double& nb_diam,
+                                                                            int upstream_dir,
+                                                                            int gravity_dir)
+{
+  if (upstream_dir == -1)
+    {
+      dir = gravity_dir;
+      if (dir == -1)
+        dir=0;
+    }
+  else
+    dir = upstream_dir_slice_;
+  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+
+  const int nb_i_layer_tot = geom.get_nb_elem_tot(0);
+  const int nb_j_layer_tot = geom.get_nb_elem_tot(1);
+  const int nb_k_layer_tot = geom.get_nb_elem_tot(2);
+
+  int ndir;
+  switch(dir)
+    {
+    case 0:
+      n_cross_section_1 = nb_j_layer_tot;
+      n_cross_section_2 = nb_k_layer_tot;
+      ndir = temperature_.ni();
+      break;
+    case 1:
+      n_cross_section_1 = nb_k_layer_tot;
+      n_cross_section_2 = nb_i_layer_tot;
+      ndir = temperature_.nj();
+      break;
+    case 2:
+      n_cross_section_1 = nb_i_layer_tot;
+      n_cross_section_2 = nb_j_layer_tot;
+      ndir = temperature_.nk();
+      break;
+    default:
+      n_cross_section_1 = nb_i_layer_tot;
+      n_cross_section_2 = nb_j_layer_tot;
+      ndir = temperature_.nk();
+      break;
+    }
+  // thermal_slice.allocate(n_cross_section_1, n_cross_section_2, 1, 0);
+
+  bool perio =  geom.get_periodic_flag(dir);
+  assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
+  DoubleTab bounding_box;
+  bounding_box = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bounding_box();
+  const double Dbdir = bounding_box(0, dir, 1) - bounding_box(0, dir, 0);
+  const double dirb  = (*bubbles_barycentre_)(0, dir);
+  const double ldir = geom.get_domain_length(dir) ;
+  double nb_diam_tmp = nb_diam;
+  if (nb_diam_tmp == 0.)
+    nb_diam_tmp = (ldir/Dbdir) / 2;
+  else
+    nb_diam_tmp = signbit(nb_diam_tmp) ? nb_diam_tmp - 0.5: nb_diam_tmp + 0.5;
+  double dirobj = dirb + nb_diam_tmp * Dbdir;
+
+  const double ddir = geom.get_constant_delta(dir);
+  const double origin_dir = geom.get_origin(dir) ;
+  const int offset_dir = splitting.get_offset_local(dir);
+
+  if (perio)
+    {
+      while (dirobj < origin_dir)
+        dirobj += ldir;
+      while (dirobj > origin_dir + ldir)
+        dirobj -= ldir;
+    }
+  assert(((dirobj >= origin_dir) && (dirobj <= origin_dir + ldir)));
+
+  const double x2 = (dirobj - origin_dir) / ddir;
+  int index_dir = (int) (floor(x2)) - offset_dir;
+  if ((index_dir >= 0) && (index_dir < ndir))
+    {
+      index_dir_local = index_dir;
+      index_dir_global = index_dir + offset_dir;
+    }
+  return dirobj;
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int& index_dir_local,
+                                                                            const int& dir,
+                                                                            const double& slice_pos,
+                                                                            FixedVector<IntTab, 2>& ij_indices,
+                                                                            FixedVector<DoubleTab, 3>& ij_coords,
+                                                                            const IJK_Field_double& field,
+                                                                            const FixedVector<IJK_Field_double,3>& field_gradient,
+                                                                            const FixedVector<IJK_Field_double,3>& velocity,
+                                                                            DoubleTab& values,
+                                                                            const int field_type,
+                                                                            const int slice_to_nearest_plane,
+                                                                            const int compute_indices)
+{
+  values *= 0.;
+  if (index_dir_local != -1)
+    {
+      const IJK_Splitting& splitting = field.get_splitting();
+      int offset_cross_dir_1, offset_cross_dir_2;
+      int n_local_cross_section_1, n_local_cross_section_2;
+      int * index_i = nullptr;
+      int * index_j = nullptr;
+      int * index_k = nullptr;
+      int incr_i = 0;
+      int incr_j = 0;
+      int incr_k = 0;
+      int i, j;
+      switch(dir)
+        {
+        case 0:
+          n_local_cross_section_1 = field.nj();
+          n_local_cross_section_2 = field.nk();
+          offset_cross_dir_1 = splitting.get_offset_local(1);
+          offset_cross_dir_2 = splitting.get_offset_local(2);
+          index_i = &index_dir_local;
+          index_j = &i;
+          index_k = &j;
+          incr_i = 1;
+          incr_j = 0;
+          incr_k = 0;
+          break;
+        case 1:
+          n_local_cross_section_1 = field.nk();
+          n_local_cross_section_2 = field.ni();
+          offset_cross_dir_1 = splitting.get_offset_local(2);
+          offset_cross_dir_2 = splitting.get_offset_local(0);
+          index_i = &j;
+          index_j = &index_dir_local;
+          index_k = &i;
+          incr_i = 0;
+          incr_j = 1;
+          incr_k = 0;
+          break;
+        case 2:
+          n_local_cross_section_1 = field.ni();
+          n_local_cross_section_2 = field.nj();
+          offset_cross_dir_1 = splitting.get_offset_local(0);
+          offset_cross_dir_2 = splitting.get_offset_local(1);
+          index_i = &i;
+          index_j = &j;
+          index_k = &index_dir_local;
+          incr_i = 0;
+          incr_j = 0;
+          incr_k = 1;
+          break;
+        default:
+          n_local_cross_section_1 = field.ni();
+          n_local_cross_section_2 = field.nj();
+          offset_cross_dir_1 = splitting.get_offset_local(0);
+          offset_cross_dir_2 = splitting.get_offset_local(1);
+          index_i = &i;
+          index_j = &j;
+          index_k = &index_dir_local;
+          incr_i = 0;
+          incr_j = 0;
+          incr_k = 1;
+          break;
+        }
+
+      if (compute_indices)
+        {
+          for (i=0; i<n_local_cross_section_1; i++)
+            for (j=0; j<n_local_cross_section_2; j++)
+              {
+                Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                ij_indices[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = i+offset_cross_dir_1;
+                ij_indices[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = j+offset_cross_dir_2;
+                switch(dir)
+                  {
+                  case 0:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[1];
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[2];
+                    break;
+                  case 1:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[0];
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[2];
+                    break;
+                  case 2:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[0];
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[1];
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    break;
+                  default:
+                    break;
+                  }
+              }
+        }
+      else
+        {
+          if (slice_to_nearest_plane)
+            {
+              switch(field_type)
+                {
+                case 0:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      values(i+offset_cross_dir_1, j+offset_cross_dir_2) = field(*index_i, *index_j, *index_k);
+                  break;
+                case 1:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      values(i+offset_cross_dir_1, j+offset_cross_dir_2) = field_gradient[dir](*index_i, *index_j, *index_k);
+                  break;
+                case 2:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      {
+                        /*
+                         * Works only for constant geom discretisation
+                         */
+                        values(i + offset_cross_dir_1, j + offset_cross_dir_2) = (velocity[dir](*index_i, *index_j, *index_k) +
+                                                                                  velocity[dir](*index_i+incr_i, *index_j+incr_j, *index_k+incr_k)) * 0.5;
+                      }
+                  break;
+                default:
+                  break;
+                }
+            }
+          else
+            {
+              const int nb_val = (int) n_local_cross_section_1 * n_local_cross_section_2;
+              DoubleTab ij_coords_interp = values;
+              DoubleVect field_interp(nb_val);
+              ij_coords_interp.resize(nb_val,3);
+              int counter = 0;
+              for (i=0; i<n_local_cross_section_1; i++)
+                for (j=0; j<n_local_cross_section_2; j++)
+                  {
+                    Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                    switch(dir)
+                      {
+                      case 0:
+                        ij_coords_interp(counter, 0) = slice_pos;
+                        ij_coords_interp(counter, 1) = ij_coord[1];
+                        ij_coords_interp(counter, 2) = ij_coord[2];
+                        break;
+                      case 1:
+                        ij_coords_interp(counter, 0) = ij_coord[0];
+                        ij_coords_interp(counter, 1) = slice_pos;
+                        ij_coords_interp(counter, 2) = ij_coord[2];
+                        break;
+                      case 2:
+                        ij_coords_interp(counter, 0) = ij_coord[0];
+                        ij_coords_interp(counter, 1) = ij_coord[1];
+                        ij_coords_interp(counter, 2) = slice_pos;
+                        break;
+                      default:
+                        break;
+                      }
+                    counter++;
+                  }
+              switch(field_type)
+                {
+                case 0:
+                  ijk_interpolate_skip_unknown_points(field, ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                case 1:
+                  ijk_interpolate_skip_unknown_points(field_gradient[dir], ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                case 2:
+                  ijk_interpolate_skip_unknown_points(velocity[dir], ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                default:
+                  break;
+                }
+              counter = 0;
+              for (i=0; i<n_local_cross_section_1; i++)
+                for (j=0; j<n_local_cross_section_2; j++)
+                  {
+                    values(i + offset_cross_dir_1, j + offset_cross_dir_2) = field_interp(counter);
+                    counter++;
+                  }
+            }
+        }
+      if (!compute_indices)
+        mp_sum_for_each_item(values);
+    }
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coords(const int& slice,
+                                                                                    int& index_dir_local,
+                                                                                    const int& dir,
+                                                                                    const double& slice_pos,
+                                                                                    FixedVector<IntTab, 2>& ij_indices,
+                                                                                    FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                    DoubleTab& values,
+                                                                                    const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  for (int l=0; l<2; l++)
+    ij_indices[l] *= 0;
+  for (int c=0; c<3; c++)
+    ij_coords[0] *= 0.;
+  if (index_dir_local != -1)
+    {
+      complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                                  dir,
+                                                  slice_pos,
+                                                  ij_indices,
+                                                  ij_coords,
+                                                  temperature_,
+                                                  grad_T_elem_,
+                                                  ref_ijk_ft_->get_velocity(),
+                                                  values,
+                                                  -1,
+                                                  !disable_slice_to_nearest_plane_,
+                                                  1);
+      for (int l=0; l<2; l++)
+        mp_sum_for_each_item(ij_indices[l]);
+      for (int c=0; c<3; c++)
+        mp_sum_for_each_item(ij_coords[c]);
+    }
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature(const int& slice,
+                                                                                 int& index_dir_local,
+                                                                                 const int& dir,
+                                                                                 const double& slice_pos,
+                                                                                 FixedVector<IntTab, 2>& ij_indices,
+                                                                                 FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                 DoubleTab& values,
+                                                                                 const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(const int& slice,
+                                                                                int& index_dir_local,
+                                                                                const int& dir,
+                                                                                const double& slice_pos,
+                                                                                FixedVector<IntTab, 2>& ij_indices,
+                                                                                FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                DoubleTab& values,
+                                                                                DoubleTab& velocity_values,
+                                                                                const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              velocity_values,
+                                              2,
+                                              !disable_slice_to_nearest_plane_);
+  values *= velocity_values;
+  // values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_diffusion(const int& slice,
+                                                                               int& index_dir_local,
+                                                                               const int& dir,
+                                                                               const double& slice_pos,
+                                                                               FixedVector<IntTab, 2>& ij_indices,
+                                                                               FixedVector<DoubleTab, 3>& ij_coords,
+                                                                               DoubleTab& values,
+                                                                               const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              1,
+                                              !disable_slice_to_nearest_plane_);
+  values *= uniform_alpha_;
+  // values *= uniform_lambda_;
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature_incr(const int& slice,
+                                                                                      int& index_dir_local,
+                                                                                      const int& dir,
+                                                                                      const double& slice_pos,
+                                                                                      FixedVector<IntTab, 2>& ij_indices,
+                                                                                      FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                      DoubleTab& values,
+                                                                                      const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              d_temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+  values *= (1 / ref_ijk_ft_->get_timestep());
+}
+
+void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const int& slice,
+                                                                           const Nom& local_quantities_thermal_slices_time_index_folder,
+                                                                           const double& nb_diam_slice,
+                                                                           const int& n_cross_section_1,
+                                                                           const int& n_cross_section_2,
+                                                                           const FixedVector<IntTab, 2> ij_indices,
+                                                                           const FixedVector<DoubleTab, 3>& ij_coords,
+                                                                           const DoubleTab& temperature_slice,
+                                                                           const DoubleTab& convection_slice,
+                                                                           const DoubleTab& diffusion_slice,
+                                                                           const DoubleTab& temperature_incr_slice)
+{
+  if (Process::je_suis_maitre())
+    {
+      Cerr << "Post-processing on the slices" << finl;
+      const int reset = 1;
+      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
+      const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
+      const int max_digit = 3;
+      const int max_digit_time = 8;
+      const int max_rank_digit = rang_ < 1 ? 1 : (int) (log10(rang_) + 1);
+      const int nb_digit_tstep = last_time_index < 1 ? 1 : (int) (log10(last_time_index) + 1);
+      const int nb_digit_index_slice = slice < 1 ? 1 : (int) (log10(slice) + 1);
+      Nom slice_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rang_) +
+                       Nom("_slice_index_") + Nom(std::string(max_digit - nb_digit_index_slice, '0')) + Nom(slice)
+                       + Nom("_local_quantities_thermal_slices_time_index_")
+                       + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+      Nom slice_header = Nom("tstep\tthermal_rank\tpost_pro_index\tlinear_index\ttime"
+                             "\tnb_diam_slice\tindex_i\tindex_j\tx_coord\ty_coord\tz_coord"
+                             "\ttemperature"
+                             "\tconvective_term\tdiffusive_term"
+                             "\ttemperature_incr");
+      SFichier fic = Open_file_folder(local_quantities_thermal_slices_time_index_folder, slice_name, slice_header, reset);
+      const int nb_elem = n_cross_section_1 * n_cross_section_2;
+      if (debug_)
+        Cerr << "Number of elements per slice" << nb_elem << finl;
+      int counter = 0;
+      for (int i=0; i<n_cross_section_1; i++)
+        for (int j=0; j<n_cross_section_2; j++)
+          {
+            fic << last_time_index << " ";
+            fic << rang_ << " " << slice << " " << counter << " ";
+            fic << last_time << " ";
+            fic << nb_diam_slice << " ";
+            fic << ij_indices[0](i,j) << " ";
+            fic << ij_indices[1](i,j) << " ";
+            fic << ij_coords[0](i,j) << " ";
+            fic << ij_coords[1](i,j) << " ";
+            fic << ij_coords[2](i,j) << " ";
+            fic << temperature_slice(i,j) << " ";
+            fic << convection_slice(i,j) << " ";
+            fic << diffusion_slice(i,j) << " ";
+            fic << temperature_incr_slice(i,j) << " ";
+            fic << finl;
+            counter++;
+          }
+      assert(counter == nb_elem);
+      fic.close();
+    }
+}
 
