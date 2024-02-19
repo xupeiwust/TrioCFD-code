@@ -726,7 +726,6 @@ protected :
 
   int enable_dt_oh_ideal_length_factor_;
 
-  int counter_first_iter_ = 2;
   int first_step_interface_smoothing_ = 0;
 
   int compute_rising_velocities_ = 0;

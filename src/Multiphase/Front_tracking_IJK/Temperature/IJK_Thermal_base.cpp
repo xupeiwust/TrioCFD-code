@@ -730,8 +730,9 @@ void IJK_Thermal_base::compute_temperature_init()
 
 void IJK_Thermal_base::recompute_temperature_init()
 {
-  Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
-  set_field_data(temperature_, expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
+  compute_temperature_init();
+  //  Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
+  //  set_field_data(temperature_, expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
 }
 
 double IJK_Thermal_base::get_modified_time()

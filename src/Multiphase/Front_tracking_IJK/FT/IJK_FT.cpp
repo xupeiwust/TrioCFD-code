@@ -905,7 +905,8 @@ Entree& IJK_FT_double::interpreter(Entree& is)
     itr.associer(*this);
 
   thermals_.associer(*this);
-  first_step_interface_smoothing_ = (first_step_interface_smoothing_ && !(*this).reprise_);
+  first_step_interface_smoothing_ = (first_step_interface_smoothing_ &&
+                                     (!(*this).reprise_ && current_time_ == 0.));
 
   run();
   return is;
@@ -1418,8 +1419,7 @@ void IJK_FT_double::reprendre_probleme(const char *fichier_reprise)
   interfaces_.set_reprise(1);
   Nom prefix = dirname(fichier_reprise);
   interfaces_.set_fichier_reprise(prefix + interfaces_.get_fichier_reprise());
-  if (!thermals_.est_vide())
-    thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
+  thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
   fichier_reprise_vitesse_=prefix+fichier_reprise_vitesse_;
 }
 
@@ -1766,12 +1766,12 @@ int IJK_FT_double::initialise()
    */
   interfaces_.initialise_ijk_compo_connex_bubbles_params();
 
-  if (!thermals_.est_vide())
-    {
-      thermals_.initialize(splitting_, nalloc);
-      thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
-                                                 fill_rising_velocities_);
-    }
+  // if (!thermals_.est_vide())
+  {
+    thermals_.initialize(splitting_, nalloc);
+    thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
+                                               fill_rising_velocities_);
+  }
   nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
                                                                compute_rising_velocities_,
                                                                fill_rising_velocities_);
@@ -2546,7 +2546,7 @@ void IJK_FT_double::run()
 //post_.compute_phase_pressures_based_on_poisson(1);
 
   modified_time_ini_ = thermals_.get_modified_time();
-  if (!reprise_)
+  if (!reprise_ && current_time_ == 0.)
     current_time_ = modified_time_ini_;
 
   if (!first_step_interface_smoothing_)
@@ -2638,14 +2638,15 @@ void IJK_FT_double::run()
             {
               // TODO: aym pour GAB, si tu veux gagner en memoire et virer le doublon n/np1 il faut
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
+              int counter_first_iter = 1;
               do
                 {
-                  first_step_interface_smoothing_ = first_step_interface_smoothing_ && (counter_first_iter_ == 2);
+                  first_step_interface_smoothing_ = first_step_interface_smoothing_ && counter_first_iter;
                   deplacer_interfaces(timestep_,
                                       -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
                                       var_volume_par_bulle,
                                       first_step_interface_smoothing_);
-                  counter_first_iter_--;
+                  counter_first_iter--;
                   if(first_step_interface_smoothing_)
                     {
                       thermals_.set_temperature_ini();
@@ -2657,7 +2658,6 @@ void IJK_FT_double::run()
                     }
                 }
               while (first_step_interface_smoothing_);
-              first_step_interface_smoothing_ = 0;
               parcourir_maillage();
             }
           // Mise a jour de la vitesse (utilise les positions des marqueurs, rho, mu et indic a l'instant n)
@@ -4451,8 +4451,6 @@ void IJK_FT_double::deplacer_interfaces(const double timestep, const int rk_step
   // les valeurs moyennes en ijk, les val moy en ijkf, etc
   update_indicator_field();
 
-  if (counter_first_iter_ && first_step_interface_smoothing_)
-    thermals_.recompute_temperature_init();
   // mise a jour de l'indicatrice pour les variables monofluides
   interfaces_.calculer_kappa_ft(kappa_ft_);
 

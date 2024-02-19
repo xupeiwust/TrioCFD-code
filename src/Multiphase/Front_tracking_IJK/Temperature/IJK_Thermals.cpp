@@ -46,8 +46,9 @@ Entree& IJK_Thermals::readOn( Entree& is )
 
 void IJK_Thermals::set_fichier_reprise(const char *lataname)
 {
-  for (auto& itr : *this)
-    itr.set_fichier_reprise(lataname);
+  if (!est_vide())
+    for (auto& itr : *this)
+      itr.set_fichier_reprise(lataname);
 }
 
 const Nom& IJK_Thermals::get_fichier_reprise()
@@ -115,7 +116,11 @@ void IJK_Thermals::associer_interface_intersections(const Intersection_Interface
 
 double IJK_Thermals::get_modified_time()
 {
-  double modified_time = ref_ijk_ft_->get_current_time();
+  double modified_time;
+  if (est_vide())
+    modified_time = ref_ijk_ft_->get_current_time();
+  else
+    modified_time = 0.;
   for (auto& itr : *this)
     modified_time = std::max(modified_time, itr.get_modified_time());
   return modified_time;
@@ -123,8 +128,9 @@ double IJK_Thermals::get_modified_time()
 
 void IJK_Thermals::get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities)
 {
-  for (auto& itr : *this)
-    itr.get_rising_velocities_parameters(compute_rising_velocities, fill_rising_velocities);
+  if (!est_vide())
+    for (auto& itr : *this)
+      itr.get_rising_velocities_parameters(compute_rising_velocities, fill_rising_velocities);
 }
 
 void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
@@ -169,33 +175,36 @@ void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
 
 void IJK_Thermals::initialize(const IJK_Splitting& splitting, int& nalloc)
 {
-  ghost_fluid_fields_.initialize(nalloc, splitting);
-  int idth =0;
-  Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
-  const int max_digit = 3;
-  for (auto& itr : (*this))
+  if (!est_vide())
     {
-      nalloc += itr.initialize(splitting, idth);
-      if (!ref_ijk_ft_->disable_diphasique())
-        itr.update_thermal_properties();
-      const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
-      thermal_rank_folder_.add(thermal_outputs_rank_base
-                               + Nom(std::string(max_digit - max_rank_digit, '0')) + Nom(idth));
-      idth++;
-    }
-  if (!ref_ijk_ft_->get_disable_diphasique())
-    {
-      overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
-      interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
-      local_quantities_thermal_probes_folder_ = Nom("local_quantities_thermal_probes");
-      local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
-      local_quantities_thermal_slices_folder_ = Nom("local_quantities_thermal_slices");
-      local_quantities_thermal_slices_time_index_folder_ = Nom("local_quantities_thermal_slices_time_index_");
-    }
-  for (auto& itr : (*this))
-    {
-      lata_step_reprise_.push_back(itr.valeur().get_latastep_reprise());
-      lata_step_reprise_ini_.push_back(itr.valeur().get_latastep_reprise_ini());
+      ghost_fluid_fields_.initialize(nalloc, splitting);
+      int idth =0;
+      Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
+      const int max_digit = 3;
+      for (auto& itr : (*this))
+        {
+          nalloc += itr.initialize(splitting, idth);
+          if (!ref_ijk_ft_->disable_diphasique())
+            itr.update_thermal_properties();
+          const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
+          thermal_rank_folder_.add(thermal_outputs_rank_base
+                                   + Nom(std::string(max_digit - max_rank_digit, '0')) + Nom(idth));
+          idth++;
+        }
+      if (!ref_ijk_ft_->get_disable_diphasique())
+        {
+          overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
+          interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
+          local_quantities_thermal_probes_folder_ = Nom("local_quantities_thermal_probes");
+          local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
+          local_quantities_thermal_slices_folder_ = Nom("local_quantities_thermal_slices");
+          local_quantities_thermal_slices_time_index_folder_ = Nom("local_quantities_thermal_slices_time_index_");
+        }
+      for (auto& itr : (*this))
+        {
+          lata_step_reprise_.push_back(itr.valeur().get_latastep_reprise());
+          lata_step_reprise_ini_.push_back(itr.valeur().get_latastep_reprise_ini());
+        }
     }
 }
 

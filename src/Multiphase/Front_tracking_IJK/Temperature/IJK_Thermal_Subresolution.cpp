@@ -910,97 +910,106 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
   /*
    * Theses Thiam et Euzenat
    */
-  if (!disable_spherical_diffusion_start_)
+  if (!ref_ijk_ft_->get_reprise() || ref_ijk_ft_->get_current_time() > 0.)
     {
-      if (single_centred_bubble_)
+      if (!disable_spherical_diffusion_start_)
         {
-          double time_ini = 0.;
-          const double rho_l = ref_ijk_ft_->get_rho_l();
-          const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
-          switch(temperature_ini_type_)
+          if (single_centred_bubble_)
             {
-            case local_criteria:
-              {
-                const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
-                const double erf_val = 1 - probes_end_value_coeff_ * abs(delta_T_subcooled_overheated_) * R / single_centred_bubble_radius_ini_;
-                double erf_inv_val = 1.;
-                approx_erf_inverse(erf_val, erf_inv_val);
-                const double time_local = pow((R-single_centred_bubble_radius_ini_),2) / (pow(erf_inv_val,2) * 4. * alpha_liq) ;
-                time_ini = time_local;
-              }
-              break;
-            case integral_criteria:
-              {
-                const int max_attempt = 50;
-                int attempt_counter = 0;
-                double temperature_end_prev = delta_T_subcooled_overheated_;
-                double time_integral = 0.;
-                double temperature_end_next = 2 * temperature_end_prev;
-                while (abs(temperature_end_next - temperature_end_prev) > 0.01 && (attempt_counter < max_attempt))
-                  {
-                    const double temperature_integral = compute_spherical_steady_dirichlet_left_right_integral(temperature_end_prev);
-                    time_integral = find_time_dichotomy_integral(temperature_integral, temperature_end_next);
-                    temperature_end_prev = 0.5 * (temperature_end_prev + temperature_end_next);
-                    attempt_counter++;
-                  }
-                time_ini = time_integral;
-              }
-              break;
-            case derivative_criteria:
-              {
-                double time_derivative=0.;
-                const int max_attempt = 100;
-                int attempt_counter = 0;
-                const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
-                double error = 1.;
-                double temperature_end_min = 0.;
-                get_time_inflection_derivative(temperature_end_min);
-                double temperature_limit_left = temperature_end_min;
-                double temperature_limit_right = temperature_end_min + 0.25 * abs(temperature_end_min);
-                double temperature_middle = 0.5 * (temperature_limit_left + temperature_limit_right);
-                while (error > 1e-2 && (attempt_counter < max_attempt))
-                  {
-                    const double temperature_derivative = compute_spherical_steady_dirichlet_left_right_derivative_value(R, temperature_middle);
-                    time_derivative = find_time_dichotomy_derivative(temperature_derivative, temperature_limit_left, temperature_limit_right);
-                    error = abs(temperature_limit_right - temperature_limit_left);
-                    if (debug_)
-                      Cerr << "error: " << error << finl;
-                    temperature_middle = 0.5 * (temperature_limit_right + temperature_limit_right);
-                    attempt_counter++;
-                  }
-                time_ini = time_derivative;
-              }
-              break;
-            case time_criteria:
-              {
-                time_ini = time_ini_user_;
-              }
-              break;
-            default:
-              break;
-            }
-          if (debug_)
-            Cerr << "Time ini: " << time_ini << finl;
-          const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
-          const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
-          for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
-            {
-              int index_bubble_real = index_bubble;
-              if (index_bubble>=nb_bubbles_real)
+              double time_ini = 0.;
+              const double rho_l = ref_ijk_ft_->get_rho_l();
+              const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
+              switch(temperature_ini_type_)
                 {
-                  const int ighost = ref_ijk_ft_->itfce().ghost_compo_converter(index_bubble-nb_bubbles_real);
-                  index_bubble_real = decoder_numero_bulle(-ighost);
+                case local_criteria:
+                  {
+                    const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
+                    const double erf_val = 1 - probes_end_value_coeff_ * abs(delta_T_subcooled_overheated_) * R / single_centred_bubble_radius_ini_;
+                    double erf_inv_val = 1.;
+                    approx_erf_inverse(erf_val, erf_inv_val);
+                    const double time_local = pow((R-single_centred_bubble_radius_ini_),2) / (pow(erf_inv_val,2) * 4. * alpha_liq) ;
+                    time_ini = time_local;
+                  }
+                  break;
+                case integral_criteria:
+                  {
+                    const int max_attempt = 50;
+                    int attempt_counter = 0;
+                    double temperature_end_prev = delta_T_subcooled_overheated_;
+                    double time_integral = 0.;
+                    double temperature_end_next = 2 * temperature_end_prev;
+                    while (abs(temperature_end_next - temperature_end_prev) > 0.01 && (attempt_counter < max_attempt))
+                      {
+                        const double temperature_integral = compute_spherical_steady_dirichlet_left_right_integral(temperature_end_prev);
+                        time_integral = find_time_dichotomy_integral(temperature_integral, temperature_end_next);
+                        temperature_end_prev = 0.5 * (temperature_end_prev + temperature_end_next);
+                        attempt_counter++;
+                      }
+                    time_ini = time_integral;
+                  }
+                  break;
+                case derivative_criteria:
+                  {
+                    double time_derivative=0.;
+                    const int max_attempt = 100;
+                    int attempt_counter = 0;
+                    const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
+                    double error = 1.;
+                    double temperature_end_min = 0.;
+                    get_time_inflection_derivative(temperature_end_min);
+                    double temperature_limit_left = temperature_end_min;
+                    double temperature_limit_right = temperature_end_min + 0.25 * abs(temperature_end_min);
+                    double temperature_middle = 0.5 * (temperature_limit_left + temperature_limit_right);
+                    while (error > 1e-2 && (attempt_counter < max_attempt))
+                      {
+                        const double temperature_derivative = compute_spherical_steady_dirichlet_left_right_derivative_value(R, temperature_middle);
+                        time_derivative = find_time_dichotomy_derivative(temperature_derivative, temperature_limit_left, temperature_limit_right);
+                        error = abs(temperature_limit_right - temperature_limit_left);
+                        if (debug_)
+                          Cerr << "error: " << error << finl;
+                        temperature_middle = 0.5 * (temperature_limit_right + temperature_limit_right);
+                        attempt_counter++;
+                      }
+                    time_ini = time_derivative;
+                  }
+                  break;
+                case time_criteria:
+                  {
+                    time_ini = time_ini_user_;
+                  }
+                  break;
+                default:
+                  break;
                 }
-              Nom expression_T_ini = compute_quasi_static_spherical_diffusion_expression(time_ini, index_bubble, index_bubble_real);
-              set_field_data(temperature_for_ini_per_bubble_, expression_T_ini);
-              set_field_temperature_per_bubble(index_bubble);
+              if (debug_)
+                Cerr << "Time ini: " << time_ini << finl;
+              const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
+              const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+              for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
+                {
+                  int index_bubble_real = index_bubble;
+                  if (index_bubble>=nb_bubbles_real)
+                    {
+                      const int ighost = ref_ijk_ft_->itfce().ghost_compo_converter(index_bubble-nb_bubbles_real);
+                      index_bubble_real = decoder_numero_bulle(-ighost);
+                    }
+                  Nom expression_T_ini = compute_quasi_static_spherical_diffusion_expression(time_ini, index_bubble, index_bubble_real);
+                  set_field_data(temperature_for_ini_per_bubble_, expression_T_ini);
+                  set_field_temperature_per_bubble(index_bubble);
+                }
+              correct_temperature_for_visu();
+              modified_time_init_ = time_ini;
             }
-          correct_temperature_for_visu();
-          modified_time_init_ = time_ini;
         }
+      else
+        IJK_Thermal_base::compute_temperature_init();
     }
-  else
-    IJK_Thermal_base::compute_temperature_init();
+}
+
+
+void IJK_Thermal_Subresolution::recompute_temperature_init()
+{
+  compute_temperature_init();
 }
 
 Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expression(const double& time_scope,
