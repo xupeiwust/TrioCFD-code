@@ -114,7 +114,7 @@ IJK_FT_double::IJK_FT_double():
   max_simu_time_ = (int) 1e6;
   dt_sauvegarde_ = 0;
   nb_timesteps_ = 0;
-  timestep_reprise_vitesse_ = 0;
+  timestep_reprise_vitesse_ = 1;
 
   timestep_facsec_ = 0.;
   cfl_ = 0.;
