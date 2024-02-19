@@ -3055,9 +3055,9 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int&
                   }
             }
         }
-      if (!compute_indices)
-        mp_sum_for_each_item(values);
     }
+  if (!compute_indices)
+    mp_sum_for_each_item(values);
 }
 
 void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coords(const int& slice,
@@ -3087,11 +3087,11 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coo
                                                   -1,
                                                   !disable_slice_to_nearest_plane_,
                                                   1);
-      for (int l=0; l<2; l++)
-        mp_sum_for_each_item(ij_indices[l]);
-      for (int c=0; c<3; c++)
-        mp_sum_for_each_item(ij_coords[c]);
     }
+  for (int l=0; l<2; l++)
+    mp_sum_for_each_item(ij_indices[l]);
+  for (int c=0; c<3; c++)
+    mp_sum_for_each_item(ij_coords[c]);
 }
 
 void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature(const int& slice,
