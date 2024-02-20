@@ -199,6 +199,7 @@ void IJK_Thermals::initialize(const IJK_Splitting& splitting, int& nalloc)
           local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
           local_quantities_thermal_slices_folder_ = Nom("local_quantities_thermal_slices");
           local_quantities_thermal_slices_time_index_folder_ = Nom("local_quantities_thermal_slices_time_index_");
+          local_quantities_thermal_lines_time_index_folder_ = Nom("local_quantities_thermal_lines_time_index_");
         }
       for (auto& itr : (*this))
         {
@@ -477,24 +478,30 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
           const int last_time = ref_ijk_ft_->get_tstep() + lata_step_reprise_ini_[rank];
           const int max_digit_time = 8;
           const int nb_digit_tstep = last_time < 1 ? 1 : (int) (log10(last_time) + 1);
-          Nom local_quantities_thermal_probes_time_index_folder = thermal_rank_folder_[rank] + "/"
-                                                                  + local_quantities_thermal_probes_folder_ + "/"
+          Nom prefix_local_quantities = thermal_rank_folder_[rank] + "/"
+                                        + local_quantities_thermal_probes_folder_ + "/";
+          Nom suffix_local_quantities = Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time);
+          Nom local_quantities_thermal_probes_time_index_folder = prefix_local_quantities
                                                                   + local_quantities_thermal_probes_time_index_folder_
-                                                                  + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time);
+                                                                  + suffix_local_quantities;
           Nom overall_bubbles_quantities = thermal_rank_folder_[rank] + "/" + overall_bubbles_quantities_folder_;
           Nom interfacial_quantities_thermal_probes = thermal_rank_folder_[rank] + "/" + interfacial_quantities_thermal_probes_folder_;
-          Nom local_quantities_thermal_slices_time_index_folder = thermal_rank_folder_[rank] + "/"
-                                                                  + local_quantities_thermal_slices_folder_ + "/"
+          Nom local_quantities_thermal_slices_time_index_folder = prefix_local_quantities
                                                                   + local_quantities_thermal_slices_time_index_folder_
-                                                                  + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time);
+                                                                  + suffix_local_quantities;
+          Nom local_quantities_thermal_lines_time_index_folder = prefix_local_quantities
+                                                                 + local_quantities_thermal_lines_time_index_folder_
+                                                                 + suffix_local_quantities;
 
           create_folders(local_quantities_thermal_probes_time_index_folder);
           create_folders(local_quantities_thermal_slices_time_index_folder);
+          create_folders(local_quantities_thermal_lines_time_index_folder);
 
           itr.thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
                                             overall_bubbles_quantities,
                                             local_quantities_thermal_probes_time_index_folder,
-                                            local_quantities_thermal_slices_time_index_folder);
+                                            local_quantities_thermal_slices_time_index_folder,
+                                            local_quantities_thermal_lines_time_index_folder);
           // .sauv written before the post-processing on probes
           int latastep_reprise = lata_step_reprise_ini_[rank] + ref_ijk_ft_->get_tstep() + 2;
           const int nb_dt_max = ref_ijk_ft_->get_nb_timesteps();

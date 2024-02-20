@@ -74,6 +74,68 @@ public :
   void set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
                                          const Nom& overall_bubbles_quantities,
                                          const Nom& local_quantities_thermal_probes_time_index_folder) override;
+  void post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder) override;
+  void initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<FixedVector<ArrOfInt,3>>>& parameters,
+                                              const int& nb_thermal_circles,
+                                              const int& nb_thermal_lines);
+  void initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& parameters,
+                                              const int& nb_thermal_circles,
+                                              const int& nb_thermal_lines);
+  void initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<ArrOfInt>>& parameters,
+                                              const int& nb_thermal_circles,
+                                              const int& nb_thermal_lines);
+  void initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<ArrOfDouble>>& parameters,
+                                              const int& nb_thermal_circles,
+                                              const int& nb_thermal_lines);
+  void initialise_thermal_line_points(const int& line_dir,
+                                      ArrOfDouble& linear_coord,
+                                      FixedVector<ArrOfDouble,3>& coordinates_line,
+                                      double& diameter);
+  void find_thermal_line_points_in_procs(std::vector<std::vector<ArrOfInt>>& parameters);
+  void find_cocentric_line_coordinates(const int& nb_thermal_circles,
+                                       const int& nb_thermal_lines,
+                                       const double& diameter_approx,
+                                       std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides);
+  void find_points_on_proc(std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                           std::vector<std::vector<FixedVector<ArrOfInt,3>>>& ijk_indices,
+                           FixedVector<ArrOfDouble,3>& coordinates_line,
+                           std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                           const int& line_dir);
+  void min_max_ldir(const int& dir,
+                    const IJK_Grid_Geometry& geom,
+                    double& min_dir, double& max_dir);
+  void interpolate_fields_on_downstream_line(const int& dir,
+                                             const int& nb_thermal_circles,
+                                             const int& index_circle,
+                                             const int& index_line,
+                                             const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                             const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                             const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                             const IJK_Field_double& field,
+                                             const FixedVector<IJK_Field_double,3>& field_gradient,
+                                             const FixedVector<IJK_Field_double,3>& velocity,
+                                             DoubleVect& values,
+                                             const int field_type);
+  void interpolate_temperature_on_downstream_line(const int& dir,
+                                                  const int& nb_thermal_circles,
+                                                  const int& index_circle,
+                                                  const int& index_line,
+                                                  const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                  const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                  const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                  const IJK_Field_double& field,
+                                                  const FixedVector<IJK_Field_double,3>& field_gradient,
+                                                  const FixedVector<IJK_Field_double,3>& velocity,
+                                                  DoubleVect& values,
+                                                  const int field_type);
+  void post_processed_fields_on_downstream_line(const int& linear_circle_line_index,
+                                                const std::vector<std::vector<FixedVector<ArrOfInt,3>>>& indices_ijk,
+                                                const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                const DoubleVect& temperature_line,
+                                                const DoubleVect& velocity_line,
+                                                const DoubleVect& convective_term_line,
+                                                const DoubleVect& diffusive_term_line,
+                                                const DoubleVect& temperature_incr_line);
   void post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder) override;
   void post_process_thermal_wake_slice(const int& slice,
                                        const double& nb_diam_slice,
@@ -606,6 +668,13 @@ protected :
   int nb_slices_ = 1;
   int upstream_dir_slice_ = -1;
   int disable_slice_to_nearest_plane_ = 0;
+
+  int post_process_thermal_lines_ = 0;
+  int upstream_dir_line_ = -1;
+  int nb_thermal_lines_ = 1;
+  int nb_thermal_concentric_circles_ = 1;
+  int nb_thermal_line_points_ = 100;
+  double nb_diam_thermal_line_length_ = -1;
 
 };
 

@@ -1349,11 +1349,13 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface_ref(const Motc
 void IJK_Thermal::thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
                                                 const Nom& overall_bubbles_quantities,
                                                 const Nom& local_quantities_thermal_probes_time_index_folder,
-                                                const Nom& local_quantities_thermal_slices_time_index_folder)
+                                                const Nom& local_quantities_thermal_slices_time_index_folder,
+                                                const Nom& local_quantities_thermal_lines_time_index_folder)
 {
   if (thermal_rank_==0 || thermal_rank_==1)
     {
       valeur().post_process_thermal_wake_slices(local_quantities_thermal_slices_time_index_folder);
+      valeur().post_process_thermal_downstream_lines(local_quantities_thermal_lines_time_index_folder);
       valeur().set_thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
                                                  overall_bubbles_quantities,
                                                  local_quantities_thermal_probes_time_index_folder);
