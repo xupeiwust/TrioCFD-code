@@ -592,6 +592,7 @@ protected :
   int copy_temperature_on_every_procs_;
 
   int post_process_thermal_slices_ = 0;
+  int thermal_slices_regions_ = 0;
   double nb_diam_slice_ = -1;
   int nb_slices_ = 1;
   int upstream_dir_slice_ = -1;

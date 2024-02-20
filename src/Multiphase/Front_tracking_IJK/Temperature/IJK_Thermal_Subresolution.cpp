@@ -350,6 +350,8 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "post_process_thermal_slices" << escape;
   if (disable_slice_to_nearest_plane_)
     os << front_space << "disable_slice_to_nearest_plane" << escape;
+  if (thermal_slices_regions_)
+    os << front_space << "thermal_slices_regions" << escape;
   /*
    * Values
    */
@@ -546,6 +548,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter("nb_slices", &nb_slices_);
   param.ajouter("nb_diam_slice", &nb_diam_slice_);
   param.ajouter("upstream_dir_slice", &upstream_dir_slice_);
+  param.ajouter_flag("thermal_slices_regions", &thermal_slices_regions_);
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);
@@ -2685,9 +2688,25 @@ void IJK_Thermal_Subresolution::post_process_thermal_wake_slices(const Nom& loca
       ArrOfDouble nb_diam_slices;
       nb_diam_slices.set_smart_resize(1);
       nb_diam_slices.append_array(nb_diam_slice_);
-      const double diam_incr = nb_diam_slice_ / nb_slices_;
-      for (int slice = nb_slices_ - 2; slice >= 0; slice--)
-        nb_diam_slices.append_array((slice + 1) * diam_incr);
+      double diam_incr = nb_diam_slice_ / nb_slices_;
+      double diam_incr_int, diam_incr_ext;
+      int nb_slices_ext = abs ((int) nb_diam_slice_);
+      int nb_slices_int = nb_slices_ - nb_slices_ext;
+      if (nb_slices_int > 0 && thermal_slices_regions_)
+        {
+          diam_incr_int = 1. / (double) (nb_slices_ - nb_slices_ext + 1);
+          diam_incr_int = signbit(nb_diam_slice_) ? -diam_incr_int : diam_incr_int;
+          diam_incr_ext = nb_diam_slice_ / nb_slices_ext;
+          for (int slice = nb_slices_ext - 2; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr_ext);
+          for (int slice = nb_slices_int - 1; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr_int);
+        }
+      else
+        {
+          for (int slice = nb_slices_ - 2; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr);
+        }
       for (int slice = 0; slice < nb_slices_; slice++)
         post_process_thermal_wake_slice(slice,
                                         nb_diam_slices[slice],
@@ -3205,7 +3224,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);
-  values *= (1 / ref_ijk_ft_->get_timestep());
+  // values *= (1 / ref_ijk_ft_->get_timestep());
 }
 
 void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const int& slice,
