@@ -2757,6 +2757,16 @@ void IJK_Thermal_Subresolution::post_process_thermal_wake_slice(const int& slice
                                                    local_quantities_thermal_slices_time_index_folder);
   DoubleTab temperature_slice = slice_values;
 
+  complete_field_thermal_wake_slice_ij_velocity(slice,
+                                                index_dir_local,
+                                                dir,
+                                                slice_pos,
+                                                ij_indices,
+                                                ij_coords,
+                                                slice_values,
+                                                local_quantities_thermal_slices_time_index_folder);
+  DoubleTab velocity_slice = slice_values;
+
   complete_field_thermal_wake_slice_ij_convection(slice,
                                                   index_dir_local,
                                                   dir,
@@ -2796,6 +2806,7 @@ void IJK_Thermal_Subresolution::post_process_thermal_wake_slice(const int& slice
                                              ij_indices,
                                              ij_coords,
                                              temperature_slice,
+                                             velocity_slice,
                                              convection_slice,
                                              diffusion_slice,
                                              temperature_incr_slice);
@@ -3144,6 +3155,28 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               !disable_slice_to_nearest_plane_);
 }
 
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_velocity(const int& slice,
+                                                                              int& index_dir_local,
+                                                                              const int& dir,
+                                                                              const double& slice_pos,
+                                                                              FixedVector<IntTab, 2>& ij_indices,
+                                                                              FixedVector<DoubleTab, 3>& ij_coords,
+                                                                              DoubleTab& velocity_values,
+                                                                              const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              velocity_values,
+                                              2,
+                                              !disable_slice_to_nearest_plane_);
+}
+
 void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(const int& slice,
                                                                                 int& index_dir_local,
                                                                                 const int& dir,
@@ -3165,6 +3198,8 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);
+  if (delta_T_subcooled_overheated_ < 0)
+    values += (-delta_T_subcooled_overheated_);
   complete_field_thermal_wake_slice_ij_values(index_dir_local,
                                               dir,
                                               slice_pos,
@@ -3235,6 +3270,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
                                                                            const FixedVector<IntTab, 2> ij_indices,
                                                                            const FixedVector<DoubleTab, 3>& ij_coords,
                                                                            const DoubleTab& temperature_slice,
+                                                                           const DoubleTab& velocity_slice,
                                                                            const DoubleTab& convection_slice,
                                                                            const DoubleTab& diffusion_slice,
                                                                            const DoubleTab& temperature_incr_slice)
@@ -3256,7 +3292,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
                        + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
       Nom slice_header = Nom("tstep\tthermal_rank\tpost_pro_index\tlinear_index\ttime"
                              "\tnb_diam_slice\tindex_i\tindex_j\tx_coord\ty_coord\tz_coord"
-                             "\ttemperature"
+                             "\ttemperature\tvelocity"
                              "\tconvective_term\tdiffusive_term"
                              "\ttemperature_incr");
       SFichier fic = Open_file_folder(local_quantities_thermal_slices_time_index_folder, slice_name, slice_header, reset);
@@ -3277,6 +3313,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
             fic << ij_coords[1](i,j) << " ";
             fic << ij_coords[2](i,j) << " ";
             fic << temperature_slice(i,j) << " ";
+            fic << velocity_slice(i,j) << " ";
             fic << convection_slice(i,j) << " ";
             fic << diffusion_slice(i,j) << " ";
             fic << temperature_incr_slice(i,j) << " ";

@@ -114,6 +114,14 @@ public :
                                                         FixedVector<DoubleTab, 3>& ij_coords,
                                                         DoubleTab& values,
                                                         const Nom& local_quantities_thermal_slices_time_index_folder);
+  void complete_field_thermal_wake_slice_ij_velocity(const int& slice,
+                                                     int& index_dir_local,
+                                                     const int& dir,
+                                                     const double& slice_pos,
+                                                     FixedVector<IntTab, 2>& ij_indices,
+                                                     FixedVector<DoubleTab, 3>& ij_coords,
+                                                     DoubleTab& velocity_values,
+                                                     const Nom& local_quantities_thermal_slices_time_index_folder);
   void complete_field_thermal_wake_slice_ij_convection(const int& slice,
                                                        int& index_dir_local,
                                                        const int& dir,
@@ -147,6 +155,7 @@ public :
                                                   const FixedVector<IntTab, 2> ij_indices,
                                                   const FixedVector<DoubleTab, 3>& ij_coords,
                                                   const DoubleTab& temperature_slice,
+                                                  const DoubleTab& velocity_slice,
                                                   const DoubleTab& convection_slice,
                                                   const DoubleTab& diffusion_slice,
                                                   const DoubleTab& temperature_incr_slice);
