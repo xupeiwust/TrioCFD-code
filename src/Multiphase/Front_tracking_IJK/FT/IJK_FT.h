@@ -166,6 +166,11 @@ public :
   {
     return direction_gravite_;
   }
+  double get_gravite_norm() const
+  {
+    Vecteur3 gravite = {gravite_[0], gravite_[1], gravite_[2]};
+    return gravite.length();
+  }
   const IJK_Interfaces& get_interface() const
   {
     return interfaces_;
