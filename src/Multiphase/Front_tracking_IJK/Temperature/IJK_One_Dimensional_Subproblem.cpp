@@ -3020,9 +3020,9 @@ void IJK_One_Dimensional_Subproblem::correct_tangential_temperature_gradient(Dou
 
 void IJK_One_Dimensional_Subproblem::correct_tangential_temperature_hessian(DoubleVect& tangential_diffusion_source_terms)
 {
-  DoubleVect tangential_diffusion_source_terms_tmp = tangential_diffusion_source_terms_tmp;
+  DoubleVect tangential_diffusion_source_terms_tmp = tangential_diffusion_source_terms;
   for (int i=0; i<tangential_diffusion_source_terms_tmp.size(); i++)
-    tangential_diffusion_source_terms_tmp[i] -= tangential_diffusion_source_terms_tmp[0];
+    tangential_diffusion_source_terms[i] -= tangential_diffusion_source_terms_tmp[0];
 }
 
 void IJK_One_Dimensional_Subproblem::retrieve_radial_quantities()

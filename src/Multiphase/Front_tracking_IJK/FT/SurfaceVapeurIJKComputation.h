@@ -190,6 +190,7 @@ protected:
   REF(IJK_Splitting) ref_splitting_;
   bool desactive_med_;
   bool compute_surf_mouillees_;
+  bool debug_printing_;
 };
 
 #endif

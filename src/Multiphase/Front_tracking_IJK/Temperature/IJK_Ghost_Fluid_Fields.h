@@ -32,7 +32,7 @@
 // <Description of class IJK_Ghost_Fluid_Fields>
 //
 /////////////////////////////////////////////////////////////////////////////
-class IJK_FT_double;
+class IJK_FT_base;
 
 class IJK_Ghost_Fluid_Fields : public Objet_U
 {
@@ -41,7 +41,7 @@ class IJK_Ghost_Fluid_Fields : public Objet_U
 
 public :
 
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void initialize(int& nalloc, const IJK_Splitting& splitting);
 
   void compute_eulerian_distance();
@@ -163,7 +163,7 @@ protected :
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
 
-  REF(IJK_FT_double) ref_ijk_ft_;
+  REF(IJK_FT_base) ref_ijk_ft_;
   int compute_distance_ = 1;
   int compute_curvature_ = 1;
   int n_iter_distance_ = 6;

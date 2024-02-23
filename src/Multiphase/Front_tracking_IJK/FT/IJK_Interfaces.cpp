@@ -39,6 +39,7 @@
 #include <iostream>
 #include <memory>
 #include <stat_counters.h>
+#include <Champ_diphasique.h>
 #include <vector>
 #include <map>
 
@@ -445,6 +446,381 @@ int IJK_Interfaces::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
   return 1;
 }
 
+inline double select(int a, double x, double y,double z)
+{
+  return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
+}
+
+void IJK_Interfaces::activate_cut_cell()
+{
+  cut_cell_activated_ = 1;
+  indicatrice_surfacique_efficace_face_.associer_paresseux(*ref_ijk_ft_->get_cut_cell_disc());
+  indicatrice_surfacique_efficace_face_initial_.associer_paresseux(*ref_ijk_ft_->get_cut_cell_disc());
+  indicatrice_surfacique_efficace_face_correction_.associer_paresseux(*ref_ijk_ft_->get_cut_cell_disc());
+  indicatrice_surfacique_efficace_face_absolute_error_.associer_paresseux(*ref_ijk_ft_->get_cut_cell_disc());
+}
+
+void IJK_Interfaces::calcul_surface_effective(double timestep, const Cut_field_vector& velocity)
+{
+  static Stat_Counter_Id calculer_surface_efficace_counter_ =
+    statistiques().new_counter(2, "cut_cell: calcul des surfaces efficaces");
+  statistiques().begin_count(calculer_surface_efficace_counter_);
+
+  const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face_.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = indicatrice_surfacique_efficace_face_.get_cut_cell_disc().get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = indicatrice_surfacique_efficace_face_.get_cut_cell_disc().get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  // Estimation initiale la la surface efficace
+  for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      for (int dir = 0; dir < 3; dir++)
+        {
+          if (become_pure(indicatrice_surfacique_face_ns_[old()][dir](i, j, k), indicatrice_surfacique_face_ns_[next()][dir](i, j, k)))
+            {
+              indicatrice_surfacique_efficace_face_(n, dir) = (indicatrice_surfacique_face_ns_[old()][dir](i, j, k) + 3*indicatrice_surfacique_face_ns_[next()][dir](i, j, k)) * 0.25;
+            }
+          else if (become_diphasique(indicatrice_surfacique_face_ns_[old()][dir](i, j, k), indicatrice_surfacique_face_ns_[next()][dir](i, j, k)))
+            {
+              indicatrice_surfacique_efficace_face_(n, dir) = (3*indicatrice_surfacique_face_ns_[old()][dir](i, j, k) + indicatrice_surfacique_face_ns_[next()][dir](i, j, k)) * 0.25;
+            }
+          else
+            {
+              indicatrice_surfacique_efficace_face_(n, dir) = (indicatrice_surfacique_face_ns_[old()][dir](i, j, k) + indicatrice_surfacique_face_ns_[next()][dir](i, j, k)) * 0.5;
+            }
+          indicatrice_surfacique_efficace_face_initial_(n, dir) = indicatrice_surfacique_efficace_face_(n, dir);
+        }
+    }
+
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      indicatrice_surfacique_efficace_face_absolute_error_(n) = 0.;
+    }
+
+  // Iteration du solveur de la surface efficace
+  const int maximum_iteration = 99;
+  const int iteration_impression_intermediaire = 50;
+  int iteration_solver_surface_efficace = 0;
+  int solution_not_found = 0;
+  do
+    {
+      iteration_solver_surface_efficace += 1;
+      solution_not_found = 0;
+
+      // Initialisation du tableau de correction de surface
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          for (int num_face = 0; num_face < 6; num_face++)
+            {
+              int dir = num_face%3;
+              int decalage = num_face/3;
+
+              int di = decalage*(dir == 0);
+              int dj = decalage*(dir == 1);
+              int dk = decalage*(dir == 2);
+
+              int n_decale = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+              if (n_decale >= 0)
+                {
+                  indicatrice_surfacique_efficace_face_correction_(n, num_face) = indicatrice_surfacique_efficace_face_(n_decale, dir);
+                }
+              else
+                {
+                  indicatrice_surfacique_efficace_face_correction_(n, num_face) = indicatrice_ns_[next()](i+di,j+dj,k+dk);
+                }
+            }
+        }
+
+      // Calcul de la correction de surface
+      // Note : Contrairement aux autres tableaux de surface, la correction est stockee sur
+      // les six faces de chaque cellule diphasique. On a donc pour chaque face deux informations
+      // de correction, qui correspondent a la correction calculee independamment pour les deux
+      // cellules contenant la face. On calcule dans un deuxieme temps la surface effective
+      // a partir de ces deux corrections.
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          const double delta_z = delta_z_all[k + offset];
+          const double volume = delta_x * delta_y * delta_z;
+
+          const double fx = delta_y * delta_z * timestep;
+          const double fy = delta_x * delta_z * timestep;
+          const double fz = delta_x * delta_y * timestep;
+
+          double surface_efficace[6] = {0};
+          double surface_max[6] = {0};
+          double surface_min[6] = {0};
+          double flux_diphasique[6] = {0};
+          double delta_surface_max[6] = {0};
+
+          double delta_volume_total = 0;
+          double delta_volume_diphasique = 0;
+          for (int num_face = 0; num_face < 6; num_face++)
+            {
+              int dir = num_face%3;
+              int decalage = num_face/3;
+              int sign = decalage*2 -1;
+
+              int di = decalage*(dir == 0);
+              int dj = decalage*(dir == 1);
+              int dk = decalage*(dir == 2);
+
+              double f = select(dir, fx, fy, fz);
+
+              int n_decale = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+              if (n_decale >= 0)
+                {
+                  double surface_old = indicatrice_surfacique_face_ns_[old()][dir](i+di,j+dj,k+dk);
+                  double surface_next = indicatrice_surfacique_face_ns_[next()][dir](i+di,j+dj,k+dk);
+                  surface_max[num_face] = std::max(surface_old, surface_next);
+                  surface_min[num_face] = std::min(surface_old, surface_next);
+                  surface_efficace[num_face] = indicatrice_surfacique_efficace_face_(n_decale, dir);
+                  flux_diphasique[num_face] = (indicatrice_surfacique_efficace_face_(n_decale, dir) == 1.) ? 0. : sign*f*indicatrice_surfacique_efficace_face_(n_decale, dir)*velocity.diph_l_(n_decale, dir);
+                  if (surface_efficace[num_face] == 0.)
+                    {
+                      assert(surface_max[num_face] == 0.);
+                    }
+
+                  delta_volume_total -= sign*f*surface_efficace[num_face]*velocity.diph_l_(n_decale, dir);
+                  delta_volume_diphasique -= flux_diphasique[num_face];
+
+                }
+              else
+                {
+                  delta_volume_total -= sign*f*indicatrice_ns_[next()](i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+                }
+
+            }
+
+          double delta_volume_cible = volume * (indicatrice_ns_[next()](i, j, k) - indicatrice_ns_[old()](i, j, k));
+          double delta_volume_pure = delta_volume_total - delta_volume_diphasique;
+          double delta_volume_diphasique_cible = delta_volume_cible - delta_volume_pure;
+
+          double erreur_absolue = std::fabs(delta_volume_total - delta_volume_cible);
+          double erreur_relative = std::fabs((delta_volume_total - delta_volume_cible)/delta_volume_cible);
+          double ecart_volume_diphasique = delta_volume_diphasique - delta_volume_diphasique_cible;
+
+          indicatrice_surfacique_efficace_face_absolute_error_(n) = erreur_absolue;
+
+          if (ecart_volume_diphasique == 0)
+            {
+            }
+          else
+            {
+              if (erreur_relative > 1e-5)
+                {
+                  solution_not_found = 1;
+                }
+
+              double somme_ratio_max_sur_requis = 0;
+              for (int num_face = 0; num_face < 6; num_face++)
+                {
+                  if (flux_diphasique[num_face] != 0)
+                    {
+                      bool flux_et_ecart_meme_signe = ((flux_diphasique[num_face] < 0) == (ecart_volume_diphasique < 0));
+
+                      delta_surface_max[num_face] = flux_et_ecart_meme_signe ? surface_max[num_face] - surface_efficace[num_face] : surface_efficace[num_face] - surface_min[num_face];
+                      double delta_surface_requis = std::fabs(ecart_volume_diphasique/flux_diphasique[num_face])*surface_efficace[num_face];
+                      somme_ratio_max_sur_requis += delta_surface_max[num_face]/delta_surface_requis;
+                    }
+                }
+
+              for (int num_face = 0; num_face < 6; num_face++)
+                {
+                  if (flux_diphasique[num_face] != 0)
+                    {
+                      int dir = num_face%3;
+
+                      int n_decale = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+                      assert(n_decale >= 0);
+
+                      bool flux_et_ecart_meme_signe = ((flux_diphasique[num_face] < 0) == (ecart_volume_diphasique < 0));
+                      int sign = 2*flux_et_ecart_meme_signe - 1;
+
+                      // Note : La correction est choisi telle que chaque surface contribue la meme fraction de delta_S_max^i.
+                      // Normalement, cette fraction est toujours inferieur a 100%.
+                      // La correction est :
+                      //     delta_S^i = delta_S_max^i / (somme delta_S_max/delta_S_requis),
+                      // ce qui implique (delta_S^i/delta_S_max^i) est constant, et par ailleurs somme delta_S^i/delta_S_requis^i = 1
+                      double correction = sign*delta_surface_max[num_face]/somme_ratio_max_sur_requis;
+
+                      indicatrice_surfacique_efficace_face_correction_(n, num_face) = indicatrice_surfacique_efficace_face_(n_decale, dir) + correction;
+
+                      {
+                        double minimal_acceptable_surface = 1e-15;
+                        if (indicatrice_surfacique_efficace_face_correction_(n, num_face) < surface_min[num_face])
+                          {
+                            indicatrice_surfacique_efficace_face_correction_(n, num_face) = surface_min[num_face] + minimal_acceptable_surface;
+                          }
+                        if (indicatrice_surfacique_efficace_face_correction_(n, num_face) > surface_max[num_face])
+                          {
+                            indicatrice_surfacique_efficace_face_correction_(n, num_face) = surface_max[num_face] - minimal_acceptable_surface;
+                          }
+                      }
+                    }
+                }
+
+            }
+        }
+
+      indicatrice_surfacique_efficace_face_correction_.echange_espace_virtuel();
+
+      // Mise a jour de la surface effective
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          for (int dir = 0; dir < 3; dir++)
+            {
+              int di = (-1)*(dir == 0);
+              int dj = (-1)*(dir == 1);
+              int dk = (-1)*(dir == 2);
+
+              int n_decale = cut_cell_disc.get_n(i+di, j+dj, k+dk);
+              if (n_decale >= 0)
+                {
+                  double new_surface = (indicatrice_surfacique_efficace_face_absolute_error_(n_decale) > indicatrice_surfacique_efficace_face_absolute_error_(n)) ? indicatrice_surfacique_efficace_face_correction_(n_decale, dir+3) : indicatrice_surfacique_efficace_face_correction_(n, dir);
+
+                  // Filtrage temporel de la correction
+                  indicatrice_surfacique_efficace_face_(n, dir) = 0.25*(3*indicatrice_surfacique_efficace_face_(n, dir) + new_surface);
+                }
+            }
+        }
+
+      indicatrice_surfacique_efficace_face_.echange_espace_virtuel();
+
+      if (iteration_solver_surface_efficace%iteration_impression_intermediaire == 0)
+        {
+          imprimer_informations_surface_effective(iteration_solver_surface_efficace, timestep, velocity);
+        }
+    }
+  while (solution_not_found && iteration_solver_surface_efficace < maximum_iteration);
+
+  statistiques().end_count(calculer_surface_efficace_counter_);
+
+  imprimer_informations_surface_effective(iteration_solver_surface_efficace, timestep, velocity);
+}
+
+void IJK_Interfaces::imprimer_informations_surface_effective(int iteration_solver_surface_efficace, double timestep, const Cut_field_vector& velocity)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face_.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = indicatrice_surfacique_efficace_face_.get_cut_cell_disc().get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = indicatrice_surfacique_efficace_face_.get_cut_cell_disc().get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  // Impression des resultats
+  int n_count = 0;
+  int n_count_surface = 0;
+  double moyenne_erreur_absolue = 0.;
+  double moyenne_erreur_relative = 0.;
+  double maximum_erreur_absolue = 0.;
+  double maximum_erreur_relative = 0.;
+  double moyenne_ecart_absolue_surface = 0.;
+  double moyenne_ecart_relatif_surface = 0.;
+  double maximum_ecart_absolue_surface = 0.;
+  double maximum_ecart_relatif_surface = 0.;
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      const double delta_z = delta_z_all[k + offset];
+      const double volume = delta_x * delta_y * delta_z;
+
+      const double fx = delta_y * delta_z * timestep;
+      const double fy = delta_x * delta_z * timestep;
+      const double fz = delta_x * delta_y * timestep;
+
+      double delta_volume_total = 0;
+      for (int num_face = 0; num_face < 6; num_face++)
+        {
+          int dir = num_face%3;
+          int decalage = num_face/3;
+          int sign = decalage*2 -1;
+
+          int di = decalage*(dir == 0);
+          int dj = decalage*(dir == 1);
+          int dk = decalage*(dir == 2);
+
+          double f = select(dir, fx, fy, fz);
+
+          int n_decale = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+          if (n_decale >= 0)
+            {
+              delta_volume_total -= sign*f*indicatrice_surfacique_efficace_face_(n_decale, dir)*velocity.diph_l_(n_decale, dir);
+
+              {
+                double erreur_relative;
+                if (indicatrice_surfacique_efficace_face_initial_(n_decale, dir) != 0.)
+                  {
+                    erreur_relative = std::fabs((indicatrice_surfacique_efficace_face_(n_decale, dir) - indicatrice_surfacique_efficace_face_initial_(n_decale, dir))/indicatrice_surfacique_efficace_face_initial_(n_decale, dir));
+                  }
+                else
+                  {
+                    erreur_relative = 0.;
+                    assert(indicatrice_surfacique_efficace_face_(n_decale, dir) == 0.);
+                  }
+                double erreur_absolue = std::fabs(indicatrice_surfacique_efficace_face_(n_decale, dir) - indicatrice_surfacique_efficace_face_initial_(n_decale, dir));
+
+                moyenne_ecart_absolue_surface += erreur_absolue;
+                moyenne_ecart_relatif_surface += erreur_relative;
+                maximum_ecart_relatif_surface = erreur_relative > maximum_ecart_relatif_surface ? erreur_relative : maximum_ecart_relatif_surface;
+                maximum_ecart_absolue_surface = erreur_absolue > maximum_ecart_absolue_surface ? erreur_absolue : maximum_ecart_absolue_surface;
+
+                //position_typique = (indicatrice_surfacique_efficace_face_(n_decale, dir) - surface_min)/(surface_max - surface_min);
+                n_count_surface += 1;
+              }
+            }
+          else
+            {
+              delta_volume_total -= sign*f*indicatrice_ns_[next()](i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+            }
+
+        }
+
+      double delta_volume_cible = volume * (indicatrice_ns_[next()](i, j, k) - indicatrice_ns_[old()](i, j, k));
+
+      double erreur_relative = std::fabs((delta_volume_total - delta_volume_cible)/delta_volume_cible);
+      double erreur_absolue = std::fabs(delta_volume_total - delta_volume_cible);
+
+      n_count += 1;
+      moyenne_erreur_relative += erreur_relative;
+      moyenne_erreur_absolue += erreur_absolue;
+      maximum_erreur_relative = erreur_relative > maximum_erreur_relative ? erreur_relative : maximum_erreur_relative;
+      maximum_erreur_absolue = erreur_absolue > maximum_erreur_absolue ? erreur_absolue : maximum_erreur_absolue;
+    }
+  moyenne_erreur_relative /= n_count;
+  moyenne_erreur_absolue /= n_count;
+  moyenne_ecart_absolue_surface /= (n_count);
+  moyenne_ecart_relatif_surface /= (n_count);
+  Cerr << "Calcul surface efficace: #iteration: " << iteration_solver_surface_efficace << finl;
+  Cerr << " moyenne_erreur: " << moyenne_erreur_absolue << " (relative: " << moyenne_erreur_relative << ") max_erreur: " << maximum_erreur_absolue << " (relative: " << maximum_erreur_relative << ")" << finl;
+  Cerr << " moyenne_ecart_surface: " << moyenne_ecart_absolue_surface << " (relatif: " << moyenne_ecart_relatif_surface << ") max_ecart_surface: " << maximum_ecart_absolue_surface << " (relatif: " << maximum_ecart_relatif_surface << ")" << finl;
+}
+
 void IJK_Interfaces::compute_vinterp()
 {
   const FixedVector<IJK_Field_double, 3>& velocity_ft = ref_ijk_ft_->get_velocity_ft();
@@ -542,21 +918,27 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
 
   for (int d = 0; d < 3; d++)
     {
-      barycentre_phase1_ft_[old()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      barycentre_phase1_ft_[next()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
-      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
+      barycentre_phase1_ft_[old()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      barycentre_phase1_ft_[next()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+      nalloc += 4;
+    }
 
+  for (int d = 0; d < 3; d++)
+    {
       barycentre_phase1_ft_[old()][d].data() = 0.;
       barycentre_phase1_ft_[next()][d].data() = 0.;
       barycentre_phase1_ns_[old()][d].data() = 0.;
       barycentre_phase1_ns_[next()][d].data() = 0.;
     }
 
-  allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 1);
-  allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 1);
-  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, 1);
-  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, 1);
+  allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
+  allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 2);
+  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, 2);
+  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, 2);
+  nalloc += 12;
+
   for (int d = 0; d < 3; d++)
     {
       indicatrice_surfacique_face_ft_[old()][d].data() = 0.;
@@ -569,11 +951,18 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
     {
       for (int dir = 0; dir < 2; dir++)
         {
-          barycentre_phase1_face_ft_[old()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          barycentre_phase1_face_ft_[next()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          barycentre_phase1_face_ns_[old()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
-          barycentre_phase1_face_ns_[next()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 1);
+          barycentre_phase1_face_ft_[old()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ft_[next()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ns_[old()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ns_[next()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+          nalloc += 4;
+        }
+    }
 
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
           barycentre_phase1_face_ft_[old()][d][dir].data() = 0.;
           barycentre_phase1_face_ft_[next()][d][dir].data() = 0.;
           barycentre_phase1_face_ns_[old()][d][dir].data() = 0.;
@@ -3524,7 +3913,8 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
                 // (les modulos et les sommes peuvent avoir conduit a une imprecision).
                 // On fait le choix de le considerer comme non-traverser, et on laisse le soin au calcul
                 // des compos connexes de determiner si c'est 0 ou 1 :
-                if ((somme_contrib<1e-6) || (1.-somme_contrib)<1e-6)
+                double tolerance = 1e-14;
+                if ((somme_contrib<tolerance) || (1.-somme_contrib)<tolerance)
                   {
                     somme_contrib = 0.; // L'elem retourne dans la liste des elements "non traverses"
                   }
@@ -4094,7 +4484,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
           {
             for (int i = 0; i < ni; i++)
               {
-                if ((indic(i, j, k) == 0.) or (indic(i, j, k) == 1.))
+                if (is_pure(indic(i, j, k)))
                   {
                     // Dans les cellules pures, on utilise l'indicatrice pour determiner la phase
                     indic_surfacique_face[0](i, j, k) = indic(i, j, k);
@@ -4137,7 +4527,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
                 // Puisqu'il y a une tolerance sur le calcul de l'indicatrice, il se peut
                 // qu'une cellule consideree pure soit traversee par l'interface.
                 // Pour coherence, on considere les faces non coupees dans ce cas.
-                if ((indic(i, j, k) != 0.) && (indic(i, j, k) != 1.))
+                if (!is_pure(indic(i, j, k)))
                   {
                     // Anciennement la methode etait portee par le mesh :
                     //    const int num_elem =
@@ -4185,7 +4575,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
                               }
 
                             indic_surfacique_face[dir](i, j, k) = somme_contrib[dir];
-                            if ((somme_contrib[dir] == 0.) || (somme_contrib[dir] == 1.))
+                            if (is_pure(somme_contrib[dir]))
                               {
                                 baric_face[dir][0](i, j, k) = 1./2.;
                                 baric_face[dir][1](i, j, k) = 1./2.;
@@ -4194,6 +4584,25 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
                               {
                                 baric_face[dir][0](i, j, k) = somme_contrib_baryc[dir][0]/abs(somme_contrib[dir]);
                                 baric_face[dir][1](i, j, k) = somme_contrib_baryc[dir][1]/abs(somme_contrib[dir]);
+
+                                // Un barycentre legerement negatif ou superieur a un est indicatif
+                                // d'une imprecision dans le calcul du barycentre.
+                                if ((baric_face[dir][0](i, j, k) < 0) && (baric_face[dir][0](i, j, k) > -1e-12))
+                                  {
+                                    baric_face[dir][0](i, j, k) = 1e-12;
+                                  }
+                                else if ((baric_face[dir][0](i, j, k) > 1) && (baric_face[dir][0](i, j, k) < 1+1e-12))
+                                  {
+                                    baric_face[dir][0](i, j, k) = 1 - 1e-12;
+                                  }
+                                if ((baric_face[dir][1](i, j, k) < 0) && (baric_face[dir][1](i, j, k) > -1e-12))
+                                  {
+                                    baric_face[dir][1](i, j, k) = 1e-12;
+                                  }
+                                else if ((baric_face[dir][1](i, j, k) > 1) && (baric_face[dir][1](i, j, k) < 1+1e-12))
+                                  {
+                                    baric_face[dir][1](i, j, k) = 1 - 1e-12;
+                                  }
 
                                 assert((baric_face[dir][0](i, j, k) >= 0) && (baric_face[dir][0](i, j, k) <= 1));
                                 assert((baric_face[dir][1](i, j, k) >= 0) && (baric_face[dir][1](i, j, k) <= 1));
@@ -4254,7 +4663,7 @@ void IJK_Interfaces::calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric
               {
                 // Puisqu'il y a une tolerance sur le calcul de l'indicatrice, il se peut
                 // qu'une cellule consideree pure soit traversee par l'interface.
-                if ((indic(i, j, k) != 0.) && (indic(i, j, k) != 1.))
+                if (!is_pure(indic(i, j, k)))
                   {
                     // Anciennement la methode etait portee par le mesh :
                     //    const int num_elem =
@@ -6371,43 +6780,6 @@ void IJK_Interfaces::calculer_indicatrice_next(
   mean_over_compo(normale_par_compo_[next()], nb_compo_traversante_[next()], normal_of_interf_[next()]);
   mean_over_compo(bary_par_compo_[next()], nb_compo_traversante_[next()], bary_of_interf_[next()]);
 
-  calculer_barycentre(barycentre_phase1_ft_[next()], indicatrice_ft_[next()]);
-  for (int d = 0; d < 3; d++)
-    {
-      barycentre_phase1_ft_[next()][d].echange_espace_virtuel(barycentre_phase1_ft_[next()][d].ghost());
-    }
-
-  calculer_indicatrice_surfacique_barycentre_face(indicatrice_surfacique_face_ft_[next()], barycentre_phase1_face_ft_[next()], indicatrice_ft_[next()], normal_of_interf_[next()]);
-  indicatrice_surfacique_face_ft_[next()].echange_espace_virtuel();
-
-  for (int d = 0; d < 3; d++)
-    {
-      for (int dir = 0; dir < 2; dir++)
-        {
-          barycentre_phase1_face_ft_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ft_[next()][d][dir].ghost());
-        }
-    }
-
-  // Passage au domaine NS
-  for (int d = 0; d < 3; d++)
-    {
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_ft_[next()][d], barycentre_phase1_ns_[next()][d]);
-      barycentre_phase1_ns_[next()][d].echange_espace_virtuel(barycentre_phase1_ns_[next()][d].ghost());
-    }
-
-  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
-    indicatrice_surfacique_face_ft_[next()],
-    indicatrice_surfacique_face_ns_[next()]);
-
-  for (int d = 0; d < 3; d++)
-    {
-      for (int dir = 0; dir < 2; dir++)
-        {
-          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][d][dir], barycentre_phase1_face_ns_[next()][d][dir]);
-          barycentre_phase1_face_ns_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ns_[next()][d][dir].ghost());
-        }
-    }
-
   for (int c=0; c < 3; c++)
     {
       ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
@@ -6433,6 +6805,46 @@ void IJK_Interfaces::calculer_indicatrice_next(
     ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
       barycentre_vapeur_par_face_[next()][c],
       barycentre_vapeur_par_face_ns_[next()][c]);
+
+  // Calcul du barycentre de la phase
+  calculer_barycentre(barycentre_phase1_ft_[next()], indicatrice_ft_[next()]);
+  for (int d = 0; d < 3; d++)
+    {
+      barycentre_phase1_ft_[next()][d].echange_espace_virtuel(barycentre_phase1_ft_[next()][d].ghost());
+    }
+
+  // Calcul de l'indicatrice surfacique et du barycentre correspondant
+  calculer_indicatrice_surfacique_barycentre_face(indicatrice_surfacique_face_ft_[next()], barycentre_phase1_face_ft_[next()], indicatrice_ft_[next()], normal_of_interf_[next()]);
+  indicatrice_surfacique_face_ft_[next()].echange_espace_virtuel();
+
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          barycentre_phase1_face_ft_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ft_[next()][d][dir].ghost());
+        }
+    }
+
+  // Passage au domaine NS
+  for (int d = 0; d < 3; d++)
+    {
+      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_ft_[next()][d], barycentre_phase1_ns_[next()][d]);
+      barycentre_phase1_ns_[next()][d].echange_espace_virtuel(barycentre_phase1_ns_[next()][d].ghost());
+    }
+
+  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+    indicatrice_surfacique_face_ft_[next()],
+    indicatrice_surfacique_face_ns_[next()]);
+  indicatrice_surfacique_face_ns_[next()].echange_espace_virtuel();
+
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][d][dir], barycentre_phase1_face_ns_[next()][d][dir]);
+          barycentre_phase1_face_ns_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ns_[next()][d][dir].ghost());
+        }
+    }
 
   statistiques().end_count(calculer_indicatrice_next_counter_);
 }

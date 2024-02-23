@@ -25,6 +25,7 @@
 #include <IJK_FT_base.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_Post.h>
+#include <Champ_diphasique.h>
 
 
 /*! @brief : class IJK_FT_cut_cell
@@ -38,6 +39,7 @@
 class IJK_FT_cut_cell : public IJK_FT_base
 {
   friend class IJK_Thermique;
+  friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
   Declare_instanciable_sans_constructeur(IJK_FT_cut_cell) ;
 
@@ -46,15 +48,18 @@ public :
   Entree& interpreter(Entree&) override;
   void run() override;
 
-  Cut_cell_FT_Disc* get_cut_fields() override
+  Cut_cell_FT_Disc* get_cut_cell_disc() override
   {
-    return &cut_fields_;
+    return &cut_cell_disc_;
   }
 
 
 protected :
-  friend class IJK_FT_Post_cut_cell;
-  Cut_cell_FT_Disc cut_fields_;
+  friend class IJK_FT_Post;
+  Cut_cell_FT_Disc cut_cell_disc_;
+
+  Cut_field_scalar cut_field_temperature_;
+  Cut_field_vector cut_field_velocity_;
 };
 
 #endif /* IJK_FT_cut_cell_included */

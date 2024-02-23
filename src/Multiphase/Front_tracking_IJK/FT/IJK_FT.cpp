@@ -45,12 +45,6 @@ Entree& IJK_FT::interpreter(Entree& is)
   return is;
 }
 
-static int decoder_numero_bulle(const int code)
-{
-  const int num_bulle = code >>6;
-  return num_bulle;
-}
-
 void IJK_FT::run()
 {
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,

@@ -38,6 +38,7 @@
 #include <TRUST_Ref.h>
 #include <Intersection_Interface_ijk.h>
 #include <IJK_Composantes_Connex.h>
+#include <Champ_diphasique.h>
 
 class IJK_FT_base;
 class Switch_FT_double;
@@ -134,6 +135,11 @@ public :
                                         const DoubleTab& position) const;
 
   int lire_motcle_non_standard(const Motcle& un_mot, Entree& is) override;
+
+  void activate_cut_cell();
+  void calcul_surface_effective(double timestep, const Cut_field_vector& velocity);
+  void imprimer_informations_surface_effective(int iteration_solver_surface_efficace, double timestep, const Cut_field_vector& velocity);
+
   // fin de methode pour bulles fixes
   const Domaine_dis& get_domaine_dis() const
   {
@@ -517,14 +523,17 @@ public :
   const double& I_ft(const int i, const int j, const int k) const { return indicatrice_ft_[old()](i, j, k); }
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
 
-  // @Temporaire
   const FixedVector<IJK_Field_double, 3>& BoI() const { return bary_of_interf_ns_[old()]; }
   const FixedVector<IJK_Field_double, 3>& BoIn() const { return bary_of_interf_ns_[next()]; }
 
   const IJK_Field_double& I() const { return indicatrice_ns_[old()]; }
   const IJK_Field_double& In() const { return indicatrice_ns_[next()]; }
-  const double& I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
-  const double& In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
+  inline double I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
+  inline double In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
+
+  inline int is_pure(double indicatrice) const { return ((indicatrice == 0.) || (indicatrice == 1.)); }
+  inline int become_pure(double old_indicatrice, double next_indicatrice) const { return ((!is_pure(old_indicatrice)) && (is_pure(next_indicatrice))); }
+  inline int become_diphasique(double old_indicatrice, double next_indicatrice) const { return ((is_pure(old_indicatrice)) && (!is_pure(next_indicatrice))); }
 
   const double& SI(const int compo, const int i, const int j, const int k) const
   {
@@ -976,6 +985,12 @@ protected:
 
   IJK_Composantes_Connex ijk_compo_connex_;
 
+  // Pour le calcul des champs cut-cell
+  int cut_cell_activated_;
+  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_;
+  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
+  DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
+  DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
 };
 
 #endif /* IJK_Interfaces_included */

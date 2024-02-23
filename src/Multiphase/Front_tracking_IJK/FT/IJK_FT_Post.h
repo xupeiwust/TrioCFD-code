@@ -64,7 +64,7 @@ public:
   void update_stat_ft(const double dt);
   void get_update_lambda2();
   void get_update_lambda2_and_rot_and_curl();
-  void activate_cut_cell_post_treatment() { cut_cell_post_activated_ = 1; };
+  void activate_cut_cell() { cut_cell_activated_ = 1; };
 
   IJK_Field_double& rebuilt_indic()
   {
@@ -337,7 +337,7 @@ protected:
   Multigrille_Adrien poisson_solver_post_;
 
   // Pour le post-traitement des champs cut-cell
-  int cut_cell_post_activated_;
+  int cut_cell_activated_;
 };
 
 

@@ -269,6 +269,8 @@ public :
   void compute_and_add_qdm_corrections();
   void compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle);
 
+  static int decoder_numero_bulle(const int code);
+
   // SURCHARGE DES OPERATEURS : dans FixedVector, on ajoute le produit_scalaire
   //  mais il faut que les operateur * et += soient definis pour IJK_FT_base
   //  /!\ operator* est une fonction, pas une methode de la classe
@@ -330,7 +332,7 @@ public :
   void update_indicator_field();
   void update_twice_indicator_field();
 
-  virtual Cut_cell_FT_Disc* get_cut_fields()
+  virtual Cut_cell_FT_Disc* get_cut_cell_disc()
   {
     Cerr << "No cut fields are found." << finl;
     Process::exit();

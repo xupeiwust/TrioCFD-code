@@ -36,6 +36,31 @@ static int flag_warning_code_missing=1;
 
 const double Parcours_interface::Erreur_relative_maxi_ = 1.E-13;
 
+// Sommation Naive
+inline void naive_add(double& sum, double value, double& compensation)
+{
+  double t = sum + value;
+  sum = t;
+}
+
+// Sommation de Kahan
+inline void kahan_add(double& sum, double value, double& compensation)
+{
+  double y = value - compensation;
+  double t = sum + y;
+  compensation = (t - sum) - y;
+  sum = t;
+}
+
+// Sommation de Neumaier
+// Note: La compensation doit etre ajoute a la fin de la sommation.
+inline void neumaier_add(double& sum, double value, double& compensation)
+{
+  double t = sum + value;
+  compensation += fabs(sum) >= fabs(value) ? (sum - t) + value : (value - t) + sum;
+  sum = t;
+}
+
 Entree& Parcours_interface::readOn(Entree& is)
 {
   Param param(que_suis_je());
@@ -1204,6 +1229,9 @@ int Parcours_interface::calcul_intersection_facelem_3D(
   double surface = 0.;
   double u_centre = 0.;
   double v_centre = 0.;
+  double compensation_surface = 0.;
+  double compensation_u_centre = 0.;
+  double compensation_v_centre = 0.;
   {
     i = nb_sommets_poly - 1; // Le dernier sommet du polygone
     double u = poly_(i,0);
@@ -1237,16 +1265,15 @@ int Parcours_interface::calcul_intersection_facelem_3D(
             double CdGrY = (v+v_prec)/2.;
             double St = (B-b) * h/2.;
             double CdGtX = (2.*b+B)/3.;
-            double CdGtY = v+v_prec;
+            double CdGtY;
             if (u<u_prec)
               {
-                CdGtY += v_prec;
+                CdGtY = (1./3.)*v + (2./3.)*v_prec;
               }
             else
               {
-                CdGtY += v;
+                CdGtY = (2./3.)*v + (1./3.)*v_prec;
               }
-            CdGtY /= 3.;
 
             double S = Sr + St;
             double uX = (Sr * CdGrX + St * CdGtX) / S;
@@ -1255,12 +1282,16 @@ int Parcours_interface::calcul_intersection_facelem_3D(
             double contrib_u_centre = uX * contrib_surface;
             double contrib_v_centre = vX * contrib_surface;
 
-            surface += contrib_surface;
-            u_centre += contrib_u_centre;
-            v_centre += contrib_v_centre;
+            neumaier_add(surface,  contrib_surface , compensation_surface);
+            neumaier_add(u_centre, contrib_u_centre, compensation_u_centre);
+            neumaier_add(v_centre, contrib_v_centre, compensation_v_centre);
           }
       }
   }
+  surface  += compensation_surface;
+  u_centre += compensation_u_centre;
+  v_centre += compensation_v_centre;
+
   // En cas d'erreur d'arrondi ...
   if (surface < 0.) surface = 0.;
 
@@ -1284,10 +1315,12 @@ int Parcours_interface::calcul_intersection_facelem_3D(
       {
         for (int ii = 0; ii < 3; ii++)
           {
-            centre_de_gravite[ii] =
-              u_centre * coord_som[0][ii]
-              + v_centre * coord_som[1][ii]
-              + w_centre * coord_som[2][ii];
+            double somme = 0.;
+            double compensation = 0.;
+            neumaier_add(somme, u_centre * coord_som[0][ii], compensation);
+            neumaier_add(somme, v_centre * coord_som[1][ii], compensation);
+            neumaier_add(somme, w_centre * coord_som[2][ii], compensation);
+            centre_de_gravite[ii] = somme + compensation;
           }
       }
       //calcul des coordonnees reelles du polygone d'intersection
@@ -1296,10 +1329,12 @@ int Parcours_interface::calcul_intersection_facelem_3D(
         {
           for (k=0 ; k<dimension ; k++)
             {
-              poly_reelles_(i,k) =
-                poly_(i,0) * coord_som[0][k]
-                + poly_(i,1) * coord_som[1][k]
-                + poly_(i,2) * coord_som[2][k];
+              double somme = 0.;
+              double compensation = 0.;
+              neumaier_add(somme, poly_(i,0) * coord_som[0][k], compensation);
+              neumaier_add(somme, poly_(i,1) * coord_som[1][k], compensation);
+              neumaier_add(somme, poly_(i,2) * coord_som[2][k], compensation);
+              poly_reelles_(i,k) = somme + compensation;
             }
         }
       FTd_vecteur3 norme;
@@ -1908,22 +1943,29 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
   int i, i_prec = nb_sommets_poly -1;
   //calcule l'aire de la surface projetee sur face_bas
   double aire_projetee = 0.;
+  double compensation_aire_projetee = 0.;
   for (i=0 ; i<nb_sommets_poly ; i++)
     {
       //calcul de la contribution de l'arete a l'aire projetee dans le plan (X,Z) :
       // par la somme algebrique des aires des trapezes (generes par la projection de l'arete sur l'axe x=0)
       double contrib_aire_projetee = (poly_reelles(i,2) - poly_reelles(i_prec,2)) * ((poly_reelles(i,0) + poly_reelles(i_prec,0)) * 0.5);
 
-      aire_projetee += contrib_aire_projetee;
+      neumaier_add(aire_projetee, contrib_aire_projetee, compensation_aire_projetee);
       i_prec = i;
     }
+  aire_projetee += compensation_aire_projetee;
 
   // Volume de la partie "projection sur la face face_bas"
-  double volume = signe_princ * std::fabs(aire_projetee) * (centre_de_gravite[1] - y_bas);
+  double volume = 0.;
+  double compensation_volume = 0.;
+
+  neumaier_add(volume, signe_princ * std::fabs(aire_projetee) * (centre_de_gravite[1] - y_bas), compensation_volume);
 
   // Barycentre (pondere par le volume) de la partie "projection sur la face face_bas"
   double volume_verification = 0.;
+  double compensation_volume_verification = 0.;
   double barycentre[3] = {0};
+  double compensation_barycentre[3] = {0};
   assert(nb_sommets_poly >=2);
   int i_min = 0;
   for (i = 1; i < nb_sommets_poly; i++)
@@ -1937,16 +1979,16 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
   double barycentre_prisme[3] =
   {
     (centre_de_gravite[0] - x_gauche)/(x_droite - x_gauche),
-    (0.5*(y_min + y_bas) - y_bas)/(y_haut - y_bas),
+    (0.5*y_min - 0.5*y_bas)/(y_haut - y_bas),
     (centre_de_gravite[2] - z_arriere)/(z_avant - z_arriere)
   };
 
   assert(volume_prisme >= 0.);
 
-  volume_verification += signe_princ * volume_prisme;
-  barycentre[0] += signe_princ * volume_prisme*barycentre_prisme[0];
-  barycentre[1] += signe_princ * volume_prisme*barycentre_prisme[1];
-  barycentre[2] += signe_princ * volume_prisme*barycentre_prisme[2];
+  neumaier_add(volume_verification, signe_princ * volume_prisme, compensation_volume_verification);
+  neumaier_add(barycentre[0], signe_princ * volume_prisme*barycentre_prisme[0], compensation_barycentre[0]);
+  neumaier_add(barycentre[1], signe_princ * volume_prisme*barycentre_prisme[1], compensation_barycentre[1]);
+  neumaier_add(barycentre[2], signe_princ * volume_prisme*barycentre_prisme[2], compensation_barycentre[2]);
 
   // Volume et barycentre de la partie 'chapeau'
   // Le chapeau est un polyedre, union d'un certain nombre de tetraedres (deux par segment)
@@ -1986,10 +2028,10 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
       assert(volume_tetraedre2 >= 0.);
 
       // Volume et barycentre (pondere par le volume) de la partie 'projection = chapeau + prisme'
-      volume_verification += signe_princ * (volume_tetraedre1 + volume_tetraedre2);
-      barycentre[0] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[0] + volume_tetraedre2*barycentre_tetraedre2[0]);
-      barycentre[1] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[1] + volume_tetraedre2*barycentre_tetraedre2[1]);
-      barycentre[2] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[2] + volume_tetraedre2*barycentre_tetraedre2[2]);
+      neumaier_add(volume_verification, signe_princ * (volume_tetraedre1 + volume_tetraedre2), compensation_volume_verification);
+      neumaier_add(barycentre[0], signe_princ * (volume_tetraedre1*barycentre_tetraedre1[0] + volume_tetraedre2*barycentre_tetraedre2[0]), compensation_barycentre[0]);
+      neumaier_add(barycentre[1], signe_princ * (volume_tetraedre1*barycentre_tetraedre1[1] + volume_tetraedre2*barycentre_tetraedre2[1]), compensation_barycentre[1]);
+      neumaier_add(barycentre[2], signe_princ * (volume_tetraedre1*barycentre_tetraedre1[2] + volume_tetraedre2*barycentre_tetraedre2[2]), compensation_barycentre[2]);
     }
 
   if (volume!=0)
@@ -2026,7 +2068,7 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
             * (y_haut - y_bas)
             * (poly_reelles(coupe_face_haut,2) - poly_reelles(coupe_face_haut_p1,2));
 
-          volume += signe_compl0 * std::fabs(vol_compl0);
+          neumaier_add(volume, signe_compl0 * std::fabs(vol_compl0), compensation_volume);
 
           double min_x_coupe_face_haut;
           double max_x_coupe_face_haut;
@@ -2051,8 +2093,8 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
           double volume_prectangle = (min_x_coupe_face_haut - x_gauche) * (y_haut - y_bas) * std::fabs(poly_reelles(coupe_face_haut,2) - poly_reelles(coupe_face_haut_p1,2));
           double barycentre_prectangle[3] =
           {
-            (0.5*(min_x_coupe_face_haut + x_gauche) - x_gauche)/(x_droite - x_gauche),
-            (0.5*(y_haut + y_bas) - y_bas)/(y_haut - y_bas),
+            (0.5*min_x_coupe_face_haut - 0.5*x_gauche)/(x_droite - x_gauche),
+            0.5,
             (0.5*(poly_reelles(coupe_face_haut,2) + poly_reelles(coupe_face_haut_p1,2)) - z_arriere)/(z_avant - z_arriere)
           };
 
@@ -2061,14 +2103,14 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
           double barycentre_ptriangle[3] =
           {
             (min_x_coupe_face_haut + 1./3.*(max_x_coupe_face_haut - min_x_coupe_face_haut) - x_gauche)/(x_droite - x_gauche),
-            (0.5*(y_haut + y_bas) - y_bas)/(y_haut - y_bas),
+            0.5,
             (z_coupe_face_haut_max_x + 1./3.*(z_coupe_face_haut_min_x - z_coupe_face_haut_max_x) - z_arriere)/(z_avant - z_arriere)
           };
 
-          volume_verification += signe_compl0 * std::fabs(volume_prectangle) + signe_compl0 * std::fabs(volume_ptriangle);
-          barycentre[0] += signe_compl0 * (volume_prectangle*barycentre_prectangle[0] + volume_ptriangle*barycentre_ptriangle[0]);
-          barycentre[1] += signe_compl0 * (volume_prectangle*barycentre_prectangle[1] + volume_ptriangle*barycentre_ptriangle[1]);
-          barycentre[2] += signe_compl0 * (volume_prectangle*barycentre_prectangle[2] + volume_ptriangle*barycentre_ptriangle[2]);
+          neumaier_add(volume_verification, signe_compl0 * std::fabs(volume_prectangle) + signe_compl0 * std::fabs(volume_ptriangle), compensation_volume_verification);
+          neumaier_add(barycentre[0], signe_compl0 * (volume_prectangle*barycentre_prectangle[0] + volume_ptriangle*barycentre_ptriangle[0]), compensation_barycentre[0]);
+          neumaier_add(barycentre[1], signe_compl0 * (volume_prectangle*barycentre_prectangle[1] + volume_ptriangle*barycentre_ptriangle[1]), compensation_barycentre[1]);
+          neumaier_add(barycentre[2], signe_compl0 * (volume_prectangle*barycentre_prectangle[2] + volume_ptriangle*barycentre_ptriangle[2]), compensation_barycentre[2]);
 
           if (volume!=0)
             {
@@ -2089,13 +2131,18 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
                 * (y_haut - y_bas)
                 * (poly_reelles(coupe_face_droite,2) - z_arriere);
 
-              volume += signe_compl1 * std::fabs(vol_compl1);
-              barycentre[0] += signe_compl1 * std::fabs(vol_compl1) * (.5*(x_droite + x_gauche) - x_gauche)/(x_droite - x_gauche);
-              barycentre[1] += signe_compl1 * std::fabs(vol_compl1) * (.5*(y_haut + y_bas) - y_bas)/(y_haut - y_bas);
-              barycentre[2] += signe_compl1 * std::fabs(vol_compl1) * (.5*(poly_reelles(coupe_face_droite,2) + z_arriere) - z_arriere)/(z_avant - z_arriere);
+              neumaier_add(volume, signe_compl1 * std::fabs(vol_compl1), compensation_volume);
+              neumaier_add(barycentre[0], signe_compl1 * std::fabs(vol_compl1) * .5, compensation_barycentre[0]);
+              neumaier_add(barycentre[1], signe_compl1 * std::fabs(vol_compl1) * .5, compensation_barycentre[1]);
+              neumaier_add(barycentre[2], signe_compl1 * std::fabs(vol_compl1) * (.5*poly_reelles(coupe_face_droite,2) - 0.5*z_arriere)/(z_avant - z_arriere), compensation_barycentre[2]);
             }
         }
     }
+  volume += compensation_volume;
+  volume_verification += compensation_volume_verification;
+  barycentre[0] += compensation_barycentre[0];
+  barycentre[1] += compensation_barycentre[1];
+  barycentre[2] += compensation_barycentre[2];
 
   // Normalisation par le volume de l'element
   volume /= v_elem;
@@ -2117,6 +2164,16 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
       barycentre[0] /= abs(volume);
       barycentre[1] /= abs(volume);
       barycentre[2] /= abs(volume);
+    }
+
+  if (volume != 0.)
+    {
+      assert(barycentre[0] != 0);
+      assert(barycentre[1] != 0);
+      assert(barycentre[2] != 0);
+      assert(barycentre[0] != 1);
+      assert(barycentre[1] != 1);
+      assert(barycentre[2] != 1);
     }
 
   // On force la valeur entre 0 et 1 strictement.
@@ -2222,6 +2279,8 @@ CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF
 
   double aire = 0.;
   double barycentre[2] = {0};
+  double compensation_aire = 0.;
+  double compensation_barycentre[2] = {0};
   for (int i = 0; i < nb_sommets_poly; i++)
     {
       // On ne considere que les segments sur la face consideree
@@ -2294,9 +2353,9 @@ CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF
           assert(area_rectangle + area_triangle >= 0.);
 
           // Aire et barycentre (pondere par l'aire) de la partie 'projection = triangle + rectangle'
-          aire += signe1 * (area_rectangle + area_triangle);
-          barycentre[0] += signe1 * (area_triangle*barycentre_triangle[0] + area_rectangle*barycentre_rectangle[0]);
-          barycentre[1] += signe1 * (area_triangle*barycentre_triangle[1] + area_rectangle*barycentre_rectangle[1]);
+          neumaier_add(aire, signe1 * (area_rectangle + area_triangle), compensation_aire);
+          neumaier_add(barycentre[0], signe1 * (area_triangle*barycentre_triangle[0] + area_rectangle*barycentre_rectangle[0]), compensation_barycentre[0]);
+          neumaier_add(barycentre[1], signe1 * (area_triangle*barycentre_triangle[1] + area_rectangle*barycentre_rectangle[1]), compensation_barycentre[1]);
 
           // Un segment voisin est-il sur dir1=max1
           int coupe_max1 = -1;
@@ -2318,20 +2377,22 @@ CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF
               assert(area_coupe_max1 >= 0.);
 
               // Ajout de la contribution de 'coupe_max1' a l'aire et au barycentre (pondere par l'aire)
-              aire += signe2 * area_coupe_max1;
-              barycentre[0] += barycentre_coupe_max1[0] * signe2 * area_coupe_max1;
-              barycentre[1] += barycentre_coupe_max1[1] * signe2 * area_coupe_max1;
+              neumaier_add(aire, signe2 * area_coupe_max1, compensation_aire);
+              neumaier_add(barycentre[0], barycentre_coupe_max1[0] * signe2 * area_coupe_max1, compensation_barycentre[0]);
+              neumaier_add(barycentre[1], barycentre_coupe_max1[1] * signe2 * area_coupe_max1, compensation_barycentre[1]);
             }
 
         }
     }
+  aire += compensation_aire;
+  barycentre[0] += compensation_barycentre[0];
+  barycentre[1] += compensation_barycentre[1];
 
   // Normalisation par l'aire de la face
   aire /= aire_face;
   barycentre[0] /= aire_face;
   barycentre[1] /= aire_face;
 
-  assert((aire >= -1) && (aire <= 1));
 
   if (aire == 0.)
     {
@@ -2346,8 +2407,6 @@ CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF
 
       assert((barycentre[0] >= -1) && (barycentre[0] <= 1));
       assert((barycentre[1] >= -1) && (barycentre[1] <= 1));
-      assert(((aire < 0.) && (barycentre[0] < 0.)) || ((aire > 0.) && (barycentre[0] > 0.)));
-      assert(((aire < 0.) && (barycentre[1] < 0.)) || ((aire > 0.) && (barycentre[1] > 0.)));
     }
 
   // On force la valeur entre 0 et 1 strictement.

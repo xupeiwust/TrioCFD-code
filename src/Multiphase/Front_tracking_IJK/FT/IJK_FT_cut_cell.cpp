@@ -25,13 +25,15 @@
 #include <IJK_FT_Post.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
+#include <IJK_Splitting.h>
 
 
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
 IJK_FT_cut_cell::IJK_FT_cut_cell():
-  cut_fields_(splitting_)
+  cut_cell_disc_(interfaces_, splitting_),
+  cut_field_temperature_(rho_field_, cut_cell_disc_),
+  cut_field_velocity_(velocity_, cut_cell_disc_)
 {
-  post_.activate_cut_cell_post_treatment();
 }
 
 Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
@@ -52,14 +54,11 @@ Entree& IJK_FT_cut_cell::interpreter(Entree& is)
   return is;
 }
 
-static int decoder_numero_bulle(const int code)
-{
-  const int num_bulle = code >>6;
-  return num_bulle;
-}
-
 void IJK_FT_cut_cell::run()
 {
+  post_.activate_cut_cell();
+  interfaces_.activate_cut_cell();
+
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
   Cerr << "IJK_FT_cut_cell::run()" << finl;
@@ -165,7 +164,7 @@ void IJK_FT_cut_cell::run()
       nalloc += 4;
     }
 
-  if (velocity_convection_op_.get_convection_op_option() == Nom("non_conservative_rhou").majuscule())
+  if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_rhou)
     {
       div_rhou_.allocate(splitting_, IJK_Splitting::ELEM, 1);
       nalloc += 1;
@@ -253,13 +252,13 @@ void IJK_FT_cut_cell::run()
   velocity_diffusion_op_.set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
 
-// Economise la memoire si pas besoin
+  // Economise la memoire si pas besoin
   if (!disable_solveur_poisson_)
     {
       poisson_solver_.initialize(splitting_);
     }
 
-// C'est ici aussi qu'on alloue les champs de temperature.
+  // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();
 
 //  rho_field_.echange_espace_virtuel(2);
@@ -446,7 +445,10 @@ void IJK_FT_cut_cell::run()
 
   // Initialisation des structures cut-cell
   // Pour tester, je donne la masse volumique diphasique et le barycentre de l'interface.
-  cut_fields_.initialise(interfaces_.I(), interfaces_.BoI(), rho_field_);
+  cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+
+  cut_field_temperature_.remplir_cellules_diphasiques();
+  cut_field_velocity_.remplir_cellules_diphasiques();
 
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
@@ -471,7 +473,11 @@ void IJK_FT_cut_cell::run()
   post_.compute_extended_pressures(interfaces_.maillage_ft_ijk());
 //post_.compute_phase_pressures_based_on_poisson(0);
 //post_.compute_phase_pressures_based_on_poisson(1);
-  current_time_ = thermals_.get_modified_time();
+
+  modified_time_ini_ = thermals_.get_modified_time();
+  if (!reprise_)
+    current_time_ = modified_time_ini_;
+
   if (!first_step_interface_smoothing_)
     {
       Cout << "BF posttraiter_champs_instantanes "
@@ -549,32 +555,9 @@ void IJK_FT_cut_cell::run()
       var_volume_par_bulle.resize_array(nbulles_tot);
       var_volume_par_bulle = 0.; // Je ne suis pas sur que ce soit un bon choix. Si on ne le remet pas a zero
       //                          a chaque dt, on corrigera la petite erreur qui pouvait rester d'avant...
-#if 1
-      if (vol_bulles_.size_array() > 0.)
-        {
-          ArrOfDouble volume_reel;
-          DoubleTab position;
-          interfaces_.calculer_volume_bulles(volume_reel, position);
-          const int nb_reelles = interfaces_.get_nb_bulles_reelles();
-          for (int ib = 0; ib < nb_reelles; ib++)
-            var_volume_par_bulle[ib] = volume_reel[ib] - vol_bulles_[ib];
-          // Pour les ghost : on retrouve leur vrai numero pour savoir quel est leur volume...
-          for (int i = 0;
-               i < interfaces_.get_nb_bulles_ghost(0 /* no print*/); i++)
-            {
-              const int ighost = interfaces_.ghost_compo_converter(i);
-              const int ibulle_reelle = decoder_numero_bulle(-ighost);
-              //Cerr << " aaaa " << i << " " << ighost << " " << ibulle_reelle << finl;
-              var_volume_par_bulle[nb_reelles + i] = volume_reel[nb_reelles
-                                                                 + i] - vol_bulles_[ibulle_reelle];
-            }
 
-        }
+      compute_var_volume_par_bulle(var_volume_par_bulle);
 
-      // Mise a jour des structures cut-cell
-      cut_fields_.update(interfaces_.I(), interfaces_.BoI(), rho_field_);
-
-#endif
       // Choix de l'avancement en temps :
       // euler_explicite ou RK3.
       if (get_time_scheme() == EULER_EXPLICITE)
@@ -586,18 +569,31 @@ void IJK_FT_cut_cell::run()
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
               do
                 {
+                  first_step_interface_smoothing_ = first_step_interface_smoothing_ && (counter_first_iter_ == 2);
                   deplacer_interfaces(timestep_,
                                       -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
-                                      var_volume_par_bulle);
+                                      var_volume_par_bulle,
+                                      first_step_interface_smoothing_);
+
+                  // Mise a jour des structures cut-cell
+                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+
+                  cut_field_velocity_.remplir_cellules_diphasiques();
+
+                  interfaces_.calcul_surface_effective(timestep_, cut_field_velocity_);
+
                   counter_first_iter_--;
-                  if(counter_first_iter_ && first_step_interface_smoothing_)
+                  if(first_step_interface_smoothing_)
                     {
+                      thermals_.set_temperature_ini();
                       Cout << "BF posttraiter_champs_instantanes " << current_time_ << " " << tstep_ << finl;
                       post_.posttraiter_champs_instantanes(lata_name, current_time_, tstep_);
                       Cout << "AF posttraiter_champs_instantanes" << finl;
+                      compute_var_volume_par_bulle(var_volume_par_bulle);
+                      thermals_.set_post_pro_first_call();
                     }
                 }
-              while (counter_first_iter_ && first_step_interface_smoothing_);
+              while (first_step_interface_smoothing_);
               first_step_interface_smoothing_ = 0;
               parcourir_maillage();
             }
@@ -702,6 +698,14 @@ void IJK_FT_cut_cell::run()
                 {
                   deplacer_interfaces_rk3(timestep_ /* total */, rk_step_,
                                           var_volume_par_bulle);
+
+                  // Mise a jour des structures cut-cell
+                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+
+                  cut_field_velocity_.remplir_cellules_diphasiques();
+
+                  interfaces_.calcul_surface_effective(fractionnal_timestep, cut_field_velocity_);
+
                   parcourir_maillage();
                 }
               // Cerr << "RK3 : step " << rk_step << finl;
@@ -948,6 +952,8 @@ void IJK_FT_cut_cell::run()
         }
       if (tstep_ == nb_timesteps_ - 1)
         stop = 1;
+      if (current_time_ >= max_simu_time_)
+        stop = 1;
 
       if (tstep_ % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop)
         {
@@ -956,7 +962,7 @@ void IJK_FT_cut_cell::run()
           if (!disable_diphasique_)
             interfaces_.supprimer_duplicata_bulles();
 
-          sauvegarder_probleme(nom_sauvegarde_);
+          sauvegarder_probleme(nom_sauvegarde_, stop);
           if (!disable_diphasique_)
             {
               // On les recree :
@@ -1022,13 +1028,11 @@ void IJK_FT_cut_cell::run()
 
   if (!disable_TU)
     {
-
       if(GET_COMM_DETAILS)
         statistiques().print_communciation_tracking_details("Statistiques de resolution du probleme", 1);
 
       statistiques().dump("Statistiques de resolution du probleme", 1);
       print_statistics_analyse("Statistiques de resolution du probleme", 1);
-
     }
 
   statistiques().reset_counters();

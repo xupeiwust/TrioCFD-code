@@ -907,7 +907,6 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   thermals_.associer(*this);
   first_step_interface_smoothing_ = (first_step_interface_smoothing_ && !(*this).reprise_);
 
-  run();
   return is;
 }
 
@@ -2512,7 +2511,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
                       mass_solver_with_rho(terme_diffusion_mass_solver_[dir], rho_field_, delta_z_local_, k);
 
                       // On retranche la convection
-                      for (int j=0; j<terme_diffusion_mass_solver_[dir].nk(); j++ )
+                      for (int j=0; j<terme_diffusion_mass_solver_[dir].nj(); j++ )
                         for (int i=0; i<terme_diffusion_mass_solver_[dir].ni(); i++)
                           terme_diffusion_mass_solver_[dir](i,j,k) = terme_diffusion_mass_solver_[dir](i,j,k) - terme_convection_mass_solver_[dir](i,j,k);
                     }
@@ -2521,7 +2520,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
                 {
                   // Dans le cas monophasique, rho_field_ vaut partout rho_liquide
                   for (int k=0; k<terme_diffusion_mass_solver_[dir].nk(); k++)
-                    for (int j=0; j<terme_diffusion_mass_solver_[dir].nk(); j++ )
+                    for (int j=0; j<terme_diffusion_mass_solver_[dir].nj(); j++ )
                       for (int i=0; i<terme_diffusion_mass_solver_[dir].ni(); i++)
                         {
                           terme_diffusion_mass_solver_[dir](i,j,k) = terme_diffusion_mass_solver_[dir](i,j,k) / (rho_liquide_*volume_cell_uniforme);
@@ -4162,6 +4161,12 @@ void IJK_FT_base::compute_and_add_qdm_corrections()
             }
     }
   Cout << "AF : compute_and_add_qdm_corrections" << finl;
+}
+
+int IJK_FT_base::decoder_numero_bulle(const int code)
+{
+  const int num_bulle = code >>6;
+  return num_bulle;
 }
 
 void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle)

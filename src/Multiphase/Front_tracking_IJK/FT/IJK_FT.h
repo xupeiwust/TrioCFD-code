@@ -40,6 +40,9 @@ class IJK_FT : public IJK_FT_base
 
 public :
   Entree& interpreter(Entree&) override;
+  void run() override;
+
+protected :
 };
 
 #endif /* IJK_FT_included */

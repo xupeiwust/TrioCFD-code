@@ -918,25 +918,22 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
 
   // Post-traitement des champs cut-cell
   // Note : Pas de mots-cles, tous les champs sont toujours ecrits dans le cas IJK_FT_cut_cell.
-  if (cut_cell_post_activated_)
+  if (cut_cell_activated_)
     {
-      Cut_cell_FT_Disc* cut_fields = ref_ijk_ft_.get_cut_fields();
+      Cut_cell_FT_Disc* cut_cell_disc = ref_ijk_ft_.get_cut_cell_disc();
 
-      if (!cut_fields)
+      if (!cut_cell_disc)
         {
-          Cerr << "Error: In IJK_FT_Post, the cut_fields pointer is invalid, although the post-treatment of cut-cell fields is activated." << finl;
+          Cerr << "Error: In IJK_FT_Post, the cut_cell_disc pointer is invalid, although the post-treatment of cut-cell fields is activated." << finl;
           Process::exit();
         }
       else
         {
           for (int j = 0; j < 3; j++)
             {
-              cut_fields->fill_buffer_with_variable(cut_fields->coord_, j);
-              dumplata_scalar(lata_name, Nom("CUT_FIELDS_COORD_") + Nom(j), cut_fields->write_buffer_, latastep);
+              cut_cell_disc->fill_buffer_with_variable(cut_cell_disc->coord_, j);
+              dumplata_scalar(lata_name, Nom("CUT_FIELDS_COORD_") + Nom(j), cut_cell_disc->write_buffer_, latastep);
             }
-
-          cut_fields->fill_buffer_with_variable(cut_fields->rho_);
-          dumplata_scalar(lata_name, "CUT_FIELDS_RHO", cut_fields->write_buffer_, latastep);
         }
 
     }

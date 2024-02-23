@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Ghost_Fluid_Fields.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Ghost_Fluid_tools.h>
 #include <IJK_Bubble_tools.h>
@@ -40,7 +40,7 @@ Entree& IJK_Ghost_Fluid_Fields::readOn( Entree& is )
   return is;
 }
 
-void IJK_Ghost_Fluid_Fields::associer(const IJK_FT_double& ijk_ft)
+void IJK_Ghost_Fluid_Fields::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
 }
