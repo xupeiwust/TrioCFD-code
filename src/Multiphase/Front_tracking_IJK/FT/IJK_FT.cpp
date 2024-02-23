@@ -60,88 +60,45 @@ IJK_FT_double::IJK_FT_double():
   post_(IJK_FT_Post(*this)),
   thermals_(IJK_Thermals(*this))
 {
-  p_seuil_min_ = 0.;
-  p_seuil_max_ = 0;
+  // GAB, qdm
+  gravite_.resize_array(3);
+  gravite_ = 0.;
 
-  vitesse_entree_ = 0.;
-  vitesse_upstream_ = 0.;
-  expression_vitesse_upstream_ = "??";
-  upstream_dir_ = 0;
-  upstream_stencil_ = 0;
-  nb_diam_upstream_ = 0.;
+  rho_u_euler_av_prediction_ = 0.;
+  rho_du_euler_ap_prediction_ = 0.;
+  rho_u_euler_ap_projection_ = 0.;
+  rho_du_euler_ap_projection_ = 0.;
+  rho_u_euler_av_rho_mu_ind_ = 0.;
+  rho_u_euler_ap_rho_mu_ind_ = 0.; // 7.;
+  u_euler_ap_rho_mu_ind_ = 0.;
 
-  rho_liquide_ = 0.;
-  rho_vapeur_ = 0.;
-  rho_moyen_ = 0.;
-  mu_liquide_ = 0.;
-  mu_vapeur_ = 0.;
-  sigma_ = 0.;
+  terme_diffusion_ = 0.;
+  terme_convection_ = 0.;
+  terme_pression_ = 0.;
+  terme_pression_bis_ = 0.;
+  terme_pression_ter_ = 0.;
+  terme_interfaces_ = 0.;
+  terme_interfaces_bf_mass_solver_ = 0.;
+  terme_interfaces_bf_mass_solver_bis_ = 0.;
+  terme_interfaces_af_mass_solver_ = 0.;
+  terme_interfaces_conv_diff_mass_solver_ = 0.;
+  terme_moyen_convection_mass_solver_ = 0.;
+  terme_moyen_diffusion_mass_solver_ = 0.;
 
-  disable_solveur_poisson_ = 0;
-  disable_diffusion_qdm_ = 0;
-  disable_convection_qdm_ = 0;
-  disable_source_interf_ = 0;
-  disable_diphasique_ = 0;
-  frozen_velocity_ = 0;
-  resolution_fluctuations_ = 0;
-  velocity_reset_ = 0;
+  terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
+  terme_source_correction_ = 0.;
+  correction_force_.resize_array(3); // Par defaut, les flags d'activations sont a zero (ie inactif).
+  correction_force_ = 0;
 
-  improved_initial_pressure_guess_ = 0;
-  include_pressure_gradient_in_ustar_ = 0;
+  //ab-forcage-control-ecoulement-deb
+  integrated_residu_ = 0.;
+  //ab-forcage-control-ecoulement-fin
 
-  use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
-  use_inv_rho_in_poisson_solver_ = 0;
-  use_inv_rho_ = 0;
+  vol_bulles_.resize_array(0); // Initialement a zero, puis sera calcule a chaque iter.
+  vol_bulles_ = 0.;
 
-  correction_bilan_qdm_ = 0;
-  refuse_patch_conservation_QdM_RK3_source_interf_ = 0;
-  test_etapes_et_bilan_ = 0;
-  add_initial_field_ = 0;
-
-  diffusion_alternative_ = 0;
-  suppression_rejetons_ = 0;
-
-  time_scheme_ = 0;
-  store_RK3_source_acc_ = 0.;
-  store_RK3_fac_sv_ = 0.;
-  rk_step_ = 0;
-
-  modified_time_ini_ = 0.;
-  current_time_ = 0.;
-  current_time_at_rk3_step_ = 0.;
-  tstep_ = 0;
-  timestep_ = 0.;
-  max_simu_time_ = (int) 1e6;
-  dt_sauvegarde_ = 0;
-  nb_timesteps_ = 0;
-  timestep_reprise_vitesse_ = 1;
-
-  timestep_facsec_ = 0.;
-  cfl_ = 0.;
-  fo_ = 0.;
-  oh_ = 0.;
-  enable_dt_oh_ideal_length_factor_ = 0;
-
-  ijk_splitting_ft_extension_ = 0;
-  thermal_probes_ghost_cells_ = 2;
-
-  pression_ap_proj_ = 0.;
-  check_divergence_ = 0;
-  coef_force_time_n_ = 0;
-  facteur_variable_source_ = 0;
-  coef_ammortissement_ = 0;
-  coef_rayon_force_rappel_ = 0;
-  terme_source_acceleration_ = 0;
-  coef_mean_force_ = 0;
-  coef_immobilisation_ = 0;
-
-  vol_bulle_monodisperse_ = 0;
-
-  compute_force_init_ = 0;
-  direction_gravite_ = 0;
-
-  sauvegarder_xyz_ = 0;
-  reprise_ = 0;
+  expression_variable_source_.dimensionner_force(3);
+  expression_vitesse_initiale_.dimensionner_force(3);
 }
 
 IJK_FT_double::IJK_FT_double(const IJK_FT_double& x):
@@ -362,125 +319,13 @@ IJK_FT_double::TimeScheme IJK_FT_double::get_time_scheme() const
 // XD IJK_FT_double interprete IJK_FT_double 1 not_set
 Entree& IJK_FT_double::interpreter(Entree& is)
 {
-  tstep_ = 0;
-
   // On force l'attribut dimension a 3 pour ne pas avoir besoin de le mettre dans le jeu de donnees.
   // Cet attribut est utilise dans les routines front-tracking issues de triou
   Objet_U::dimension=3;
-
-  check_divergence_ = 0;
-  rk_step_ = -1; // default value
-
-  expression_pression_initiale_ = "??"; // par defaut, invalide
-  fichier_reprise_vitesse_ = "??"; // par defaut, invalide
   Param param(que_suis_je());
   Nom ijk_splitting_name;
-
-  dt_sauvegarde_ = 2000000000; // jamais
-  current_time_ = 0.;
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
-  gravite_.resize_array(3);
-  gravite_ = 0.;
 
-  // GAB, rotation
-  direction_gravite_ = 0;
-  //
-  // GAB, qdm
-  // terme_diffusion.resize_array(3);
-  // terme_convection.resize_array(3);
-  // terme_pression.resize_array(3);
-  // rho_u_euler_av_prediction.resize_array(3);
-  // rho_u_euler_av_projection.resize_array(3);
-  // rho_u_euler_ap_prediction.resize_array(3);
-  // rho_u_euler_ap_projection.resize_array(3);
-  rho_u_euler_av_prediction_ = 0.;
-  rho_du_euler_ap_prediction_ = 0.;
-  rho_u_euler_ap_projection_ = 0.;
-  rho_du_euler_ap_projection_ = 0.;
-  rho_u_euler_av_rho_mu_ind_ = 0.;
-  rho_u_euler_ap_rho_mu_ind_ = 0.; //7.;
-  u_euler_ap_rho_mu_ind_ = 0.;
-  terme_diffusion_ = 0.;
-  terme_convection_ = 0.;
-  terme_pression_ = 0.;
-  terme_pression_bis_ = 0.;
-  terme_pression_ter_ = 0.;
-  terme_interfaces_ = 0.;
-  terme_interfaces_bf_mass_solver_ = 0.;
-  terme_interfaces_bf_mass_solver_bis_ = 0.;
-  terme_interfaces_af_mass_solver_ = 0.;
-  terme_interfaces_conv_diff_mass_solver_ = 0.;
-  pression_ap_proj_ = 0.;
-  terme_moyen_convection_mass_solver_ = 0.;
-  terme_moyen_diffusion_mass_solver_ = 0.;
-  //
-  vitesse_entree_ = -1.1e20;
-  vitesse_upstream_ = -1.1e20;
-  expression_vitesse_upstream_ = "??";
-  nb_diam_upstream_ = 0.;
-  upstream_dir_=-1;
-  upstream_stencil_=3;
-  disable_solveur_poisson_ = 0;
-  resolution_fluctuations_ = 0;
-  disable_diffusion_qdm_ = 0;
-  disable_convection_qdm_ = 0;
-  disable_source_interf_ = 0;
-  frozen_velocity_ = 0;
-  velocity_reset_ = 0;
-  disable_diphasique_ = 0;
-  improved_initial_pressure_guess_ = 0;
-  include_pressure_gradient_in_ustar_ = 0;
-  use_inv_rho_ = 0;
-  use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
-  use_inv_rho_in_poisson_solver_ = 0;
-  correction_bilan_qdm_ = 0;
-  diffusion_alternative_ = 0;
-  suppression_rejetons_ = 0; // By defaults, break-ups are not fixed on restart. (no deletion of smaller fractions)
-  refuse_patch_conservation_QdM_RK3_source_interf_ = 0; // Par defaut, on utilise le patch!
-  // GAB, qdm
-  test_etapes_et_bilan_ = 0;
-  //
-  time_scheme_ = EULER_EXPLICITE;
-  sauvegarder_xyz_ = 0;
-
-  reprise_ = 0; // Indique si on fait une reprise ou pas.
-
-  timestep_facsec_ = 1.;
-  cfl_ = 1.;
-  fo_ = 1.;
-  oh_ = 1.;
-
-  rho_vapeur_ = -1.;
-  mu_vapeur_ = -1.;
-  sigma_     = 0.;
-
-  //ab-forcage-control-ecoulement-deb
-  expression_derivee_acceleration_ = "0"; // par defaut pas de terme d'acceleration
-  terme_source_acceleration_ = 0.; // par defaut, zero
-  integrated_residu_ = 0.;
-  //ab-forcage-control-ecoulement-fin
-
-  expression_potential_phi_ = "??";
-  fichier_post_ = "??";
-
-  terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
-  terme_source_correction_ = 0.;
-  //facteur_variable_source_.resize_array(3); // Initialement a 1, puis sera calcule a chaque iter si expression est donnee.
-  facteur_variable_source_= 1.;
-  expression_derivee_facteur_variable_source_ = "0";
-  correction_force_.resize_array(3); // Par defaut, les flags d'activations sont a zero (ie inactif).
-  correction_force_ = 0;
-
-  gravite_.resize_array(3);
-  // GAB, rotation
-  direction_gravite_ = 0;
-  //
-  gravite_ = 0.;
-  vol_bulle_monodisperse_ = -1.; // Le volume des bulles n'est pas impose par defaut.
-  vol_bulles_.resize_array(0); // Initialement a zero, puis sera calcule a chaque iter.
-  vol_bulles_ = 0.;
-  store_RK3_source_acc_ = 0.;
-  store_RK3_fac_sv_ = 1.;
 #ifdef SMOOTHING_RHO
   smooth_density_ = 0;
   ratio_density_max_ = 15;
@@ -488,14 +333,6 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("ratio_density_max", &ratio_density_max_);
 #endif
 
-  // valeurs par default des parametres de bulles fixes
-  coef_immobilisation_ = 0.;
-  coef_ammortissement_ = 0.;
-  coef_mean_force_=0.;
-  coef_force_time_n_=0.;
-  coef_rayon_force_rappel_ = 0.;
-  p_seuil_max_ = 10000000 ;
-  p_seuil_min_ = -10000000 ;
   param.ajouter("p_seuil_max", &p_seuil_max_); // XD_ADD_P floattant not_set, default 10000000
   param.ajouter("p_seuil_min", &p_seuil_min_); // XD_ADD_P floattant not_set, default -10000000
   param.ajouter("coef_ammortissement", &coef_ammortissement_); // XD_ADD_P floattant not_set
@@ -503,8 +340,11 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("coef_mean_force", &coef_mean_force_); // XD_ADD_P floattant not_set
   param.ajouter("coef_force_time_n", &coef_force_time_n_); // XD_ADD_P floattant not_set
   param.ajouter("coef_rayon_force_rappel", &coef_rayon_force_rappel_); // XD_ADD_P floattant not_set
-  param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
+
   param.ajouter("ijk_splitting", &ijk_splitting_name, Param::REQUIRED); // XD_ADD_P chaine(into=["grid_splitting"]) Definition of domain decomposition for parallel computations
+  param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
+
+  param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
   param.ajouter("timestep", &timestep_, Param::REQUIRED); // XD_ADD_P floattant Upper limit of the timestep
   param.ajouter("timestep_facsec", &timestep_facsec_); // XD_ADD_P floattant Security factor on timestep
   param.ajouter("cfl", &cfl_); // XD_ADD_P floattant  To provide a value of the limiting CFL number used for setting the timestep
@@ -513,23 +353,27 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
   param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED); // XD_ADD_P entier maximum limit for the number of timesteps
   param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P entier maximum limit for the number of timesteps
+
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
-  param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
+
   param.ajouter("vitesse_entree", &vitesse_entree_); // XD_ADD_P floattant Velocity to prescribe at inlet
   param.ajouter("vitesse_upstream", &vitesse_upstream_); // XD_ADD_P floattant Velocity to prescribe at 'nb_diam_upstream_' before bubble 0.
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
   param.ajouter("expression_vitesse_upstream", &expression_vitesse_upstream_); // XD_ADD_P chaine Analytical expression to set the upstream velocity
   param.ajouter("upstream_stencil", &upstream_stencil_); // XD_ADD_P int Width on which the velocity is set
   param.ajouter("nb_diam_upstream", &nb_diam_upstream_); // XD_ADD_P floattant Number of bubble diameters upstream of bubble 0 to prescribe the velocity.
+
   param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
+  param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
+
   param.ajouter("check_stop_file", &check_stop_file_); // XD_ADD_P chaine stop file to check (if 1 inside this file, stop computation)
   param.ajouter("dt_sauvegarde", &dt_sauvegarde_); // XD_ADD_P entier saving frequency (writing files for computation restart)
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
   param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
+
   param.ajouter("gravite", &gravite_); // XD_ADD_P list gravity vector [gx, gy, gz]
-  expression_vitesse_initiale_.dimensionner_force(3);
   param.ajouter("expression_vx_init", &expression_vitesse_initiale_[0]); // XD_ADD_P chaine initial field for x-velocity component (parser of x,y,z)
   param.ajouter("expression_vy_init", &expression_vitesse_initiale_[1]); // XD_ADD_P chaine initial field for y-velocity component (parser of x,y,z)
   param.ajouter("expression_vz_init", &expression_vitesse_initiale_[2]); // XD_ADD_P chaine initial field for z-velocity component (parser of x,y,z)
@@ -537,14 +381,16 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("compute_force_init", &compute_force_init_); // XD_ADD_P chaine not_set
   param.ajouter("terme_force_init", &terme_source_acceleration_); // XD_ADD_P chaine not_set
   param.ajouter("correction_force", &correction_force_); // XD_ADD_P chaine not_set
+
   param.ajouter("vol_bulle_monodisperse", &vol_bulle_monodisperse_); // XD_ADD_P chaine not_set
+  param.ajouter("diam_bulle_monodisperse", &diam_bulle_monodisperse_); // XD_ADD_P chaine not_set
   param.ajouter("vol_bulles", &vol_bulles_); // XD_ADD_P chaine not_set
+
   param.ajouter("time_scheme", &time_scheme_); // XD_ADD_P chaine(into=["euler_explicit","RK3_FT"]) Type of time scheme
   param.dictionnaire("euler_explicit", EULER_EXPLICITE);
   param.dictionnaire("RK3_FT", RK3_FT);
 
   // GAB question : pourquoi expression_variable_source_ est de type nom et pas de type Vecteur3 ??
-  expression_variable_source_.dimensionner_force(3);
   param.ajouter("expression_variable_source_x", &expression_variable_source_[0]); // XD_ADD_P chaine not_set
   param.ajouter("expression_variable_source_y", &expression_variable_source_[1]); // XD_ADD_P chaine not_set
   param.ajouter("expression_variable_source_z", &expression_variable_source_[2]); // XD_ADD_P chaine not_set
@@ -558,7 +404,13 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("velocity_diffusion_op", &velocity_diffusion_op_);
   param.ajouter("velocity_convection_op", &velocity_convection_op_);
 
+  param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
+  param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
+  param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
+
   param.ajouter("interfaces", &interfaces_); // XD_ADD_P interfaces not_set
+  param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
+
   // GAB, THI
   param.ajouter("forcage", &forcage_);  // XD_ADD_P chaine not_set
   param.ajouter("corrections_qdm", &qdm_corrections_); // XD_ADD_P chaine not_set
@@ -571,9 +423,6 @@ Entree& IJK_FT_double::interpreter(Entree& is)
    */
   param.ajouter("thermique", &thermique_); // XD_ADD_P thermique not_set
   param.ajouter("energie", &energie_); // XD_ADD_P chaine not_set
-
-
-  param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
 
   param.ajouter("fichier_post", &fichier_post_); // XD_ADD_P chaine name of the post-processing file (lata file)
   // ATTENTION les fichiers reprises sont des fichiers .lata ou sauv.lata
@@ -592,6 +441,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("velocity_reset", &velocity_reset_); // XD_ADD_P chaine not_set
   param.ajouter_flag("improved_initial_pressure_guess", &improved_initial_pressure_guess_); // XD_ADD_P chaine not_set
   param.ajouter_flag("include_pressure_gradient_in_ustar", &include_pressure_gradient_in_ustar_); // XD_ADD_P chaine not_set
+
   // param.ajouter_flag("use_inv_rho", &use_inv_rho_);
   param.ajouter_flag("use_inv_rho_for_mass_solver_and_calculer_rho_v", &use_inv_rho_for_mass_solver_and_calculer_rho_v_); // XD_ADD_P chaine not_set
   param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P chaine not_set
@@ -599,23 +449,17 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("suppression_rejetons", &suppression_rejetons_); // XD_ADD_P chaine not_set
   param.ajouter("correction_bilan_qdm", &correction_bilan_qdm_); // XD_ADD_P chaine not_set
   param.ajouter_flag("refuse_patch_conservation_QdM_RK3_source_interf", &refuse_patch_conservation_QdM_RK3_source_interf_); // XD_ADD_P rien experimental Keyword, not for use
+
   // GAB; qdm
   param.ajouter_flag("test_etapes_et_bilan", &test_etapes_et_bilan_); // XD_ADD_P chaine not_set
   // GAB, champ de reprise + champ initial
   param.ajouter_flag("ajout_init_a_reprise", &add_initial_field_); // XD_ADD_P chaine not_set
-
 
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_); // XD_ADD_P chaine not_set
   param.ajouter("reprise_liq_velocity_tmoy", &liq_velocity_tmoy_); // XD_ADD_P chaine not_set
   vap_velocity_tmoy_ = reprise_vap_velocity_tmoy_;
   liq_velocity_tmoy_ = reprise_liq_velocity_tmoy_;
 
-
-  param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
-  param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
-  param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
-
-  param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);
 
 // XD attr check_stats rien check_stats 1 Flag to compute additional (xy)-plane averaged statistics
@@ -740,7 +584,25 @@ Entree& IJK_FT_double::interpreter(Entree& is)
       exit();
     }
 
+
+
   splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
+
+  const IJK_Grid_Geometry& geom = splitting_.get_grid_geometry();
+  if (vol_bulle_monodisperse_ != -1 || diam_bulle_monodisperse_ != -1)
+    {
+      if (vol_bulle_monodisperse_ != -1)
+        diam_bulle_monodisperse_ = pow(6. * vol_bulle_monodisperse_ / (M_PI), 1./3.);
+      else
+        vol_bulle_monodisperse_ = M_PI * pow(diam_bulle_monodisperse_, 3) / 6.;
+      int ijk_splitting_ft_extension_from_diameter = 0;
+      for (int c=0; c<3; c++)
+        {
+          const double delta = geom.get_constant_delta(c);
+          ijk_splitting_ft_extension_from_diameter = std::max(ijk_splitting_ft_extension_from_diameter, (int) ceil(diam_bulle_monodisperse_/delta));
+        }
+      ijk_splitting_ft_extension_ = (ijk_splitting_ft_extension_from_diameter > ijk_splitting_ft_extension_) ? ijk_splitting_ft_extension_from_diameter : ijk_splitting_ft_extension_;
+    }
 
   Cerr << "Construction du domaine VDF NS pour les sondes..." << finl;
   refprobleme_ns_ = creer_domaine_vdf(splitting_, "DOM_NS_VDF");

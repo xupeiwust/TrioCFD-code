@@ -435,8 +435,8 @@ protected :
   Vecteur3 terme_interfaces_conv_diff_mass_solver_;
   Vecteur3 terme_moyen_convection_mass_solver_;
   Vecteur3 terme_moyen_diffusion_mass_solver_;
-  double pression_ap_proj_;
-  //
+  double pression_ap_proj_ = 0.;
+
   // GAB qdm patch a posteriori
   //TODO :  enum corrections_qdm::type_dict_ { GB, GR };
   //int patch_qdm_gr_;  // flag
@@ -469,16 +469,16 @@ protected :
   double reprise_v_target_ = 0.;
   double reprise_qdm_source_ = 0.;
   */
-  //
-  Nom expression_derivee_acceleration_;
+
+  Nom expression_derivee_acceleration_ = "0"; // par defaut pas de terme d'acceleration
   Parser parser_derivee_acceleration_;
   Noms expression_variable_source_; // on attend trois expressions
-  Nom expression_potential_phi_; // source variable formulee en gradient
+  Nom expression_potential_phi_ = "??"; // source variable formulee en gradient
   Vecteur3 store_rhov_moy_;
   Vecteur3 integrated_residu_;
   // terme source qdm pour pousser le fluide dans le canal (en m/s/s)
-  double terme_source_acceleration_;
-  int compute_force_init_;
+  double terme_source_acceleration_ = 0.; // par defaut, zero
+  int compute_force_init_ = 0;
 
   // Vecteurs de taille 3 a lire dans le jeu de donnees :
   ArrOfDouble terme_source_correction_; // Valeur de la force de correction moyenne a appliquer
@@ -490,9 +490,9 @@ protected :
   //ab-forcage-control-ecoulement-fin
 
   FixedVector<IJK_Field_double, 3> variable_source_;
-  Nom expression_derivee_facteur_variable_source_;
+  Nom expression_derivee_facteur_variable_source_ = "0";
   Parser parser_derivee_facteur_variable_source_;
-  double facteur_variable_source_; // ArrOfDouble? vecteur de taille 3 a lire dans le jeu de donnees
+  double facteur_variable_source_ = 1.; // ArrOfDouble? vecteur de taille 3 a lire dans le jeu de donnees
 
   IJK_Field_double potential_phi_;
 
@@ -502,25 +502,25 @@ protected :
   friend class IJK_FT_Post;
   IJK_FT_Post post_;
 
-  int check_divergence_;
-  int rk_step_;
+  int check_divergence_ = 0;
+  int rk_step_ = -1; // default value
 
   Nom check_stop_file_; // Nom du fichier stop
 
   //ab-sauv/repr-deb
 
-  Nom fichier_post_; // Nom du fichier post
-  int dt_sauvegarde_;
-  int sauvegarder_xyz_; // drapeau 0 ou 1
+  Nom fichier_post_ = "??"; // Nom du fichier post
+  int dt_sauvegarde_ = 2000000000;
+  int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
   Nom nom_sauvegarde_;
   Nom nom_reprise_;
-  int reprise_;// flag pour indiquer si on fait une reprise
+  int reprise_ = 0;// flag pour indiquer si on fait une reprise
   // Le jeu de donnees doit fournir soit des fichiers de reprise: ..
-  Nom fichier_reprise_vitesse_;
-  int timestep_reprise_vitesse_;
+  Nom fichier_reprise_vitesse_ = "??"; // par defaut, invalide
+  int timestep_reprise_vitesse_ = 1;
   // ... soit des expressions f(x,y,z)
   Noms expression_vitesse_initiale_; // on attend trois expressions
-  Nom expression_pression_initiale_; // useless, unless post-pro OR pressure_increment.
+  Nom expression_pression_initiale_ = "??"; // useless, unless post-pro OR pressure_increment.
   //ab-sauv/repr-fin
 
   IJK_Splitting splitting_;
@@ -542,17 +542,19 @@ protected :
   IJK_Field_double inv_rho_field_;
 
   // Pour les cas a bulles fixes
-  double coef_immobilisation_;
-  double coef_ammortissement_;
-  double coef_mean_force_;
-  double coef_force_time_n_;
-  double coef_rayon_force_rappel_;
-  double p_seuil_max_;
-  double p_seuil_min_;
+  // valeurs par default des parametres de bulles fixes
+  double coef_immobilisation_ = 0.;
+  double coef_ammortissement_ = 0.;
+  double coef_mean_force_ = 0.;
+  double coef_force_time_n_ = 0.;
+  double coef_rayon_force_rappel_ = 0.;
+  double p_seuil_max_ = 10000000;
+  double p_seuil_min_ = -10000000;
   FixedVector<IJK_Field_double, 3> force_rappel_;
   FixedVector<IJK_Field_double, 3> force_rappel_ft_;
 
-  double vol_bulle_monodisperse_; // Pour imposer le volume des bulles
+  double vol_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
+  double diam_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
   ArrOfDouble vol_bulles_;   // Le volume impose individuellement a chaque bulle.
 
   // Field only needed for the option type_velocity_convection_form_== Nom("non_conservative_rhou")
@@ -626,28 +628,30 @@ protected :
 
   Multigrille_Adrien poisson_solver_;
   // Simulation parameters
-  int nb_timesteps_;
-  int max_simu_time_;
-  double timestep_;
-  double timestep_facsec_;
-  double cfl_, fo_, oh_;
+  int nb_timesteps_ = 0;
+  int max_simu_time_ = (int) 1e6;
+  double timestep_ = 0.;
+  double timestep_facsec_ = 1.;
+  double cfl_ = 1.;
+  double fo_ = 1.;
+  double oh_ = 1.;
 
-  double vitesse_entree_;
-  double vitesse_upstream_;
-  Nom expression_vitesse_upstream_;
-  int upstream_dir_; // static
-  int upstream_stencil_;
-  double nb_diam_upstream_;
-  double rho_liquide_;
-  double rho_vapeur_;
+  double vitesse_entree_ = -1.1e20;
+  double vitesse_upstream_ = -1.1e20;
+  Nom expression_vitesse_upstream_ = "??";
+  int upstream_dir_ = -1; // static
+  int upstream_stencil_ = 3;
+  double nb_diam_upstream_ = 0.;
+  double rho_liquide_ = 0.;
+  double rho_vapeur_ = -1.;
   // GAB, pour THI (23.08.21)
-  double rho_moyen_;
+  double rho_moyen_ = 0.;
   //
-  double mu_liquide_;
-  double mu_vapeur_;
-  double sigma_;
+  double mu_liquide_ = 0.;
+  double mu_vapeur_ = -1.;
+  double sigma_ = 0.;
   ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
-  int direction_gravite_;
+  int direction_gravite_ = 0;
 #ifdef SMOOTHING_RHO
   int smooth_density_;
   double ratio_density_max_;
@@ -655,47 +659,47 @@ protected :
   IJK_Field_double rho_field_ft_;
 #endif
   Redistribute_Field redistribute_to_splitting_ft_elem_;
-  int disable_solveur_poisson_;
-  int resolution_fluctuations_;
-  int disable_diffusion_qdm_;
-  int disable_convection_qdm_;
-  int disable_source_interf_;
-  int frozen_velocity_;
-  int velocity_reset_;
+  int disable_solveur_poisson_ = 0;
+  int resolution_fluctuations_ = 0;
+  int disable_diffusion_qdm_ = 0;
+  int disable_convection_qdm_ = 0;
+  int disable_source_interf_ = 0;
+  int frozen_velocity_ = 0;
+  int velocity_reset_ = 0;
 
   // Pour la premiere projection, on initialise la pression au champ de pression a l'equilibre diphasique :
-  int improved_initial_pressure_guess_;
+  int improved_initial_pressure_guess_ = 0;
   // travail en increment de pression pour aider le solveur :
-  int include_pressure_gradient_in_ustar_;
+  int include_pressure_gradient_in_ustar_ = 0;
   // Discretisation du champ (1/rho) et utilisation dans le calcul de rho*v*v, dans le mass_solver
   // et dans pressure_projection_with_inv_rho :
-  int use_inv_rho_for_mass_solver_and_calculer_rho_v_;
-  int use_inv_rho_in_poisson_solver_;
-  int use_inv_rho_;
+  int use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
+  int use_inv_rho_in_poisson_solver_ = 0;
+  int use_inv_rho_ = 0;
 
-  int correction_bilan_qdm_;
+  int correction_bilan_qdm_ = 0;
 
-  int refuse_patch_conservation_QdM_RK3_source_interf_;
+  int refuse_patch_conservation_QdM_RK3_source_interf_ = 0; // Par defaut, on utilise le patch!
   // GAB, qdm
-  int test_etapes_et_bilan_;
+  int test_etapes_et_bilan_ = 0;
   //
   // GAB, champ de reprise + champ initial
-  int add_initial_field_;
+  int add_initial_field_ = 0;
   //
-  int diffusion_alternative_;
-  int suppression_rejetons_;
+  int diffusion_alternative_ = 0;
+  int suppression_rejetons_ = 0;  // By defaults, break-ups are not fixed on restart. (no deletion of smaller fractions)
   // Supprime l'appel a quelques fonctions qui n'ont pas de sens en monophasique :
   // comme par exemple : deplacer_interfaces,
   // calculer_rho_mu_indicatrice, ecrire_statistiques_bulles
-  int disable_diphasique_;
+  int disable_diphasique_ = 0;
 
-  int time_scheme_;
-  double store_RK3_source_acc_;
-  double store_RK3_fac_sv_;
-  double modified_time_ini_;
-  double current_time_;
-  double current_time_at_rk3_step_;
-  int tstep_; // The iteration number
+  int time_scheme_ = EULER_EXPLICITE;
+  double store_RK3_source_acc_ = 0.;
+  double store_RK3_fac_sv_ = 1.;
+  double modified_time_ini_ = 0.;
+  double current_time_ = 0.;
+  double current_time_at_rk3_step_ = 0;
+  int tstep_ = 0; // The iteration number
 
   // GAB
   init_forcage_THI forcage_;
@@ -704,7 +708,7 @@ protected :
   IJK_Interfaces interfaces_;
   // Maillage etendu pour les interfaces
   // Nombre de mailles etendues dans les directions periodiques
-  int ijk_splitting_ft_extension_;
+  int ijk_splitting_ft_extension_ = 0;
   IJK_Splitting splitting_ft_;
   // Classe outil pour passer entre splitting_ et splitting_ft_
   // Une instance par direction des faces:
@@ -719,7 +723,7 @@ protected :
   LIST(IJK_Thermique) thermique_;
   LIST(IJK_Energie) energie_;
   IJK_Thermals thermals_;
-  int thermal_probes_ghost_cells_;
+  int thermal_probes_ghost_cells_ = 2;
 
   double dt_cfl_ = 1.e20;
   double dt_fo_ = 1.e20;
@@ -729,7 +733,7 @@ protected :
   double dt_cfl_liq_ = 1.e20;
   double dt_cfl_vap_ = 1.e20;
 
-  int enable_dt_oh_ideal_length_factor_;
+  int enable_dt_oh_ideal_length_factor_ = 0;
 
   int first_step_interface_smoothing_ = 0;
 
