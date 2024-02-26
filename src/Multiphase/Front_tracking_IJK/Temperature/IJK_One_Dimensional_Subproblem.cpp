@@ -116,6 +116,9 @@ IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem()
   first_tangential_vector_compo_solver_=nullptr;
   second_tangential_vector_compo_solver_=nullptr;
 
+  first_tangential_velocity_not_corrected_ = nullptr;
+  second_tangential_velocity_not_corrected_ = nullptr;
+
   first_tangential_velocity_solver_ = nullptr;
   second_tangential_velocity_solver_ = nullptr;
 
@@ -278,7 +281,9 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
       associate_flux_correction_parameters((ref_thermal_subresolution.convective_flux_correction_
                                             || ref_thermal_subresolution.diffusive_flux_correction_),
                                            ref_thermal_subresolution.distance_cell_faces_from_lrs_,
-                                           ref_thermal_subresolution.interp_eulerian_);
+                                           ref_thermal_subresolution.interp_eulerian_,
+                                           ref_thermal_subresolution.use_corrected_velocity_convection_,
+                                           ref_thermal_subresolution.use_velocity_cartesian_grid_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
                                       ref_thermal_subresolution.first_time_step_varying_probes_,
                                       ref_thermal_subresolution.probe_variations_priority_,
@@ -464,11 +469,15 @@ void IJK_One_Dimensional_Subproblem::associate_varying_probes_params(const int& 
 
 void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const int& correct_fluxes,
                                                                           const int& distance_cell_faces_from_lrs,
-                                                                          const int& interp_eulerian)
+                                                                          const int& interp_eulerian,
+                                                                          const int& use_corrected_velocity_convection,
+                                                                          const int& use_velocity_cartesian_grid)
 {
   correct_fluxes_ = correct_fluxes;
   distance_cell_faces_from_lrs_ = distance_cell_faces_from_lrs;
   interp_eulerian_ = interp_eulerian;
+  use_corrected_velocity_convection_ = use_corrected_velocity_convection;
+  use_velocity_cartesian_grid_ = use_velocity_cartesian_grid;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_source_terms_parameters(const int& source_terms_type,
@@ -801,6 +810,8 @@ void IJK_One_Dimensional_Subproblem::compute_interface_basis_vectors()
     {
       first_tangential_vector_compo_solver_ = &first_tangential_vector_compo_from_rising_dir_;
       second_tangential_vector_compo_solver_ = &azymuthal_vector_compo_;
+      first_tangential_velocity_not_corrected_ = &first_tangential_velocity_from_rising_dir_;
+      second_tangential_velocity_not_corrected_ = &azymuthal_velocity_;
       first_tangential_velocity_solver_ = &first_tangential_velocity_from_rising_dir_corrected_;
       second_tangential_velocity_solver_ = &azymuthal_velocity_corrected_;
       tangential_temperature_gradient_first_solver_ = &tangential_temperature_gradient_first_from_rising_dir_;
@@ -811,6 +822,8 @@ void IJK_One_Dimensional_Subproblem::compute_interface_basis_vectors()
       // By default
       first_tangential_vector_compo_solver_= &first_tangential_vector_compo_;
       second_tangential_vector_compo_solver_ = &second_tangential_vector_compo_;
+      first_tangential_velocity_not_corrected_ = &first_tangential_velocity_;
+      second_tangential_velocity_not_corrected_ = &second_tangential_velocity_;
       first_tangential_velocity_solver_ = &first_tangential_velocity_corrected_;
       second_tangential_velocity_solver_ = &second_tangential_velocity_corrected_;
       tangential_temperature_gradient_first_solver_ = &tangential_temperature_gradient_first_;
@@ -3579,24 +3592,104 @@ double IJK_One_Dimensional_Subproblem::get_temperature_profile_at_point(const do
   // return get_field_profile_at_point(dist, temperature_solution_, 1);
 }
 
-double IJK_One_Dimensional_Subproblem::get_velocity_component_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_velocity_component_at_point(const double& dist,
+                                                                       const int& dir,
+                                                                       const int& index_i,
+                                                                       const int& index_j,
+                                                                       const int& index_k) const
 {
   double velocity = 0;
-  switch(dir)
+  if (use_velocity_cartesian_grid_)
+    velocity = get_velocity_cartesian_grid_value(dist,
+                                                 dir,
+                                                 signbit(normal_vector_compo_[dir]),
+                                                 index_i,
+                                                 index_j,
+                                                 index_k);
+  else
     {
-    case 0:
-      velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
-      break;
-    case 1:
-      velocity = get_field_profile_at_point(dist, y_velocity_, y_velocity_, (*velocity_)[1] , 0, 0, interp_eulerian_);
-      break;
-    case 2:
-      velocity = get_field_profile_at_point(dist, z_velocity_, z_velocity_, (*velocity_)[2] , 0, 0, interp_eulerian_);
-      break;
-    default:
-      velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
-      break;
+      switch(dir)
+        {
+        case 0:
+          velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
+          break;
+        case 1:
+          velocity = get_field_profile_at_point(dist, y_velocity_, y_velocity_, (*velocity_)[1] , 0, 0, interp_eulerian_);
+          break;
+        case 2:
+          velocity = get_field_profile_at_point(dist, z_velocity_, z_velocity_, (*velocity_)[2] , 0, 0, interp_eulerian_);
+          break;
+        default:
+          velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
+          break;
+        }
     }
+  return velocity;
+}
+
+double IJK_One_Dimensional_Subproblem::get_velocity_cartesian_grid_value(const double& dist,
+                                                                         const int& dir,
+                                                                         const int& sign_dir,
+                                                                         const int& index_i,
+                                                                         const int& index_j,
+                                                                         const int& index_k) const
+{
+  /*
+   * Access directly the value ?
+   */
+  double velocity = 0.;
+  const int test_index_i = index_i != INVALID_INDEX;
+  const int test_index_j = index_j != INVALID_INDEX;
+  const int test_index_k = index_k != INVALID_INDEX;
+  int i = test_index_i ? index_i: index_i_;
+  int j = test_index_j ? index_j: index_j_;
+  int k = test_index_k ? index_k: index_k_;
+  // const double delta = (dist - cell_centre_distance_) * normal_vector_compo_[dir];
+  //  double incr_dir;
+  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  double ddir = geom.get_constant_delta(dir);
+  //  incr_dir = (int) delta / ddir;
+  if (!(test_index_i && test_index_j && test_index_k))
+    {
+      switch(dir)
+        {
+        case 0:
+          if (!sign_dir)
+            i += 1;
+          break;
+        case 1:
+          if (!sign_dir)
+            j += 1;
+          break;
+        case 2:
+          if (!sign_dir)
+            k += 1;
+          break;
+        default:
+          if (!sign_dir)
+            i += 1;
+          break;
+        }
+    }
+  velocity = (*velocity_)[dir](i,j,k);
+
+  /*
+   * Use inteporlations
+   */
+  //  DoubleTab coordinates_point;
+  //	DoubleVect field_interp(1);
+  //	coordinates_point.resize(1,3);
+  //  Vecteur3 bary_cell = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  double ddir = geom.get_constant_delta(dir) / 2.;
+  //	Vecteur3 compo_xyz = bary_cell;
+  //	ddir = sign_dir ? - ddir: ddir;
+  //	compo_xyz[dir] += bary_cell[dir] + ddir;
+  //	for (int c=0; c<3; c++)
+  //		coordinates_point(0,c) = compo_xyz[c];
+  //	ijk_interpolate_skip_unknown_points((*velocity_)[dir], coordinates_point, field_interp, INVALID_INTERP);
+  //	velocity = field_interp(0);
+
   return velocity;
 }
 
@@ -3641,11 +3734,26 @@ double IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_at_point
   return temperature_gradient;
 }
 
-double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist,
+                                                                                       const int& dir,
+                                                                                       const int& index_i,
+                                                                                       const int& index_j,
+                                                                                       const int& index_k) const
 {
   double temperature_interp = get_field_profile_at_point(dist, temperature_solution_, temperature_interp_, *temperature_,
                                                          1, 1, interp_eulerian_);
-  double velocity_interp = get_velocity_component_at_point(dist, dir);
+  double velocity_interp = get_velocity_component_at_point(dist, dir, index_i, index_j, index_k);
+
+  if (use_corrected_velocity_convection_)
+    {
+      const double radial_corr_ = radial_velocity_[0] - radial_velocity_corrected_[0];
+      const double first_tangential_corr = (*first_tangential_velocity_not_corrected_)[0] - (*first_tangential_velocity_solver_)[0];
+      const double second_tangential_corr = (*second_tangential_velocity_not_corrected_)[0] - (*second_tangential_velocity_solver_)[0];
+      velocity_interp -= (radial_corr_ * normal_vector_compo_[dir]);
+      velocity_interp -= (first_tangential_corr * normal_vector_compo_[dir]);
+      velocity_interp -= (second_tangential_corr * normal_vector_compo_[dir]);
+    }
+
   return temperature_interp * velocity_interp;
 }
 

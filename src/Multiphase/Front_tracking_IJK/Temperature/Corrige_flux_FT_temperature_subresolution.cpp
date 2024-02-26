@@ -1143,7 +1143,11 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                               colinearity = pure_neighbours_colinearity_to_correct[c][l][m][n];
                             if ((index_i_procs == index_i_neighbour
                                  && index_j_procs == index_j_neighbour
-                                 && index_k_procs == index_k_neighbour)
+                                 && index_k_procs == index_k_neighbour
+//																 && index_i_neighbour > 0
+//																 && index_j_neighbour > 0
+//																 && index_k_neighbour > 0)
+                                )
                                 || seq)
                               {
                                 cell_faces_neighbours_corrected_bool[c](index_i_procs, index_j_neighbour, index_k_procs) += 1;
@@ -1153,7 +1157,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                                 compute_cell_neighbours_fluxes_to_correct(cell_faces_neighbours_corrected_convective,
                                                                           cell_faces_neighbours_corrected_diffusive,
                                                                           i,
-                                                                          index_i_procs, index_j_procs, index_k_procs,
+                                                                          index_i_procs,
+                                                                          index_j_procs,
+                                                                          index_k_procs,
                                                                           distance,
                                                                           c,
                                                                           colinearity,
@@ -1170,7 +1176,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                                                                  distance,
                                                                  c,
                                                                  colinearity,
-                                                                 use_reachable_fluxes_);
+                                                                 index_i_neighbour,
+                                                                 index_j_neighbour,
+                                                                 index_k_neighbour);
                               }
                           }
                 }
@@ -1214,6 +1222,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_flux_neighbours_on_procs
                                                                                  const double& dist,
                                                                                  const int& dir,
                                                                                  const double& colinearity,
+                                                                                 const int& index_i,
+                                                                                 const int& index_j,
+                                                                                 const int& index_k,
                                                                                  const double& convective_flux_computed,
                                                                                  const double& diffusive_flux_computed)
 {
@@ -1222,13 +1233,30 @@ void Corrige_flux_FT_temperature_subresolution::compute_flux_neighbours_on_procs
   if (use_reachable_fluxes_)
     {
       if (convective_flux_correction_)
-        compute_cell_neighbours_convective_fluxes_to_correct(convective_flux, subproblem_index, dist, dir, colinearity);
+        compute_cell_neighbours_convective_fluxes_to_correct(convective_flux,
+                                                             subproblem_index,
+                                                             dist,
+                                                             dir,
+                                                             colinearity,
+                                                             index_i,
+                                                             index_j,
+                                                             index_k);
 
       if (diffusive_flux_correction_)
-        compute_cell_neighbours_diffusive_fluxes_to_correct(diffusive_flux, subproblem_index, dist, dir, colinearity);
+        compute_cell_neighbours_diffusive_fluxes_to_correct(diffusive_flux,
+                                                            subproblem_index,
+                                                            dist,
+                                                            dir,
+                                                            colinearity,
+                                                            index_i,
+                                                            index_j,
+                                                            index_k);
     }
 
-  const int linear_index_global = get_linear_index_global(index_i_neighbour_global, index_j_neighbour_global, index_k_neighbour_global, dir);
+  const int linear_index_global = get_linear_index_global(index_i_neighbour_global,
+                                                          index_j_neighbour_global,
+                                                          index_k_neighbour_global,
+                                                          dir);
   const int count_val = (int) flux_outside_frontier_all_map_[dir].count(linear_index_global);
 
   if (!count_val)
@@ -1497,12 +1525,26 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_t
       if (convective_flux_correction_)
         {
 //        compute_cell_neighbours_convective_fluxes_to_correct(cell_faces_neighbours_corrected_convective);
-          compute_cell_neighbours_convective_fluxes_to_correct(convective_flux, subproblem_index, dist, dir, colinearity);
+          compute_cell_neighbours_convective_fluxes_to_correct(convective_flux,
+                                                               subproblem_index,
+                                                               dist,
+                                                               dir,
+                                                               colinearity,
+                                                               index_i,
+                                                               index_j,
+                                                               index_k);
           cell_faces_neighbours_corrected_convective[dir](index_i, index_j, index_k) += convective_flux;
         }
       if (diffusive_flux_correction_)
         {
-          compute_cell_neighbours_diffusive_fluxes_to_correct(diffusive_flux, subproblem_index, dist, dir, colinearity);
+          compute_cell_neighbours_diffusive_fluxes_to_correct(diffusive_flux,
+                                                              subproblem_index,
+                                                              dist,
+                                                              dir,
+                                                              colinearity,
+                                                              index_i,
+                                                              index_j,
+                                                              index_k);
           cell_faces_neighbours_corrected_diffusive[dir](index_i, index_j, index_k) += diffusive_flux;
         }
     }
@@ -1512,92 +1554,134 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_convecti
                                                                                                      const int& subproblem_index,
                                                                                                      const double& dist,
                                                                                                      const int& dir,
-                                                                                                     const double& colinearity)
+                                                                                                     const double& colinearity,
+                                                                                                     const int& index_i,
+                                                                                                     const int& index_j,
+                                                                                                     const int& index_k)
 {
   if (!discrete_integral_)
     compute_cell_neighbours_thermal_convective_fluxes_face_centre(convective_flux,
                                                                   subproblem_index,
                                                                   dist,
                                                                   dir,
-                                                                  colinearity);
+                                                                  colinearity,
+                                                                  index_i,
+                                                                  index_j,
+                                                                  index_k);
   else
     compute_cell_neighbours_thermal_convective_fluxes_face_centre_discrete_integral(convective_flux,
                                                                                     subproblem_index,
                                                                                     dist,
                                                                                     dir,
-                                                                                    colinearity);
+                                                                                    colinearity,
+                                                                                    index_i,
+                                                                                    index_j,
+                                                                                    index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_convective_fluxes_face_centre(double& convective_flux,
                                                                                                               const int& subproblem_index,
                                                                                                               const double& dist,
                                                                                                               const int& dir,
-                                                                                                              const double& colinearity)
+                                                                                                              const double& colinearity,
+                                                                                                              const int& index_i,
+                                                                                                              const int& index_j,
+                                                                                                              const int& index_k)
 {
   compute_cell_neighbours_thermal_fluxes_face_centre(convective_flux, convection,
                                                      subproblem_index,
                                                      dist,
                                                      dir,
-                                                     colinearity);
+                                                     colinearity,
+                                                     index_i,
+                                                     index_j,
+                                                     index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_convective_fluxes_face_centre_discrete_integral(double& convective_flux,
     const int& subproblem_index,
     const double& dist,
     const int& dir,
-    const double& colinearity)
+    const double& colinearity,
+    const int& index_i,
+    const int& index_j,
+    const int& index_k)
 {
   compute_cell_neighbours_thermal_fluxes_face_centre_discrete_integral(convective_flux, convection,
                                                                        subproblem_index,
                                                                        dist,
                                                                        dir,
-                                                                       colinearity);
+                                                                       colinearity,
+                                                                       index_i,
+                                                                       index_j,
+                                                                       index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_diffusive_fluxes_to_correct(double& diffusive_flux,
                                                                                                     const int& subproblem_index,
                                                                                                     const double& dist,
                                                                                                     const int& dir,
-                                                                                                    const double& colinearity)
+                                                                                                    const double& colinearity,
+                                                                                                    const int& index_i,
+                                                                                                    const int& index_j,
+                                                                                                    const int& index_k)
 {
   if (!discrete_integral_)
     compute_cell_neighbours_thermal_diffusive_fluxes_face_centre(diffusive_flux,
                                                                  subproblem_index,
                                                                  dist,
                                                                  dir,
-                                                                 colinearity);
+                                                                 colinearity,
+                                                                 index_i,
+                                                                 index_j,
+                                                                 index_k);
   else
     compute_cell_neighbours_thermal_diffusive_fluxes_face_centre_discrete_integral(diffusive_flux,
                                                                                    subproblem_index,
                                                                                    dist,
                                                                                    dir,
-                                                                                   colinearity);
+                                                                                   colinearity,
+                                                                                   index_i,
+                                                                                   index_j,
+                                                                                   index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_diffusive_fluxes_face_centre(double& diffusive_flux,
                                                                                                              const int& subproblem_index,
                                                                                                              const double& dist,
                                                                                                              const int& dir,
-                                                                                                             const double& colinearity)
+                                                                                                             const double& colinearity,
+                                                                                                             const int& index_i,
+                                                                                                             const int& index_j,
+                                                                                                             const int& index_k)
 {
   compute_cell_neighbours_thermal_fluxes_face_centre(diffusive_flux, diffusion,
                                                      subproblem_index,
                                                      dist,
                                                      dir,
-                                                     colinearity);
+                                                     colinearity,
+                                                     index_i,
+                                                     index_j,
+                                                     index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_diffusive_fluxes_face_centre_discrete_integral(double& diffusive_flux,
     const int& subproblem_index,
     const double& dist,
     const int& dir,
-    const double& colinearity)
+    const double& colinearity,
+    const int& index_i,
+    const int& index_j,
+    const int& index_k)
 {
   compute_cell_neighbours_thermal_fluxes_face_centre_discrete_integral(diffusive_flux, diffusion,
                                                                        subproblem_index,
                                                                        dist,
                                                                        dir,
-                                                                       colinearity);
+                                                                       colinearity,
+                                                                       index_i,
+                                                                       index_j,
+                                                                       index_k);
 }
 
 void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_fluxes_face_centre(double& flux,
@@ -1605,7 +1689,10 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_
                                                                                                    const int& subproblem_index,
                                                                                                    const double& dist,
                                                                                                    const int& dir,
-                                                                                                   const double& colinearity)
+                                                                                                   const double& colinearity,
+                                                                                                   const int& index_i,
+                                                                                                   const int& index_j,
+                                                                                                   const int& index_k)
 {
   int flux_sign[2][6] = FLUX_SIGN;
   double surf_face = 1.;
@@ -1613,7 +1700,13 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_
     if (c!=dir)
       surf_face *= splitting_->get_grid_geometry().get_constant_delta(c);
   surf_face *= flux_sign[fluxes_type][(int) (2*dir)];
-  flux = compute_thermal_flux_face_centre(fluxes_type, subproblem_index, dist, dir);
+  flux = compute_thermal_flux_face_centre(fluxes_type,
+                                          subproblem_index,
+                                          dist,
+                                          dir,
+                                          index_i,
+                                          index_j,
+                                          index_k);
   flux *= surf_face;
   if (neighbours_colinearity_weighting_)
     flux *= colinearity;
@@ -1624,7 +1717,10 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_
                                                                                                                      const int& subproblem_index,
                                                                                                                      const double& dist,
                                                                                                                      const int& dir,
-                                                                                                                     const double& colinearity)
+                                                                                                                     const double& colinearity,
+                                                                                                                     const int& index_i,
+                                                                                                                     const int& index_j,
+                                                                                                                     const int& index_k)
 {
   int flux_sign[2][6] = FLUX_SIGN;
   double surf_face = 1.;
@@ -1941,16 +2037,32 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
   // check_pure_fluxes_duplicates(convective_fluxes_, convective_fluxes_unique_, pure_face_unique_, 1);
 }
 
-double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_centre(const int fluxes_type, const int& index_subproblem, const double& dist, const int& dir)
+double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_centre(const int fluxes_type,
+                                                                                   const int& index_subproblem,
+                                                                                   const double& dist,
+                                                                                   const int& dir,
+                                                                                   const int& index_i,
+                                                                                   const int& index_j,
+                                                                                   const int& index_k)
 {
   switch(fluxes_type)
     {
     case convection:
-      return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem, dist, dir);
+      return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem,
+                                                                                   dist,
+                                                                                   dir,
+                                                                                   index_i,
+                                                                                   index_j,
+                                                                                   index_k);
     case diffusion:
       return thermal_subproblems_->get_temperature_gradient_times_conductivity_profile_at_point(index_subproblem, dist, dir);
     default:
-      return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem, dist, dir);
+      return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem,
+                                                                                   dist,
+                                                                                   dir,
+                                                                                   index_i,
+                                                                                   index_j,
+                                                                                   index_k);
     }
 }
 

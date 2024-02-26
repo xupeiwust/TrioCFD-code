@@ -132,7 +132,12 @@ public :
   const double& get_dist_cell_interface(const int& i) const;
   const FixedVector<double,6>& get_dist_faces_interface(const int& i) const;
   const Vecteur3& get_bary_facet(const int& i) const;
-  double get_temperature_times_velocity_profile_at_point(const int& i, const double& dist, const int& dir) const;
+  double get_temperature_times_velocity_profile_at_point(const int& i,
+                                                         const double& dist,
+                                                         const int& dir,
+                                                         const int& index_i,
+                                                         const int& index_j,
+                                                         const int& index_k) const;
   DoubleVect get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
   DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
   DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;

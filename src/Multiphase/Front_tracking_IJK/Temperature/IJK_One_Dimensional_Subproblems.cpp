@@ -1007,9 +1007,18 @@ const FixedVector<double,6>& IJK_One_Dimensional_Subproblems::get_dist_faces_int
   return one_dimensional_effective_subproblems_[i]->get_dist_faces();
 }
 
-double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_at_point(const int& i, const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_at_point(const int& i,
+                                                                                        const double& dist,
+                                                                                        const int& dir,
+                                                                                        const int& index_i,
+                                                                                        const int& index_j,
+                                                                                        const int& index_k) const
 {
-  return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_at_point(dist, dir);
+  return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_at_point(dist,
+                                                                                                    dir,
+                                                                                                    index_i,
+                                                                                                    index_j,
+                                                                                                    index_k);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const

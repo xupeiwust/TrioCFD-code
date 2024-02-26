@@ -714,6 +714,9 @@ protected :
   int nb_thermal_line_points_ = 100;
   double nb_diam_thermal_line_length_ = -1;
 
+  int use_corrected_velocity_convection_ = 0;
+  int use_velocity_cartesian_grid_ = 0;
+
 };
 
 #endif /* IJK_Thermal_Subresolution_included */

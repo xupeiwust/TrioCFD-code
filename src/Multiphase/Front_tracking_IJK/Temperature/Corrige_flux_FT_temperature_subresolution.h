@@ -208,6 +208,9 @@ public :
                                         const double& dist,
                                         const int& dir,
                                         const double& colinearity,
+                                        const int& index_i,
+                                        const int& index_j,
+                                        const int& index_k,
                                         const double& convective_flux_computed=0,
                                         const double& diffusive_flux_computed=0);
   void receive_all_fluxes_from_outisde_frontier_on_procs();
@@ -234,44 +237,68 @@ public :
                                                             const int& subproblem_index,
                                                             const double& dist,
                                                             const int& dir,
-                                                            const double& colinearity);
+                                                            const double& colinearity,
+                                                            const int& index_i,
+                                                            const int& index_j,
+                                                            const int& index_k);
   void compute_cell_neighbours_thermal_convective_fluxes_face_centre(double& convective_flux,
                                                                      const int& subproblem_index,
                                                                      const double& dist,
                                                                      const int& dir,
-                                                                     const double& colinearity);
+                                                                     const double& colinearity,
+                                                                     const int& index_i,
+                                                                     const int& index_j,
+                                                                     const int& index_k);
   void compute_cell_neighbours_thermal_convective_fluxes_face_centre_discrete_integral(double& convective_flux,
                                                                                        const int& subproblem_index,
                                                                                        const double& dist,
                                                                                        const int& dir,
-                                                                                       const double& colinearity);
+                                                                                       const double& colinearity,
+                                                                                       const int& index_i,
+                                                                                       const int& index_j,
+                                                                                       const int& index_k);
   void compute_cell_neighbours_diffusive_fluxes_to_correct(double& diffusive_flux,
                                                            const int& subproblem_index,
                                                            const double& dist,
                                                            const int& dir,
-                                                           const double& colinearity);
+                                                           const double& colinearity,
+                                                           const int& index_i,
+                                                           const int& index_j,
+                                                           const int& index_k);
   void compute_cell_neighbours_thermal_diffusive_fluxes_face_centre(double& diffusive_flux,
                                                                     const int& subproblem_index,
                                                                     const double& dist,
                                                                     const int& dir,
-                                                                    const double& colinearity);
+                                                                    const double& colinearity,
+                                                                    const int& index_i,
+                                                                    const int& index_j,
+                                                                    const int& index_k);
   void compute_cell_neighbours_thermal_diffusive_fluxes_face_centre_discrete_integral(double& diffusive_flux,
                                                                                       const int& subproblem_index,
                                                                                       const double& dist,
                                                                                       const int& dir,
-                                                                                      const double& colinearity);
+                                                                                      const double& colinearity,
+                                                                                      const int& index_i,
+                                                                                      const int& index_j,
+                                                                                      const int& index_k);
   void compute_cell_neighbours_thermal_fluxes_face_centre(double& flux,
                                                           const int fluxes_type,
                                                           const int& subproblem_index,
                                                           const double& dist,
                                                           const int& dir,
-                                                          const double& colinearity);
+                                                          const double& colinearity,
+                                                          const int& index_i,
+                                                          const int& index_j,
+                                                          const int& index_k);
   void compute_cell_neighbours_thermal_fluxes_face_centre_discrete_integral(double& flux,
                                                                             const int fluxes_type,
                                                                             const int& subproblem_index,
                                                                             const double& dist,
                                                                             const int& dir,
-                                                                            const double& colinearity);
+                                                                            const double& colinearity,
+                                                                            const int& index_i,
+                                                                            const int& index_j,
+                                                                            const int& index_k);
   void replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
                                                                          const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                          const int& fluxes_type) override;
@@ -285,7 +312,13 @@ public :
   void compute_thermal_convective_fluxes_face_centre();
   void compute_thermal_diffusive_fluxes_face_centre();
   void compute_thermal_fluxes_face_centre(DoubleVect& fluxes, const int fluxes_type);
-  double compute_thermal_flux_face_centre(const int fluxes_type, const int& index_subproblem, const double& dist, const int& dir);
+  double compute_thermal_flux_face_centre(const int fluxes_type,
+                                          const int& index_subproblem,
+                                          const double& dist,
+                                          const int& dir,
+                                          const int& index_i=INVALID_INDEX,
+                                          const int& index_j=INVALID_INDEX,
+                                          const int& index_k=INVALID_INDEX);
   void compute_thermal_convective_fluxes_face_centre_discrete_integral();
   void compute_thermal_diffusive_fluxes_face_centre_discrete_integral();
   void compute_thermal_fluxes_face_centre_discrete_integral(DoubleVect& fluxes, const int fluxes_type);

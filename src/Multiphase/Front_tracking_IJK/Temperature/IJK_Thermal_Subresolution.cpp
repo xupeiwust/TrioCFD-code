@@ -354,6 +354,11 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "thermal_slices_regions" << escape;
   if (post_process_thermal_lines_)
     os << front_space << "post_process_thermal_lines" << escape;
+  if (use_corrected_velocity_convection_)
+    os << front_space << "use_corrected_velocity_convection" << escape;
+  if (use_velocity_cartesian_grid_)
+    os << front_space << "use_velocity_cartesian_grid" << escape;
+
   /*
    * Values
    */
@@ -562,6 +567,11 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter("nb_thermal_concentric_circles", &nb_thermal_concentric_circles_);
   param.ajouter("nb_thermal_lines", &nb_thermal_lines_);
   param.ajouter("nb_thermal_line_points", &nb_thermal_line_points_);
+
+  param.ajouter_flag("use_corrected_velocity_convection", &use_corrected_velocity_convection_);
+  param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
+
+
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);

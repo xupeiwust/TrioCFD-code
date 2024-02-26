@@ -54,6 +54,8 @@
 #define FACES_DIR {0, 0, 1, 1, 2, 2}
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
+#define INVALID_INDEX -100
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -197,7 +199,11 @@ public :
                                     const int weak_gradient_variable,
                                     const int interp_eulerian) const;
   double get_temperature_profile_at_point(const double& dist) const;
-  double get_temperature_times_velocity_profile_at_point(const double& dist, const int& dir) const;
+  double get_temperature_times_velocity_profile_at_point(const double& dist,
+                                                         const int& dir,
+                                                         const int& index_i=INVALID_INDEX,
+                                                         const int& index_j=INVALID_INDEX,
+                                                         const int& index_k=INVALID_INDEX) const;
   DoubleVect get_field_discrete_integral_velocity_weighting_at_point(const double& dist,
                                                                      const int& levels,
                                                                      const int& dir,
@@ -240,7 +246,17 @@ public :
                                           Vecteur3& point_coords_parent,
                                           DoubleVect& discrete_values,
                                           int& value_counter) const;
-  double get_velocity_component_at_point(const double& dist, const int& dir) const;
+  double get_velocity_component_at_point(const double& dist,
+                                         const int& dir,
+                                         const int& index_i=-100,
+                                         const int& index_j=-100,
+                                         const int& index_k=-100) const;
+  double get_velocity_cartesian_grid_value(const double& dist,
+                                           const int& dir,
+                                           const int& sign_dir,
+                                           const int& index_i,
+                                           const int& index_j,
+                                           const int& index_k) const;
   double get_temperature_gradient_profile_at_point(const double& dist, const int& dir) const;
   double get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir) const;
   void get_discrete_two_dimensional_spacing(const int& dir, const int& level,
@@ -444,7 +460,9 @@ protected :
   void associate_thermal_subproblem_sparse_matrix(FixedVector<ArrOfInt,6>& first_indices_sparse_matrix);
   void associate_flux_correction_parameters(const int& correct_fluxes,
                                             const int& distance_cell_faces_from_lrs,
-                                            const int& interp_eulerian);
+                                            const int& interp_eulerian,
+                                            const int& use_corrected_velocity_convection,
+                                            const int& use_velocity_cartesian_grid);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -831,6 +849,8 @@ protected :
   DoubleVect azymuthal_velocity_advected_frame_;
   DoubleVect azymuthal_velocity_static_frame_;
   DoubleVect azymuthal_velocity_corrected_;
+  DoubleVect * first_tangential_velocity_not_corrected_;
+  DoubleVect * second_tangential_velocity_not_corrected_;
   DoubleVect * first_tangential_velocity_solver_;
   DoubleVect * second_tangential_velocity_solver_;
   DoubleVect radial_convection_prefactor_;
@@ -1065,6 +1085,9 @@ protected :
   int n_iter_distance_ = 0;
 
   const int * latastep_reprise_;
+
+  int use_corrected_velocity_convection_ = 0;
+  int use_velocity_cartesian_grid_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

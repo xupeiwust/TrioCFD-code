@@ -8549,8 +8549,8 @@ void DNS_QC_double::ecrire_fichier_sauv(const char *fichier_sauvegarde, const ch
               << " p_thermo_init " << P_thermodynamique_ << "\n"
               << " fichier_reprise_vitesse " << lata_name << "\n";
       fichier << " fichier_reprise_rho " << lata_name << "\n"
-              << " timestep_reprise_vitesse " << 1 << "\n"
-              << " timestep_reprise_rho " << 1 << "\n";
+              << " timestep_reprise_vitesse " << (int) 1 << "\n"
+              << " timestep_reprise_rho " << (int) 1 << "\n";
       if (statistiques_.t_integration() > 0.)
         fichier << " statistiques " << statistiques_;
       fichier << "}\n";
@@ -9103,7 +9103,7 @@ void DNS_QC_double::run()
   int ghost_size_velocity = flag_u_filtre_ ? max((int) 2, ghost_size_filter) : 2;
   int ghost_size_rho = flag_rho_filtre_ ? max((int) 2, ghost_size_filter) : 2;
   int ghost_size_temperature = flag_temperature_filtre_ ? max((int) 2, ghost_size_filter) : 2;
-  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max(1, ghost_size_filter) : 1;
+  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max((int) 1, ghost_size_filter) : 1;
 
   /* allocation des tableaux */
   allocate_velocity(velocity_, splitting_, ghost_size_velocity);
