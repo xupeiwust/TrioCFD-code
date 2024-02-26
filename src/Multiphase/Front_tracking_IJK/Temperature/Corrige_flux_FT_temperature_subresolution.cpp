@@ -1144,10 +1144,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                             if ((index_i_procs == index_i_neighbour
                                  && index_j_procs == index_j_neighbour
                                  && index_k_procs == index_k_neighbour
-//																 && index_i_neighbour > 0
-//																 && index_j_neighbour > 0
-//																 && index_k_neighbour > 0)
-                                )
+                                 && (index_i_neighbour > 0 && index_j_neighbour > 0 && index_k_neighbour > 0)) // Is it right ?
                                 || seq)
                               {
                                 cell_faces_neighbours_corrected_bool[c](index_i_procs, index_j_neighbour, index_k_procs) += 1;
