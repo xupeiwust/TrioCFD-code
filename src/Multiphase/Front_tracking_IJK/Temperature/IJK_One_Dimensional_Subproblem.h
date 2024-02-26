@@ -327,11 +327,17 @@ public :
   };
   const double& get_dist_cell() const
   {
-    return cell_centre_distance_;
+    if (compute_radial_displacement_)
+      return cell_centre_distance_corrected_;
+    else
+      return cell_centre_distance_;
   };
   const FixedVector<double,6>& get_dist_faces() const
   {
-    return face_centres_distance_;
+    if (compute_radial_displacement_)
+      return face_centres_distance_corrected_;
+    else
+      return face_centres_distance_;
   };
   const Vecteur3& get_bary_facet() const
   {
@@ -462,7 +468,8 @@ protected :
                                             const int& distance_cell_faces_from_lrs,
                                             const int& interp_eulerian,
                                             const int& use_corrected_velocity_convection,
-                                            const int& use_velocity_cartesian_grid);
+                                            const int& use_velocity_cartesian_grid,
+                                            const int& compute_radial_displacement);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -1088,6 +1095,11 @@ protected :
 
   int use_corrected_velocity_convection_ = 0;
   int use_velocity_cartesian_grid_ = 0;
+  int compute_radial_displacement_ = 0;
+  double radial_displacement_over_time_step_ = 0.;
+  double cell_centre_distance_corrected_ = 0;
+  FixedVector<double,6> face_centres_distance_corrected_;
+
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

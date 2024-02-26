@@ -358,6 +358,8 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "use_corrected_velocity_convection" << escape;
   if (use_velocity_cartesian_grid_)
     os << front_space << "use_velocity_cartesian_grid" << escape;
+  if (compute_radial_displacement_)
+    os << front_space << "compute_radial_displacement" << escape;
 
   /*
    * Values
@@ -570,8 +572,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
 
   param.ajouter_flag("use_corrected_velocity_convection", &use_corrected_velocity_convection_);
   param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
-
-
+  param.ajouter_flag("compute_radial_displacement", &compute_radial_displacement_);
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);

@@ -283,7 +283,8 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            ref_thermal_subresolution.distance_cell_faces_from_lrs_,
                                            ref_thermal_subresolution.interp_eulerian_,
                                            ref_thermal_subresolution.use_corrected_velocity_convection_,
-                                           ref_thermal_subresolution.use_velocity_cartesian_grid_);
+                                           ref_thermal_subresolution.use_velocity_cartesian_grid_,
+                                           ref_thermal_subresolution.compute_radial_displacement_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
                                       ref_thermal_subresolution.first_time_step_varying_probes_,
                                       ref_thermal_subresolution.probe_variations_priority_,
@@ -471,13 +472,15 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
                                                                           const int& distance_cell_faces_from_lrs,
                                                                           const int& interp_eulerian,
                                                                           const int& use_corrected_velocity_convection,
-                                                                          const int& use_velocity_cartesian_grid)
+                                                                          const int& use_velocity_cartesian_grid,
+                                                                          const int& compute_radial_displacement)
 {
   correct_fluxes_ = correct_fluxes;
   distance_cell_faces_from_lrs_ = distance_cell_faces_from_lrs;
   interp_eulerian_ = interp_eulerian;
   use_corrected_velocity_convection_ = use_corrected_velocity_convection;
   use_velocity_cartesian_grid_ = use_velocity_cartesian_grid;
+  compute_radial_displacement_ = compute_radial_displacement;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_source_terms_parameters(const int& source_terms_type,
@@ -2125,6 +2128,27 @@ void IJK_One_Dimensional_Subproblem::correct_velocities()
       first_tangential_velocity_from_rising_dir_corrected_ = first_tangential_velocity_from_rising_dir_static_frame_;
       azymuthal_velocity_corrected_ = azymuthal_velocity_static_frame_;
     }
+
+  if (compute_radial_displacement_)
+    {
+      radial_displacement_over_time_step_ = 0.5 * global_time_step_ * radial_velocity_[0]; // or * 0.5 ? Like crank nicholson ?
+      if (distance_cell_faces_from_lrs_)
+        {
+          cell_centre_distance_corrected_ = cell_centre_distance_ - radial_displacement_over_time_step_;
+          cell_centre_distance_corrected_ = cell_centre_distance_corrected_ < 0 ? cell_centre_distance_: cell_centre_distance_corrected_;
+          if (correct_fluxes_ || correct_temperature_cell_neighbours_
+              || find_cell_neighbours_for_fluxes_spherical_correction_
+              || compute_reachable_fluxes_)
+            {
+              face_centres_distance_corrected_ = face_centres_distance_;
+              for (int l=0; l<6; l++)
+                {
+                  face_centres_distance_corrected_[l] += (- radial_displacement_over_time_step_);
+                  face_centres_distance_corrected_[l] = face_centres_distance_corrected_[l] < 0 ? face_centres_distance_[l] : face_centres_distance_corrected_[l];
+                }
+            }
+        }
+    }
 }
 
 void IJK_One_Dimensional_Subproblem::correct_velocity(const DoubleVect& velocity, DoubleVect& velocity_corrected)
@@ -3750,8 +3774,8 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
       const double first_tangential_corr = (*first_tangential_velocity_not_corrected_)[0] - (*first_tangential_velocity_solver_)[0];
       const double second_tangential_corr = (*second_tangential_velocity_not_corrected_)[0] - (*second_tangential_velocity_solver_)[0];
       velocity_interp -= (radial_corr_ * normal_vector_compo_[dir]);
-      velocity_interp -= (first_tangential_corr * normal_vector_compo_[dir]);
-      velocity_interp -= (second_tangential_corr * normal_vector_compo_[dir]);
+      velocity_interp -= (first_tangential_corr * (*first_tangential_vector_compo_solver_)[dir]);
+      velocity_interp -= (second_tangential_corr * (*second_tangential_vector_compo_solver_)[dir]);
     }
 
   return temperature_interp * velocity_interp;
