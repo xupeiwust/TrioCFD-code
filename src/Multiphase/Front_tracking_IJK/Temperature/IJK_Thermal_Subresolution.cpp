@@ -738,6 +738,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
     {
       // Use an operator that override compute_set() with corrige_flux;
       temperature_diffusion_op_.typer("OpDiffUniformIJKScalarCorrection_double");
+      temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
       temperature_diffusion_op_.initialize(splitting);
       temperature_diffusion_op_.set_corrige_flux(corrige_flux_);
     }

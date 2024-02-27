@@ -1035,10 +1035,13 @@ protected :
   int temperature_probe_condition_ = 0;
   int max_u_radial_=0;
   double cell_centre_distance_ = 0;
+  double cell_centre_radius_difference_ = 0.;
+  double cell_centre_osculating_radius_difference_ = 0.;
   double cell_centre_tangential_distance_ = 0.;
   Vecteur3 tangential_distance_vector_;
   FixedVector<bool,6> pure_liquid_neighbours_;
   FixedVector<double,6> face_centres_distance_;
+  FixedVector<double,6> face_centres_radius_difference_;
   FixedVector<double,6> face_centres_tangential_distance_;
   FixedVector<Vecteur3,6> face_tangential_distance_vector_;
   FixedVector<FixedVector<double,4>,6> vertices_centres_distance_;

@@ -1312,7 +1312,15 @@ void IJK_One_Dimensional_Subproblem::compute_distance_cell_centre()
       Vecteur3 facet_to_cell_centre = facet_barycentre_;
       facet_to_cell_centre *= -1;
       facet_to_cell_centre += centre;
+
+      Vecteur3 facet_to_osculating_cell_centre = normal_vector_compo_;
+      facet_to_osculating_cell_centre *= - (- osculating_radius_);
+      facet_to_osculating_cell_centre += facet_to_cell_centre;
+
       cell_centre_distance_ = Vecteur3::produit_scalaire(facet_to_cell_centre, normal_vector_compo_);
+      cell_centre_radius_difference_ = facet_to_cell_centre.length() - cell_centre_distance_;
+      cell_centre_osculating_radius_difference_ = (facet_to_osculating_cell_centre.length()
+                                                   - osculating_radius_ - cell_centre_distance_);
 
       Vecteur3 normal_contrib = normal_vector_compo_;
       normal_contrib *= cell_centre_distance_;
@@ -1369,6 +1377,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
               vector_relative += bary_face;
               {
                 const double distance_face_centre = Vecteur3::produit_scalaire(vector_relative, normal_vector_compo_);
+                face_centres_radius_difference_[l] = vector_relative.length() - distance_face_centre;
                 face_centres_distance_[l] = distance_face_centre;
                 // Tangential distance
                 Vecteur3 normal_contrib = normal_vector_compo_;
