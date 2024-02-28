@@ -2717,6 +2717,10 @@ void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
           thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
         if (!diff_temperature_negligible_)
           thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, 1);
+        if (!conv_temperature_negligible_)
+          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
+        if (!diff_temperature_negligible_)
+          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, 1);
       }
 }
 

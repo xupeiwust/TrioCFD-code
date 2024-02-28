@@ -401,6 +401,9 @@ public :
                                             const int& dir);
   void remove_min_max_ijk_reachable_fluxes_discontinuous(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                          FixedVector<IJK_Field_local_int, 3>& cell_faces_neighbours_corrected_min_max_bool);
+
+  //  FixedVector<FixedVector<std::vector<ArrOfInt>,3>,2> index_face_ij_flux_xyz_sorted_;
+  //	FixedVector<FixedVector<std::vector<ArrOfDouble>,3>,2> convective_diffusive_flux_xyz_sorted_;
 protected :
   enum fluxes_type_ { convection, diffusion };
   DoubleVect dist_;

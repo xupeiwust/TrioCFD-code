@@ -502,9 +502,9 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   /*
    * LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_X
    */
-  oss << "RHO_CP_U_T_CONVECTIVE_FLUXES_X_" << lata_suffix << idx;
+  oss << "LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_X_" << lata_suffix << idx;
   Nom nom_coeff_grad_T_diffusive_x(oss.str().c_str());
-  if (liste_post_instantanes.contient_("RHO_CP_U_T_CONVECTIVE_FLUXES_X_") || liste_post_instantanes.contient_(nom_coeff_grad_T_diffusive_x))
+  if (liste_post_instantanes.contient_("LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_X") || liste_post_instantanes.contient_(nom_coeff_grad_T_diffusive_x))
     {
       n++, dumplata_scalar(lata_name, nom_coeff_grad_T_diffusive_x, get_div_coeff_grad_T_diffusive_fluxes()[0], latastep);
     }
@@ -513,9 +513,9 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   /*
    * LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Y
    */
-  oss << "RHO_CP_U_T_CONVECTIVE_FLUXES_Y_" << lata_suffix << idx;
+  oss << "LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Y_" << lata_suffix << idx;
   Nom nom_coeff_grad_T_diffusive_y(oss.str().c_str());
-  if (liste_post_instantanes.contient_("RHO_CP_U_T_CONVECTIVE_FLUXES_Y_") || liste_post_instantanes.contient_(nom_coeff_grad_T_diffusive_y))
+  if (liste_post_instantanes.contient_("LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Y") || liste_post_instantanes.contient_(nom_coeff_grad_T_diffusive_y))
     {
       n++, dumplata_scalar(lata_name, nom_coeff_grad_T_diffusive_y, get_div_coeff_grad_T_diffusive_fluxes()[1], latastep);
     }
@@ -524,7 +524,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   /*
    * LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Z
    */
-  oss << "RHO_CP_U_T_CONVECTIVE_FLUXES_Z_" << lata_suffix << idx;
+  oss << "LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Z_" << lata_suffix << idx;
   Nom nom_coeff_grad_T_diffusive_z(oss.str().c_str());
   if (liste_post_instantanes.contient_("LAMBDA_GRAD_T_DIFFUSIVE_FLUXES_Z") || liste_post_instantanes.contient_(nom_coeff_grad_T_diffusive_z))
     {

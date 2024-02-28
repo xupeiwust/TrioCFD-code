@@ -98,6 +98,24 @@ IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems()
   bubbles_peclet_numbers_from_surface_per_bubble_upstream_.set_smart_resize(1);
   bubbles_peclet_numbers_from_volume_per_bubble_upstream_.set_smart_resize(1);
 
+  sum_convective_fluxes_liquid_faces_per_bubble_.set_smart_resize(1);
+  sum_convective_fluxes_vapour_faces_per_bubble_.set_smart_resize(1);
+  sum_convective_fluxes_mixed_faces_per_bubble_.set_smart_resize(1);
+  sum_convective_fluxes_liquid_normal_faces_per_bubble_.set_smart_resize(1);
+
+  sum_diffusive_fluxes_liquid_faces_per_bubble_.set_smart_resize(1);
+  sum_diffusive_fluxes_vapour_faces_per_bubble_.set_smart_resize(1);
+  sum_diffusive_fluxes_mixed_faces_per_bubble_.set_smart_resize(1);
+  sum_diffusive_fluxes_liquid_normal_faces_per_bubble_.set_smart_resize(1);
+
+  sum_fluxes_liquid_faces_per_bubble_.set_smart_resize(1);
+  sum_fluxes_vapour_faces_per_bubble_.set_smart_resize(1);
+  sum_fluxes_mixed_faces_per_bubble_.set_smart_resize(1);
+  sum_fluxes_liquid_normal_faces_per_bubble_.set_smart_resize(1);
+
+  overall_nusselt_number_face_fluxes_per_bubble_.set_smart_resize(1);
+  overall_nusselt_number_face_fluxes_per_bubble_liquid_.set_smart_resize(1);
+
   liquid_velocity_ = nullptr;
   bubbles_volume_ = nullptr;
   prandtl_number_ = nullptr;
@@ -1668,6 +1686,24 @@ void IJK_One_Dimensional_Subproblems::compute_overall_quantities_per_bubbles(con
   bubbles_peclet_numbers_from_surface_per_bubble_upstream_.resize(nb_bubbles_);
   bubbles_peclet_numbers_from_volume_per_bubble_upstream_.resize(nb_bubbles_);
 
+  sum_convective_fluxes_liquid_faces_per_bubble_.resize(nb_bubbles_);
+  sum_convective_fluxes_vapour_faces_per_bubble_.resize(nb_bubbles_);
+  sum_convective_fluxes_mixed_faces_per_bubble_.resize(nb_bubbles_);
+  sum_convective_fluxes_liquid_normal_faces_per_bubble_.resize(nb_bubbles_);
+
+  sum_diffusive_fluxes_liquid_faces_per_bubble_.resize(nb_bubbles_);
+  sum_diffusive_fluxes_vapour_faces_per_bubble_.resize(nb_bubbles_);
+  sum_diffusive_fluxes_mixed_faces_per_bubble_.resize(nb_bubbles_);
+  sum_diffusive_fluxes_liquid_normal_faces_per_bubble_.resize(nb_bubbles_);
+
+  sum_fluxes_liquid_faces_per_bubble_.resize(nb_bubbles_);
+  sum_fluxes_vapour_faces_per_bubble_.resize(nb_bubbles_);
+  sum_fluxes_mixed_faces_per_bubble_.resize(nb_bubbles_);
+  sum_fluxes_liquid_normal_faces_per_bubble_.resize(nb_bubbles_);
+
+  overall_nusselt_number_face_fluxes_per_bubble_.resize(nb_bubbles_);
+  overall_nusselt_number_face_fluxes_per_bubble_liquid_.resize(nb_bubbles_);
+
   for (int dir=0; dir<3; dir++)
     {
       relative_rising_dir_compo_[dir].resize(nb_bubbles_);
@@ -1759,12 +1795,36 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
 {
   lambda_ = lambda;
   delta_temperature_ = delta_temperature;
+
   int local_compo;
+
   interfacial_thermal_flux_per_bubble_ *= 0.;
   interfacial_thermal_flux_per_bubble_gfm_ *= 0.;
+
   overall_nusselt_number_per_bubble_ *= 0.;
   overall_nusselt_number_per_bubble_gfm_ *= 0.;
+  overall_nusselt_number_per_bubble_liquid_ *= 0.;
+  overall_nusselt_number_per_bubble_gfm_liquid_ *= 0.;
+  overall_nusselt_number_face_fluxes_per_bubble_ *= 0.;
+  overall_nusselt_number_face_fluxes_per_bubble_liquid_ *= 0.;
+
   total_surface_per_bubble_ *= 0.;
+
+  sum_convective_fluxes_liquid_faces_per_bubble_ *= 0.;
+  sum_convective_fluxes_vapour_faces_per_bubble_ *= 0.;
+  sum_convective_fluxes_mixed_faces_per_bubble_ *= 0.;
+  sum_convective_fluxes_liquid_normal_faces_per_bubble_ *= 0.;
+
+  sum_diffusive_fluxes_liquid_faces_per_bubble_ *= 0.;
+  sum_diffusive_fluxes_vapour_faces_per_bubble_ *= 0.;
+  sum_diffusive_fluxes_mixed_faces_per_bubble_ *= 0.;
+  sum_diffusive_fluxes_liquid_normal_faces_per_bubble_ *= 0.;
+
+  sum_fluxes_liquid_faces_per_bubble_ *= 0.;
+  sum_fluxes_vapour_faces_per_bubble_ *= 0.;
+  sum_fluxes_mixed_faces_per_bubble_ *= 0.;
+  sum_fluxes_liquid_normal_faces_per_bubble_ *= 0.;
+
   int index_i, index_j, index_k;
   for (int itr=0; itr < subproblems_counter_; itr++)
     {
@@ -1775,11 +1835,41 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
       interfacial_thermal_flux_per_bubble_gfm_(local_compo) += (local_temperature_gradient_gfm * ai * lambda_);
       interfacial_thermal_flux_per_bubble_(local_compo) += (*this)[itr].get_interfacial_thermal_flux();
       total_surface_per_bubble_(local_compo) += (*this)[itr].get_local_surface_area();
+
+      sum_convective_fluxes_liquid_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value(0);
+      sum_convective_fluxes_vapour_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_vap(0);
+      sum_convective_fluxes_mixed_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_mixed(0);
+      sum_convective_fluxes_liquid_normal_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_normal(0);
+
+      sum_diffusive_fluxes_liquid_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value(1);
+      sum_diffusive_fluxes_vapour_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_vap(1);
+      sum_diffusive_fluxes_mixed_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_mixed(1);
+      sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_normal(1);
+
     }
 
   mp_sum_for_each_item(interfacial_thermal_flux_per_bubble_gfm_);
   mp_sum_for_each_item(interfacial_thermal_flux_per_bubble_);
   mp_sum_for_each_item(total_surface_per_bubble_);
+
+  mp_sum_for_each_item(sum_convective_fluxes_liquid_faces_per_bubble_);
+  mp_sum_for_each_item(sum_convective_fluxes_vapour_faces_per_bubble_);
+  mp_sum_for_each_item(sum_convective_fluxes_mixed_faces_per_bubble_);
+  mp_sum_for_each_item(sum_convective_fluxes_liquid_normal_faces_per_bubble_);
+
+  mp_sum_for_each_item(sum_diffusive_fluxes_liquid_faces_per_bubble_);
+  mp_sum_for_each_item(sum_diffusive_fluxes_vapour_faces_per_bubble_);
+  mp_sum_for_each_item(sum_diffusive_fluxes_mixed_faces_per_bubble_);
+  mp_sum_for_each_item(sum_diffusive_fluxes_liquid_normal_faces_per_bubble_);
+
+  sum_fluxes_liquid_faces_per_bubble_ = sum_convective_fluxes_liquid_faces_per_bubble_;
+  sum_fluxes_liquid_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_faces_per_bubble_;
+  sum_fluxes_vapour_faces_per_bubble_ = sum_convective_fluxes_vapour_faces_per_bubble_;
+  sum_fluxes_vapour_faces_per_bubble_ +=	sum_diffusive_fluxes_vapour_faces_per_bubble_;
+  sum_fluxes_mixed_faces_per_bubble_ = sum_convective_fluxes_mixed_faces_per_bubble_;
+  sum_fluxes_mixed_faces_per_bubble_ +=	sum_diffusive_fluxes_mixed_faces_per_bubble_;
+  sum_fluxes_liquid_normal_faces_per_bubble_ = sum_convective_fluxes_liquid_normal_faces_per_bubble_;
+  sum_fluxes_liquid_normal_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_normal_faces_per_bubble_;
 
   // Same on each proc
   for (int i=0; i < nb_bubbles_; i++)
@@ -1792,6 +1882,10 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
                                                          / (total_surface_per_bubble_(i) * mean_liquid_temperature_ * lambda_));
       overall_nusselt_number_per_bubble_gfm_liquid_(i) = abs((interfacial_thermal_flux_per_bubble_gfm_(i) * caracteristic_length_)
                                                              / (total_surface_per_bubble_(i) * mean_liquid_temperature_ * lambda_));
+      overall_nusselt_number_face_fluxes_per_bubble_(i) = abs((sum_fluxes_liquid_faces_per_bubble_(i) * caracteristic_length_)
+                                                              / (total_surface_per_bubble_(i) * delta_temperature_ * lambda_));
+      overall_nusselt_number_face_fluxes_per_bubble_liquid_(i) = abs((sum_fluxes_liquid_faces_per_bubble_(i) * caracteristic_length_)
+                                                                     / (total_surface_per_bubble_(i) * mean_liquid_temperature_ * lambda_));
     }
 }
 
@@ -1860,6 +1954,25 @@ void IJK_One_Dimensional_Subproblems::compute_overall_quantities()
 
   total_relative_rising_dir_compo_ = 0.;
   total_relative_rising_dir_compo_upstream_ = 0.;
+
+  sum_fluxes_liquid_faces_ = 0.;
+  sum_fluxes_vapour_faces_ = 0.;
+  sum_fluxes_mixed_faces_ = 0.;
+  sum_convective_fluxes_liquid_normal_faces_ = 0.;
+
+  sum_convective_fluxes_liquid_faces_ = 0.;
+  sum_convective_fluxes_vapour_faces_ = 0.;
+  sum_convective_fluxes_mixed_faces_ = 0.;
+  sum_convective_fluxes_liquid_normal_faces_ = 0.;
+
+  sum_diffusive_fluxes_liquid_faces_ = 0.;
+  sum_diffusive_fluxes_vapour_faces_ = 0.;
+  sum_diffusive_fluxes_mixed_faces_ = 0.;
+  sum_diffusive_fluxes_liquid_normal_faces_ = 0.;
+
+  overall_nusselt_number_face_fluxes_ = 0.;
+  overall_nusselt_number_face_fluxes_liquid_ = 0.;
+
   for (int i=0; i < nb_bubbles_; i++)
     {
       interfacial_thermal_flux_ += interfacial_thermal_flux_per_bubble_(i);
@@ -1940,6 +2053,23 @@ void IJK_One_Dimensional_Subproblems::compute_overall_quantities()
       bubbles_total_peclet_numbers_from_surface_per_bubble_upstream_ += bubbles_peclet_numbers_from_surface_per_bubble_upstream_(i) * total_surface_per_bubble_(i);
       bubbles_total_peclet_numbers_from_volume_per_bubble_upstream_ += bubbles_peclet_numbers_from_volume_per_bubble_upstream_(i) * total_surface_per_bubble_(i);
 
+      sum_convective_fluxes_liquid_faces_ += sum_convective_fluxes_liquid_faces_per_bubble_(i);
+      sum_convective_fluxes_vapour_faces_ += sum_convective_fluxes_vapour_faces_per_bubble_(i);
+      sum_convective_fluxes_mixed_faces_ += sum_convective_fluxes_mixed_faces_per_bubble_(i);
+      sum_convective_fluxes_liquid_normal_faces_ += sum_convective_fluxes_liquid_normal_faces_per_bubble_(i);
+
+      sum_diffusive_fluxes_liquid_faces_ += sum_diffusive_fluxes_liquid_faces_per_bubble_(i);
+      sum_diffusive_fluxes_vapour_faces_ += sum_diffusive_fluxes_vapour_faces_per_bubble_(i);
+      sum_diffusive_fluxes_mixed_faces_ += sum_diffusive_fluxes_mixed_faces_per_bubble_(i);
+      sum_diffusive_fluxes_liquid_normal_faces_ += sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(i);
+
+      sum_fluxes_liquid_faces_ += sum_convective_fluxes_liquid_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_faces_per_bubble_(i);
+      sum_fluxes_vapour_faces_ += sum_convective_fluxes_vapour_faces_per_bubble_(i) + sum_diffusive_fluxes_vapour_faces_per_bubble_(i);
+      sum_fluxes_mixed_faces_ += sum_convective_fluxes_mixed_faces_per_bubble_(i) + sum_diffusive_fluxes_mixed_faces_per_bubble_(i);
+      sum_fluxes_liquid_normal_faces_ += sum_convective_fluxes_liquid_normal_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(i);
+
+      overall_nusselt_number_face_fluxes_ += overall_nusselt_number_face_fluxes_per_bubble_(i);
+      overall_nusselt_number_face_fluxes_liquid_ += overall_nusselt_number_face_fluxes_per_bubble_liquid_(i);
     }
   bubbles_total_rising_velocities_ /= total_volume_;
   bubbles_total_rising_relative_velocities_ /= total_volume_;
@@ -2025,7 +2155,11 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
                              "\treynolds_number_upstream\treynolds_number_surface_upstream\treynolds_number_volume_upstream"
                              "\tprandtl_liq"
                              "\tpeclet_number\tpeclet_number_surface\tpeclet_number_volume"
-                             "\tpeclet_number_upstream\tpeclet_number_surface_upstream\tpeclet_number_volume_upstream");
+                             "\tpeclet_number_upstream\tpeclet_number_surface_upstream\tpeclet_number_volume_upstream"
+                             "\tsum_conv_flux_liq\tsum_conv_flux_vap\tsum_conv_flux_mixed\tsum_conv_flux_liq_normal"
+                             "\tsum_diff_flux_liq\tsum_diff_flux_vap\tsum_diff_flux_mixed\tsum_diff_flux_liq_normal"
+                             "\tsum_fluxes_liq\tsum_fluxes_vap\tsum_fluxes_mixed\tsum_fluxes_liq_normal"
+                             "\tnusselt_number_face_fluxes\tnusselt_number_face_fluxes_liquid");
       SFichier fic = Open_file_folder(overall_bubbles_quantities, probe_name, probe_header, reset);
       int max_counter = nb_bubbles_;
       const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
@@ -2096,6 +2230,20 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << bubbles_peclet_numbers_per_bubble_upstream_(i) << " ";
           fic << bubbles_peclet_numbers_from_surface_per_bubble_upstream_(i) << " ";
           fic << bubbles_peclet_numbers_from_volume_per_bubble_upstream_(i) << " ";
+          fic << sum_convective_fluxes_liquid_faces_per_bubble_(i) << " ";
+          fic << sum_convective_fluxes_vapour_faces_per_bubble_(i) << " ";
+          fic << sum_convective_fluxes_mixed_faces_per_bubble_(i) << " ";
+          fic << sum_convective_fluxes_liquid_normal_faces_per_bubble_(i) << " ";
+          fic << sum_diffusive_fluxes_liquid_faces_per_bubble_(i) << " ";
+          fic << sum_diffusive_fluxes_vapour_faces_per_bubble_(i) << " ";
+          fic << sum_diffusive_fluxes_mixed_faces_per_bubble_(i) << " ";
+          fic << sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(i) << " ";
+          fic << sum_fluxes_liquid_faces_per_bubble_(i) << " ";
+          fic << sum_fluxes_vapour_faces_per_bubble_(i) << " ";
+          fic << sum_fluxes_mixed_faces_per_bubble_(i) << " ";
+          fic << sum_fluxes_liquid_normal_faces_per_bubble_(i) << " ";
+          fic << overall_nusselt_number_face_fluxes_per_bubble_(i) << " ";
+          fic << overall_nusselt_number_face_fluxes_per_bubble_liquid_(i) << " ";
           fic << finl;
         }
       /*
@@ -2164,6 +2312,20 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << bubbles_total_peclet_numbers_upstream_ << " ";
           fic << bubbles_peclet_numbers_from_surface_per_bubble_upstream_ << " ";
           fic << bubbles_peclet_numbers_from_volume_per_bubble_upstream_ << " ";
+          fic << sum_convective_fluxes_liquid_faces_ << " ";
+          fic << sum_convective_fluxes_vapour_faces_ << " ";
+          fic << sum_convective_fluxes_mixed_faces_ << " ";
+          fic << sum_convective_fluxes_liquid_normal_faces_ << " ";
+          fic << sum_diffusive_fluxes_liquid_faces_ << " ";
+          fic << sum_diffusive_fluxes_vapour_faces_ << " ";
+          fic << sum_diffusive_fluxes_mixed_faces_ << " ";
+          fic << sum_diffusive_fluxes_liquid_normal_faces_ << " ";
+          fic << sum_fluxes_liquid_faces_ << " ";
+          fic << sum_fluxes_vapour_faces_ << " ";
+          fic << sum_fluxes_mixed_faces_ << " ";
+          fic << sum_fluxes_liquid_normal_faces_ << " ";
+          fic << overall_nusselt_number_face_fluxes_ << " ";
+          fic << overall_nusselt_number_face_fluxes_liquid_ << " ";
           fic << finl;
         }
       fic.close();

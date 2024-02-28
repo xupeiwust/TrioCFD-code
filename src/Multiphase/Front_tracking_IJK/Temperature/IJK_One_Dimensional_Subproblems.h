@@ -382,6 +382,42 @@ protected :
   double bubbles_total_peclet_numbers_from_surface_per_bubble_upstream_ = 0.;
   double bubbles_total_peclet_numbers_from_volume_per_bubble_upstream_  = 0.;
 
+  double sum_convective_fluxes_liquid_faces_ = 0.;
+  double sum_convective_fluxes_vapour_faces_ = 0.;
+  double sum_convective_fluxes_mixed_faces_ = 0.;
+  double sum_convective_fluxes_liquid_normal_faces_ = 0.;
+
+  double sum_diffusive_fluxes_liquid_faces_ = 0.;
+  double sum_diffusive_fluxes_vapour_faces_ = 0.;
+  double sum_diffusive_fluxes_mixed_faces_ = 0.;
+  double sum_diffusive_fluxes_liquid_normal_faces_ = 0.;
+
+  double sum_fluxes_liquid_faces_ = 0.;
+  double sum_fluxes_vapour_faces_ = 0.;
+  double sum_fluxes_mixed_faces_ = 0.;
+  double sum_fluxes_liquid_normal_faces_ = 0.;
+
+  ArrOfDouble sum_convective_fluxes_liquid_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_vapour_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_mixed_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_liquid_normal_faces_per_bubble_;
+
+  ArrOfDouble sum_diffusive_fluxes_liquid_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_vapour_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_mixed_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_liquid_normal_faces_per_bubble_;
+
+  ArrOfDouble sum_fluxes_liquid_faces_per_bubble_;
+  ArrOfDouble sum_fluxes_vapour_faces_per_bubble_;
+  ArrOfDouble sum_fluxes_mixed_faces_per_bubble_;
+  ArrOfDouble sum_fluxes_liquid_normal_faces_per_bubble_;
+
+  ArrOfDouble overall_nusselt_number_face_fluxes_per_bubble_;
+  ArrOfDouble overall_nusselt_number_face_fluxes_per_bubble_liquid_;
+  double overall_nusselt_number_face_fluxes_ = 0.;
+  double overall_nusselt_number_face_fluxes_liquid_ = 0.;
+
+
   const Vecteur3 * liquid_velocity_;
 
   int nb_bubbles_ = 0;

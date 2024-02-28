@@ -456,6 +456,36 @@ public :
   {
     return normal_vector_compo_;
   }
+  const double& get_sum_convective_diffusive_flux_op_value(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_;
+    else
+      return sum_diffusive_flux_op_value_;
+  }
+
+  const double& get_sum_convective_diffusive_flux_op_value_vap(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_vap_;
+    else
+      return sum_diffusive_flux_op_value_vap_;
+  }
+
+  const double& get_sum_convective_diffusive_flux_op_value_mixed(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_mixed_;
+    else
+      return sum_diffusive_flux_op_value_mixed_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_normal(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_normal_contrib_;
+    else
+      return sum_diffusive_flux_op_value_normal_contrib_;
+  }
 protected :
   void clear_vectors();
   void reset_counters();
@@ -1046,6 +1076,7 @@ protected :
   double cell_centre_tangential_distance_ = 0.;
   Vecteur3 tangential_distance_vector_;
   FixedVector<bool,6> pure_liquid_neighbours_;
+  FixedVector<bool,6> pure_vapour_neighbours_;
   FixedVector<double,6> face_centres_distance_;
   FixedVector<double,6> face_centres_radius_difference_;
   FixedVector<double,6> face_centres_tangential_distance_;
@@ -1106,13 +1137,26 @@ protected :
   int use_velocity_cartesian_grid_ = 0;
   int compute_radial_displacement_ = 0;
   double radial_displacement_over_time_step_ = 0.;
-  double cell_centre_distance_corrected_ = 0;
+  double cell_centre_distance_corrected_ = 0.;
   FixedVector<double,6> face_centres_distance_corrected_;
 
   FixedVector<double,6> convective_flux_op_value_;
-  double sum_convective_flux_op_value_ = 0;
+  FixedVector<double,6> convective_flux_op_value_vap_;
+  FixedVector<double,6> convective_flux_op_value_mixed_;
+  FixedVector<double,6> convective_flux_op_value_normal_contrib_;
+  double sum_convective_flux_op_value_ = 0.;
+  double sum_convective_flux_op_value_vap_ = 0.;
+  double sum_convective_flux_op_value_mixed_ = 0.;
+  double sum_convective_flux_op_value_normal_contrib_ = 0.;
+
   FixedVector<double,6> diffusive_flux_op_value_;
-  double sum_diffusive_flux_op_value_ = 0;
+  FixedVector<double,6> diffusive_flux_op_value_vap_;
+  FixedVector<double,6> diffusive_flux_op_value_mixed_;
+  FixedVector<double,6> diffusive_flux_op_value_normal_contrib_;
+  double sum_diffusive_flux_op_value_ = 0.;
+  double sum_diffusive_flux_op_value_vap_ = 0.;
+  double sum_diffusive_flux_op_value_mixed_ = 0.;
+  double sum_diffusive_flux_op_value_normal_contrib_ = 0.;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

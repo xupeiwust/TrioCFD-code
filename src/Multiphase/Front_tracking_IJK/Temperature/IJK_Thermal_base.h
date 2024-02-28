@@ -377,16 +377,16 @@ public:
   const FixedVector<IJK_Field_double,3>& get_rho_cp_u_T_convective_fluxes() const
   {
     if (store_flux_operators_for_energy_balance_)
-      return dummy_double_vect_;
-    else
       return rho_cp_u_T_convective_raw_;
+    else
+      return dummy_double_vect_;
   }
   const FixedVector<IJK_Field_double,3>& get_div_coeff_grad_T_diffusive_fluxes() const
   {
     if (store_flux_operators_for_energy_balance_)
-      return dummy_double_vect_;
-    else
       return div_coeff_grad_T_raw_;
+    else
+      return dummy_double_vect_;
   }
   virtual double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
@@ -446,20 +446,31 @@ protected:
   void compute_cell_volume();
   void compute_min_cell_delta();
   void compute_cell_diagonal(const IJK_Splitting& splitting);
+
   void calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity);
   virtual void post_process_after_temperature_increment();
+
+  void compute_temperature_convective_fluxes(const FixedVector<IJK_Field_double, 3>& velocity);
   void compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity);
+
+  void compute_boundary_conditions_thermal();
+  void compute_temperature_diffusive_fluxes();
   virtual void add_temperature_diffusion();
   virtual void compute_diffusion_increment()=0;
+
   virtual void correct_temperature_for_eulerian_fluxes()=0;
   virtual void store_temperature_before_extrapolation() { ; };
   virtual void correct_temperature_increment_for_interface_leaving_cell() { ; };
+
   void enforce_zero_value_eulerian_distance();
   void enforce_zero_value_eulerian_curvature();
   void enforce_max_value_eulerian_curvature();
+
   void compute_eulerian_grad_T_interface(const int on_splitting_ns=0);
   void propagate_eulerian_grad_T_interface();
+
   void compute_eulerian_temperature_ghost(const int on_splitting_ns=0);
+
   void compute_eulerian_bounding_box_fill_compo();
   void compute_rising_velocities();
   //  void enforce_zero_value_eulerian_field(IJK_Field_double& eulerian_field);
@@ -468,18 +479,25 @@ protected:
   void compute_temperature_gradient_elem();
   void compute_temperature_hessian_diag_elem();
   void compute_temperature_hessian_cross_elem();
+
   virtual void correct_temperature_for_visu() { ; };
   virtual void correct_operators_for_visu() { ; };
   virtual void clip_temperature_values() { ; };
   virtual void clip_max_temperature_values() { ; };
+
   virtual void compute_thermal_subproblems() { ; };
+
   virtual void compute_convective_diffusive_fluxes_face_centre() { ; };
   virtual void compute_convective_fluxes_face_centre() { ; };
   virtual void compute_diffusive_fluxes_face_centre() { ; };
+
   virtual void prepare_ij_fluxes_k_layers() { ; };
+
   virtual void compute_temperature_cell_centres(const int first_corr) { ; };
   virtual void compare_fluxes_thermal_subproblems() { ; };
+
   virtual void set_zero_temperature_increment() { ; };
+
   virtual void clean_thermal_subproblems() { ; };
 
   void calculer_gradient_temperature(const IJK_Field_double& temperature,

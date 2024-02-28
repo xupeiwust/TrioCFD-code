@@ -171,7 +171,7 @@ void OpHessFluxCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_dou
   int nj = resu.nj();
   for (int i=0; i < ni; i++)
     for (int j=0; j < nj; j++)
-      resu(i,j,k) = flux(i,j,0);
+      resu(i,j,k) = - flux(i,j,0);
 }
 
 void OpHessFluxCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& flux_min,
