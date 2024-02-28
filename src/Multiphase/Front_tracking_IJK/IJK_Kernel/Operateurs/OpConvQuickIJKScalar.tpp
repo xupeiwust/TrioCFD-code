@@ -33,6 +33,13 @@ void OpConvQuickIJKScalar_double::compute_flux_(IJK_Field_local_double& resu, co
     }
   compute_curv_fram(_DIR_, k_layer);
 
+  if (is_grad_ && !is_flux_)
+    {
+      input_velocity_x_ = input_field_;
+      input_velocity_y_ = input_field_;
+      input_velocity_z_ = input_field_;
+    }
+
   ConstIJK_double_ptr velocity_dir(get_input_velocity(_DIR_), 0, 0, k_layer);
   ConstIJK_double_ptr input_field(*input_field_, 0, 0, k_layer);
   ConstIJK_double_ptr curv_values(tmp_curv_fram_, 0, 0, 1); /* if z direction, "left" will be in layer 0 */
@@ -42,7 +49,24 @@ void OpConvQuickIJKScalar_double::compute_flux_(IJK_Field_local_double& resu, co
   const int ny = _DIR_==DIRECTION::Y ? input_field_->nj() + 1 : input_field_->nj();
 
   const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k_layer-1] + channel_data_.get_delta_z()[k_layer]) * 0.5 : channel_data_.get_delta((int)_DIR_);
-  const double surface = channel_data_.get_surface(k_layer, 1, (int)_DIR_);
+  double surface = 1.;
+  if (!is_grad_ || is_flux_)
+    surface = channel_data_.get_surface(k_layer, 1, (int) _DIR_);
+  else
+    {
+      switch(_DIR_)
+        {
+        case DIRECTION::X:
+          surface = 1 / channel_data_.get_delta_x();
+          break;
+        case DIRECTION::Y:
+          surface = 1 / channel_data_.get_delta_y();
+          break;
+        case DIRECTION::Z:
+          break;
+        }
+    }
+
   if(_DIR_==DIRECTION::Z)
     {
       // Are we on the wall ?
@@ -73,7 +97,8 @@ void OpConvQuickIJKScalar_double::compute_flux_(IJK_Field_local_double& resu, co
       for (int i = 0; i < imax; i += vsize)
         {
           Simd_double velocity;
-          velocity_dir.get_center(i, velocity);
+          if (!is_grad_ || is_flux_)
+            velocity_dir.get_center(i, velocity);
           Simd_double T0, T1; // scalar value at left and at right of the computed flux
           Simd_double fram0, fram1;
           Simd_double curv0, curv1;

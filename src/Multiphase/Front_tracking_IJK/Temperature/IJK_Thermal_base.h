@@ -32,6 +32,7 @@
 #include <Operateur_IJK_elem_diff.h>
 #include <OpGradCentre2IJKScalar.h>
 #include <OpHessCentre2IJKScalar.h>
+#include <OpGradQuickIJKScalar.h>
 #include <Ouvrir_fichier.h>
 #include <Corrige_flux_FT.h>
 #include <TRUST_Ref.h>
@@ -373,6 +374,20 @@ public:
   {
     return dummy_double_field_; //dummy
   }
+  const FixedVector<IJK_Field_double,3>& get_rho_cp_u_T_convective_fluxes() const
+  {
+    if (store_flux_operators_for_energy_balance_)
+      return dummy_double_vect_;
+    else
+      return rho_cp_u_T_convective_raw_;
+  }
+  const FixedVector<IJK_Field_double,3>& get_div_coeff_grad_T_diffusive_fluxes() const
+  {
+    if (store_flux_operators_for_energy_balance_)
+      return dummy_double_vect_;
+    else
+      return div_coeff_grad_T_raw_;
+  }
   virtual double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
                                         int& fill_rising_velocities);
@@ -463,6 +478,7 @@ protected:
   virtual void compute_diffusive_fluxes_face_centre() { ; };
   virtual void prepare_ij_fluxes_k_layers() { ; };
   virtual void compute_temperature_cell_centres(const int first_corr) { ; };
+  virtual void compare_fluxes_thermal_subproblems() { ; };
   virtual void set_zero_temperature_increment() { ; };
   virtual void clean_thermal_subproblems() { ; };
 
@@ -583,12 +599,16 @@ protected:
    */
   Operateur_IJK_elem_conv temperature_convection_op_;
   Operateur_IJK_elem_diff temperature_diffusion_op_;
+  FixedVector<IJK_Field_double, 3> div_coeff_grad_T_raw_;
   IJK_Field_double div_coeff_grad_T_volume_;
   IJK_Field_double div_coeff_grad_T_;
+  FixedVector<IJK_Field_double, 3> rho_cp_u_T_convective_raw_;
   IJK_Field_double u_T_convective_volume_;
   IJK_Field_double u_T_convective_;
+  OpGradFluxQuickIJKScalar_double temperature_grad_flux_op_quick_;
   OpGradCentre2IJKScalar_double temperature_grad_op_centre_;
   OpHessCentre2IJKScalar_double temperature_hess_op_centre_;
+  OpHessFluxCentre2IJKScalar_double temperature_hess_flux_op_centre_;
 
 
   /*
@@ -714,6 +734,8 @@ protected:
   FixedVector<IJK_Field_double,3> dummy_double_vect_;
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
+
+  int store_flux_operators_for_energy_balance_ = 0;
 };
 
 #endif /* IJK_Thermal_base_included */

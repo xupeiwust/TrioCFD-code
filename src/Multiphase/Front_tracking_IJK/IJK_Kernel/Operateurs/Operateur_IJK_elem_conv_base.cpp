@@ -33,6 +33,7 @@ Operateur_IJK_elem_conv_base_double::Operateur_IJK_elem_conv_base_double()
 
   is_corrected_ = false;
   is_grad_ = false;
+  is_flux_ = false;
 }
 
 Sortie& Operateur_IJK_elem_conv_base_double::printOn(Sortie& os) const

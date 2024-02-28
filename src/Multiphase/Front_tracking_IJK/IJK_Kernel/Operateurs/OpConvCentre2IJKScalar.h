@@ -41,7 +41,6 @@ protected:
 private:
   template <DIRECTION _DIR_>
   void compute_flux_(IJK_Field_local_double& resu, const int k_layer);
-
 };
 
 #include <OpConvCentre2IJKScalar.tpp>

@@ -351,6 +351,9 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter_flag("ghost_fluid", &ghost_fluid_);
   param.ajouter_flag("spherical_exact", &spherical_exact_);
   param.ajouter_flag("debug", &debug_);
+
+  param.ajouter_flag("store_flux_operators_for_energy_balance", &store_flux_operators_for_energy_balance_);
+
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
   //  param.ajouter_flag("gfm_vapour_mixed_only", &gfm_vapour_mixed_only_);
@@ -402,7 +405,6 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
   else
     temperature_diffusion_op_.typer_diffusion_op("standard");
 
-
   /*
    * Convection operator
    * If temperature_convection_op_ is not written in the .data
@@ -445,6 +447,14 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
       nalloc += 1;
       div_coeff_grad_T_.data() = 0.;
     }
+  if (store_flux_operators_for_energy_balance_)
+    {
+      temperature_hess_flux_op_centre_.initialize(splitting);
+      allocate_cell_vector(div_coeff_grad_T_raw_, splitting, 1);
+      nalloc += 3;
+      for (int c=0; c<3; c++)
+        div_coeff_grad_T_raw_[c].data() = 0.;
+    }
   // if (!conv_temperature_negligible_)
   {
     u_T_convective_volume_.allocate(splitting, IJK_Splitting::ELEM, 0);
@@ -456,6 +466,14 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
       u_T_convective_.allocate(splitting, IJK_Splitting::ELEM, 0);
       nalloc += 1;
       u_T_convective_.data() = 0.;
+    }
+  if (store_flux_operators_for_energy_balance_)
+    {
+      temperature_grad_flux_op_quick_.initialize(splitting);
+      allocate_cell_vector(rho_cp_u_T_convective_raw_, splitting, 1);
+      nalloc += 3;
+      for (int c=0; c<3; c++)
+        rho_cp_u_T_convective_raw_[c].data() = 0.;
     }
 
   rho_cp_post_ = (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("RHO_CP"));
@@ -1025,6 +1043,7 @@ void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& veloc
   add_temperature_source();
   const double ene_postSource = compute_global_energy(d_temperature_);
 
+  compare_fluxes_thermal_subproblems();
   /*
    * In case of the subresolution or not
    */
@@ -1248,6 +1267,18 @@ void IJK_Thermal_base::compute_temperature_convection(const FixedVector<IJK_Fiel
   else
     {
       temperature_convection_op_.calculer(temperature_, velocity[0], velocity[1], velocity[2], d_temperature_);
+
+      if (store_flux_operators_for_energy_balance_)
+        {
+          for (int c=0; c<3; c++)
+            rho_cp_u_T_convective_raw_[c].data() = 0.;
+          temperature_grad_flux_op_quick_.calculer_grad_flux(temperature_,
+                                                             velocity[0],
+                                                             velocity[1],
+                                                             velocity[2],
+                                                             rho_cp_u_T_convective_raw_);
+        }
+
       const int ni = d_temperature_.ni();
       const int nj = d_temperature_.nj();
       const int nk = d_temperature_.nk();
@@ -1258,8 +1289,16 @@ void IJK_Thermal_base::compute_temperature_convection(const FixedVector<IJK_Fiel
               u_T_convective_volume_(i,j,k) = d_temperature_(i,j,k);
               const double resu = d_temperature_(i,j,k) / vol_;
               d_temperature_(i,j,k) = resu;
+
               if (liste_post_instantanes_.contient_("U_T_CONVECTIVE"))
                 u_T_convective_(i,j,k) = resu;
+
+              if (store_flux_operators_for_energy_balance_)
+                for (int c=0; c<3; c++)
+                  {
+                    const double convective_flux = rho_cp_u_T_convective_raw_[c](i,j,k);
+                    rho_cp_u_T_convective_raw_[c](i,j,k) = convective_flux * (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+                  }
             }
     }
   statistiques().end_count(cnt_conv_temp);
@@ -1322,6 +1361,19 @@ void IJK_Thermal_base::add_temperature_diffusion()
                                          div_coeff_grad_T_volume_,
                                          boundary_flux_kmin_,
                                          boundary_flux_kmax_);
+
+      if (store_flux_operators_for_energy_balance_)
+        {
+          for (int dir=0; dir<3; dir++)
+            div_coeff_grad_T_raw_[dir].data()=0;
+          temperature_hess_flux_op_centre_.calculer_hess_flux(temperature_,
+                                                              div_coeff_grad_T_raw_,
+                                                              boundary_flux_kmin_,
+                                                              boundary_flux_kmax_);
+          div_coeff_grad_T_raw_.echange_espace_virtuel();
+
+        }
+
       compute_diffusion_increment();
       statistiques().end_count(cnt_diff_temp);
       DebogIJK::verifier("div_coeff_grad_T_volume_", div_coeff_grad_T_volume_);

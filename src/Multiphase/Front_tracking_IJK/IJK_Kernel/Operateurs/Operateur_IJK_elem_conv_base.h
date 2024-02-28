@@ -83,6 +83,7 @@ protected:
 
   bool is_corrected_;
   bool is_grad_;
+  bool is_flux_;
 
 private:
 

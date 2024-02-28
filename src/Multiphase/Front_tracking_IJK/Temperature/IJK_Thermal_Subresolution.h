@@ -481,6 +481,8 @@ protected :
   /* compute_rho_cp_u_mean() May be clearly overridden later */
   double compute_rho_cp_u_mean(const IJK_Field_double& vx) override { return IJK_Thermal_base::compute_rho_cp_u_mean(vx); };
 
+  void compare_fluxes_thermal_subproblems() override;
+
   int enable_probe_collision_detection_;
   int enable_resize_probe_collision_;
   int debug_probe_collision_;

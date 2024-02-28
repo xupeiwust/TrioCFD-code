@@ -63,4 +63,17 @@ protected:
   void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) override;
 };
 
+class OpHessFluxCentre2IJKScalar_double : public OpHessCentre2IJKScalar_double
+{
+  Declare_instanciable_sans_constructeur(OpHessFluxCentre2IJKScalar_double);
+public:
+  OpHessFluxCentre2IJKScalar_double() : OpHessCentre2IJKScalar_double() { is_flux_ = true; }
+  void calculer_hess_flux(const IJK_Field_double& field,
+                          FixedVector<IJK_Field_double, 3>& result,
+                          const IJK_Field_local_double& boundary_flux_kmin,
+                          const IJK_Field_local_double& boundary_flux_kmax);
+  void fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir) override;
+  void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) override;
+};
+
 #endif /* OpHessCentre2IJKScalar_included */

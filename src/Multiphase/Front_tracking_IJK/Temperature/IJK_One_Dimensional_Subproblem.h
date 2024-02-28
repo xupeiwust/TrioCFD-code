@@ -43,6 +43,7 @@
 #define INVALID_SOURCE_TERM 1e-20
 #define NEIGHBOURS_FIRST_DIR {-1., -1., 1., 1.}
 #define NEIGHBOURS_SECOND_DIR {-1., 1., -1., 1.}
+#define NEIGHBOURS_SIGN {1, 0, 1, 0, 1, 0}
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
@@ -277,6 +278,11 @@ public :
   double get_max_temperature() const;
   double get_min_temperature_domain_ends() const;
   double get_max_temperature_domain_ends() const;
+
+  void compute_pure_liquid_neighbours();
+  void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+                                          const int flux_type);
+
   void set_subproblem_index(const int& sub_problem_index)
   {
     sub_problem_index_ = sub_problem_index;
@@ -1103,6 +1109,10 @@ protected :
   double cell_centre_distance_corrected_ = 0;
   FixedVector<double,6> face_centres_distance_corrected_;
 
+  FixedVector<double,6> convective_flux_op_value_;
+  double sum_convective_flux_op_value_ = 0;
+  FixedVector<double,6> diffusive_flux_op_value_;
+  double sum_diffusive_flux_op_value_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

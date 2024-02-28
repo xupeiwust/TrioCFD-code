@@ -1051,6 +1051,14 @@ DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_condu
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(dist, level, dir);
 }
 
+void IJK_One_Dimensional_Subproblems::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+                                                                         const int flux_type)
+{
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->compare_fluxes_thermal_subproblems(convective_diffusive_fluxes_raw, flux_type);
+}
+
+
 Nom IJK_One_Dimensional_Subproblems::get_header_from_string_lists(const std::vector<std::string>& key_results_int,
                                                                   const std::vector<std::string>& key_results_double)
 {

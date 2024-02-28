@@ -701,6 +701,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
                                                      keep_first_reachable_fluxes_);
 
   temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
+  temperature_hess_flux_op_centre_.set_uniform_lambda(uniform_lambda_);
+
   if (debug_)
     Cerr << "Uniform lambda: " << temperature_diffusion_op_.get_uniform_lambda() << finl;
 
@@ -2704,6 +2706,18 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
                                                                         overall_bubbles_quantities,
                                                                         local_quantities_thermal_probes_time_index_folder);
     }
+}
+
+void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
+{
+  if (store_flux_operators_for_energy_balance_)
+    if (!disable_subresolution_ || reference_gfm_on_probes_)
+      {
+        if (!conv_temperature_negligible_)
+          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
+        if (!diff_temperature_negligible_)
+          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, 1);
+      }
 }
 
 void IJK_Thermal_Subresolution::post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder)

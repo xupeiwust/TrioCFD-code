@@ -96,7 +96,9 @@ void OpGradCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_double&
     }
 }
 
-void OpGradCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k)
+void OpGradCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& flux_min,
+                                                       IJK_Field_local_double& flux_max,
+                                                       IJK_Field_double& resu, int k)
 {
   int ni = resu.ni();
   int nj = resu.nj();
@@ -104,7 +106,48 @@ void OpGradCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& f
     for (int j=0; j < nj; j++)
       {
         // TODO: What happen if dz is not constant ? The FD operator is no longer define
-        double dz_inv = 1 / channel_data_.get_delta_z()[k];
+        double dz_inv = is_flux_ ? 1.: 1 / channel_data_.get_delta_z()[k];
         resu(i,j,k) = (flux_max(i,j,0) - flux_min(i,j,0)) * dz_inv;
       }
+}
+
+Implemente_instanciable_sans_constructeur( OpGradFluxCentre2IJKScalar_double, "OpGradFluxCentre2IJKScalar_double", OpGradCentre2IJKScalar_double ) ;
+
+Sortie& OpGradFluxCentre2IJKScalar_double::printOn( Sortie& os ) const
+{
+  return os;
+}
+
+Entree& OpGradFluxCentre2IJKScalar_double::readOn( Entree& is )
+{
+  return is;
+}
+
+void OpGradFluxCentre2IJKScalar_double::calculer_grad_flux(const IJK_Field_double& field,
+                                                           const IJK_Field_double& vx,
+                                                           const IJK_Field_double& vy,
+                                                           const IJK_Field_double& vz,
+                                                           FixedVector<IJK_Field_double, 3>& result)
+{
+  input_velocity_x_ = &vx;
+  input_velocity_y_ = &vy;
+  input_velocity_z_ = &vz;
+  calculer_grad(field, result);
+  result.echange_espace_virtuel();
+}
+
+void OpGradFluxCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir)
+{
+  int ni = resu.ni();
+  int nj = resu.nj();
+  for (int i=0; i < ni; i++)
+    for (int j=0; j < nj; j++)
+      resu(i,j,k) = flux(i,j,0);
+}
+
+void OpGradFluxCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& flux_min,
+                                                           IJK_Field_local_double& flux_max,
+                                                           IJK_Field_double& resu, int k)
+{
+  fill_grad_field_x_y_(flux_min, resu, k, 2);
 }

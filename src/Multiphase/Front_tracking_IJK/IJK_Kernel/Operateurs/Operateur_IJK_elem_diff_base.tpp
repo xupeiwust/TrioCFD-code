@@ -96,7 +96,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
   switch(_DIR_)
     {
     case DIRECTION::X:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_x() * 0.5;
           d1 = d0;
@@ -106,7 +106,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_x() * channel_data_.get_delta_x());
       break;
     case DIRECTION::Y:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_y() * 0.5;
           d1 = d0;
@@ -116,7 +116,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_y() * channel_data_.get_delta_y());
       break;
     case DIRECTION::Z:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_z()[k_layer-1] * 0.5;
           d1 = channel_data_.get_delta_z()[k_layer] * 0.5;
@@ -149,7 +149,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
               Simd_double oneVec = 1.;
               Simd_double minVec = DMINFLOAT;
               Simd_double d = 1.;
-              if (!is_hess_)
+              if (!is_hess_ || is_flux_)
                 {
                   // Fetch conductivity on neighbour cells:
                   if (!is_uniform_)
