@@ -213,7 +213,7 @@ public :
   void compute_dynamics_per_bubbles();
   void compute_overall_quantities();
   void post_process_overall_bubbles_quantities(const int rank, const Nom& overall_bubbles_quantities);
-
+  void dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched);
 
 protected :
   std::vector<IJK_One_Dimensional_Subproblem*> one_dimensional_effective_subproblems_;

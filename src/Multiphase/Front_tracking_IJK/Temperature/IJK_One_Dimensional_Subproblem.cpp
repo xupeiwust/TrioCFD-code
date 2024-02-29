@@ -147,6 +147,7 @@ IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem()
 
   has_computed_cell_centre_distance_ = false;
   has_computed_cell_faces_distance_ = false;
+  has_computed_liquid_neighbours_ = false;
 }
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const IJK_FT_double& ijk_ft) : IJK_One_Dimensional_Subproblem()
@@ -365,6 +366,7 @@ void IJK_One_Dimensional_Subproblem::reset_flags()
 {
   has_computed_cell_centre_distance_ = false;
   has_computed_cell_faces_distance_ = false;
+  has_computed_liquid_neighbours_ = false;
   disable_probe_because_collision_ = 0;
   disable_probe_weak_gradient_local_= 0;
 }
@@ -1438,6 +1440,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
                 }
             }
         }
+      has_computed_liquid_neighbours_ = true;
       has_computed_cell_faces_distance_ = true;
     }
   else if (debug_)
@@ -4460,6 +4463,39 @@ void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>&
   sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
 }
 
+void IJK_One_Dimensional_Subproblem::dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched)
+{
+  if (!has_computed_liquid_neighbours_)
+    compute_pure_liquid_neighbours();
+
+
+  const int neighbours_i[6] = NEIGHBOURS_I;
+  const int neighbours_j[6] = NEIGHBOURS_J;
+  const int neighbours_k[6] = NEIGHBOURS_K;
+  bool is_all_mix = true;
+  double weight_tot = 0.;
+  const int face_dir[6] = FACES_DIR;
+  std::vector<int> mixed_neighbours;
+  for (int l=0; l<6; l++)
+    if (pure_liquid_neighbours_[l])
+      is_all_mix = false;
+    else if (!pure_vapour_neighbours_[l])
+      {
+        mixed_neighbours.push_back(l);
+        weight_tot += normal_vector_compo_[face_dir[l]];
+      }
+  if (is_all_mix)
+    for (int l=0; l<(int) mixed_neighbours.size(); l++)
+      {
+        const int ii = neighbours_i[l];
+        const int jj = neighbours_j[l];
+        const int kk = neighbours_k[l];
+        const double surface_dispatch = surface_ * normal_vector_compo_[face_dir[l]] / weight_tot;
+        interfacial_area_dispatched(index_i_ + ii, index_j_ + jj, index_k_ + kk) += surface_dispatch;
+        ;
+      }
+}
+
 void IJK_One_Dimensional_Subproblem::compute_pure_liquid_neighbours()
 {
   const int neighbours_i[6] = NEIGHBOURS_I;
@@ -4485,15 +4521,12 @@ void IJK_One_Dimensional_Subproblem::compute_pure_liquid_neighbours()
             pure_vapour_neighbours_[l] = 0;
         }
     }
+  has_computed_liquid_neighbours_ = true;
 }
 
 void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
                                                                         const int flux_type)
 {
-  const int has_computed_liquid_neighbours = (correct_fluxes_ || correct_temperature_cell_neighbours_
-                                              || find_cell_neighbours_for_fluxes_spherical_correction_
-                                              || compute_reachable_fluxes_);
-
   FixedVector<double, 6>* convective_diffusive_flux_op_value = nullptr;
   FixedVector<double, 6>* convective_diffusive_flux_op_value_vap = nullptr;
   FixedVector<double, 6>* convective_diffusive_flux_op_value_mixed = nullptr;
@@ -4533,7 +4566,7 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
   (*sum_convective_diffusive_flux_op_value_mixed) = 0.;
   (*sum_convective_diffusive_flux_op_value_normal_contrib) = 0.;
 
-  if (!has_computed_liquid_neighbours)
+  if (!has_computed_liquid_neighbours_)
     compute_pure_liquid_neighbours();
 
   const int flux_out[6] = FLUXES_OUT;

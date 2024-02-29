@@ -917,6 +917,13 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       probe_collision_debug_field_.data() = 0.;
     }
 
+  if (fluxes_correction_conservations_)
+    {
+      interfacial_area_dispatched_.allocate(splitting, IJK_Splitting::ELEM, 0); // , 1);
+      nalloc += 1;
+      interfacial_area_dispatched_.data() = 0.;
+    }
+
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
     fo_ = 0.95 * pow((sqrt(2) / 2), 2); // squared or not?
 
@@ -2393,6 +2400,8 @@ void IJK_Thermal_Subresolution::prepare_thermal_flux_correction()
 
 void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre()
 {
+  if (fluxes_correction_conservations_)
+    thermal_local_subproblems_.dispatch_interfacial_area(interfacial_area_dispatched_);
 
   if (!conv_temperature_negligible_)
     compute_convective_fluxes_face_centre();

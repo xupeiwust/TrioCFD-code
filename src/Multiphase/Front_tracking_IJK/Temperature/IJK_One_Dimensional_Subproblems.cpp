@@ -782,6 +782,12 @@ void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
     }
 }
 
+void IJK_One_Dimensional_Subproblems::dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched)
+{
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->dispatch_interfacial_area(interfacial_area_dispatched);
+}
+
 int IJK_One_Dimensional_Subproblems::is_in_map_index_ijk(const std::map<int, std::map<int, std::map<int, int>>>& subproblem_to_ijk_indices,
                                                          const int& index_i,
                                                          const int& index_j,

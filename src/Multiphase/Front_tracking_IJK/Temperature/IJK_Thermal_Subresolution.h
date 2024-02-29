@@ -721,6 +721,8 @@ protected :
   int use_velocity_cartesian_grid_ = 0;
   int compute_radial_displacement_ = 0;
 
+  IJK_Field_double interfacial_area_dispatched_;
+
 };
 
 #endif /* IJK_Thermal_Subresolution_included */

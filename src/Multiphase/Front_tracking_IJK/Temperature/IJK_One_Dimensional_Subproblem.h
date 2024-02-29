@@ -280,6 +280,7 @@ public :
   double get_min_temperature_domain_ends() const;
   double get_max_temperature_domain_ends() const;
 
+  void dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched);
   void compute_pure_liquid_neighbours();
   void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
                                           const int flux_type);
@@ -1099,6 +1100,7 @@ protected :
   double modified_probe_length_from_vertices_ = 0.;
   bool has_computed_cell_centre_distance_;
   bool has_computed_cell_faces_distance_;
+  bool has_computed_liquid_neighbours_;
   int correct_fluxes_ = 0;
   double cell_temperature_ = 0.;
 
