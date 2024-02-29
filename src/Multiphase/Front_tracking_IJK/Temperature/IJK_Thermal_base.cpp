@@ -1026,6 +1026,9 @@ void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& veloc
   if (!conv_temperature_negligible_ || !diff_temperature_negligible_)
     prepare_ij_fluxes_k_layers();
 
+  compute_temperature_diffusive_fluxes();
+  compute_temperature_convection(velocity);
+  compare_fluxes_thermal_subproblems();
 
   double nb_diam_upstream_velocity = ref_ijk_ft_->get_nb_diam_upstream();
   if (nb_diam_upstream_ == 0.)
@@ -1037,17 +1040,14 @@ void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& veloc
                                ref_ijk_ft_->get_upstream_stencil());
 
   compute_temperature_convective_fluxes(velocity);
-  compute_temperature_convection(velocity);
   const double ene_postConv = compute_global_energy(d_temperature_);
 
-  compute_temperature_diffusive_fluxes();
   add_temperature_diffusion();
   const double ene_postDiffu = compute_global_energy(d_temperature_);
 
   add_temperature_source();
   const double ene_postSource = compute_global_energy(d_temperature_);
 
-  compare_fluxes_thermal_subproblems();
   /*
    * In case of the subresolution or not
    */

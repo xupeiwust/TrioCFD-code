@@ -53,6 +53,7 @@
 #define LIQUID_INDICATOR_TEST 1.-1.e-12
 #define VAPOUR_INDICATOR_TEST 1.e-12
 #define FACES_DIR {0, 0, 1, 1, 2, 2}
+#define FLUXES_OUT {-1, 1, -1, 1, -1, 1}
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
 #define INVALID_INDEX -100
@@ -73,7 +74,7 @@ class IJK_One_Dimensional_Subproblems;
 class IJK_One_Dimensional_Subproblem : public Objet_U
 {
   Declare_instanciable( IJK_One_Dimensional_Subproblem ) ;
-
+  // friend class Corrige_flux_FT_temperature_subresolution;
 public :
   IJK_One_Dimensional_Subproblem(const IJK_FT_double& ijk_ft);
   void associer(const IJK_FT_double& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
@@ -486,6 +487,15 @@ public :
     else
       return sum_diffusive_flux_op_value_normal_contrib_;
   }
+  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_lrs_;
+    else
+      return sum_diffusive_flux_op_lrs_;
+  }
+  void set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type);
+  void compare_flux_interface(std::vector<double>& radial_flux_error);
 protected :
   void clear_vectors();
   void reset_counters();
@@ -585,6 +595,7 @@ protected :
                                              const int& compute_reachable_fluxes,
                                              const int& find_cell_neighbours_for_fluxes_spherical_correction);
   void associate_probe_parameters(const int& points_per_thermal_subproblem,
+                                  const double& cp_liquid,
                                   const double& alpha,
                                   const double& lambda,
                                   const double& prandtl_number,
@@ -784,6 +795,7 @@ protected :
   const int * points_per_thermal_subproblem_;
   int increased_point_numbers_ = 32;
   // FIXME: Should alpha_liq be constant, or a reference ?
+  const double * cp_liquid_;
   const double * alpha_;
   const double * prandtl_number_;
   const double * lambda_;
@@ -1144,6 +1156,7 @@ protected :
   FixedVector<double,6> convective_flux_op_value_vap_;
   FixedVector<double,6> convective_flux_op_value_mixed_;
   FixedVector<double,6> convective_flux_op_value_normal_contrib_;
+
   double sum_convective_flux_op_value_ = 0.;
   double sum_convective_flux_op_value_vap_ = 0.;
   double sum_convective_flux_op_value_mixed_ = 0.;
@@ -1153,10 +1166,19 @@ protected :
   FixedVector<double,6> diffusive_flux_op_value_vap_;
   FixedVector<double,6> diffusive_flux_op_value_mixed_;
   FixedVector<double,6> diffusive_flux_op_value_normal_contrib_;
+
   double sum_diffusive_flux_op_value_ = 0.;
   double sum_diffusive_flux_op_value_vap_ = 0.;
   double sum_diffusive_flux_op_value_mixed_ = 0.;
   double sum_diffusive_flux_op_value_normal_contrib_ = 0.;
+
+  FixedVector<double,6> convective_flux_op_lrs_;
+  FixedVector<double,6> diffusive_flux_op_lrs_;
+  double sum_convective_flux_op_lrs_ = 0.;
+  double sum_diffusive_flux_op_lrs_ = 0.;
+  double sum_convective_diffusive_flux_op_lrs_ = 0.;
+  double radial_flux_error_lrs_ = 0.;
+
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

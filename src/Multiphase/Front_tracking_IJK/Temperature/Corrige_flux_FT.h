@@ -52,7 +52,7 @@ public :
                                           const IJK_FT_double& ijk_ft,
                                           Intersection_Interface_ijk_face& intersection_ijk_face,
                                           Intersection_Interface_ijk_cell& intersection_ijk_cell,
-                                          const IJK_One_Dimensional_Subproblems& thermal_local_subproblems);
+                                          IJK_One_Dimensional_Subproblems& thermal_local_subproblems);
   inline void set_physical_parameters(const double rhocpl,
                                       const double rhocpv,
                                       const double ldal,
@@ -86,8 +86,8 @@ public :
                                                          IJK_Field_int& neighbours_weighting,
                                                          IJK_Field_double& neighbours_weighting_colinearity) const;
   inline void set_zero_temperature_increment(IJK_Field_double& d_temperature) const;
-  inline void compute_thermal_convective_fluxes();
-  inline void compute_thermal_diffusive_fluxes();
+  inline void compute_thermal_convective_fluxes(const int& last_flux);
+  inline void compute_thermal_diffusive_fluxes(const int& last_flux);
 
   inline void set_convection_negligible(const int& convection_negligible);
   inline void set_diffusion_negligible(const int& diffusion_negligible);
@@ -157,7 +157,7 @@ inline void Corrige_flux_FT::initialize_with_subproblems(const IJK_Splitting& sp
                                                          const IJK_FT_double& ijk_ft,
                                                          Intersection_Interface_ijk_face& intersection_ijk_face,
                                                          Intersection_Interface_ijk_cell& intersection_ijk_cell,
-                                                         const IJK_One_Dimensional_Subproblems& thermal_local_subproblems)
+                                                         IJK_One_Dimensional_Subproblems& thermal_local_subproblems)
 {
   valeur().initialize_with_subproblems(splitting, field, interfaces, ijk_ft, intersection_ijk_face, intersection_ijk_cell, thermal_local_subproblems);
 }
@@ -232,14 +232,14 @@ inline void Corrige_flux_FT::set_zero_temperature_increment(IJK_Field_double& d_
   valeur().set_zero_temperature_increment(d_temperature);
 }
 
-inline void Corrige_flux_FT::compute_thermal_convective_fluxes()
+inline void Corrige_flux_FT::compute_thermal_convective_fluxes(const int& last_flux)
 {
-  valeur().compute_thermal_convective_fluxes();
+  valeur().compute_thermal_convective_fluxes(last_flux);
 }
 
-inline void Corrige_flux_FT::compute_thermal_diffusive_fluxes()
+inline void Corrige_flux_FT::compute_thermal_diffusive_fluxes(const int& last_flux)
 {
-  valeur().compute_thermal_diffusive_fluxes();
+  valeur().compute_thermal_diffusive_fluxes(last_flux);
 }
 
 inline void Corrige_flux_FT::corrige_flux_diff_faceIJ(IJK_Field_local_double *const flux,

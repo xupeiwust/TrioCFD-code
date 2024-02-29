@@ -58,7 +58,7 @@ Corrige_flux_FT_temperature_subresolution::Corrige_flux_FT_temperature_subresolu
   neighbours_weighting_colinearity_on_procs_.set_smart_resize(1);
 }
 
-void Corrige_flux_FT_temperature_subresolution::associate_thermal_problems(const IJK_One_Dimensional_Subproblems& thermal_subproblems)
+void Corrige_flux_FT_temperature_subresolution::associate_thermal_problems(IJK_One_Dimensional_Subproblems& thermal_subproblems)
 {
   thermal_subproblems_ = &thermal_subproblems;
 }
@@ -192,7 +192,7 @@ void Corrige_flux_FT_temperature_subresolution::initialize_with_subproblems(cons
                                                                             const IJK_FT_double& ijk_ft,
                                                                             Intersection_Interface_ijk_face& intersection_ijk_face,
                                                                             Intersection_Interface_ijk_cell& intersection_ijk_cell,
-                                                                            const IJK_One_Dimensional_Subproblems& thermal_subproblems)
+                                                                            IJK_One_Dimensional_Subproblems& thermal_subproblems)
 {
   Corrige_flux_FT_base::initialize_with_subproblems(splitting, field, interfaces, ijk_ft, intersection_ijk_face, intersection_ijk_cell, thermal_subproblems);
   associate_thermal_problems(thermal_subproblems);
@@ -1944,18 +1944,18 @@ void Corrige_flux_FT_temperature_subresolution::smooth_temperature_cell_centre_n
     }
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_thermal_convective_fluxes()
+void Corrige_flux_FT_temperature_subresolution::compute_thermal_convective_fluxes(const int& last_flux)
 {
   if (!discrete_integral_)
-    compute_thermal_convective_fluxes_face_centre();
+    compute_thermal_convective_fluxes_face_centre(last_flux);
   else
     compute_thermal_convective_fluxes_face_centre_discrete_integral();
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes()
+void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes(const int& last_flux)
 {
   if (!discrete_integral_)
-    compute_thermal_diffusive_fluxes_face_centre();
+    compute_thermal_diffusive_fluxes_face_centre(last_flux);
   else
     compute_thermal_diffusive_fluxes_face_centre_discrete_integral();
 }
@@ -1978,20 +1978,23 @@ void Corrige_flux_FT_temperature_subresolution::set_zero_temperature_increment(I
   //    }
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_thermal_convective_fluxes_face_centre()
+void Corrige_flux_FT_temperature_subresolution::compute_thermal_convective_fluxes_face_centre(const int& last_flux)
 {
-  compute_thermal_fluxes_face_centre(convective_fluxes_, convection);
+  compute_thermal_fluxes_face_centre(convective_fluxes_, convection, last_flux);
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes_face_centre()
+void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes_face_centre(const int& last_flux)
 {
-  compute_thermal_fluxes_face_centre(diffusive_fluxes_, diffusion);
+  compute_thermal_fluxes_face_centre(diffusive_fluxes_, diffusion, last_flux);
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_centre(DoubleVect& fluxes, const int fluxes_type)
+void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_centre(DoubleVect& fluxes,
+                                                                                   const int fluxes_type,
+                                                                                   const int& last_flux)
 {
+  const int flux_out[6] = FLUXES_OUT;
   const int faces_dir[6] = FACES_DIR;
-  int flux_sign[2][6] = FLUX_SIGN;
+  const int flux_sign[2][6] = FLUX_SIGN;
   const int nb_faces_to_correct = intersection_ijk_cell_->get_nb_faces_to_correct();
   fluxes.reset();
   fluxes.resize(nb_faces_to_correct);
@@ -2012,7 +2015,6 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
               for (int c = 0; c < 3; c++)
                 if (c!= faces_dir[l])
                   surf_face *= splitting_->get_grid_geometry().get_constant_delta(c);
-              surf_face *= flux_sign[fluxes_type][l];
               const double dist = dist_interf(intersection_ijk_cell_index, l);
               const double dist_sub_res = thermal_subproblems_->get_dist_faces_interface(i)[l];
               double local_flux_face = 0.;
@@ -2020,10 +2022,24 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
                 local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist_sub_res, dir);
               else
                 local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist, dir);
-              const double flux_face = local_flux_face * surf_face;
+              double flux_face = local_flux_face * surf_face;
+              thermal_subproblems_->set_pure_flux_corrected(flux_face * flux_out[l], i, l, fluxes_type);
+              flux_face *= flux_sign[fluxes_type][l];
+              // surf_face *= flux_sign[fluxes_type][l];
               fluxes[counter_faces] = flux_face;
               dist_[counter_faces] = dist;
               counter_faces++;
+            }
+        }
+      if (last_flux)
+        {
+          std::vector<double> radial_flux_error;
+          thermal_subproblems_->compare_flux_interface(i, radial_flux_error);
+          const int nb_flux = (int) radial_flux_error.size();
+          for (int l=0; l<nb_flux; l++)
+            {
+              const double flux = fluxes[counter_faces + (l - nb_flux)];
+              fluxes[counter_faces + (l - nb_flux)] = flux - radial_flux_error[l] * flux_sign[fluxes_type][0];
             }
         }
     }
@@ -2106,6 +2122,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
               double flux_face = 0;
               for (int val=0; val < discrete_flux_integral.size(); val++)
                 flux_face += discrete_flux_integral[val];
+              thermal_subproblems_->set_pure_flux_corrected(flux_face, i, l, fluxes_type);
               flux_face *= flux_sign[fluxes_type][l];
               fluxes[counter_faces] = flux_face;
               dist_[counter_faces] = dist;

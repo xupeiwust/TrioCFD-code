@@ -360,7 +360,8 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "use_velocity_cartesian_grid" << escape;
   if (compute_radial_displacement_)
     os << front_space << "compute_radial_displacement" << escape;
-
+  if (fluxes_correction_conservations_)
+    os << front_space << "fluxes_correction_conservations" << escape;
   /*
    * Values
    */
@@ -451,6 +452,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("disable_subresolution", &disable_subresolution_);
   param.ajouter_flag("convective_flux_correction", &convective_flux_correction_);
   param.ajouter_flag("diffusive_flux_correction", &diffusive_flux_correction_);
+  param.ajouter_flag("fluxes_correction_conservations", &fluxes_correction_conservations_);
   param.ajouter_flag("disable_fo_flux_correction", &disable_fo_flux_correction_);
   param.ajouter_flag("override_vapour_mixed_values", &override_vapour_mixed_values_);
   param.ajouter("points_per_thermal_subproblem", &points_per_thermal_subproblem_);
@@ -573,6 +575,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("use_corrected_velocity_convection", &use_corrected_velocity_convection_);
   param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
   param.ajouter_flag("compute_radial_displacement", &compute_radial_displacement_);
+
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);
@@ -2405,13 +2408,13 @@ void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre(
 void IJK_Thermal_Subresolution::compute_convective_fluxes_face_centre()
 {
   if (!disable_subresolution_ && convective_flux_correction_ && !use_reachable_fluxes_)
-    corrige_flux_->compute_thermal_convective_fluxes();
+    corrige_flux_->compute_thermal_convective_fluxes(!diffusive_flux_correction_ && fluxes_correction_conservations_);
 }
 
 void IJK_Thermal_Subresolution::compute_diffusive_fluxes_face_centre()
 {
   if (!disable_subresolution_ && diffusive_flux_correction_ && !use_reachable_fluxes_)
-    corrige_flux_->compute_thermal_diffusive_fluxes();
+    corrige_flux_->compute_thermal_diffusive_fluxes(diffusive_flux_correction_ && fluxes_correction_conservations_);
 }
 
 void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()
@@ -2713,10 +2716,6 @@ void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
   if (store_flux_operators_for_energy_balance_)
     if (!disable_subresolution_ || reference_gfm_on_probes_)
       {
-        if (!conv_temperature_negligible_)
-          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
-        if (!diff_temperature_negligible_)
-          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, 1);
         if (!conv_temperature_negligible_)
           thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
         if (!diff_temperature_negligible_)

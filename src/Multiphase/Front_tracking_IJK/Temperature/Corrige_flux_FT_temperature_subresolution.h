@@ -24,6 +24,7 @@
 
 #include <Corrige_flux_FT_base.h>
 #include <IJK_One_Dimensional_Subproblems.h>
+#define FLUXES_OUT {-1, 1, -1, 1, -1, 1}
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
@@ -57,9 +58,9 @@ public :
                                    const IJK_FT_double& ijk_ft,
                                    Intersection_Interface_ijk_face& intersection_ijk_face,
                                    Intersection_Interface_ijk_cell& intersection_ijk_cell,
-                                   const IJK_One_Dimensional_Subproblems& thermal_subproblems) override;
+                                   IJK_One_Dimensional_Subproblems& thermal_subproblems) override;
 
-  void associate_thermal_problems(const IJK_One_Dimensional_Subproblems& thermal_subproblems);
+  void associate_thermal_problems(IJK_One_Dimensional_Subproblems& thermal_subproblems);
   void set_convection_diffusion_correction(const int& convective_flux_correction, const int& diffusive_flux_correction) override
   {
     convective_flux_correction_ = convective_flux_correction;
@@ -307,11 +308,11 @@ public :
                                                     FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz);
 
   void set_zero_temperature_increment(IJK_Field_double& d_temperature) const override;
-  void compute_thermal_convective_fluxes() override;
-  void compute_thermal_diffusive_fluxes() override;
-  void compute_thermal_convective_fluxes_face_centre();
-  void compute_thermal_diffusive_fluxes_face_centre();
-  void compute_thermal_fluxes_face_centre(DoubleVect& fluxes, const int fluxes_type);
+  void compute_thermal_convective_fluxes(const int& last_flux) override;
+  void compute_thermal_diffusive_fluxes(const int& last_flux) override;
+  void compute_thermal_convective_fluxes_face_centre(const int& last_flux);
+  void compute_thermal_diffusive_fluxes_face_centre(const int& last_flux);
+  void compute_thermal_fluxes_face_centre(DoubleVect& fluxes, const int fluxes_type, const int& last_flux);
   double compute_thermal_flux_face_centre(const int fluxes_type,
                                           const int& index_subproblem,
                                           const double& dist,
@@ -412,7 +413,7 @@ protected :
   DoubleVect convective_fluxes_unique_;
   DoubleVect diffusive_fluxes_;
   DoubleVect diffusive_fluxes_unique_;
-  const IJK_One_Dimensional_Subproblems * thermal_subproblems_;
+  IJK_One_Dimensional_Subproblems * thermal_subproblems_;
   bool has_checked_consistency_;
   ArrOfInt ijk_intersections_subproblems_indices_;
 
