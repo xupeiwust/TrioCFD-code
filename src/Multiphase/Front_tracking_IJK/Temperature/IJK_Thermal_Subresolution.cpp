@@ -33,72 +33,19 @@ Implemente_instanciable_sans_constructeur( IJK_Thermal_Subresolution, "IJK_Therm
 
 IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
 {
-
-  reference_gfm_on_probes_ = 0;
-  compute_normal_derivatives_on_reference_probes_ = 0;
-
-  disable_probe_weak_gradient_ = 0;
-  disable_probe_weak_gradient_gfm_=0;
-
-  reconstruct_previous_probe_field_=0;
-  implicit_solver_from_previous_probe_field_=0;
-
-  enable_probe_collision_detection_=0;
-  enable_resize_probe_collision_=0;
-  debug_probe_collision_=0;
-
-  disable_spherical_diffusion_start_ = 0;
-  probes_end_value_start_ = -1;
-  probes_end_value_coeff_ = 0.05;
-  single_centred_bubble_ = 1;
-  computed_centred_bubble_start_ = 1.;
-  single_centred_bubble_radius_ini_ = 1.e-3;
-  temperature_ini_type_ = 1;
-  time_ini_user_ = 0.;
-  nusselt_spherical_diffusion_ = 2.;
-  nusselt_spherical_diffusion_liquid_ = 2.;
-  heat_flux_spherical_ = 0.;
-  mean_liquid_temperature_ = -1;
-
-  disable_mixed_cells_increment_=0;
-  enable_mixed_cells_increment_=1;
-  allow_temperature_correction_for_visu_=0;
-  subproblem_temperature_extension_=0;
-  disable_subresolution_=0;
-  convective_flux_correction_ = 0;
-  diffusive_flux_correction_ = 0;
-  impose_fo_flux_correction_ = 1;
-  disable_fo_flux_correction_=0;
-  override_vapour_mixed_values_ = 0;
-  compute_eulerian_compo_ = 1;
-
-  error_temperature_ana_total_ = 0.;
-  error_temperature_ana_squared_total_ = 0.;
-  error_temperature_ana_rel_total_ = 0.;
-
-  points_per_thermal_subproblem_ = 32;
-  dr_ = 0.;
-  probe_length_=0.;
-
   boundary_condition_interface_dict_ = Motcles(3);
   {
     boundary_condition_interface_dict_[0] = "dirichlet";
     boundary_condition_interface_dict_[1] = "neumann";
     boundary_condition_interface_dict_[2] = "flux_jump";
   }
-  boundary_condition_interface_ = -1;
-  interfacial_boundary_condition_value_ = 0.;
-  impose_boundary_condition_interface_from_simulation_=0;
-  boundary_condition_end_ = 0;
+
   boundary_condition_end_dict_ = Motcles(2);
   {
     boundary_condition_end_dict_[0] = "dirichlet";
     boundary_condition_end_dict_[1] = "neumann";
   }
-  end_boundary_condition_value_ = -1;
-  impose_user_boundary_condition_end_value_=0;
 
-  source_terms_type_=2;
   source_terms_type_dict_ = Motcles(7);
   {
     source_terms_type_dict_[0] = "linear_diffusion";
@@ -109,8 +56,6 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
     source_terms_type_dict_[5] = "tangential_conv_2D_tangential_diffusion_3D";
     source_terms_type_dict_[6] = "tangential_conv_3D_tangentual_diffusion_3D";
   }
-  source_terms_correction_=0;
-
 
   fd_solver_type_ = "Solv_Gen";
   fd_solvers_ = Motcles(4);
@@ -127,83 +72,8 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
     fd_solvers_jdd_[2] = "thermal_fd_solver_3";
     fd_solvers_jdd_[3] = "thermal_fd_solver_4";
   }
-  fd_solver_rank_ = 0;
   // one_dimensional_advection_diffusion_thermal_solver_.nommer("finite_difference_solver");
   // one_dimensional_advection_diffusion_thermal_solver_.typer("Solv_GCP");
-  compute_tangential_variables_ = 0;
-
-  discrete_integral_ = 0;
-  quadtree_levels_ = 1;
-  advected_frame_of_reference_=0;
-  neglect_frame_of_reference_radial_advection_=0;
-  approximate_temperature_increment_=0;
-
-  is_first_time_step_ = false;
-  first_time_step_temporal_ = 0;
-  first_time_step_implicit_ = 0;
-  first_time_step_explicit_ = 1;
-  local_fourier_ = 1.;
-  local_cfl_ = 1.;
-
-  distance_cell_faces_from_lrs_=1;
-  disable_distance_cell_faces_from_lrs_=0;
-
-  pre_initialise_thermal_subproblems_list_ = 0;
-  pre_factor_subproblems_number_ = 3.;
-  remove_append_subproblems_ = 0;
-
-  correct_temperature_cell_neighbours_first_iter_ = 0;
-  correct_first_iter_deactivate_cell_neighbours_ = 0;
-  find_temperature_cell_neighbours_ = 0;
-  correct_neighbours_using_probe_length_ = 0;
-  neighbours_corrected_rank_ = 1;
-  use_temperature_cell_neighbours_ = 0;
-  neighbours_weighting_ = 0.;
-  neighbours_colinearity_weighting_ = 0.;
-  neighbours_distance_weighting_ = 0;
-  neighbours_colinearity_distance_weighting_ = 0;
-  smooth_temperature_field_=0;
-  readjust_probe_length_from_vertices_=0;
-
-  clip_temperature_values_ = 0;
-  disable_post_processing_probes_out_files_ = 0;
-  enforce_periodic_boundary_value_ = 0;
-  stencil_periodic_boundary_value_ = 2;
-
-  store_cell_faces_corrected_ = 0;
-
-  find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  find_reachable_fluxes_ = 0;
-  use_reachable_fluxes_ = 0;
-  keep_first_reachable_fluxes_ = 0;
-
-  modified_time_init_ = 0.;
-  spherical_diffusion_ = 1;
-
-  post_process_all_probes_ = 0;
-  nb_theta_post_pro_ = 10;
-  nb_phi_post_pro_ = 4;
-  nb_probes_post_pro_ = 40;
-
-  interp_eulerian_ = 0;
-  first_step_thermals_post_=1;
-  disable_first_step_thermals_post_=0;
-
-  neighbours_last_faces_weighting_ = 0;
-  neighbours_last_faces_colinearity_weighting_ = 0;
-  neighbours_last_faces_colinearity_face_weighting_ = 0;
-  neighbours_last_faces_distance_weighting_ = 0;
-  neighbours_last_faces_distance_colinearity_weighting_ = 0;
-  neighbours_last_faces_distance_colinearity_face_weighting_ = 0;
-
-  copy_fluxes_on_every_procs_ = 1;
-  copy_temperature_on_every_procs_ = 1;
-
-  initialise_sparse_indices_ = 0;
-  use_sparse_matrix_ = 0;
-
-  thermal_subproblems_matrix_assembly_for_solver_ref_ = nullptr;
 }
 
 Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const

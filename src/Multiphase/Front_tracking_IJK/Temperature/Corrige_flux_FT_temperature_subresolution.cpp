@@ -26,32 +26,6 @@ Implemente_instanciable_sans_constructeur( Corrige_flux_FT_temperature_subresolu
 
 Corrige_flux_FT_temperature_subresolution::Corrige_flux_FT_temperature_subresolution()
 {
-  thermal_subproblems_ = nullptr;
-  has_checked_consistency_ = false;
-  distance_cell_faces_from_lrs_= 0;
-  find_temperature_cell_neighbours_ = 0;
-  neighbours_colinearity_weighting_ = 0;
-  find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  find_reachable_fluxes_ = 0;
-  use_reachable_fluxes_ = 0;
-  keep_first_reachable_fluxes_ = 0.;
-  cell_faces_neighbours_corrected_bool_ = nullptr;
-  eulerian_normal_vectors_ns_normed_ = nullptr;
-
-  convection_negligible_ = 0;
-  diffusion_negligible_ = 0;
-  debug_=0;
-  levels_=0;
-  discrete_integral_=0;
-  flux_init_ = 0;
-  convective_flux_correction_ = 0;
-  diffusive_flux_correction_ = 0;
-  smooth_temperature_field_=0;
-
-  copy_fluxes_on_every_procs_ = 1;
-  copy_temperature_on_every_procs_ = 1;
-
   for (int c=0; c<3; c++)
     indices_temperature_neighbours_on_procs_[c].set_smart_resize(1);
   temperature_neighbours_on_procs_.set_smart_resize(1);

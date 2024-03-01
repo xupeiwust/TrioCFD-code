@@ -26,9 +26,6 @@ Implemente_instanciable_sans_constructeur( IJK_Thermal, "IJK_Thermal", DERIV(IJK
 
 IJK_Thermal::IJK_Thermal()
 {
-  thermal_rank_ = 0;
-  thermal_problem_type_ = "subresolution";
-  prefix_="IJK_Thermal_";
   thermal_words_ = Motcles(4);
   {
     thermal_words_[0] = "subresolution";

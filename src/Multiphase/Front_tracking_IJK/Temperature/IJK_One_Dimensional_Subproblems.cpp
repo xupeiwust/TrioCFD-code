@@ -39,8 +39,6 @@ IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems()
   interfacial_thermal_flux_per_bubble_spherical_.set_smart_resize(1);
 
   total_surface_per_bubble_.set_smart_resize(1);
-  bubbles_rising_velocities_ = nullptr;
-  bubbles_rising_vectors_per_bubble_ = nullptr;
   bubbles_rising_relative_velocities_.set_smart_resize(1);
   bubbles_rising_relative_velocities_upstream_.set_smart_resize(1);
   bubbles_reynolds_numbers_per_bubble_.set_smart_resize(1);
@@ -49,9 +47,6 @@ IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems()
   bubbles_reynolds_numbers_per_bubble_upstream_.set_smart_resize(1);
   bubbles_reynolds_numbers_from_surface_per_bubble_upstream_.set_smart_resize(1);
   bubbles_reynolds_numbers_from_surface_per_bubble_upstream_.set_smart_resize(1);
-  total_rising_dir_compo_ = 0.;
-  total_relative_rising_dir_compo_ = 0.;
-  total_relative_rising_dir_compo_upstream_ =0.;
   for (int dir=0; dir<3; dir++)
     {
       relative_rising_dir_compo_[dir].set_smart_resize(1);
@@ -120,13 +115,6 @@ IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems()
   overall_nusselt_number_face_fluxes_per_bubble_liquid_.set_smart_resize(1);
   overall_nusselt_number_lrs_face_fluxes_per_bubble_.set_smart_resize(1);
   overall_nusselt_number_lrs_face_fluxes_per_bubble_liquid_.set_smart_resize(1);
-
-  liquid_velocity_ = nullptr;
-  bubbles_volume_ = nullptr;
-  prandtl_number_ = nullptr;
-  latastep_reprise_ = nullptr;
-
-  points_per_thermal_subproblem_ = nullptr;
 
   collision_indices_.set_smart_resize(1);
 }

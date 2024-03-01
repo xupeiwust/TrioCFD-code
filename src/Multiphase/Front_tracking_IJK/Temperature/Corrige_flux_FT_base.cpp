@@ -45,15 +45,6 @@ Implemente_base_sans_constructeur(Corrige_flux_FT_base, "Corrige_flux_FT_base", 
 
 Corrige_flux_FT_base::Corrige_flux_FT_base()
 {
-  interfaces_ = nullptr;
-  field_ = nullptr;
-  splitting_ = nullptr;
-  rhocp_l_=0.;
-  rhocp_v_=0.;
-  lda_l_=0.;
-  lda_v_=0.;
-  intersection_ijk_face_ = nullptr;
-  intersection_ijk_cell_ = nullptr;
 }
 
 

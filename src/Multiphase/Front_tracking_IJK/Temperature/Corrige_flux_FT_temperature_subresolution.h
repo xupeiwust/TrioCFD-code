@@ -413,8 +413,8 @@ protected :
   DoubleVect convective_fluxes_unique_;
   DoubleVect diffusive_fluxes_;
   DoubleVect diffusive_fluxes_unique_;
-  IJK_One_Dimensional_Subproblems * thermal_subproblems_;
-  bool has_checked_consistency_;
+  IJK_One_Dimensional_Subproblems * thermal_subproblems_ = nullptr;
+  bool has_checked_consistency_ = false;
   ArrOfInt ijk_intersections_subproblems_indices_;
 
 
@@ -478,34 +478,34 @@ protected :
   FixedVector<std::map<int, int>, 3> flux_outside_frontier_all_map_;
 
 
-  int convection_negligible_;
-  int diffusion_negligible_;
-  int debug_;
-  int levels_;
-  int discrete_integral_;
-  bool flux_init_;
+  int convection_negligible_ = 0;
+  int diffusion_negligible_ = 0;
+  int debug_ = 0;
+  int levels_ = 0;
+  int discrete_integral_ = 0;
+  bool flux_init_ = false;
 
-  int distance_cell_faces_from_lrs_;
-  int find_temperature_cell_neighbours_;
-  int find_cell_neighbours_for_fluxes_spherical_correction_;
-  int use_cell_neighbours_for_fluxes_spherical_correction_;
-  int neighbours_colinearity_weighting_;
+  int distance_cell_faces_from_lrs_ = 0;
+  int find_temperature_cell_neighbours_ = 0;
+  int find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
+  int use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
+  int neighbours_colinearity_weighting_ = 0;
 
-  int find_reachable_fluxes_;
-  int use_reachable_fluxes_;
-  int keep_first_reachable_fluxes_;
-  FixedVector<IJK_Field_int, 3> * cell_faces_neighbours_corrected_bool_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_;
+  int find_reachable_fluxes_ = 0;
+  int use_reachable_fluxes_ = 0;
+  int keep_first_reachable_fluxes_ = 0;
+  FixedVector<IJK_Field_int, 3> * cell_faces_neighbours_corrected_bool_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_ = nullptr;
 
-  int convective_flux_correction_;
-  int diffusive_flux_correction_;
+  int convective_flux_correction_ = 0;
+  int diffusive_flux_correction_ = 0;
 
-  int smooth_temperature_field_;
+  int smooth_temperature_field_ = 0;
   /*
    * Very large memory footprint ?
    */
-  int copy_fluxes_on_every_procs_;
-  int copy_temperature_on_every_procs_;
+  int copy_fluxes_on_every_procs_ = 1;
+  int copy_temperature_on_every_procs_ = 1;
 
 };
 

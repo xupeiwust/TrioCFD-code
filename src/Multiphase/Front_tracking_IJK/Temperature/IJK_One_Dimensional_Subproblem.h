@@ -708,34 +708,34 @@ protected :
 
   enum Boundary_conditions { default_bc=-1, dirichlet, neumann, flux_jump, implicit };
 
-  int disable_probe_because_collision_;
-  int disable_find_cell_centre_probe_tip_;
-  int enable_probe_collision_detection_;
-  int enable_resize_probe_collision_;
-  int debug_probe_collision_;
-  int resize_probe_collision_;
-  int resize_probe_collision_index_;
-  double modified_probe_length_from_collision_;
+  int disable_probe_because_collision_ = 0;
+  int disable_find_cell_centre_probe_tip_ = 0;
+  int enable_probe_collision_detection_ = 0;
+  int enable_resize_probe_collision_ = 0;
+  int debug_probe_collision_ = 0;
+  int resize_probe_collision_ = 0;
+  int resize_probe_collision_index_ = 0;
+  double modified_probe_length_from_collision_ = 0.;
 
-  int disable_probe_weak_gradient_;
-  int disable_probe_weak_gradient_gfm_;
-  int disable_probe_weak_gradient_local_;
+  int disable_probe_weak_gradient_ = 0;
+  int disable_probe_weak_gradient_gfm_ = 0;
+  int disable_probe_weak_gradient_local_ = 0;
 
-  int reconstruct_previous_probe_field_;
-  int implicit_solver_from_previous_probe_field_;
+  int reconstruct_previous_probe_field_= 0;
+  int implicit_solver_from_previous_probe_field_ = 0;
 
-  const std::map<int, std::map<int, std::map<int, int>>> * subproblem_to_ijk_indices_previous_;
-  const std::vector<DoubleVect> * temperature_probes_previous_;
-  const std::vector<double> * indicator_probes_previous_;
-  const std::vector<Vecteur3> * velocities_probes_previous_;
-  const std::vector<Vecteur3> * normal_vector_compo_probes_previous_;
+  const std::map<int, std::map<int, std::map<int, int>>> * subproblem_to_ijk_indices_previous_ = nullptr;
+  const std::vector<DoubleVect> * temperature_probes_previous_ = nullptr;
+  const std::vector<double> * indicator_probes_previous_ = nullptr;
+  const std::vector<Vecteur3> * velocities_probes_previous_ = nullptr;
+  const std::vector<Vecteur3> * normal_vector_compo_probes_previous_ = nullptr;
 
   int reference_gfm_on_probes_ = 0;
   int compute_normal_derivative_on_reference_probes_ = 0;
   int compute_tangential_variables_ = 1;
   int pure_thermal_diffusion_ = 0;
-  int debug_;
-  int init_;
+  int debug_ = 0;
+  int init_ = 1;
   int advected_frame_of_reference_=0;
   int neglect_frame_of_reference_radial_advection_=0;
   /*
@@ -780,8 +780,8 @@ protected :
   Vecteur3 azymuthal_vector_compo_;
 
   bool tangential_from_rising_vel_ = false;
-  Vecteur3 * first_tangential_vector_compo_solver_;
-  Vecteur3 * second_tangential_vector_compo_solver_;
+  Vecteur3 * first_tangential_vector_compo_solver_ = nullptr;
+  Vecteur3 * second_tangential_vector_compo_solver_ = nullptr;
 
   Vecteur3 interfacial_temperature_gradient_compo_;
   Matrice33 interfacial_temperature_hessian_compo_;
@@ -796,16 +796,16 @@ protected :
   // FIXME: Should each probes have their own number of points ?
   bool global_probes_characteristics_ = true;
 
-  const int * points_per_thermal_subproblem_base_;
-  const int * points_per_thermal_subproblem_;
+  const int * points_per_thermal_subproblem_base_ = nullptr;
+  const int * points_per_thermal_subproblem_ = nullptr;
   int increased_point_numbers_ = 32;
   // FIXME: Should alpha_liq be constant, or a reference ?
-  const double * cp_liquid_;
-  const double * alpha_;
-  const double * prandtl_number_;
-  const double * lambda_;
-  const double * coeff_distance_diagonal_;
-  const double * cell_diagonal_;
+  const double * cp_liquid_ = nullptr;
+  const double * alpha_ = nullptr;
+  const double * prandtl_number_ = nullptr;
+  const double * lambda_ = nullptr;
+  const double * coeff_distance_diagonal_ = nullptr;
+  const double * cell_diagonal_ = nullptr;
   double probe_length_ = 0.;
   double surface_ = 0.;
 
@@ -820,41 +820,41 @@ protected :
    * References to IJK_Field_double to avoid copy of large fields
    * Similar to operators !
    */
-  const IJK_Interfaces * interfaces_;
+  const IJK_Interfaces * interfaces_ = nullptr;
   double indicator_=0.5;
   double temperature_cell_=0.;
   Vecteur3 xyz_velocity_cell_;
-  const IJK_Field_double * eulerian_distance_;
-  const IJK_Field_double * eulerian_curvature_;
-  const IJK_Field_double * eulerian_interfacial_area_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_;
+  const IJK_Field_double * eulerian_distance_ = nullptr;
+  const IJK_Field_double * eulerian_curvature_ = nullptr;
+  const IJK_Field_double * eulerian_interfacial_area_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ = nullptr;
 
-  const IJK_Field_double * temperature_;
-  const IJK_Field_double * temperature_ft_;
-  const IJK_Field_double * temperature_before_extrapolation_;
-  const FixedVector<IJK_Field_double, 3> * velocity_;
-  const FixedVector<IJK_Field_double, 3> * velocity_ft_;
-  const IJK_Field_double * pressure_;
-  const IJK_Field_double * eulerian_grad_T_interface_ns_;
-  IJK_Field_double * probe_collision_debug_field_;
+  const IJK_Field_double * temperature_ = nullptr;
+  const IJK_Field_double * temperature_ft_ = nullptr;
+  const IJK_Field_double * temperature_before_extrapolation_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * velocity_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * velocity_ft_ = nullptr;
+  const IJK_Field_double * pressure_ = nullptr;
+  const IJK_Field_double * eulerian_grad_T_interface_ns_ = nullptr;
+  IJK_Field_double * probe_collision_debug_field_ = nullptr;
 
-  const FixedVector<IJK_Field_double, 3> * grad_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_cross_T_elem_;
+  const FixedVector<IJK_Field_double, 3> * grad_T_elem_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * hess_cross_T_elem_ = nullptr;
 
-  const double * dr_base_ = 0;
+  const double * dr_base_ = nullptr;
   // FIXME: Should I use DoubleTab instead ?
-  const DoubleVect* radial_coordinates_base_;
+  const DoubleVect* radial_coordinates_base_ = nullptr;
 
-  const Matrice *identity_matrix_explicit_implicit_base_;
-  const Matrice *radial_first_order_operator_raw_base_;
-  const Matrice *radial_second_order_operator_raw_base_;
-  const Matrice *radial_first_order_operator_base_;
-  const Matrice *radial_second_order_operator_base_;
-  const Matrice *radial_first_order_operator_;
-  const Matrice *radial_second_order_operator_;
-  const Matrice *identity_matrix_explicit_implicit_;
+  const Matrice *identity_matrix_explicit_implicit_base_ = nullptr;
+  const Matrice *radial_first_order_operator_raw_base_ = nullptr;
+  const Matrice *radial_second_order_operator_raw_base_ = nullptr;
+  const Matrice *radial_first_order_operator_base_ = nullptr;
+  const Matrice *radial_second_order_operator_base_ = nullptr;
+  const Matrice *radial_first_order_operator_ = nullptr;
+  const Matrice *radial_second_order_operator_ = nullptr;
+  const Matrice *identity_matrix_explicit_implicit_ = nullptr;
   Matrice identity_matrix_explicit_implicit_local_;
   Matrice radial_first_order_operator_local_;
   Matrice radial_second_order_operator_local_;
@@ -863,16 +863,16 @@ protected :
    * Pointers to non-constant matrice
    * FIXME: Should I declare constant pointers ?
    */
-  Matrice *identity_matrix_subproblems_;
-  Matrice *radial_diffusion_matrix_base_;
-  Matrice *radial_convection_matrix_base_;
-  const Matrice *radial_velocity_convection_matrix_base_;
+  Matrice *identity_matrix_subproblems_ = nullptr;
+  Matrice *radial_diffusion_matrix_base_ = nullptr;
+  Matrice *radial_convection_matrix_base_ = nullptr;
+  const Matrice *radial_velocity_convection_matrix_base_ = nullptr;
   //  const Matrice * tangential_velocity_convection_matrix_base_;
   //  const Matrice * azymuthal_velocity_convection_matrix_base_;
 
   double dr_=0.;
   double dr_inv_=0.;
-  const DoubleVect * radial_coordinates_;
+  const DoubleVect * radial_coordinates_ = nullptr;
   DoubleVect radial_coordinates_modified_;
   DoubleVect osculating_radial_coordinates_;
   DoubleVect osculating_radial_coordinates_inv_;
@@ -909,10 +909,10 @@ protected :
   DoubleVect azymuthal_velocity_advected_frame_;
   DoubleVect azymuthal_velocity_static_frame_;
   DoubleVect azymuthal_velocity_corrected_;
-  DoubleVect * first_tangential_velocity_not_corrected_;
-  DoubleVect * second_tangential_velocity_not_corrected_;
-  DoubleVect * first_tangential_velocity_solver_;
-  DoubleVect * second_tangential_velocity_solver_;
+  DoubleVect * first_tangential_velocity_not_corrected_ = nullptr;
+  DoubleVect * second_tangential_velocity_not_corrected_ = nullptr;
+  DoubleVect * first_tangential_velocity_solver_ = nullptr;
+  DoubleVect * second_tangential_velocity_solver_ = nullptr;
   DoubleVect radial_convection_prefactor_;
   DoubleVect temperature_previous_;
   DoubleVect normal_temperature_gradient_previous_;
@@ -971,8 +971,8 @@ protected :
   DoubleVect tangential_temperature_gradient_second_;
   DoubleVect tangential_temperature_gradient_first_from_rising_dir_;
   DoubleVect azymuthal_temperature_gradient_;
-  DoubleVect * tangential_temperature_gradient_first_solver_;
-  DoubleVect * tangential_temperature_gradient_second_solver_;
+  DoubleVect * tangential_temperature_gradient_first_solver_ = nullptr;
+  DoubleVect * tangential_temperature_gradient_second_solver_ = nullptr;
   DoubleVect tangential_hessian_contribution_;
   DoubleVect tangential_convection_source_terms_first_;
   DoubleVect tangential_convection_source_terms_second_;
@@ -980,23 +980,23 @@ protected :
   DoubleVect tangential_diffusion_source_terms_;
   DoubleVect source_terms_;
 
-  int correct_radial_velocity_;
-  int correct_tangential_temperature_gradient_;
-  int correct_tangential_temperature_hessian_;
+  int correct_radial_velocity_ = 1;
+  int correct_tangential_temperature_gradient_ = 0;
+  int correct_tangential_temperature_hessian_ = 0;
 
-  FixedVector<ArrOfInt,6> * first_indices_sparse_matrix_;
+  FixedVector<ArrOfInt,6> * first_indices_sparse_matrix_ = nullptr;
   int operators_reinitialisation_=1;
 
-  IJK_Finite_Difference_One_Dimensional_Matrix_Assembler * finite_difference_assembler_;
-  Matrice * thermal_subproblems_matrix_assembly_;
-  DoubleVect * thermal_subproblems_rhs_assembly_;
-  DoubleVect * thermal_subproblems_temperature_solution_;
-  DoubleVect * thermal_subproblems_temperature_solution_ini_;
+  IJK_Finite_Difference_One_Dimensional_Matrix_Assembler * finite_difference_assembler_ = nullptr;
+  Matrice * thermal_subproblems_matrix_assembly_ = nullptr;
+  DoubleVect * thermal_subproblems_rhs_assembly_ = nullptr;
+  DoubleVect * thermal_subproblems_temperature_solution_ = nullptr;
+  DoubleVect * thermal_subproblems_temperature_solution_ini_ = nullptr;
   DoubleVect rhs_assembly_;
-  double interfacial_boundary_condition_value_;
-  double end_boundary_condition_value_;
-  int start_index_;
-  int end_index_;
+  double interfacial_boundary_condition_value_ = 0.;
+  double end_boundary_condition_value_ = 0.;
+  int start_index_ = 0;
+  int end_index_ = 0;
   DoubleVect temperature_solution_;
   FixedVector<DoubleVect, 3> temperature_gradient_solution_;
   DoubleVect normal_temperature_gradient_solution_;
@@ -1017,13 +1017,13 @@ protected :
   DoubleVect radial_convection_interp_;
   DoubleVect radial_convection_solution_;
 
-  const double * delta_temperature_;
-  const double * mean_liquid_temperature_;
-  const ArrOfDouble * bubbles_volume_;
-  const ArrOfDouble * bubbles_surface_;
-  const ArrOfDouble * radius_from_surfaces_per_bubble_;
-  const ArrOfDouble * radius_from_volumes_per_bubble_;
-  const DoubleTab * bubbles_rising_vectors_per_bubble_;
+  const double * delta_temperature_ = nullptr;
+  const double * mean_liquid_temperature_ = nullptr;
+  const ArrOfDouble * bubbles_volume_ = nullptr;
+  const ArrOfDouble * bubbles_surface_ = nullptr;
+  const ArrOfDouble * radius_from_surfaces_per_bubble_ = nullptr;
+  const ArrOfDouble * radius_from_volumes_per_bubble_ = nullptr;
+  const DoubleTab * bubbles_rising_vectors_per_bubble_ = nullptr;
 
   DoubleVect normal_velocity_normal_gradient_;
   DoubleVect first_tangential_velocity_normal_gradient_;
@@ -1053,7 +1053,7 @@ protected :
    */
   DoubleVect temperature_ini_temporal_schemes_;
   bool is_first_time_step_ = false;
-  int * first_time_step_temporal_;
+  int * first_time_step_temporal_ = nullptr;
   int first_time_step_explicit_ = 1;
   double current_time_ = 0.;
   double global_dt_cfl_ = 0.;
@@ -1065,7 +1065,7 @@ protected :
   double local_fourier_ = 1.;
   double local_cfl_ = 1.;
   double min_delta_xyz_=0.;
-  double max_u_;
+  double max_u_ = 0.9 * INVALID_VELOCITY_CFL;
   double local_time_step_round_ = 0.;
   double local_time_step_overall_ = 0.;
   double local_fourier_time_step_probe_length_ = 0.;
@@ -1104,9 +1104,11 @@ protected :
   FixedVector<FixedVector<double,4>,6> vertices_centres_tangential_distance_;
   FixedVector<FixedVector<Vecteur3,4>,6> vertices_tangential_distance_vector_;
   double modified_probe_length_from_vertices_ = 0.;
-  bool has_computed_cell_centre_distance_;
-  bool has_computed_cell_faces_distance_;
-  bool has_computed_liquid_neighbours_;
+
+  bool has_computed_cell_centre_distance_ = false;
+  bool has_computed_cell_faces_distance_ = false;
+  bool has_computed_liquid_neighbours_ = false;
+
   int correct_fluxes_ = 0;
   double cell_temperature_ = 0.;
 
@@ -1151,7 +1153,7 @@ protected :
   int interp_eulerian_= 0;
   int n_iter_distance_ = 0;
 
-  const int * latastep_reprise_;
+  const int * latastep_reprise_ = nullptr;
 
   int use_corrected_velocity_convection_ = 0;
   int use_velocity_cartesian_grid_ = 0;

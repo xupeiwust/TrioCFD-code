@@ -187,9 +187,9 @@ public :
   inline void compute_temperature_init();
 
 protected:
-  int thermal_rank_;
-  Nom thermal_problem_type_;
-  Nom prefix_;
+  int thermal_rank_ = 0;
+  Nom thermal_problem_type_ = "subresolution";
+  Nom prefix_ = "IJK_Thermal_";
   Motcles thermal_words_;
   Motcles lata_suffix_;
 

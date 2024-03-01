@@ -179,17 +179,19 @@ public:
                                                                               const int& copy_temperature_on_every_procs) { ; };
 
 protected:
-  const IJK_Interfaces *interfaces_;
-  const IJK_Field_double *field_;
-  const IJK_Splitting *splitting_;
+  const IJK_Interfaces *interfaces_ = nullptr;
+  const IJK_Field_double *field_ = nullptr;
+  const IJK_Splitting *splitting_ = nullptr;
   REF(IJK_FT_double) ref_ijk_ft_;
 
 
-  double rhocp_l_, rhocp_v_;
-  double lda_l_, lda_v_;
+  double rhocp_l_= 0.;
+  double rhocp_v_ = 0.;
+  double lda_l_ = 0.;
+  double lda_v_ = 0.;
 
-  Intersection_Interface_ijk_face * intersection_ijk_face_;
-  Intersection_Interface_ijk_cell * intersection_ijk_cell_;
+  Intersection_Interface_ijk_face * intersection_ijk_face_ = nullptr;
+  Intersection_Interface_ijk_cell * intersection_ijk_cell_ = nullptr;
   /*
    * TODO: mettre ces méthodes dans une petite classe pour parcourir
    * les trois directions.

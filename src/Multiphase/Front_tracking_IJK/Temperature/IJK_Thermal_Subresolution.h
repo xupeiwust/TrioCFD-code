@@ -491,53 +491,53 @@ protected :
 
   void compare_fluxes_thermal_subproblems() override;
 
-  int enable_probe_collision_detection_;
-  int enable_resize_probe_collision_;
-  int debug_probe_collision_;
+  int enable_probe_collision_detection_ = 0;
+  int enable_resize_probe_collision_ = 0;
+  int debug_probe_collision_ = 0;
   IJK_Field_double probe_collision_debug_field_;
-  int reference_gfm_on_probes_;
-  int compute_normal_derivatives_on_reference_probes_;
+  int reference_gfm_on_probes_ = 0;
+  int compute_normal_derivatives_on_reference_probes_ = 0;
 
-  int disable_probe_weak_gradient_;
-  int disable_probe_weak_gradient_gfm_;
+  int disable_probe_weak_gradient_ = 0;
+  int disable_probe_weak_gradient_gfm_ = 0;
 
-  int reconstruct_previous_probe_field_;
-  int implicit_solver_from_previous_probe_field_;
+  int reconstruct_previous_probe_field_ = 0;
+  int implicit_solver_from_previous_probe_field_ = 0;
 
-  int disable_spherical_diffusion_start_;
-  int single_centred_bubble_;
-  int computed_centred_bubble_start_;
-  double single_centred_bubble_radius_ini_;
-  double probes_end_value_start_;
-  double probes_end_value_coeff_;
-  int temperature_ini_type_;
-  double modified_time_init_;
-  int spherical_diffusion_;
-  double nusselt_spherical_diffusion_;
-  double nusselt_spherical_diffusion_liquid_;
-  double heat_flux_spherical_;
+  int disable_spherical_diffusion_start_ = 0;
+  int single_centred_bubble_ = 1;
+  int computed_centred_bubble_start_ = 1;
+  double single_centred_bubble_radius_ini_ = 1.e-3;
+  double probes_end_value_start_ = -1;
+  double probes_end_value_coeff_ = 0.05;
+  int temperature_ini_type_ = 1;
+  double modified_time_init_ = 0.;
+  int spherical_diffusion_ = 1;
+  double nusselt_spherical_diffusion_ = 2.;
+  double nusselt_spherical_diffusion_liquid_ = 2.;
+  double heat_flux_spherical_ = 0.;
   enum temperature_ini_dict { local_criteria, integral_criteria, derivative_criteria, time_criteria };
-  double mean_liquid_temperature_;
-  double time_ini_user_;
+  double mean_liquid_temperature_ = -1;
+  double time_ini_user_ = 0.;
 
-  int disable_mixed_cells_increment_;
-  int enable_mixed_cells_increment_;
-  int allow_temperature_correction_for_visu_;
-  int disable_subresolution_;
-  int diffusive_flux_correction_;
-  int convective_flux_correction_;
+  int disable_mixed_cells_increment_ = 0;
+  int enable_mixed_cells_increment_ = 1;
+  int allow_temperature_correction_for_visu_ = 0;
+  int disable_subresolution_ = 0;
+  int diffusive_flux_correction_ = 0;
+  int convective_flux_correction_ = 0;
   int fluxes_correction_conservations_ = 0;
-  int impose_fo_flux_correction_;
-  int disable_fo_flux_correction_;
-  int subproblem_temperature_extension_; // ghost fluid extension based on the interfacial gradient computed with the subproblem
+  int impose_fo_flux_correction_ = 1;
+  int disable_fo_flux_correction_ = 0;
+  int subproblem_temperature_extension_ = 0; // ghost fluid extension based on the interfacial gradient computed with the subproblem
 
-  int override_vapour_mixed_values_; // For debug purposes
+  int override_vapour_mixed_values_ = 0; // For debug purposes
 
   IJK_One_Dimensional_Subproblems thermal_local_subproblems_;
-  int points_per_thermal_subproblem_;
+  int points_per_thermal_subproblem_ = 32;
   double coeff_distance_diagonal_ = 2.;
-  double probe_length_;
-  double dr_;
+  double probe_length_ = 0.;
+  double dr_ = 0.;
   DoubleVect radial_coordinates_;
   Matrice identity_matrix_explicit_implicit_;
   Matrice radial_first_order_operator_raw_;
@@ -552,7 +552,7 @@ protected :
 
   FixedVector<ArrOfInt, 6> first_indices_sparse_matrix_;
 
-  int initialise_sparse_indices_;
+  int initialise_sparse_indices_ = 0;
   /*
    * Thermal subproblems are regrouped in a single linear system AX=b
    * on each processor !
@@ -566,7 +566,7 @@ protected :
   /*
    * TODO: Cast the matrice with Matrice Morse directly (not Matrice Bloc)
    */
-  Matrice * thermal_subproblems_matrix_assembly_for_solver_ref_;
+  Matrice * thermal_subproblems_matrix_assembly_for_solver_ref_ = nullptr;
   Matrice thermal_subproblems_matrix_assembly_for_solver_;
   Matrice thermal_subproblems_matrix_assembly_for_solver_reduced_;
 
@@ -576,39 +576,39 @@ protected :
   MD_Vector md_;
   Motcles fd_solvers_;
   Motcles fd_solvers_jdd_;
-  int fd_solver_rank_;
+  int fd_solver_rank_ = 0;
   Nom fd_solver_type_;
-  int discrete_integral_;
-  int quadtree_levels_;
+  int discrete_integral_ = 0;
+  int quadtree_levels_ = 1;
 
-  int compute_tangential_variables_;
+  int compute_tangential_variables_ = 0;
 
-  int boundary_condition_interface_;
+  int boundary_condition_interface_ = -1;
   Motcles boundary_condition_interface_dict_;
-  double interfacial_boundary_condition_value_;
-  int impose_boundary_condition_interface_from_simulation_;
-  int boundary_condition_end_;
+  double interfacial_boundary_condition_value_ = 0.;
+  int impose_boundary_condition_interface_from_simulation_ = 0;
+  int boundary_condition_end_ = 0;
   Motcles boundary_condition_end_dict_;
-  double end_boundary_condition_value_;
-  int impose_user_boundary_condition_end_value_;
-  int source_terms_type_;
+  double end_boundary_condition_value_ = -1.;
+  int impose_user_boundary_condition_end_value_ = 0;
+  int source_terms_type_ = 2;
   Motcles source_terms_type_dict_;
-  int source_terms_correction_;
-  int advected_frame_of_reference_;
-  int neglect_frame_of_reference_radial_advection_;
-  int approximate_temperature_increment_;
+  int source_terms_correction_ = 0;
+  int advected_frame_of_reference_ = 0;
+  int neglect_frame_of_reference_radial_advection_ = 0;
+  int approximate_temperature_increment_ = 0;
 
   /*
    * Some tries to do explicit temporal variations at the beginning
    */
-  bool is_first_time_step_;
-  int first_time_step_temporal_;
-  int first_time_step_explicit_;
-  int first_time_step_implicit_;
+  bool is_first_time_step_ = false;
+  int first_time_step_temporal_ = 0;
+  int first_time_step_explicit_ = 0;
+  int first_time_step_implicit_ = 0;
   int local_diffusion_fourier_priority_ = 0;
   int nb_iter_explicit_local_ = 0;
-  double local_fourier_;
-  double local_cfl_;
+  double local_fourier_ = 1.;
+  double local_cfl_ = 1.;
   double delta_T_subcooled_overheated_=-1.;
   double convection_diffusion_time_scale_factor_ = 1.;
   double local_fourier_time_step_probe_length_ = 0.;
@@ -618,9 +618,9 @@ protected :
   double local_dt_cfl_counter_ = 0.;
   double local_dt_fourier_counter_ = 0.;
 
-  double error_temperature_ana_total_;
-  double error_temperature_ana_squared_total_;
-  double error_temperature_ana_rel_total_;
+  double error_temperature_ana_total_ = 0.;
+  double error_temperature_ana_squared_total_ = 0.;
+  double error_temperature_ana_rel_total_ = 0.;
 
   /*
    * Some tries to make the probe length varies at the beginning of the simulation
@@ -633,37 +633,37 @@ protected :
   int max_u_radial_=0;
 
   IJK_Field_double debug_LRS_cells_;
-  int distance_cell_faces_from_lrs_;
-  int  disable_distance_cell_faces_from_lrs_;
+  int distance_cell_faces_from_lrs_ = 1;
+  int  disable_distance_cell_faces_from_lrs_ = 0;
 
-  int pre_initialise_thermal_subproblems_list_;
-  double pre_factor_subproblems_number_;
-  int remove_append_subproblems_;
-  int use_sparse_matrix_;
+  int pre_initialise_thermal_subproblems_list_ = 0;
+  double pre_factor_subproblems_number_ = 3.;
+  int remove_append_subproblems_ = 0;
+  int use_sparse_matrix_ = 0;
   int global_probes_characteristics_ = 1;
 
-  int correct_temperature_cell_neighbours_first_iter_;
-  int correct_first_iter_deactivate_cell_neighbours_;
-  int find_temperature_cell_neighbours_;
-  int use_temperature_cell_neighbours_;
-  int correct_neighbours_using_probe_length_;
-  int neighbours_corrected_rank_;
-  int neighbours_weighting_;
-  int neighbours_colinearity_weighting_;
-  int neighbours_distance_weighting_;
-  int neighbours_colinearity_distance_weighting_;
-  int smooth_temperature_field_;
-  int readjust_probe_length_from_vertices_;
+  int correct_temperature_cell_neighbours_first_iter_ = 0;
+  int correct_first_iter_deactivate_cell_neighbours_ = 0;
+  int find_temperature_cell_neighbours_ = 0;
+  int use_temperature_cell_neighbours_ = 0;
+  int correct_neighbours_using_probe_length_ = 0;
+  int neighbours_corrected_rank_ = 1;
+  int neighbours_weighting_ = 0;
+  int neighbours_colinearity_weighting_ = 0;
+  int neighbours_distance_weighting_ = 0;
+  int neighbours_colinearity_distance_weighting_ = 0;
+  int smooth_temperature_field_ = 0;
+  int readjust_probe_length_from_vertices_ = 0;
   IJK_Field_double temperature_cell_neighbours_;
   IJK_Field_double temperature_cell_neighbours_debug_;
   IJK_Field_int neighbours_temperature_to_correct_;
   IJK_Field_double neighbours_temperature_colinearity_weighting_;
 
-  int clip_temperature_values_;
-  int enforce_periodic_boundary_value_;
-  int stencil_periodic_boundary_value_;
+  int clip_temperature_values_ = 0;
+  int enforce_periodic_boundary_value_ = 0;
+  int stencil_periodic_boundary_value_ = 2;
 
-  int disable_post_processing_probes_out_files_;
+  int disable_post_processing_probes_out_files_ = 0;
 
   /*
    * Pure cells corrected for visualisation
@@ -671,45 +671,45 @@ protected :
   FixedVector<IJK_Field_double,3> cell_faces_corrected_diffusive_;
   FixedVector<IJK_Field_double,3> cell_faces_corrected_convective_;
   FixedVector<IJK_Field_int,3> cell_faces_corrected_bool_;
-  int store_cell_faces_corrected_;
+  int store_cell_faces_corrected_ = 0;
 
   /*
    * Neighbouring faces in the diagonal
    */
   FixedVector<IJK_Field_int,3> cell_faces_neighbours_corrected_diag_bool_;
-  int find_cell_neighbours_for_fluxes_spherical_correction_;
-  int use_cell_neighbours_for_fluxes_spherical_correction_;
+  int find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
+  int use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
 
   /*
    * All reachable faces to correct
    */
-  int find_reachable_fluxes_;
-  int use_reachable_fluxes_;
-  int keep_first_reachable_fluxes_;
+  int find_reachable_fluxes_ = 0;
+  int use_reachable_fluxes_ = 0;
+  int keep_first_reachable_fluxes_ = 0;
   FixedVector<IJK_Field_int,3> cell_faces_neighbours_corrected_all_bool_;
   FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_convective_;
   FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_diffusive_;
   FixedVector<IJK_Field_double, 3> neighbours_faces_weighting_colinearity_;
   FixedVector<IJK_Field_int,3> cell_faces_neighbours_corrected_min_max_bool_;
   IJK_Field_int neighbours_temperature_to_correct_trimmed_;
-  int neighbours_last_faces_weighting_;
-  int neighbours_last_faces_colinearity_weighting_;
-  int neighbours_last_faces_colinearity_face_weighting_;
-  int neighbours_last_faces_distance_weighting_;
-  int neighbours_last_faces_distance_colinearity_weighting_;
-  int neighbours_last_faces_distance_colinearity_face_weighting_;
+  int neighbours_last_faces_weighting_ = 0;
+  int neighbours_last_faces_colinearity_weighting_ = 0;
+  int neighbours_last_faces_colinearity_face_weighting_ = 0;
+  int neighbours_last_faces_distance_weighting_ = 0;
+  int neighbours_last_faces_distance_colinearity_weighting_ = 0;
+  int neighbours_last_faces_distance_colinearity_face_weighting_ = 0;
 
-  int post_process_all_probes_;
-  int nb_theta_post_pro_;
-  int nb_phi_post_pro_;
-  int nb_probes_post_pro_;
+  int post_process_all_probes_ = 0;
+  int nb_theta_post_pro_ = 10;
+  int nb_phi_post_pro_ = 4;
+  int nb_probes_post_pro_ = 40;
 
-  int interp_eulerian_;
-  int first_step_thermals_post_;
-  int disable_first_step_thermals_post_;
+  int interp_eulerian_ = 0;
+  int first_step_thermals_post_ = 1;
+  int disable_first_step_thermals_post_ = 0;
 
-  int copy_fluxes_on_every_procs_;
-  int copy_temperature_on_every_procs_;
+  int copy_fluxes_on_every_procs_ = 1;
+  int copy_temperature_on_every_procs_ = 1;
 
   int post_process_thermal_slices_ = 0;
   int thermal_slices_regions_ = 0;

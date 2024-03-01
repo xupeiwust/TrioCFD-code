@@ -242,7 +242,7 @@ protected :
   std::vector<Vecteur3> velocities_probes_previous_;
   std::vector<Vecteur3> normal_vector_compo_probes_previous_;
 
-  int * points_per_thermal_subproblem_;
+  int * points_per_thermal_subproblem_ = nullptr;
   std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_previous_global_;
   std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_global_;
 
@@ -300,7 +300,7 @@ protected :
   double total_surface_ = 0.;
   double total_volume_ = 0.;
   double lambda_=0.;
-  double * prandtl_number_;
+  double * prandtl_number_ = nullptr;
 
   double radius_from_surfaces_ = 0.;
   double radius_from_volumes_ = 0.;
@@ -310,9 +310,9 @@ protected :
   double error_temperature_ana_squared_total_ = 0.;
   double error_temperature_ana_rel_total_ = 0.;
 
-  const ArrOfDouble * bubbles_volume_;
-  const ArrOfDouble * bubbles_rising_velocities_;
-  const DoubleTab * bubbles_rising_vectors_per_bubble_;
+  const ArrOfDouble * bubbles_volume_ = nullptr;
+  const ArrOfDouble * bubbles_rising_velocities_ = nullptr;
+  const DoubleTab * bubbles_rising_vectors_per_bubble_ = nullptr;
   ArrOfDouble bubbles_rising_relative_velocities_;
   ArrOfDouble bubbles_rising_relative_velocities_upstream_;
   ArrOfDouble bubbles_reynolds_numbers_per_bubble_;
@@ -326,9 +326,9 @@ protected :
 
   double velocity_upstream_ = 0.;
   int gravity_dir_ = 0;
-  Vecteur3 total_relative_rising_dir_compo_;
-  Vecteur3 total_relative_rising_dir_compo_upstream_;
-  Vecteur3 total_rising_dir_compo_;
+  Vecteur3 total_relative_rising_dir_compo_ = {0., 0., 0.};
+  Vecteur3 total_relative_rising_dir_compo_upstream_ = {0., 0., 0.};
+  Vecteur3 total_rising_dir_compo_ = {0., 0., 0.};
   double bubbles_total_rising_velocities_ = 0.;
   double bubbles_total_rising_relative_velocities_ = 0.;
   double bubbles_total_rising_relative_velocities_upstream_ = 0.;
@@ -436,10 +436,10 @@ protected :
   double overall_nusselt_number_lrs_face_fluxes_liquid_ = 0.;
 
 
-  const Vecteur3 * liquid_velocity_;
+  const Vecteur3 * liquid_velocity_ = nullptr;
 
   int nb_bubbles_ = 0;
-  int * latastep_reprise_;
+  int * latastep_reprise_ = nullptr;
 
   ArrOfInt collision_indices_;
 

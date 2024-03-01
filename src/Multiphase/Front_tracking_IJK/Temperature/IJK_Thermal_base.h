@@ -724,7 +724,7 @@ protected:
 
   int mixed_cells_number_ = 0;
   void compute_mixed_cells_number(const IJK_Field_double& indicator);
-  int compute_eulerian_compo_;
+  int compute_eulerian_compo_ = 1;
 
 //  IJK_Field_double eulerian_compo_connex_ft_;
 //  IJK_Field_double eulerian_compo_connex_ns_;
