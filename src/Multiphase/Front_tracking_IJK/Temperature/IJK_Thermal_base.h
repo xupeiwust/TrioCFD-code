@@ -388,6 +388,11 @@ public:
     else
       return dummy_double_vect_;
   }
+  virtual const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_dispatched() const
+  {
+    return dummy_double_vect_;
+  }
+
   virtual double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
                                         int& fill_rising_velocities);

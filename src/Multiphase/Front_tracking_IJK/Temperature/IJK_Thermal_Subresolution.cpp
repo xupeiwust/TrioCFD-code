@@ -919,9 +919,16 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 
   if (fluxes_correction_conservations_)
     {
-      interfacial_area_dispatched_.allocate(splitting, IJK_Splitting::ELEM, 0); // , 1);
-      nalloc += 1;
-      interfacial_area_dispatched_.data() = 0.;
+      allocate_cell_vector(interfacial_heat_flux_dispatched_, splitting, 1);
+      nalloc += 3;
+      for (int c=0; c<3; c++)
+        interfacial_heat_flux_dispatched_[c].data() = 0.;
+      interfacial_heat_flux_dispatched_.echange_espace_virtuel();
+      for (int c=0; c<3; c++)
+        {
+          ijk_indices_flux_out_[c].set_smart_resize(1);
+          thermal_flux_out_[c].set_smart_resize(1);
+        }
     }
 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
@@ -2401,7 +2408,9 @@ void IJK_Thermal_Subresolution::prepare_thermal_flux_correction()
 void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre()
 {
   if (fluxes_correction_conservations_)
-    thermal_local_subproblems_.dispatch_interfacial_area(interfacial_area_dispatched_);
+    thermal_local_subproblems_.dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched_,
+                                                              ijk_indices_flux_out_,
+                                                              thermal_flux_out_);
 
   if (!conv_temperature_negligible_)
     compute_convective_fluxes_face_centre();

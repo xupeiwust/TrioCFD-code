@@ -1318,6 +1318,40 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
       oss.str("");
     }
 
+  /*
+   * INTERFACIAL_FLUX_DISPATCH_X
+   */
+  oss << "INTERFACIAL_FLUX_DISPATCH_X_" << lata_suffix << idx;
+  Nom nom_interfacial_flux_dispatch_x(oss.str().c_str());
+  if (liste_post_instantanes.contient_("INTERFACIAL_FLUX_DISPATCH_X") || liste_post_instantanes.contient_(nom_interfacial_flux_dispatch_x))
+    {
+      n++, dumplata_scalar(lata_name, nom_interfacial_flux_dispatch_x, get_interfacial_heat_flux_dispatched()[0], latastep);
+    }
+  oss.str("");
+
+  /*
+   * INTERFACIAL_FLUX_DISPATCH_Y
+   */
+  oss << "INTERFACIAL_FLUX_DISPATCH_Y_" << lata_suffix << idx;
+  Nom nom_interfacial_flux_dispatch_y(oss.str().c_str());
+  if (liste_post_instantanes.contient_("INTERFACIAL_FLUX_DISPATCH_Y") || liste_post_instantanes.contient_(nom_interfacial_flux_dispatch_y))
+    {
+      n++, dumplata_scalar(lata_name, nom_interfacial_flux_dispatch_y, get_interfacial_heat_flux_dispatched()[1], latastep);
+    }
+  oss.str("");
+
+  /*
+   * INTERFACIAL_FLUX_DISPATCH_Z
+   */
+  oss << "INTERFACIAL_FLUX_DISPATCH_Z_" << lata_suffix << idx;
+  Nom nom_interfacial_flux_dispatch_z(oss.str().c_str());
+  if (liste_post_instantanes.contient_("INTERFACIAL_FLUX_DISPATCH_Z") || liste_post_instantanes.contient_(nom_interfacial_flux_dispatch_z))
+    {
+      n++, dumplata_scalar(lata_name, nom_interfacial_flux_dispatch_z, get_interfacial_heat_flux_dispatched()[2], latastep);
+    }
+  oss.str("");
+
+
   return n;
 }
 

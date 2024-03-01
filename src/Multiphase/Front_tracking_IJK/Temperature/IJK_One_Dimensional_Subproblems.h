@@ -213,7 +213,9 @@ public :
   void compute_dynamics_per_bubbles();
   void compute_overall_quantities();
   void post_process_overall_bubbles_quantities(const int rank, const Nom& overall_bubbles_quantities);
-  void dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched);
+  void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                      FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                      FixedVector<ArrOfDouble, 3>& thermal_flux_out);
 
 protected :
   std::vector<IJK_One_Dimensional_Subproblem*> one_dimensional_effective_subproblems_;

@@ -369,6 +369,14 @@ public :
     else
       return dummy_double_field_;
   }
+  const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_dispatched() const override
+  {
+    if (fluxes_correction_conservations_)
+      return interfacial_heat_flux_dispatched_;
+    else
+      return dummy_double_vect_;
+  }
+
   int get_disable_post_processing_probes_out_files() const override
   {
     return disable_post_processing_probes_out_files_;
@@ -721,7 +729,9 @@ protected :
   int use_velocity_cartesian_grid_ = 0;
   int compute_radial_displacement_ = 0;
 
-  IJK_Field_double interfacial_area_dispatched_;
+  FixedVector<IJK_Field_double,3> interfacial_heat_flux_dispatched_;
+  FixedVector<ArrOfInt, 3> ijk_indices_flux_out_;
+  FixedVector<ArrOfDouble, 3> thermal_flux_out_;
 
 };
 

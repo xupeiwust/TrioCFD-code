@@ -782,10 +782,22 @@ void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
     }
 }
 
-void IJK_One_Dimensional_Subproblems::dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched)
+void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                     FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                                                     FixedVector<ArrOfDouble, 3>& thermal_flux_out)
 {
+  for (int c=0; c<3; c++)
+    {
+      interfacial_heat_flux_dispatched[c].data() = 0;
+      ijk_indices_out[c].reset();
+      thermal_flux_out[c].reset();
+    }
   for (int itr=0; itr < effective_subproblems_counter_; itr++)
-    one_dimensional_effective_subproblems_[itr]->dispatch_interfacial_area(interfacial_area_dispatched);
+    one_dimensional_effective_subproblems_[itr]->dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched,
+                                                                                ijk_indices_out,
+                                                                                thermal_flux_out);
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->add_interfacial_heat_flux_neighbours(interfacial_heat_flux_dispatched);
 }
 
 int IJK_One_Dimensional_Subproblems::is_in_map_index_ijk(const std::map<int, std::map<int, std::map<int, int>>>& subproblem_to_ijk_indices,

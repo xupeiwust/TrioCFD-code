@@ -107,6 +107,7 @@ public :
   inline const IJK_Field_double& get_probe_collision_debug_field() const { return valeur().get_probe_collision_debug_field(); };
   inline const FixedVector<IJK_Field_double,3>& get_rho_cp_u_T_convective_fluxes() const { return valeur().get_rho_cp_u_T_convective_fluxes(); }
   inline const FixedVector<IJK_Field_double,3>& get_div_coeff_grad_T_diffusive_fluxes() const { return valeur().get_div_coeff_grad_T_diffusive_fluxes(); }
+  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_dispatched() const { return valeur().get_interfacial_heat_flux_dispatched(); }
 
   inline const double& get_E0() const { return valeur().get_E0(); };
 

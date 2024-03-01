@@ -3302,7 +3302,7 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
       thermal_flux_[0] = grad_T_elem_gfm;
     }
   thermal_flux_*= ((*lambda_) * surface_);
-
+  thermal_flux_total_ = thermal_flux_[0];
 }
 
 void IJK_One_Dimensional_Subproblem::compute_radial_convection_scale_factor_solution()
@@ -4441,59 +4441,105 @@ void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>&
 {
   const int flux_out[6] = FLUXES_OUT;
   sum_convective_diffusive_flux_op_lrs_ = sum_convective_flux_op_lrs_ + sum_diffusive_flux_op_lrs_;
-  radial_flux_error_lrs_ = sum_convective_diffusive_flux_op_lrs_ - thermal_flux_[0];
+  radial_flux_error_lrs_ = sum_convective_diffusive_flux_op_lrs_ - thermal_flux_total_;
   double weight_tot = 0.;
-  // const int face_dir[6] = FACES_DIR;
+  for (int l=0; l<3; l++)
+    weight_tot += abs(normal_vector_compo_[l]);
+  const int face_dir[6] = FACES_DIR;
+  std::vector<double> thermal_flux_neighbour;
   for (int l=0; l<6; l++)
     {
       if (pure_liquid_neighbours_[l])
         {
-          // const double weight = abs(normal_vector_compo_[face_dir[l]]);
-          const double flux_sum = convective_flux_op_lrs_[l] + diffusive_flux_op_lrs_[l];
-          const double weight = abs(flux_sum);
-          weight_tot += weight;
-          radial_flux_error.push_back(weight * radial_flux_error_lrs_ * flux_out[l]);
+          const double weight = abs(normal_vector_compo_[face_dir[l]]);
+          //          const double flux_sum = convective_flux_op_lrs_[l] + diffusive_flux_op_lrs_[l];
+          //          const double weight = abs(flux_sum);
+          //          weight_tot += weight;
+          const double radial_flux_contrib = (weight * radial_flux_error_lrs_ ) * flux_out[l];
+          thermal_flux_neighbour.push_back(- thermal_flux_dir_[face_dir[l]] * flux_out[l]);
+          radial_flux_error.push_back(radial_flux_contrib);
         }
     }
   for (int l=0; l<(int) radial_flux_error.size(); l++)
-    radial_flux_error[l] /= weight_tot;
-  sum_convective_diffusive_flux_op_lrs_ = thermal_flux_[0];
+    {
+      radial_flux_error[l] /= weight_tot;
+      radial_flux_error[l] += thermal_flux_neighbour[l];
+    }
+  // sum_convective_diffusive_flux_op_lrs_ = thermal_flux_[0];
   // TODO: TMP for post-processing
-  sum_convective_flux_op_lrs_ = 0.;
-  sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
+//  sum_convective_flux_op_lrs_ = 0.;
+//  sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
 }
 
-void IJK_One_Dimensional_Subproblem::dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched)
+void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                    FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                                                    FixedVector<ArrOfDouble, 3>& thermal_flux_out)
 {
   if (!has_computed_liquid_neighbours_)
     compute_pure_liquid_neighbours();
 
+  const int ni = ref_ijk_ft_->itfce().I().ni();
+  const int nj = ref_ijk_ft_->itfce().I().nj();
+  const int nk = ref_ijk_ft_->itfce().I().nk();
 
   const int neighbours_i[6] = NEIGHBOURS_I;
   const int neighbours_j[6] = NEIGHBOURS_J;
   const int neighbours_k[6] = NEIGHBOURS_K;
   bool is_all_mix = true;
   double weight_tot = 0.;
+  for (int l=0; l<3; l++)
+    weight_tot += abs(normal_vector_compo_[l]);
   const int face_dir[6] = FACES_DIR;
+  const int flux_out[6] = FLUXES_OUT;
   std::vector<int> mixed_neighbours;
   for (int l=0; l<6; l++)
-    if (pure_liquid_neighbours_[l])
-      is_all_mix = false;
-    else if (!pure_vapour_neighbours_[l])
-      {
-        mixed_neighbours.push_back(l);
-        weight_tot += normal_vector_compo_[face_dir[l]];
-      }
+    {
+      if (pure_liquid_neighbours_[l])
+        is_all_mix = false;
+      else if (!pure_vapour_neighbours_[l])
+        {
+          if (signbit(flux_out[l]) == signbit(normal_vector_compo_[face_dir[l]]))
+            mixed_neighbours.push_back(l);
+          // weight_tot += normal_vector_compo_[face_dir[l]];
+        }
+    }
   if (is_all_mix)
     for (int l=0; l<(int) mixed_neighbours.size(); l++)
-      {
-        const int ii = neighbours_i[l];
-        const int jj = neighbours_j[l];
-        const int kk = neighbours_k[l];
-        const double surface_dispatch = surface_ * normal_vector_compo_[face_dir[l]] / weight_tot;
-        interfacial_area_dispatched(index_i_ + ii, index_j_ + jj, index_k_ + kk) += surface_dispatch;
-        ;
-      }
+      for (int m=0; m<(int) mixed_neighbours.size(); m++)
+        if (m!=l)
+          {
+            const int mixed_neighbour = mixed_neighbours[l];
+            const int neighbour_dir = mixed_neighbours[m];
+            const int ii = neighbours_i[mixed_neighbour];
+            const int jj = neighbours_j[mixed_neighbour];
+            const int kk = neighbours_k[mixed_neighbour];
+            const int i = index_i_ + ii;
+            const int j = index_j_ + jj;
+            const int k = index_k_ + kk;
+            const double weight = abs(normal_vector_compo_[face_dir[mixed_neighbour]]) * abs(normal_vector_compo_[face_dir[neighbour_dir]]);
+            const double heat_flux_dispatch = thermal_flux_total_ * weight / (weight_tot * weight_tot);
+            if ((i==ni || i==-1) || (j==nj || j==-1) || (k==nk || k==-1))
+              {
+                ijk_indices_out[0].append_array(i);
+                ijk_indices_out[1].append_array(j);
+                ijk_indices_out[2].append_array(k);
+                thermal_flux_out[face_dir[neighbour_dir]].append_array(heat_flux_dispatch);
+                for (int n=0; n<(int) mixed_neighbours.size(); n++)
+                  if (n != m)
+                    {
+                      const int neighbour_dir_tmp = mixed_neighbours[n];
+                      thermal_flux_out[face_dir[neighbour_dir_tmp]].append_array(0.);
+                    }
+              }
+            else
+              interfacial_heat_flux_dispatched[face_dir[neighbour_dir]](i, j, k) += heat_flux_dispatch;
+          }
+}
+
+void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+{
+  for (int c=0; c<3; c++)
+    thermal_flux_dir_[c] = interfacial_heat_flux_dispatched[c](index_i_, index_j_, index_k_);
 }
 
 void IJK_One_Dimensional_Subproblem::compute_pure_liquid_neighbours()

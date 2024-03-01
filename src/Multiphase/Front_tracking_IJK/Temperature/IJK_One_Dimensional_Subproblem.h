@@ -280,7 +280,11 @@ public :
   double get_min_temperature_domain_ends() const;
   double get_max_temperature_domain_ends() const;
 
-  void dispatch_interfacial_area(IJK_Field_double& interfacial_area_dispatched);
+  void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                      FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                      FixedVector<ArrOfDouble, 3>& thermal_flux_out);
+  void add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
+
   void compute_pure_liquid_neighbours();
   void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
                                           const int flux_type);
@@ -1005,6 +1009,8 @@ protected :
   DoubleVect nusselt_number_liquid_temperature_;
   DoubleVect nusselt_number_integrand_;
   DoubleVect nusselt_number_liquid_temperature_integrand_;
+  double thermal_flux_total_ = 0.;
+  FixedVector<double,3> thermal_flux_dir_;
 
   DoubleVect radial_scale_factor_interp_;
   DoubleVect radial_scale_factor_solution_;
