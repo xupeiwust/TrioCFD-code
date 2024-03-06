@@ -136,7 +136,13 @@ public :
                                const int& i,
                                const int& l,
                                const int& flux_type);
+
+  void compute_error_flux_interface(const int& i);
   void compare_flux_interface(const int& i, std::vector<double>& radial_flux_error);
+
+  double get_corrective_flux_from_neighbours(const int& i, const int& l);
+  double get_corrective_flux_from_current(const int& i, const int& l);
+
   double get_temperature_times_velocity_profile_at_point(const int& i,
                                                          const double& dist,
                                                          const int& dir,
@@ -213,6 +219,11 @@ public :
   void compute_dynamics_per_bubbles();
   void compute_overall_quantities();
   void post_process_overall_bubbles_quantities(const int rank, const Nom& overall_bubbles_quantities);
+
+  void dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                 FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                 ArrOfDouble& thermal_flux_out,
+                                                 FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current);
   void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);

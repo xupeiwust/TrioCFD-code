@@ -313,6 +313,11 @@ public :
   void compute_thermal_convective_fluxes_face_centre(const int& last_flux);
   void compute_thermal_diffusive_fluxes_face_centre(const int& last_flux);
   void compute_thermal_fluxes_face_centre(DoubleVect& fluxes, const int fluxes_type, const int& last_flux);
+
+  void complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations) override;
+  void complete_thermal_fluxes_face_centre(DoubleVect * fluxes,
+                                           const int& fluxes_correction_conservations);
+
   double compute_thermal_flux_face_centre(const int fluxes_type,
                                           const int& index_subproblem,
                                           const double& dist,

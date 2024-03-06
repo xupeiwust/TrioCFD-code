@@ -155,7 +155,7 @@ void Corrige_flux_FT_temperature_subresolution::clear_std_vectors_array_of_doubl
     values_to_clear[k].reset();
 }
 
-int compute_periodic_index(const int index, const int n)
+static int compute_periodic_index(const int index, const int n)
 {
   return (n + index % n) % n;
 }
@@ -1117,9 +1117,10 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                               colinearity = pure_neighbours_colinearity_to_correct[c][l][m][n];
                             if ((index_i_procs == index_i_neighbour
                                  && index_j_procs == index_j_neighbour
-                                 && index_k_procs == index_k_neighbour
-                                 && (index_i_neighbour > 0 && index_j_neighbour > 0 && index_k_neighbour > 0)) // Is it right ?
+                                 && index_k_procs == index_k_neighbour)
                                 || seq)
+                              // && (index_i_neighbour > 0 && index_j_neighbour > 0 && index_k_neighbour > 0)) // Is it right ? Not needed if echange espace virtuel later ?
+                              // || seq)
                               {
                                 cell_faces_neighbours_corrected_bool[c](index_i_procs, index_j_neighbour, index_k_procs) += 1;
                                 if (neighbours_colinearity_weighting_ && use_reachable_fluxes_)
@@ -2007,14 +2008,15 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
         }
       if (last_flux)
         {
-          std::vector<double> radial_flux_error;
-          thermal_subproblems_->compare_flux_interface(i, radial_flux_error);
-          const int nb_flux = (int) radial_flux_error.size();
-          for (int l=0; l<nb_flux; l++)
-            {
-              const double flux = fluxes[counter_faces + (l - nb_flux)];
-              fluxes[counter_faces + (l - nb_flux)] = flux - radial_flux_error[l] * flux_sign[fluxes_type][0];
-            }
+          thermal_subproblems_->compute_error_flux_interface(i);
+          //          std::vector<double> radial_flux_error;
+          //          thermal_subproblems_->compare_flux_interface(i, radial_flux_error);
+          //          const int nb_flux = (int) radial_flux_error.size();
+          //          for (int l=0; l<nb_flux; l++)
+          //            {
+          //              const double flux = fluxes[counter_faces + (l - nb_flux)];
+          //              fluxes[counter_faces + (l - nb_flux)] = flux - radial_flux_error[l] * flux_sign[fluxes_type][0];
+          //            }
         }
     }
   /*
@@ -2022,6 +2024,45 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
    * May be useful if a treat one subproblem per interface portion
    */
   // check_pure_fluxes_duplicates(convective_fluxes_, convective_fluxes_unique_, pure_face_unique_, 1);
+}
+
+void Corrige_flux_FT_temperature_subresolution::complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations)
+{
+  DoubleVect * fluxes = nullptr;
+  fluxes = &diffusive_fluxes_;
+  if (!diffusive_flux_correction_)
+    fluxes = &convective_fluxes_;
+  complete_thermal_fluxes_face_centre(fluxes, fluxes_correction_conservations);
+}
+
+void Corrige_flux_FT_temperature_subresolution::complete_thermal_fluxes_face_centre(DoubleVect * fluxes,
+                                                                                    const int& fluxes_correction_conservations)
+{
+  if (fluxes_correction_conservations)
+    {
+      int counter_faces = 0;
+      const int flux_sign[2][6] = FLUX_SIGN;
+      const int flux_out[6] = FLUXES_OUT;
+      for (int i=0; i<ijk_intersections_subproblems_indices_.size_array(); i++)
+        {
+          const int intersection_ijk_cell_index = ijk_intersections_subproblems_indices_[i];
+          for (int l=0; l<6; l++)
+            {
+              const int is_neighbour_pure_liquid = intersection_ijk_cell_->get_ijk_pure_face_neighbours(intersection_ijk_cell_index, l);
+              if (is_neighbour_pure_liquid)
+                {
+                  double flux_corr = thermal_subproblems_->get_corrective_flux_from_neighbours(i, l);
+                  flux_corr += thermal_subproblems_->get_corrective_flux_from_current(i, l);
+                  //  double flux_corr = thermal_subproblems_->get_corrective_flux_from_current(i, l);
+                  flux_corr *= (flux_sign[1][l]);
+                  const double flux_final = (*fluxes)[counter_faces] - flux_corr;
+                  (*fluxes)[counter_faces] = flux_final;
+                  thermal_subproblems_->set_pure_flux_corrected(flux_final * flux_out[l] * flux_sign[1][l], i, l, 1);
+                  counter_faces++;
+                }
+            }
+        }
+    }
 }
 
 double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_centre(const int fluxes_type,

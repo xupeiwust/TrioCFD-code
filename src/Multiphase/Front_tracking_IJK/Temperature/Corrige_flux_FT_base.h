@@ -119,6 +119,7 @@ public:
 
   virtual void compute_thermal_convective_fluxes(const int& last_flux) { ; };
   virtual void compute_thermal_diffusive_fluxes(const int& last_flux) { ; };
+  virtual void complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations) { ; };
 
   virtual void set_convection_negligible(const int& convection_negligible) { ; };
   virtual void set_diffusion_negligible(const int& diffusion_negligible) { ; };

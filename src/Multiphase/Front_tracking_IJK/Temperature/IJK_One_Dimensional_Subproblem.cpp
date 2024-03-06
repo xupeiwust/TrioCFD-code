@@ -52,6 +52,11 @@ Entree& IJK_One_Dimensional_Subproblem::readOn( Entree& is )
   return is;
 }
 
+static int compute_periodic_index(const int index, const int n)
+{
+  return (n + index % n) % n;
+}
+
 void IJK_One_Dimensional_Subproblem::get_ijk_indices(int& i, int& j, int& k) const
 {
   i = (int) index_i_;
@@ -237,6 +242,9 @@ void IJK_One_Dimensional_Subproblem::clear_vectors()
     {
       convective_flux_op_lrs_[l] = 0.;
       diffusive_flux_op_lrs_[l] = 0.;
+      corrective_flux_current_[l] = 0.;
+      corrective_flux_to_neighbours_[l] = 0.;
+      corrective_flux_from_neighbours_[l] = 0.;
     }
   sum_convective_flux_op_lrs_ = 0.;
   sum_diffusive_flux_op_lrs_ = 0.;
@@ -2970,7 +2978,7 @@ void IJK_One_Dimensional_Subproblem::correct_tangential_temperature_gradient(Dou
 
 void IJK_One_Dimensional_Subproblem::correct_tangential_temperature_hessian(DoubleVect& tangential_diffusion_source_terms)
 {
-  DoubleVect tangential_diffusion_source_terms_tmp = tangential_diffusion_source_terms_tmp;
+  DoubleVect tangential_diffusion_source_terms_tmp = tangential_diffusion_source_terms;
   for (int i=0; i<tangential_diffusion_source_terms_tmp.size(); i++)
     tangential_diffusion_source_terms_tmp[i] -= tangential_diffusion_source_terms_tmp[0];
 }
@@ -4322,6 +4330,44 @@ void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_
     }
 }
 
+void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
+{
+  double total_flux_error = 0.;
+  total_flux_error = (- thermal_flux_total_);
+  total_flux_error += sum_convective_flux_op_lrs_;
+  total_flux_error += sum_diffusive_flux_op_lrs_;
+
+  double weight_tot = 0.;
+  for (int l=0; l<3; l++)
+    weight_tot += abs(normal_vector_compo_[l]);
+
+  const int face_dir[6] = FACES_DIR;
+  const int flux_out[6] = FLUXES_OUT;
+
+  std::vector<int> mixed_neighbours;
+  for (int l=0; l<6; l++)
+    if (!pure_liquid_neighbours_[l] && !pure_vapour_neighbours_[l])
+      if (signbit(flux_out[l]) == signbit(normal_vector_compo_[face_dir[l]]))
+        mixed_neighbours.push_back(l);
+
+  for (int l=0; l<6; l++)
+    if (pure_liquid_neighbours_[l])
+      corrective_flux_current_[l] = total_flux_error * abs(normal_vector_compo_[face_dir[l]])
+                                    * flux_out[l] / weight_tot;
+
+  for (int l=0; l<(int) mixed_neighbours.size(); l++)
+    {
+      const int mixed_neighbour = mixed_neighbours[l];
+      corrective_flux_to_neighbours_[mixed_neighbour] = (total_flux_error *
+                                                         abs(normal_vector_compo_[face_dir[mixed_neighbour]]))
+                                                        / weight_tot;
+      // * flux_out[mixed_neighbour]
+    }
+  for (int l=0; l<6; l++)
+    diffusive_flux_op_lrs_[l] = 0.;
+  sum_diffusive_flux_op_lrs_ = 0.;
+}
+
 void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>& radial_flux_error)
 {
   const int flux_out[6] = FLUXES_OUT;
@@ -4352,8 +4398,75 @@ void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>&
     }
   // sum_convective_diffusive_flux_op_lrs_ = thermal_flux_[0];
   // TODO: TMP for post-processing
-//  sum_convective_flux_op_lrs_ = 0.;
-//  sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
+  //  sum_convective_flux_op_lrs_ = 0.;
+  //  sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
+}
+
+void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                               FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                                               ArrOfDouble& thermal_flux_out,
+                                                                               FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
+{
+  if (!has_computed_liquid_neighbours_)
+    compute_pure_liquid_neighbours();
+
+  const int ni = ref_ijk_ft_->itfce().I().ni();
+  const int nj = ref_ijk_ft_->itfce().I().nj();
+  const int nk = ref_ijk_ft_->itfce().I().nk();
+
+  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
+  const int offset_i = splitting_ns.get_offset_local(0);
+  const int offset_j = splitting_ns.get_offset_local(1);
+  const int offset_k = splitting_ns.get_offset_local(2);
+
+  const IJK_Grid_Geometry& geometry = splitting_ns.get_grid_geometry();
+  const int ni_tot = geometry.get_nb_elem_tot(0);
+  const int nj_tot = geometry.get_nb_elem_tot(1);
+  const int nk_tot = geometry.get_nb_elem_tot(2);
+
+  const int neighbours_i[6] = NEIGHBOURS_I;
+  const int neighbours_j[6] = NEIGHBOURS_J;
+  const int neighbours_k[6] = NEIGHBOURS_K;
+
+  const int face_dir[6] = FACES_DIR;
+  // const int flux_out[6] = FLUXES_OUT;
+
+  int index_i_neighbour_global, index_j_neighbour_global, index_k_neighbour_global;
+  int index_i_procs, index_j_procs, index_k_procs;
+  for (int l=0; l<6; l++)
+    {
+      interfacial_heat_flux_current[face_dir[l]](index_i_,index_j_,index_k_) += corrective_flux_current_[l];
+      const double flux_corr = corrective_flux_to_neighbours_[l];
+      if (flux_corr != 0.)
+        {
+          const int ii = neighbours_i[l];
+          const int jj = neighbours_j[l];
+          const int kk = neighbours_k[l];
+          const int i = index_i_ + ii;
+          const int j = index_j_ + jj;
+          const int k = index_k_ + kk;
+          index_i_neighbour_global = compute_periodic_index((i + offset_i), ni_tot);
+          index_j_neighbour_global = compute_periodic_index((j + offset_j), nj_tot);
+          index_k_neighbour_global = compute_periodic_index((k + offset_k), nk_tot);
+          index_i_procs = compute_periodic_index(i, ni);
+          index_j_procs = compute_periodic_index(j, nj);
+          index_k_procs = compute_periodic_index(k, nk);
+          if (index_i_procs == i
+              && index_j_procs == j
+              && index_k_procs == k)
+            {
+              interfacial_heat_flux_dispatched[face_dir[l]](i,j,k) += flux_corr;
+            }
+          else
+            {
+              ijk_indices_out[0].append_array(index_i_neighbour_global);
+              ijk_indices_out[1].append_array(index_j_neighbour_global);
+              ijk_indices_out[2].append_array(index_k_neighbour_global);
+              ijk_indices_out[3].append_array(face_dir[l]);
+              thermal_flux_out.append_array(flux_corr);
+            }
+        }
+    }
 }
 
 void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
@@ -4419,6 +4532,41 @@ void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux(FixedVector<
             else
               interfacial_heat_flux_dispatched[face_dir[neighbour_dir]](i, j, k) += heat_flux_dispatch;
           }
+}
+
+void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+{
+  const int flux_out[6] = FLUXES_OUT;
+
+  //  double weight_tot = 0.;
+  //  for (int l=0; l<3; l++)
+  //    weight_tot += abs(normal_vector_compo_[l]);
+
+  Vecteur3 flux_error = {0.,0.,0.};
+  for (int c=0; c<3; c++)
+    flux_error[c] = interfacial_heat_flux_dispatched[c](index_i_, index_j_, index_k_);
+
+  const int face_dir[6] = FACES_DIR;
+  double weight_dir_tot;
+  std::vector<int> pure_faces;
+  std::vector<double> weight_dir;
+  for (int c=0; c<3; c++)
+    {
+      weight_dir_tot = 0.;
+      pure_faces.clear();
+      weight_dir.clear();
+      for (int l=0; l<6; l++)
+        if (pure_liquid_neighbours_[l]) // && face_dir[l] != c)
+          {
+            pure_faces.push_back(l);
+            const double normal_compo = abs(normal_vector_compo_[face_dir[l]]);
+            weight_dir.push_back(normal_compo);
+            weight_dir_tot += normal_compo;
+          }
+      for (int l=0; l<(int) pure_faces.size(); l++)
+        corrective_flux_from_neighbours_[pure_faces[l]] += flux_out[pure_faces[l]] * flux_error[c] * weight_dir[l] / weight_dir_tot;
+    }
+
 }
 
 void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)

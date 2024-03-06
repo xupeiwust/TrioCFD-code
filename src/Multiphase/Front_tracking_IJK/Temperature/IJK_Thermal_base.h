@@ -392,6 +392,14 @@ public:
   {
     return dummy_double_vect_;
   }
+  virtual const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_contrib() const
+  {
+    return dummy_double_vect_;
+  }
+  virtual const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_current() const
+  {
+    return dummy_double_vect_;
+  }
 
   virtual double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,

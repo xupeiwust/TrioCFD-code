@@ -799,6 +799,18 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
           ijk_indices_flux_out_[c].set_smart_resize(1);
           thermal_flux_out_[c].set_smart_resize(1);
         }
+
+      allocate_cell_vector(interfacial_heat_flux_contrib_, splitting, 1);
+      allocate_cell_vector(interfacial_heat_flux_current_, splitting, 1);
+      for (int c=0; c<3; c++)
+        {
+          interfacial_heat_flux_contrib_[c].data() = 0.;
+          interfacial_heat_flux_current_[c].data() = 0.;
+        }
+      nalloc += 6;
+      for (int l=0; l<4; l++)
+        ijk_indices_flux_contrib_[l].set_smart_resize(1);
+      thermal_flux_out_contrib_.set_smart_resize(1);
     }
 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
@@ -2277,15 +2289,22 @@ void IJK_Thermal_Subresolution::prepare_thermal_flux_correction()
 
 void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre()
 {
-  if (fluxes_correction_conservations_)
-    thermal_local_subproblems_.dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched_,
-                                                              ijk_indices_flux_out_,
-                                                              thermal_flux_out_);
+  // if (fluxes_correction_conservations_)
+  //   thermal_local_subproblems_.dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched_,
+  //                                                             ijk_indices_flux_out_,
+  //                                                             thermal_flux_out_);
 
   if (!conv_temperature_negligible_)
     compute_convective_fluxes_face_centre();
   if (!diff_temperature_negligible_)
     compute_diffusive_fluxes_face_centre();
+
+  if (fluxes_correction_conservations_)
+    thermal_local_subproblems_.dispatch_interfacial_heat_flux_correction(interfacial_heat_flux_contrib_,
+                                                                         ijk_indices_flux_contrib_,
+                                                                         thermal_flux_out_contrib_,
+                                                                         interfacial_heat_flux_current_);
+  complete_thermal_fluxes_face_centre(fluxes_correction_conservations_);
 
   corrige_flux_->initialise_cell_neighbours_indices_to_correct();
   corrige_flux_->compute_cell_neighbours_faces_indices_for_spherical_correction(n_iter_distance_);
@@ -2303,6 +2322,12 @@ void IJK_Thermal_Subresolution::compute_diffusive_fluxes_face_centre()
 {
   if (!disable_subresolution_ && diffusive_flux_correction_ && !use_reachable_fluxes_)
     corrige_flux_->compute_thermal_diffusive_fluxes(diffusive_flux_correction_ && fluxes_correction_conservations_);
+}
+
+void IJK_Thermal_Subresolution::complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations)
+{
+  if (!disable_subresolution_ && (convective_flux_correction_ || diffusive_flux_correction_) && !use_reachable_fluxes_)
+    corrige_flux_->complete_thermal_fluxes_face_centre(fluxes_correction_conservations_);
 }
 
 void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()

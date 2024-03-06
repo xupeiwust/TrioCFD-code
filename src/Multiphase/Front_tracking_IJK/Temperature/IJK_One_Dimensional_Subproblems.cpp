@@ -770,6 +770,33 @@ void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
     }
 }
 
+void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                                FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                                                ArrOfDouble& thermal_flux_out,
+                                                                                FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
+{
+
+  for (int c=0; c<3; c++)
+    {
+      interfacial_heat_flux_dispatched[c].data() = 0.;
+      interfacial_heat_flux_current[c].data() = 0.;
+    }
+  for (int l=0; l<4; l++)
+    ijk_indices_out[l].reset();
+  thermal_flux_out.reset();
+
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->dispatch_interfacial_heat_flux_correction(interfacial_heat_flux_dispatched,
+                                                                                           ijk_indices_out,
+                                                                                           thermal_flux_out,
+                                                                                           interfacial_heat_flux_current);
+  // share_interfacial_heat_flux_correction_on_procs(ijk_indices_out, thermal_flux_out);
+  // retrieve_interfacial_heat_flux_correction_on_procs();
+
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->add_interfacial_heat_flux_neighbours_correction(interfacial_heat_flux_dispatched);
+}
+
 void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
                                                                      FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                                                      FixedVector<ArrOfDouble, 3>& thermal_flux_out)
@@ -1041,12 +1068,27 @@ void IJK_One_Dimensional_Subproblems::set_pure_flux_corrected(const double& flux
                                                               const int& l,
                                                               const int& flux_type)
 {
-  return one_dimensional_effective_subproblems_[i]->set_pure_flux_corrected(flux_face, l, flux_type);
+  one_dimensional_effective_subproblems_[i]->set_pure_flux_corrected(flux_face, l, flux_type);
+}
+
+void IJK_One_Dimensional_Subproblems::compute_error_flux_interface(const int& i)
+{
+  one_dimensional_effective_subproblems_[i]->compute_error_flux_interface();
 }
 
 void IJK_One_Dimensional_Subproblems::compare_flux_interface(const int& i, std::vector<double>& radial_flux_error)
 {
-  return one_dimensional_effective_subproblems_[i]->compare_flux_interface(radial_flux_error);
+  one_dimensional_effective_subproblems_[i]->compare_flux_interface(radial_flux_error);
+}
+
+double IJK_One_Dimensional_Subproblems::get_corrective_flux_from_neighbours(const int& i, const int& l)
+{
+  return one_dimensional_effective_subproblems_[i]->get_corrective_flux_from_neighbours(l);
+}
+
+double IJK_One_Dimensional_Subproblems::get_corrective_flux_from_current(const int& i, const int& l)
+{
+  return one_dimensional_effective_subproblems_[i]->get_corrective_flux_from_current(l);
 }
 
 double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_at_point(const int& i,

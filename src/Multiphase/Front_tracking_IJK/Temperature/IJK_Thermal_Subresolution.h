@@ -376,6 +376,21 @@ public :
     else
       return dummy_double_vect_;
   }
+  const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_contrib() const override
+  {
+    if (fluxes_correction_conservations_)
+      return interfacial_heat_flux_contrib_;
+    else
+      return dummy_double_vect_;
+  }
+
+  const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_current() const override
+  {
+    if (fluxes_correction_conservations_)
+      return interfacial_heat_flux_current_;
+    else
+      return dummy_double_vect_;
+  }
 
   int get_disable_post_processing_probes_out_files() const override
   {
@@ -457,6 +472,9 @@ protected :
   void compute_convective_diffusive_fluxes_face_centre() override;
   void compute_convective_fluxes_face_centre() override;
   void compute_diffusive_fluxes_face_centre() override;
+
+  void complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations);
+
   void compute_temperature_cell_centres(const int first_corr) override;
   void compute_temperature_cell_centres_first_correction();
   void compute_temperature_cell_centres_second_correction();
@@ -732,6 +750,11 @@ protected :
   FixedVector<IJK_Field_double,3> interfacial_heat_flux_dispatched_;
   FixedVector<ArrOfInt, 3> ijk_indices_flux_out_;
   FixedVector<ArrOfDouble, 3> thermal_flux_out_;
+
+  FixedVector<IJK_Field_double,3> interfacial_heat_flux_contrib_;
+  FixedVector<IJK_Field_double,3> interfacial_heat_flux_current_;
+  FixedVector<ArrOfInt, 4> ijk_indices_flux_contrib_;
+  ArrOfDouble thermal_flux_out_contrib_;
 
 };
 

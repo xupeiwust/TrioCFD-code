@@ -280,9 +280,15 @@ public :
   double get_min_temperature_domain_ends() const;
   double get_max_temperature_domain_ends() const;
 
+  void dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                 FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                 ArrOfDouble& thermal_flux_out,
+                                                 FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current);
   void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);
+
+  void add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
   void add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
 
   void compute_pure_liquid_neighbours();
@@ -499,7 +505,16 @@ public :
     else
       return sum_diffusive_flux_op_lrs_;
   }
+  double get_corrective_flux_from_neighbours(const int& l)
+  {
+    return corrective_flux_from_neighbours_[l];
+  }
+  double get_corrective_flux_from_current(const int& l)
+  {
+    return corrective_flux_current_[l];
+  }
   void set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type);
+  void compute_error_flux_interface();
   void compare_flux_interface(std::vector<double>& radial_flux_error);
 protected :
   void clear_vectors();
@@ -1189,6 +1204,9 @@ protected :
   double sum_convective_diffusive_flux_op_lrs_ = 0.;
   double radial_flux_error_lrs_ = 0.;
 
+  FixedVector<double,6> corrective_flux_current_;
+  FixedVector<double,6> corrective_flux_to_neighbours_;
+  FixedVector<double,6> corrective_flux_from_neighbours_;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

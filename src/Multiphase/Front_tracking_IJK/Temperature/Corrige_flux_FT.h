@@ -88,6 +88,7 @@ public :
   inline void set_zero_temperature_increment(IJK_Field_double& d_temperature) const;
   inline void compute_thermal_convective_fluxes(const int& last_flux);
   inline void compute_thermal_diffusive_fluxes(const int& last_flux);
+  inline void complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations);
 
   inline void set_convection_negligible(const int& convection_negligible);
   inline void set_diffusion_negligible(const int& diffusion_negligible);
@@ -240,6 +241,11 @@ inline void Corrige_flux_FT::compute_thermal_convective_fluxes(const int& last_f
 inline void Corrige_flux_FT::compute_thermal_diffusive_fluxes(const int& last_flux)
 {
   valeur().compute_thermal_diffusive_fluxes(last_flux);
+}
+
+inline void Corrige_flux_FT::complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations)
+{
+  valeur().complete_thermal_fluxes_face_centre(fluxes_correction_conservations);
 }
 
 inline void Corrige_flux_FT::corrige_flux_diff_faceIJ(IJK_Field_local_double *const flux,
