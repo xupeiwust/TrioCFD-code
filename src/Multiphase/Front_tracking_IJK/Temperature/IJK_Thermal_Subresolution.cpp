@@ -232,6 +232,9 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "compute_radial_displacement" << escape;
   if (fluxes_correction_conservations_)
     os << front_space << "fluxes_correction_conservations" << escape;
+  if (keep_max_flux_correction_)
+    os << front_space << "keep_max_flux_correction" << escape;
+
   /*
    * Values
    */
@@ -446,6 +449,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
   param.ajouter_flag("compute_radial_displacement", &compute_radial_displacement_);
 
+  param.ajouter_flag("keep_max_flux_correction", &keep_max_flux_correction_);
 
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);
@@ -603,6 +607,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   corrige_flux_.set_distance_cell_faces_from_lrs(distance_cell_faces_from_lrs_);
   corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
                                                neighbours_weighting_,
+                                               keep_max_flux_correction_,
                                                smooth_temperature_field_);
   corrige_flux_.set_eulerian_normal_vectors_ns_normed(eulerian_normal_vectors_ns_normed_);
   corrige_flux_.set_temperature_fluxes_periodic_sharing_strategy_on_processors(copy_fluxes_on_every_procs_,
@@ -2350,9 +2355,11 @@ void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()
                                                           remove_external_neighbour_values,
                                                           neighbours_temperature_to_correct_trimmed_);
   corrige_flux_->replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool_,
+                                                                                   cell_faces_neighbours_corrected_all_bool_,
                                                                                    cell_faces_neighbours_corrected_convective_,
                                                                                    0);
   corrige_flux_->replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool_,
+                                                                                   cell_faces_neighbours_corrected_all_bool_,
                                                                                    cell_faces_neighbours_corrected_diffusive_,
                                                                                    1);
 }
@@ -2390,6 +2397,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
       use_temperature_cell_neighbours_ = 0;
       corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
                                                    neighbours_weighting_,
+                                                   keep_max_flux_correction_,
                                                    smooth_temperature_field_);
     }
 
@@ -2431,7 +2439,7 @@ void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(cons
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 0
-                            && !ref_ijk_ft_->get_reprise() != 0);
+                            && !ref_ijk_ft_->get_reprise());
   if (use_temperature_cell_neighbours_)
     {
       if (keep_first_reachable_fluxes_)

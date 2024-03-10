@@ -72,10 +72,12 @@ public :
   void set_distance_cell_faces_from_lrs(const int& distance_cell_faces_from_lrs) override { distance_cell_faces_from_lrs_=distance_cell_faces_from_lrs; };
   void set_correction_cell_neighbours(const int& correct_temperature_cell_neighbours,
                                       const int& neighbours_colinearity_weighting,
+                                      const int& keep_max_flux_correction,
                                       const int& smooth_temperature_field) override
   {
     find_temperature_cell_neighbours_ = correct_temperature_cell_neighbours;
     neighbours_colinearity_weighting_ = neighbours_colinearity_weighting;
+    keep_max_flux_correction_ = keep_max_flux_correction;
     smooth_temperature_field_ = smooth_temperature_field;
   }
 
@@ -301,9 +303,11 @@ public :
                                                                             const int& index_j,
                                                                             const int& index_k);
   void replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
+                                                                         const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                                          const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                          const int& fluxes_type) override;
   void replace_cell_neighbours_thermal_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
+                                                    const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                     const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                     FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz);
 
@@ -495,6 +499,8 @@ protected :
   int find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
   int use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
   int neighbours_colinearity_weighting_ = 0;
+
+  int keep_max_flux_correction_ = 0;
 
   int find_reachable_fluxes_ = 0;
   int use_reachable_fluxes_ = 0;

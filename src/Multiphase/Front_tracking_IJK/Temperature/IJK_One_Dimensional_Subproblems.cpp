@@ -794,7 +794,8 @@ void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux_correction(
   // retrieve_interfacial_heat_flux_correction_on_procs();
 
   for (int itr=0; itr < effective_subproblems_counter_; itr++)
-    one_dimensional_effective_subproblems_[itr]->add_interfacial_heat_flux_neighbours_correction(interfacial_heat_flux_dispatched);
+    one_dimensional_effective_subproblems_[itr]->add_interfacial_heat_flux_neighbours_correction(interfacial_heat_flux_dispatched,
+                                                                                                 interfacial_heat_flux_current);
 }
 
 void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,

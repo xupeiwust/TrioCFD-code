@@ -677,6 +677,8 @@ protected :
   IJK_Field_int neighbours_temperature_to_correct_;
   IJK_Field_double neighbours_temperature_colinearity_weighting_;
 
+  int keep_max_flux_correction_ = 0;
+
   int clip_temperature_values_ = 0;
   int enforce_periodic_boundary_value_ = 0;
   int stencil_periodic_boundary_value_ = 2;

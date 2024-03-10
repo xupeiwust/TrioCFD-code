@@ -4352,8 +4352,8 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
 
   for (int l=0; l<6; l++)
     if (pure_liquid_neighbours_[l])
-      corrective_flux_current_[l] = total_flux_error * abs(normal_vector_compo_[face_dir[l]])
-                                    * flux_out[l] / weight_tot;
+      corrective_flux_current_[l] = (total_flux_error * abs(normal_vector_compo_[face_dir[l]])
+                                     * flux_out[l]) / weight_tot;
 
   for (int l=0; l<(int) mixed_neighbours.size(); l++)
     {
@@ -4437,7 +4437,7 @@ void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux_correction(F
     {
       interfacial_heat_flux_current[face_dir[l]](index_i_,index_j_,index_k_) += corrective_flux_current_[l];
       const double flux_corr = corrective_flux_to_neighbours_[l];
-      if (flux_corr != 0.)
+      if (abs(flux_corr) > 1e-16)
         {
           const int ii = neighbours_i[l];
           const int jj = neighbours_j[l];
@@ -4534,13 +4534,10 @@ void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux(FixedVector<
           }
 }
 
-void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                                     FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
 {
   const int flux_out[6] = FLUXES_OUT;
-
-  //  double weight_tot = 0.;
-  //  for (int l=0; l<3; l++)
-  //    weight_tot += abs(normal_vector_compo_[l]);
 
   Vecteur3 flux_error = {0.,0.,0.};
   for (int c=0; c<3; c++)
@@ -4564,9 +4561,13 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
             weight_dir_tot += normal_compo;
           }
       for (int l=0; l<(int) pure_faces.size(); l++)
-        corrective_flux_from_neighbours_[pure_faces[l]] += flux_out[pure_faces[l]] * flux_error[c] * weight_dir[l] / weight_dir_tot;
+        {
+          const int pure_face = pure_faces[l];
+          corrective_flux_from_neighbours_[pure_face] += ((flux_out[pure_face] * flux_error[c]) * (weight_dir[l] / weight_dir_tot));
+        }
     }
-
+  for (int l=0; l<6; l++)
+    interfacial_heat_flux_current[face_dir[l]](index_i_,index_j_,index_k_) += corrective_flux_from_neighbours_[l];
 }
 
 void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)

@@ -101,6 +101,7 @@ public :
   inline void set_distance_cell_faces_from_lrs(const int& distance_cell_faces_from_lrs);
   inline void set_correction_cell_neighbours(const int& correct_temperature_cell_neighbours,
                                              const int& neighbours_colinearity_weighting,
+                                             const int& keep_max_flux_correction,
                                              const int& smooth_temperature_field);
   inline void set_cell_faces_neighbours_corrected_bool(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool);
   inline void set_eulerian_normal_vectors_ns_normed(const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed);
@@ -136,6 +137,7 @@ public :
                                                        const int& remove_external_neighbour_values,
                                                        IJK_Field_int& neighbours_temperature_to_correct_trimmed);
   inline void replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
+                                                                                const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                                                 const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                                 const int& fluxes_type);
   inline void set_temperature_fluxes_periodic_sharing_strategy_on_processors(const int& copy_fluxes_on_every_procs,
@@ -291,10 +293,12 @@ inline void Corrige_flux_FT::set_distance_cell_faces_from_lrs(const int& distanc
 
 inline void Corrige_flux_FT::set_correction_cell_neighbours(const int& correct_temperature_cell_neighbours,
                                                             const int& neighbours_colinearity_weighting,
+                                                            const int& keep_max_flux_correction,
                                                             const int& smooth_temperature_field)
 {
   valeur().set_correction_cell_neighbours(correct_temperature_cell_neighbours,
                                           neighbours_colinearity_weighting,
+                                          keep_max_flux_correction,
                                           smooth_temperature_field);
 }
 
@@ -394,10 +398,12 @@ inline void Corrige_flux_FT::compute_min_max_ijk_any_reachable_fluxes(const Fixe
 }
 
 inline void Corrige_flux_FT::replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
+                                                                                               const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                                                                const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                                                const int& fluxes_type)
 {
   valeur().replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool,
+                                                                             cell_faces_neighbours_corrected_all_bool,
                                                                              cell_faces_neighbours_fluxes_corrected,
                                                                              fluxes_type);
 }

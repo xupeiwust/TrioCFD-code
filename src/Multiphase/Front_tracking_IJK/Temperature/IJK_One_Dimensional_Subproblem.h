@@ -288,7 +288,8 @@ public :
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);
 
-  void add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
+  void add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                       FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current);
   void add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
 
   void compute_pure_liquid_neighbours();
