@@ -1893,7 +1893,7 @@ void IJK_Thermal_Subresolution::interpolate_indicator_on_probes()
 
 void IJK_Thermal_Subresolution::clear_sort_problems_colliding_bubbles()
 {
-  if (!disable_subresolution_) // || reference_gfm_on_probes_)
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
     thermal_local_subproblems_.clear_sort_problems_colliding_bubbles();
 }
 

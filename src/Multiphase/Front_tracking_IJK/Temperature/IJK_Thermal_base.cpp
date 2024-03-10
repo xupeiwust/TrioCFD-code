@@ -125,6 +125,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   liquid_velocity_ = nullptr;
   rising_velocities_ = nullptr;
   rising_vectors_ = nullptr;
+  rising_velocity_overall_ = nullptr;
   eulerian_rising_velocities_ = nullptr;
   bubbles_volume_ = nullptr;
   bubbles_barycentre_ = nullptr;
@@ -669,6 +670,7 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
       rising_velocities_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_velocities());
       rising_vectors_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_vectors());
       liquid_velocity_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_liquid_velocity());
+      rising_velocity_overall_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_velocity_overall());
     }
   if (fill_rising_velocities_)
     eulerian_rising_velocities_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_eulerian_rising_velocities());
@@ -1263,6 +1265,8 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
     {
       for (int c=0; c<3; c++)
         rho_cp_u_T_convective_raw_[c].data() = 0.;
+      const Vecteur3 bubbles_velocity = (*rising_velocity_overall_);
+      temperature_grad_flux_op_quick_.set_velocity_frame_of_reference(bubbles_velocity);
       temperature_grad_flux_op_quick_.calculer_grad_flux(temperature_,
                                                          velocity[0],
                                                          velocity[1],

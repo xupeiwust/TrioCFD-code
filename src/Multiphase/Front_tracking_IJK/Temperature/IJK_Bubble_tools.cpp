@@ -206,6 +206,31 @@ void compute_interfacial_compo_fill_compo(const IJK_Interfaces& interfaces, IJK_
 
 }
 
+void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
+                                     const DoubleTab& rising_vectors,
+                                     const ArrOfDouble& rising_velocities,
+                                     const ArrOfDouble& bubbles_volume,
+                                     Vecteur3& rising_velocities_overall)
+{
+  rising_velocities_overall = {0.,0.,0.};
+  double total_volume = 0;
+  int nb_bubbles = interfaces.get_nb_bulles_reelles();
+  for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
+    {
+      for (int l=0; l<3; l++)
+        {
+          rising_velocities_overall[l] = (rising_velocities[ibubble] * rising_vectors(ibubble, l))
+                                         * bubbles_volume[ibubble];
+        }
+      total_volume += bubbles_volume[ibubble];
+    }
+  for (int l=0; l<3; l++)
+    {
+      const double rising_velocity_compo = rising_velocities_overall[l];
+      rising_velocities_overall[l] = rising_velocity_compo / total_volume;
+    }
+}
+
 void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, const IJK_Interfaces& interfaces,
                              const IJK_Field_int& eulerian_compo_connex_ns, const int& gravity_dir,
                              ArrOfDouble& rising_velocities, DoubleTab& rising_vectors,

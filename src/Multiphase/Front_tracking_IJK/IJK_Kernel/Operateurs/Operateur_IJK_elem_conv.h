@@ -67,6 +67,7 @@ public :
    * Setters
    */
   inline void set_corrige_flux(Corrige_flux_FT& corrige_flux);
+  inline void set_velocity_frame_of_reference(const Vecteur3& velocity_frame_of_reference);
 
 protected:
   Motcles convection_op_words_;
@@ -98,6 +99,11 @@ inline void Operateur_IJK_elem_conv::compute_add(IJK_Field_double& dx)
 inline void Operateur_IJK_elem_conv::set_corrige_flux(Corrige_flux_FT& corrige_flux)
 {
   valeur().set_corrige_flux(corrige_flux);
+}
+
+inline void Operateur_IJK_elem_conv::set_velocity_frame_of_reference(const Vecteur3& velocity_frame_of_reference)
+{
+  valeur().set_velocity_frame_of_reference(velocity_frame_of_reference);
 }
 
 #endif /* Operateur_IJK_elem_conv_included */

@@ -88,6 +88,8 @@ void OpConvQuickIJKScalar_double::compute_flux_(IJK_Field_local_double& resu, co
         }
     }
 
+  const double velocity_frame = velocity_frame_of_reference_[(int) _DIR_];
+
   const double delta_xyz_squared_over_8 = delta_xyz * delta_xyz * 0.125;
   const int imax = nx;
   const int jmax = ny;
@@ -109,7 +111,7 @@ void OpConvQuickIJKScalar_double::compute_flux_(IJK_Field_local_double& resu, co
           Simd_double curv	   = select_double(velocity, 0., curv1, curv0);
           Simd_double T_amont = select_double(velocity, 0., T1 /* if velocity < 0 */, T0 /* if velocity > 0 */);
           Simd_double flux	   = (T0 + T1) * 0.5 - delta_xyz_squared_over_8 * curv;
-          flux		   = ((1. - fram) * flux + fram * T_amont) * velocity * surface;
+          flux		   = ((1. - fram) * flux + fram * T_amont) * (velocity - velocity_frame) * surface;
           resu_ptr.put_val(i, flux);
         }
       // do not execute end_iloop at last iteration (because of assert on valid j+1)

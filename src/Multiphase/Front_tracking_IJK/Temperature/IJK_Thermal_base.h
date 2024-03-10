@@ -755,6 +755,7 @@ protected:
   int fill_rising_velocities_;
 
   const Vecteur3 * liquid_velocity_;
+  const Vecteur3 * rising_velocity_overall_;
   const ArrOfDouble * rising_velocities_;
   const DoubleTab * rising_vectors_;
   const IJK_Field_double * eulerian_rising_velocities_;

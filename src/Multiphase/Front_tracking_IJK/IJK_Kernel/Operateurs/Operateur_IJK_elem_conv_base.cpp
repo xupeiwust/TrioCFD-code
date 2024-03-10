@@ -80,7 +80,7 @@ void Operateur_IJK_elem_conv_base_double::calculer(const IJK_Field_double& field
   input_velocity_x_ = nullptr;
   input_velocity_y_ = nullptr;
   input_velocity_z_ = nullptr;
-
+  velocity_frame_of_reference_ = {0.,0.,0.};
 }
 
 void Operateur_IJK_elem_conv_base_double::ajouter(const IJK_Field_double& field,
@@ -107,7 +107,7 @@ void Operateur_IJK_elem_conv_base_double::ajouter(const IJK_Field_double& field,
   input_velocity_x_ = nullptr;
   input_velocity_y_ = nullptr;
   input_velocity_z_ = nullptr;
-
+  velocity_frame_of_reference_ = {0.,0.,0.};
 }
 
 

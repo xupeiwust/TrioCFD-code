@@ -383,6 +383,11 @@ void IJK_Composantes_Connex::compute_rising_velocities()
                               eulerian_compo_connex_from_interface_int_ns_, ref_ijk_ft_->get_direction_gravite(),
                               rising_velocities_, rising_vectors_,
                               liquid_velocity_);
+      compute_rising_velocity_overall(ref_ijk_ft_->itfce(),
+                                      rising_vectors_,
+                                      rising_velocities_,
+                                      bubbles_volume_,
+                                      rising_velocity_overall_);
       if (fill_rising_velocities_)
         {
           eulerian_rising_velocities_.data() = 0.;

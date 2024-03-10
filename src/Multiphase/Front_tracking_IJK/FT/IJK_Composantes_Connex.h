@@ -125,6 +125,10 @@ public :
   {
     return rising_vectors_;
   }
+  const Vecteur3& get_rising_velocity_overall() const
+  {
+    return rising_velocity_overall_;
+  }
   const Vecteur3& get_liquid_velocity() const
   {
     return liquid_velocity_;
@@ -162,8 +166,9 @@ protected :
 
   IJK_Field_double eulerian_rising_velocities_;
   ArrOfDouble rising_velocities_;
+  Vecteur3 rising_velocity_overall_ = {0., 0., 0.};
   DoubleTab rising_vectors_;
-  Vecteur3 liquid_velocity_;
+  Vecteur3 liquid_velocity_ = {0., 0., 0.};
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;

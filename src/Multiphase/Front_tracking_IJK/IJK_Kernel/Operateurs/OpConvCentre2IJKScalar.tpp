@@ -76,6 +76,8 @@ void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, 
         }
     }
 
+  const double velocity_frame = velocity_frame_of_reference_[(int) _DIR_];
+
   const int imax = nx;
   const int jmax = ny;
   const int vsize = Simd_double::size();
@@ -88,7 +90,7 @@ void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, 
           Simd_double T0, T1; // scalar value at left and at right of the computed flux
           input_field.get_left_center(_DIR_, i, T0, T1);
           Simd_double flux = (T0 + T1) * 0.5;
-          flux = flux * velocity * surface;
+          flux = flux * (velocity - velocity_frame) * surface;
           resu_ptr.put_val(i, flux);
         }
       // do not execute end_iloop at last iteration (because of assert on valid j+1)
