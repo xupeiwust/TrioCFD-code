@@ -4605,7 +4605,8 @@ void IJK_One_Dimensional_Subproblem::compute_pure_liquid_neighbours()
 }
 
 void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
-                                                                        const int flux_type)
+                                                                        const int flux_type,
+                                                                        const int inv_sign)
 {
   FixedVector<double, 6>* convective_diffusive_flux_op_value = nullptr;
   FixedVector<double, 6>* convective_diffusive_flux_op_value_vap = nullptr;
@@ -4667,6 +4668,8 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
       const int kk_f = neighbours_faces_k[l];
 
       double flux_val = convective_diffusive_fluxes_raw[face_dir[l]](index_i_+ii_f, index_j_ + jj_f, index_k_ + kk_f);
+      if (inv_sign)
+        flux_val = -flux_val;
       flux_val *= flux_out[l];
       // flux_val = neighbours_ijk_sign[l] ? -flux_val: flux_val;
 

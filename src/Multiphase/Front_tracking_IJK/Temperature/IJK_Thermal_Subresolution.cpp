@@ -2622,7 +2622,7 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
         Cerr << "Sort spherical coords" << finl;
       thermal_local_subproblems_.sort_limited_probes_spherical_coords_post_processing(post_process_all_probes_,
                                                                                       nb_theta_post_pro_, nb_phi_post_pro_,
-                                                                                      1, 1);
+                                                                                      (int) 1, (int) 1);
       if (debug_)
         Cerr << "Write post-processings" << finl;
       thermal_local_subproblems_.thermal_subresolution_outputs_parallel(rang_,
@@ -2638,9 +2638,19 @@ void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
     if (!disable_subresolution_ || reference_gfm_on_probes_)
       {
         if (!conv_temperature_negligible_)
-          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, 0);
+          {
+            if (use_reachable_fluxes_ && keep_first_reachable_fluxes_)
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(cell_faces_neighbours_corrected_convective_, (int) 0);
+            else
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_, (int) 0);
+          }
         if (!diff_temperature_negligible_)
-          thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, 1);
+          {
+            if (use_reachable_fluxes_ && keep_first_reachable_fluxes_)
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(cell_faces_neighbours_corrected_diffusive_, (int) 0, (int) 1);
+            else
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_, (int) 1);
+          }
       }
 }
 

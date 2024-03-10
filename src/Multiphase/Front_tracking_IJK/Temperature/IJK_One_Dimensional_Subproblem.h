@@ -294,7 +294,8 @@ public :
 
   void compute_pure_liquid_neighbours();
   void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
-                                          const int flux_type);
+                                          const int flux_type,
+                                          const int inv_sign=0);
 
   void set_subproblem_index(const int& sub_problem_index)
   {

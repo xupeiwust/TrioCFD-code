@@ -1137,10 +1137,13 @@ DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_condu
 }
 
 void IJK_One_Dimensional_Subproblems::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
-                                                                         const int flux_type)
+                                                                         const int flux_type,
+                                                                         const int inv_sign)
 {
   for (int itr=0; itr < effective_subproblems_counter_; itr++)
-    one_dimensional_effective_subproblems_[itr]->compare_fluxes_thermal_subproblems(convective_diffusive_fluxes_raw, flux_type);
+    one_dimensional_effective_subproblems_[itr]->compare_fluxes_thermal_subproblems(convective_diffusive_fluxes_raw,
+                                                                                    flux_type,
+                                                                                    inv_sign);
 }
 
 

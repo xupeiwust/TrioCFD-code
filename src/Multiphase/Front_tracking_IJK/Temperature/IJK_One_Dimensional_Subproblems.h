@@ -176,7 +176,9 @@ public :
                                      const Nom& overall_bubbles_quantities,
                                      const Nom& local_quantities_thermal_probes_time_index_folder);
 
-  void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw, const int flux_type);
+  void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+                                          const int flux_type,
+                                          const int inv_sign=0);
 
   const int& get_subproblems_counter() const
   {
