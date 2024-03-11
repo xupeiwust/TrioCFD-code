@@ -32,7 +32,7 @@
 #include <Domaine_PolyMAC_P0.h>
 #include <math.h>
 
-Implemente_instanciable(Rupture_bulles_1groupe_PolyMAC_P0, "Rupture_bulles_1groupe_PolyMAC_P0", Source_base);
+Implemente_instanciable(Rupture_bulles_1groupe_PolyMAC_P0, "Rupture_bulles_1groupe_elem_PolyMAC_P0", Source_base);
 
 Sortie& Rupture_bulles_1groupe_PolyMAC_P0::printOn(Sortie& os) const
 {
