@@ -2570,13 +2570,18 @@ void IJK_Thermal_Subresolution::correct_operators_for_visu()
 
 void IJK_Thermal_Subresolution::prepare_ij_fluxes_k_layers()
 {
-  if ((!disable_subresolution_) && (convective_flux_correction_ || diffusive_flux_correction_) && (!use_reachable_fluxes_))
+  if ((!disable_subresolution_) && (convective_flux_correction_ || diffusive_flux_correction_))
     {
-      corrige_flux_->compute_ijk_pure_faces_indices();
-      corrige_flux_->sort_ijk_intersections_subproblems_indices_by_k_layers();
+      if (!use_reachable_fluxes_)
+        {
+          corrige_flux_->compute_ijk_pure_faces_indices();
+          corrige_flux_->sort_ijk_intersections_subproblems_indices_by_k_layers();
+        }
       if (store_cell_faces_corrected_)
         {
-          corrige_flux_->store_cell_faces_corrected(cell_faces_corrected_bool_, cell_faces_corrected_convective_, cell_faces_corrected_diffusive_);
+          corrige_flux_->store_cell_faces_corrected(cell_faces_corrected_bool_,
+                                                    cell_faces_corrected_convective_,
+                                                    cell_faces_corrected_diffusive_);
         }
     }
 }

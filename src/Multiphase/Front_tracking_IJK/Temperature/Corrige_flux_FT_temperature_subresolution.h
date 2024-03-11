@@ -309,7 +309,8 @@ public :
   void replace_cell_neighbours_thermal_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
                                                     const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                     const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
-                                                    FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz);
+                                                    FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz,
+                                                    const int counter);
 
   void set_zero_temperature_increment(IJK_Field_double& d_temperature) const override;
   void compute_thermal_convective_fluxes(const int& last_flux) override;
@@ -369,6 +370,7 @@ public :
                                   FixedVector<IJK_Field_double,3>& cell_faces_corrected_convective,
                                   FixedVector<IJK_Field_double,3>& cell_faces_corrected_diffusive) override;
   void store_any_cell_faces_corrected(FixedVector<IJK_Field_int,3>& cell_faces_corrected_bool,
+                                      FixedVector<FixedVector<std::vector<ArrOfInt>,3>,2>& index_face_ij_flux_xyz_sorted,
                                       FixedVector<IJK_Field_double,3>& cell_faces_corrected,
                                       const DoubleVect& fluxes,
                                       FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz,

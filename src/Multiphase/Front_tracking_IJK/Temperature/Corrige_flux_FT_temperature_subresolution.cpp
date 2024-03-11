@@ -954,7 +954,10 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_mixed_ce
         {
           IJK_Field_local_double cell_faces_neighbours_corrected_field_tmp;
           if (convective_flux_correction_ || diffusive_flux_correction_ || neighbours_colinearity_weighting_)
-            cell_faces_neighbours_corrected_field_tmp.allocate(ni, nj, nk, 0);
+            {
+              cell_faces_neighbours_corrected_field_tmp.allocate(ni, nj, nk, 0);
+              cell_faces_neighbours_corrected_bool_mixed_cell.echange_espace_virtuel(); // Important
+            }
 
           if (convective_flux_correction_)
             compute_cell_neighbours_mixed_cell_faces_any_field(cell_faces_neighbours_corrected_bool_mixed_cell,
@@ -1732,35 +1735,43 @@ void Corrige_flux_FT_temperature_subresolution::replace_cell_neighbours_thermal_
                                                                                                                   const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
                                                                                                                   const int& fluxes_type)
 {
+  int counter = 0;
+  if (debug_)
+    Cerr << "Replace cell neighbours thermal_convective diffusive fluxes faces" << finl;
   if (!convection_negligible_ && use_reachable_fluxes_ && fluxes_type == convection)
     {
       replace_cell_neighbours_thermal_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool,
                                                    cell_faces_neighbours_corrected_all_bool,
                                                    cell_faces_neighbours_fluxes_corrected,
-                                                   convective_diffusive_flux_xyz_min_max_faces_sorted_[0]);
+                                                   convective_diffusive_flux_xyz_min_max_faces_sorted_[0],
+                                                   counter);
+      counter++;
     }
   if (!diffusion_negligible_ && use_reachable_fluxes_ && fluxes_type == diffusion)
     {
       replace_cell_neighbours_thermal_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool,
                                                    cell_faces_neighbours_corrected_all_bool,
                                                    cell_faces_neighbours_fluxes_corrected,
-                                                   convective_diffusive_flux_xyz_min_max_faces_sorted_[1]);
+                                                   convective_diffusive_flux_xyz_min_max_faces_sorted_[1],
+                                                   counter);
+      counter++;
     }
 }
 
 void Corrige_flux_FT_temperature_subresolution::replace_cell_neighbours_thermal_fluxes_faces(const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_min_max_bool,
                                                                                              const FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_all_bool,
                                                                                              const FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_fluxes_corrected,
-                                                                                             FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz)
+                                                                                             FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz,
+                                                                                             const int counter)
 {
-  const int ni = cell_faces_neighbours_corrected_min_max_bool[0].ni();
-  const int nj = cell_faces_neighbours_corrected_min_max_bool[0].nj();
-  const int nk = cell_faces_neighbours_corrected_min_max_bool[0].nk();
   const FixedVector<IJK_Field_int, 3> * cell_faces_neighbours_corrected_bool = nullptr;
   if (keep_first_reachable_fluxes_)
     cell_faces_neighbours_corrected_bool = &cell_faces_neighbours_corrected_all_bool;
   else
     cell_faces_neighbours_corrected_bool = &cell_faces_neighbours_corrected_min_max_bool;
+  const int ni = (*cell_faces_neighbours_corrected_bool)[0].ni();
+  const int nj = (*cell_faces_neighbours_corrected_bool)[0].nj();
+  const int nk = (*cell_faces_neighbours_corrected_bool)[0].nk();
   for (int c=0; c<3; c++)
     {
       const int ni_max = (c == 0 ? ni + 1 : ni);
@@ -1772,8 +1783,11 @@ void Corrige_flux_FT_temperature_subresolution::replace_cell_neighbours_thermal_
             if ((*cell_faces_neighbours_corrected_bool)[c](i,j,k))
               {
                 flux_xyz[c][k].append_array(cell_faces_neighbours_fluxes_corrected[c](i,j,k));
-                index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
-                index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
+                if (!counter)
+                  {
+                    index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[0][c][k].append_array(i);
+                    index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_[1][c][k].append_array(j);
+                  }
               }
     }
 }
@@ -3441,22 +3455,43 @@ void Corrige_flux_FT_temperature_subresolution::store_cell_faces_corrected(Fixed
   int counter = 0;
   if (!convection_negligible_)
     {
-      store_any_cell_faces_corrected(cell_faces_corrected_bool,
-                                     cell_faces_corrected_convective,
-                                     convective_fluxes_,
-                                     convective_diffusive_flux_xyz_sorted_[0],
-                                     counter);
+      if(!use_reachable_fluxes_)
+        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+                                       index_face_ij_flux_xyz_sorted_,
+                                       cell_faces_corrected_convective,
+                                       convective_fluxes_,
+                                       convective_diffusive_flux_xyz_sorted_[0],
+                                       counter);
+      else
+        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
+                                       cell_faces_corrected_convective,
+                                       convective_fluxes_,
+                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[0],
+                                       counter);
       counter ++;
     }
   if (!diffusion_negligible_)
-    store_any_cell_faces_corrected(cell_faces_corrected_bool,
-                                   cell_faces_corrected_diffusive,
-                                   diffusive_fluxes_,
-                                   convective_diffusive_flux_xyz_sorted_[1],
-                                   counter);
+    {
+      if(!use_reachable_fluxes_)
+        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+                                       index_face_ij_flux_xyz_sorted_,
+                                       cell_faces_corrected_diffusive,
+                                       diffusive_fluxes_,
+                                       convective_diffusive_flux_xyz_sorted_[1],
+                                       counter);
+      else
+        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
+                                       cell_faces_corrected_convective,
+                                       convective_fluxes_,
+                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[1],
+                                       counter);
+    }
 }
 
 void Corrige_flux_FT_temperature_subresolution::store_any_cell_faces_corrected(FixedVector<IJK_Field_int,3>& cell_faces_corrected_bool,
+                                                                               FixedVector<FixedVector<std::vector<ArrOfInt>,3>,2>& index_face_ij_flux_xyz_sorted,
                                                                                FixedVector<IJK_Field_double,3>& cell_faces_corrected,
                                                                                const DoubleVect& fluxes,
                                                                                FixedVector<std::vector<ArrOfDouble>,3>& flux_xyz,
@@ -3464,7 +3499,8 @@ void Corrige_flux_FT_temperature_subresolution::store_any_cell_faces_corrected(F
 {
   for (int c=0; c<3; c++)
     {
-      cell_faces_corrected_bool[c].data() = 0.;
+      if (!counter)
+        cell_faces_corrected_bool[c].data() = 0.;
       cell_faces_corrected[c].data() = 0.;
     }
   if (Process::nproc() == 1)
@@ -3493,27 +3529,32 @@ void Corrige_flux_FT_temperature_subresolution::store_any_cell_faces_corrected(F
       const int nj = indicator.nj();
       const int nk = indicator.nk();
 
-      const int size_k = (int) index_face_ij_flux_xyz_sorted_[0][0].size();
       for (int dir=0; dir<3; dir++)
-        for (int k=0; k<size_k; k++)
-          {
-            const int size_array = index_face_ij_flux_xyz_sorted_[0][dir][k].size_array();
-            for (int l=0; l<size_array; l++)
-              {
-                const int i = index_face_ij_flux_xyz_sorted_[0][dir][k](l);
-                const int j = index_face_ij_flux_xyz_sorted_[1][dir][k](l);
-                const double flux = flux_xyz[dir][k](l);
-                /*
-                 * Offset for verification (not at the exact places of the fluxes)!
-                 */
-                const int i_display = (i >= ni ? i-1: i);
-                const int j_display = (j >= nj ? j-1: j);
-                const int k_display = (k >= nk ? k-1: k);
-                if (!counter)
-                  cell_faces_corrected_bool[dir](i_display, j_display, k_display) += 1;
-                cell_faces_corrected[dir](i_display,j_display,k_display) += flux;
-              }
-          }
+        {
+          const int size_k = (int) index_face_ij_flux_xyz_sorted[0][dir].size();
+          for (int k=0; k<size_k; k++)
+            {
+              const int size_array = index_face_ij_flux_xyz_sorted[0][dir][k].size_array();
+              for (int l=0; l<size_array; l++)
+                {
+                  const int i = index_face_ij_flux_xyz_sorted[0][dir][k](l);
+                  const int j = index_face_ij_flux_xyz_sorted[1][dir][k](l);
+                  const double flux = flux_xyz[dir][k](l);
+                  /*
+                   * Offset for verification (not at the exact places of the fluxes)!
+                   */
+                  // const int i_display = (i >= ni ? i-1: i);
+                  // const int j_display = (j >= nj ? j-1: j);
+                  // const int k_display = (k >= nk ? k-1: k);
+                  const int i_display = (i >= ni ? i: i);
+                  const int j_display = (j >= nj ? j: j);
+                  const int k_display = (k >= nk ? k: k);
+                  if (!counter)
+                    cell_faces_corrected_bool[dir](i_display, j_display, k_display) += 1;
+                  cell_faces_corrected[dir](i_display,j_display,k_display) += flux;
+                }
+            }
+        }
     }
 }
 
