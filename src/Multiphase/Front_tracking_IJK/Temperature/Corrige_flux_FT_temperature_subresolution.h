@@ -221,12 +221,22 @@ public :
                                                          FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                          FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                          FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity);
+
+  void get_add_replace_flux_value(FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective_diffusive_flux,
+                                  const int& dir,
+                                  const int& i,
+                                  const int& j,
+                                  const int& k,
+                                  double& convective_diffusive_flux,
+                                  const double& replace_weighting_values);
+
   void complete_neighbours_and_weighting_colinearity(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
                                                      FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                      FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                      FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
                                                      const int& compute_fluxes_values);
-  void compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
+  void compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
+                                                 FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                  FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                  const int& subproblem_index,
                                                  const int& index_i, const int& index_j, const int& index_k,

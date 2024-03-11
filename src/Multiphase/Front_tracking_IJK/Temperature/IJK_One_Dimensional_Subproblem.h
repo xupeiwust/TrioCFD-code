@@ -205,7 +205,7 @@ public :
                                                          const int& dir,
                                                          const int& index_i=INVALID_INDEX,
                                                          const int& index_j=INVALID_INDEX,
-                                                         const int& index_k=INVALID_INDEX) const;
+                                                         const int& index_k=INVALID_INDEX);
   DoubleVect get_field_discrete_integral_velocity_weighting_at_point(const double& dist,
                                                                      const int& levels,
                                                                      const int& dir,
@@ -500,13 +500,7 @@ public :
     else
       return sum_diffusive_flux_op_value_normal_contrib_;
   }
-  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type) const
-  {
-    if (flux_type==0)
-      return sum_convective_flux_op_lrs_;
-    else
-      return sum_diffusive_flux_op_lrs_;
-  }
+  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type);
   double get_corrective_flux_from_neighbours(const int& l)
   {
     return corrective_flux_from_neighbours_[l];
@@ -1209,6 +1203,8 @@ protected :
   FixedVector<double,6> corrective_flux_current_;
   FixedVector<double,6> corrective_flux_to_neighbours_;
   FixedVector<double,6> corrective_flux_from_neighbours_;
+
+  Vecteur3 temperature_interp_conv_flux_ = {0.,0.,0.};
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

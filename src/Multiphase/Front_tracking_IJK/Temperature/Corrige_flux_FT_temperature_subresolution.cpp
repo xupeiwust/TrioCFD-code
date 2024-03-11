@@ -1126,10 +1126,8 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
                               // || seq)
                               {
                                 cell_faces_neighbours_corrected_bool[c](index_i_procs, index_j_neighbour, index_k_procs) += 1;
-                                if (neighbours_colinearity_weighting_ && use_reachable_fluxes_)
-                                  neighbours_weighting_colinearity[c](index_i_procs, index_j_procs, index_k_procs) += colinearity;
-
-                                compute_cell_neighbours_fluxes_to_correct(cell_faces_neighbours_corrected_convective,
+                                compute_cell_neighbours_fluxes_to_correct(neighbours_weighting_colinearity,
+                                                                          cell_faces_neighbours_corrected_convective,
                                                                           cell_faces_neighbours_corrected_diffusive,
                                                                           i,
                                                                           index_i_procs,
@@ -1292,9 +1290,12 @@ void Corrige_flux_FT_temperature_subresolution::receive_all_fluxes_from_outisde_
                   for (l=1; l<overall_numerotation.size_array(); l++)
                     start_indices(l) = start_indices(l-1) + overall_numerotation(l-1);
 
-                  Cerr << "Size array" << size_array << finl;
-                  Cerr << "Size array global" << size_array_global << finl;
-                  Cerr << "Overall_numerotation" << overall_numerotation(0) << "-" << overall_numerotation(1) << finl;
+                  if (debug_)
+                    {
+                      Cerr << "Size array" << size_array << finl;
+                      Cerr << "Size array global" << size_array_global << finl;
+                      Cerr << "Overall_numerotation" << overall_numerotation(0) << "-" << overall_numerotation(1) << finl;
+                    }
 
                   ArrOfInt local_indices_i_tmp;
                   ArrOfInt local_indices_j_tmp;
@@ -1417,10 +1418,14 @@ void Corrige_flux_FT_temperature_subresolution::combine_all_fluxes_from_outisde_
                 {
                   if (use_reachable_fluxes_)
                     {
+                      // if (convective_flux_correction_)
+                      //   cell_faces_neighbours_corrected_convective[dir](i,j,k) += convective_flux;
+                      // if (diffusive_flux_correction_)
+                      //   cell_faces_neighbours_corrected_diffusive[dir](i,j,k) += diffusive_flux;
                       if (convective_flux_correction_)
-                        cell_faces_neighbours_corrected_convective[dir](i,j,k) += convective_flux;
+                        get_add_replace_flux_value(cell_faces_neighbours_corrected_convective, dir, i, j, k, convective_flux, colinearity);
                       if (diffusive_flux_correction_)
-                        cell_faces_neighbours_corrected_diffusive[dir](i,j,k) += diffusive_flux;
+                        get_add_replace_flux_value(cell_faces_neighbours_corrected_diffusive, dir, i, j, k, diffusive_flux, colinearity);
                       if (neighbours_colinearity_weighting_)
                         neighbours_weighting_colinearity[dir](i,j,k) += colinearity;
                     }
@@ -1429,6 +1434,27 @@ void Corrige_flux_FT_temperature_subresolution::combine_all_fluxes_from_outisde_
             }
         }
     }
+}
+
+void Corrige_flux_FT_temperature_subresolution::get_add_replace_flux_value(FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective_diffusive_flux,
+                                                                           const int& dir,
+                                                                           const int& i,
+                                                                           const int& j,
+                                                                           const int& k,
+                                                                           double& convective_diffusive_flux,
+                                                                           const double& replace_weighting_values)
+{
+  if (keep_max_flux_correction_)
+    {
+      const double current_flux_value = cell_faces_neighbours_corrected_convective_diffusive_flux[dir](i,j,k);
+      const int sign_flux = signbit(convective_diffusive_flux);
+      convective_diffusive_flux = std::max(abs(convective_diffusive_flux), abs(current_flux_value));
+      convective_diffusive_flux = sign_flux ? -convective_diffusive_flux: convective_diffusive_flux;
+      cell_faces_neighbours_corrected_convective_diffusive_flux[dir](i,j,k) = convective_diffusive_flux;
+      // if (neighbours_colinearity_weighting_)
+    }
+  else
+    cell_faces_neighbours_corrected_convective_diffusive_flux[dir](i,j,k) += convective_diffusive_flux;
 }
 
 void Corrige_flux_FT_temperature_subresolution::complete_neighbours_and_weighting_colinearity(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
@@ -1487,7 +1513,8 @@ void Corrige_flux_FT_temperature_subresolution::complete_neighbours_and_weightin
     }
 }
 
-void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
+void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
+                                                                                          FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                                                           FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                                                           const int& subproblem_index,
                                                                                           const int& index_i, const int& index_j, const int& index_k,
@@ -1498,6 +1525,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_t
                                                                                           double& convective_flux,
                                                                                           double& diffusive_flux)
 {
+  if (neighbours_colinearity_weighting_ && use_reachable_fluxes_)
+    neighbours_weighting_colinearity[dir](index_i, index_j, index_k) += colinearity;
+
   if (compute_fluxes_values)
     {
       if (convective_flux_correction_)
@@ -1511,16 +1541,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_t
                                                                index_i,
                                                                index_j,
                                                                index_k);
-          if (keep_max_flux_correction_)
-            {
-              const double current_flux_value = cell_faces_neighbours_corrected_convective[dir](index_i, index_j, index_k);
-              const int sign_flux = signbit(convective_flux);
-              convective_flux = std::max(abs(convective_flux), abs(current_flux_value));
-              convective_flux = sign_flux ? -convective_flux: convective_flux;
-              cell_faces_neighbours_corrected_convective[dir](index_i, index_j, index_k) = convective_flux;
-            }
-          else
-            cell_faces_neighbours_corrected_convective[dir](index_i, index_j, index_k) += convective_flux;
+          get_add_replace_flux_value(cell_faces_neighbours_corrected_convective, dir, index_i, index_j, index_k, convective_flux, colinearity);
         }
       if (diffusive_flux_correction_)
         {
@@ -1532,16 +1553,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_fluxes_t
                                                               index_i,
                                                               index_j,
                                                               index_k);
-          if (keep_max_flux_correction_)
-            {
-              const double current_flux_value = cell_faces_neighbours_corrected_diffusive[dir](index_i, index_j, index_k);
-              const int sign_flux = signbit(diffusive_flux);
-              diffusive_flux = std::max(abs(diffusive_flux), abs(current_flux_value));
-              diffusive_flux = sign_flux ? -diffusive_flux: diffusive_flux;
-              cell_faces_neighbours_corrected_diffusive[dir](index_i, index_j, index_k) = diffusive_flux;
-            }
-          else
-            cell_faces_neighbours_corrected_diffusive[dir](index_i, index_j, index_k) += diffusive_flux;
+          get_add_replace_flux_value(cell_faces_neighbours_corrected_diffusive, dir, index_i, index_j, index_k, diffusive_flux, colinearity);
         }
     }
 }

@@ -3240,7 +3240,9 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         ref_ijk_ft_->get_velocity(),
                                         velocity_line,
                                         2);
-  values *= velocity_line;
+  DoubleTab velocity_line_frame_of_ref = velocity_line;
+  velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  values *= velocity_line_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }
 
@@ -3935,7 +3937,9 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               velocity_values,
                                               2,
                                               !disable_slice_to_nearest_plane_);
-  values *= velocity_values;
+  DoubleTab velocity_values_frame_of_ref = velocity_values;
+  velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  values *= velocity_values_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }
 

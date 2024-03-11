@@ -248,6 +248,7 @@ void IJK_One_Dimensional_Subproblem::clear_vectors()
     }
   sum_convective_flux_op_lrs_ = 0.;
   sum_diffusive_flux_op_lrs_ = 0.;
+  temperature_interp_conv_flux_ = {0., 0., 0.};
 }
 
 void IJK_One_Dimensional_Subproblem::reset_counters()
@@ -3683,7 +3684,7 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
                                                                                        const int& dir,
                                                                                        const int& index_i,
                                                                                        const int& index_j,
-                                                                                       const int& index_k) const
+                                                                                       const int& index_k)
 {
   double temperature_interp = get_field_profile_at_point(dist, temperature_solution_, temperature_interp_, *temperature_,
                                                          1, 1, interp_eulerian_);
@@ -3698,7 +3699,8 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
       velocity_interp -= (first_tangential_corr * (*first_tangential_vector_compo_solver_)[dir]);
       velocity_interp -= (second_tangential_corr * (*second_tangential_vector_compo_solver_)[dir]);
     }
-
+  const double temperature_interp_conv = temperature_interp_conv_flux_[dir];
+  temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
   return temperature_interp * velocity_interp;
 }
 
@@ -4314,6 +4316,26 @@ double IJK_One_Dimensional_Subproblem::get_max_temperature_domain_ends() const
   return max_temperature_value;
 }
 
+const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
+{
+  if (flux_type==0)
+    {
+      const int face_dir[6] = FACES_DIR;
+      const int flux_out[6] = FLUXES_OUT;
+      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      Vecteur3 convective_term_frame_of_ref = temperature_interp_conv_flux_;
+      for (int l=0; l<3; l++)
+        convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[l];
+      convective_term_frame_of_ref *= (-1) * rho_cp;
+      for (int l=0; l<6; l++)
+        if (pure_liquid_neighbours_[l])
+          sum_convective_flux_op_lrs_ += convective_term_frame_of_ref[face_dir[l]] * flux_out[l];
+      return sum_convective_flux_op_lrs_;
+    }
+  else
+    return sum_diffusive_flux_op_lrs_;
+}
+
 void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type)
 {
   if (flux_type==0)
@@ -4322,6 +4344,7 @@ void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_
       const double rho_cp_flux = rho_cp * flux_face;
       convective_flux_op_lrs_[l] = rho_cp_flux;
       sum_convective_flux_op_lrs_ += rho_cp_flux;
+
     }
   else
     {
