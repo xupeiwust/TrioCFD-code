@@ -3684,10 +3684,13 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
                                                                                        const int& dir,
                                                                                        const int& index_i,
                                                                                        const int& index_j,
-                                                                                       const int& index_k)
+                                                                                       const int& index_k,
+                                                                                       const int& temperature)
 {
   double temperature_interp = get_field_profile_at_point(dist, temperature_solution_, temperature_interp_, *temperature_,
                                                          1, 1, interp_eulerian_);
+  if (temperature)
+    return temperature_interp;
   double velocity_interp = get_velocity_component_at_point(dist, dir, index_i, index_j, index_k);
 
   if (use_corrected_velocity_convection_)
@@ -4331,7 +4334,7 @@ const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_
       double surf_face;
       for (int l=0; l<6; l++)
         {
-          surf_face = 0.;
+          surf_face = 1.;
           if (pure_liquid_neighbours_[l])
             {
               for (int c = 0; c < 3; c++)

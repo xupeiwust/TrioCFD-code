@@ -354,7 +354,15 @@ public:
   {
     return dummy_int_vect_;
   }
+  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_velocity_temperature() const
+  {
+    return dummy_double_vect_;
+  }
   virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective() const
+  {
+    return dummy_double_vect_;
+  }
+  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective_frame_of_ref() const
   {
     return dummy_double_vect_;
   }

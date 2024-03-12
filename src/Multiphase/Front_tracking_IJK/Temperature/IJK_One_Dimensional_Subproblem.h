@@ -205,7 +205,8 @@ public :
                                                          const int& dir,
                                                          const int& index_i=INVALID_INDEX,
                                                          const int& index_j=INVALID_INDEX,
-                                                         const int& index_k=INVALID_INDEX);
+                                                         const int& index_k=INVALID_INDEX,
+                                                         const int& temperature=0);
   DoubleVect get_field_discrete_integral_velocity_weighting_at_point(const double& dist,
                                                                      const int& levels,
                                                                      const int& dir,

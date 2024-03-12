@@ -148,7 +148,8 @@ public :
                                                          const int& dir,
                                                          const int& index_i,
                                                          const int& index_j,
-                                                         const int& index_k) const;
+                                                         const int& index_k,
+                                                         const int& temperature=0) const;
   DoubleVect get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
   DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
   DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;

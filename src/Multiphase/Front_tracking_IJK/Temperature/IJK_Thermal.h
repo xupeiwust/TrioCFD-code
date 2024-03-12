@@ -100,7 +100,9 @@ public :
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_bool() const { return valeur().get_cell_faces_neighbours_corrected_diag_bool(); }
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_all_bool() const { return valeur().get_cell_faces_neighbours_corrected_all_bool(); }
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_min_max_bool() const { return valeur().get_cell_faces_neighbours_corrected_min_max_bool(); }
+  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_velocity_temperature() const { return valeur().get_cell_faces_neighbours_corrected_velocity_temperature(); };
   inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective() const { return valeur().get_cell_faces_neighbours_corrected_convective(); }
+  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_convective_frame_of_ref() const { return valeur().get_cell_faces_neighbours_corrected_convective_frame_of_ref(); };
   inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const { return valeur().get_cell_faces_neighbours_corrected_diffusive(); }
   inline const FixedVector<IJK_Field_double,3>& get_neighbours_faces_weighting_colinearity() const { return valeur().get_neighbours_faces_weighting_colinearity(); }
   inline const IJK_Field_int& get_cell_neighbours_corrected_trimmed() const { return valeur().get_cell_neighbours_corrected_trimmed(); }

@@ -109,7 +109,8 @@ public :
                                                    const int& use_cell_neighbours_for_fluxes_spherical_correction,
                                                    const int& compute_reachable_fluxes,
                                                    const int& use_reachable_fluxes,
-                                                   const int& keep_first_reachable_fluxes);
+                                                   const int& keep_first_reachable_fluxes,
+                                                   const int& store_flux_operators_for_energy_balance);
   inline void set_debug(const int& debug);
   inline void store_cell_faces_corrected(FixedVector<IJK_Field_int,3>& cell_faces_corrected_bool,
                                          FixedVector<IJK_Field_double,3>& cell_faces_corrected_convective,
@@ -117,6 +118,7 @@ public :
   inline void initialise_cell_neighbours_indices_to_correct();
   inline void compute_cell_neighbours_indices_to_correct(const int& n_iter_distance);
   inline void compute_cell_neighbours_faces_indices_to_correct(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
+                                                               FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_velocity_temperature,
                                                                FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                                FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                                FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity);
@@ -316,13 +318,15 @@ inline void Corrige_flux_FT::set_correction_cell_faces_neighbours(const int& fin
                                                                   const int& use_cell_neighbours_for_fluxes_spherical_correction,
                                                                   const int& find_reachable_fluxes,
                                                                   const int& use_reachable_fluxes,
-                                                                  const int& keep_first_reachable_fluxes)
+                                                                  const int& keep_first_reachable_fluxes,
+                                                                  const int& store_flux_operators_for_energy_balance)
 {
   valeur().set_correction_cell_faces_neighbours(find_cell_neighbours_for_fluxes_spherical_correction,
                                                 use_cell_neighbours_for_fluxes_spherical_correction,
                                                 find_reachable_fluxes,
                                                 use_reachable_fluxes,
-                                                keep_first_reachable_fluxes);
+                                                keep_first_reachable_fluxes,
+                                                store_flux_operators_for_energy_balance);
 }
 
 inline void Corrige_flux_FT::set_debug(const int& debug)
@@ -348,11 +352,13 @@ inline void Corrige_flux_FT::compute_cell_neighbours_indices_to_correct(const in
 }
 
 inline void Corrige_flux_FT::compute_cell_neighbours_faces_indices_to_correct(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
+                                                                              FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_velocity_temperature,
                                                                               FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                                               FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                                               FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity)
 {
   valeur().compute_cell_neighbours_faces_indices_to_correct(cell_faces_neighbours_corrected_bool,
+                                                            cell_faces_neighbours_corrected_velocity_temperature,
                                                             cell_faces_neighbours_corrected_convective,
                                                             cell_faces_neighbours_corrected_diffusive,
                                                             neighbours_weighting_colinearity);

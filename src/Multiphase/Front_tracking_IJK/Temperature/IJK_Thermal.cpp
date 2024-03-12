@@ -1192,6 +1192,73 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   oss.str("");
 
   /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_U_T_X
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_U_T_X_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_u_T_x(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_U_T_X") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_u_T_x))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_u_T_x, get_cell_faces_neighbours_corrected_velocity_temperature()[0], latastep);
+    }
+  oss.str("");
+
+  /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Y
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Y_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_u_T_y(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Y") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_u_T_y))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_u_T_y, get_cell_faces_neighbours_corrected_velocity_temperature()[1], latastep);
+    }
+  oss.str("");
+
+  /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Z
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Z_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_u_T_z(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_U_T_Z") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_u_T_z))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_u_T_z, get_cell_faces_neighbours_corrected_velocity_temperature()[2], latastep);
+    }
+  oss.str("");
+
+  /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_X
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_X_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_convective_frame_ref_x(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_X") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_convective_frame_ref_x))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_convective_frame_ref_x, get_cell_faces_neighbours_corrected_convective_frame_of_ref()[0], latastep);
+    }
+  oss.str("");
+
+  /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Y
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Y_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_convective_frame_ref_y(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Y") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_convective_frame_ref_y))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_convective_frame_ref_y, get_cell_faces_neighbours_corrected_convective_frame_of_ref()[1], latastep);
+    }
+  oss.str("");
+
+  /*
+   * CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Z
+   */
+  oss << "CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Z_" << lata_suffix << idx;
+  Nom nom_cell_faces_neighbours_corrected_convective_frame_ref_z(oss.str().c_str());
+  if (liste_post_instantanes.contient_("CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_FRAME_REF_Z") || liste_post_instantanes.contient_(nom_cell_faces_neighbours_corrected_convective_frame_ref_z))
+    {
+      n++, dumplata_scalar(lata_name, nom_cell_faces_neighbours_corrected_convective_frame_ref_z, get_cell_faces_neighbours_corrected_convective_frame_of_ref()[2], latastep);
+    }
+  oss.str("");
+
+
+  /*
    * CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_X
    */
   oss << "CELL_FACES_NEIGHBOURS_CORRECTED_CONVECTIVE_X_" << lata_suffix << idx;

@@ -341,6 +341,20 @@ public :
     else
       return dummy_double_vect_;
   }
+  const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective_frame_of_ref() const override
+  {
+    if (use_reachable_fluxes_ && convective_flux_correction_ && store_flux_operators_for_energy_balance_)
+      return cell_faces_neighbours_corrected_convective_frame_of_reference_;
+    else
+      return dummy_double_vect_;
+  }
+  const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_velocity_temperature() const override
+  {
+    if (use_reachable_fluxes_ && convective_flux_correction_ && store_flux_operators_for_energy_balance_)
+      return cell_faces_neighbours_corrected_velocity_temperature_;
+    else
+      return dummy_double_vect_;
+  }
   const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const override
   {
     if (use_reachable_fluxes_ && diffusive_flux_correction_)
@@ -468,6 +482,7 @@ protected :
   void solve_thermal_subproblems();
   void prepare_thermal_flux_correction();
   void compute_min_max_reachable_fluxes();
+  void complete_convective_flux_frame_of_reference();
   void update_intersections() override;
   void compute_convective_diffusive_fluxes_face_centre() override;
   void compute_convective_fluxes_face_centre() override;
@@ -707,6 +722,8 @@ protected :
   int use_reachable_fluxes_ = 0;
   int keep_first_reachable_fluxes_ = 0;
   FixedVector<IJK_Field_int,3> cell_faces_neighbours_corrected_all_bool_;
+  FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_velocity_temperature_;
+  FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_convective_frame_of_reference_;
   FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_convective_;
   FixedVector<IJK_Field_double,3> cell_faces_neighbours_corrected_diffusive_;
   FixedVector<IJK_Field_double, 3> neighbours_faces_weighting_colinearity_;
