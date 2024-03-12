@@ -4320,6 +4320,7 @@ const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_
 {
   if (flux_type==0)
     {
+      const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
       const int face_dir[6] = FACES_DIR;
       const int flux_out[6] = FLUXES_OUT;
       const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
@@ -4327,9 +4328,18 @@ const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_
       for (int l=0; l<3; l++)
         convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[l];
       convective_term_frame_of_ref *= (-1) * rho_cp;
+      double surf_face;
       for (int l=0; l<6; l++)
-        if (pure_liquid_neighbours_[l])
-          sum_convective_flux_op_lrs_ += convective_term_frame_of_ref[face_dir[l]] * flux_out[l];
+        {
+          surf_face = 0.;
+          if (pure_liquid_neighbours_[l])
+            {
+              for (int c = 0; c < 3; c++)
+                if (c!=face_dir[l])
+                  surf_face *= geom.get_constant_delta(c);
+              sum_convective_flux_op_lrs_ += convective_term_frame_of_ref[face_dir[l]] * flux_out[l] * surf_face;
+            }
+        }
       return sum_convective_flux_op_lrs_;
     }
   else
