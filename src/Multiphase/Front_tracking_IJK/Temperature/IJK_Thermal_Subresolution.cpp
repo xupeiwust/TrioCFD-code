@@ -2978,7 +2978,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_line_points(const int& line_d
       usr_probe_length = signbit(nb_diam_thermal_line_length_) ? -usr_probe_length : usr_probe_length;
     }
 
-  const double dx = usr_probe_length / (nb_thermal_line_points_ - 1);
+  const double dx = abs(usr_probe_length / (nb_thermal_line_points_ - 1));
   const double Dbdir_sign = signbit(nb_diam_thermal_line_length_) ? -abs(Dbdir) : abs(Dbdir);
   for (int point = 0; point<nb_thermal_line_points_; point++)
     {
@@ -3300,6 +3300,8 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
   //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
   // else
   velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  if (debug_)
+    Cerr << "Rising velocity on lines" << (*rising_velocity_overall_)[dir] << finl;
   values *= velocity_line_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }
@@ -4000,6 +4002,8 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
   // if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
   //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
   // else
+  if (debug_)
+    Cerr << "Rising velocity on slices" << (*rising_velocity_overall_)[dir] << finl;
   velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
   values *= velocity_values_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
