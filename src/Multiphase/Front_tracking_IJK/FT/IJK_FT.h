@@ -638,9 +638,12 @@ protected :
 
   double vitesse_entree_ = -1.1e20;
   double vitesse_upstream_ = -1.1e20;
+  double velocity_bubble_new_ = 0.;
+  double velocity_bubble_old_ = 0.;
   Nom expression_vitesse_upstream_ = "??";
   int upstream_dir_ = -1; // static
   int upstream_stencil_ = 3;
+  int upstream_velocity_measured_ = 0;
   double nb_diam_upstream_ = 0.;
   double rho_liquide_ = 0.;
   double rho_vapeur_ = -1.;

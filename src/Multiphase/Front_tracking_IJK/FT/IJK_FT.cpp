@@ -362,6 +362,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
   param.ajouter("expression_vitesse_upstream", &expression_vitesse_upstream_); // XD_ADD_P chaine Analytical expression to set the upstream velocity
   param.ajouter("upstream_stencil", &upstream_stencil_); // XD_ADD_P int Width on which the velocity is set
+  param.ajouter_flag("upstream_velocity_measured", &upstream_velocity_measured_);
   param.ajouter("nb_diam_upstream", &nb_diam_upstream_); // XD_ADD_P floattant Number of bubble diameters upstream of bubble 0 to prescribe the velocity.
 
   param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
@@ -872,6 +873,7 @@ void IJK_FT_double::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_doub
       if (dir == -1)
         dir=0;
     }
+
   const IJK_Splitting& splitting = vx.get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
 
@@ -3913,16 +3915,36 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
       // Forcage de la vitesse en amont de la bulle :
       if (vitesse_upstream_ > -1e20)
         {
-          if (expression_vitesse_upstream_ != "??")
+          if (!upstream_velocity_measured_)
             {
-              std::string expr(expression_vitesse_upstream_);
-              Parser parser;
-              parser.setString(expr);
-              parser.setNbVar((int) 1);
-              parser.addVar("t");
-              parser.parseString();
-              parser.setVar((int) 0, (*this).current_time_ - modified_time_ini_);
-              vitesse_upstream_ = parser.eval();
+              if (expression_vitesse_upstream_ != "??")
+                {
+                  std::string expr(expression_vitesse_upstream_);
+                  Parser parser;
+                  parser.setString(expr);
+                  parser.setNbVar((int) 1);
+                  parser.addVar("t");
+                  parser.parseString();
+                  parser.setVar((int) 0, (*this).current_time_ - modified_time_ini_);
+                  vitesse_upstream_ = parser.eval();
+                }
+            }
+          else
+            {
+              int dir = 0;
+              if (upstream_dir_ == -1)
+                {
+                  dir = get_direction_gravite();
+                  if (dir == -1)
+                    dir=0;
+                }
+              Vecteur3 velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
+              velocity_bubble_new_ = velocity_vector[dir];
+              if (tstep_ == 0)
+                vitesse_upstream_ = velocity_bubble_new_;
+              const double delta_velocity = velocity_bubble_new_ - velocity_bubble_old_;
+              velocity_bubble_old_ = velocity_bubble_new_;
+              vitesse_upstream_ -= delta_velocity;
             }
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
