@@ -365,6 +365,9 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("nb_diam_upstream", &nb_diam_upstream_); // XD_ADD_P floattant Number of bubble diameters upstream of bubble 0 to prescribe the velocity.
   param.ajouter_flag("upstream_velocity_measured", &upstream_velocity_measured_);
   param.ajouter("upstream_velocity_bubble_factor", &upstream_velocity_bubble_factor_);
+  param.ajouter("upstream_velocity_bubble_factor_deriv", &upstream_velocity_bubble_factor_deriv_);
+  param.ajouter("upstream_velocity_bubble_factor_integral", &upstream_velocity_bubble_factor_integral_);
+  param.ajouter("velocity_bubble_scope", &velocity_bubble_scope_);
 
   param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
   param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
@@ -3939,14 +3942,24 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
                   if (dir == -1)
                     dir=0;
                 }
-              Vecteur3 rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
-              Vecteur3 velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
-              velocity_bubble_new_ = velocity_vector[dir] * rising_vector[dir];
+              const Vecteur3 rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
+              const double velocity_magnitude = interfaces_.get_ijk_compo_connex().get_rising_velocities()[0];
+              const Vecteur3 velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
+              velocity_bubble_new_ = velocity_vector[dir]; //  * rising_vector[dir];
               if (tstep_ == 0)
-                vitesse_upstream_ = velocity_bubble_new_;
-              const double delta_velocity = velocity_bubble_new_ - velocity_bubble_old_;
-              velocity_bubble_old_ = velocity_bubble_new_;
+                vitesse_upstream_ = - velocity_bubble_scope_;
+              const double delta_velocity = velocity_bubble_scope_ + velocity_bubble_new_;
+              const double ddelta_velocity = (velocity_bubble_new_ - velocity_bubble_old_) / timestep_;
+              velocity_bubble_integral_ += delta_velocity * timestep_;
               vitesse_upstream_ -= delta_velocity * upstream_velocity_bubble_factor_;
+              vitesse_upstream_ -= ddelta_velocity * upstream_velocity_bubble_factor_deriv_;
+              vitesse_upstream_ -= velocity_bubble_integral_ * upstream_velocity_bubble_factor_integral_;
+              Cerr << "Velocity bubble (old): " << velocity_bubble_old_ << finl;
+              velocity_bubble_old_ = velocity_bubble_new_;
+              Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;
+              Cerr << "Velocity bubble (new): " << velocity_bubble_new_ << finl;
+              Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
+              Cerr << "Velocity dir upstream: " << rising_vector[dir] << finl;
             }
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
