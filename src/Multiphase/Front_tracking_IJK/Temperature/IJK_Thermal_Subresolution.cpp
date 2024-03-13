@@ -3296,7 +3296,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         2);
   DoubleTab velocity_line_frame_of_ref = velocity_line;
   //  velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
-	// Be careful with Leibniz rules !!!!!!!!!!
+  // Be careful with Leibniz rules !!!!!!!!!!
   velocity_line_frame_of_ref += (*rising_velocity_overall_)[dir];
   values *= velocity_line_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);

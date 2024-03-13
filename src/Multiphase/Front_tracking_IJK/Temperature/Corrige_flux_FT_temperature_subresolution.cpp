@@ -3591,13 +3591,13 @@ void Corrige_flux_FT_temperature_subresolution::store_cell_faces_corrected(Fixed
                                        convective_fluxes_,
                                        convective_diffusive_flux_xyz_sorted_[0],
                                        counter);
-      else
-        store_any_cell_faces_corrected(cell_faces_corrected_bool,
-                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
-                                       cell_faces_corrected_convective,
-                                       convective_fluxes_,
-                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[0],
-                                       counter);
+//      else
+//        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+//                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
+//                                       cell_faces_corrected_convective,
+//                                       convective_fluxes_,
+//                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[0],
+//                                       counter);
       counter ++;
     }
   if (!diffusion_negligible_)
@@ -3609,13 +3609,13 @@ void Corrige_flux_FT_temperature_subresolution::store_cell_faces_corrected(Fixed
                                        diffusive_fluxes_,
                                        convective_diffusive_flux_xyz_sorted_[1],
                                        counter);
-      else
-        store_any_cell_faces_corrected(cell_faces_corrected_bool,
-                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
-                                       cell_faces_corrected_convective,
-                                       convective_fluxes_,
-                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[1],
-                                       counter);
+//      else
+//        store_any_cell_faces_corrected(cell_faces_corrected_bool,
+//                                       index_face_ij_flux_xyz_neighbours_min_max_faces_sorted_,
+//                                       cell_faces_corrected_convective,
+//                                       convective_fluxes_,
+//                                       convective_diffusive_flux_xyz_min_max_faces_sorted_[1],
+//                                       counter);
     }
 }
 
