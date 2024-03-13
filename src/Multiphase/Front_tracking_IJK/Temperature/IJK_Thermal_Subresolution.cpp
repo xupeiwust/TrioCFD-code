@@ -3295,9 +3295,11 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         velocity_line,
                                         2);
   DoubleTab velocity_line_frame_of_ref = velocity_line;
-  //  velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
   // Be careful with Leibniz rules !!!!!!!!!!
-  velocity_line_frame_of_ref += (*rising_velocity_overall_)[dir];
+  // if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
+  //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
+  // else
+  velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
   values *= velocity_line_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }
@@ -3996,9 +3998,9 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
   DoubleTab velocity_values_frame_of_ref = velocity_values;
   // Be careful with Leibniz rules !!!!!!!!!!
   // if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
-  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
+  //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
   // else
-  // velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
   values *= velocity_values_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }

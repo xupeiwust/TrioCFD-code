@@ -578,6 +578,7 @@ protected :
     bubble_rising_vector_ = Vecteur3(bubble_rising_vector);
     bubble_barycentre_ = Vecteur3(bubble_barycentre);
     bubble_rising_velocity_compo_ =  bubble_rising_vector_;
+    // bubble_rising_velocity_ is an absolute value
     bubble_rising_velocity_compo_ *= bubble_rising_velocity_;
   };
 

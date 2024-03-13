@@ -362,8 +362,9 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
   param.ajouter("expression_vitesse_upstream", &expression_vitesse_upstream_); // XD_ADD_P chaine Analytical expression to set the upstream velocity
   param.ajouter("upstream_stencil", &upstream_stencil_); // XD_ADD_P int Width on which the velocity is set
-  param.ajouter_flag("upstream_velocity_measured", &upstream_velocity_measured_);
   param.ajouter("nb_diam_upstream", &nb_diam_upstream_); // XD_ADD_P floattant Number of bubble diameters upstream of bubble 0 to prescribe the velocity.
+  param.ajouter_flag("upstream_velocity_measured", &upstream_velocity_measured_);
+  param.ajouter("upstream_velocity_bubble_factor", &upstream_velocity_bubble_factor_);
 
   param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
   param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
@@ -3938,13 +3939,14 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
                   if (dir == -1)
                     dir=0;
                 }
+              Vecteur3 rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
               Vecteur3 velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
-              velocity_bubble_new_ = velocity_vector[dir];
+              velocity_bubble_new_ = velocity_vector[dir] * rising_vector[dir];
               if (tstep_ == 0)
                 vitesse_upstream_ = velocity_bubble_new_;
               const double delta_velocity = velocity_bubble_new_ - velocity_bubble_old_;
               velocity_bubble_old_ = velocity_bubble_new_;
-              vitesse_upstream_ -= delta_velocity;
+              vitesse_upstream_ -= delta_velocity * upstream_velocity_bubble_factor_;
             }
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],

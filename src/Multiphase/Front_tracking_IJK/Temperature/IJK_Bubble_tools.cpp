@@ -239,25 +239,36 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
   /*
    * Constant cell volume
    */
+  //	const IJK_Splitting& splitting =eulerian_compo_connex_ns.get_splitting();
+  //	const IJK_Grid_Geometry& geometry = splitting.get_grid_geometry();
+  //	double dx = geometry.get_constant_delta(DIRECTION_I);
+  //	double dy = geometry.get_constant_delta(DIRECTION_J);
+  //	double dz = geometry.get_constant_delta(DIRECTION_K);
   const int nk = eulerian_compo_connex_ns.nk();
   const int nj = eulerian_compo_connex_ns.nj();
   const int ni = eulerian_compo_connex_ns.ni();
+
   const IJK_Field_double& indic = interfaces.I();
+
   int nb_bubbles = interfaces.get_nb_bulles_reelles();
-  DoubleTab sum_indicator(nb_bubbles);
-  DoubleTab sum_velocity_x_indicator(nb_bubbles);
-  DoubleTab sum_velocity_y_indicator(nb_bubbles);
-  DoubleTab sum_velocity_z_indicator(nb_bubbles);
+
+  DoubleVect sum_indicator(nb_bubbles);
+  DoubleVect sum_velocity_x_indicator(nb_bubbles);
+  DoubleVect sum_velocity_y_indicator(nb_bubbles);
+  DoubleVect sum_velocity_z_indicator(nb_bubbles);
+
   liquid_velocity = 0.;
   double sum_indicator_liquid = 0.;
+
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
+          const double chi_l = indic(i,j,k);
           const double chi_v = (1. - indic(i,j,k));
-          const double vel_x = velocity[0](i,j,k);
-          const double vel_y = velocity[1](i,j,k);
-          const double vel_z = velocity[2](i,j,k);
+          const double vel_x = 0.5 * (velocity[0](i,j,k) + velocity[0](i+1,j,k));
+          const double vel_y = 0.5 * (velocity[1](i,j,k) + velocity[1](i,j+1,k));
+          const double vel_z = 0.5 * (velocity[2](i,j,k) + velocity[2](i,j,k+1));
           int compo_connex = eulerian_compo_connex_ns(i,j,k);
           if (compo_connex >= 0)
             {
@@ -266,20 +277,22 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
               sum_velocity_y_indicator(compo_connex) += chi_v * vel_y;
               sum_velocity_z_indicator(compo_connex) += chi_v * vel_z;
             }
-          if (chi_v > VAPOUR_INDICATOR_TEST)
+          if (chi_l > VAPOUR_INDICATOR_TEST)
             {
               Vecteur3 liquid_velocity_local = {vel_x, vel_y, vel_z};
-              liquid_velocity_local *= (1-chi_v);
-              sum_indicator_liquid += (1-chi_v);
+              liquid_velocity_local *= chi_l;
+              sum_indicator_liquid += chi_l;
               liquid_velocity += liquid_velocity_local;
             }
         }
+
+  mp_sum_for_each_item(sum_indicator);
+  mp_sum_for_each_item(sum_velocity_x_indicator);
+  mp_sum_for_each_item(sum_velocity_y_indicator);
+  mp_sum_for_each_item(sum_velocity_z_indicator);
+
   for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
     {
-      sum_indicator(ibubble) = Process::mp_sum(sum_indicator(ibubble));
-      sum_velocity_x_indicator(ibubble) = Process::mp_sum(sum_velocity_x_indicator(ibubble));
-      sum_velocity_y_indicator(ibubble) = Process::mp_sum(sum_velocity_y_indicator(ibubble));
-      sum_velocity_z_indicator(ibubble) = Process::mp_sum(sum_velocity_z_indicator(ibubble));
       sum_velocity_x_indicator(ibubble) /= sum_indicator(ibubble);
       sum_velocity_y_indicator(ibubble) /= sum_indicator(ibubble);
       sum_velocity_z_indicator(ibubble) /= sum_indicator(ibubble);
@@ -298,6 +311,7 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
           rising_vectors(ibubble, gravity_dir) = 1.;
         }
     }
+
   sum_indicator_liquid = Process::mp_sum(sum_indicator_liquid);
   double liquid_velocity_x = liquid_velocity[0];
   double liquid_velocity_y = liquid_velocity[1];
