@@ -165,7 +165,8 @@ public :
   inline double get_modified_time();
   inline void get_rising_velocities_parameters(int& compute_rising_velocities,
                                                int& fill_rising_velocities,
-                                               int& use_bubbles_velocities_from_eulerian);
+                                               int& use_bubbles_velocities_from_interface,
+                                               int& use_bubbles_velocities_from_barycentres);
 
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
   int posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
@@ -234,11 +235,13 @@ inline double IJK_Thermal::get_modified_time()
 
 inline void IJK_Thermal::get_rising_velocities_parameters(int& compute_rising_velocities,
                                                           int& fill_rising_velocities,
-                                                          int& use_bubbles_velocities_from_eulerian)
+                                                          int& use_bubbles_velocities_from_interface,
+                                                          int& use_bubbles_velocities_from_barycentres)
 {
   valeur().get_rising_velocities_parameters(compute_rising_velocities,
                                             fill_rising_velocities,
-                                            use_bubbles_velocities_from_eulerian);
+                                            use_bubbles_velocities_from_interface,
+                                            use_bubbles_velocities_from_barycentres);
 }
 
 inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance)

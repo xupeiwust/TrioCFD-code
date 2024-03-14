@@ -212,11 +212,10 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
                                      const ArrOfDouble& bubbles_volume,
                                      Vecteur3& rising_velocities_overall,
                                      const DoubleTab& bubbles_velocities_from_interface,
-                                     const int& use_bubbles_velocities_from_interface)
+                                     const int& use_bubbles_velocities_from_interface,
+                                     const DoubleTab& bubbles_velocities_from_barycentres,
+                                     const int& use_bubbles_velocities_from_barycentres)
 {
-  int use_bubbles_velocities_from_interface_tmp = use_bubbles_velocities_from_interface;
-  if (bubbles_velocities_from_interface.size() == 0)
-    use_bubbles_velocities_from_interface_tmp = 0;
   rising_velocities_overall = {0.,0.,0.};
   double total_volume = 0;
   int nb_bubbles = interfaces.get_nb_bulles_reelles();
@@ -224,8 +223,10 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
     {
       for (int l=0; l<3; l++)
         {
-          if (use_bubbles_velocities_from_interface_tmp)
+          if (use_bubbles_velocities_from_interface)
             rising_velocities_overall[l] = bubbles_velocities_from_interface(ibubble, l) * bubbles_volume[ibubble];
+          else if (use_bubbles_velocities_from_barycentres)
+            rising_velocities_overall[l] = bubbles_velocities_from_barycentres(ibubble, l) * bubbles_volume[ibubble];
           else
             rising_velocities_overall[l] = (rising_velocities[ibubble] * rising_vectors(ibubble, l))
                                            * bubbles_volume[ibubble];
@@ -247,11 +248,15 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
                              DoubleTab& rising_vectors,
                              Vecteur3& liquid_velocity,
                              const DoubleTab& bubbles_velocities_from_interface,
-                             const int& use_bubbles_velocities_from_interface)
+                             const int& use_bubbles_velocities_from_interface,
+                             const DoubleTab& bubbles_velocities_from_barycentres,
+                             const int& use_bubbles_velocities_from_barycentres)
 {
-  int use_bubbles_velocities_from_interface_tmp = use_bubbles_velocities_from_interface;
-  if (bubbles_velocities_from_interface.size() == 0)
-    use_bubbles_velocities_from_interface_tmp = 0;
+  const DoubleTab * bubbles_velocities_interf_bary = nullptr;
+  if (use_bubbles_velocities_from_barycentres)
+    bubbles_velocities_interf_bary = &bubbles_velocities_from_barycentres;
+  else
+    bubbles_velocities_interf_bary = &bubbles_velocities_from_interface;
   /*
    * Constant cell volume
    */
@@ -284,7 +289,7 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
           const double vel_x = 0.5 * (velocity[0](i,j,k) + velocity[0](i+1,j,k));
           const double vel_y = 0.5 * (velocity[1](i,j,k) + velocity[1](i,j+1,k));
           const double vel_z = 0.5 * (velocity[2](i,j,k) + velocity[2](i,j,k+1));
-          if (!use_bubbles_velocities_from_interface_tmp)
+          if (!(use_bubbles_velocities_from_interface || use_bubbles_velocities_from_barycentres))
             {
               const double chi_v = (1. - indic(i,j,k));
               int compo_connex = eulerian_compo_connex_ns(i,j,k);
@@ -310,7 +315,7 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
             }
         }
 
-  if (!use_bubbles_velocities_from_interface_tmp)
+  if (!(use_bubbles_velocities_from_interface || use_bubbles_velocities_from_barycentres))
     {
       mp_sum_for_each_item(sum_indicator);
       mp_sum_for_each_item(sum_velocity_x_indicator);
@@ -345,9 +350,9 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
     {
       for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
         {
-          const double vel_x = bubbles_velocities_from_interface(ibubble, 0);
-          const double vel_y = bubbles_velocities_from_interface(ibubble, 1);
-          const double vel_z = bubbles_velocities_from_interface(ibubble, 2);
+          const double vel_x = (*bubbles_velocities_interf_bary)(ibubble, 0);
+          const double vel_y = (*bubbles_velocities_interf_bary)(ibubble, 1);
+          const double vel_z = (*bubbles_velocities_interf_bary)(ibubble, 2);
           rising_velocities(ibubble) = sqrt( vel_x * vel_x + vel_y * vel_y + vel_z * vel_z);
           if (rising_velocities(ibubble) > DMINFLOAT)
             {

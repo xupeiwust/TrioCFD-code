@@ -58,6 +58,9 @@ IJK_Interfaces::IJK_Interfaces()
 {
   old_en_premier_ = true;
   bubbles_velocities_.set_smart_resize(1);
+  bubbles_velocities_bary_.set_smart_resize(1);
+  bubbles_bary_old_.set_smart_resize(1);
+  bubbles_bary_new_.set_smart_resize(1);
 }
 
 
@@ -301,13 +304,13 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
       os << "  bubble_groups " << compo_to_group_;
     }
   if (flag_positions_reference_)
-    {
-      os << "  positions_reference " << positions_reference_;
-    }
+    os << "  positions_reference " << positions_reference_;
+
   if (parcours_.get_correction_parcours_thomas())
-    {
-      os << "  parcours_interface { correction_parcours_thomas } " << "\n";
-    }
+    os << "  parcours_interface { correction_parcours_thomas } " << "\n";
+
+  if (use_barycentres_velocity_)
+    os << "use_barycentres_velocity" << "\n";
 
   double max_force_compo = 0.;
   if (mean_force_.size_array() > 0)
@@ -397,6 +400,8 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("positions_reference", &positions_reference_);
   param.ajouter("mean_force", &mean_force_);
   param.ajouter("parcours_interface",&parcours_);
+
+  param.ajouter_flag("use_barycentres_velocity",&use_barycentres_velocity_);
 
   // param.ajouter_non_std("terme_gravite",(this));
   param.ajouter("terme_gravite", &terme_gravite_); // XD_ADD_P chaine(into=["rho_g","grad_i"]) not_set
@@ -1179,7 +1184,39 @@ void IJK_Interfaces::update_surface_normale() const
   return;
 }
 
-void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite) const
+void IJK_Interfaces::reset_flags_and_counters()
+{
+  has_computed_bubble_barycentres_ = false;
+}
+
+void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
+                                                            DoubleTab& barycentres,
+                                                            const int& store_values)
+{
+  calculer_volume_bulles(volumes, barycentres);
+
+  if (store_values && !has_computed_bubble_barycentres_)
+    {
+      if (ref_ijk_ft_->get_tstep() == 0)
+        bubbles_bary_old_ = barycentres;
+      else
+        bubbles_bary_old_ = bubbles_bary_new_;
+      bubbles_bary_new_ = barycentres;
+      bubbles_velocities_bary_ = bubbles_bary_old_;
+      const int nbulles_reelles = get_nb_bulles_reelles();
+      for (int i = 0; i < nbulles_reelles; i++)
+        for (int dir=0; dir<3; dir++)
+          {
+            const double vel_old = bubbles_velocities_bary_(i, dir);
+            bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
+            bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
+          }
+      has_computed_bubble_barycentres_ = true;
+    }
+}
+
+void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes,
+                                            DoubleTab& centre_gravite) const
 {
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const int n = mesh.nb_facettes();
@@ -1763,7 +1800,11 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
   ArrOfDouble volume_par_bulle(nbulles_tot);
   DoubleTab positions_bulles(nbulles_tot, 3);
   DoubleTab vitesses_bulles(nbulles_tot, 3);
-  calculer_volume_bulles(volume_par_bulle, positions_bulles);
+  if (use_barycentres_velocity_)
+    compute_bubbles_volume_and_barycentres(volume_par_bulle, positions_bulles, 1);
+  else
+    calculer_volume_bulles(volume_par_bulle, positions_bulles);
+
 
   // Calcul de la vitesse moyenne de chaque composante connexe :
   calculer_vmoy_composantes_connexes(mesh,
@@ -1775,6 +1816,9 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
                                      vinterp_,
                                      vitesses_bulles);
   bubbles_velocities_ = vitesses_bulles;
+
+  if (use_barycentres_velocity_ && ref_ijk_ft_->get_tstep())
+    vitesses_bulles = bubbles_velocities_bary_;
   if (first_step_interface_smoothing)
     vitesses_bulles = 0.;
 

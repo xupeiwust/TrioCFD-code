@@ -128,13 +128,15 @@ double IJK_Thermals::get_modified_time()
 
 void IJK_Thermals::get_rising_velocities_parameters(int& compute_rising_velocities,
                                                     int& fill_rising_velocities,
-                                                    int& use_bubbles_velocities_from_eulerian)
+                                                    int& use_bubbles_velocities_from_interface,
+                                                    int& use_bubbles_velocities_from_barycentres)
 {
   if (!est_vide())
     for (auto& itr : *this)
       itr.get_rising_velocities_parameters(compute_rising_velocities,
                                            fill_rising_velocities,
-                                           use_bubbles_velocities_from_eulerian);
+                                           use_bubbles_velocities_from_interface,
+                                           use_bubbles_velocities_from_barycentres);
 }
 
 void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,

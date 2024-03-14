@@ -1639,12 +1639,14 @@ int IJK_FT_double::initialise()
     thermals_.initialize(splitting_, nalloc);
     thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
                                                fill_rising_velocities_,
-                                               use_bubbles_velocities_from_eulerian_);
+                                               use_bubbles_velocities_from_interface_,
+                                               use_bubbles_velocities_from_barycentres_);
   }
   nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
                                                                compute_rising_velocities_,
                                                                fill_rising_velocities_,
-                                                               !use_bubbles_velocities_from_eulerian_);
+                                                               use_bubbles_velocities_from_interface_,
+                                                               use_bubbles_velocities_from_barycentres_);
 
   statistiques().end_count(calculer_thermique_prop_counter_);
   Cout << "End of IJK_FT_double::initialise()" << finl;
@@ -4316,6 +4318,8 @@ void IJK_FT_double::deplacer_interfaces(const double timestep, const int rk_step
   Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
   // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
+  Cerr << "Reset bubble rising velocity calculations" << finl;
+  interfaces_.reset_flags_and_counters();
   Cerr << "Compute compo_connex from bounding box" << finl;
   interfaces_.compute_compo_connex_from_bounding_box();
   Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;

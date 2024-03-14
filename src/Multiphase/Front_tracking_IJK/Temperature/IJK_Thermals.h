@@ -92,7 +92,8 @@ public :
   double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
                                         int& fill_rising_velocities,
-                                        int& use_bubbles_velocities_from_eulerian);
+                                        int& use_bubbles_velocities_from_interface,
+                                        int& use_bubbles_velocities_from_barycentres);
   void create_folders_for_probes();
   void create_folders(Nom folder_name_base);
   void set_first_step_thermals_post(int& first_step_thermals_post);

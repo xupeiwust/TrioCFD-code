@@ -747,7 +747,8 @@ protected :
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
-  int use_bubbles_velocities_from_eulerian_ = 0;
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 };
 
 #endif /* IJK_FT_included */

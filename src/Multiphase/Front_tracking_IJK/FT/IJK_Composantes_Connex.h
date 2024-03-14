@@ -50,14 +50,15 @@ class IJK_Composantes_Connex : public Objet_U
 
 public :
   int initialize(const IJK_Splitting& splitting,
-                 const IJK_Interfaces& interfaces,
+                 IJK_Interfaces& interfaces,
                  const bool is_switch);
   void associer(const IJK_FT_double& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
                                              const int& fill_rising_velocities,
-                                             const int& use_bubbles_velocities_from_interface);
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
   void compute_rising_velocities(const DoubleTab& bubbles_velocities_from_interface);
@@ -142,7 +143,7 @@ public :
 protected :
   void fill_mixed_cell_compo();
   REF(IJK_FT_double) ref_ijk_ft_;
-  const IJK_Interfaces * interfaces_ = nullptr;
+  IJK_Interfaces * interfaces_ = nullptr;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;
@@ -174,7 +175,7 @@ protected :
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
 
-  int use_bubbles_velocities_from_interface_ = 1;
+  int use_bubbles_velocities_from_interface_ = 0;
   int use_bubbles_velocities_from_barycentres_ = 0;
 
   bool is_updated_ = false;

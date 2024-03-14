@@ -501,6 +501,22 @@ public :
     else
       return sum_diffusive_flux_op_value_normal_contrib_;
   }
+  const double& get_sum_convective_diffusive_flux_op_value_leaving(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_leaving_value_;
+    else
+      return sum_diffusive_flux_op_leaving_value_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_entering(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_entering_value_;
+    else
+      return sum_diffusive_flux_op_entering_value_;
+  }
+
+
   const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type);
   double get_corrective_flux_from_neighbours(const int& l)
   {
@@ -1179,21 +1195,29 @@ protected :
   FixedVector<double,6> convective_flux_op_value_vap_;
   FixedVector<double,6> convective_flux_op_value_mixed_;
   FixedVector<double,6> convective_flux_op_value_normal_contrib_;
+  FixedVector<double,6> convective_flux_op_leaving_value_;
+  FixedVector<double,6> convective_flux_op_entering_value_;
 
   double sum_convective_flux_op_value_ = 0.;
   double sum_convective_flux_op_value_vap_ = 0.;
   double sum_convective_flux_op_value_mixed_ = 0.;
   double sum_convective_flux_op_value_normal_contrib_ = 0.;
+  double sum_convective_flux_op_leaving_value_ = 0.;
+  double sum_convective_flux_op_entering_value_ = 0.;
 
   FixedVector<double,6> diffusive_flux_op_value_;
   FixedVector<double,6> diffusive_flux_op_value_vap_;
   FixedVector<double,6> diffusive_flux_op_value_mixed_;
   FixedVector<double,6> diffusive_flux_op_value_normal_contrib_;
+  FixedVector<double,6> diffusive_flux_op_leaving_value_;
+  FixedVector<double,6> diffusive_flux_op_entering_value_;
 
   double sum_diffusive_flux_op_value_ = 0.;
   double sum_diffusive_flux_op_value_vap_ = 0.;
   double sum_diffusive_flux_op_value_mixed_ = 0.;
   double sum_diffusive_flux_op_value_normal_contrib_ = 0.;
+  double sum_diffusive_flux_op_leaving_value_ = 0.;
+  double sum_diffusive_flux_op_entering_value_ = 0.;
 
   FixedVector<double,6> convective_flux_op_lrs_;
   FixedVector<double,6> diffusive_flux_op_lrs_;

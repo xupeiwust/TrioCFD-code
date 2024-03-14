@@ -57,7 +57,7 @@ class IJK_Interfaces : public Objet_U
 {
 
   Declare_instanciable_sans_constructeur(IJK_Interfaces);
-
+  friend class IJK_Composantes_Connex;
 public :
   IJK_Interfaces();
   int initialize(const IJK_Splitting& splitting_FT,
@@ -322,7 +322,11 @@ public :
 
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
   void compute_surface_average_per_bubble(const ArrOfDouble& surfaces, const ArrOfDouble& in, ArrOfDouble& out) const;
-  void calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite) const;
+  void compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
+                                              DoubleTab& barycentres,
+                                              const int& store_values);
+  void calculer_volume_bulles(ArrOfDouble& volumes,
+                              DoubleTab& centre_gravite) const;
   void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
@@ -648,14 +652,16 @@ public :
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
                                              const int& fill_rising_velocities,
-                                             const int& use_bubbles_velocities_from_interface)
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres)
   {
     if (!is_diphasique_)
       return 0;
     return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
                                                                     compute_rising_velocities,
                                                                     fill_rising_velocities,
-                                                                    use_bubbles_velocities_from_interface);
+                                                                    use_bubbles_velocities_from_interface,
+                                                                    use_bubbles_velocities_from_barycentres);
   }
 
   void compute_rising_velocities_from_compo()
@@ -669,6 +675,13 @@ public :
   {
     return bubbles_velocities_;
   }
+
+  const DoubleTab& get_bubble_velocities_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
+  void reset_flags_and_counters();
 
 protected:
   // Met a jour les valeurs de surface_vapeur_par_face_ et barycentre_vapeur_par_face_
@@ -927,6 +940,11 @@ protected:
 
   IJK_Composantes_Connex ijk_compo_connex_;
   DoubleTab bubbles_velocities_;
+  DoubleTab bubbles_velocities_bary_;
+  DoubleTab bubbles_bary_old_;
+  DoubleTab bubbles_bary_new_;
+  int use_barycentres_velocity_ = 0;
+  bool has_computed_bubble_barycentres_ = false;
 
 };
 
