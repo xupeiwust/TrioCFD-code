@@ -647,20 +647,27 @@ public :
 
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities)
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface)
   {
     if (!is_diphasique_)
       return 0;
     return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
                                                                     compute_rising_velocities,
-                                                                    fill_rising_velocities);
+                                                                    fill_rising_velocities,
+                                                                    use_bubbles_velocities_from_interface);
   }
 
   void compute_rising_velocities_from_compo()
   {
     if (!is_diphasique_)
       return;
-    ijk_compo_connex_.compute_rising_velocities();
+    ijk_compo_connex_.compute_rising_velocities(bubbles_velocities_);
+  }
+
+  const DoubleTab& get_bubble_velocities_from_interface() const
+  {
+    return bubbles_velocities_;
   }
 
 protected:
@@ -919,6 +926,7 @@ protected:
   Intersection_Interface_ijk_face intersection_ijk_face_;
 
   IJK_Composantes_Connex ijk_compo_connex_;
+  DoubleTab bubbles_velocities_;
 
 };
 

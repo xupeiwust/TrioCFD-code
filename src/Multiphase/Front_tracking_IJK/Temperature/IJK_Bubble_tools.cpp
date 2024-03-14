@@ -210,8 +210,13 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
                                      const DoubleTab& rising_vectors,
                                      const ArrOfDouble& rising_velocities,
                                      const ArrOfDouble& bubbles_volume,
-                                     Vecteur3& rising_velocities_overall)
+                                     Vecteur3& rising_velocities_overall,
+                                     const DoubleTab& bubbles_velocities_from_interface,
+                                     const int& use_bubbles_velocities_from_interface)
 {
+  int use_bubbles_velocities_from_interface_tmp = use_bubbles_velocities_from_interface;
+  if (bubbles_velocities_from_interface.size() == 0)
+    use_bubbles_velocities_from_interface_tmp = 0;
   rising_velocities_overall = {0.,0.,0.};
   double total_volume = 0;
   int nb_bubbles = interfaces.get_nb_bulles_reelles();
@@ -219,8 +224,11 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
     {
       for (int l=0; l<3; l++)
         {
-          rising_velocities_overall[l] = (rising_velocities[ibubble] * rising_vectors(ibubble, l))
-                                         * bubbles_volume[ibubble];
+          if (use_bubbles_velocities_from_interface_tmp)
+            rising_velocities_overall[l] = bubbles_velocities_from_interface(ibubble, l) * bubbles_volume[ibubble];
+          else
+            rising_velocities_overall[l] = (rising_velocities[ibubble] * rising_vectors(ibubble, l))
+                                           * bubbles_volume[ibubble];
         }
       total_volume += bubbles_volume[ibubble];
     }
@@ -231,11 +239,19 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
     }
 }
 
-void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, const IJK_Interfaces& interfaces,
-                             const IJK_Field_int& eulerian_compo_connex_ns, const int& gravity_dir,
-                             ArrOfDouble& rising_velocities, DoubleTab& rising_vectors,
-                             Vecteur3& liquid_velocity)
+void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
+                             const IJK_Interfaces& interfaces,
+                             const IJK_Field_int& eulerian_compo_connex_ns,
+                             const int& gravity_dir,
+                             ArrOfDouble& rising_velocities,
+                             DoubleTab& rising_vectors,
+                             Vecteur3& liquid_velocity,
+                             const DoubleTab& bubbles_velocities_from_interface,
+                             const int& use_bubbles_velocities_from_interface)
 {
+  int use_bubbles_velocities_from_interface_tmp = use_bubbles_velocities_from_interface;
+  if (bubbles_velocities_from_interface.size() == 0)
+    use_bubbles_velocities_from_interface_tmp = 0;
   /*
    * Constant cell volume
    */
@@ -265,22 +281,27 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
       for (int i = 0; i < ni; i++)
         {
           const double chi_l = indic(i,j,k);
-          const double chi_v = (1. - indic(i,j,k));
           const double vel_x = 0.5 * (velocity[0](i,j,k) + velocity[0](i+1,j,k));
           const double vel_y = 0.5 * (velocity[1](i,j,k) + velocity[1](i,j+1,k));
           const double vel_z = 0.5 * (velocity[2](i,j,k) + velocity[2](i,j,k+1));
-          int compo_connex = eulerian_compo_connex_ns(i,j,k);
-          // USE PURE VAPOUR ONLY ?
-          // if (compo_connex >= 0)
-          if (compo_connex >= 0 && chi_l < VAPOUR_INDICATOR_TEST)
+          if (!use_bubbles_velocities_from_interface_tmp)
             {
-              sum_indicator(compo_connex) += chi_v;
-              sum_velocity_x_indicator(compo_connex) += chi_v * vel_x;
-              sum_velocity_y_indicator(compo_connex) += chi_v * vel_y;
-              sum_velocity_z_indicator(compo_connex) += chi_v * vel_z;
+              const double chi_v = (1. - indic(i,j,k));
+              int compo_connex = eulerian_compo_connex_ns(i,j,k);
+              // USE PURE VAPOUR ONLY ?
+
+              if (compo_connex >= 0)
+                // if (compo_connex >= 0 && chi_l < VAPOUR_INDICATOR_TEST)
+                {
+                  sum_indicator(compo_connex) += chi_v;
+                  sum_velocity_x_indicator(compo_connex) += chi_v * vel_x;
+                  sum_velocity_y_indicator(compo_connex) += chi_v * vel_y;
+                  sum_velocity_z_indicator(compo_connex) += chi_v * vel_z;
+                }
             }
-          // if (chi_l > VAPOUR_INDICATOR_TEST)
-          if (chi_l > LIQUID_INDICATOR_TEST)
+          // USE PURE LIQUID ONLY ?
+          if (chi_l > VAPOUR_INDICATOR_TEST)
+            // if (chi_l > LIQUID_INDICATOR_TEST)
             {
               Vecteur3 liquid_velocity_local = {vel_x, vel_y, vel_z};
               liquid_velocity_local *= chi_l;
@@ -289,29 +310,59 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
             }
         }
 
-  mp_sum_for_each_item(sum_indicator);
-  mp_sum_for_each_item(sum_velocity_x_indicator);
-  mp_sum_for_each_item(sum_velocity_y_indicator);
-  mp_sum_for_each_item(sum_velocity_z_indicator);
-
-  for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
+  if (!use_bubbles_velocities_from_interface_tmp)
     {
-      sum_velocity_x_indicator(ibubble) /= sum_indicator(ibubble);
-      sum_velocity_y_indicator(ibubble) /= sum_indicator(ibubble);
-      sum_velocity_z_indicator(ibubble) /= sum_indicator(ibubble);
-      rising_velocities(ibubble) = sqrt( sum_velocity_x_indicator(ibubble) * sum_velocity_x_indicator(ibubble)
-                                         + sum_velocity_y_indicator(ibubble) * sum_velocity_y_indicator(ibubble)
-                                         + sum_velocity_z_indicator(ibubble) * sum_velocity_z_indicator(ibubble));
-      if (rising_velocities(ibubble) > DMINFLOAT)
+      mp_sum_for_each_item(sum_indicator);
+      mp_sum_for_each_item(sum_velocity_x_indicator);
+      mp_sum_for_each_item(sum_velocity_y_indicator);
+      mp_sum_for_each_item(sum_velocity_z_indicator);
+
+      for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
         {
-          rising_vectors(ibubble, 0) = sum_velocity_x_indicator(ibubble) / rising_velocities(ibubble);
-          rising_vectors(ibubble, 1) = sum_velocity_y_indicator(ibubble) / rising_velocities(ibubble);
-          rising_vectors(ibubble, 2) = sum_velocity_z_indicator(ibubble) / rising_velocities(ibubble);
+          sum_velocity_x_indicator(ibubble) /= sum_indicator(ibubble);
+          sum_velocity_y_indicator(ibubble) /= sum_indicator(ibubble);
+          sum_velocity_z_indicator(ibubble) /= sum_indicator(ibubble);
+          rising_velocities(ibubble) = sqrt( sum_velocity_x_indicator(ibubble) * sum_velocity_x_indicator(ibubble)
+                                             + sum_velocity_y_indicator(ibubble) * sum_velocity_y_indicator(ibubble)
+                                             + sum_velocity_z_indicator(ibubble) * sum_velocity_z_indicator(ibubble));
+          if (rising_velocities(ibubble) > DMINFLOAT)
+            {
+              rising_vectors(ibubble, 0) = sum_velocity_x_indicator(ibubble) / rising_velocities(ibubble);
+              rising_vectors(ibubble, 1) = sum_velocity_y_indicator(ibubble) / rising_velocities(ibubble);
+              rising_vectors(ibubble, 2) = sum_velocity_z_indicator(ibubble) / rising_velocities(ibubble);
+            }
+          else
+            {
+              assert(gravity_dir >=0);
+              for (int l=0; l<3; l++)
+                if (l != gravity_dir)
+                  rising_vectors(ibubble, gravity_dir) = 0.;
+              rising_vectors(ibubble, gravity_dir) = 1.;
+            }
         }
-      else
+    }
+  else
+    {
+      for (int ibubble = 0; ibubble < nb_bubbles; ibubble++)
         {
-          assert(gravity_dir >=0);
-          rising_vectors(ibubble, gravity_dir) = 1.;
+          const double vel_x = bubbles_velocities_from_interface(ibubble, 0);
+          const double vel_y = bubbles_velocities_from_interface(ibubble, 1);
+          const double vel_z = bubbles_velocities_from_interface(ibubble, 2);
+          rising_velocities(ibubble) = sqrt( vel_x * vel_x + vel_y * vel_y + vel_z * vel_z);
+          if (rising_velocities(ibubble) > DMINFLOAT)
+            {
+              rising_vectors(ibubble, 0) = vel_x / rising_velocities(ibubble);
+              rising_vectors(ibubble, 1) = vel_y / rising_velocities(ibubble);
+              rising_vectors(ibubble, 2) = vel_z / rising_velocities(ibubble);
+            }
+          else
+            {
+              assert(gravity_dir >=0);
+              for (int l=0; l<3; l++)
+                if (l != gravity_dir)
+                  rising_vectors(ibubble, gravity_dir) = 0.;
+              rising_vectors(ibubble, gravity_dir) = 1.;
+            }
         }
     }
 

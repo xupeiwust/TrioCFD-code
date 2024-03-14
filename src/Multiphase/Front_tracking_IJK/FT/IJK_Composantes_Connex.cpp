@@ -121,11 +121,13 @@ void IJK_Composantes_Connex::initialise_bubbles_params()
 
 int IJK_Composantes_Connex::associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                                                    const int& compute_rising_velocities,
-                                                                   const int& fill_rising_velocities)
+                                                                   const int& fill_rising_velocities,
+                                                                   const int& use_bubbles_velocities_from_interface)
 {
   int nalloc = 0;
   compute_rising_velocities_ = compute_rising_velocities;
   fill_rising_velocities_ = fill_rising_velocities;
+  use_bubbles_velocities_from_interface_ = use_bubbles_velocities_from_interface;
   if (fill_rising_velocities_)
     {
       eulerian_rising_velocities_.allocate(splitting, IJK_Splitting::ELEM, 0);
@@ -372,7 +374,7 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
   eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
 }
 
-void IJK_Composantes_Connex::compute_rising_velocities()
+void IJK_Composantes_Connex::compute_rising_velocities(const DoubleTab& bubbles_velocities_from_interface)
 {
   if (compute_rising_velocities_)
     {
@@ -380,14 +382,20 @@ void IJK_Composantes_Connex::compute_rising_velocities()
       rising_velocities_ = ArrOfDouble(nb_bubbles);
       rising_vectors_ = DoubleTab(nb_bubbles, 3);
       compute_rising_velocity(ref_ijk_ft_->get_velocity(), ref_ijk_ft_->itfce(),
-                              eulerian_compo_connex_from_interface_int_ns_, ref_ijk_ft_->get_direction_gravite(),
-                              rising_velocities_, rising_vectors_,
-                              liquid_velocity_);
+                              eulerian_compo_connex_from_interface_int_ns_,
+                              ref_ijk_ft_->get_direction_gravite(),
+                              rising_velocities_,
+                              rising_vectors_,
+                              liquid_velocity_,
+                              bubbles_velocities_from_interface,
+                              use_bubbles_velocities_from_interface_);
       compute_rising_velocity_overall(ref_ijk_ft_->itfce(),
                                       rising_vectors_,
                                       rising_velocities_,
                                       bubbles_volume_,
-                                      rising_velocity_overall_);
+                                      rising_velocity_overall_,
+                                      bubbles_velocities_from_interface,
+                                      use_bubbles_velocities_from_interface_);
       if (fill_rising_velocities_)
         {
           eulerian_rising_velocities_.data() = 0.;

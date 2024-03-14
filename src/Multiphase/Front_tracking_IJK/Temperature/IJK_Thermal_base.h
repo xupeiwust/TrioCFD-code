@@ -411,7 +411,8 @@ public:
 
   virtual double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
-                                        int& fill_rising_velocities);
+                                        int& fill_rising_velocities,
+                                        int& use_bubbles_velocities_from_eulerian);
 
   virtual double get_rho_cp_u_ijk(const IJK_Field_double& vx, int i, int j, int k) const;
   virtual double get_div_lambda_ijk(int i, int j, int k) const { return 0; };
@@ -761,6 +762,7 @@ protected:
 
   int compute_rising_velocities_;
   int fill_rising_velocities_;
+  int use_bubbles_velocities_from_eulerian_;
 
   const Vecteur3 * liquid_velocity_;
   const Vecteur3 * rising_velocity_overall_;

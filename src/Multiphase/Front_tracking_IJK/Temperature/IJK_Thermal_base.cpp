@@ -118,6 +118,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   compute_eulerian_compo_ = 0;
   compute_rising_velocities_ = 0;
   fill_rising_velocities_ = 0;
+  use_bubbles_velocities_from_eulerian_ = 0;
 
   bounding_box_= nullptr;
   min_max_larger_box_ = nullptr;
@@ -300,6 +301,9 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   if (disable_relative_velocity_energy_balance_)
     os << front_space << "disable_relative_velocity_energy_balance" <<  escape;
 
+  if (use_bubbles_velocities_from_eulerian_)
+    os << front_space << "use_bubbles_velocities_from_eulerian" <<  escape;
+
   return os;
 }
 
@@ -360,6 +364,9 @@ void IJK_Thermal_base::set_param(Param& param)
 
   param.ajouter_flag("store_flux_operators_for_energy_balance", &store_flux_operators_for_energy_balance_);
   param.ajouter_flag("disable_relative_velocity_energy_balance", &disable_relative_velocity_energy_balance_);
+
+  param.ajouter_flag("use_bubbles_velocities_from_eulerian", &use_bubbles_velocities_from_eulerian_);
+
 
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
@@ -767,10 +774,12 @@ double IJK_Thermal_base::get_modified_time()
 }
 
 void IJK_Thermal_base::get_rising_velocities_parameters(int& compute_rising_velocities,
-                                                        int& fill_rising_velocities)
+                                                        int& fill_rising_velocities,
+                                                        int& use_bubbles_velocities_from_eulerian)
 {
   compute_rising_velocities = compute_rising_velocities_ || compute_rising_velocities;
   fill_rising_velocities = fill_rising_velocities_ || fill_rising_velocities;
+  use_bubbles_velocities_from_eulerian = use_bubbles_velocities_from_eulerian_ || use_bubbles_velocities_from_eulerian;
 }
 
 void IJK_Thermal_base::compute_cell_volume()

@@ -56,10 +56,11 @@ public :
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities);
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
-  void compute_rising_velocities();
+  void compute_rising_velocities(const DoubleTab& bubbles_velocities_from_interface);
 
   const IJK_Field_double& get_eulerian_compo_connex_ft() const
   {
@@ -172,6 +173,9 @@ protected :
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
+
+  int use_bubbles_velocities_from_interface_ = 1;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 
   bool is_updated_ = false;
 };

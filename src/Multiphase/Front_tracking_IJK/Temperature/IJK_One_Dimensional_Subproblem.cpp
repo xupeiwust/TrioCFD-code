@@ -4714,8 +4714,8 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
           (*convective_diffusive_flux_op_value)[l] = flux_val;
           (*sum_convective_diffusive_flux_op_value) += flux_val;
 
-          (*convective_diffusive_flux_op_value_normal_contrib)[l] = flux_val * normal_vector_compo_[face_dir[l]];
-          (*sum_convective_diffusive_flux_op_value_normal_contrib) += flux_val * normal_vector_compo_[face_dir[l]];;
+          (*convective_diffusive_flux_op_value_normal_contrib)[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          (*sum_convective_diffusive_flux_op_value_normal_contrib) += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
         }
       else if (pure_vapour_neighbours_[l])
         {

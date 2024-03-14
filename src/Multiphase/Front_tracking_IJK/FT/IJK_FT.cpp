@@ -1638,11 +1638,13 @@ int IJK_FT_double::initialise()
   {
     thermals_.initialize(splitting_, nalloc);
     thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
-                                               fill_rising_velocities_);
+                                               fill_rising_velocities_,
+                                               use_bubbles_velocities_from_eulerian_);
   }
   nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
                                                                compute_rising_velocities_,
-                                                               fill_rising_velocities_);
+                                                               fill_rising_velocities_,
+                                                               !use_bubbles_velocities_from_eulerian_);
 
   statistiques().end_count(calculer_thermique_prop_counter_);
   Cout << "End of IJK_FT_double::initialise()" << finl;
@@ -3959,7 +3961,7 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
               Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;
               Cerr << "Velocity bubble (new): " << velocity_bubble_new_ << finl;
               Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
-              Cerr << "Velocity dir upstream: " << rising_vector(0,dir) << finl;
+              Cerr << "Velocity dir upstream: " << rising_vector(0, dir) << finl;
             }
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],

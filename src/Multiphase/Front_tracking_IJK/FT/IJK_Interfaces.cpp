@@ -57,6 +57,7 @@ Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Obje
 IJK_Interfaces::IJK_Interfaces()
 {
   old_en_premier_ = true;
+  bubbles_velocities_.set_smart_resize(1);
 }
 
 
@@ -1773,6 +1774,7 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
                                      nbulles_ghost,
                                      vinterp_,
                                      vitesses_bulles);
+  bubbles_velocities_ = vitesses_bulles;
   if (first_step_interface_smoothing)
     vitesses_bulles = 0.;
 
