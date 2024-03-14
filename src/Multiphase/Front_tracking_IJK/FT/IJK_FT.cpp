@@ -3942,9 +3942,9 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
                   if (dir == -1)
                     dir=0;
                 }
-              const Vecteur3 rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
+              const DoubleTab& rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
               const double velocity_magnitude = interfaces_.get_ijk_compo_connex().get_rising_velocities()[0];
-              const Vecteur3 velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
+              const Vecteur3& velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
               velocity_bubble_new_ = velocity_vector[dir]; //  * rising_vector[dir];
               if (tstep_ == 0)
                 vitesse_upstream_ = - velocity_bubble_scope_;
@@ -3959,7 +3959,7 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
               Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;
               Cerr << "Velocity bubble (new): " << velocity_bubble_new_ << finl;
               Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
-              Cerr << "Velocity dir upstream: " << rising_vector[dir] << finl;
+              Cerr << "Velocity dir upstream: " << rising_vector(0,dir) << finl;
             }
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],

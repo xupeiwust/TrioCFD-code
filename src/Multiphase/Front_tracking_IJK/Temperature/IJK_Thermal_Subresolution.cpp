@@ -3301,7 +3301,11 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
   // else
   velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
   if (debug_)
-    Cerr << "Rising velocity on lines" << (*rising_velocity_overall_)[dir] << finl;
+    {
+      Cerr << "Rising velocity on lines" << (*rising_velocity_overall_)[dir] << finl;
+      Cerr << "Rising velocity magnitude" << (*rising_velocities_)(0) << finl;
+      Cerr << "Rising vector sign" << (*rising_vectors_)(0, dir) << finl;
+    }
   values *= velocity_line_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
 }
@@ -4003,7 +4007,11 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
   //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
   // else
   if (debug_)
-    Cerr << "Rising velocity on slices" << (*rising_velocity_overall_)[dir] << finl;
+    {
+      Cerr << "Rising velocity on slices" << (*rising_velocity_overall_)[dir] << finl;
+      Cerr << "Rising velocity magnitude" << (*rising_velocities_)(0) << finl;
+      Cerr << "Rising vector sign" << (*rising_vectors_)(0, dir) << finl;
+    }
   velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
   values *= velocity_values_frame_of_ref;
   values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);

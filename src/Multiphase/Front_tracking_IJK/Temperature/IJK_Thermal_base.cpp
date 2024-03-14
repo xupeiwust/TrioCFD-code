@@ -295,6 +295,11 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   if (calculate_local_energy_)
     os << front_space << "calculate_local_energy" <<  escape;
 
+  if (store_flux_operators_for_energy_balance_)
+    os << front_space << "store_flux_operators_for_energy_balance" <<  escape;
+  if (disable_relative_velocity_energy_balance_)
+    os << front_space << "disable_relative_velocity_energy_balance" <<  escape;
+
   return os;
 }
 
@@ -354,6 +359,7 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter_flag("debug", &debug_);
 
   param.ajouter_flag("store_flux_operators_for_energy_balance", &store_flux_operators_for_energy_balance_);
+  param.ajouter_flag("disable_relative_velocity_energy_balance", &disable_relative_velocity_energy_balance_);
 
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
@@ -1265,8 +1271,11 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
     {
       for (int c=0; c<3; c++)
         rho_cp_u_T_convective_raw_[c].data() = 0.;
-      const Vecteur3 bubbles_velocity = (*rising_velocity_overall_);
-      temperature_grad_flux_op_quick_.set_velocity_frame_of_reference(bubbles_velocity);
+      if (disable_relative_velocity_energy_balance_)
+        {
+          const Vecteur3 bubbles_velocity = (*rising_velocity_overall_);
+          temperature_grad_flux_op_quick_.set_velocity_frame_of_reference(bubbles_velocity);
+        }
       temperature_grad_flux_op_quick_.calculer_grad_flux(temperature_,
                                                          velocity[0],
                                                          velocity[1],

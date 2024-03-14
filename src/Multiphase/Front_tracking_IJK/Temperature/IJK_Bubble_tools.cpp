@@ -270,14 +270,17 @@ void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, c
           const double vel_y = 0.5 * (velocity[1](i,j,k) + velocity[1](i,j+1,k));
           const double vel_z = 0.5 * (velocity[2](i,j,k) + velocity[2](i,j,k+1));
           int compo_connex = eulerian_compo_connex_ns(i,j,k);
-          if (compo_connex >= 0)
+          // USE PURE VAPOUR ONLY ?
+          // if (compo_connex >= 0)
+          if (compo_connex >= 0 && chi_l < VAPOUR_INDICATOR_TEST)
             {
               sum_indicator(compo_connex) += chi_v;
               sum_velocity_x_indicator(compo_connex) += chi_v * vel_x;
               sum_velocity_y_indicator(compo_connex) += chi_v * vel_y;
               sum_velocity_z_indicator(compo_connex) += chi_v * vel_z;
             }
-          if (chi_l > VAPOUR_INDICATOR_TEST)
+          // if (chi_l > VAPOUR_INDICATOR_TEST)
+          if (chi_l > LIQUID_INDICATOR_TEST)
             {
               Vecteur3 liquid_velocity_local = {vel_x, vel_y, vel_z};
               liquid_velocity_local *= chi_l;

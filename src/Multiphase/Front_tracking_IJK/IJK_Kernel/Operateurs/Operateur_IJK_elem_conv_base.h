@@ -29,7 +29,6 @@ public:
   virtual void set_indicatrice(const IJK_Field_double& indicatrice) { indicatrice_= &indicatrice; };
   virtual void set_corrige_flux(Corrige_flux_FT& corrige_flux) { corrige_flux_ = &corrige_flux; };
   virtual void set_velocity_frame_of_reference(const Vecteur3& velocity_frame_of_reference) { velocity_frame_of_reference_ = velocity_frame_of_reference; };
-
   virtual void calculer(const IJK_Field_double& field,
                         const IJK_Field_double& vx,
                         const IJK_Field_double& vy,
@@ -86,6 +85,7 @@ protected:
   bool is_grad_;
   bool is_flux_;
   Vecteur3 velocity_frame_of_reference_ = {0.,0.,0.};
+  FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_ = nullptr;
 
 private:
 

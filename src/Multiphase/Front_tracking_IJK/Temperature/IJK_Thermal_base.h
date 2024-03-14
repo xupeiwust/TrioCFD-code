@@ -776,6 +776,7 @@ protected:
   IJK_Field_double dummy_double_field_;
 
   int store_flux_operators_for_energy_balance_ = 0;
+  int disable_relative_velocity_energy_balance_ = 0;
 };
 
 #endif /* IJK_Thermal_base_included */
