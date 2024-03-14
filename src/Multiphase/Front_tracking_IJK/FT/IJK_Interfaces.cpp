@@ -1194,7 +1194,8 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
                                                             const int& store_values)
 {
   calculer_volume_bulles(volumes, barycentres);
-
+  const IJK_Splitting& splitting = I().get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   if (store_values && !has_computed_bubble_barycentres_)
     {
       if (ref_ijk_ft_->get_tstep() == 0)
@@ -1207,6 +1208,25 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
       for (int i = 0; i < nbulles_reelles; i++)
         for (int dir=0; dir<3; dir++)
           {
+            const double ldir = geom.get_domain_length(dir);
+            const double ddir = geom.get_origin(dir);
+            const double pos_old = bubbles_bary_old_(i, dir);
+            const double pos_new = bubbles_bary_new_(i, dir);
+            const int old_new_up_down = (pos_new - pos_old) < (ldir / 2);
+            const int old_new_down_up = (pos_new - pos_old) > (ldir / 2);
+            const int bottom_out = (pos_new - ddir) < 0;
+            const int up_out = (pos_new - ddir) > ldir;
+            if (bottom_out || up_out || old_new_up_down || old_new_down_up)
+              {
+                if (bottom_out)
+                  bubbles_bary_old_(i, dir) += (ldir);
+                else if (up_out)
+                  bubbles_bary_old_(i, dir) += (-ldir);
+                else if (old_new_up_down)
+                  bubbles_bary_old_(i, dir) += (-ldir);
+                else
+                  bubbles_bary_old_(i, dir) += (ldir);
+              }
             const double vel_old = bubbles_velocities_bary_(i, dir);
             bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
             bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
