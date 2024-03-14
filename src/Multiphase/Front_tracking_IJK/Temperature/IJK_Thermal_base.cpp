@@ -1280,7 +1280,7 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
     {
       for (int c=0; c<3; c++)
         rho_cp_u_T_convective_raw_[c].data() = 0.;
-      if (disable_relative_velocity_energy_balance_)
+      if (!disable_relative_velocity_energy_balance_)
         {
           const Vecteur3 bubbles_velocity = (*rising_velocity_overall_);
           temperature_grad_flux_op_quick_.set_velocity_frame_of_reference(bubbles_velocity);

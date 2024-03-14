@@ -4703,7 +4703,9 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
       const int jj_f = neighbours_faces_j[l];
       const int kk_f = neighbours_faces_k[l];
 
-      double flux_val = convective_diffusive_fluxes_raw[face_dir[l]](index_i_+ii_f, index_j_ + jj_f, index_k_ + kk_f);
+      double flux_val = convective_diffusive_fluxes_raw[face_dir[l]](index_i_ + ii_f,
+                                                                     index_j_ + jj_f,
+                                                                     index_k_ + kk_f);
       if (inv_sign)
         flux_val = -flux_val;
       flux_val *= flux_out[l];
