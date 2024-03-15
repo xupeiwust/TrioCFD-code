@@ -769,7 +769,9 @@ protected:
   const Vecteur3 * liquid_velocity_;
   const Vecteur3 * rising_velocity_overall_;
   const ArrOfDouble * rising_velocities_;
+  const ArrOfDouble * rising_velocities_from_barycentres_;
   const DoubleTab * rising_vectors_;
+  const DoubleTab * rising_vectors_from_barycentres_;
   const IJK_Field_double * eulerian_rising_velocities_;
   const ArrOfDouble * bubbles_volume_;
   const DoubleTab * bubbles_barycentre_;

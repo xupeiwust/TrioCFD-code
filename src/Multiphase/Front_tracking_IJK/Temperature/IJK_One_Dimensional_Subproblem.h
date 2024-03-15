@@ -1039,6 +1039,8 @@ protected :
   DoubleVect nusselt_number_integrand_;
   DoubleVect nusselt_number_liquid_temperature_integrand_;
   double thermal_flux_total_ = 0.;
+  double thermal_flux_abs_ = 0.;
+
   FixedVector<double,3> thermal_flux_dir_;
 
   DoubleVect radial_scale_factor_interp_;

@@ -3202,6 +3202,8 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
     }
   thermal_flux_*= ((*lambda_) * surface_);
   thermal_flux_total_ = thermal_flux_[0];
+  const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
 }
 
 void IJK_One_Dimensional_Subproblem::compute_radial_convection_scale_factor_solution()
@@ -4392,8 +4394,8 @@ void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_
 void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
 {
   double total_flux_error = 0.;
-  total_flux_error = (- thermal_flux_total_);
-  total_flux_error += sum_convective_flux_op_lrs_;
+  total_flux_error = (- thermal_flux_abs_);
+  total_flux_error += (- sum_convective_flux_op_lrs_);
   total_flux_error += sum_diffusive_flux_op_lrs_;
 
   double weight_tot = 0.;
@@ -4430,8 +4432,8 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
 void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>& radial_flux_error)
 {
   const int flux_out[6] = FLUXES_OUT;
-  sum_convective_diffusive_flux_op_lrs_ = sum_convective_flux_op_lrs_ + sum_diffusive_flux_op_lrs_;
-  radial_flux_error_lrs_ = sum_convective_diffusive_flux_op_lrs_ - thermal_flux_total_;
+  sum_convective_diffusive_flux_op_lrs_ = sum_diffusive_flux_op_lrs_ - sum_convective_flux_op_lrs_;
+  radial_flux_error_lrs_ = sum_convective_diffusive_flux_op_lrs_ - thermal_flux_abs_;
   double weight_tot = 0.;
   for (int l=0; l<3; l++)
     weight_tot += abs(normal_vector_compo_[l]);
@@ -4750,8 +4752,16 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
       if (inv_sign)
         flux_val = -flux_val;
       flux_val *= flux_out[l];
+
       // flux_val = neighbours_ijk_sign[l] ? -flux_val: flux_val;
+
+      // Keep normals out
+      // const double sign_conv = flux_type ? 1.: -1.;
+      // flux_val *= sign_conv;
+
       const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+      flux_val *= sign_temp;
+
       /*
        * TODO: Count only positive contributions !
        */
@@ -4761,7 +4771,7 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
           (*convective_diffusive_flux_op_value)[l] = flux_val;
           (*sum_convective_diffusive_flux_op_value) += flux_val;
 
-          if (flux_val * sign_temp >= 0)
+          if (flux_val >= 0)
             {
               (*convective_diffusive_flux_op_value_leaving)[l] = flux_val;
               (*sum_convective_diffusive_flux_op_value_leaving) += flux_val;

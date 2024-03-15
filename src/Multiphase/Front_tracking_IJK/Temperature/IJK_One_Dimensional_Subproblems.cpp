@@ -1996,18 +1996,31 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
   mp_sum_for_each_item(sum_diffusive_fluxes_lrs_faces_per_bubble_);
 
   sum_fluxes_liquid_faces_per_bubble_ = sum_convective_fluxes_liquid_faces_per_bubble_;
+  sum_fluxes_liquid_faces_per_bubble_*= (-1);
   sum_fluxes_liquid_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_faces_per_bubble_;
+
   sum_fluxes_vapour_faces_per_bubble_ = sum_convective_fluxes_vapour_faces_per_bubble_;
+  sum_fluxes_vapour_faces_per_bubble_ *= (-1);
   sum_fluxes_vapour_faces_per_bubble_ +=	sum_diffusive_fluxes_vapour_faces_per_bubble_;
+
   sum_fluxes_mixed_faces_per_bubble_ = sum_convective_fluxes_mixed_faces_per_bubble_;
+  sum_fluxes_mixed_faces_per_bubble_ *= (-1);
   sum_fluxes_mixed_faces_per_bubble_ +=	sum_diffusive_fluxes_mixed_faces_per_bubble_;
+
   sum_fluxes_liquid_normal_faces_per_bubble_ = sum_convective_fluxes_liquid_normal_faces_per_bubble_;
+  sum_fluxes_liquid_normal_faces_per_bubble_ *= (-1);
   sum_fluxes_liquid_normal_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_normal_faces_per_bubble_;
+
   sum_fluxes_liquid_leaving_faces_per_bubble_ = sum_convective_fluxes_liquid_leaving_faces_per_bubble_;
+  sum_fluxes_liquid_leaving_faces_per_bubble_ *= (-1);
   sum_fluxes_liquid_leaving_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_leaving_faces_per_bubble_;
+
   sum_fluxes_liquid_entering_faces_per_bubble_ = sum_convective_fluxes_liquid_entering_faces_per_bubble_;
+  sum_fluxes_liquid_entering_faces_per_bubble_ *= (-1);
   sum_fluxes_liquid_entering_faces_per_bubble_ +=	sum_diffusive_fluxes_liquid_entering_faces_per_bubble_;
+
   sum_fluxes_lrs_faces_per_bubble_ = sum_convective_fluxes_lrs_faces_per_bubble_;
+  sum_fluxes_lrs_faces_per_bubble_ *= (-1);
   sum_fluxes_lrs_faces_per_bubble_ +=	sum_diffusive_fluxes_lrs_faces_per_bubble_;
 
   // Same on each proc
@@ -2245,12 +2258,12 @@ void IJK_One_Dimensional_Subproblems::compute_overall_quantities()
       sum_diffusive_fluxes_liquid_entering_faces_ += sum_diffusive_fluxes_liquid_entering_faces_per_bubble_(i);
       sum_diffusive_fluxes_lrs_faces_ += sum_diffusive_fluxes_lrs_faces_per_bubble_(i);
 
-      sum_fluxes_liquid_faces_ += sum_convective_fluxes_liquid_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_faces_per_bubble_(i);
-      sum_fluxes_vapour_faces_ += sum_convective_fluxes_vapour_faces_per_bubble_(i) + sum_diffusive_fluxes_vapour_faces_per_bubble_(i);
-      sum_fluxes_mixed_faces_ += sum_convective_fluxes_mixed_faces_per_bubble_(i) + sum_diffusive_fluxes_mixed_faces_per_bubble_(i);
-      sum_fluxes_liquid_leaving_faces_ += sum_convective_fluxes_liquid_leaving_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_leaving_faces_per_bubble_(i);
-      sum_fluxes_liquid_entering_faces_ += sum_convective_fluxes_liquid_entering_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_entering_faces_per_bubble_(i);
-      sum_fluxes_liquid_normal_faces_ += sum_convective_fluxes_liquid_normal_faces_per_bubble_(i) + sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(i);
+      sum_fluxes_liquid_faces_ += sum_diffusive_fluxes_liquid_faces_per_bubble_(i) - sum_convective_fluxes_liquid_faces_per_bubble_(i);
+      sum_fluxes_vapour_faces_ += sum_diffusive_fluxes_vapour_faces_per_bubble_(i) - sum_convective_fluxes_vapour_faces_per_bubble_(i);
+      sum_fluxes_mixed_faces_ += sum_diffusive_fluxes_mixed_faces_per_bubble_(i) - sum_convective_fluxes_mixed_faces_per_bubble_(i);
+      sum_fluxes_liquid_normal_faces_ += sum_diffusive_fluxes_liquid_normal_faces_per_bubble_(i) - sum_convective_fluxes_liquid_normal_faces_per_bubble_(i);
+      sum_fluxes_liquid_leaving_faces_ += sum_diffusive_fluxes_liquid_leaving_faces_per_bubble_(i) - sum_convective_fluxes_liquid_leaving_faces_per_bubble_(i);
+      sum_fluxes_liquid_entering_faces_ += sum_diffusive_fluxes_liquid_entering_faces_per_bubble_(i) - sum_convective_fluxes_liquid_entering_faces_per_bubble_(i);
       sum_fluxes_lrs_faces_ += sum_fluxes_lrs_faces_per_bubble_(i);
 
       overall_nusselt_number_face_fluxes_ += overall_nusselt_number_face_fluxes_per_bubble_(i);

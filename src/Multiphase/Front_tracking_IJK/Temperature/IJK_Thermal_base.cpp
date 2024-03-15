@@ -126,7 +126,9 @@ IJK_Thermal_base::IJK_Thermal_base()
 
   liquid_velocity_ = nullptr;
   rising_velocities_ = nullptr;
+  rising_velocities_from_barycentres_ = nullptr;
   rising_vectors_ = nullptr;
+  rising_vectors_from_barycentres_ = nullptr;
   rising_velocity_overall_ = nullptr;
   eulerian_rising_velocities_ = nullptr;
   bubbles_volume_ = nullptr;
@@ -685,7 +687,9 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
   if (compute_rising_velocities_)
     {
       rising_velocities_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_velocities());
+      rising_velocities_from_barycentres_ = &(ref_ijk_ft_->itfce().get_bubbles_velocities_magnitude_from_barycentres());
       rising_vectors_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_vectors());
+      rising_vectors_from_barycentres_ = &(ref_ijk_ft_->itfce().get_bubble_rising_vectors_from_barycentres());
       liquid_velocity_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_liquid_velocity());
       rising_velocity_overall_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_velocity_overall());
       bubbles_barycentre_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre());

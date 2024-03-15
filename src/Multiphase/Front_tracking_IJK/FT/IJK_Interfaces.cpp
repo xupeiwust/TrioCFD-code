@@ -61,6 +61,8 @@ IJK_Interfaces::IJK_Interfaces()
   bubbles_velocities_bary_.set_smart_resize(1);
   bubbles_bary_old_.set_smart_resize(1);
   bubbles_bary_new_.set_smart_resize(1);
+  bubbles_rising_vectors_bary_.set_smart_resize(1);
+  bubbles_velocities_bary_magnitude_.set_smart_resize(1);
 }
 
 
@@ -1203,34 +1205,49 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
       else
         bubbles_bary_old_ = bubbles_bary_new_;
       bubbles_bary_new_ = barycentres;
-      bubbles_velocities_bary_ = bubbles_bary_old_;
       const int nbulles_reelles = get_nb_bulles_reelles();
+      bubbles_velocities_bary_magnitude_.resize(nbulles_reelles);
+      bubbles_velocities_bary_ = bubbles_bary_old_;
       for (int i = 0; i < nbulles_reelles; i++)
-        for (int dir=0; dir<3; dir++)
-          {
-            const double ldir = geom.get_domain_length(dir);
-            const double ddir = geom.get_origin(dir);
-            const double pos_old = bubbles_bary_old_(i, dir);
-            const double pos_new = bubbles_bary_new_(i, dir);
-            const int old_new_up_down = (pos_new - pos_old) < (ldir / 2);
-            const int old_new_down_up = (pos_new - pos_old) > (ldir / 2);
-            const int bottom_out = (pos_new - ddir) < 0;
-            const int up_out = (pos_new - ddir) > ldir;
-            if (bottom_out || up_out || old_new_up_down || old_new_down_up)
-              {
-                if (bottom_out)
-                  bubbles_bary_old_(i, dir) += (ldir);
-                else if (up_out)
-                  bubbles_bary_old_(i, dir) += (-ldir);
-                else if (old_new_up_down)
-                  bubbles_bary_old_(i, dir) += (-ldir);
-                else
-                  bubbles_bary_old_(i, dir) += (ldir);
-              }
-            const double vel_old = bubbles_velocities_bary_(i, dir);
-            bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
-            bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
-          }
+        {
+          bubbles_velocities_bary_magnitude_(i) = 0.;
+          for (int dir=0; dir<3; dir++)
+            {
+              const double ldir = geom.get_domain_length(dir);
+              // const double ddir = geom.get_origin(dir);
+              const double pos_old = bubbles_bary_old_(i, dir);
+              const double pos_new = bubbles_bary_new_(i, dir);
+              const int old_new_up_down = (pos_new - pos_old) < (ldir / 2.);
+              const int old_new_down_up = (pos_new - pos_old) > (ldir / 2.);
+              // const int bottom_out = (pos_new - ddir) < 0;
+              // const int up_out = (pos_new - ddir) > ldir;
+              if (old_new_up_down || old_new_down_up)
+                {
+                  if (old_new_up_down)
+                    bubbles_bary_old_(i, dir) += (-ldir);
+                  else
+                    bubbles_bary_old_(i, dir) += (ldir);
+                  // if (bottom_out)
+                  //   bubbles_bary_old_(i, dir) += (ldir);
+                  // else if (up_out)
+                  //  bubbles_bary_old_(i, dir) += (-ldir);
+                }
+              bubbles_velocities_bary_(i, dir) = bubbles_bary_old_(i, dir);
+              const double vel_old = bubbles_velocities_bary_(i, dir);
+              bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
+              bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
+              bubbles_velocities_bary_magnitude_(i) += pow(bubbles_velocities_bary_(i, dir), 2);
+            }
+          bubbles_velocities_bary_magnitude_(i) = sqrt(bubbles_velocities_bary_magnitude_(i));
+          bubbles_rising_vectors_bary_ = bubbles_velocities_bary_;
+          for (int dir=0; dir<3; dir++)
+            {
+              if (abs(bubbles_velocities_bary_magnitude_(i)) > DMINFLOAT)
+                bubbles_rising_vectors_bary_(i, dir) /= bubbles_velocities_bary_magnitude_(i);
+              else
+                bubbles_rising_vectors_bary_(i, dir) = 0.;
+            }
+        }
       has_computed_bubble_barycentres_ = true;
     }
 }

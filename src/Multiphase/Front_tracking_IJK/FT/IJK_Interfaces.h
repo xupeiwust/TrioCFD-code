@@ -689,6 +689,16 @@ public :
     return bubbles_velocities_bary_;
   }
 
+  const DoubleTab& get_bubble_rising_vectors_from_barycentres() const
+  {
+    return bubbles_rising_vectors_bary_;
+  }
+
+  const ArrOfDouble& get_bubbles_velocities_magnitude_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
   void reset_flags_and_counters();
 
 protected:
@@ -949,6 +959,8 @@ protected:
   IJK_Composantes_Connex ijk_compo_connex_;
   DoubleTab bubbles_velocities_;
   DoubleTab bubbles_velocities_bary_;
+  DoubleTab bubbles_rising_vectors_bary_;
+  ArrOfDouble bubbles_velocities_bary_magnitude_;
   DoubleTab bubbles_bary_old_;
   DoubleTab bubbles_bary_new_;
   int use_barycentres_velocity_ = 0;
