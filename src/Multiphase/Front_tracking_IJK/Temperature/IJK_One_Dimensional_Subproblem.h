@@ -431,6 +431,30 @@ public :
   {
     return thermal_flux_[0];
   }
+  const double& get_interfacial_thermal_flux_raw() const
+  {
+    return thermal_flux_raw_;
+  }
+  const double& get_interfacial_thermal_flux_gfm() const
+  {
+    return thermal_flux_gfm_;
+  }
+  const double& get_interfacial_thermal_flux_lrs() const
+  {
+    return thermal_flux_lrs_;
+  }
+  const double& get_interfacial_thermal_flux_max() const
+  {
+    return thermal_flux_max_;
+  }
+  const double& get_interfacial_thermal_flux_max_raw() const
+  {
+    return thermal_flux_max_raw_;
+  }
+  const double& get_interfacial_thermal_flux_max_gfm() const
+  {
+    return thermal_flux_max_gfm_;
+  }
   const double& get_local_surface_area() const
   {
     return surface_;
@@ -1034,12 +1058,19 @@ protected :
   DoubleVect temperature_y_gradient_solution_;
   DoubleVect temperature_z_gradient_solution_;
   DoubleVect thermal_flux_;
+  DoubleVect thermal_flux_interp_gfm_;
   DoubleVect nusselt_number_;
   DoubleVect nusselt_number_liquid_temperature_;
   DoubleVect nusselt_number_integrand_;
   DoubleVect nusselt_number_liquid_temperature_integrand_;
   double thermal_flux_total_ = 0.;
   double thermal_flux_abs_ = 0.;
+  double thermal_flux_gfm_ = 0.;
+  double thermal_flux_raw_ = 0.;
+  double thermal_flux_lrs_ = 0.;
+  double thermal_flux_max_ = 0.;
+  double thermal_flux_max_raw_ = 0.;
+  double thermal_flux_max_gfm_ = 0.;
 
   FixedVector<double,3> thermal_flux_dir_;
 

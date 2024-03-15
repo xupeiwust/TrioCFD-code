@@ -640,7 +640,7 @@ protected :
   double vitesse_upstream_ = -1.1e20;
   double velocity_bubble_new_ = 0.;
   double velocity_bubble_old_ = 0.;
-  double velocity_bubble_integral_ = 0.;
+  double velocity_bubble_integral_err_ = 0.;
   double velocity_bubble_scope_ = 0.;
   double upstream_velocity_bubble_factor_ = 1.;
   double upstream_velocity_bubble_factor_deriv_ = 0.;

@@ -3093,15 +3093,29 @@ void IJK_One_Dimensional_Subproblem::retrieve_variables_solution_gfm_on_probes()
 
 void IJK_One_Dimensional_Subproblem::copy_interpolations_on_solution_variables_for_post_processing()
 {
+  const double flux_coeff = ((*lambda_) * surface_);
   temperature_solution_ = temperature_interp_;
   normal_temperature_gradient_solution_ = normal_temperature_gradient_interp_;
   temperature_x_gradient_solution_ = grad_T_elem_interp_[0];
   temperature_y_gradient_solution_ = grad_T_elem_interp_[1];
   temperature_z_gradient_solution_ = grad_T_elem_interp_[2];
   thermal_flux_ = normal_temperature_gradient_solution_;
-  thermal_flux_[0] = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
-  thermal_flux_*= ((*lambda_) * surface_);
+  const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
+  thermal_flux_[0] = grad_T_elem_gfm;
+  thermal_flux_*= flux_coeff;
+  thermal_flux_interp_gfm_ = thermal_flux_;
   radial_temperature_diffusion_solution_ = radial_temperature_diffusion_;
+  const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
+
+  thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
+  thermal_flux_raw_ = normal_temperature_gradient_interp_[0] * flux_coeff;
+  thermal_flux_lrs_ = normal_temperature_gradient_solution_[0] * flux_coeff;
+
+  const double sign_flux = signbit(thermal_flux_raw_) ? -1. : 1.;
+  thermal_flux_max_raw_ = sign_flux * std::max(abs(thermal_flux_raw_), abs(thermal_flux_lrs_));
+  thermal_flux_max_gfm_ = sign_flux * std::max(abs(thermal_flux_gfm_), abs(thermal_flux_lrs_));
+  thermal_flux_max_ = sign_flux * std::max(std::max(abs(thermal_flux_gfm_), abs(thermal_flux_raw_)), abs(thermal_flux_lrs_));
 }
 
 void IJK_One_Dimensional_Subproblem::retrieve_temperature_solution()
@@ -3194,16 +3208,30 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   else
     thermal_flux_ = normal_temperature_gradient_solution_;
 
+  const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
   if (reference_gfm_on_probes_)
     {
-      const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
       normal_temperature_gradient_solution_[0] = grad_T_elem_gfm;
       thermal_flux_[0] = grad_T_elem_gfm;
     }
-  thermal_flux_*= ((*lambda_) * surface_);
+  thermal_flux_interp_gfm_ = normal_temperature_gradient_interp_;
+  thermal_flux_interp_gfm_[0] = grad_T_elem_gfm;
+
+  const double flux_coeff = ((*lambda_) * surface_);
+  thermal_flux_*= flux_coeff;
+  thermal_flux_interp_gfm_ *= flux_coeff;
   thermal_flux_total_ = thermal_flux_[0];
   const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
   thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
+
+  thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
+  thermal_flux_raw_ = normal_temperature_gradient_interp_[0] * flux_coeff;
+  thermal_flux_lrs_ = normal_temperature_gradient_solution_[0] * flux_coeff;
+
+  const double sign_flux = signbit(thermal_flux_raw_) ? -1. : 1.;
+  thermal_flux_max_raw_ = sign_flux * std::max(abs(thermal_flux_raw_), abs(thermal_flux_lrs_));
+  thermal_flux_max_gfm_ = sign_flux * std::max(abs(thermal_flux_gfm_), abs(thermal_flux_lrs_));
+  thermal_flux_max_ = sign_flux * std::max(std::max(abs(thermal_flux_gfm_), abs(thermal_flux_raw_)), abs(thermal_flux_lrs_));
 }
 
 void IJK_One_Dimensional_Subproblem::compute_radial_convection_scale_factor_solution()
@@ -4075,7 +4103,10 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
     radial_scale_factor_interp_[0], radial_scale_factor_solution_[0],
     radial_convection_interp_[0], 	radial_convection_solution_[0],
     tangential_convection_source_terms_first_[0], tangential_convection_source_terms_second_[0],
-    surface_, thermal_flux_[0], (*lambda_), (*alpha_), (*prandtl_number_),
+    surface_, thermal_flux_[0],
+    thermal_flux_gfm_, thermal_flux_raw_,
+    thermal_flux_lrs_, thermal_flux_max_,
+    (*lambda_), (*alpha_), (*prandtl_number_),
     nusselt_number_[0], nusselt_number_liquid_temperature_[0],
     nusselt_number_integrand_[0], nusselt_number_liquid_temperature_integrand_[0],
     velocity_shear_force_, velocity_shear_stress_,
@@ -4148,7 +4179,10 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << radial_scale_factor_interp_[0] << " " << radial_scale_factor_solution_[0] << " ";
         fic << radial_convection_interp_[0] << " " << radial_convection_solution_[0] << " ";
         fic << tangential_convection_source_terms_first_[0] << " " << tangential_convection_source_terms_second_[0] << " ";
-        fic << surface_ << " " << thermal_flux_[0] << " " << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
+        fic << surface_ << " " << thermal_flux_[0] << " ";
+        fic << thermal_flux_gfm_ << " " << thermal_flux_raw_ << " ";
+        fic << thermal_flux_lrs_ << " " << thermal_flux_max_ << " ";
+        fic << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
         fic << nusselt_number_[0] << " " << nusselt_number_liquid_temperature_[0] << " ";
         fic << nusselt_number_integrand_[0] << " " << nusselt_number_liquid_temperature_integrand_[0] << " ";
         fic << velocity_shear_force_ << " " << velocity_shear_stress_ << " ";
@@ -4220,7 +4254,8 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
                                "\tradial_scale_factor_interp\tradial_scale_factor_sol"
                                "\tradial_convection_interp\tradial_convection_sol"
                                "\ttangential_convection_first\ttangential_convection_second"
-                               "\tsurface\tthermal_flux\tlambda_liq\talpha_liq\tprandtl_liq"
+                               "\tsurface\tthermal_flux"
+                               "\tlambda_liq\talpha_liq\tprandtl_liq"
                                "\tnusselt_number\tnusselt_number_liquid_temperature"
                                "\tnusselt_number_integrand\tnusselt_number_liquid_temperature_integrand"
                                "\tshear\tforce"
@@ -4264,7 +4299,10 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
             fic << radial_scale_factor_interp_[i] << " " << radial_scale_factor_solution_[i] << " ";
             fic << radial_convection_interp_[i] << " " << radial_convection_solution_[i] << " ";
             fic << tangential_convection_source_terms_first_[i] << " " << tangential_convection_source_terms_second_[i] << " ";
-            fic << surface_ << " " << thermal_flux_[i] << " " << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
+            fic << surface_ << " " << thermal_flux_[i] << " ";
+            // fic <<  << " " <<  << " ";
+            // fic <<  << " " <<  << " ";
+            fic << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
             fic << nusselt_number_[i] << " " << nusselt_number_liquid_temperature_[i] << " ";
             fic << nusselt_number_integrand_[i] << " " << nusselt_number_liquid_temperature_integrand_[i] << " ";
             fic << shear_stress_[i] << " " << (shear_stress_[i] * surface_) << " ";
@@ -4367,6 +4405,9 @@ const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_
 
 void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type)
 {
+  /*
+   * Positive contributions for flux outward
+   */
   if (flux_type==0)
     {
       const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
@@ -4441,6 +4482,7 @@ void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>&
   std::vector<double> thermal_flux_neighbour;
   for (int l=0; l<6; l++)
     {
+      // FIXME: There are more than 3 faces sometimes !!!!!
       if (pure_liquid_neighbours_[l])
         {
           const double weight = abs(normal_vector_compo_[face_dir[l]]);
@@ -4767,6 +4809,18 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
        */
       if (pure_liquid_neighbours_[l])
         {
+          // const bool sign_check_bool = (signbit(normal_vector_compo_[face_dir[l]]) == signbit(flux_out[l]));
+          // const int sign_check = sign_check_bool ? 1: -1;
+          // flux_val *= sign_check;
+
+          // if (!sign_check_bool && flux_type && debug_)
+          //   {
+          //     Cerr << "The diffusive flux is negative" << finl;
+          //      Cerr << "normal_vector_compo: " << normal_vector_compo_[0] << "; ";
+          //      Cerr << normal_vector_compo_[1] << "; " << normal_vector_compo_[2] << "; ";
+          //      Cerr << "l: " << l << finl;
+          //      Cerr << "flux_val: " << flux_val << finl;
+          //  }
 
           (*convective_diffusive_flux_op_value)[l] = flux_val;
           (*sum_convective_diffusive_flux_op_value) += flux_val;
@@ -4778,6 +4832,11 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
             }
           else
             {
+              /*
+               * Some cases where there are more than 4 faces to correct !!!
+               * | |_| |
+               * |/| |\|
+               */
               (*convective_diffusive_flux_op_value_entering)[l] = flux_val;
               (*sum_convective_diffusive_flux_op_value_entering) += flux_val;
             }

@@ -3954,10 +3954,12 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
                 vitesse_upstream_ = - velocity_bubble_scope_;
               const double delta_velocity = velocity_bubble_scope_ + velocity_bubble_new_;
               const double ddelta_velocity = (velocity_bubble_new_ - velocity_bubble_old_) / timestep_;
-              velocity_bubble_integral_ += delta_velocity * timestep_;
+              if (tstep_ % 100)
+                velocity_bubble_integral_err_ = 0.;
+              velocity_bubble_integral_err_ += delta_velocity * timestep_;
               vitesse_upstream_ -= delta_velocity * upstream_velocity_bubble_factor_;
               vitesse_upstream_ -= ddelta_velocity * upstream_velocity_bubble_factor_deriv_;
-              vitesse_upstream_ -= velocity_bubble_integral_ * upstream_velocity_bubble_factor_integral_;
+              vitesse_upstream_ -= velocity_bubble_integral_err_ * upstream_velocity_bubble_factor_integral_;
               Cerr << "Velocity bubble (old): " << velocity_bubble_old_ << finl;
               velocity_bubble_old_ = velocity_bubble_new_;
               Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;

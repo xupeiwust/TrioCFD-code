@@ -249,8 +249,10 @@ protected :
   REF(IJK_FT_double) ref_ijk_ft_;
 
   FixedVector<ArrOfInt, 3> ijk_indices_to_subproblem_;
+
   std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_previous_;
   std::map<int, std::map<int, std::map<int, int>>> subproblem_to_ijk_indices_;
+
   std::vector<DoubleVect> temperature_probes_previous_;
   std::vector<double> indicator_probes_previous_;
   std::vector<Vecteur3> velocities_probes_previous_;
@@ -285,14 +287,27 @@ protected :
   double overall_shear_force_ = 0.;
 
   double overall_nusselt_number_ = 0.;
+  double overall_nusselt_number_raw_ = 0.;
   double overall_nusselt_number_gfm_ = 0.;
-  double overall_nusselt_number_spherical_ = 0.;
+  double overall_nusselt_number_lrs_ = 0.;
+  double overall_nusselt_number_max_raw_ = 0.;
+  double overall_nusselt_number_max_gfm_ = 0.;
+  double overall_nusselt_number_max_ = 0.;
+
   double overall_nusselt_number_liquid_ = 0.;
+  double overall_nusselt_number_raw_liquid_ = 0.;
   double overall_nusselt_number_gfm_liquid_ = 0.;
+  double overall_nusselt_number_lrs_liquid_ = 0.;
+  double overall_nusselt_number_max_raw_liquid_ = 0.;
+  double overall_nusselt_number_max_gfm_liquid_ = 0.;
+  double overall_nusselt_number_max_liquid_ = 0.;
+
+  double overall_nusselt_number_spherical_ = 0.;
   double overall_nusselt_number_spherical_liquid_ = 0.;
 
   double overall_nusselt_number_error_ = 0.;
   double overall_nusselt_number_gfm_error_ = 0.;
+
   double overall_nusselt_number_liquid_error_ = 0.;
   double overall_nusselt_number_gfm_liquid_error_ = 0.;
 
@@ -307,9 +322,15 @@ protected :
 
   double delta_temperature_ = -1;
   double mean_liquid_temperature_= -1.;
+  const Vecteur3 * liquid_velocity_ = nullptr;
 
   double interfacial_thermal_flux_ = 0.;
+  double interfacial_thermal_flux_raw_ = 0.;
   double interfacial_thermal_flux_gfm_ = 0.;
+  double interfacial_thermal_flux_lrs_ = 0.;
+  double interfacial_thermal_flux_max_raw_ = 0.;
+  double interfacial_thermal_flux_max_gfm_ = 0.;
+  double interfacial_thermal_flux_max_ = 0.;
 
   double total_surface_ = 0.;
   double total_volume_ = 0.;
@@ -330,31 +351,69 @@ protected :
   const ArrOfDouble * bubbles_volume_ = nullptr;
   const ArrOfDouble * bubbles_rising_velocities_ = nullptr;
   const DoubleTab * bubbles_rising_vectors_per_bubble_ = nullptr;
+  const ArrOfDouble * bubbles_rising_velocities_from_barycentres_ = nullptr;
+  const DoubleTab * bubbles_rising_vectors_from_barycentres_ = nullptr;
+
   ArrOfDouble bubbles_rising_relative_velocities_;
   ArrOfDouble bubbles_rising_relative_velocities_upstream_;
+  ArrOfDouble bubbles_rising_relative_velocities_barycentres_;
+  ArrOfDouble bubbles_rising_relative_velocities_barycentres_upstream_;
+
   ArrOfDouble bubbles_reynolds_numbers_per_bubble_;
   ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_;
   ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_;
+
   ArrOfDouble bubbles_reynolds_numbers_per_bubble_upstream_;
   ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_upstream_;
   ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_upstream_;
+
+  ArrOfDouble bubbles_reynolds_numbers_per_bubble_barycentres_;
+  ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_barycentres_;
+  ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_barycentres_;
+
+  ArrOfDouble bubbles_reynolds_numbers_per_bubble_barycentres_upstream_;
+  ArrOfDouble bubbles_reynolds_numbers_from_surface_per_bubble_barycentres_upstream_;
+  ArrOfDouble bubbles_reynolds_numbers_from_volume_per_bubble_barycentres_upstream_;
+
   FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_;
   FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_upstream_;
+  FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_barycentres_;
+  FixedVector<ArrOfDouble, 3> relative_rising_dir_compo_barycentres_upstream_;
 
   double velocity_upstream_ = 0.;
   int gravity_dir_ = 0;
+
   Vecteur3 total_relative_rising_dir_compo_ = {0., 0., 0.};
   Vecteur3 total_relative_rising_dir_compo_upstream_ = {0., 0., 0.};
+  Vecteur3 total_relative_rising_dir_compo_barycentres_ = {0., 0., 0.};
+  Vecteur3 total_relative_rising_dir_compo_barycentres_upstream_ = {0., 0., 0.};
+
   Vecteur3 total_rising_dir_compo_ = {0., 0., 0.};
+  Vecteur3 total_rising_dir_compo_barycentres_ = {0., 0., 0.};
+
   double bubbles_total_rising_velocities_ = 0.;
+  double bubbles_total_rising_velocities_barycentres_ = 0.;
+
   double bubbles_total_rising_relative_velocities_ = 0.;
   double bubbles_total_rising_relative_velocities_upstream_ = 0.;
+  double bubbles_total_rising_relative_velocities_barycentres_ = 0.;
+  double bubbles_total_rising_relative_velocities_barycentres_upstream_ = 0.;
+
   double bubbles_total_reynolds_numbers_ = 0.;
   double bubbles_total_reynolds_numbers_from_surface_per_bubble_ = 0.;
   double bubbles_total_reynolds_numbers_from_volume_per_bubble_ = 0.;
+
   double bubbles_total_reynolds_numbers_upstream_ = 0.;
   double bubbles_total_reynolds_numbers_from_surface_per_bubble_upstream_ = 0.;
   double bubbles_total_reynolds_numbers_from_volume_per_bubble_upstream_ = 0.;
+
+  double bubbles_total_reynolds_numbers_barycentres_ = 0.;
+  double bubbles_total_reynolds_numbers_from_surface_per_bubble_barycentres_ = 0.;
+  double bubbles_total_reynolds_numbers_from_volume_per_bubble_barycentres_ = 0.;
+
+  double bubbles_total_reynolds_numbers_barycentres_upstream_ = 0.;
+  double bubbles_total_reynolds_numbers_from_surface_per_bubble_barycentres_upstream_ = 0.;
+  double bubbles_total_reynolds_numbers_from_volume_per_bubble_barycentres_upstream_ = 0.;
 
   ArrOfDouble radius_outputs_;
   ArrOfDouble theta_outputs_;
@@ -362,16 +421,32 @@ protected :
   ArrOfInt global_indices_post_processed_;
 
   ArrOfDouble interfacial_thermal_flux_per_bubble_ ;
+  ArrOfDouble interfacial_thermal_flux_per_bubble_raw_;
   ArrOfDouble interfacial_thermal_flux_per_bubble_gfm_;
+  ArrOfDouble interfacial_thermal_flux_per_bubble_lrs_;
+  ArrOfDouble interfacial_thermal_flux_per_bubble_max_raw_;
+  ArrOfDouble interfacial_thermal_flux_per_bubble_max_gfm_;
+  ArrOfDouble interfacial_thermal_flux_per_bubble_max_;
   ArrOfDouble interfacial_thermal_flux_per_bubble_spherical_;
 
   ArrOfDouble total_surface_per_bubble_;
 
   ArrOfDouble overall_nusselt_number_per_bubble_;
+  ArrOfDouble overall_nusselt_number_per_bubble_raw_;
   ArrOfDouble overall_nusselt_number_per_bubble_gfm_;
+  ArrOfDouble overall_nusselt_number_per_bubble_lrs_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_raw_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_gfm_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_;
   ArrOfDouble overall_nusselt_number_per_bubble_spherical_;
+
   ArrOfDouble overall_nusselt_number_per_bubble_liquid_;
+  ArrOfDouble overall_nusselt_number_per_bubble_raw_liquid_;
   ArrOfDouble overall_nusselt_number_per_bubble_gfm_liquid_;
+  ArrOfDouble overall_nusselt_number_per_bubble_lrs_liquid_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_raw_liquid_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_gfm_liquid_;
+  ArrOfDouble overall_nusselt_number_per_bubble_max_liquid_;
   ArrOfDouble overall_nusselt_number_per_bubble_spherical_liquid_;
 
   ArrOfDouble overall_shear_stress_per_bubble_;
@@ -396,63 +471,106 @@ protected :
   ArrOfDouble bubbles_peclet_numbers_per_bubble_;
   ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_;
   ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_;
+
   ArrOfDouble bubbles_peclet_numbers_per_bubble_upstream_;
   ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_upstream_;
   ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_upstream_;
+
+  ArrOfDouble bubbles_peclet_numbers_per_bubble_barycentres_;
+  ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_barycentres_;
+  ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_barycentres_;
+
+  ArrOfDouble bubbles_peclet_numbers_per_bubble_barycentres_upstream_;
+  ArrOfDouble bubbles_peclet_numbers_from_surface_per_bubble_barycentres_upstream_;
+  ArrOfDouble bubbles_peclet_numbers_from_volume_per_bubble_barycentres_upstream_;
+
   double bubbles_total_peclet_numbers_ = 0.;
   double bubbles_total_peclet_numbers_from_surface_per_bubble_ = 0.;
   double bubbles_total_peclet_numbers_from_volume_per_bubble_ = 0.;
+
   double bubbles_total_peclet_numbers_upstream_  = 0.;
   double bubbles_total_peclet_numbers_from_surface_per_bubble_upstream_ = 0.;
   double bubbles_total_peclet_numbers_from_volume_per_bubble_upstream_  = 0.;
+
+  double bubbles_total_peclet_numbers_barycentres_  = 0.;
+  double bubbles_total_peclet_numbers_from_surface_per_bubble_barycentres_ = 0.;
+  double bubbles_total_peclet_numbers_from_volume_per_bubble_barycentres_  = 0.;
+
+  double bubbles_total_peclet_numbers_barycentres_upstream_ = 0.;
+  double bubbles_total_peclet_numbers_from_surface_per_bubble_barycentres_upstream_ = 0.;
+  double bubbles_total_peclet_numbers_from_volume_per_bubble_barycentres_upstream_ = 0.;
 
   double sum_convective_fluxes_liquid_faces_ = 0.;
   double sum_convective_fluxes_vapour_faces_ = 0.;
   double sum_convective_fluxes_mixed_faces_ = 0.;
   double sum_convective_fluxes_liquid_normal_faces_ = 0.;
+
   double sum_convective_fluxes_liquid_leaving_faces_ = 0.;
   double sum_convective_fluxes_liquid_entering_faces_ = 0.;
+
   double sum_convective_fluxes_lrs_faces_ = 0.;
+  double sum_convective_fluxes_lrs_leaving_faces_ = 0.;
+  double sum_convective_fluxes_lrs_entering_faces_ = 0.;
 
   double sum_diffusive_fluxes_liquid_faces_ = 0.;
   double sum_diffusive_fluxes_vapour_faces_ = 0.;
   double sum_diffusive_fluxes_mixed_faces_ = 0.;
   double sum_diffusive_fluxes_liquid_normal_faces_ = 0.;
+
   double sum_diffusive_fluxes_liquid_leaving_faces_ = 0.;
   double sum_diffusive_fluxes_liquid_entering_faces_ = 0.;
+
   double sum_diffusive_fluxes_lrs_faces_ = 0.;
+  double sum_diffusive_fluxes_lrs_leaving_faces_ = 0.;
+  double sum_diffusive_fluxes_lrs_entering_faces_ = 0.;
 
   double sum_fluxes_liquid_faces_ = 0.;
   double sum_fluxes_vapour_faces_ = 0.;
   double sum_fluxes_mixed_faces_ = 0.;
   double sum_fluxes_liquid_normal_faces_ = 0.;
+
   double sum_fluxes_liquid_leaving_faces_ = 0.;
   double sum_fluxes_liquid_entering_faces_ = 0.;
+
   double sum_fluxes_lrs_faces_ = 0.;
+  double sum_fluxes_lrs_leaving_faces_ = 0.;
+  double sum_fluxes_lrs_entering_faces_ = 0.;
 
   ArrOfDouble sum_convective_fluxes_liquid_faces_per_bubble_;
   ArrOfDouble sum_convective_fluxes_vapour_faces_per_bubble_;
   ArrOfDouble sum_convective_fluxes_mixed_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_liquid_normal_faces_per_bubble_;
+
   ArrOfDouble sum_convective_fluxes_liquid_leaving_faces_per_bubble_;
   ArrOfDouble sum_convective_fluxes_liquid_entering_faces_per_bubble_;
-  ArrOfDouble sum_convective_fluxes_liquid_normal_faces_per_bubble_;
+
   ArrOfDouble sum_convective_fluxes_lrs_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_lrs_leaving_faces_per_bubble_;
+  ArrOfDouble sum_convective_fluxes_lrs_entering_faces_per_bubble_;
 
   ArrOfDouble sum_diffusive_fluxes_liquid_faces_per_bubble_;
   ArrOfDouble sum_diffusive_fluxes_vapour_faces_per_bubble_;
   ArrOfDouble sum_diffusive_fluxes_mixed_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_liquid_normal_faces_per_bubble_;
+
   ArrOfDouble sum_diffusive_fluxes_liquid_leaving_faces_per_bubble_;
   ArrOfDouble sum_diffusive_fluxes_liquid_entering_faces_per_bubble_;
-  ArrOfDouble sum_diffusive_fluxes_liquid_normal_faces_per_bubble_;
+
   ArrOfDouble sum_diffusive_fluxes_lrs_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_lrs_leaving_faces_per_bubble_;
+  ArrOfDouble sum_diffusive_fluxes_lrs_entering_faces_per_bubble_;
 
   ArrOfDouble sum_fluxes_liquid_faces_per_bubble_;
   ArrOfDouble sum_fluxes_vapour_faces_per_bubble_;
   ArrOfDouble sum_fluxes_mixed_faces_per_bubble_;
   ArrOfDouble sum_fluxes_liquid_normal_faces_per_bubble_;
+
   ArrOfDouble sum_fluxes_liquid_leaving_faces_per_bubble_;
   ArrOfDouble sum_fluxes_liquid_entering_faces_per_bubble_;
+
   ArrOfDouble sum_fluxes_lrs_faces_per_bubble_;
+  ArrOfDouble sum_fluxes_lrs_leaving_faces_per_bubble_;
+  ArrOfDouble sum_fluxes_lrs_entering_faces_per_bubble_;
 
   ArrOfDouble overall_nusselt_number_face_fluxes_per_bubble_;
   ArrOfDouble overall_nusselt_number_face_fluxes_per_bubble_liquid_;
@@ -478,7 +596,17 @@ protected :
   double overall_nusselt_number_lrs_face_fluxes_ = 0.;
   double overall_nusselt_number_lrs_face_fluxes_liquid_ = 0.;
 
-  const Vecteur3 * liquid_velocity_ = nullptr;
+  ArrOfDouble overall_nusselt_number_lrs_leaving_face_fluxes_per_bubble_;
+  ArrOfDouble overall_nusselt_number_lrs_leaving_face_fluxes_per_bubble_liquid_;
+
+  double overall_nusselt_number_lrs_leaving_face_fluxes_ = 0.;
+  double overall_nusselt_number_lrs_leaving_face_fluxes_liquid_ = 0.;
+
+  ArrOfDouble overall_nusselt_number_lrs_entering_face_fluxes_per_bubble_;
+  ArrOfDouble overall_nusselt_number_lrs_entering_face_fluxes_per_bubble_liquid_;
+
+  double overall_nusselt_number_lrs_entering_face_fluxes_ = 0.;
+  double overall_nusselt_number_lrs_entering_face_fluxes_liquid_ = 0.;
 
   int nb_bubbles_ = 0;
   int * latastep_reprise_ = nullptr;
