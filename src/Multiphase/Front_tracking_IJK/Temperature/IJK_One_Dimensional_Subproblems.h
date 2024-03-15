@@ -324,6 +324,9 @@ protected :
   double error_temperature_ana_squared_total_ = 0.;
   double error_temperature_ana_rel_total_ = 0.;
 
+  const DoubleTab * bubbles_barycentres_ = nullptr;
+  const DoubleTab * bubbles_barycentres_old_ = nullptr;
+  const DoubleTab * bubbles_barycentres_new_ = nullptr;
   const ArrOfDouble * bubbles_volume_ = nullptr;
   const ArrOfDouble * bubbles_rising_velocities_ = nullptr;
   const DoubleTab * bubbles_rising_vectors_per_bubble_ = nullptr;

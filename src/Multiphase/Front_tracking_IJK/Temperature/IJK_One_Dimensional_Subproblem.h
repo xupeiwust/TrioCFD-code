@@ -1222,7 +1222,11 @@ protected :
   FixedVector<double,6> convective_flux_op_lrs_;
   FixedVector<double,6> diffusive_flux_op_lrs_;
   double sum_convective_flux_op_lrs_ = 0.;
+  double sum_convective_flux_op_leaving_lrs_ = 0.;
+  double sum_convective_flux_op_entering_lrs_ = 0.;
   double sum_diffusive_flux_op_lrs_ = 0.;
+  double sum_diffusive_flux_op_leaving_lrs_ = 0.;
+  double sum_diffusive_flux_op_entering_lrs_ = 0.;
   double sum_convective_diffusive_flux_op_lrs_ = 0.;
   double radial_flux_error_lrs_ = 0.;
 
@@ -1231,6 +1235,7 @@ protected :
   FixedVector<double,6> corrective_flux_from_neighbours_;
 
   Vecteur3 temperature_interp_conv_flux_ = {0.,0.,0.};
+  int disable_relative_velocity_energy_balance_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

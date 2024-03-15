@@ -671,6 +671,14 @@ public :
     ijk_compo_connex_.compute_rising_velocities(bubbles_velocities_);
   }
 
+  const DoubleTab& get_bubble_barycentres_old_new(const int& get_new) const
+  {
+    if (get_new)
+      return bubbles_bary_new_;
+    else
+      return bubbles_bary_old_;
+  }
+
   const DoubleTab& get_bubble_velocities_from_interface() const
   {
     return bubbles_velocities_;

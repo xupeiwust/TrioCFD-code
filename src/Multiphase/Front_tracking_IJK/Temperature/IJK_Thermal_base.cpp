@@ -688,6 +688,9 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
       rising_vectors_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_vectors());
       liquid_velocity_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_liquid_velocity());
       rising_velocity_overall_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_rising_velocity_overall());
+      bubbles_barycentre_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre());
+      bubbles_barycentres_old_ = &(ref_ijk_ft_->itfce().get_bubble_barycentres_old_new(0));
+      bubbles_barycentres_new_ = &(ref_ijk_ft_->itfce().get_bubble_barycentres_old_new(1));
     }
   if (fill_rising_velocities_)
     eulerian_rising_velocities_ = &(ref_ijk_ft_->itfce().get_ijk_compo_connex().get_eulerian_rising_velocities());

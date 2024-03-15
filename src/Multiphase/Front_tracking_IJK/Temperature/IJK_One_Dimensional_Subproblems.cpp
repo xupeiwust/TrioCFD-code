@@ -336,6 +336,7 @@ void IJK_One_Dimensional_Subproblems::associate_variables_for_post_processing(IJ
     {
       debug_ = ref_thermal_subresolution.debug_;
       reference_gfm_on_probes_ = ref_thermal_subresolution.reference_gfm_on_probes_;
+      bubbles_barycentres_ = ref_thermal_subresolution.bubbles_barycentre_;
       bubbles_volume_ = ref_thermal_subresolution.bubbles_volume_;
       bubbles_rising_velocities_ = ref_thermal_subresolution.rising_velocities_;
       bubbles_rising_vectors_per_bubble_ = ref_thermal_subresolution.rising_vectors_;
@@ -343,6 +344,8 @@ void IJK_One_Dimensional_Subproblems::associate_variables_for_post_processing(IJ
       prandtl_number_ = &ref_thermal_subresolution.prandtl_number_;
       latastep_reprise_= &ref_thermal_subresolution.latastep_reprise_ini_;
       points_per_thermal_subproblem_ = &ref_thermal_subresolution.points_per_thermal_subproblem_;
+      bubbles_barycentres_old_ = ref_thermal_subresolution.bubbles_barycentres_old_;
+      bubbles_barycentres_new_ = ref_thermal_subresolution.bubbles_barycentres_new_;
     }
 }
 
@@ -2327,6 +2330,9 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
                        + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
       Nom probe_header = Nom("tstep\ttime\tthermal_rank\tbubble_index"
                              "\ttime_dimensionless"
+                             "\tbubble_coord_x\tbubble_coord_y\tbubble_coord_z"
+                             "\tbubble_coord_x_old\tbubble_coord_y_old\tbubble_coord_z_old"
+                             "\tbubble_coord_x_new\tbubble_coord_y_new\tbubble_coord_z_new"
                              "\tnusselt_overall\tnusselt_overall_gfm\tnusselt_spherical\tnusselt_spherical_th"
                              "\tnusselt_overall_liq\tnusselt_overall_gfm_liq\tnusselt_spherical_liq\tnusselt_spherical_th_liq"
                              "\tnusselt_overall_error\tnusselt_overall_gfm_error\tnusselt_overall_liq_error\tnusselt_overall_gfm_liq_error"
@@ -2376,6 +2382,15 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << rank << " ";
           fic << i << " ";
           fic << dimensionless_time << " ";
+          fic << (*bubbles_barycentres_)(i, 0) << " ";
+          fic << (*bubbles_barycentres_)(i, 1) << " ";
+          fic << (*bubbles_barycentres_)(i, 2) << " ";
+          fic << (*bubbles_barycentres_old_)(i, 0) << " ";
+          fic << (*bubbles_barycentres_old_)(i, 1) << " ";
+          fic << (*bubbles_barycentres_old_)(i, 2) << " ";
+          fic << (*bubbles_barycentres_new_)(i, 0) << " ";
+          fic << (*bubbles_barycentres_new_)(i, 1) << " ";
+          fic << (*bubbles_barycentres_new_)(i, 2) << " ";
           fic << overall_nusselt_number_per_bubble_(i) << " ";
           fic << overall_nusselt_number_per_bubble_gfm_(i) << " ";
           fic << overall_nusselt_number_per_bubble_spherical_(i) << " ";
@@ -2473,6 +2488,15 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << rank << " ";
           fic << nb_bubbles_ << " ";
           fic << dimensionless_time << " ";
+          fic << (*bubbles_barycentres_)(0, 0) << " ";
+          fic << (*bubbles_barycentres_)(0, 1) << " ";
+          fic << (*bubbles_barycentres_)(0, 2) << " ";
+          fic << (*bubbles_barycentres_old_)(0, 0) << " ";
+          fic << (*bubbles_barycentres_old_)(0, 1) << " ";
+          fic << (*bubbles_barycentres_old_)(0, 2) << " ";
+          fic << (*bubbles_barycentres_new_)(0, 0) << " ";
+          fic << (*bubbles_barycentres_new_)(0, 1) << " ";
+          fic << (*bubbles_barycentres_new_)(0, 2) << " ";
           fic << overall_nusselt_number_ << " ";
           fic << overall_nusselt_number_gfm_ << " ";
           fic << overall_nusselt_number_spherical_ << " ";

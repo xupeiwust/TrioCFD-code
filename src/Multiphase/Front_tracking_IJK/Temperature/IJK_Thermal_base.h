@@ -773,6 +773,8 @@ protected:
   const IJK_Field_double * eulerian_rising_velocities_;
   const ArrOfDouble * bubbles_volume_;
   const DoubleTab * bubbles_barycentre_;
+  const DoubleTab * bubbles_barycentres_old_ = nullptr;
+  const DoubleTab * bubbles_barycentres_new_ = nullptr;
 
   FixedVector<IJK_Field_int,3> dummy_int_vect_;
   FixedVector<IJK_Field_double,3> dummy_double_vect_;
