@@ -810,6 +810,9 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 
   if (fluxes_correction_conservations_)
     {
+      zero_liquid_neighbours_.allocate(splitting, IJK_Splitting::ELEM, 1); // , 1);
+      nalloc += 1;
+      zero_liquid_neighbours_.data() = 0.;
       allocate_cell_vector(interfacial_heat_flux_dispatched_, splitting, 1);
       nalloc += 3;
       for (int c=0; c<3; c++)
@@ -1787,6 +1790,8 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
 {
   if (!disable_subresolution_ || reference_gfm_on_probes_)
     {
+      if (fluxes_correction_conservations_)
+        zero_liquid_neighbours_.data() = 0.;
       const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
       const int ni = temperature_.ni();
       const int nj = temperature_.nj();
@@ -1818,6 +1823,9 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
       thermal_local_subproblems_.compute_global_indices();
       if (!counter)
         thermal_local_subproblems_.associate_variables_for_post_processing((*this));
+
+      if (fluxes_correction_conservations_)
+        zero_liquid_neighbours_.echange_espace_virtuel(zero_liquid_neighbours_.ghost());
     }
 }
 

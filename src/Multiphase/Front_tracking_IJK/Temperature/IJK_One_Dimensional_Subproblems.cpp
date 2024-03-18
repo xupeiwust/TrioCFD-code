@@ -1148,6 +1148,12 @@ void IJK_One_Dimensional_Subproblems::compute_error_flux_interface(const int& i)
   one_dimensional_effective_subproblems_[i]->compute_error_flux_interface();
 }
 
+void IJK_One_Dimensional_Subproblems::compute_error_flux_interface()
+{
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->compute_error_flux_interface();
+}
+
 void IJK_One_Dimensional_Subproblems::compare_flux_interface(const int& i, std::vector<double>& radial_flux_error)
 {
   one_dimensional_effective_subproblems_[i]->compare_flux_interface(radial_flux_error);

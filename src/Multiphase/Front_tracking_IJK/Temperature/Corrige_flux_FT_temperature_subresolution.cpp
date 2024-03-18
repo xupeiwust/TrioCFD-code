@@ -2173,19 +2173,21 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
               counter_faces++;
             }
         }
-      if (last_flux)
-        {
-          thermal_subproblems_->compute_error_flux_interface(i);
-          //          std::vector<double> radial_flux_error;
-          //          thermal_subproblems_->compare_flux_interface(i, radial_flux_error);
-          //          const int nb_flux = (int) radial_flux_error.size();
-          //          for (int l=0; l<nb_flux; l++)
-          //            {
-          //              const double flux = fluxes[counter_faces + (l - nb_flux)];
-          //              fluxes[counter_faces + (l - nb_flux)] = flux - radial_flux_error[l] * flux_sign[fluxes_type][0];
-          //            }
-        }
+//      if (last_flux)
+//        {
+//          thermal_subproblems_->compute_error_flux_interface(i);
+//          //          std::vector<double> radial_flux_error;
+//          //          thermal_subproblems_->compare_flux_interface(i, radial_flux_error);
+//          //          const int nb_flux = (int) radial_flux_error.size();
+//          //          for (int l=0; l<nb_flux; l++)
+//          //            {
+//          //              const double flux = fluxes[counter_faces + (l - nb_flux)];
+//          //              fluxes[counter_faces + (l - nb_flux)] = flux - radial_flux_error[l] * flux_sign[fluxes_type][0];
+//          //            }
+//        }
     }
+  if (last_flux)
+    thermal_subproblems_->compute_error_flux_interface();
   thermal_subproblems_->complete_frame_of_reference_lrs_fluxes_eval();
   /*
    * Useless if a treat a sub-problem per mixed cells

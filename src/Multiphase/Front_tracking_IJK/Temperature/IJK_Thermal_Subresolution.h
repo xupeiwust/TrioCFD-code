@@ -770,6 +770,7 @@ protected :
   FixedVector<ArrOfInt, 3> ijk_indices_flux_out_;
   FixedVector<ArrOfDouble, 3> thermal_flux_out_;
 
+  IJK_Field_int zero_liquid_neighbours_;
   FixedVector<IJK_Field_double,3> interfacial_heat_flux_contrib_;
   FixedVector<IJK_Field_double,3> interfacial_heat_flux_current_;
   FixedVector<ArrOfInt, 4> ijk_indices_flux_contrib_;

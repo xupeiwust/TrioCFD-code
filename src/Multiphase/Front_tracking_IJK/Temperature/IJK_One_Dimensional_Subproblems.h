@@ -138,6 +138,7 @@ public :
                                const int& flux_type);
 
   void compute_error_flux_interface(const int& i);
+  void compute_error_flux_interface();
   void compare_flux_interface(const int& i, std::vector<double>& radial_flux_error);
 
   double get_corrective_flux_from_neighbours(const int& i, const int& l);

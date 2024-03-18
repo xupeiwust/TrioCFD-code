@@ -297,6 +297,7 @@ public :
   void add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
 
   void compute_pure_liquid_neighbours();
+  void locate_pure_mixed_neighbours_without_pure_liquid_faces();
   void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
                                           const int flux_type,
                                           const int inv_sign=0);
@@ -593,7 +594,8 @@ protected :
                                             const int& interp_eulerian,
                                             const int& use_corrected_velocity_convection,
                                             const int& use_velocity_cartesian_grid,
-                                            const int& compute_radial_displacement);
+                                            const int& compute_radial_displacement,
+                                            const int& fluxes_correction_conservations	);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -659,7 +661,8 @@ protected :
                                             const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
                                             const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
                                             const IJK_Field_double& eulerian_grad_T_interface_ns,
-                                            IJK_Field_double& probe_collision_debug_field);
+                                            IJK_Field_double& probe_collision_debug_field,
+                                            IJK_Field_int& zero_liquid_neighbours);
   void associate_flags_neighbours_correction(const int& correct_temperature_cell_neighbours,
                                              const int& correct_neighbours_rank,
                                              const int& neighbours_corrected_rank,
@@ -912,6 +915,7 @@ protected :
   const IJK_Field_double * pressure_ = nullptr;
   const IJK_Field_double * eulerian_grad_T_interface_ns_ = nullptr;
   IJK_Field_double * probe_collision_debug_field_ = nullptr;
+  IJK_Field_int * zero_liquid_neighbours_ = nullptr;
 
   const FixedVector<IJK_Field_double, 3> * grad_T_elem_ = nullptr;
   const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_ = nullptr;
@@ -1291,6 +1295,7 @@ protected :
 
   FixedVector<double, 6> temperature_interp_conv_flux_;
   int disable_relative_velocity_energy_balance_ = 0;
+  int fluxes_correction_conservations_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */
