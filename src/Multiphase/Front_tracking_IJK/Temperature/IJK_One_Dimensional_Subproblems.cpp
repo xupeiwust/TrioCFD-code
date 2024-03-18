@@ -1163,9 +1163,17 @@ double IJK_One_Dimensional_Subproblems::get_corrective_flux_from_current(const i
   return one_dimensional_effective_subproblems_[i]->get_corrective_flux_from_current(l);
 }
 
+void IJK_One_Dimensional_Subproblems::complete_frame_of_reference_lrs_fluxes_eval()
+{
+  for (int itr=0; itr < effective_subproblems_counter_; itr++)
+    one_dimensional_effective_subproblems_[itr]->complete_frame_of_reference_lrs_fluxes_eval();
+}
+
+
 double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_at_point(const int& i,
                                                                                         const double& dist,
                                                                                         const int& dir,
+                                                                                        const int& l,
                                                                                         const int& index_i,
                                                                                         const int& index_j,
                                                                                         const int& index_k,
@@ -1173,6 +1181,7 @@ double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_a
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_at_point(dist,
                                                                                                     dir,
+                                                                                                    l,
                                                                                                     index_i,
                                                                                                     index_j,
                                                                                                     index_k,
@@ -2190,8 +2199,8 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
       sum_convective_fluxes_liquid_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_entering(0);
 
       sum_convective_fluxes_lrs_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(0);
-      sum_convective_fluxes_lrs_leaving_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(0);
-      sum_convective_fluxes_lrs_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(0);
+      sum_convective_fluxes_lrs_leaving_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_leaving_lrs(0);
+      sum_convective_fluxes_lrs_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_entering_lrs(0);
 
       sum_diffusive_fluxes_liquid_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value(1);
       sum_diffusive_fluxes_vapour_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_vap(1);
@@ -2202,8 +2211,8 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
       sum_diffusive_fluxes_liquid_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_entering(1);
 
       sum_diffusive_fluxes_lrs_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(1);
-      sum_diffusive_fluxes_lrs_leaving_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(1);
-      sum_diffusive_fluxes_lrs_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_lrs(1);
+      sum_diffusive_fluxes_lrs_leaving_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_leaving_lrs(1);
+      sum_diffusive_fluxes_lrs_entering_faces_per_bubble_(local_compo) += (*this)[itr].get_sum_convective_diffusive_flux_op_value_entering_lrs(1);
 
     }
 

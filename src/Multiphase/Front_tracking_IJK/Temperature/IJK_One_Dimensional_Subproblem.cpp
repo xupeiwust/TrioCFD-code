@@ -246,6 +246,7 @@ void IJK_One_Dimensional_Subproblem::clear_vectors()
       corrective_flux_current_[l] = 0.;
       corrective_flux_to_neighbours_[l] = 0.;
       corrective_flux_from_neighbours_[l] = 0.;
+      temperature_interp_conv_flux_[l] = 0.;
     }
   sum_convective_flux_op_lrs_ = 0.;
   sum_convective_flux_op_leaving_lrs_ = 0.;
@@ -253,7 +254,6 @@ void IJK_One_Dimensional_Subproblem::clear_vectors()
   sum_diffusive_flux_op_lrs_ = 0.;
   sum_diffusive_flux_op_leaving_lrs_ = 0.;
   sum_diffusive_flux_op_entering_lrs_ = 0.;
-  temperature_interp_conv_flux_ = {0., 0., 0.};
 }
 
 void IJK_One_Dimensional_Subproblem::reset_counters()
@@ -266,6 +266,7 @@ void IJK_One_Dimensional_Subproblem::reset_flags()
   has_computed_cell_centre_distance_ = false;
   has_computed_cell_faces_distance_ = false;
   has_computed_liquid_neighbours_ = false;
+  has_computed_lrs_flux_frame_of_ref_terms_ = false;
   disable_probe_because_collision_ = 0;
   disable_probe_weak_gradient_local_= 0;
 }
@@ -3717,6 +3718,7 @@ double IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_at_point
 
 double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist,
                                                                                        const int& dir,
+                                                                                       const int& l,
                                                                                        const int& index_i,
                                                                                        const int& index_j,
                                                                                        const int& index_k,
@@ -3738,7 +3740,8 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
       velocity_interp -= (second_tangential_corr * (*second_tangential_vector_compo_solver_)[dir]);
     }
   const double temperature_interp_conv = temperature_interp_conv_flux_[dir];
-  temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
+  // temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
+  temperature_interp_conv_flux_[l] = (temperature_interp_conv + temperature_interp);
   return temperature_interp * velocity_interp;
 }
 
@@ -4364,71 +4367,69 @@ double IJK_One_Dimensional_Subproblem::get_max_temperature_domain_ends() const
   return max_temperature_value;
 }
 
-const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
+void IJK_One_Dimensional_Subproblem::complete_frame_of_reference_lrs_fluxes_eval()
 {
-  if (flux_type==0)
+  if (!disable_relative_velocity_energy_balance_ && !has_computed_lrs_flux_frame_of_ref_terms_)
     {
-      if (!disable_relative_velocity_energy_balance_)
+      const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+      const int face_dir[6] = FACES_DIR;
+      const int flux_out[6] = FLUXES_OUT;
+      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      FixedVector<double, 6> convective_term_frame_of_ref = temperature_interp_conv_flux_;
+      for (int l=0; l<6; l++)
+        convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[face_dir[l]];
+      convective_term_frame_of_ref *= (-1) * rho_cp;
+      double surf_face;
+      for (int l=0; l<6; l++)
         {
-          const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
-          const int face_dir[6] = FACES_DIR;
-          const int flux_out[6] = FLUXES_OUT;
-          const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
-          Vecteur3 convective_term_frame_of_ref = temperature_interp_conv_flux_;
-          for (int l=0; l<3; l++)
-            convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[l];
-          convective_term_frame_of_ref *= (-1) * rho_cp;
-          double surf_face;
-          for (int l=0; l<6; l++)
+          surf_face = 1.;
+          if (pure_liquid_neighbours_[l])
             {
-              surf_face = 1.;
-              if (pure_liquid_neighbours_[l])
-                {
-                  for (int c = 0; c < 3; c++)
-                    if (c!=face_dir[l])
-                      surf_face *= geom.get_constant_delta(c);
-                  const double flux_val = convective_term_frame_of_ref[face_dir[l]] * flux_out[l] * surf_face;
-                  const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
-                  sum_convective_flux_op_lrs_ += convective_term_frame_of_ref[face_dir[l]] * flux_out[l] * surf_face;
-                  if (sign_temp * flux_val >= 0)
-                    sum_convective_flux_op_leaving_lrs_ += flux_val;
-                  else
-                    sum_convective_flux_op_entering_lrs_ += flux_val;
-                }
+              for (int c = 0; c < 3; c++)
+                if (c!=face_dir[l])
+                  surf_face *= geom.get_constant_delta(c);
+              double flux_val = convective_term_frame_of_ref[face_dir[l]] * flux_out[l] * surf_face;
+              const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
+              flux_val *= sign_temp;
+              sum_convective_flux_op_lrs_ += flux_val;
+              if (sign_temp * flux_val >= 0)
+                sum_convective_flux_op_leaving_lrs_ += flux_val;
+              else
+                sum_convective_flux_op_entering_lrs_ += flux_val;
             }
         }
-      return sum_convective_flux_op_lrs_;
+      has_computed_lrs_flux_frame_of_ref_terms_ = true;
     }
-  else
-    return sum_diffusive_flux_op_lrs_;
 }
+
+//const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
 
 void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type)
 {
   /*
    * Positive contributions for flux outward
    */
+  const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
   if (flux_type==0)
     {
       const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
-      const double rho_cp_flux = rho_cp * flux_face;
+      const double rho_cp_flux = rho_cp * flux_face * sign_temp;
       convective_flux_op_lrs_[l] = rho_cp_flux;
       sum_convective_flux_op_lrs_ += rho_cp_flux;
-      const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
-      if (sign_temp * rho_cp_flux >= 0)
+      if (rho_cp_flux >= 0)
         sum_convective_flux_op_leaving_lrs_ += rho_cp_flux;
       else
         sum_convective_flux_op_entering_lrs_ += rho_cp_flux;
     }
   else
     {
-      diffusive_flux_op_lrs_[l] = flux_face;
-      sum_diffusive_flux_op_lrs_ += flux_face;
-      const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
-      if (sign_temp * flux_face >= 0)
-        sum_diffusive_flux_op_leaving_lrs_ += flux_face;
+      const double flux_face_sign = sign_temp * flux_face;
+      diffusive_flux_op_lrs_[l] = flux_face_sign;
+      sum_diffusive_flux_op_lrs_ += flux_face_sign;
+      if (flux_face_sign >= 0)
+        sum_diffusive_flux_op_leaving_lrs_ += flux_face_sign;
       else
-        sum_diffusive_flux_op_entering_lrs_ += flux_face;
+        sum_diffusive_flux_op_entering_lrs_ += flux_face_sign;
     }
 }
 

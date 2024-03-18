@@ -142,10 +142,11 @@ public :
 
   double get_corrective_flux_from_neighbours(const int& i, const int& l);
   double get_corrective_flux_from_current(const int& i, const int& l);
-
+  void complete_frame_of_reference_lrs_fluxes_eval();
   double get_temperature_times_velocity_profile_at_point(const int& i,
                                                          const double& dist,
                                                          const int& dir,
+                                                         const int& l,
                                                          const int& index_i,
                                                          const int& index_j,
                                                          const int& index_k,

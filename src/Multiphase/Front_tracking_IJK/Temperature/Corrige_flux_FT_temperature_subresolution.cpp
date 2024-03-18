@@ -2161,9 +2161,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
               const double dist_sub_res = thermal_subproblems_->get_dist_faces_interface(i)[l];
               double local_flux_face = 0.;
               if (distance_cell_faces_from_lrs_)
-                local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist_sub_res, dir);
+                local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist_sub_res, dir, l);
               else
-                local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist, dir);
+                local_flux_face = compute_thermal_flux_face_centre(fluxes_type, i, dist, dir, l);
               double flux_face = local_flux_face * surf_face;
               thermal_subproblems_->set_pure_flux_corrected(flux_face * flux_out[l], i, l, fluxes_type);
               flux_face *= flux_sign[fluxes_type][l];
@@ -2186,6 +2186,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
           //            }
         }
     }
+  thermal_subproblems_->complete_frame_of_reference_lrs_fluxes_eval();
   /*
    * Useless if a treat a sub-problem per mixed cells
    * May be useful if a treat one subproblem per interface portion
@@ -2236,6 +2237,7 @@ double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_cent
                                                                                    const int& index_subproblem,
                                                                                    const double& dist,
                                                                                    const int& dir,
+                                                                                   const int& l,
                                                                                    const int& index_i,
                                                                                    const int& index_j,
                                                                                    const int& index_k,
@@ -2247,6 +2249,7 @@ double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_cent
       return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem,
                                                                                    dist,
                                                                                    dir,
+                                                                                   l,
                                                                                    index_i,
                                                                                    index_j,
                                                                                    index_k,
@@ -2257,6 +2260,7 @@ double Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_cent
       return thermal_subproblems_->get_temperature_times_velocity_profile_at_point(index_subproblem,
                                                                                    dist,
                                                                                    dir,
+                                                                                   l,
                                                                                    index_i,
                                                                                    index_j,
                                                                                    index_k,

@@ -348,6 +348,7 @@ public :
                                           const int& index_subproblem,
                                           const double& dist,
                                           const int& dir,
+                                          const int& l,
                                           const int& index_i=INVALID_INDEX,
                                           const int& index_j=INVALID_INDEX,
                                           const int& index_k=INVALID_INDEX,

@@ -203,6 +203,7 @@ public :
   double get_temperature_profile_at_point(const double& dist) const;
   double get_temperature_times_velocity_profile_at_point(const double& dist,
                                                          const int& dir,
+                                                         const int& l,
                                                          const int& index_i=INVALID_INDEX,
                                                          const int& index_j=INVALID_INDEX,
                                                          const int& index_k=INVALID_INDEX,
@@ -502,7 +503,6 @@ public :
     else
       return sum_diffusive_flux_op_value_;
   }
-
   const double& get_sum_convective_diffusive_flux_op_value_vap(const int flux_type) const
   {
     if (flux_type==0)
@@ -510,7 +510,6 @@ public :
     else
       return sum_diffusive_flux_op_value_vap_;
   }
-
   const double& get_sum_convective_diffusive_flux_op_value_mixed(const int flux_type) const
   {
     if (flux_type==0)
@@ -539,9 +538,29 @@ public :
     else
       return sum_diffusive_flux_op_entering_value_;
   }
+  const double& get_sum_convective_diffusive_flux_op_value_leaving_lrs(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_leaving_lrs_;
+    else
+      return sum_diffusive_flux_op_leaving_lrs_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_entering_lrs(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_entering_lrs_;
+    else
+      return sum_diffusive_flux_op_entering_lrs_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_lrs_;
+    else
+      return sum_diffusive_flux_op_lrs_;
+  }
+  void complete_frame_of_reference_lrs_fluxes_eval();
 
-
-  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type);
   double get_corrective_flux_from_neighbours(const int& l)
   {
     return corrective_flux_from_neighbours_[l];
@@ -1262,12 +1281,13 @@ protected :
   double sum_diffusive_flux_op_entering_lrs_ = 0.;
   double sum_convective_diffusive_flux_op_lrs_ = 0.;
   double radial_flux_error_lrs_ = 0.;
+  bool has_computed_lrs_flux_frame_of_ref_terms_=false;
 
   FixedVector<double,6> corrective_flux_current_;
   FixedVector<double,6> corrective_flux_to_neighbours_;
   FixedVector<double,6> corrective_flux_from_neighbours_;
 
-  Vecteur3 temperature_interp_conv_flux_ = {0.,0.,0.};
+  FixedVector<double, 6> temperature_interp_conv_flux_;
   int disable_relative_velocity_energy_balance_ = 0;
 };
 
