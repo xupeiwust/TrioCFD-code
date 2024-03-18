@@ -216,13 +216,15 @@ public :
                                                                      const IJK_Field_double& eulerian_field,
                                                                      const int temp_bool,
                                                                      const int weak_gradient_variable,
-                                                                     const int vel) const;
+                                                                     const int vel,
+                                                                     const int& l=-1);
   DoubleVect get_field_times_velocity_discrete_integral_at_point(const double& dist,
                                                                  const int& levels,
                                                                  const int& dir,
                                                                  const DoubleVect& field,
                                                                  const DoubleVect& field_weak_gradient,
-                                                                 const IJK_Field_double& eulerian_field) const;
+                                                                 const IJK_Field_double& eulerian_field,
+                                                                 const int& l);
   DoubleVect get_field_discrete_integral_at_point(const double& dist,
                                                   const int& levels,
                                                   const int& dir,
@@ -230,12 +232,12 @@ public :
                                                   const DoubleVect& field_weak_gradient,
                                                   const IJK_Field_double& eulerian_field,
                                                   const int weak_gradient_variable,
-                                                  const int temp_bool) const;
+                                                  const int temp_bool);
   double get_velocity_weighting(const double& dist, const int& dir, const int vel) const;
-  DoubleVect get_temperature_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
+  DoubleVect get_temperature_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
+  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir, const int& l);
+  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
+  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
   void get_field_discrete_value_recursive(const int& ilevel, const int& max_level,
                                           const int& dir, const double& dist,
                                           const int& vel,

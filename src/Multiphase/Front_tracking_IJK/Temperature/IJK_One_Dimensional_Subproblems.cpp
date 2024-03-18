@@ -1188,32 +1188,36 @@ double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_a
                                                                                                     temperature);
 }
 
-DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir)
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_profile_discrete_integral_at_point(dist, level, dir);
 }
 
-DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i,
+                                                                                                              const double& dist,
+                                                                                                              const int& level,
+                                                                                                              const int& dir,
+                                                                                                              const int& l)
 {
-  return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_discrete_integral_at_point(dist, level, dir);
+  return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_discrete_integral_at_point(dist, level, dir, l);
 }
 
-double IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_at_point(const int& i, const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_at_point(const int& i, const double& dist, const int& dir)
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_profile_at_point(dist, dir);
 }
 
-double IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir)
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_at_point(dist, dir);
 }
 
-DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir)
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_profile_discrete_integral_at_point(dist, level, dir);
 }
 
-DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir)
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(dist, level, dir);
 }

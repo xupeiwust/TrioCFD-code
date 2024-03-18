@@ -2280,8 +2280,9 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_diffusive_fluxes
 
 void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_centre_discrete_integral(DoubleVect& fluxes, const int fluxes_type)
 {
-  int faces_dir[6] = FACES_DIR;
-  int flux_sign[2][6] = FLUX_SIGN;
+  const int flux_out[6] = FLUXES_OUT;
+  const int faces_dir[6] = FACES_DIR;
+  const int flux_sign[2][6] = FLUX_SIGN;
   const int nb_faces_to_correct = intersection_ijk_cell_->get_nb_faces_to_correct();
   fluxes.reset();
   fluxes.resize(nb_faces_to_correct);
@@ -2305,13 +2306,13 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
               const double dist_sub_res = thermal_subproblems_->get_dist_faces_interface(i)[l];
               DoubleVect discrete_flux_integral;
               if (distance_cell_faces_from_lrs_)
-                discrete_flux_integral = compute_thermal_flux_face_centre_discrete_integral(fluxes_type, i, dist_sub_res, dir);
+                discrete_flux_integral = compute_thermal_flux_face_centre_discrete_integral(fluxes_type, i, dist_sub_res, dir, l);
               else
-                discrete_flux_integral = compute_thermal_flux_face_centre_discrete_integral(fluxes_type, i, dist, dir);
+                discrete_flux_integral = compute_thermal_flux_face_centre_discrete_integral(fluxes_type, i, dist, dir, l);
               double flux_face = 0;
               for (int val=0; val < discrete_flux_integral.size(); val++)
                 flux_face += discrete_flux_integral[val];
-              thermal_subproblems_->set_pure_flux_corrected(flux_face, i, l, fluxes_type);
+              thermal_subproblems_->set_pure_flux_corrected(flux_face * flux_out[l], i, l, fluxes_type);
               flux_face *= flux_sign[fluxes_type][l];
               fluxes[counter_faces] = flux_face;
               dist_[counter_faces] = dist;
@@ -2319,6 +2320,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
             }
         }
     }
+  thermal_subproblems_->complete_frame_of_reference_lrs_fluxes_eval();
   /*
    * Useless if a treat a sub-problem per mixed cells
    * May be useful if a treat one subproblem per interface portion
@@ -2326,16 +2328,31 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
   // check_pure_fluxes_duplicates(convective_fluxes_, convective_fluxes_unique_, pure_face_unique_, 0);
 }
 
-DoubleVect Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_centre_discrete_integral(const int fluxes_type, const int& index_subproblem, const double& dist, const int& dir)
+DoubleVect Corrige_flux_FT_temperature_subresolution::compute_thermal_flux_face_centre_discrete_integral(const int fluxes_type,
+                                                                                                         const int& index_subproblem,
+                                                                                                         const double& dist,
+                                                                                                         const int& dir,
+                                                                                                         const int& l)
 {
   switch(fluxes_type)
     {
     case convection:
-      return thermal_subproblems_->get_temperature_times_velocity_profile_discrete_integral_at_point(index_subproblem, dist, levels_, dir);
+      return thermal_subproblems_->get_temperature_times_velocity_profile_discrete_integral_at_point(index_subproblem,
+                                                                                                     dist,
+                                                                                                     levels_,
+                                                                                                     dir,
+                                                                                                     l);
     case diffusion:
-      return thermal_subproblems_->get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(index_subproblem, dist, levels_, dir);
+      return thermal_subproblems_->get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(index_subproblem,
+                                                                                                                  dist,
+                                                                                                                  levels_,
+                                                                                                                  dir);
     default:
-      return thermal_subproblems_->get_temperature_times_velocity_profile_discrete_integral_at_point(index_subproblem, dist, levels_, dir);
+      return thermal_subproblems_->get_temperature_times_velocity_profile_discrete_integral_at_point(index_subproblem,
+                                                                                                     dist,
+                                                                                                     levels_,
+                                                                                                     dir,
+                                                                                                     l);
     }
 }
 

@@ -3761,7 +3761,8 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_velocity_
                                                                                                    const IJK_Field_double& eulerian_field,
                                                                                                    const int temp_bool,
                                                                                                    const int weak_gradient_variable,
-                                                                                                   const int vel) const
+                                                                                                   const int vel,
+                                                                                                   const int& l)
 {
   const int nb_values = (int) pow(4., (double) levels);
   DoubleVect discrete_values(nb_values);
@@ -3785,6 +3786,11 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_velocity_
                                          temp_bool, weak_gradient_variable,
                                          dl1_ini, dl2_ini,
                                          point_coords_ini, discrete_values, value_counter);
+    }
+  if (l != -1 && !disable_relative_velocity_energy_balance_)
+    {
+      for (int c=0; c<discrete_values.size(); c++)
+        temperature_interp_conv_flux_[l] += discrete_values[c];
     }
   return discrete_values;
 }
@@ -3859,7 +3865,7 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_at_point(
                                                                                 const DoubleVect& field_weak_gradient,
                                                                                 const IJK_Field_double& eulerian_field,
                                                                                 const int temp_bool,
-                                                                                const int weak_gradient_variable) const
+                                                                                const int weak_gradient_variable)
 {
   return get_field_discrete_integral_velocity_weighting_at_point(dist, levels, dir,
                                                                  field, field_weak_gradient,
@@ -3872,30 +3878,32 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_times_velocity_discrete_int
                                                                                                const int& dir,
                                                                                                const DoubleVect& field,
                                                                                                const DoubleVect& field_weak_gradient,
-                                                                                               const IJK_Field_double& eulerian_field) const
+                                                                                               const IJK_Field_double& eulerian_field,
+                                                                                               const int& l)
 {
   return get_field_discrete_integral_velocity_weighting_at_point(dist, levels, dir,
                                                                  field, field_weak_gradient, eulerian_field,
-                                                                 1, 1, 1);
+                                                                 1, 1, 1, l);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_profile_discrete_integral_at_point(const double& dist,
                                                                                               const int& levels,
-                                                                                              const int& dir) const
+                                                                                              const int& dir)
 {
   return get_field_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_, 1, 1);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist,
                                                                                                              const int& levels,
-                                                                                                             const int& dir) const
+                                                                                                             const int& dir,
+                                                                                                             const int& l)
 {
-  return get_field_times_velocity_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_);
+  return get_field_times_velocity_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_, l);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_discrete_integral_at_point(const double& dist,
                                                                                                        const int& levels,
-                                                                                                       const int& dir) const
+                                                                                                       const int& dir)
 {
   DoubleVect temperature_gradient;
   switch(dir)
@@ -3924,7 +3932,7 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_disc
   return temperature_gradient;
 }
 
-DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir)
 {
   DoubleVect diffusive_flux = get_temperature_gradient_profile_discrete_integral_at_point(dist, levels, dir);
   diffusive_flux *= (*lambda_);

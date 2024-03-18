@@ -151,12 +151,12 @@ public :
                                                          const int& index_j,
                                                          const int& index_k,
                                                          const int& temperature=0) const;
-  DoubleVect get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
-  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
-  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
-  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir) const;
-  double get_temperature_gradient_profile_at_point(const int& i, const double& dist, const int& dir) const;
-  double get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir) const;
+  DoubleVect get_temperature_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir);
+  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir, const int& l);
+  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir);
+  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir);
+  double get_temperature_gradient_profile_at_point(const int& i, const double& dist, const int& dir);
+  double get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir);
 
   Nom get_header_from_string_lists(const std::vector<std::string>& key_results_int,
                                    const std::vector<std::string>& key_results_double);
