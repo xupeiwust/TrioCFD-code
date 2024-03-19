@@ -229,6 +229,11 @@ public :
                                                  FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                  ArrOfDouble& thermal_flux_out,
                                                  FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current);
+  void share_interfacial_heat_flux_correction_on_procs(FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                       ArrOfDouble& thermal_flux_out);
+  void retrieve_interfacial_heat_flux_correction_on_procs(const FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                          const ArrOfDouble& thermal_flux_out,
+                                                          FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
   void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);

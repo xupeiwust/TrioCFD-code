@@ -861,12 +861,119 @@ void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux_correction(
                                                                                            ijk_indices_out,
                                                                                            thermal_flux_out,
                                                                                            interfacial_heat_flux_current);
+
+  share_interfacial_heat_flux_correction_on_procs(ijk_indices_out, thermal_flux_out);
+  retrieve_interfacial_heat_flux_correction_on_procs(ijk_indices_out, thermal_flux_out, interfacial_heat_flux_dispatched);
   // share_interfacial_heat_flux_correction_on_procs(ijk_indices_out, thermal_flux_out);
   // retrieve_interfacial_heat_flux_correction_on_procs();
 
   for (int itr=0; itr < effective_subproblems_counter_; itr++)
     one_dimensional_effective_subproblems_[itr]->add_interfacial_heat_flux_neighbours_correction(interfacial_heat_flux_dispatched,
                                                                                                  interfacial_heat_flux_current);
+}
+
+void IJK_One_Dimensional_Subproblems::share_interfacial_heat_flux_correction_on_procs(FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                                                      ArrOfDouble& thermal_flux_out)
+{
+  const int nb_procs = Process::nproc();
+  const int proc_num = Process::me();
+  if (nb_procs > 1)
+    {
+      const int size_array = thermal_flux_out.size_array();
+      int size_array_global = size_array;
+      size_array_global = mp_sum(size_array_global);
+
+      ArrOfInt overall_numerotation(nb_procs);
+      ArrOfInt start_indices(nb_procs);
+      overall_numerotation(proc_num) = size_array;
+      mp_sum_for_each_item(overall_numerotation);
+      int l;
+      for (l=1; l<overall_numerotation.size_array(); l++)
+        start_indices(l) = start_indices(l-1) + overall_numerotation(l-1);
+
+      if (debug_)
+        {
+          Cerr << "Size array" << size_array << finl;
+          Cerr << "Size array global" << size_array_global << finl;
+          Cerr << "Overall_numerotation" << overall_numerotation(0) << "-" << overall_numerotation(1) << finl;
+        }
+
+      ArrOfInt local_indices_i_tmp;
+      ArrOfInt local_indices_j_tmp;
+      ArrOfInt local_indices_k_tmp;
+      ArrOfInt local_indices_dir_tmp;
+      ArrOfDouble local_values_tmp;
+
+      ArrOfInt& global_indices_i_tmp = ijk_indices_out[0];
+      ArrOfInt& global_indices_j_tmp = ijk_indices_out[1];
+      ArrOfInt& global_indices_k_tmp = ijk_indices_out[2];
+      ArrOfInt& global_indices_dir_tmp = ijk_indices_out[3];
+      ArrOfDouble& global_values_tmp = thermal_flux_out;
+
+      local_indices_i_tmp = global_indices_i_tmp;
+      local_indices_j_tmp = global_indices_j_tmp;
+      local_indices_k_tmp = global_indices_k_tmp;
+      local_indices_dir_tmp = global_indices_dir_tmp;
+      local_values_tmp = global_values_tmp;
+
+      global_indices_i_tmp.resize(size_array_global);
+      global_indices_j_tmp.resize(size_array_global);
+      global_indices_k_tmp.resize(size_array_global);
+      global_indices_dir_tmp.resize(size_array_global);
+      global_values_tmp.resize(size_array_global);
+
+      global_indices_i_tmp *= 0;
+      global_indices_j_tmp *= 0;
+      global_indices_k_tmp *= 0;
+      global_indices_dir_tmp *= 0;
+      global_values_tmp *= 0;
+
+      for (l=0; l<local_indices_i_tmp.size_array(); l++)
+        {
+          global_indices_i_tmp(start_indices(proc_num) + l) = local_indices_i_tmp(l);
+          global_indices_j_tmp(start_indices(proc_num) + l) = local_indices_j_tmp(l);
+          global_indices_k_tmp(start_indices(proc_num) + l) = local_indices_k_tmp(l);
+          global_indices_dir_tmp(start_indices(proc_num) + l) = local_indices_dir_tmp(l);
+          global_values_tmp(start_indices(proc_num) + l) = local_values_tmp(l);
+        }
+
+      mp_sum_for_each_item(global_indices_i_tmp);
+      mp_sum_for_each_item(global_indices_j_tmp);
+      mp_sum_for_each_item(global_indices_k_tmp);
+      mp_sum_for_each_item(global_indices_dir_tmp);
+      mp_sum_for_each_item(global_values_tmp);
+    }
+}
+
+void IJK_One_Dimensional_Subproblems::retrieve_interfacial_heat_flux_correction_on_procs(const FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                                                         const ArrOfDouble& thermal_flux_out,
+                                                                                         FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+{
+  const int ni = ref_ijk_ft_->itfce().I().ni();
+  const int nj = ref_ijk_ft_->itfce().I().nj();
+  const int nk = ref_ijk_ft_->itfce().I().nk();
+
+  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
+  const int offset_i = splitting_ns.get_offset_local(0);
+  const int offset_j = splitting_ns.get_offset_local(1);
+  const int offset_k = splitting_ns.get_offset_local(2);
+
+  const int size_array = thermal_flux_out.size_array();
+  for (int m=0; m<size_array; m++)
+    {
+      const int i_global = ijk_indices_out[0][m];
+      const int j_global = ijk_indices_out[1][m];
+      const int k_global = ijk_indices_out[2][m];
+      const int i = i_global - offset_i;
+      const int j = j_global - offset_j;
+      const int k = k_global - offset_k;
+      if ((0 <= i && i < ni) && (0 <= j && j < nj) && (0 <= k && k < nk))
+        {
+          const int dir = ijk_indices_out[3][m];
+          const double flux_val = thermal_flux_out[m];
+          interfacial_heat_flux_dispatched[dir](i,j,k) += flux_val;
+        }
+    }
 }
 
 void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
