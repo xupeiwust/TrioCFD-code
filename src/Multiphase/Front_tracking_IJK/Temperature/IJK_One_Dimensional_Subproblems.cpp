@@ -2100,6 +2100,8 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
   interfacial_thermal_flux_per_bubble_raw_ *= 0.;
   interfacial_thermal_flux_per_bubble_gfm_ *= 0.;
   interfacial_thermal_flux_per_bubble_lrs_ *= 0.;
+  interfacial_thermal_flux_per_bubble_max_raw_ *= 0.;
+  interfacial_thermal_flux_per_bubble_max_gfm_ *= 0.;
   interfacial_thermal_flux_per_bubble_max_ *= 0.;
 
   overall_nusselt_number_per_bubble_ *= 0.;

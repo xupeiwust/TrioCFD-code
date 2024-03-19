@@ -4759,7 +4759,7 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
             {
               const int pure_face = pure_faces[m];
               corrective_flux_from_neighbours_[pure_face] += ((sign_temp * flux_out[pure_face] * flux_error[c])
-              																								* (weight_dir[m] / weight_dir_tot));
+                                                              * (weight_dir[m] / weight_dir_tot));
             }
         }
       for (int l=0; l<6; l++)
