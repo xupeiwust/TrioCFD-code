@@ -574,6 +574,7 @@ public :
   }
   void set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type);
   void compute_error_flux_interface();
+  void compute_weighting_coefficient(const int& l, double& weight, const int& weight_type=0);
   void compare_flux_interface(std::vector<double>& radial_flux_error);
 protected :
   void clear_vectors();

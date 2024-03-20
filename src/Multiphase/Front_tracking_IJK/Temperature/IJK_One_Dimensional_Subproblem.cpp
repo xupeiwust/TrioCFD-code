@@ -4524,12 +4524,46 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
           // * flux_out[mixed_neighbour]
         }
     }
+  else
+    {
+      Cerr << "Some fluxes contributions are not relocated !" << finl;
+    }
 
   for (int l=0; l<6; l++)
     diffusive_flux_op_lrs_[l] = 0.;
   sum_diffusive_flux_op_lrs_ = 0.;
   sum_diffusive_flux_op_leaving_lrs_ = 0.;
   sum_diffusive_flux_op_entering_lrs_ = 0.;
+}
+
+void IJK_One_Dimensional_Subproblem::compute_weighting_coefficient(const int& l, double& weight, const int& weight_type)
+{
+  const int face_dir[6] = FACES_DIR;
+  const int dir = face_dir[l];
+  if (weight_type == 0)
+    weight = normal_vector_compo_[dir];
+  else
+    {
+      const int flux_out[6] = FLUXES_OUT;
+      const double kinematic_viscosity = ref_ijk_ft_->get_mu_liquid() / ref_ijk_ft_->get_rho_l();
+      const double velocity = (*first_tangential_velocity_solver_)[0] * (*first_tangential_vector_compo_solver_)[dir]
+                              + (*second_tangential_velocity_solver_)[0] * (*second_tangential_vector_compo_solver_)[dir];
+      Vecteur3 first_vel = (*first_tangential_vector_compo_solver_);
+      first_vel *= (*first_tangential_velocity_solver_)[0];
+      Vecteur3 second_vel = (*second_tangential_vector_compo_solver_);
+      second_vel *= (*second_tangential_velocity_solver_)[0];
+      Vecteur3 vel_vect = first_vel;
+      vel_vect += second_vel;
+      const double vel_vect_norm = vel_vect.length();
+      if (vel_vect_norm > 1e-12)
+        vel_vect *= (1 / vel_vect_norm);
+      const int vel_sign = signbit(velocity);
+      const int vel_effect = (vel_sign == signbit(flux_out[l])) ? 1. : 0.;
+      if (weight_type == 1)
+        weight = kinematic_viscosity * vel_effect * vel_vect[dir];
+      else
+        weight = (*alpha_) * normal_vector_compo_[dir] + kinematic_viscosity * vel_effect * vel_vect[dir];
+    }
 }
 
 void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>& radial_flux_error)
