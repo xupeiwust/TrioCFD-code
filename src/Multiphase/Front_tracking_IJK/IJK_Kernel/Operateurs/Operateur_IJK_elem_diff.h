@@ -50,6 +50,18 @@ public :
                IJK_Field_double& result,
                const IJK_Field_local_double& boundary_flux_kmin,
                const IJK_Field_local_double& boundary_flux_kmax);
+  void calculer_cut_cell(const Cut_field_scalar& field,
+                         Cut_cell_vector& cut_cell_flux,
+                         const DoubleTabFT_cut_cell& flux_interface,
+                         Cut_field_scalar& result,
+                         const IJK_Field_local_double& boundary_flux_kmin,
+                         const IJK_Field_local_double& boundary_flux_kmax);
+  void ajouter_cut_cell(const Cut_field_scalar& field,
+                        Cut_cell_vector& cut_cell_flux,
+                        const DoubleTabFT_cut_cell& flux_interface,
+                        Cut_field_scalar& result,
+                        const IJK_Field_local_double& boundary_flux_kmin,
+                        const IJK_Field_local_double& boundary_flux_kmax);
   /*
    * ReadOn
    */
@@ -68,6 +80,8 @@ public :
    * Setters
    */
   inline void set_uniform_lambda(const double& uniform_lambda);
+  inline void set_uniform_lambda_liquid(const double& uniform_lambda_liquid);
+  inline void set_uniform_lambda_vapour(const double& uniform_lambda_vapour);
   inline void set_lambda(const IJK_Field_local_double& lambda);
   inline void set_coeff_x_y_z(IJK_Field_local_double& coeff_field_x,
                               IJK_Field_local_double& coeff_field_y,
@@ -110,6 +124,16 @@ inline void Operateur_IJK_elem_diff::compute_add(IJK_Field_double& dx)
 inline void Operateur_IJK_elem_diff::set_uniform_lambda(const double& uniform_lambda)
 {
   return valeur().set_uniform_lambda(uniform_lambda);
+}
+
+inline void Operateur_IJK_elem_diff::set_uniform_lambda_liquid(const double& uniform_lambda)
+{
+  return valeur().set_uniform_lambda_liquid(uniform_lambda);
+}
+
+inline void Operateur_IJK_elem_diff::set_uniform_lambda_vapour(const double& uniform_lambda)
+{
+  return valeur().set_uniform_lambda_vapour(uniform_lambda);
 }
 
 inline void Operateur_IJK_elem_diff::set_lambda(const IJK_Field_local_double& lambda)

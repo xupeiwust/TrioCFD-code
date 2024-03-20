@@ -63,6 +63,7 @@ class IJK_FT_base : public Interprete
 {
   // We take too much advantage of it ...:
   friend class IJK_Thermique;
+  friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
   Declare_base(IJK_FT_base) ;
 
@@ -298,7 +299,7 @@ public :
   const IJK_Interfaces& itfce() const {return interfaces_;}
   IJK_Interfaces& get_set_interface() {return interfaces_;}
   int disable_diphasique() const {return disable_diphasique_;}
-  // Redistribute_Field& redistrib_to_ft_elem() const {return redistribute_to_splitting_ft_elem_;}
+  Redistribute_Field& redistrib_to_ft_elem() {return redistribute_to_splitting_ft_elem_;}
   // FixedVector<Redistribute_Field, 3>& redistrib_to_ft_face() const {return redistribute_to_splitting_ft_faces_;}
 
   // TODO: aym attention, cette methode n'est pas constante
@@ -741,6 +742,10 @@ protected :
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
+
+  // Cut cell options
+  int type_surface_efficace_face_;
+  int type_surface_efficace_interface_;
 };
 
 #endif /* IJK_FT_base_included */

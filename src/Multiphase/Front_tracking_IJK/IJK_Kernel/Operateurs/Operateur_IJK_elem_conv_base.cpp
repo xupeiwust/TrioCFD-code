@@ -109,6 +109,73 @@ void Operateur_IJK_elem_conv_base_double::ajouter(const IJK_Field_double& field,
 
 }
 
+void Operateur_IJK_elem_conv_base_double::calculer_cut_cell(const Cut_field_scalar& field,
+                                                            const Cut_field_vector& v,
+                                                            Cut_cell_vector& cut_cell_flux,
+                                                            Cut_field_scalar& result)
+{
+  // Si ce test plante, c'est qu'on a oublie d'appeler la methode initialize() !!!
+  assert(channel_data_.get_delta_z().size() == field.pure_.nk());
+
+  cut_field_velocity_ = &v;
+  input_velocity_x_ = &v.pure_[0];
+  input_velocity_y_ = &v.pure_[1];
+  input_velocity_z_ = &v.pure_[2];
+  input_field_ = &field.pure_;
+  input_cut_field_ = &field;
+  cut_cell_flux_ = &cut_cell_flux;
+  stored_curv_fram_layer_z_ = -1000; // put a non-existant layer index: curv_fram will be computed at first call
+  // Storage for curvature and fram limiter. We need 1 ghost layer:
+  // flux at left of the leftmost field data requires curv and fram on the element at left
+  // flux at the right of the rightmost field data requires on the element at right
+  // We need 4 layers of temporary storage: curv and fram, and, for each, two consecutive layers in z
+  const int ni = field.pure_.ni();
+  const int nj = field.pure_.nj();
+  tmp_curv_fram_.allocate(ni, nj, 4, 1);
+  compute_set_cut_cell(result);
+  input_field_ = nullptr;
+  input_cut_field_ = nullptr;
+  cut_cell_flux_ = nullptr;
+  cut_field_velocity_ = nullptr;
+  input_velocity_x_ = nullptr;
+  input_velocity_y_ = nullptr;
+  input_velocity_z_ = nullptr;
+
+}
+
+void Operateur_IJK_elem_conv_base_double::ajouter_cut_cell(const Cut_field_scalar& field,
+                                                           const Cut_field_vector& v,
+                                                           Cut_cell_vector& cut_cell_flux,
+                                                           Cut_field_scalar& result)
+{
+  // Si ce test plante, c'est qu'on a oublie d'appeler la methode initialize() !!!
+  assert(channel_data_.get_delta_z().size() == field.pure_.nk());
+
+  cut_field_velocity_ = &v;
+  input_velocity_x_ = &v.pure_[0];
+  input_velocity_y_ = &v.pure_[1];
+  input_velocity_z_ = &v.pure_[2];
+  input_field_ = &field.pure_;
+  input_cut_field_ = &field;
+  cut_cell_flux_ = &cut_cell_flux;
+  stored_curv_fram_layer_z_ = -1000; // put a non-existant layer index: curv_fram will be computed at first call
+  // Storage for curvature and fram limiter. We need 1 ghost layer:
+  //  flux at left of the leftmost field data requires curv and fram on the element at left
+  //  flux at the right of the rightmost field data requires on the element at right
+  // We need 4 layers of temporary storage: curv and fram, and, for each, two consecutive layers in z
+  const int ni = field.pure_.ni();
+  const int nj = field.pure_.nj();
+  tmp_curv_fram_.allocate(ni, nj, 4, 1);
+  compute_add_cut_cell(result);
+  input_field_ = nullptr;
+  input_cut_field_ = nullptr;
+  cut_cell_flux_ = nullptr;
+  cut_field_velocity_ = nullptr;
+  input_velocity_x_ = nullptr;
+  input_velocity_y_ = nullptr;
+  input_velocity_z_ = nullptr;
+
+}
 
 // Copy curv_fram values from layers 1 and 3 to layers 0 and 2
 // (called at end of the computation of fluxes in z direction to keep the values

@@ -567,3 +567,35 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
       ++idth;
     }
 }
+
+void IJK_Thermals::remplir_cellules_diphasiques()
+{
+  for (auto& itr : (*this))
+    {
+      itr.remplir_cellules_diphasiques();
+    }
+}
+
+void IJK_Thermals::remplir_cellules_devenant_diphasiques()
+{
+  for (auto& itr : (*this))
+    {
+      itr.remplir_cellules_devenant_diphasiques();
+    }
+}
+
+void IJK_Thermals::remplir_cellules_maintenant_pures()
+{
+  for (auto& itr : (*this))
+    {
+      itr.remplir_cellules_maintenant_pures();
+    }
+}
+
+void IJK_Thermals::transfert_diphasique_vers_pures()
+{
+  for (auto& itr : (*this))
+    {
+      itr.transfert_diphasique_vers_pures();
+    }
+}

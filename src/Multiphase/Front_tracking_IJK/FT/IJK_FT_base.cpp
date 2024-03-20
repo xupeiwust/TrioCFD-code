@@ -488,6 +488,10 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("ratio_density_max", &ratio_density_max_);
 #endif
 
+  // Cut cell options
+  type_surface_efficace_face_ = -1;
+  type_surface_efficace_interface_ = -1;
+
   // valeurs par default des parametres de bulles fixes
   coef_immobilisation_ = 0.;
   coef_ammortissement_ = 0.;
@@ -614,6 +618,10 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
   param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
   param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
+
+  // Cut cell options
+  param.ajouter("type_surface_efficace_face", &type_surface_efficace_face_);
+  param.ajouter("type_surface_efficace_interface", &type_surface_efficace_interface_);
 
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);

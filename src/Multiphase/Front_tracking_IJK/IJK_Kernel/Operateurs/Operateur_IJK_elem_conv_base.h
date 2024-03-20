@@ -18,6 +18,7 @@
 
 #include <IJK_Splitting.h>
 #include <Operateur_IJK_base.h>
+#include <Cut_cell_FT_Disc.h>
 
 class Corrige_flux_FT;
 
@@ -40,6 +41,17 @@ public:
                        const IJK_Field_double& vy,
                        const IJK_Field_double& vz,
                        IJK_Field_double& result);
+
+  virtual void calculer_cut_cell(const Cut_field_scalar& field,
+                                 const Cut_field_vector& v,
+                                 Cut_cell_vector& cut_cell_flux,
+                                 Cut_field_scalar& result);
+
+  virtual void ajouter_cut_cell(const Cut_field_scalar& field,
+                                const Cut_field_vector& v,
+                                Cut_cell_vector& cut_cell_flux,
+                                Cut_field_scalar& result);
+
 protected:
 
   void compute_curv_fram(DIRECTION _DIR_, int k_layer);
@@ -66,6 +78,11 @@ protected:
 
   // Pointers to input data (set by calculer, used by compute_flux_...)
   const IJK_Field_local_double *input_field_;
+
+  const Cut_field_scalar *input_cut_field_;
+  Cut_cell_vector *cut_cell_flux_;
+  const Cut_field_vector *cut_field_velocity_;
+
   const IJK_Field_local_double *input_velocity_x_;
   const IJK_Field_local_double *input_velocity_y_;
   const IJK_Field_local_double *input_velocity_z_;

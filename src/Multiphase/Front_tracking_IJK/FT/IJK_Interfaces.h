@@ -137,8 +137,13 @@ public :
   int lire_motcle_non_standard(const Motcle& un_mot, Entree& is) override;
 
   void activate_cut_cell();
-  void calcul_surface_effective(double timestep, const Cut_field_vector& velocity);
-  void imprimer_informations_surface_effective(int iteration_solver_surface_efficace, double timestep, const Cut_field_vector& velocity);
+  void calcul_surface_effective(int type_surface_efficace_face, int type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity);
+  void calcul_surface_interface_effective(double timestep, const Cut_field_vector& velocity);
+  void calcul_surface_interface_effective_initiale();
+  void calcul_surface_face_effective(double timestep, const Cut_field_vector& velocity, int& iteration_solver_surface_efficace_face);
+  void calcul_surface_face_effective_initiale();
+  void imprimer_informations_surface_effective_interface(double timestep, const Cut_field_vector& velocity);
+  void imprimer_informations_surface_effective_face(int iteration_solver_surface_efficace, double timestep, const Cut_field_vector& velocity);
 
   // fin de methode pour bulles fixes
   const Domaine_dis& get_domaine_dis() const
@@ -368,13 +373,21 @@ public :
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
 
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_ft() const
+  const IJK_Field_double& get_surface_interface_next_ft() const
   {
-    return barycentre_phase1_ft_[old()];
+    return surface_interface_ft_[next()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1() const
+  const IJK_Field_double& get_surface_interface_next() const
   {
-    return barycentre_phase1_ns_[old()];
+    return surface_interface_ns_[next()];
+  }
+  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_next_ft() const
+  {
+    return barycentre_phase1_ft_[next()];
+  }
+  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_next() const
+  {
+    return barycentre_phase1_ns_[next()];
   }
 
   // Getter des surfaces par face
@@ -393,6 +406,14 @@ public :
   const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face() const
   {
     return indicatrice_surfacique_face_ns_[old()];
+  }
+  const DoubleTabFT_cut_cell_vector3& get_indicatrice_surfacique_efficace_face() const
+  {
+    return indicatrice_surfacique_efficace_face_;
+  }
+  const DoubleTabFT_cut_cell_scalar& get_surface_efficace_interface() const
+  {
+    return surface_efficace_interface_;
   }
   // Getter des surfaces par face
   // void get_surface_vapeur_par_face_ns(FixedVector<IJK_Field_double, 3> &surfs) const ;
@@ -418,10 +439,10 @@ public :
     double weighted_barycentre = initial_barycentre*initial_area;
     double opposing_area = 1 - initial_area;
     double opposing_barycentre = ((opposing_area == 0.) || (opposing_area == 1.)) ? 1./2. : (1./2. - weighted_barycentre)/opposing_area;
-    if (opposing_barycentre == .5 && (opposing_area > 0. && opposing_area < 1.))
-      {
-        assert(false);
-      }
+    //if (opposing_area > 0. && opposing_area < 1.)
+    //  {
+    //    assert(opposing_barycentre != .5);
+    //  }
     return opposing_barycentre;
   }
 
@@ -532,8 +553,8 @@ public :
   inline double In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
 
   inline int is_pure(double indicatrice) const { return ((indicatrice == 0.) || (indicatrice == 1.)); }
-  inline int become_pure(double old_indicatrice, double next_indicatrice) const { return ((!is_pure(old_indicatrice)) && (is_pure(next_indicatrice))); }
-  inline int become_diphasique(double old_indicatrice, double next_indicatrice) const { return ((is_pure(old_indicatrice)) && (!is_pure(next_indicatrice))); }
+  inline int devient_pure(double old_indicatrice, double next_indicatrice) const { return ((!is_pure(old_indicatrice)) && (is_pure(next_indicatrice))); }
+  inline int devient_diphasique(double old_indicatrice, double next_indicatrice) const { return ((is_pure(old_indicatrice)) && (!is_pure(next_indicatrice))); }
 
   const double& SI(const int compo, const int i, const int j, const int k) const
   {
@@ -753,6 +774,7 @@ protected:
   // prealable
   int update_indicatrice(IJK_Field_double& indic);
 
+  void calculer_surface_interface(IJK_Field_double& surf_interface, IJK_Field_double& indic);
   void calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic);
   void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
 
@@ -947,6 +969,9 @@ protected:
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
 
+  FixedVector<IJK_Field_double, 2> surface_interface_ns_;
+  FixedVector<IJK_Field_double, 2> surface_interface_ft_;
+
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ns_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ft_;
 
@@ -991,6 +1016,11 @@ protected:
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
   DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
   DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
+  DoubleTabFT_cut_cell_scalar surface_efficace_interface_;
+  DoubleTabFT_cut_cell_scalar surface_efficace_interface_initial_;
+  DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;
+  DoubleTabFT_cut_cell_vector3 velocity_deplacement_interface_;
+  DoubleTabFT_cut_cell_vector3 normale_deplacement_interface_;
 };
 
 #endif /* IJK_Interfaces_included */

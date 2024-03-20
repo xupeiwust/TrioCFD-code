@@ -50,6 +50,14 @@ public :
                const IJK_Field_double& vy,
                const IJK_Field_double& vz,
                IJK_Field_double& result);
+  void calculer_cut_cell(const Cut_field_scalar& field,
+                         const Cut_field_vector& v,
+                         Cut_cell_vector& cut_cell_flux,
+                         Cut_field_scalar& result);
+  void ajouter_cut_cell(const Cut_field_scalar& field,
+                        const Cut_field_vector& v,
+                        Cut_cell_vector& cut_cell_flux,
+                        Cut_field_scalar& result);
   Nom get_convection_op_type(Motcle word);
   /*
    * ReadOn

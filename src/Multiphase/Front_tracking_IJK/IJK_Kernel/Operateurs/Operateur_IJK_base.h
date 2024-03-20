@@ -75,6 +75,7 @@ protected:
 
 private:
   void compute_(IJK_Field_double& dvx, IJK_Field_double& dvy, IJK_Field_double& dvz, bool add);
+  void compute_cut_cell_(Cut_field_scalar& dvx, Cut_field_scalar& dvy, Cut_field_scalar& dvz, bool add);
 
 };
 
@@ -87,10 +88,28 @@ public:
   virtual void initialize(const IJK_Splitting& splitting)=0;
   virtual void compute_set(IJK_Field_double& dx);
   virtual void compute_add(IJK_Field_double& dx);
+  virtual void compute_set_cut_cell(Cut_field_scalar& dx);
+  virtual void compute_add_cut_cell(Cut_field_scalar& dx);
   virtual void compute_grad(FixedVector<IJK_Field_double, 3>& dx);
   virtual void compute_grad_x(IJK_Field_double& dx);
   virtual void compute_grad_y(IJK_Field_double& dx);
   virtual void compute_grad_z(IJK_Field_double& dx);
+  virtual const Cut_cell_FT_Disc* get_cut_cell_disc()
+  {
+    Cerr << "Operateur_IJK_base.h: No cut fields are found." << finl;
+    Process::exit();
+    return nullptr;
+  }
+  virtual DoubleTabFT_cut_cell* get_diph_flux(int phase)
+  {
+    Cerr << "Operateur_IJK_base.h: No diph_flux is found." << finl;
+    Process::exit();
+    return nullptr;
+  }
+  virtual const DoubleTabFT_cut_cell* get_flux_interface()
+  {
+    return nullptr;
+  }
 protected:
   // The derived class must implement the computation of fluxes (3 fluxes, one per direction)
   virtual void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
@@ -102,9 +121,20 @@ protected:
   virtual void compute_flux_x(IJK_Field_local_double& resu, const int k_layer) = 0;
   virtual void compute_flux_y(IJK_Field_local_double& resu, const int k_layer) = 0;
   virtual void compute_flux_z(IJK_Field_local_double& resu, const int k_layer) = 0;
+  virtual double compute_flux_local_x(int i, int j, int k) { return -DMINFLOAT; };
+  virtual double compute_flux_local_y(int i, int j, int k) { return -DMINFLOAT; };
+  virtual double compute_flux_local_z(int i, int j, int k) { return -DMINFLOAT; };
+  virtual void compute_cut_cell_divergence(int phase, const DoubleTabFT_cut_cell& diph_flux,
+                                           const DoubleTabFT_cut_cell* flux_interface_ptr,
+                                           const IJK_Field_local_double& flux_x,
+                                           const IJK_Field_local_double& flux_y,
+                                           const IJK_Field_local_double& flux_zmin,
+                                           const IJK_Field_local_double& flux_zmax,
+                                           DoubleTabFT_cut_cell& resu, int k_layer, bool add) { ; }
 
 private:
   void compute_(IJK_Field_double& dx, bool add);
+  void compute_cut_cell_(Cut_field_scalar& dx, bool add);
   virtual void fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir) { ; };
   virtual void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) { ; };
   void fill_grad_field_x_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k);

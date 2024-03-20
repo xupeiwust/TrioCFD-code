@@ -75,14 +75,14 @@ public:
   void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);
   void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance);
   void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
-  void euler_time_step(const double timestep);
-  void rk3_sub_step(const int rk_step,
-                    const double total_timestep,
-                    const double time);
+  virtual void euler_time_step(const double timestep);
+  virtual void rk3_sub_step(const int rk_step,
+                            const double total_timestep,
+                            const double time);
   void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0);
 
   double compute_global_energy(const IJK_Field_double& temperature);
-  double compute_global_energy()
+  virtual double compute_global_energy()
   {
     return compute_global_energy(temperature_); // changes the attribute global_energy [J/m3]
   }
@@ -423,6 +423,10 @@ public:
                                                  const Nom& local_quantities_thermal_probes_time_index_folder) { ; };
   virtual void compute_temperature_init();
   virtual void recompute_temperature_init();
+  virtual void remplir_cellules_diphasiques();
+  virtual void remplir_cellules_devenant_diphasiques();
+  virtual void remplir_cellules_maintenant_pures();
+  virtual void transfert_diphasique_vers_pures();
 
 protected:
 
@@ -486,7 +490,7 @@ protected:
   void force_upstream_temperature(IJK_Field_double& temperature, double T_imposed,
                                   const IJK_Interfaces& interfaces, double nb_diam, int upstream_dir,
                                   int gravity_dir, int upstream_stencil);
-  virtual void enforce_periodic_temperature_boundary_value() { ; } ;
+  virtual void enforce_periodic_temperature_boundary_value() { ; }
 
   int debug_;
   int latastep_reprise_, latastep_reprise_ini_;
@@ -620,7 +624,6 @@ protected:
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   IJK_Field_double temperature_ana_, ecart_t_ana_, ecart_t_ana_rel_;
   FixedVector<IJK_Field_double, 3> grad_T_;
-  double global_energy_;
   int calulate_grad_T_;
   int rho_cp_post_;
 

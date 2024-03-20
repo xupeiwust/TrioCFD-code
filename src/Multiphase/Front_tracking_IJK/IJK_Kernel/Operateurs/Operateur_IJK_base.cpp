@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Operateur_IJK_base.h>
+#include <Cut_cell_FT_Disc.h>
 // Definition of the fluxes
 //
 //  control volumes for velocity in x direction:
@@ -285,6 +286,15 @@ void Operateur_IJK_elem_base_double::compute_add(IJK_Field_double& dx)
   compute_(dx, 1);
 }
 
+void Operateur_IJK_elem_base_double::compute_set_cut_cell(Cut_field_scalar& dx)
+{
+  compute_cut_cell_(dx, 0);
+}
+
+void Operateur_IJK_elem_base_double::compute_add_cut_cell(Cut_field_scalar& dx)
+{
+  compute_cut_cell_(dx, 1);
+}
 
 void Operateur_IJK_elem_base_double::compute_(IJK_Field_double& dx, bool add)
 {
@@ -320,6 +330,54 @@ void Operateur_IJK_elem_base_double::compute_(IJK_Field_double& dx, bool add)
       correct_flux(flux_y, k, 1);
       correct_flux(flux_zmax, k+1, 2);
       Operator_IJK_div(*flux_x, *flux_y, *flux_zmin, *flux_zmax, dx, k, add);
+      swap_data(flux_zmin, flux_zmax); // conserve le flux en z pour la couche z suivante
+    }
+}
+
+void Operateur_IJK_elem_base_double::compute_cut_cell_(Cut_field_scalar& dx, bool add)
+{
+  IJK_Field_local_double storage;
+  storage.allocate(dx.pure_.ni()+1, dx.pure_.nj()+1, 4, 0);
+  IJK_Field_local_double tmp[4];
+  for (int i = 0; i < 4; i++)
+    tmp[i].ref_ij(storage, i);
+  IJK_Field_local_double *flux_zmin = &tmp[0];
+  IJK_Field_local_double *flux_zmax = &tmp[1];    // flux a travers la face zmax des volumes de controles
+  IJK_Field_local_double *const flux_x = &tmp[2]; // pointer will not change, content will change
+  IJK_Field_local_double *const flux_y = &tmp[3];
+
+  compute_flux_z(*flux_zmin, 0);
+  correct_flux(flux_zmin, 0, 2);
+  /*
+   * TODO: correct_flux_z_min();
+   * fluxes_to_correct ?
+   * Critere fabs(fluxes_to_correct)<DMAX_FLOAT ?
+   * Zero valeur admissible
+   */
+  const int kmax = dx.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      compute_flux_x(*flux_x, k);
+      compute_flux_y(*flux_y, k);
+      compute_flux_z(*flux_zmax, k+1);
+
+      /*
+       * Correct the fluxes before it is summed
+       * with Operator_IJK_div
+       */
+      correct_flux(flux_x, k, 0);
+      correct_flux(flux_y, k, 1);
+      correct_flux(flux_zmax, k+1, 2);
+      Operator_IJK_div(*flux_x, *flux_y, *flux_zmin, *flux_zmax, dx.pure_, k, add);
+
+      for (int phase = 0; phase < 2; phase++)
+        {
+          DoubleTabFT_cut_cell& diph_flux = *get_diph_flux(phase);
+          const DoubleTabFT_cut_cell* flux_interface_ptr = get_flux_interface();
+          DoubleTabFT_cut_cell& diph_dx = (phase == 0) ? dx.diph_v_ : dx.diph_l_;
+          compute_cut_cell_divergence(phase, diph_flux, flux_interface_ptr, *flux_x, *flux_y, *flux_zmin, *flux_zmax, diph_dx, k, add);
+        }
+
       swap_data(flux_zmin, flux_zmax); // conserve le flux en z pour la couche z suivante
     }
 }

@@ -58,6 +58,10 @@ public :
   void compute_timestep(double& dt_thermals, const double dxmin);
   void initialize(const IJK_Splitting& splitting, int& nalloc);
   void recompute_temperature_init();
+  void remplir_cellules_diphasiques();
+  void remplir_cellules_devenant_diphasiques();
+  void remplir_cellules_maintenant_pures();
+  void transfert_diphasique_vers_pures();
   int size_thermal_problem(Nom thermal_problem);
   void update_thermal_properties();
   void euler_time_step(const double timestep);

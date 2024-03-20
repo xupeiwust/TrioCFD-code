@@ -25,6 +25,7 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   interfaces_(interfaces),
   splitting_(splitting),
   ghost_size_(2),
+  new_treatment_(0),
   processed_count_(0),
   n_loc_(0),
   n_tot_(0)
@@ -33,10 +34,18 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   permutation_.associer_paresseux(*this);
   processed_.associer_paresseux(*this);
 
-  coord_.associer(*this);
+  coord_.associer_persistant(*this);
+
+  index_sorted_by_k_.associer_paresseux(*this);
+  k_value_index_.set_smart_resize(1);
+  k_value_index_.resize(0, 1);
+
+  index_sorted_by_statut_diphasique_.associer_paresseux(*this);
+  statut_diphasique_value_index_.set_smart_resize(1);
+  statut_diphasique_value_index_.resize(0, 1);
 }
 
-void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next, const FixedVector<IJK_Field_double, 3>& coord)
+void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
 {
   // Initialisation des tableaux
   n_loc_ = initialise_linear_index(indicatrice_old, indicatrice_next);
@@ -56,8 +65,11 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const
   // Initialisation du champ IJK_Field des indices diphasiques
   indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, 2);
 
+  // Initialisation du champ IJK_Field des indices diphasiques
+  treatment_count_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
-  set_coord(coord);
+  set_coord();
 
   // Communication des elements virtuels
   initialise_schema_comm();
@@ -74,13 +86,18 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const
   // Remplissage du tableau des indices diphasiques
   remplir_indice_diphasique();
 
+  // Creation des tableaux des indices tries par k
+  update_index_sorted_by_k();
+
+  // Creation des tableaux des indices tries par le statut diphasique
+  update_index_sorted_by_statut_diphasique(indicatrice_old, indicatrice_next);
+
   // Verifications
   assert(verifier_coherence_coord_linear_index());
-  assert(verifier_tableau_jamais_nul(coord_));
   assert(verifier_taille_tableaux());
 }
 
-void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next, const FixedVector<IJK_Field_double, 3>& coord)
+void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
 {
   // Increment du compteur des iterations
   processed_count_ += 1;
@@ -97,7 +114,7 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK
   n_tot_ = n_loc_;
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
-  set_coord(coord);
+  set_coord();
 
   // Communication des elements virtuels
   desc_.reset();
@@ -114,8 +131,13 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK
   // Remplissage du tableau des indices diphasiques
   remplir_indice_diphasique();
 
+  // Creation des tableaux des indices tries par k
+  update_index_sorted_by_k();
+
+  // Creation des tableaux des indices tries par le statut diphasique
+  update_index_sorted_by_statut_diphasique(indicatrice_old, indicatrice_next);
+
   // Verifications
-  assert(verifier_tableau_jamais_nul(coord_));
   assert(verifier_coherence_coord_linear_index());
   assert(verifier_taille_tableaux());
 
@@ -196,9 +218,12 @@ void Cut_cell_FT_Disc::initialise_processed()
     }
 }
 
-void Cut_cell_FT_Disc::set_coord(const FixedVector<IJK_Field_double, 3>& coord)
+void Cut_cell_FT_Disc::set_coord()
 {
   const int processed_sign = (processed_.dimension(0) == 0) ? 1 : (processed_(0) > 0 ? 1 : -1);
+  splitting_.get_grid_geometry().is_uniform(0);
+  splitting_.get_grid_geometry().is_uniform(1);
+  splitting_.get_grid_geometry().is_uniform(2);
   for (int n = 0; n < n_loc_; n++)
     {
       Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
@@ -210,20 +235,15 @@ void Cut_cell_FT_Disc::set_coord(const FixedVector<IJK_Field_double, 3>& coord)
       // a fixer la valeur de coord_.
       if (processed_(n) * processed_sign >= processed_count_)
         {
-          coord_(n,0) = coord[0](i,j,k);
-          coord_(n,1) = coord[1](i,j,k);
-          coord_(n,2) = coord[2](i,j,k);
+          coord_(n,0) = (i + splitting_.get_offset_local(0) + .5)*splitting_.get_grid_geometry().get_constant_delta(0) + splitting_.get_grid_geometry().get_origin(0);
+          coord_(n,1) = (j + splitting_.get_offset_local(1) + .5)*splitting_.get_grid_geometry().get_constant_delta(1) + splitting_.get_grid_geometry().get_origin(1);
+          coord_(n,2) = (k + splitting_.get_offset_local(2) + .5)*splitting_.get_grid_geometry().get_constant_delta(2) + splitting_.get_grid_geometry().get_origin(2);
 
           // Verification de la fonction function get_ijk_from_linear_index
           assert(i == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[0]);
           assert(j == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[1]);
           assert(k == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[2]);
         }
-
-      // Une valeur nulle de coord_ suggere un probleme
-      assert(coord_(n,0) != 0.);
-      assert(coord_(n,1) != 0.);
-      assert(coord_(n,2) != 0.);
     }
 }
 
@@ -323,25 +343,23 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& indi
   assert(index_perm == n_loc);
   assert(verifier_valide_permutation(permutation_));
 
-  assert(verifier_tableau_jamais_nul(coord_));
-
   // Application des differentes permutations
   apply_permutation(processed_, permutation_, processed_);
   apply_permutation(linear_index_, permutation_, processed_);
 
   assert(verifier_si_ordonne(linear_index_, 0, n_loc - n_deletion));
 
-  assert(data_(0).valeur().dimension(0) <= n_loc);
+  assert(persistent_double_data_(0).valeur().dimension(0) <= n_loc);
   resize_data(n_loc);
 
-  for (int i = 0; i < data_.size(); i++)
+  for (int i = 0; i < persistent_double_data_.size(); i++)
     {
-      apply_permutation(data_(i).valeur(), permutation_, processed_);
+      apply_permutation(persistent_double_data_(i).valeur(), permutation_, processed_);
     }
 
-  for (int i = 0; i < int_data_.size(); i++)
+  for (int i = 0; i < persistent_int_data_.size(); i++)
     {
-      apply_permutation(int_data_(i).valeur(), permutation_, processed_);
+      apply_permutation(persistent_int_data_(i).valeur(), permutation_, processed_);
     }
 
   // Redimensionnement pour suppression des elements anciennement diphasiques
@@ -362,40 +380,68 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& indi
 void Cut_cell_FT_Disc::resize_data(int size)
 {
   // Changement de taille des tableaux de double
-  for (int i = 0; i < data_.size(); i++)
+  for (int i = 0; i < persistent_double_data_.size(); i++)
     {
-      int n_initial = data_(i).valeur().dimension(0);
+      int n_initial = persistent_double_data_(i).valeur().dimension(0);
 
-      data_(i).valeur().resize(size, data_(i).valeur().dimension(1));
+      persistent_double_data_(i).valeur().resize(size, persistent_double_data_(i).valeur().dimension(1));
 
       // Si la nouvelle taille est plus grande, initialise les valeurs
       for (int n = n_initial; n < size; n++)
         {
-          for (int j = 0; j < data_(i).valeur().dimension(1); j++)
+          for (int j = 0; j < persistent_double_data_(i).valeur().dimension(1); j++)
             {
-              data_(i).valeur()(n,j) = 0;
+              persistent_double_data_(i).valeur()(n,j) = 0;
             }
         }
     }
 
-  for (int i = 0; i < lazy_data_.size(); i++)
+  for (int i = 0; i < transient_double_data_.size(); i++)
     {
-      lazy_data_(i).valeur().resize(size, lazy_data_(i).valeur().dimension(1));
+      transient_double_data_(i).valeur().resize(size, transient_double_data_(i).valeur().dimension(1));
+
+      // Initialise toutes les valeurs
+      for (int n = 0; n < size; n++)
+        {
+          for (int j = 0; j < transient_double_data_(i).valeur().dimension(1); j++)
+            {
+              transient_double_data_(i).valeur()(n,j) = 0;
+            }
+        }
+    }
+
+  for (int i = 0; i < lazy_double_data_.size(); i++)
+    {
+      lazy_double_data_(i).valeur().resize(size, lazy_double_data_(i).valeur().dimension(1));
     }
 
   // Changement de taille des tableaux d'entier
-  for (int i = 0; i < int_data_.size(); i++)
+  for (int i = 0; i < persistent_int_data_.size(); i++)
     {
-      int n_initial = int_data_(i).valeur().dimension(0);
+      int n_initial = persistent_int_data_(i).valeur().dimension(0);
 
-      int_data_(i).valeur().resize(size, int_data_(i).valeur().dimension(1));
+      persistent_int_data_(i).valeur().resize(size, persistent_int_data_(i).valeur().dimension(1));
 
       // Si la nouvelle taille est plus grande, initialise les valeurs
       for (int n = n_initial; n < size; n++)
         {
-          for (int j = 0; j < int_data_(i).valeur().dimension(1); j++)
+          for (int j = 0; j < persistent_int_data_(i).valeur().dimension(1); j++)
             {
-              int_data_(i).valeur()(n,j) = 0;
+              persistent_int_data_(i).valeur()(n,j) = 0;
+            }
+        }
+    }
+
+  for (int i = 0; i < transient_int_data_.size(); i++)
+    {
+      transient_int_data_(i).valeur().resize(size, transient_int_data_(i).valeur().dimension(1));
+
+      // Initialise toutes les valeurs
+      for (int n = 0; n < size; n++)
+        {
+          for (int j = 0; j < transient_int_data_(i).valeur().dimension(1); j++)
+            {
+              transient_int_data_(i).valeur()(n,j) = 0;
             }
         }
     }
@@ -489,7 +535,7 @@ int Cut_cell_FT_Disc::initialise_communications()
 
           for (int n = 0; n < n_loc; n++)
             {
-              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_);
+              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
               if ((!next) && (i_selon_dir >= ghost_size_))
                 continue;
               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
@@ -547,15 +593,141 @@ int Cut_cell_FT_Disc::initialise_communications()
 void Cut_cell_FT_Disc::echange_espace_virtuel()
 {
   // Echange des tableaux de double
-  for (int i = 0; i < data_.size(); i++)
+  for (int i = 0; i < persistent_double_data_.size(); i++)
     {
-      desc_.echange_espace_virtuel(data_(i).valeur());
+      desc_.echange_espace_virtuel(persistent_double_data_(i).valeur());
     }
 
   // Echange des tableaux d'entier
-  for (int i = 0; i < int_data_.size(); i++)
+  for (int i = 0; i < persistent_int_data_.size(); i++)
     {
-      desc_.echange_espace_virtuel(int_data_(i).valeur());
+      desc_.echange_espace_virtuel(persistent_int_data_(i).valeur());
+    }
+}
+
+void Cut_cell_FT_Disc::echange_espace_virtuel(MD_Vector_tools::Operations_echange op)
+{
+  // Echange des tableaux de double
+  for (int i = 0; i < persistent_double_data_.size(); i++)
+    {
+      desc_.echange_espace_virtuel(persistent_double_data_(i).valeur(), op);
+    }
+
+  // Echange des tableaux d'entier
+  for (int i = 0; i < persistent_int_data_.size(); i++)
+    {
+      desc_.echange_espace_virtuel(persistent_int_data_(i).valeur(), op);
+    }
+}
+
+void Cut_cell_FT_Disc::update_index_sorted_by_k()
+{
+  // Remplissage du tableau
+  for (int n = 0; n < n_loc_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int k = ijk[2];
+
+      index_sorted_by_k_(n,0) = n;
+      index_sorted_by_k_(n,1) = k;
+    }
+
+  for (int n = n_loc_; n < n_tot_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      int k = ijk[2];
+
+      index_sorted_by_k_(n,0) = n;
+      index_sorted_by_k_(n,1) = k;
+    }
+
+  // Trie selon la colonne des k
+  index_sorted_by_k_.sort_tot(1);
+
+  // Trouve les indices des differents k
+  const int nk_tot = splitting_.get_nb_elem_local(2) + 2*ghost_size_;
+  k_value_index_.resize(nk_tot+1, 1);
+
+  int previous_k = -2;
+  k_value_index_(previous_k + 2) = 0;
+  for (int index = 0; index < n_tot_; index++)
+    {
+      int k = index_sorted_by_k_(index,1);
+
+      if (k > previous_k)
+        {
+          for (int k_intermediaire = previous_k+1; k_intermediaire <= k; k_intermediaire++)
+            {
+              k_value_index_(k_intermediaire + 2) = index;
+            }
+          previous_k = k;
+        }
+    }
+  for (int k_intermediaire = previous_k+1; k_intermediaire <= splitting_.get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
+    {
+      k_value_index_(k_intermediaire + 2) = n_tot_;
+    }
+}
+
+void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+{
+  // Remplissage du tableau
+  for (int n = 0; n < n_loc_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      bool devient_pure = interfaces_.devient_pure(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
+      bool devient_diphasique = interfaces_.devient_diphasique(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
+      assert(!(devient_pure && devient_diphasique));
+
+      index_sorted_by_statut_diphasique_(n,0) = n;
+      index_sorted_by_statut_diphasique_(n,1) = devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT);
+      assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
+    }
+
+  for (int n = n_loc_; n < n_tot_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      bool devient_pure = interfaces_.devient_pure(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
+      bool devient_diphasique = interfaces_.devient_diphasique(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
+      assert(!(devient_pure && devient_diphasique));
+
+      index_sorted_by_statut_diphasique_(n,0) = n;
+      index_sorted_by_statut_diphasique_(n,1) = devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT);
+      assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
+    }
+
+  // Trie selon la colonne des statut diphasiques
+  index_sorted_by_statut_diphasique_.sort_tot(1);
+
+  // Trouve les indices des differents statut dipashiques
+  statut_diphasique_value_index_.resize(STATUT_DIPHASIQUE::count+1, 1);
+
+  int previous_statut_diphasique = 0;
+  statut_diphasique_value_index_(previous_statut_diphasique) = 0;
+  for (int index = 0; index < n_tot_; index++)
+    {
+      int statut_diphasique = index_sorted_by_statut_diphasique_(index,1);
+
+      if (statut_diphasique > previous_statut_diphasique)
+        {
+          for (int k_intermediaire = previous_statut_diphasique+1; k_intermediaire <= statut_diphasique; k_intermediaire++)
+            {
+              statut_diphasique_value_index_(k_intermediaire) = index;
+            }
+          previous_statut_diphasique = statut_diphasique;
+        }
+    }
+  for (int k_intermediaire = previous_statut_diphasique+1; k_intermediaire <= static_cast<int>(STATUT_DIPHASIQUE::count); k_intermediaire++)
+    {
+      statut_diphasique_value_index_(k_intermediaire) = n_tot_;
     }
 }
 
@@ -576,7 +748,7 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
         }
     }
 
-  for (int n = 0; n < n_tot_; n++)
+  for (int n = 0; n < n_loc_; n++)
     {
       Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
       int i = ijk[0];
@@ -584,6 +756,88 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
       int k = ijk[2];
 
       indice_diphasique_(i,j,k) = n;
+
+      for (int dir = 0; dir < 3 ; dir++)
+        {
+          if (splitting_.get_grid_geometry().get_periodic_flag(dir))
+            {
+              int n_dir = splitting_.get_nb_elem_local(dir);
+              int n_dir_tot = splitting_.get_grid_geometry().get_nb_elem_tot(dir);
+
+              // Le processeur contient deux fois les valeurs sur les bords
+              if (n_dir == n_dir_tot)
+                {
+                  int i_dir = select(dir, i, j, k);
+
+                  if (i_dir < ghost_size_)
+                    {
+                      int i_per = (dir != 0)*i + (dir == 0)*(n_dir + i);
+                      int j_per = (dir != 1)*j + (dir == 1)*(n_dir + j);
+                      int k_per = (dir != 2)*k + (dir == 2)*(n_dir + k);
+                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
+                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
+                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
+                      indice_diphasique_(i_per,j_per,k_per) = n;
+                    }
+                  if (i_dir >= n_dir - ghost_size_)
+                    {
+                      int i_per = (dir != 0)*i + (dir == 0)*(i - n_dir);
+                      int j_per = (dir != 1)*j + (dir == 1)*(j - n_dir);
+                      int k_per = (dir != 2)*k + (dir == 2)*(k - n_dir);
+                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
+                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
+                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
+                      indice_diphasique_(i_per,j_per,k_per) = n;
+                    }
+                }
+            }
+        }
+    }
+
+  for (int n = n_loc_; n < n_tot_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      indice_diphasique_(i,j,k) = n;
+
+      for (int dir = 0; dir < 3 ; dir++)
+        {
+          if (splitting_.get_grid_geometry().get_periodic_flag(dir))
+            {
+              int n_dir = splitting_.get_nb_elem_local(dir);
+              int n_dir_tot = splitting_.get_grid_geometry().get_nb_elem_tot(dir);
+
+              // Le processeur contient deux fois les valeurs sur les bords
+              if (n_dir == n_dir_tot)
+                {
+                  int i_dir = select(dir, i, j, k);
+
+                  if (i_dir < ghost_size_)
+                    {
+                      int i_per = (dir != 0)*i + (dir == 0)*(n_dir + i);
+                      int j_per = (dir != 1)*j + (dir == 1)*(n_dir + j);
+                      int k_per = (dir != 2)*k + (dir == 2)*(n_dir + k);
+                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
+                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
+                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
+                      indice_diphasique_(i_per,j_per,k_per) = n;
+                    }
+                  if (i_dir >= n_dir - ghost_size_)
+                    {
+                      int i_per = (dir != 0)*i + (dir == 0)*(i - n_dir);
+                      int j_per = (dir != 1)*j + (dir == 1)*(j - n_dir);
+                      int k_per = (dir != 2)*k + (dir == 2)*(k - n_dir);
+                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
+                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
+                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
+                      indice_diphasique_(i_per,j_per,k_per) = n;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -661,21 +915,33 @@ bool Cut_cell_FT_Disc::verifier_taille_tableaux()
   if (linear_index_.dimension(0) != n_tot_)
     return false;
 
-  for (int i = 0; i < data_.size(); i++)
+  for (int i = 0; i < persistent_double_data_.size(); i++)
     {
-      if (data_(i).valeur().dimension(0) != n_tot_)
+      if (persistent_double_data_(i).valeur().dimension(0) != n_tot_)
         return false;
     }
 
-  for (int i = 0; i < lazy_data_.size(); i++)
+  for (int i = 0; i < transient_double_data_.size(); i++)
     {
-      if (lazy_data_(i).valeur().dimension(0) != n_tot_)
+      if (transient_double_data_(i).valeur().dimension(0) != n_tot_)
         return false;
     }
 
-  for (int i = 0; i < int_data_.size(); i++)
+  for (int i = 0; i < lazy_double_data_.size(); i++)
     {
-      if (int_data_(i).valeur().dimension(0) != n_tot_)
+      if (lazy_double_data_(i).valeur().dimension(0) != n_tot_)
+        return false;
+    }
+
+  for (int i = 0; i < persistent_int_data_.size(); i++)
+    {
+      if (persistent_int_data_(i).valeur().dimension(0) != n_tot_)
+        return false;
+    }
+
+  for (int i = 0; i < transient_int_data_.size(); i++)
+    {
+      if (transient_int_data_(i).valeur().dimension(0) != n_tot_)
         return false;
     }
 
@@ -690,7 +956,21 @@ bool Cut_cell_FT_Disc::verifier_taille_tableaux()
 void Cut_cell_FT_Disc::imprime_elements_diphasiques()
 {
   Cerr << "# Impression des elements diphasiques pour le PE#" << splitting_.me() << " [N IJK XYZ T]" << finl;
-  for (int n = 0; n < n_tot_; n++)
+  for (int n = 0; n < n_loc_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      // symbole qualifie le type d'element a l'impression :
+      // (vide) element local
+      //   %    element virtuel
+      Nom symbole = (n < n_loc_ ? "" : "%");
+
+      Cerr << n << symbole << " " << i << " " << j << " " << k << " " << coord_(n,0) << " " << coord_(n,1) << " " << coord_(n,2) << finl;
+    }
+  for (int n = n_loc_; n < n_tot_; n++)
     {
       Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
       int i = ijk[0];
@@ -729,7 +1009,7 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
 
           for (int n = 0; n < n_loc_; n++)
             {
-              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_);
+              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
               if ((!next) && (i_selon_dir >= ghost_size_))
                 continue;
               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
@@ -803,6 +1083,19 @@ bool Cut_cell_FT_Disc::verifier_valide_permutation(const IntTabFT_cut_cell& arra
     {
       const int m = find_value_unsorted(i, array, 0, array.dimension(0) - 1);
       if (m < 0)
+        return false;
+    }
+  return true;
+}
+
+// Verifie qu'il n'y a pas de doublons.
+bool Cut_cell_FT_Disc::verifier_pas_de_doublons(const IntTabFT_cut_cell& array)
+{
+  assert(array.dimension(1) == 1);
+  for (int i = 0; i < array.dimension(0); i++)
+    {
+      const int m = find_value_unsorted(array(i), array, 0, array.dimension(0) - 1);
+      if (m != i)
         return false;
     }
   return true;

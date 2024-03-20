@@ -164,3 +164,19 @@ void Operateur_IJK_elem_conv::ajouter(const IJK_Field_double& field,
 {
   valeur().ajouter(field, vx, vy, vz, result);
 }
+
+void Operateur_IJK_elem_conv::calculer_cut_cell(const Cut_field_scalar& field,
+                                                const Cut_field_vector& v,
+                                                Cut_cell_vector& cut_cell_flux,
+                                                Cut_field_scalar& result)
+{
+  valeur().calculer_cut_cell(field, v, cut_cell_flux, result);
+}
+
+void Operateur_IJK_elem_conv::ajouter_cut_cell(const Cut_field_scalar& field,
+                                               const Cut_field_vector& v,
+                                               Cut_cell_vector& cut_cell_flux,
+                                               Cut_field_scalar& result)
+{
+  valeur().ajouter_cut_cell(field, v, cut_cell_flux, result);
+}

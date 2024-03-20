@@ -29,19 +29,21 @@ IJK_Thermal::IJK_Thermal()
   thermal_rank_ = 0;
   thermal_problem_type_ = "subresolution";
   prefix_="IJK_Thermal_";
-  thermal_words_ = Motcles(4);
+  thermal_words_ = Motcles(5);
   {
     thermal_words_[0] = "subresolution";
     thermal_words_[1] = "multiplesubresolutions";
     thermal_words_[2] = "onefluid";
     thermal_words_[3] = "onefluidenergy";
+    thermal_words_[4] = "cut_cell";
   }
-  lata_suffix_ = Motcles(4);
+  lata_suffix_ = Motcles(5);
   {
     lata_suffix_[0] = "SUBRES_";
     lata_suffix_[1] = "MSUBRES_";
     lata_suffix_[2] = "OF_";
     lata_suffix_[3] = "OFE_";
+    lata_suffix_[4] = "CUT_CELL_";
   }
 }
 
@@ -93,6 +95,11 @@ Entree& IJK_Thermal::typer_thermal( Entree& is )
         type += "OnefluidEnergy";
         break;
       }
+    case 4 :
+      {
+        type += "Cut_cell";
+        break;
+      }
     default :
       {
         Cerr << "ERROR : Thermal problems that are already implemented are:" << finl;
@@ -113,6 +120,7 @@ void IJK_Thermal::posttraiter_tous_champs_thermal(Motcles& liste, const int idx)
    * thermal_words_[1] = "multiplesubresolutions";
    * thermal_words_[2] = "onefluid";
    * thermal_words_[3] = "onefluidenergy";
+   * thermal_words_[4] = "cut_cell";
    */
   liste.add("TEMPERATURE");
   liste.add("TEMPERATURE_ANA");

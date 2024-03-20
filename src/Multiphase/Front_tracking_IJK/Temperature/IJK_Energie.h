@@ -109,7 +109,6 @@ public:
     return compute_global_energy(
              temperature_); // changes the attribute global_energy [J/m3]
   }
-  double& get_global_energy() { return global_energy_; };
   IJK_Field_double& get_temperature_ft() { return temperature_ft_; };
   double get_rhocp_l() const;
   double get_rhocp_v() const;
@@ -159,7 +158,6 @@ protected:
   int diff_temp_negligible_;
   int conv_temperature_negligible_;
 
-  double global_energy_;
   IJK_Field_double div_lambda_grad_T_volume_;
 
   // Thermal heat flux on the boundary (intergal per boundary face)

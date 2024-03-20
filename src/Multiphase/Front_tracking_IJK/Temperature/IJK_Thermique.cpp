@@ -1815,7 +1815,7 @@ void IJK_Thermique::compute_interfacial_temperature2(
 
 double IJK_Thermique::compute_global_energy(const IJK_Field_double& temperature)
 {
-  global_energy_ = 0.;
+  double global_energy = 0.;
   const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
   //const IJK_Grid_Geometry& geom = indic.get_splitting().get_grid_geometry();
   const double rhocpl = ref_ijk_ft_->rho_liquide_ *cp_liquid_;
@@ -1831,13 +1831,13 @@ double IJK_Thermique::compute_global_energy(const IJK_Field_double& temperature)
         {
           double chi_l = indic(i,j,k);
           //double cp = cp_(i,j,k) ;
-          global_energy_ += (rhocpl * chi_l + (1.- chi_l) * rhocpv)*temperature(i,j,k);
+          global_energy += (rhocpl * chi_l + (1.- chi_l) * rhocpv)*temperature(i,j,k);
         }
   const int ntot = temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
                    *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
                    *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  global_energy_ = mp_sum(global_energy_)/(double)(ntot);
-  return global_energy_;
+  global_energy = mp_sum(global_energy)/(double)(ntot);
+  return global_energy;
 }
 
 void IJK_Thermique::compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity)

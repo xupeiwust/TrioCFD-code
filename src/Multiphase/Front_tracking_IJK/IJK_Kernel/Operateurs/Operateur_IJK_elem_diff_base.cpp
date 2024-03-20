@@ -21,6 +21,8 @@ Operateur_IJK_elem_diff_base_double::Operateur_IJK_elem_diff_base_double()
 {
   input_field_ = nullptr;
   uniform_lambda_ = nullptr;
+  uniform_lambda_liquid_ = nullptr;
+  uniform_lambda_vapour_ = nullptr;
   lambda_ = nullptr;
 
   boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
@@ -111,6 +113,56 @@ void Operateur_IJK_elem_diff_base_double::ajouter(const IJK_Field_double& field,
   boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
 }
 
+void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scalar& field,
+                                                            Cut_cell_vector& cut_cell_flux,
+                                                            const DoubleTabFT_cut_cell& flux_interface,
+                                                            Cut_field_scalar& result,
+                                                            const IJK_Field_local_double& boundary_flux_kmin,
+                                                            const IJK_Field_local_double& boundary_flux_kmax)
+{
+  input_field_ = &field.pure_;
+  input_cut_field_ = &field;
+  cut_cell_flux_ = &cut_cell_flux;
+  flux_interface_ = &flux_interface;
+  boundary_flux_kmin_ = &boundary_flux_kmin;
+  boundary_flux_kmax_ = &boundary_flux_kmax;
+  compute_set_cut_cell(result);
+  input_field_ = nullptr;
+  input_cut_field_ = nullptr;
+  cut_cell_flux_ = nullptr;
+  flux_interface_ = nullptr;
+  lambda_ = nullptr; // TODO: Why reset to nullptr? we could attribute it once only at initialize and never change it later. What was the reason?
+  coeff_field_x_ = nullptr;
+  coeff_field_y_ = nullptr;
+  coeff_field_z_ = nullptr;
+  boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
+}
+
+void Operateur_IJK_elem_diff_base_double::ajouter_cut_cell(const Cut_field_scalar& field,
+                                                           Cut_cell_vector& cut_cell_flux,
+                                                           const DoubleTabFT_cut_cell& flux_interface,
+                                                           Cut_field_scalar& result,
+                                                           const IJK_Field_local_double& boundary_flux_kmin,
+                                                           const IJK_Field_local_double& boundary_flux_kmax)
+{
+  input_field_ = &field.pure_;
+  input_cut_field_ = &field;
+  cut_cell_flux_ = &cut_cell_flux;
+  flux_interface_ = &flux_interface;
+  boundary_flux_kmin_ = &boundary_flux_kmin;
+  boundary_flux_kmax_ = &boundary_flux_kmax;
+  compute_add_cut_cell(result);
+  input_field_ = nullptr;
+  input_cut_field_ = nullptr;
+  cut_cell_flux_ = nullptr;
+  flux_interface_ = nullptr;
+  lambda_ = nullptr;
+  coeff_field_x_ = nullptr;
+  coeff_field_y_ = nullptr;
+  coeff_field_z_ = nullptr;
+  boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
+}
+
 Implemente_instanciable_sans_constructeur(OpDiffUniformIJKScalar_double, "OpDiffUniformIJKScalar_double", Operateur_IJK_elem_diff_base_double);
 
 Sortie& OpDiffUniformIJKScalar_double::printOn(Sortie& os) const
@@ -147,6 +199,39 @@ void OpDiffUniformIJKScalarCorrection_double::correct_flux(IJK_Field_local_doubl
 void OpDiffUniformIJKScalarCorrection_double::correct_flux_spherical(Simd_double& a, Simd_double& b, const int& i, const int& j, int k_layer, int dir)
 {
   corrige_flux_->correct_flux_spherical(a, b, i, j, k_layer, dir);
+}
+
+Implemente_instanciable_sans_constructeur(OpDiffIJKScalar_cut_cell_double, "OpDiffIJKScalar_cut_cell_double", Operateur_IJK_elem_diff_base_double);
+
+Sortie& OpDiffIJKScalar_cut_cell_double::printOn(Sortie& os) const
+{
+  return os;
+}
+
+Entree& OpDiffIJKScalar_cut_cell_double::readOn(Entree& is)
+{
+  return is;
+}
+
+void OpDiffIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir)
+{
+  if (dir == 0)
+    {
+      correct_flux_<DIRECTION::X>(flux, k_layer);
+    }
+  else if (dir == 1)
+    {
+      correct_flux_<DIRECTION::Y>(flux, k_layer);
+    }
+  else if (dir == 2)
+    {
+      correct_flux_<DIRECTION::Z>(flux, k_layer);
+    }
+  else
+    {
+      Cerr << "Unexpected value of dir in OpDiffIJKScalar_cut_cell_double::correct_flux" << finl;
+      Process::exit();
+    }
 }
 
 Implemente_instanciable_sans_constructeur(OpDiffIJKScalar_double, "OpDiffIJKScalar_double", Operateur_IJK_elem_diff_base_double);

@@ -52,14 +52,23 @@ public :
   {
     return &cut_cell_disc_;
   }
+  const Cut_field_vector& get_cut_field_velocity() const
+  {
+    return cut_field_velocity_;
+  }
 
+  void euler_explicit_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& v) const;
+  void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot);
+
+  void euler_explicit_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& v) const;
+  void runge_kutta3_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot);
 
 protected :
   friend class IJK_FT_Post;
   Cut_cell_FT_Disc cut_cell_disc_;
 
-  Cut_field_scalar cut_field_temperature_;
   Cut_field_vector cut_field_velocity_;
+  DoubleTabFT_cut_cell_vector3 velocity_interface_;
 };
 
 #endif /* IJK_FT_cut_cell_included */

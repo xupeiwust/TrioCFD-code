@@ -136,10 +136,6 @@ public :
   {
     return compute_global_energy(temperature_); // changes the attribute global_energy [J/m3]
   }
-  double& get_global_energy()
-  {
-    return global_energy_ ;
-  };
   FixedVector<IJK_Field_double, 3>& get_storage()
   {
     return storage_;
@@ -220,7 +216,6 @@ protected :
   int depracated_rho_cp_;
   int rho_cp_inv_;
   int conserv_energy_global_;
-  double global_energy_;
   IJK_Field_double div_lambda_grad_T_volume_;
 
   // Thermal heat flux on the boundary (intergal per boundary face)

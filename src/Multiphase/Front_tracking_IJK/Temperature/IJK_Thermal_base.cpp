@@ -88,7 +88,6 @@ IJK_Thermal_base::IJK_Thermal_base()
   uniform_lambda_ = 0;
   uniform_alpha_ = 0;
   prandtl_number_=0;
-  global_energy_ = 0;
   conserv_energy_global_ = 0;
   vol_ = 0.;
   min_delta_xyz_ = 0.;
@@ -732,6 +731,30 @@ void IJK_Thermal_base::recompute_temperature_init()
 {
   Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
   set_field_data(temperature_, expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
+}
+
+void IJK_Thermal_base::remplir_cellules_diphasiques()
+{
+  Cerr << "remplir_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Process::exit();
+}
+
+void IJK_Thermal_base::remplir_cellules_devenant_diphasiques()
+{
+  Cerr << "remplir_cellules_devenant_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Process::exit();
+}
+
+void IJK_Thermal_base::remplir_cellules_maintenant_pures()
+{
+  Cerr << "remplir_cellules_maintenant_pures est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Process::exit();
+}
+
+void IJK_Thermal_base::transfert_diphasique_vers_pures()
+{
+  Cerr << "Remplir_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Process::exit();
 }
 
 double IJK_Thermal_base::get_modified_time()
@@ -1951,7 +1974,7 @@ void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& tem
 
 double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperature)
 {
-  global_energy_ = 0.;
+  double global_energy = 0.;
   const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
   const double rhocpl = get_rhocp_l();
   const double rhocpv = get_rhocp_v();
@@ -1965,13 +1988,13 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
       for (int i=0; i < nx; i++)
         {
           double chi_l = indic(i,j,k);
-          global_energy_ += (rhocpl * chi_l + (1.- chi_l) * rhocpv) * temperature(i,j,k);
+          global_energy += (rhocpl * chi_l + (1.- chi_l) * rhocpv) * temperature(i,j,k);
         }
   const int ntot = temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
                    *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
                    *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  global_energy_ = mp_sum(global_energy_)/(double)(ntot);
-  return global_energy_;
+  global_energy = mp_sum(global_energy)/(double)(ntot);
+  return global_energy;
 }
 
 /*

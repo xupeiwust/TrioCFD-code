@@ -127,6 +127,10 @@ public :
   inline int initialize(const IJK_Splitting& splitting, const int idx);
   inline int initialize_switch(const IJK_Splitting& splitting, const int idx);
   inline void recompute_temperature_init();
+  inline void remplir_cellules_diphasiques();
+  inline void remplir_cellules_devenant_diphasiques();
+  inline void remplir_cellules_maintenant_pures();
+  inline void transfert_diphasique_vers_pures();
   inline void update_thermal_properties();
   inline void euler_time_step(const double timestep);
   inline void rk3_sub_step(const int rk_step,
@@ -209,6 +213,26 @@ inline int IJK_Thermal::initialize_switch(const IJK_Splitting& splitting, const 
 inline void IJK_Thermal::recompute_temperature_init()
 {
   valeur().recompute_temperature_init();
+}
+
+inline void IJK_Thermal::remplir_cellules_diphasiques()
+{
+  valeur().remplir_cellules_diphasiques();
+}
+
+inline void IJK_Thermal::remplir_cellules_devenant_diphasiques()
+{
+  valeur().remplir_cellules_devenant_diphasiques();
+}
+
+inline void IJK_Thermal::remplir_cellules_maintenant_pures()
+{
+  valeur().remplir_cellules_maintenant_pures();
+}
+
+inline void IJK_Thermal::transfert_diphasique_vers_pures()
+{
+  valeur().transfert_diphasique_vers_pures();
 }
 
 inline void IJK_Thermal::update_thermal_properties()

@@ -31,9 +31,9 @@
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
 IJK_FT_cut_cell::IJK_FT_cut_cell():
   cut_cell_disc_(interfaces_, splitting_),
-  cut_field_temperature_(rho_field_, cut_cell_disc_),
-  cut_field_velocity_(velocity_, cut_cell_disc_)
+  cut_field_velocity_(velocity_)
 {
+  cut_field_velocity_.associer_persistant(cut_cell_disc_);
 }
 
 Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
@@ -445,10 +445,12 @@ void IJK_FT_cut_cell::run()
 
   // Initialisation des structures cut-cell
   // Pour tester, je donne la masse volumique diphasique et le barycentre de l'interface.
-  cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+  cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In());
 
-  cut_field_temperature_.remplir_cellules_diphasiques();
   cut_field_velocity_.remplir_cellules_diphasiques();
+  thermals_.remplir_cellules_diphasiques();
+
+  thermals_.recompute_temperature_init();
 
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
@@ -576,11 +578,14 @@ void IJK_FT_cut_cell::run()
                                       first_step_interface_smoothing_);
 
                   // Mise a jour des structures cut-cell
-                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+                  thermals_.remplir_cellules_maintenant_pures(); // Important avant update
+                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
+                  thermals_.remplir_cellules_devenant_diphasiques();
                   cut_field_velocity_.remplir_cellules_diphasiques();
+                  thermals_.transfert_diphasique_vers_pures();
 
-                  interfaces_.calcul_surface_effective(timestep_, cut_field_velocity_);
+                  interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, timestep_, cut_field_velocity_);
 
                   counter_first_iter_--;
                   if(first_step_interface_smoothing_)
@@ -700,11 +705,14 @@ void IJK_FT_cut_cell::run()
                                           var_volume_par_bulle);
 
                   // Mise a jour des structures cut-cell
-                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In(), interfaces_.BoIn());
+                  thermals_.remplir_cellules_maintenant_pures(); // Important avant update
+                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
+                  thermals_.remplir_cellules_devenant_diphasiques();
                   cut_field_velocity_.remplir_cellules_diphasiques();
+                  thermals_.transfert_diphasique_vers_pures();
 
-                  interfaces_.calcul_surface_effective(fractionnal_timestep, cut_field_velocity_);
+                  interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
 
                   parcourir_maillage();
                 }
@@ -1038,4 +1046,340 @@ void IJK_FT_cut_cell::run()
   statistiques().reset_counters();
   statistiques().begin_count(temps_total_execution_counter_);
 
+}
+
+void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& v) const
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const double delta_t = timestep_;
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+              double indicatrice_v = 1 - indicatrice_l;
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  double x = dv.pure_(i,j,k);
+                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double x_l = dv.diph_l_(n);
+                  double x_v = dv.diph_v_(n);
+
+                  double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t;
+                  double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t;
+                  v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
+                  v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                }
+            }
+        }
+    }
+}
+
+void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  const double facteurF = coeff_a[step];
+  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
+  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_v = 1 - indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+                      double x_v = dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_v = 1 - indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_v = 1 - indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
+}
+
+void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& v) const
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const double delta_t = timestep_;
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double old_indicatrice_l = cut_cell_disc.get_interfaces().I(i,j,k);
+              double next_indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+              double old_indicatrice_v = 1 - old_indicatrice_l;
+              double next_indicatrice_v = 1 - next_indicatrice_l;
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  double x = dv.pure_(i,j,k);
+                  assert(old_indicatrice_l == next_indicatrice_l);
+                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double x_l = dv.diph_l_(n);
+                  double x_v = dv.diph_v_(n);
+
+                  double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t;
+                  double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t;
+                  v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
+                  v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
+                }
+            }
+        }
+    }
+}
+
+void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  const double facteurF = coeff_a[step];
+  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
+  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_indicatrice_l = cut_cell_disc.get_interfaces().I(i,j,k);
+                  double next_indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double old_indicatrice_v = 1 - old_indicatrice_l;
+                  double next_indicatrice_v = 1 - next_indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = dv.pure_(i,j,k);
+                      assert(old_indicatrice_l == next_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+                      double x_v = dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
+                      v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_indicatrice_l = cut_cell_disc.get_interfaces().I(i,j,k);
+                  double next_indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double old_indicatrice_v = 1 - old_indicatrice_l;
+                  double next_indicatrice_v = 1 - next_indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      assert(old_indicatrice_l == next_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
+                      v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_indicatrice_l = cut_cell_disc.get_interfaces().I(i,j,k);
+                  double next_indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double old_indicatrice_v = 1 - old_indicatrice_l;
+                  double next_indicatrice_v = 1 - next_indicatrice_l;
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      assert(old_indicatrice_l == next_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
+                      v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
 }

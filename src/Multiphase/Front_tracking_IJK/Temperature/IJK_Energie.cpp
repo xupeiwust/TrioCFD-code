@@ -823,7 +823,7 @@ void IJK_Energie::compute_interfacial_temperature2(
 
 double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
 {
-  global_energy_ = 0.;
+  double global_energy = 0.;
   const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
   const int nx = temperature.ni();
   const int ny = temperature.nj();
@@ -837,7 +837,7 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
         {
           double chi_l = indic(i, j, k);
           // double cp = cp_(i,j,k) ;
-          global_energy_ += rho_cp_(chi_l) * temperature(i, j, k);
+          global_energy += rho_cp_(chi_l) * temperature(i, j, k);
         }
   const int ntot =
     temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
@@ -846,8 +846,8 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
                                                     DIRECTION_J) *
     temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
                                                     DIRECTION_K);
-  global_energy_ = mp_sum(global_energy_) / (double)(ntot);
-  return global_energy_;
+  global_energy = mp_sum(global_energy) / (double)(ntot);
+  return global_energy;
 }
 
 /*
