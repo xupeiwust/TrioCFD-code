@@ -1823,6 +1823,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_
                                           subproblem_index,
                                           dist,
                                           dir,
+                                          -1,
                                           index_i,
                                           index_j,
                                           index_k,

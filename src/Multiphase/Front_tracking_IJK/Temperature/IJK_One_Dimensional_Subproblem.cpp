@@ -3753,7 +3753,8 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
     }
   const double temperature_interp_conv = temperature_interp_conv_flux_[dir];
   // temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
-  temperature_interp_conv_flux_[l] = (temperature_interp_conv + temperature_interp);
+  if ( l!=-1 )
+    temperature_interp_conv_flux_[l] = (temperature_interp_conv + temperature_interp);
   return temperature_interp * velocity_interp;
 }
 
