@@ -352,7 +352,10 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("oh", &oh_); // XD_ADD_P floattant not_set
   param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
   param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED); // XD_ADD_P entier maximum limit for the number of timesteps
-  param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P entier maximum limit for the number of timesteps
+  param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P entier maximum simulation time
+  param.ajouter("tstep_init", &tstep_init_); // XD_ADD_P entier index first interation for recovery
+  param.ajouter("use_tstep_init", &use_tstep_init_); // XD_ADD_P entier use tstep init for constant post-processing step
+
 
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
@@ -775,6 +778,8 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   thermals_.associer(*this);
   first_step_interface_smoothing_ = (first_step_interface_smoothing_ &&
                                      (!(*this).reprise_ && current_time_ == 0.));
+  if (tstep_init_)
+    use_tstep_init_ = 1;
 
   run();
   return is;
@@ -1173,8 +1178,10 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
       // (en ecrivant directement le vecteur d'objets)
       param.print(fichier);
 #else
-      fichier << "{\n"
-              << " tinit " << current_time_ << "\n"
+      fichier << "{\n";
+      if (use_tstep_init_)
+        fichier << " tstep_init " << tstep_ + 1 << "\n";
+      fichier << " tinit " << current_time_ << "\n"
               << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
               // GAB : qdm_source. Les valeurs des attributs utiles pour le calcul de source_qdm_gr sont
               //       ecrits dans la reprise. Ils sont ecrits avec des mots-clefs qui n'ont pas vocation a
@@ -1252,6 +1259,7 @@ void IJK_FT_double::reprendre_probleme(const char *fichier_reprise)
   LecFicDiffuse_JDD fichier(fichier_reprise);
   Param param(que_suis_je());
   param.ajouter("tinit", &current_time_);
+  param.ajouter("tstep_init", &tstep_init_);
 
   param.ajouter("terme_acceleration_init", &terme_source_acceleration_);
   param.ajouter("fichier_reprise_vitesse", &fichier_reprise_vitesse_);
@@ -2886,7 +2894,8 @@ void IJK_FT_double::run()
       if (current_time_ >= max_simu_time_)
         stop = 1;
 
-      if (tstep_ % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop)
+      tstep_sauv_ = tstep_ + tstep_init_;
+      if (tstep_sauv_ % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop)
         {
           // Choix : On supprime les duplicatas pour la sauvegarde.
           // On pourrait tres bien tout garder. ca serait plus leger en CPU, plus lourd en espace disque.
@@ -2928,7 +2937,7 @@ void IJK_FT_double::run()
       // interfaces_.parcourir_maillage();
       if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")))
         interfaces_.compute_vinterp();
-      post_.postraiter_fin(stop, tstep_, current_time_, timestep_, lata_name,
+      post_.postraiter_fin(stop, tstep_, tstep_init_, current_time_, timestep_, lata_name,
                            gravite_, nom_du_cas());
       statistiques().end_count(timestep_counter_);
 

@@ -1981,24 +1981,25 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
     }
 }
 
-void IJK_FT_Post::postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
+void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
 {
+  const int tstep_sauv = tstep + tstep_init;
   thermals_.set_first_step_thermals_post(first_step_thermals_post_);
-  if (tstep % dt_post_ == dt_post_ - 1 || stop || first_step_thermals_post_)
+  if (tstep_sauv % dt_post_ == dt_post_ - 1 || stop || first_step_thermals_post_)
     {
       Cout << "tstep : " << tstep << finl;
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
-  if (tstep % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1 || stop || first_step_thermals_post_)
+  if (tstep_sauv % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1 || stop || first_step_thermals_post_)
     {
       Cout << "tstep : " << tstep << finl;
       thermals_.thermal_subresolution_outputs(dt_post_thermals_probes_);
     }
-  if (tstep % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1 || stop)
+  if (tstep_sauv % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1 || stop)
     {
       ecrire_statistiques_bulles(0, nom_cas, gravite, current_time);
     }
-  if (tstep % dt_post_stats_plans_ == dt_post_stats_plans_ - 1 || stop)
+  if (tstep_sauv % dt_post_stats_plans_ == dt_post_stats_plans_ - 1 || stop)
     {
       if (current_time >= t_debut_statistiques_)
         posttraiter_statistiques_plans(current_time);

@@ -122,7 +122,7 @@ public:
   void postraiter_sondes();
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
-  void postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name,
+  void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
                       const ArrOfDouble& gravite, const Nom& nom_cas);
   //void ijk_interpolate_implementation_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
   //                                        int skip_unknown_points, double value_for_bad_points,const IJK_Field_double& indic);

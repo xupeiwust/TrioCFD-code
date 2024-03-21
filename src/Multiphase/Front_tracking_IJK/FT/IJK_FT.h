@@ -630,6 +630,8 @@ protected :
   // Simulation parameters
   int nb_timesteps_ = 0;
   int max_simu_time_ = (int) 1e6;
+  int tstep_init_ = 0;
+  int use_tstep_init_ = 0;
   double timestep_ = 0.;
   double timestep_facsec_ = 1.;
   double cfl_ = 1.;
@@ -710,6 +712,7 @@ protected :
   double current_time_ = 0.;
   double current_time_at_rk3_step_ = 0;
   int tstep_ = 0; // The iteration number
+  int tstep_sauv_ = 0;
 
   // GAB
   init_forcage_THI forcage_;
