@@ -357,6 +357,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
 
+  param.ajouter("vitesse_entree_dir", &vitesse_entree_dir_);
   param.ajouter("vitesse_entree", &vitesse_entree_); // XD_ADD_P floattant Velocity to prescribe at inlet
   param.ajouter("vitesse_upstream", &vitesse_upstream_); // XD_ADD_P floattant Velocity to prescribe at 'nb_diam_upstream_' before bubble 0.
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
@@ -836,24 +837,27 @@ const IJK_Field_double& IJK_FT_double::get_IJK_field(const Nom& nom) const
   return post_.get_IJK_field(nom);
 }
 
-void IJK_FT_double::force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed)
+void IJK_FT_double::force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed, const int& dir, const int& compo)
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const int offset_i = splitting.get_offset_local(DIRECTION_I);
-  if (offset_i > 0)
+  const int stencil = 3;
+  const IJK_Splitting& splitting = select(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
+  const int offset_ijk = splitting.get_offset_local(dir);
+  if (offset_ijk > 0)
     return;
   {
     double imposed[3] = {0., 0., 0.};
-    imposed[0] = v_imposed;
-    for (int direction = 0; direction < 3; direction++)
+    imposed[dir] = v_imposed;
+    const int direction_min = (compo == -1) ? 0 : dir;
+    const int direction_max = (compo == -1) ? 3 : dir + 1;
+    for (int direction = direction_min; direction < direction_max; direction++)
       {
         IJK_Field_double& velocity = select(direction, vx, vy, vz);
-        const int imin = 0;
-        const int jmin = 0;
-        const int kmin = 0;
-        const int imax = 3;
-        const int jmax = velocity.nj();
-        const int kmax = velocity.nk();
+        const int imin = select(direction, 0, 0, 0);
+        const int jmin = select(direction, 0, 0, 0);
+        const int kmin = select(direction, 0, 0, 0);
+        const int imax = select(direction, stencil, velocity.ni(), velocity.ni());
+        const int jmax = select(direction, velocity.nj(), stencil, velocity.nj());
+        const int kmax = select(direction, velocity.nk(), velocity.nk(), stencil);
         for (int k = kmin; k < kmax; k++)
           for (int j = jmin; j < jmax; j++)
             for (int i = imin; i < imax; i++)
@@ -3918,7 +3922,7 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_);
+        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_, vitesse_entree_dir_, vitesse_entree_compo_to_force_);
 
       // Forcage de la vitesse en amont de la bulle :
       if (vitesse_upstream_ > -1e20)
@@ -4166,7 +4170,7 @@ void IJK_FT_double::rk3_sub_step(const int rk_step, const double total_timestep,
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_);
+        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_, vitesse_entree_dir_, vitesse_entree_compo_to_force_);
 
 
       // Forcage de la vitesse en amont de la bulle :

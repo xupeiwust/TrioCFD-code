@@ -356,7 +356,7 @@ protected :
   //ab-sauv/repr-fin
 
   // These methods are static in order to make it clear that all data used and modified by the method are explicitely passed as arguments:
-  static void force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed);
+  static void force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed, const int& dir, const int& compo);
   static void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
                                       double v_imposed,const IJK_Interfaces& interfaces, double nb_diam,
                                       int upstream_dir, int gravity_dir, int upstream_stencil);
@@ -636,6 +636,8 @@ protected :
   double fo_ = 1.;
   double oh_ = 1.;
 
+  int vitesse_entree_dir_ = DIRECTION_I;
+  int vitesse_entree_compo_to_force_ = -1;
   double vitesse_entree_ = -1.1e20;
   double vitesse_upstream_ = -1.1e20;
   double velocity_bubble_new_ = 0.;
