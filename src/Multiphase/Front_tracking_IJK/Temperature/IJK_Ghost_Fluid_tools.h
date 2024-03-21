@@ -30,7 +30,7 @@
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
-
+#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -83,3 +83,18 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            IJK_Field_double& grad_T_interface,
                                            IJK_Field_double& temperature,
                                            const int& spherical_approx);
+
+void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
+                         const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                         const int& direct_neighbours=1,
+                         const int& smooth_number=1,
+                         const int& remove_normal_compo=0);
+
+void smooth_eulerian_field(IJK_Field_double& field,
+                           FixedVector<IJK_Field_double, 3> vector_field,
+                           const int& c,
+                           const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                           const int& direct_neighbours=1,
+                           const int& smooth_number=1,
+                           const int& remove_normal_compo=0);
+

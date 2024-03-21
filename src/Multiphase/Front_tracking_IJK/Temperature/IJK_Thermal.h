@@ -89,6 +89,7 @@ public :
   inline const IJK_Field_double& get_eulerian_rising_velocities() const {return valeur().get_eulerian_rising_velocities(); }
   inline const FixedVector<IJK_Field_double, 3>& get_bary() const { return valeur().get_bary(); }
   inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem() { return valeur().get_gradient_temperature_elem(); }
+  inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem_smooth() { return valeur().get_gradient_temperature_elem_smooth(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const { return valeur().get_normal_vector_ns(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns_normed() const { return valeur().get_normal_vector_ns_normed();}
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ft() const { return valeur().get_normal_vector_ft(); }

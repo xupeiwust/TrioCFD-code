@@ -114,6 +114,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   compute_hess_T_elem_ = 0;
   compute_hess_diag_T_elem_ = 0;
   compute_hess_cross_T_elem_ = 0;
+  smooth_grad_T_elem_ = 0;
 
   compute_eulerian_compo_ = 0;
   compute_rising_velocities_ = 0;
@@ -309,6 +310,9 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   if (use_bubbles_velocities_from_barycentres_)
     os << front_space << "use_bubbles_velocities_from_barycentres" <<  escape;
 
+  if (smooth_grad_T_elem_)
+    os << front_space << "smooth_grad_T_elem" <<  escape;
+
   return os;
 }
 
@@ -372,6 +376,9 @@ void IJK_Thermal_base::set_param(Param& param)
 
   param.ajouter_flag("use_bubbles_velocities_from_interface", &use_bubbles_velocities_from_interface_);
   param.ajouter_flag("use_bubbles_velocities_from_barycentres", &use_bubbles_velocities_from_barycentres_);
+
+  param.ajouter_flag("smooth_grad_T_elem", &smooth_grad_T_elem_);
+
 
 
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
@@ -716,12 +723,19 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
   compute_grad_T_elem_ = compute_hess_cross_T_elem_ || compute_grad_T_elem_ || liste_post_instantanes_.contient_("GRAD_T_ELEM")
                          || liste_post_instantanes_.contient_("GRAD_T_DIR_X_ELEM") || liste_post_instantanes_.contient_("GRAD_T_DIR_Y_ELEM")
                          || liste_post_instantanes_.contient_("GRAD_T_DIR_Z_ELEM");
+  smooth_grad_T_elem_ = smooth_grad_T_elem_ && compute_grad_T_elem_;
   if (compute_grad_T_elem_)
     {
       allocate_cell_vector(grad_T_elem_, splitting, ghost_cells_); // 1 or 0 ?
       nalloc += 3;
       grad_T_elem_.echange_espace_virtuel();
       temperature_grad_op_centre_.initialize(splitting);
+    }
+  if (smooth_grad_T_elem_)
+    {
+      allocate_cell_vector(grad_T_elem_smooth_, splitting, ghost_cells_); // 1 or 0 ?
+      nalloc += 3;
+      grad_T_elem_smooth_.echange_espace_virtuel();
     }
 
   if (compute_hess_diag_T_elem_)
@@ -1249,6 +1263,15 @@ void IJK_Thermal_base::compute_temperature_gradient_elem()
       grad_T_elem_.echange_espace_virtuel();
       temperature_grad_op_centre_.calculer_grad(temperature_, grad_T_elem_);
       grad_T_elem_.echange_espace_virtuel();
+      grad_T_elem_smooth_ = grad_T_elem_;
+      grad_T_elem_smooth_.echange_espace_virtuel();
+      if (smooth_grad_T_elem_)
+        {
+          smooth_vector_field(grad_T_elem_smooth_, eulerian_normal_vectors_ns_normed_);
+          grad_T_elem_smooth_.echange_espace_virtuel();
+          // grad_T_elem_ = grad_T_elem_smooth_;
+          // grad_T_elem_.echange_espace_virtuel();
+        }
     }
   else
     Cerr << "The temperature gradient at the cell centres is not computed" << finl;

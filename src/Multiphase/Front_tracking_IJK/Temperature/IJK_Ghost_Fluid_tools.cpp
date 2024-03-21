@@ -1011,3 +1011,85 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
         }
   temperature.echange_espace_virtuel(temperature.ghost());
 }
+
+void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
+                         const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                         const int& direct_neighbours,
+                         const int& smooth_number,
+                         const int& remove_normal_compo)
+{
+  for (int c=0; c<3; c++)
+    {
+      IJK_Field_double& field = vector_field[c];
+      smooth_eulerian_field(field,
+                            vector_field,
+                            c,
+                            eulerian_normal_vectors_ns_normed,
+                            direct_neighbours,
+                            smooth_number,
+                            remove_normal_compo);
+    }
+}
+
+void smooth_eulerian_field(IJK_Field_double& field,
+                           FixedVector<IJK_Field_double, 3> vector_field,
+                           const int& dir,
+                           const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                           const int& direct_neighbours,
+                           const int& smooth_number,
+                           const int& remove_normal_compo)
+{
+  for (int m=0; m<smooth_number; m++)
+    {
+      const int ni = field.ni();
+      const int nj = field.nj();
+      const int nk = field.nk();
+      IJK_Field_double field_copy = field;
+      field_copy.echange_espace_virtuel(field_copy.ghost());
+      const int neighbours_i[6] = NEIGHBOURS_I;
+      const int neighbours_j[6] = NEIGHBOURS_J;
+      const int neighbours_k[6] = NEIGHBOURS_K;
+      for (int k = 0; k < nk; k++)
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            {
+              if (direct_neighbours)
+                {
+                  field(i,j,k) = 0.;
+                  for (int l=0; l<6; l++)
+                    {
+                      const int ii = neighbours_i[l];
+                      const int jj = neighbours_j[l];
+                      const int kk = neighbours_k[l];
+                      if (!remove_normal_compo)
+                        field(i,j,k) += field_copy(i+ii,j+jj,k+kk);
+                      else
+                        {
+                          const double normal_compo = vector_field[dir](i+ii,j+jj,k+kk) * (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
+                          field(i,j,k) += field_copy(i+ii,j+jj,k+kk) - normal_compo;
+                        }
+                    }
+                  field(i,j,k) /= 6;
+                }
+              else
+                {
+                  field(i,j,k) = 0.;
+                  for (int c=0; c<3; c++)
+                    for (int l=-1; l<=1; l++)
+                      {
+                        const int ii = select(c, l, 0, 0);
+                        const int jj = select(c, 0, l, 0);
+                        const int kk = select(c, 0, 0, l);
+                        if (!remove_normal_compo)
+                          field(i,j,k) += field_copy(i+ii,j+jj,k+kk);
+                        else
+                          {
+                            const double normal_compo = vector_field[dir](i+ii,j+jj,k+kk) * (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
+                            field(i,j,k) += field_copy(i+ii,j+jj,k+kk) - normal_compo;
+                          }
+                      }
+                  field(i,j,k) /= 27;
+                }
+            }
+    }
+}

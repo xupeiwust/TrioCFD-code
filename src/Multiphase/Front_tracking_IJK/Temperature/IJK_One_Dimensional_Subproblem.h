@@ -277,7 +277,8 @@ public :
                                        std::vector<std::string> key_results_int,
                                        std::vector<std::string> key_results_double,
                                        std::map<std::string, ArrOfInt>& results_probes_int,
-                                       std::map<std::string, ArrOfDouble>& results_probes_double);
+                                       std::map<std::string, ArrOfDouble>& results_probes_double,
+                                       const int& coord=0);
 
   double get_min_temperature() const;
   double get_max_temperature() const;
@@ -660,11 +661,13 @@ protected :
                                             const FixedVector<IJK_Field_double, 3>& velocity_ft,
                                             const IJK_Field_double& pressure,
                                             const FixedVector<IJK_Field_double, 3>& grad_T_elem,
+                                            const FixedVector<IJK_Field_double, 3>& grad_T_elem_smooth,
                                             const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
                                             const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
                                             const IJK_Field_double& eulerian_grad_T_interface_ns,
                                             IJK_Field_double& probe_collision_debug_field,
-                                            IJK_Field_int& zero_liquid_neighbours);
+                                            IJK_Field_int& zero_liquid_neighbours,
+                                            const int& smooth_grad_T_elem);
   void associate_flags_neighbours_correction(const int& correct_temperature_cell_neighbours,
                                              const int& correct_neighbours_rank,
                                              const int& neighbours_corrected_rank,
@@ -779,7 +782,7 @@ protected :
   void correct_tangential_temperature_hessian(DoubleVect& tangential_diffusion_source_terms);
   void find_interval(const double& dist, int& left_interval, int& right_interval) const;
 
-  void post_process_interfacial_quantities(SFichier& fic, const int rank);
+  void post_process_interfacial_quantities(SFichier& fic, const int rank, const int& coord=0);
   void post_process_radial_quantities(const int rank, const Nom& local_quantities_thermal_probes_time_index_folder);
 
   void compute_temperature_integral_subproblem_probe();
@@ -919,7 +922,10 @@ protected :
   IJK_Field_double * probe_collision_debug_field_ = nullptr;
   IJK_Field_int * zero_liquid_neighbours_ = nullptr;
 
+  int smooth_grad_T_elem_ = 0;
   const FixedVector<IJK_Field_double, 3> * grad_T_elem_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * grad_T_elem_smooth_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * grad_T_elem_solver_ = nullptr;
   const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_ = nullptr;
   const FixedVector<IJK_Field_double, 3> * hess_cross_T_elem_ = nullptr;
 

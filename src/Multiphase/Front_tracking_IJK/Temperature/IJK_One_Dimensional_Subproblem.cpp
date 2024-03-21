@@ -125,11 +125,13 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            velocity_ft,
                                            pressure,
                                            ref_thermal_subresolution.grad_T_elem_,
+                                           ref_thermal_subresolution.grad_T_elem_smooth_,
                                            ref_thermal_subresolution.hess_diag_T_elem_,
                                            ref_thermal_subresolution.hess_cross_T_elem_,
                                            ref_thermal_subresolution.eulerian_grad_T_interface_ns_,
                                            ref_thermal_subresolution.probe_collision_debug_field_,
-                                           ref_thermal_subresolution.zero_liquid_neighbours_);
+                                           ref_thermal_subresolution.zero_liquid_neighbours_,
+                                           ref_thermal_subresolution.smooth_grad_T_elem_);
       associate_probe_parameters(ref_thermal_subresolution.points_per_thermal_subproblem_,
                                  ref_thermal_subresolution.cp_liquid_,
                                  ref_thermal_subresolution.uniform_alpha_,
@@ -311,11 +313,13 @@ void IJK_One_Dimensional_Subproblem::associate_eulerian_fields_references(const 
                                                                           const FixedVector<IJK_Field_double, 3>& velocity_ft,
                                                                           const IJK_Field_double& pressure,
                                                                           const FixedVector<IJK_Field_double, 3>& grad_T_elem,
+                                                                          const FixedVector<IJK_Field_double, 3>& grad_T_elem_smooth,
                                                                           const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
                                                                           const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
                                                                           const IJK_Field_double& eulerian_grad_T_interface_ns,
                                                                           IJK_Field_double& probe_collision_debug_field,
-                                                                          IJK_Field_int& zero_liquid_neighbours)
+                                                                          IJK_Field_int& zero_liquid_neighbours,
+                                                                          const int& smooth_grad_T_elem)
 {
   interfaces_ = &interfaces;
   eulerian_distance_ = eulerian_distance;
@@ -330,6 +334,12 @@ void IJK_One_Dimensional_Subproblem::associate_eulerian_fields_references(const 
   velocity_ft_ = &velocity_ft;
   pressure_ = &pressure;
   grad_T_elem_ = &grad_T_elem;
+  grad_T_elem_smooth_ = &grad_T_elem_smooth;
+  smooth_grad_T_elem_ = smooth_grad_T_elem;
+  if (smooth_grad_T_elem_)
+    grad_T_elem_solver_ = &grad_T_elem_smooth;
+  else
+    grad_T_elem_solver_ = &grad_T_elem;
   hess_diag_T_elem_ = &hess_diag_T_elem;
   hess_cross_T_elem_ = &hess_cross_T_elem;
   eulerian_grad_T_interface_ns_ = &eulerian_grad_T_interface_ns;
@@ -2341,7 +2351,7 @@ void IJK_One_Dimensional_Subproblem::interpolate_temperature_gradient_on_probe()
   for (int dir = 0; dir < 3; dir++)
     {
       grad_T_elem_interp_[dir].resize(*points_per_thermal_subproblem_);
-      ijk_interpolate_skip_unknown_points((*grad_T_elem_)[dir], coordinates_cartesian_compo_, grad_T_elem_interp_[dir], INVALID_INTERP);
+      ijk_interpolate_skip_unknown_points((*grad_T_elem_solver_)[dir], coordinates_cartesian_compo_, grad_T_elem_interp_[dir], INVALID_INTERP);
     }
 }
 
@@ -4096,7 +4106,8 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
                                                                      std::vector<std::string> key_results_int,
                                                                      std::vector<std::string> key_results_double,
                                                                      std::map<std::string, ArrOfInt>& results_probes_int,
-                                                                     std::map<std::string, ArrOfDouble>& results_probes_double)
+                                                                     std::map<std::string, ArrOfDouble>& results_probes_double,
+                                                                     const int& coord)
 {
   const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
   const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
@@ -4114,46 +4125,46 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
     first_tangential_vector_compo_from_rising_dir_[0], first_tangential_vector_compo_from_rising_dir_[1], first_tangential_vector_compo_from_rising_dir_[2],
     azymuthal_vector_compo_[0], azymuthal_vector_compo_[1], azymuthal_vector_compo_[2],
     r_sph_, theta_sph_, phi_sph_,
-    temperature_interp_[0], temperature_solution_[0], temperature_previous_[0],
-    normal_temperature_gradient_interp_[0], normal_temperature_gradient_solution_[0],
+    temperature_interp_[coord], temperature_solution_[coord], temperature_previous_[coord],
+    normal_temperature_gradient_interp_[coord], normal_temperature_gradient_solution_[coord],
     (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_),
-    hess_diag_T_elem_spherical_[0][0], normal_temperature_double_derivative_solution_[0],
-    tangential_temperature_gradient_first_[0],
-    tangential_temperature_gradient_second_[0],
-    tangential_temperature_gradient_first_from_rising_dir_[0],
-    azymuthal_temperature_gradient_[0],
-    temperature_diffusion_hessian_cartesian_trace_[0],
-    temperature_diffusion_hessian_trace_[0],
-    radial_temperature_diffusion_[0],
-    radial_temperature_diffusion_solution_[0],
-    tangential_temperature_diffusion_[0],
-    radial_scale_factor_interp_[0], radial_scale_factor_solution_[0],
-    radial_convection_interp_[0], 	radial_convection_solution_[0],
-    tangential_convection_source_terms_first_[0], tangential_convection_source_terms_second_[0],
-    surface_, thermal_flux_[0],
+    hess_diag_T_elem_spherical_[0][coord], normal_temperature_double_derivative_solution_[coord],
+    tangential_temperature_gradient_first_[coord],
+    tangential_temperature_gradient_second_[coord],
+    tangential_temperature_gradient_first_from_rising_dir_[coord],
+    azymuthal_temperature_gradient_[coord],
+    temperature_diffusion_hessian_cartesian_trace_[coord],
+    temperature_diffusion_hessian_trace_[coord],
+    radial_temperature_diffusion_[coord],
+    radial_temperature_diffusion_solution_[coord],
+    tangential_temperature_diffusion_[coord],
+    radial_scale_factor_interp_[coord], radial_scale_factor_solution_[coord],
+    radial_convection_interp_[coord], 	radial_convection_solution_[coord],
+    tangential_convection_source_terms_first_[coord], tangential_convection_source_terms_second_[coord],
+    surface_, thermal_flux_[coord],
     thermal_flux_gfm_, thermal_flux_raw_,
     thermal_flux_lrs_, thermal_flux_max_,
     (*lambda_), (*alpha_), (*prandtl_number_),
-    nusselt_number_[0], nusselt_number_liquid_temperature_[0],
-    nusselt_number_integrand_[0], nusselt_number_liquid_temperature_integrand_[0],
+    nusselt_number_[coord], nusselt_number_liquid_temperature_[coord],
+    nusselt_number_integrand_[coord], nusselt_number_liquid_temperature_integrand_[coord],
     velocity_shear_force_, velocity_shear_stress_,
-    pressure_interp_[0],
-    x_velocity_[0], y_velocity_[0], z_velocity_[0],
-    radial_velocity_[0], radial_velocity_corrected_[0],
-    radial_velocity_static_frame_[0], radial_velocity_advected_frame_[0],
-    first_tangential_velocity_[0], first_tangential_velocity_corrected_[0],
-    first_tangential_velocity_static_frame_[0], first_tangential_velocity_advected_frame_[0],
-    second_tangential_velocity_[0], second_tangential_velocity_corrected_[0],
-    second_tangential_velocity_static_frame_[0], second_tangential_velocity_advected_frame_[0],
-    first_tangential_velocity_from_rising_dir_[0], first_tangential_velocity_from_rising_dir_corrected_[0],
-    first_tangential_velocity_from_rising_dir_static_frame_[0], first_tangential_velocity_from_rising_dir_advected_frame_[0],
-    azymuthal_velocity_[0], azymuthal_velocity_corrected_[0],
-    azymuthal_velocity_static_frame_[0], azymuthal_velocity_advected_frame_[0],
-    normal_velocity_normal_gradient_[0],
-    first_tangential_velocity_normal_gradient_[0],
-    second_tangential_velocity_normal_gradient_[0],
-    first_tangential_velocity_normal_gradient_from_rising_dir_[0],
-    azymuthal_velocity_normal_gradient_[0],
+    pressure_interp_[coord],
+    x_velocity_[coord], y_velocity_[coord], z_velocity_[coord],
+    radial_velocity_[coord], radial_velocity_corrected_[coord],
+    radial_velocity_static_frame_[coord], radial_velocity_advected_frame_[coord],
+    first_tangential_velocity_[coord], first_tangential_velocity_corrected_[coord],
+    first_tangential_velocity_static_frame_[coord], first_tangential_velocity_advected_frame_[coord],
+    second_tangential_velocity_[coord], second_tangential_velocity_corrected_[coord],
+    second_tangential_velocity_static_frame_[coord], second_tangential_velocity_advected_frame_[coord],
+    first_tangential_velocity_from_rising_dir_[coord], first_tangential_velocity_from_rising_dir_corrected_[coord],
+    first_tangential_velocity_from_rising_dir_static_frame_[coord], first_tangential_velocity_from_rising_dir_advected_frame_[coord],
+    azymuthal_velocity_[coord], azymuthal_velocity_corrected_[coord],
+    azymuthal_velocity_static_frame_[coord], azymuthal_velocity_advected_frame_[coord],
+    normal_velocity_normal_gradient_[coord],
+    first_tangential_velocity_normal_gradient_[coord],
+    second_tangential_velocity_normal_gradient_[coord],
+    first_tangential_velocity_normal_gradient_from_rising_dir_[coord],
+    azymuthal_velocity_normal_gradient_[coord],
     (*bubbles_surface_)(compo_connex_), (*bubbles_volume_)(compo_connex_),
     (*radius_from_surfaces_per_bubble_)(compo_connex_), (*radius_from_volumes_per_bubble_)(compo_connex_),
     (*delta_temperature_), (*mean_liquid_temperature_),
@@ -4173,7 +4184,7 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
 
 }
 
-void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichier& fic, const int rank) //SFichier& fic)
+void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichier& fic, const int rank, const int& coord) //SFichier& fic)
 {
   // if (Process::je_suis_maitre())
   {
@@ -4190,46 +4201,46 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << first_tangential_vector_compo_from_rising_dir_[0] << " " << first_tangential_vector_compo_from_rising_dir_[1] << " " << first_tangential_vector_compo_from_rising_dir_[2] << " ";
         fic << azymuthal_vector_compo_[0] << " " << azymuthal_vector_compo_[1] << " " << azymuthal_vector_compo_[2] << " ";
         fic << r_sph_ << " " << theta_sph_ << " " << phi_sph_ << " ";
-        fic << temperature_interp_[0] << " " << temperature_solution_[0] << " " << temperature_previous_[0] << " ";
-        fic << normal_temperature_gradient_interp_[0] << " " << normal_temperature_gradient_solution_[0] << " ";
+        fic << temperature_interp_[coord] << " " << temperature_solution_[coord] << " " << temperature_previous_[coord] << " ";
+        fic << normal_temperature_gradient_interp_[coord] << " " << normal_temperature_gradient_solution_[coord] << " ";
         fic << (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_) << " ";
-        fic << hess_diag_T_elem_spherical_[0][0] << " " << normal_temperature_double_derivative_solution_[0] << " ";
-        fic << tangential_temperature_gradient_first_[0] << " ";
-        fic << tangential_temperature_gradient_second_[0] << " ";
-        fic << tangential_temperature_gradient_first_from_rising_dir_[0] << " ";
-        fic << azymuthal_temperature_gradient_[0] << " ";
-        fic << temperature_diffusion_hessian_cartesian_trace_[0] << " ";
-        fic << temperature_diffusion_hessian_trace_[0] << " ";
-        fic << radial_temperature_diffusion_[0] << " ";
-        fic << radial_temperature_diffusion_solution_[0] << " ";
-        fic << tangential_temperature_diffusion_[0] << " ";
-        fic << radial_scale_factor_interp_[0] << " " << radial_scale_factor_solution_[0] << " ";
-        fic << radial_convection_interp_[0] << " " << radial_convection_solution_[0] << " ";
-        fic << tangential_convection_source_terms_first_[0] << " " << tangential_convection_source_terms_second_[0] << " ";
-        fic << surface_ << " " << thermal_flux_[0] << " ";
+        fic << hess_diag_T_elem_spherical_[0][coord] << " " << normal_temperature_double_derivative_solution_[coord] << " ";
+        fic << tangential_temperature_gradient_first_[coord] << " ";
+        fic << tangential_temperature_gradient_second_[coord] << " ";
+        fic << tangential_temperature_gradient_first_from_rising_dir_[coord] << " ";
+        fic << azymuthal_temperature_gradient_[coord] << " ";
+        fic << temperature_diffusion_hessian_cartesian_trace_[coord] << " ";
+        fic << temperature_diffusion_hessian_trace_[coord] << " ";
+        fic << radial_temperature_diffusion_[coord] << " ";
+        fic << radial_temperature_diffusion_solution_[coord] << " ";
+        fic << tangential_temperature_diffusion_[coord] << " ";
+        fic << radial_scale_factor_interp_[coord] << " " << radial_scale_factor_solution_[coord] << " ";
+        fic << radial_convection_interp_[coord] << " " << radial_convection_solution_[coord] << " ";
+        fic << tangential_convection_source_terms_first_[coord] << " " << tangential_convection_source_terms_second_[coord] << " ";
+        fic << surface_ << " " << thermal_flux_[coord] << " ";
         fic << thermal_flux_gfm_ << " " << thermal_flux_raw_ << " ";
         fic << thermal_flux_lrs_ << " " << thermal_flux_max_ << " ";
         fic << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
-        fic << nusselt_number_[0] << " " << nusselt_number_liquid_temperature_[0] << " ";
-        fic << nusselt_number_integrand_[0] << " " << nusselt_number_liquid_temperature_integrand_[0] << " ";
+        fic << nusselt_number_[coord] << " " << nusselt_number_liquid_temperature_[coord] << " ";
+        fic << nusselt_number_integrand_[coord] << " " << nusselt_number_liquid_temperature_integrand_[coord] << " ";
         fic << velocity_shear_force_ << " " << velocity_shear_stress_ << " ";
-        fic << pressure_interp_[0] << " ";
-        fic << x_velocity_[0] << " " << y_velocity_[0] << " " << z_velocity_[0] << " ";
-        fic << radial_velocity_[0] << " " << radial_velocity_corrected_[0] << " ";
-        fic << radial_velocity_static_frame_[0] << " " << radial_velocity_advected_frame_[0] << " ";
-        fic << first_tangential_velocity_[0] << " " << first_tangential_velocity_corrected_[0] << " ";
-        fic << first_tangential_velocity_static_frame_[0] << " " << first_tangential_velocity_advected_frame_[0] << " ";
-        fic << second_tangential_velocity_[0] << " " << second_tangential_velocity_corrected_[0] << " ";
-        fic << second_tangential_velocity_static_frame_[0] << " " << second_tangential_velocity_advected_frame_[0] << " ";
-        fic << first_tangential_velocity_from_rising_dir_[0] << " " << first_tangential_velocity_from_rising_dir_corrected_[0] << " ";
-        fic << first_tangential_velocity_from_rising_dir_static_frame_[0] << " " << first_tangential_velocity_from_rising_dir_advected_frame_[0] << " ";
-        fic << azymuthal_velocity_[0] << " " << azymuthal_velocity_corrected_[0] << " ";
-        fic << azymuthal_velocity_static_frame_[0] << " " << azymuthal_velocity_advected_frame_[0] << " ";
-        fic << normal_velocity_normal_gradient_[0] << " ";
-        fic << first_tangential_velocity_normal_gradient_[0] << " ";
-        fic << second_tangential_velocity_normal_gradient_[0] << " ";
-        fic << first_tangential_velocity_normal_gradient_from_rising_dir_[0] << " ";
-        fic << azymuthal_velocity_normal_gradient_[0] << " ";
+        fic << pressure_interp_[coord] << " ";
+        fic << x_velocity_[coord] << " " << y_velocity_[coord] << " " << z_velocity_[coord] << " ";
+        fic << radial_velocity_[coord] << " " << radial_velocity_corrected_[coord] << " ";
+        fic << radial_velocity_static_frame_[coord] << " " << radial_velocity_advected_frame_[coord] << " ";
+        fic << first_tangential_velocity_[coord] << " " << first_tangential_velocity_corrected_[coord] << " ";
+        fic << first_tangential_velocity_static_frame_[coord] << " " << first_tangential_velocity_advected_frame_[coord] << " ";
+        fic << second_tangential_velocity_[coord] << " " << second_tangential_velocity_corrected_[coord] << " ";
+        fic << second_tangential_velocity_static_frame_[coord] << " " << second_tangential_velocity_advected_frame_[coord] << " ";
+        fic << first_tangential_velocity_from_rising_dir_[coord] << " " << first_tangential_velocity_from_rising_dir_corrected_[coord] << " ";
+        fic << first_tangential_velocity_from_rising_dir_static_frame_[coord] << " " << first_tangential_velocity_from_rising_dir_advected_frame_[coord] << " ";
+        fic << azymuthal_velocity_[coord] << " " << azymuthal_velocity_corrected_[coord] << " ";
+        fic << azymuthal_velocity_static_frame_[coord] << " " << azymuthal_velocity_advected_frame_[coord] << " ";
+        fic << normal_velocity_normal_gradient_[coord] << " ";
+        fic << first_tangential_velocity_normal_gradient_[coord] << " ";
+        fic << second_tangential_velocity_normal_gradient_[coord] << " ";
+        fic << first_tangential_velocity_normal_gradient_from_rising_dir_[coord] << " ";
+        fic << azymuthal_velocity_normal_gradient_[coord] << " ";
         fic << (*bubbles_surface_)(compo_connex_) << " " << (*bubbles_volume_)(compo_connex_) << " ";
         fic << (*radius_from_surfaces_per_bubble_)(compo_connex_) << " " << (*radius_from_volumes_per_bubble_)(compo_connex_) << " ";
         fic << (*delta_temperature_) << " " << (*mean_liquid_temperature_) << " ";

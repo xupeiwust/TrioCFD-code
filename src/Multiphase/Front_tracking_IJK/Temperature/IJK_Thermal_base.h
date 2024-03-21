@@ -266,6 +266,13 @@ public:
   {
     return grad_T_elem_ ;
   }
+  const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem_smooth() const
+  {
+    if (smooth_grad_T_elem_)
+      return grad_T_elem_smooth_;
+    else
+      return dummy_double_vect_;
+  }
   const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const
   {
     return ghost_fluid_fields_->get_eulerian_normal_vectors_ns();
@@ -720,6 +727,8 @@ protected:
   IJK_Field_double eulerian_grad_T_interface_ns_;
   int compute_grad_T_elem_;
   FixedVector<IJK_Field_double, 3> grad_T_elem_;
+  int smooth_grad_T_elem_;
+  FixedVector<IJK_Field_double, 3> grad_T_elem_smooth_;
   /*
    * hess(T) = grad(grad(T))
    * Only 6 coefficients in
