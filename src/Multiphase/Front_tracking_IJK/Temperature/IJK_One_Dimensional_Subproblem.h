@@ -596,7 +596,8 @@ protected :
                                             const int& use_corrected_velocity_convection,
                                             const int& use_velocity_cartesian_grid,
                                             const int& compute_radial_displacement,
-                                            const int& fluxes_correction_conservations	);
+                                            const int& fluxes_correction_conservations,
+                                            const int& fluxes_corrections_weighting);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -1297,6 +1298,7 @@ protected :
   FixedVector<double, 6> temperature_interp_conv_flux_;
   int disable_relative_velocity_energy_balance_ = 0;
   int fluxes_correction_conservations_ = 0;
+  int fluxes_corrections_weighting_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

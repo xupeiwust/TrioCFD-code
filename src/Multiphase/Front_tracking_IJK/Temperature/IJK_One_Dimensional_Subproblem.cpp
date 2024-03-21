@@ -179,7 +179,8 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            ref_thermal_subresolution.use_corrected_velocity_convection_,
                                            ref_thermal_subresolution.use_velocity_cartesian_grid_,
                                            ref_thermal_subresolution.compute_radial_displacement_,
-                                           ref_thermal_subresolution.fluxes_correction_conservations_);
+                                           ref_thermal_subresolution.fluxes_correction_conservations_,
+                                           ref_thermal_subresolution.fluxes_corrections_weighting_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
                                       ref_thermal_subresolution.first_time_step_varying_probes_,
                                       ref_thermal_subresolution.probe_variations_priority_,
@@ -389,7 +390,8 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
                                                                           const int& use_corrected_velocity_convection,
                                                                           const int& use_velocity_cartesian_grid,
                                                                           const int& compute_radial_displacement,
-                                                                          const int& fluxes_correction_conservations)
+                                                                          const int& fluxes_correction_conservations,
+                                                                          const int& fluxes_corrections_weighting)
 {
   correct_fluxes_ = correct_fluxes;
   distance_cell_faces_from_lrs_ = distance_cell_faces_from_lrs;
@@ -398,6 +400,7 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
   use_velocity_cartesian_grid_ = use_velocity_cartesian_grid;
   compute_radial_displacement_ = compute_radial_displacement;
   fluxes_correction_conservations_ = fluxes_correction_conservations;
+  fluxes_corrections_weighting_ = fluxes_corrections_weighting;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_source_terms_parameters(const int& source_terms_type,
@@ -4472,6 +4475,7 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
   const int neighbours_k[6] = NEIGHBOURS_K;
 
   int counter_assert = 0;
+  double weight = 0.;
   std::vector<int> mixed_neighbours;
   for (int l=0; l<6; l++)
     if (!pure_liquid_neighbours_[l] && !pure_vapour_neighbours_[l])
@@ -4485,7 +4489,8 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
             const int isolated_mixed_neighbours = (*zero_liquid_neighbours_)(index_i_ + ii, index_j_ + jj, index_k_ + kk);
             if (!isolated_mixed_neighbours)
               {
-                weight_tot += abs(normal_compo);
+                compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+                weight_tot += abs(weight);
                 mixed_neighbours.push_back(l);
                 counter_assert++;
               }
@@ -4503,9 +4508,9 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
         double normal_compo = normal_vector_compo_[face_dir[l]];
         if (signbit(flux_out[l]) == signbit(normal_compo))
           {
-            normal_compo = abs(normal_compo);
-            corrective_flux_current_[l] = (total_flux_error * normal_compo * flux_out[l] * sign_temp);
-            weight_tot += normal_compo;
+            compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+            corrective_flux_current_[l] = (total_flux_error * abs(weight) * flux_out[l] * sign_temp);
+            weight_tot += abs(weight);
             counter_assert++;
           }
       }
@@ -4519,8 +4524,9 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
       for (int m=0; m<(int) mixed_neighbours.size(); m++)
         {
           const int mixed_neighbour = mixed_neighbours[m];
-          const double normal_compo = abs(normal_vector_compo_[face_dir[mixed_neighbour]]);
-          corrective_flux_to_neighbours_[mixed_neighbour] = (total_flux_error * normal_compo) / weight_tot;
+          // const double normal_compo = abs(normal_vector_compo_[face_dir[mixed_neighbour]]);
+          compute_weighting_coefficient(mixed_neighbour, weight, fluxes_corrections_weighting_);
+          corrective_flux_to_neighbours_[mixed_neighbour] = (total_flux_error * abs(weight)) / weight_tot;
           // * flux_out[mixed_neighbour]
         }
     }
@@ -4538,6 +4544,7 @@ void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
 
 void IJK_One_Dimensional_Subproblem::compute_weighting_coefficient(const int& l, double& weight, const int& weight_type)
 {
+  weight = 0.;
   const int face_dir[6] = FACES_DIR;
   const int dir = face_dir[l];
   if (weight_type == 0)
@@ -4748,6 +4755,7 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
 
       const int face_dir[6] = FACES_DIR;
       double weight_dir_tot;
+      double weight = 0.;
       std::vector<int> pure_faces;
       std::vector<double> weight_dir;
       for (int c=0; c<3; c++)
@@ -4758,26 +4766,28 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
           for (int l=0; l<6; l++)
             {
               double normal_compo = normal_vector_compo_[face_dir[l]];
+              compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
               if (signbit(flux_out[l]) == signbit(normal_compo))
                 if (pure_liquid_neighbours_[l] && face_dir[l] != c)
                   {
-                    normal_compo = abs(normal_compo);
+                    // normal_compo = abs(normal_compo);
                     pure_faces.push_back(l);
-                    weight_dir.push_back(normal_compo);
-                    weight_dir_tot += normal_compo;
+                    weight_dir.push_back(weight);
+                    weight_dir_tot += weight;
                   }
             }
           if (weight_dir.size() == 0)
             for (int l=0; l<6; l++)
               {
                 double normal_compo = normal_vector_compo_[face_dir[l]];
+                compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
                 if (signbit(flux_out[l]) == signbit(normal_compo))
                   if (pure_liquid_neighbours_[l])
                     {
-                      normal_compo = abs(normal_compo);
+                      // normal_compo = abs(normal_compo);
                       pure_faces.push_back(l);
-                      weight_dir.push_back(normal_compo);
-                      weight_dir_tot += normal_compo;
+                      weight_dir.push_back(weight);
+                      weight_dir_tot += weight;
                     }
               }
           if (weight_dir.size() == 0)
