@@ -201,6 +201,7 @@ void IJK_Thermals::initialize(const IJK_Splitting& splitting, int& nalloc)
         {
           overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
           interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
+          shell_quantities_thermal_probes_folder_ = Nom("shell_quantities_thermal_probes");
           local_quantities_thermal_probes_folder_ = Nom("local_quantities_thermal_probes");
           local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
           local_quantities_thermal_slices_folder_ = Nom("local_quantities_thermal_slices");
@@ -493,6 +494,7 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
                                                                   + suffix_local_quantities;
           Nom overall_bubbles_quantities = thermal_rank_folder_[rank] + "/" + overall_bubbles_quantities_folder_;
           Nom interfacial_quantities_thermal_probes = thermal_rank_folder_[rank] + "/" + interfacial_quantities_thermal_probes_folder_;
+          Nom shell_quantities_thermal_probes = thermal_rank_folder_[rank] + "/" + shell_quantities_thermal_probes_folder_;
           Nom local_quantities_thermal_slices_time_index_folder = prefix_local_quantities
                                                                   + local_quantities_thermal_slices_folder_ + "/"
                                                                   + local_quantities_thermal_slices_time_index_folder_
@@ -507,6 +509,7 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
           create_folders(local_quantities_thermal_lines_time_index_folder);
 
           itr.thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
+                                            shell_quantities_thermal_probes,
                                             overall_bubbles_quantities,
                                             local_quantities_thermal_probes_time_index_folder,
                                             local_quantities_thermal_slices_time_index_folder,
@@ -530,6 +533,7 @@ void IJK_Thermals::create_folders_for_probes()
       create_folders(thermal_rank_folder_[idth]);
       create_folders(thermal_rank_folder_[idth] + "/" + overall_bubbles_quantities_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + interfacial_quantities_thermal_probes_folder_);
+      create_folders(thermal_rank_folder_[idth] + "/" + shell_quantities_thermal_probes_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_probes_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_slices_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_lines_folder_);

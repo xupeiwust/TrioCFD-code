@@ -172,10 +172,12 @@ public :
                               std::map<std::string, ArrOfDouble>& results_probes_double);
   void thermal_subresolution_outputs_parallel(const int& rank,
                                               const Nom& interfacial_quantities_thermal_probes,
+                                              const Nom& shell_quantities_thermal_probes,
                                               const Nom& overall_bubbles_quantities,
                                               const Nom& local_quantities_thermal_probes_time_index_folder);
   void thermal_subresolution_outputs(const int& rank,
                                      const Nom& interfacial_quantities_thermal_probes,
+                                     const Nom& shell_quantities_thermal_probes,
                                      const Nom& overall_bubbles_quantities,
                                      const Nom& local_quantities_thermal_probes_time_index_folder);
 

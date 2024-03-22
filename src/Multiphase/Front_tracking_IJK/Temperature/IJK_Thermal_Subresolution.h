@@ -72,6 +72,7 @@ public :
   // void read_fd_solver(const Motcle& mot, Entree& is);
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   void set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
+                                         const Nom& shell_quantities_thermal_probes,
                                          const Nom& overall_bubbles_quantities,
                                          const Nom& local_quantities_thermal_probes_time_index_folder) override;
   void post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder) override;

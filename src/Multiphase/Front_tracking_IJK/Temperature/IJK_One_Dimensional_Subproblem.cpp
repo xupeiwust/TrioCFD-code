@@ -4093,15 +4093,32 @@ void IJK_One_Dimensional_Subproblem::compute_bubble_related_quantities()
 }
 
 
-void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs(SFichier& fic, const int rank, const Nom& local_quantities_thermal_probes_time_index_folder)
+void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs(SFichier& fic,
+                                                                   SFichier& fic_shell,
+                                                                   const int rank,
+                                                                   const Nom& local_quantities_thermal_probes_time_index_folder)
 {
-  post_process_interfacial_quantities(fic, rank);
+  post_process_interfacial_quantities(fic, rank, 0);
+  post_process_interfacial_quantities(fic_shell, rank, (*points_per_thermal_subproblem_) - 1);
   post_process_radial_quantities(rank, local_quantities_thermal_probes_time_index_folder);
 }
 
 void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs_parallel(const int rank, const Nom& local_quantities_thermal_probes_time_index_folder)
 {
   post_process_radial_quantities(rank, local_quantities_thermal_probes_time_index_folder);
+}
+
+void IJK_One_Dimensional_Subproblem::retrieve_shell_quantities(const int rank,
+                                                               const int& itr,
+                                                               std::vector<std::string> key_results_int,
+                                                               std::vector<std::string> key_results_double,
+                                                               std::map<std::string, ArrOfInt>& results_probes_int,
+                                                               std::map<std::string, ArrOfDouble>& results_probes_double)
+{
+  retrieve_interfacial_quantities(rank, itr,
+                                  key_results_int, key_results_double,
+                                  results_probes_int, results_probes_double,
+                                  (*points_per_thermal_subproblem_) - 1);
 }
 
 void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int rank,
@@ -4122,6 +4139,7 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
   std::vector<double> results_double =
   {
     last_time,
+    (*radial_coordinates_)[coord],
     normal_vector_compo_[0], normal_vector_compo_[1], normal_vector_compo_[2],
     first_tangential_vector_compo_[0], first_tangential_vector_compo_[1], first_tangential_vector_compo_[2],
     second_tangential_vector_compo_[0], second_tangential_vector_compo_[1], second_tangential_vector_compo_[2],
@@ -4173,7 +4191,11 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
     (*delta_temperature_), (*mean_liquid_temperature_),
     (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0),
     (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1),
-    (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2)
+    (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2),
+    bubble_rising_velocity_compo_[0],
+    bubble_rising_velocity_compo_[1],
+    bubble_rising_velocity_compo_[2],
+    bubble_rising_velocity_
   };
   int i;
   assert(key_results_int.size() == results_int.size());
@@ -4187,6 +4209,7 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
 
 }
 
+
 void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichier& fic, const int rank, const int& coord) //SFichier& fic)
 {
   // if (Process::je_suis_maitre())
@@ -4198,6 +4221,7 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << last_time_index << " ";
         fic << rank << " " << index_post_processing_ << " " << global_subproblem_index_ << " " << sub_problem_index_ << " ";
         fic << last_time << " ";
+        fic << (*radial_coordinates_)[coord] << " ";
         fic << normal_vector_compo_[0] << " " << normal_vector_compo_[1] << " " << normal_vector_compo_[2] << " ";
         fic << first_tangential_vector_compo_[0] << " " << first_tangential_vector_compo_[1] << " " << first_tangential_vector_compo_[2] << " ";
         fic << second_tangential_vector_compo_[0] << " " << second_tangential_vector_compo_[1] << " " << second_tangential_vector_compo_[2] << " ";
@@ -4250,6 +4274,10 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0) << " ";
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1) << " ";
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2) << " ";
+        fic << bubble_rising_velocity_compo_[0] << " ";
+        fic << bubble_rising_velocity_compo_[1] << " ";
+        fic << bubble_rising_velocity_compo_[2] << " ";
+        fic << bubble_rising_velocity_ << " ";
         fic << finl;
       }
   }
@@ -4310,7 +4338,9 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
                                "\tdu_r_dr\tdu_theta_dr\tdu_theta2_dr\tdu_theta_rise_dr\tdu_phi_dr"
                                "\ttotal_surface\ttotal_volume\tradius_from_surface\tradius_from_volume"
                                "\tdelta_temperature\tmean_liquid_temperature"
-                               "\trising_dir_x\trising_dir_y\trising_dir_z");
+                               "\trising_dir_x\trising_dir_y\trising_dir_z"
+                               "\trising_vel_x\trising_vel_y\trising_vel_z"
+                               "\trising_vel");
         SFichier fic = Open_file_folder(local_quantities_thermal_probes_time_index_folder, probe_name, probe_header, reset);
         const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
         for (int i=0; i<(*points_per_thermal_subproblem_); i++)
@@ -4370,6 +4400,10 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0) << " ";
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1) << " ";
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2) << " ";
+            fic << bubble_rising_velocity_compo_[0] << " ";
+            fic << bubble_rising_velocity_compo_[1] << " ";
+            fic << bubble_rising_velocity_compo_[2] << " ";
+            fic << bubble_rising_velocity_ << " ";
             fic << finl;
           }
         fic.close();

@@ -1399,15 +1399,19 @@ void IJK_One_Dimensional_Subproblems::set_results_probes_fic(SFichier& fic,
 
 void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(const int& rank,
                                                                              const Nom& interfacial_quantities_thermal_probes,
+                                                                             const Nom& shell_quantities_thermal_probes,
                                                                              const Nom& overall_bubbles_quantities,
                                                                              const Nom& local_quantities_thermal_probes_time_index_folder)
 {
 
-  std::map<std::string, ArrOfDouble> results_probes_double;
-  std::map<std::string, ArrOfInt> results_probes_int;
+  std::map<std::string, ArrOfDouble> results_probes_interf_double;
+  std::map<std::string, ArrOfInt> results_probes_interf_int;
+  std::map<std::string, ArrOfDouble> results_probes_shell_double;
+  std::map<std::string, ArrOfInt> results_probes_shell_int;
 
   std::vector<std::string> key_results_int = {"tstep", "thermal_rank", "post_pro_index", "global_subproblem", "local_subproblem"};
   std::vector<std::string> key_results_double = {"time",
+                                                 "coord",
                                                  "nx", "ny", "nz",
                                                  "t1x", "t1y", "t1z", "t2x", "t2y", "t2z",
                                                  "s1x", "s1y", "s1z", "s2x", "s2y", "s2z",
@@ -1443,14 +1447,20 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
                                                  "du_r_dr","du_theta_dr","du_theta2_dr","du_theta_rise_dr","du_phi_dr",
                                                  "total_surface", "total_volume", "radius_from_surface", "radius_from_volume",
                                                  "delta_temperature", "mean_liquid_temperature",
-                                                 "rising_dir_x", "rising_dir_y", "rising_dir_z"
+                                                 "rising_dir_x", "rising_dir_y", "rising_dir_z",
+                                                 "rising_vel_x","rising_vel_y", "rising_vel_z",
+                                                 "rising_vel"
                                                 };
 
   Nom probe_header = get_header_from_string_lists(key_results_int, key_results_double);
   set_results_probes_size(key_results_int,
                           key_results_double,
-                          results_probes_int,
-                          results_probes_double);
+                          results_probes_interf_int,
+                          results_probes_interf_double);
+  set_results_probes_size(key_results_int,
+                          key_results_double,
+                          results_probes_shell_int,
+                          results_probes_shell_double);
   // Common to all procs
   int i;
   const int size_outputs = global_subproblems_counter_;
@@ -1469,19 +1479,29 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
                                                                     itr,
                                                                     key_results_int,
                                                                     key_results_double,
-                                                                    results_probes_int,
-                                                                    results_probes_double);
+                                                                    results_probes_interf_int,
+                                                                    results_probes_interf_double);
+          (*this)[itr - index_ini_].retrieve_shell_quantities(rank,
+                                                              itr,
+                                                              key_results_int,
+                                                              key_results_double,
+                                                              results_probes_shell_int,
+                                                              results_probes_shell_double);
         }
     }
   for (i=0; i<size_int; i++)
     {
-      ArrOfInt& array_int_tmp = results_probes_int[key_results_int[i]];
-      mp_sum_for_each_item(array_int_tmp);
+      ArrOfInt& array_int_interf_tmp = results_probes_interf_int[key_results_int[i]];
+      mp_sum_for_each_item(array_int_interf_tmp);
+      ArrOfInt& array_int_shell_tmp = results_probes_shell_int[key_results_int[i]];
+      mp_sum_for_each_item(array_int_shell_tmp);
     }
   for (i=0; i<size_double; i++)
     {
-      ArrOfDouble& array_double_tmp = results_probes_double[key_results_double[i]];
-      mp_sum_for_each_item(array_double_tmp);
+      ArrOfDouble& array_double_interf_tmp = results_probes_interf_double[key_results_double[i]];
+      mp_sum_for_each_item(array_double_interf_tmp);
+      ArrOfDouble& array_double_shell_tmp = results_probes_shell_double[key_results_double[i]];
+      mp_sum_for_each_item(array_double_shell_tmp);
     }
   /*
    * Post-process all probes for interfacial quantities
@@ -1495,19 +1515,29 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
 
   if (debug_)
     Cerr << "Post-process interfacial quantities" << finl;
-  Nom probe_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
-                   + Nom("_thermal_subproblems_interfacial_quantities_time_index_")
-                   + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+  Nom probe_interf_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
+                          + Nom("_thermal_subproblems_interfacial_quantities_time_index_")
+                          + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+  Nom probe_shell_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
+                         + Nom("_thermal_subproblems_shell_quantities_time_index_")
+                         + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
 
   if (Process::je_suis_maitre())
     {
-      SFichier fic = Open_file_folder(interfacial_quantities_thermal_probes, probe_name, probe_header, reset);
-      set_results_probes_fic(fic,
+      SFichier fic_interf = Open_file_folder(interfacial_quantities_thermal_probes, probe_interf_name, probe_header, reset);
+      set_results_probes_fic(fic_interf,
                              key_results_int,
                              key_results_double,
-                             results_probes_int,
-                             results_probes_double);
-      fic.close();
+                             results_probes_interf_int,
+                             results_probes_interf_double);
+      fic_interf.close();
+      SFichier fic_shell = Open_file_folder(shell_quantities_thermal_probes, probe_shell_name, probe_header, reset);
+      set_results_probes_fic(fic_shell,
+                             key_results_int,
+                             key_results_double,
+                             results_probes_shell_int,
+                             results_probes_shell_double);
+      fic_shell.close();
     }
 
   if (debug_)
@@ -1522,6 +1552,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
 
 void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs(const int& rank,
                                                                     const Nom& interfacial_quantities_thermal_probes,
+                                                                    const Nom& shell_quantities_thermal_probes,
                                                                     const Nom& overall_bubbles_quantities,
                                                                     const Nom& local_quantities_thermal_probes_time_index_folder)
 {
@@ -1532,7 +1563,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs(const int& r
   const int reset = 1;
   const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
   Nom probe_header = Nom("tstep\tthermal_rank\tpost_pro_index\tglobal_subproblem\tlocal_subproblem\ttime"
-                         "\tnx\tny\tnz\tt1x\tt1y\tt2z\tt2x\tt2y\tt2z\ts1x\ts1y\ts1z\ts2x\ts2y\ts2z"
+                         "\tcoord\tnx\tny\tnz\tt1x\tt1y\tt2z\tt2x\tt2y\tt2z\ts1x\ts1y\ts1z\ts2x\ts2y\ts2z"
                          "\tr_sph\ttheta_sph\tphi_sph"
                          "\ttemperature_interp\ttemperature_sol\ttemperature_prev"
                          "\ttemperature_gradient\ttemperature_gradient_sol"
@@ -1562,33 +1593,44 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs(const int& r
                          "\tdu_r_dr\tdu_theta_dr\tdu_theta2_dr\tdu_theta_rise_dr\tdu_phi_dr"
                          "\ttotal_surface\ttotal_volume\tradius_from_surface\tradius_from_volume"
                          "\tdelta_temperature\tmean_liquid_temperature"
-                         "\trising_dir_x\trising_dir_y\trising_dir_z");
+                         "\trising_dir_x\trising_dir_y\trising_dir_z"
+                         "\trising_vel_x\trising_vel_y\trising_vel_z"
+                         "\trising_vel");
 
   const int max_digit = 3;
   const int max_digit_time = 8;
   const int max_rank_digit = rank < 1 ? 1 : (int) (log10(rank) + 1);
   const int nb_digit_tstep = last_time_index < 1 ? 1 : (int) (log10(last_time_index) + 1);
 
-  Nom probe_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
-                   + Nom("_thermal_subproblems_interfacial_quantities_time_index_")
-                   + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+  Nom interf_probe_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
+                          + Nom("_thermal_subproblems_interfacial_quantities_time_index_")
+                          + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+  Nom shell_probe_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rank)
+                         + Nom("_thermal_subproblems_shell_quantities_time_index_")
+                         + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
 
   const int proc_number = Process::nproc();
   if (proc_number != 1)
     {
       const int my_process_number = Process::me();
       Nom my_process_string = Nom(".processor_") + Nom(my_process_number);
-      probe_name += my_process_string;
+      interf_probe_name += my_process_string;
+      shell_probe_name += my_process_string;
     }
 
   /*
    * Post-process all probes for interfacial quantities
    */
-  SFichier fic = Open_file_folder(interfacial_quantities_thermal_probes, probe_name, probe_header, reset);
+  SFichier fic_interf = Open_file_folder(interfacial_quantities_thermal_probes, interf_probe_name, probe_header, reset);
+  SFichier fic_shell = Open_file_folder(shell_quantities_thermal_probes, shell_probe_name, probe_header, reset);
 
   for (int itr=0; itr < subproblems_counter_; itr++)
-    (*this)[itr].thermal_subresolution_outputs(fic, rank, local_quantities_thermal_probes_time_index_folder);
-  fic.close();
+    (*this)[itr].thermal_subresolution_outputs(fic_interf,
+                                               fic_shell,
+                                               rank,
+                                               local_quantities_thermal_probes_time_index_folder);
+  fic_interf.close();
+  fic_shell.close();
 
   post_process_overall_bubbles_quantities(rank, overall_bubbles_quantities);
 }

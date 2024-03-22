@@ -2680,6 +2680,7 @@ void IJK_Thermal_Subresolution::clean_ijk_intersections()
 }
 
 void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
+                                                                  const Nom& shell_quantities_thermal_probes,
                                                                   const Nom& overall_bubbles_quantities,
                                                                   const Nom& local_quantities_thermal_probes_time_index_folder)
 {
@@ -2697,6 +2698,7 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
         Cerr << "Write post-processings" << finl;
       thermal_local_subproblems_.thermal_subresolution_outputs_parallel(rang_,
                                                                         interfacial_quantities_thermal_probes,
+                                                                        shell_quantities_thermal_probes,
                                                                         overall_bubbles_quantities,
                                                                         local_quantities_thermal_probes_time_index_folder);
     }

@@ -126,6 +126,7 @@ protected :
   LIST(Nom) thermal_rank_folder_;
   Nom overall_bubbles_quantities_folder_;
   Nom interfacial_quantities_thermal_probes_folder_;
+  Nom shell_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_time_index_folder_;
   Nom local_quantities_thermal_slices_folder_;
