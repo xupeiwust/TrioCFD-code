@@ -312,6 +312,8 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
 
   if (smooth_grad_T_elem_)
     os << front_space << "smooth_grad_T_elem" <<  escape;
+  if (compute_eulerian_compo_)
+    os << front_space << "compute_eulerian_compo" <<  escape;
 
   return os;
 }
@@ -370,6 +372,7 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter_flag("ghost_fluid", &ghost_fluid_);
   param.ajouter_flag("spherical_exact", &spherical_exact_);
   param.ajouter_flag("debug", &debug_);
+  param.ajouter_flag("compute_eulerian_compo", &compute_eulerian_compo_);
 
   param.ajouter_flag("store_flux_operators_for_energy_balance", &store_flux_operators_for_energy_balance_);
   param.ajouter_flag("disable_relative_velocity_energy_balance", &disable_relative_velocity_energy_balance_);

@@ -525,6 +525,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       compute_curvature_ = 1;
       compute_distance_= 1;
     }
+  compute_eulerian_compo_ = 1;
   compute_rising_velocities_ = 1;
 
   distance_cell_faces_from_lrs_ = !disable_distance_cell_faces_from_lrs_;
