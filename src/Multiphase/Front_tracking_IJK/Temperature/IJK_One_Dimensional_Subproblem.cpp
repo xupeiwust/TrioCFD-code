@@ -4785,6 +4785,7 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
                 if (pure_liquid_neighbours_[l] && face_dir[l] != c)
                   {
                     // normal_compo = abs(normal_compo);
+                    weight = abs(weight);
                     pure_faces.push_back(l);
                     weight_dir.push_back(weight);
                     weight_dir_tot += weight;
@@ -4799,6 +4800,7 @@ void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correc
                   if (pure_liquid_neighbours_[l])
                     {
                       // normal_compo = abs(normal_compo);
+                      weight = abs(weight);
                       pure_faces.push_back(l);
                       weight_dir.push_back(weight);
                       weight_dir_tot += weight;
