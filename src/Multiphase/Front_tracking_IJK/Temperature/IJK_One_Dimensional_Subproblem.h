@@ -598,7 +598,8 @@ protected :
                                             const int& use_velocity_cartesian_grid,
                                             const int& compute_radial_displacement,
                                             const int& fluxes_correction_conservations,
-                                            const int& fluxes_corrections_weighting);
+                                            const int& fluxes_corrections_weighting,
+                                            const int& use_normal_gradient_for_flux_corr);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -820,6 +821,7 @@ protected :
   int init_ = 1;
   int advected_frame_of_reference_=0;
   int neglect_frame_of_reference_radial_advection_=0;
+  int use_normal_gradient_for_flux_corr_=0;
   /*
    * FIXME: Should I use only references or just for IJK_Field_double ?
    * Should I use IJK_Field_local_double or IJK_Field_double as pointers ?

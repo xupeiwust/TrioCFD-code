@@ -766,6 +766,7 @@ protected :
   int use_corrected_velocity_convection_ = 0;
   int use_velocity_cartesian_grid_ = 0;
   int compute_radial_displacement_ = 0;
+  int use_normal_gradient_for_flux_corr_ = 0;
 
   FixedVector<IJK_Field_double,3> interfacial_heat_flux_dispatched_;
   FixedVector<ArrOfInt, 3> ijk_indices_flux_out_;

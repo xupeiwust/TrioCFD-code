@@ -236,6 +236,8 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "fluxes_corrections_weighting" << escape;
   if (keep_max_flux_correction_)
     os << front_space << "keep_max_flux_correction" << escape;
+  if (use_normal_gradient_for_flux_corr_)
+    os << front_space << "use_normal_gradient_for_flux_corr" << escape;
 
   /*
    * Values
@@ -452,6 +454,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("use_corrected_velocity_convection", &use_corrected_velocity_convection_);
   param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
   param.ajouter_flag("compute_radial_displacement", &compute_radial_displacement_);
+  param.ajouter_flag("use_normal_gradient_for_flux_corr", &use_normal_gradient_for_flux_corr_);
 
   param.ajouter_flag("keep_max_flux_correction", &keep_max_flux_correction_);
 

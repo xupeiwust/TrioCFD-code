@@ -182,7 +182,8 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            ref_thermal_subresolution.use_velocity_cartesian_grid_,
                                            ref_thermal_subresolution.compute_radial_displacement_,
                                            ref_thermal_subresolution.fluxes_correction_conservations_,
-                                           ref_thermal_subresolution.fluxes_corrections_weighting_);
+                                           ref_thermal_subresolution.fluxes_corrections_weighting_,
+                                           ref_thermal_subresolution.use_normal_gradient_for_flux_corr_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
                                       ref_thermal_subresolution.first_time_step_varying_probes_,
                                       ref_thermal_subresolution.probe_variations_priority_,
@@ -401,7 +402,8 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
                                                                           const int& use_velocity_cartesian_grid,
                                                                           const int& compute_radial_displacement,
                                                                           const int& fluxes_correction_conservations,
-                                                                          const int& fluxes_corrections_weighting)
+                                                                          const int& fluxes_corrections_weighting,
+                                                                          const int& use_normal_gradient_for_flux_corr)
 {
   correct_fluxes_ = correct_fluxes;
   distance_cell_faces_from_lrs_ = distance_cell_faces_from_lrs;
@@ -411,6 +413,7 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
   compute_radial_displacement_ = compute_radial_displacement;
   fluxes_correction_conservations_ = fluxes_correction_conservations;
   fluxes_corrections_weighting_ = fluxes_corrections_weighting;
+  use_normal_gradient_for_flux_corr_ = use_normal_gradient_for_flux_corr;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_source_terms_parameters(const int& source_terms_type,
@@ -3164,10 +3167,10 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   reinit_variable(temperature_x_gradient_solution_);
   reinit_variable(temperature_y_gradient_solution_);
   reinit_variable(temperature_z_gradient_solution_);
-  if ((source_terms_type_ == linear_diffusion
-       || source_terms_type_ == spherical_diffusion
-       || source_terms_type_ == spherical_diffusion_approx)
-      && !compute_tangential_variables_)
+  if (((source_terms_type_ == linear_diffusion
+        || source_terms_type_ == spherical_diffusion
+        || source_terms_type_ == spherical_diffusion_approx)
+       && !compute_tangential_variables_) || use_normal_gradient_for_flux_corr_)
     {
       DoubleVect dummy_tangential_deriv;
       dummy_tangential_deriv.resize(*points_per_thermal_subproblem_);
