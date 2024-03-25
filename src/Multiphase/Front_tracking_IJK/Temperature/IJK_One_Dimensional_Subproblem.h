@@ -607,6 +607,7 @@ protected :
                                             const int& use_velocity_cartesian_grid,
                                             const int& compute_radial_displacement,
                                             const int& fluxes_correction_conservations,
+                                            const int& conserve_max_interfacial_fluxes,
                                             const int& fluxes_corrections_weighting,
                                             const int& use_normal_gradient_for_flux_corr);
   void associate_source_terms_parameters(const int& source_terms_type,
@@ -1315,6 +1316,7 @@ protected :
   FixedVector<double, 6> temperature_interp_conv_flux_;
   int disable_relative_velocity_energy_balance_ = 0;
   int fluxes_correction_conservations_ = 0;
+  int conserve_max_interfacial_fluxes_ = 0;
   int fluxes_corrections_weighting_ = 0;
 };
 

@@ -232,6 +232,8 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "compute_radial_displacement" << escape;
   if (fluxes_correction_conservations_)
     os << front_space << "fluxes_correction_conservations" << escape;
+  if (conserve_max_interfacial_fluxes_)
+    os << front_space << "conserve_max_interfacial_fluxes" << escape;
   if (fluxes_corrections_weighting_)
     os << front_space << "fluxes_corrections_weighting" << escape;
   if (keep_max_flux_correction_)
@@ -330,6 +332,7 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("convective_flux_correction", &convective_flux_correction_);
   param.ajouter_flag("diffusive_flux_correction", &diffusive_flux_correction_);
   param.ajouter_flag("fluxes_correction_conservations", &fluxes_correction_conservations_);
+  param.ajouter_flag("conserve_max_interfacial_fluxes", &conserve_max_interfacial_fluxes_);
   param.ajouter("fluxes_corrections_weighting", &fluxes_corrections_weighting_);
 
   param.ajouter_flag("disable_fo_flux_correction", &disable_fo_flux_correction_);

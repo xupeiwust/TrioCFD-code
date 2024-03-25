@@ -561,6 +561,7 @@ protected :
   int diffusive_flux_correction_ = 0;
   int convective_flux_correction_ = 0;
   int fluxes_correction_conservations_ = 0;
+  int conserve_max_interfacial_fluxes_ = 0;
   int fluxes_corrections_weighting_ = 0;
   int impose_fo_flux_correction_ = 1;
   int disable_fo_flux_correction_ = 0;

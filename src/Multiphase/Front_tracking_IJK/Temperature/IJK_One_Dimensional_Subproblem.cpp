@@ -182,6 +182,7 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            ref_thermal_subresolution.use_velocity_cartesian_grid_,
                                            ref_thermal_subresolution.compute_radial_displacement_,
                                            ref_thermal_subresolution.fluxes_correction_conservations_,
+                                           ref_thermal_subresolution.conserve_max_interfacial_fluxes_,
                                            ref_thermal_subresolution.fluxes_corrections_weighting_,
                                            ref_thermal_subresolution.use_normal_gradient_for_flux_corr_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
@@ -402,6 +403,7 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
                                                                           const int& use_velocity_cartesian_grid,
                                                                           const int& compute_radial_displacement,
                                                                           const int& fluxes_correction_conservations,
+                                                                          const int& conserve_max_interfacial_fluxes,
                                                                           const int& fluxes_corrections_weighting,
                                                                           const int& use_normal_gradient_for_flux_corr)
 {
@@ -412,6 +414,7 @@ void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const 
   use_velocity_cartesian_grid_ = use_velocity_cartesian_grid;
   compute_radial_displacement_ = compute_radial_displacement;
   fluxes_correction_conservations_ = fluxes_correction_conservations;
+  conserve_max_interfacial_fluxes_ = conserve_max_interfacial_fluxes;
   fluxes_corrections_weighting_ = fluxes_corrections_weighting;
   use_normal_gradient_for_flux_corr_ = use_normal_gradient_for_flux_corr;
 }
@@ -3249,9 +3252,7 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   const double flux_coeff = ((*lambda_) * surface_);
   thermal_flux_*= flux_coeff;
   thermal_flux_interp_gfm_ *= flux_coeff;
-  thermal_flux_total_ = thermal_flux_[0];
   const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
-  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
 
   thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
   thermal_flux_raw_ = normal_temperature_gradient_interp_[0] * flux_coeff;
@@ -3261,6 +3262,15 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   thermal_flux_max_raw_ = sign_flux * std::max(abs(thermal_flux_raw_), abs(thermal_flux_lrs_));
   thermal_flux_max_gfm_ = sign_flux * std::max(abs(thermal_flux_gfm_), abs(thermal_flux_lrs_));
   thermal_flux_max_ = sign_flux * std::max(std::max(abs(thermal_flux_gfm_), abs(thermal_flux_raw_)), abs(thermal_flux_lrs_));
+
+  if (conserve_max_interfacial_fluxes_)
+    {
+      thermal_flux_total_ = thermal_flux_max_gfm_;
+      thermal_flux_ = thermal_flux_total_;
+    }
+  else
+    thermal_flux_total_ = thermal_flux_[0];
+  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
 }
 
 void IJK_One_Dimensional_Subproblem::compute_radial_convection_scale_factor_solution()
