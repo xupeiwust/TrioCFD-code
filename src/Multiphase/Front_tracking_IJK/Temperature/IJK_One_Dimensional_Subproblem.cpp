@@ -3133,6 +3133,7 @@ void IJK_One_Dimensional_Subproblem::copy_interpolations_on_solution_variables_f
   temperature_z_gradient_solution_ = grad_T_elem_interp_[2];
   thermal_flux_ = normal_temperature_gradient_solution_;
   const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
+  normal_temperature_gradient_solution_[0] = grad_T_elem_gfm;
   thermal_flux_[0] = grad_T_elem_gfm;
   thermal_flux_*= flux_coeff;
   thermal_flux_interp_gfm_ = thermal_flux_;

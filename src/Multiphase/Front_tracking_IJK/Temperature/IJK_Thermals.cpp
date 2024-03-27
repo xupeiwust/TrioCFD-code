@@ -144,8 +144,10 @@ void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
 {
   int idth = 0;
   for (auto& itr : *this)
+  {
     itr.sauvegarder_temperature(lata_name, idth, stop);
-  idth++;
+    idth++;
+  }
 }
 
 void IJK_Thermals::sauvegarder_thermals(SFichier& fichier)
