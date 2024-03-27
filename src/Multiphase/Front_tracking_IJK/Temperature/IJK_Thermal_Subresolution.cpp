@@ -534,6 +534,21 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   compute_eulerian_compo_ = 1;
   compute_rising_velocities_ = 1;
 
+  if (disable_subresolution_ && !reference_gfm_on_probes_)
+    {
+      compute_hess_diag_T_elem_ = 0;
+      compute_hess_cross_T_elem_ = 0;
+      compute_hess_T_elem_ = 0;
+      compute_grad_T_elem_ = 0;
+    }
+  else
+    {
+      compute_hess_diag_T_elem_ = 1;
+      compute_hess_cross_T_elem_ = 1;
+      compute_hess_T_elem_ = 1;
+      compute_grad_T_elem_ = 1;
+    }
+
   distance_cell_faces_from_lrs_ = !disable_distance_cell_faces_from_lrs_;
   first_step_thermals_post_ = !disable_first_step_thermals_post_;
 
