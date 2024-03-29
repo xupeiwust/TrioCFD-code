@@ -488,9 +488,8 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("ratio_density_max", &ratio_density_max_);
 #endif
 
-  // Cut cell options
-  type_surface_efficace_face_ = -1;
-  type_surface_efficace_interface_ = -1;
+  type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
+  type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
 
   // valeurs par default des parametres de bulles fixes
   coef_immobilisation_ = 0.;
@@ -619,9 +618,14 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
   param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
 
-  // Cut cell options
-  param.ajouter("type_surface_efficace_face", &type_surface_efficace_face_);
-  param.ajouter("type_surface_efficace_interface", &type_surface_efficace_interface_);
+  param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
+  param.dictionnaire("algebrique",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE);
+  param.dictionnaire("iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::ITERATIF);
+  param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
+  param.dictionnaire("algebrique",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE);
+  param.dictionnaire("iteratif", (int)TYPE_SURFACE_EFFICACE_INTERFACE::ITERATIF);
 
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);

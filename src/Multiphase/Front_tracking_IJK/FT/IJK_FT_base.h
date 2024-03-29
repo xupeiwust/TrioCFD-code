@@ -46,6 +46,7 @@
 #include <IJK_Thermals.h>
 #include <TRUST_Ref.h>
 #include <Objet_U.h>
+#include <Cut_cell_surface_efficace.h>
 
 class Probleme_base;
 
@@ -743,9 +744,9 @@ protected :
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
 
-  // Cut cell options
-  int type_surface_efficace_face_;
-  int type_surface_efficace_interface_;
+  // Options for the cut-cell computation of effective surfaces
+  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_;
+  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_;
 };
 
 #endif /* IJK_FT_base_included */

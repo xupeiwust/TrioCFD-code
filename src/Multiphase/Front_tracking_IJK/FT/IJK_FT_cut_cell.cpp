@@ -586,6 +586,7 @@ void IJK_FT_cut_cell::run()
                   thermals_.transfert_diphasique_vers_pures();
 
                   interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, timestep_, cut_field_velocity_);
+                  interfaces_.imprime_bilan_indicatrice();
 
                   counter_first_iter_--;
                   if(first_step_interface_smoothing_)
@@ -713,6 +714,7 @@ void IJK_FT_cut_cell::run()
                   thermals_.transfert_diphasique_vers_pures();
 
                   interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
+                  interfaces_.imprime_bilan_indicatrice();
 
                   parcourir_maillage();
                 }

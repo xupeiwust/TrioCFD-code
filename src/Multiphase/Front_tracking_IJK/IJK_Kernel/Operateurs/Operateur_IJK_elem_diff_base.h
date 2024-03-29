@@ -39,13 +39,11 @@ public:
                        const IJK_Field_local_double& boundary_flux_kmax);
   virtual void calculer_cut_cell(const Cut_field_scalar& field,
                                  Cut_cell_vector& cut_cell_flux,
-                                 const DoubleTabFT_cut_cell& flux_interface,
                                  Cut_field_scalar& result,
                                  const IJK_Field_local_double& boundary_flux_kmin,
                                  const IJK_Field_local_double& boundary_flux_kmax);
   virtual void ajouter_cut_cell(const Cut_field_scalar& field,
                                 Cut_cell_vector& cut_cell_flux,
-                                const DoubleTabFT_cut_cell& flux_interface,
                                 Cut_field_scalar& result,
                                 const IJK_Field_local_double& boundary_flux_kmin,
                                 const IJK_Field_local_double& boundary_flux_kmax);
@@ -101,12 +99,7 @@ public:
   {
     return (phase == 0) ? &cut_cell_flux_->diph_v_ : &cut_cell_flux_->diph_l_;
   }
-  const DoubleTabFT_cut_cell* get_flux_interface() override
-  {
-    return flux_interface_;
-  }
   inline void compute_cut_cell_divergence(int phase, const DoubleTabFT_cut_cell& diph_flux,
-                                          const DoubleTabFT_cut_cell* flux_interface_ptr,
                                           const IJK_Field_local_double& flux_x,
                                           const IJK_Field_local_double& flux_y,
                                           const IJK_Field_local_double& flux_zmin,
@@ -156,12 +149,6 @@ public:
             r += fy_centre - fy_right;
             r += fz_centre - fz_right;
 
-            if (flux_interface_ptr)
-              {
-                const DoubleTabFT_cut_cell& flux_interface = *flux_interface_ptr;
-                r += (phase == 0) ? flux_interface(n) : -flux_interface(n);
-              }
-
             if(add)
               {
                 r += diph_resu(n);
@@ -203,7 +190,6 @@ protected:
 
   const Cut_field_scalar *input_cut_field_;
   Cut_cell_vector *cut_cell_flux_;
-  const DoubleTabFT_cut_cell *flux_interface_;
 
   const IJK_Field_local_double *lambda_;
   const double *uniform_lambda_;

@@ -1,0 +1,831 @@
+/****************************************************************************
+* Copyright (c) 2015 - 2016, CEA
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*
+*****************************************************************************/
+/////////////////////////////////////////////////////////////////////////////
+//
+// File      : Cut_cell_surface_efficace.cpp
+// Directory : $IJK_ROOT/src/FT
+//
+/////////////////////////////////////////////////////////////////////////////
+
+#include <Cut_cell_surface_efficace.h>
+#include <Cut_cell_FT_Disc.h>
+#include <IJK_Thermal_base.h>
+#include <Process.h>
+#include <stat_counters.h>
+#include <IJK_Navier_Stokes_tools.h>
+
+inline double select(int a, double x, double y,double z)
+{
+  return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
+}
+
+void Cut_cell_surface_efficace::calcul_surface_interface_effective_initiale(
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  const IJK_Field_double& surface_interface_ns_old,
+  const IJK_Field_double& surface_interface_ns_next,
+  const FixedVector<IJK_Field_double, 3>& normal_of_interf_ns_old,
+  const FixedVector<IJK_Field_double, 3>& normal_of_interf_ns_next,
+  DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
+  DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
+  DoubleTabFT_cut_cell_scalar& surface_efficace_interface_initial)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface.get_cut_cell_disc();
+  for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      if (IJK_Interfaces::devient_pure(old_indicatrice_ns(i, j, k), next_indicatrice_ns(i, j, k)))
+        {
+          surface_efficace_interface(n) = (surface_interface_ns_old(i, j, k) + 3*surface_interface_ns_next(i, j, k)) * 0.25;
+          for (int dir = 0 ; dir < 3 ; dir++)
+            {
+              normale_deplacement_interface(n,dir) = normal_of_interf_ns_old[dir](i, j, k);
+            }
+        }
+      else if (IJK_Interfaces::devient_diphasique(old_indicatrice_ns(i, j, k), next_indicatrice_ns(i, j, k)))
+        {
+          surface_efficace_interface(n) = (3*surface_interface_ns_old(i, j, k) + surface_interface_ns_next(i, j, k)) * 0.25;
+          for (int dir = 0 ; dir < 3 ; dir++)
+            {
+              normale_deplacement_interface(n,dir) = normal_of_interf_ns_next[dir](i, j, k);
+            }
+        }
+      else
+        {
+          surface_efficace_interface(n) = (surface_interface_ns_old(i, j, k) + surface_interface_ns_next(i, j, k)) * 0.5;
+          for (int dir = 0 ; dir < 3 ; dir++)
+            {
+              normale_deplacement_interface(n,dir) = (normal_of_interf_ns_old[dir](i, j, k) + normal_of_interf_ns_next[dir](i, j, k)) * 0.5;
+            }
+        }
+
+      double norm_normale = sqrt(normale_deplacement_interface(n,0)*normale_deplacement_interface(n,0) + normale_deplacement_interface(n,1)*normale_deplacement_interface(n,1) + normale_deplacement_interface(n,2)*normale_deplacement_interface(n,2));
+      normale_deplacement_interface(n,0) /= norm_normale;
+      normale_deplacement_interface(n,1) /= norm_normale;
+      normale_deplacement_interface(n,2) /= norm_normale;
+
+      surface_efficace_interface_initial(n) = surface_efficace_interface(n);
+    }
+}
+
+void Cut_cell_surface_efficace::calcul_vitesse_interface(
+  const Cut_field_vector& velocity,
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  const FixedVector<IJK_Field_double, 3>& barycentre_phase1_ns_old,
+  const FixedVector<IJK_Field_double, 3>& barycentre_phase1_ns_next,
+  DoubleTabFT_cut_cell_vector3& coord_deplacement_interface,
+  DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = vitesse_deplacement_interface.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+
+  // Calculer la coordonnee correspondant au deplacement de l'interface :
+  //    x_depl_interf = (I[new]*bary[new] - I[old]*bary[old])/(delta I)
+  // Bien sur, celle-ci ne depend pas de la phase consideree.
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      for (int dir = 0; dir < 3; dir++)
+        {
+          double delta_I = next_indicatrice_ns(i,j,k) - old_indicatrice_ns(i,j,k);
+
+          double bary_depl_interf;
+          if (delta_I == 0.)
+            {
+              bary_depl_interf = barycentre_phase1_ns_next[dir](i,j,k);
+            }
+          else
+            {
+              bary_depl_interf = (next_indicatrice_ns(i,j,k)*barycentre_phase1_ns_next[dir](i,j,k) - old_indicatrice_ns(i,j,k)*barycentre_phase1_ns_old[dir](i,j,k))/delta_I;
+
+              // Le calcul est pas correct (!), mais on evite de planter
+              if (bary_depl_interf <= 0)
+                {
+                  bary_depl_interf = 1e-12;
+                }
+              else if (bary_depl_interf > 1)
+                {
+                  bary_depl_interf = 1 - 1e-12;
+                }
+            }
+          assert((bary_depl_interf >= 0) && (bary_depl_interf <= 1));
+
+          // Passage a un systeme de coordonnees dimensionel et absolue
+          const int i_dir = select(dir, i, j, k);
+          const int offset_dir = cut_cell_disc.get_splitting().get_offset_local(dir);
+          const double origin_dir = geom.get_origin(dir);
+          const double delta_dir = geom.get_constant_delta(dir);
+          const double coord_dir  = origin_dir + (i_dir + offset_dir + bary_depl_interf) * delta_dir;
+
+          coord_deplacement_interface(n, dir) = coord_dir;
+        }
+    }
+
+  // Interpolation de la vitesse sur la coordonnee du deplacement de l'interface
+  ArrOfDouble vinterp_component(cut_cell_disc.get_n_loc());
+  for (int dir = 0; dir < 3; dir++)
+    {
+      ijk_interpolate_skip_unknown_points(velocity.pure_[dir], coord_deplacement_interface, vinterp_component, 1.e5 /* value for unknown points */);
+      for (int i = 0; i < cut_cell_disc.get_n_loc(); i++)
+        {
+          vitesse_deplacement_interface(i, dir) = vinterp_component[i];
+        }
+    }
+  vitesse_deplacement_interface.echange_espace_virtuel();
+}
+
+void Cut_cell_surface_efficace::calcul_surface_interface_effective(
+  double timestep,
+  const Cut_field_vector& velocity,
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface,
+  const DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
+  DoubleTabFT_cut_cell_scalar& surface_efficace_interface)
+{
+  static Stat_Counter_Id calculer_surface_efficace_interface_counter_ =
+    statistiques().new_counter(2, "cut_cell: calcul des surfaces efficaces interface");
+  statistiques().begin_count(calculer_surface_efficace_interface_counter_);
+
+  const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  // Calcul de la correction de surface efficace de l'interface
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      const double delta_z = delta_z_all[k + offset];
+      const double volume = delta_x * delta_y * delta_z;
+
+      const double vitesse_interface = -vitesse_deplacement_interface(n,0)*normale_deplacement_interface(n,0) - vitesse_deplacement_interface(n,1)*normale_deplacement_interface(n,1) - vitesse_deplacement_interface(n,2)*normale_deplacement_interface(n,2);
+      const double surface_interface = surface_efficace_interface(n);
+
+      double delta_volume_cible = volume * (next_indicatrice_ns(i, j, k) - old_indicatrice_ns(i, j, k));
+      double delta_volume_interface = vitesse_interface * surface_interface * timestep;
+
+      double erreur_relative = delta_volume_cible == 0. ? delta_volume_interface/volume : std::fabs((delta_volume_interface - delta_volume_cible)/delta_volume_cible);
+
+      if (erreur_relative == 0)
+        {
+        }
+      else
+        {
+          surface_efficace_interface(n) = delta_volume_cible/(vitesse_interface * timestep);
+        }
+    }
+
+  surface_efficace_interface.echange_espace_virtuel();
+
+  statistiques().end_count(calculer_surface_efficace_interface_counter_);
+}
+
+void Cut_cell_surface_efficace::calcul_surface_face_effective_initiale(
+  const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face_ns,
+  const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face_ns,
+  DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
+  DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face.get_cut_cell_disc();
+  for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      for (int dir = 0; dir < 3; dir++)
+        {
+          if (IJK_Interfaces::devient_pure(old_indicatrice_surfacique_face_ns[dir](i, j, k), next_indicatrice_surfacique_face_ns[dir](i, j, k)))
+            {
+              indicatrice_surfacique_efficace_face(n, dir) = (old_indicatrice_surfacique_face_ns[dir](i, j, k) + 3*next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.25;
+            }
+          else if (IJK_Interfaces::devient_diphasique(old_indicatrice_surfacique_face_ns[dir](i, j, k), next_indicatrice_surfacique_face_ns[dir](i, j, k)))
+            {
+              indicatrice_surfacique_efficace_face(n, dir) = (3*old_indicatrice_surfacique_face_ns[dir](i, j, k) + next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.25;
+            }
+          else
+            {
+              indicatrice_surfacique_efficace_face(n, dir) = (old_indicatrice_surfacique_face_ns[dir](i, j, k) + next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.5;
+            }
+          indicatrice_surfacique_efficace_face_initial(n, dir) = indicatrice_surfacique_efficace_face(n, dir);
+        }
+    }
+}
+
+void Cut_cell_surface_efficace::calcul_surface_face_effective(
+  double timestep,
+  const Cut_field_vector& velocity,
+  int& iteration_solver_surface_efficace_face,
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face_ns,
+  const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face_ns,
+  DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
+  const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial,
+  DoubleTabFT_cut_cell_vector6& indicatrice_surfacique_efficace_face_correction,
+  DoubleTabFT_cut_cell_scalar& indicatrice_surfacique_efficace_face_absolute_error)
+{
+  static Stat_Counter_Id calculer_surface_efficace_face_counter_ =
+    statistiques().new_counter(2, "cut_cell: calcul des surfaces efficaces");
+  statistiques().begin_count(calculer_surface_efficace_face_counter_);
+
+  const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      indicatrice_surfacique_efficace_face_absolute_error(n) = 0.;
+    }
+
+  // Iteration du solveur de la surface efficace
+  const int maximum_iteration = 499;
+  const int iteration_impression_intermediaire = 100;
+  int solution_not_found = 0;
+  do
+    {
+      iteration_solver_surface_efficace_face += 1;
+      solution_not_found = 0;
+
+      int solution_locally_not_found = 0;
+
+      // Initialisation du tableau de correction de surface
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          for (int num_face = 0; num_face < 6; num_face++)
+            {
+              int dir = num_face%3;
+              int decalage = num_face/3;
+
+              int di = decalage*(dir == 0);
+              int dj = decalage*(dir == 1);
+              int dk = decalage*(dir == 2);
+
+              int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+              if (n_face >= 0)
+                {
+                  indicatrice_surfacique_efficace_face_correction(n, num_face) = indicatrice_surfacique_efficace_face(n_face, dir);
+                }
+              else
+                {
+                  indicatrice_surfacique_efficace_face_correction(n, num_face) = next_indicatrice_ns(i+di,j+dj,k+dk);
+                }
+            }
+        }
+
+      // Calcul de la correction de surface
+      // Note : Contrairement aux autres tableaux de surface, la correction est stockee sur
+      // les six faces de chaque cellule diphasique. On a donc pour chaque face deux informations
+      // de correction, qui correspondent a la correction calculee independamment pour les deux
+      // cellules contenant la face. On calcule dans un deuxieme temps la surface effective
+      // a partir de ces deux corrections.
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          const double delta_z = delta_z_all[k + offset];
+          const double volume = delta_x * delta_y * delta_z;
+
+          const double fx = delta_y * delta_z * timestep;
+          const double fy = delta_x * delta_z * timestep;
+          const double fz = delta_x * delta_y * timestep;
+
+          double surface_efficace[6] = {0};
+          double surface_max[6] = {0};
+          double surface_min[6] = {0};
+          double flux_diphasique[6] = {0};
+          double delta_surface_max[6] = {0};
+
+          double delta_volume_total = 0;
+          double delta_volume_diphasique = 0;
+          for (int num_face = 0; num_face < 6; num_face++)
+            {
+              int dir = num_face%3;
+              int decalage = num_face/3;
+              int sign = decalage*2 -1;
+
+              int di = decalage*(dir == 0);
+              int dj = decalage*(dir == 1);
+              int dk = decalage*(dir == 2);
+
+              double f = select(dir, fx, fy, fz);
+
+              int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+              if (n_face >= 0)
+                {
+                  double surface_old = old_indicatrice_surfacique_face_ns[dir](i+di,j+dj,k+dk);
+                  double surface_next = next_indicatrice_surfacique_face_ns[dir](i+di,j+dj,k+dk);
+                  surface_max[num_face] = std::max(surface_old, surface_next);
+                  surface_min[num_face] = std::min(surface_old, surface_next);
+                  surface_efficace[num_face] = indicatrice_surfacique_efficace_face(n_face, dir);
+                  flux_diphasique[num_face] = (indicatrice_surfacique_efficace_face(n_face, dir) == 1.) ? 0. : sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity.diph_l_(n_face, dir);
+                  if (surface_efficace[num_face] == 0.)
+                    {
+                      assert(surface_max[num_face] == 0.);
+                    }
+
+                  delta_volume_total -= sign*f*surface_efficace[num_face]*velocity.diph_l_(n_face, dir);
+                  delta_volume_diphasique -= flux_diphasique[num_face];
+
+                }
+              else
+                {
+                  delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+                }
+
+            }
+
+          double delta_volume_cible = volume * (next_indicatrice_ns(i, j, k) - old_indicatrice_ns(i, j, k));
+          double delta_volume_pure = delta_volume_total - delta_volume_diphasique;
+          double delta_volume_diphasique_cible = delta_volume_cible - delta_volume_pure;
+
+          double erreur_absolue = std::fabs(delta_volume_total - delta_volume_cible);
+          double erreur_relative = delta_volume_cible == 0. ? delta_volume_total/volume : std::fabs((delta_volume_total - delta_volume_cible)/delta_volume_cible);
+          double ecart_volume_diphasique = delta_volume_diphasique - delta_volume_diphasique_cible;
+
+          indicatrice_surfacique_efficace_face_absolute_error(n) = erreur_absolue;
+
+          if (ecart_volume_diphasique == 0)
+            {
+            }
+          else
+            {
+              if (erreur_relative > 1e-5)
+                {
+                  solution_locally_not_found = 1;
+                }
+
+              double somme_ratio_max_sur_requis = 0;
+              for (int num_face = 0; num_face < 6; num_face++)
+                {
+                  if (flux_diphasique[num_face] != 0)
+                    {
+                      bool flux_et_ecart_meme_signe = ((flux_diphasique[num_face] < 0) == (ecart_volume_diphasique < 0));
+
+                      delta_surface_max[num_face] = flux_et_ecart_meme_signe ? surface_max[num_face] - surface_efficace[num_face] : surface_efficace[num_face] - surface_min[num_face];
+                      double delta_surface_requis = std::fabs(ecart_volume_diphasique/flux_diphasique[num_face])*surface_efficace[num_face];
+                      somme_ratio_max_sur_requis += delta_surface_max[num_face]/delta_surface_requis;
+                    }
+                }
+
+              for (int num_face = 0; num_face < 6; num_face++)
+                {
+                  if (flux_diphasique[num_face] != 0)
+                    {
+                      int dir = num_face%3;
+
+                      int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+                      assert(n_face >= 0);
+
+                      bool flux_et_ecart_meme_signe = ((flux_diphasique[num_face] < 0) == (ecart_volume_diphasique < 0));
+                      int sign = 2*flux_et_ecart_meme_signe - 1;
+
+                      // Note : La correction est choisi telle que chaque surface contribue la meme fraction de delta_S_max^i.
+                      // Normalement, cette fraction est toujours inferieur a 100%.
+                      // La correction est :
+                      //     delta_S^i = delta_S_max^i / (somme delta_S_max/delta_S_requis),
+                      // ce qui implique (delta_S^i/delta_S_max^i) est constant, et par ailleurs somme delta_S^i/delta_S_requis^i = 1
+                      double correction = sign*delta_surface_max[num_face]/somme_ratio_max_sur_requis;
+
+                      indicatrice_surfacique_efficace_face_correction(n, num_face) = indicatrice_surfacique_efficace_face(n_face, dir) + correction;
+
+                      {
+                        double minimal_acceptable_surface = 1e-15;
+                        if (indicatrice_surfacique_efficace_face_correction(n, num_face) < surface_min[num_face])
+                          {
+                            indicatrice_surfacique_efficace_face_correction(n, num_face) = surface_min[num_face] + minimal_acceptable_surface;
+                          }
+                        if (indicatrice_surfacique_efficace_face_correction(n, num_face) > surface_max[num_face])
+                          {
+                            indicatrice_surfacique_efficace_face_correction(n, num_face) = surface_max[num_face] - minimal_acceptable_surface;
+                          }
+                      }
+                    }
+                }
+
+            }
+        }
+
+      indicatrice_surfacique_efficace_face_correction.echange_espace_virtuel();
+
+      // Mise a jour de la surface effective
+      for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          for (int dir = 0; dir < 3; dir++)
+            {
+              int di = (-1)*(dir == 0);
+              int dj = (-1)*(dir == 1);
+              int dk = (-1)*(dir == 2);
+
+              int n_face = cut_cell_disc.get_n(i+di, j+dj, k+dk);
+
+              if (n_face >= 0)
+                {
+                  double new_surface = (indicatrice_surfacique_efficace_face_absolute_error(n_face) > indicatrice_surfacique_efficace_face_absolute_error(n)) ? indicatrice_surfacique_efficace_face_correction(n_face, dir+3) : indicatrice_surfacique_efficace_face_correction(n, dir);
+
+                  // Si une des cellules disparait, on liu donne la priorite dans le calcul de la correction
+                  bool centre_switch = (IJK_Interfaces::devient_pure(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k)) || (IJK_Interfaces::devient_diphasique(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k))));
+                  bool decale_switch = (IJK_Interfaces::devient_pure(old_indicatrice_ns(i+di,j+dj,k+dk), next_indicatrice_ns(i+di,j+dj,k+dk)) || (IJK_Interfaces::devient_diphasique(old_indicatrice_ns(i+di,j+dj,k+dk), next_indicatrice_ns(i+di,j+dj,k+dk))));
+                  if ((centre_switch) && (!decale_switch))
+                    {
+                      new_surface = indicatrice_surfacique_efficace_face_correction(n, dir);
+                    }
+                  else if ((!centre_switch) && (decale_switch))
+                    {
+                      new_surface = indicatrice_surfacique_efficace_face_correction(n_face, dir+3);
+                    }
+
+                  // Filtrage temporel de la correction
+                  //indicatrice_surfacique_efficace_face(n, dir) = 0.25*(3*indicatrice_surfacique_efficace_face(n, dir) + new_surface);
+                  indicatrice_surfacique_efficace_face(n, dir) = new_surface;
+                }
+            }
+        }
+
+      indicatrice_surfacique_efficace_face.echange_espace_virtuel();
+
+      if (iteration_solver_surface_efficace_face%iteration_impression_intermediaire == 0)
+        {
+          imprimer_informations_surface_effective_face(
+            iteration_solver_surface_efficace_face,
+            timestep,
+            velocity,
+            old_indicatrice_ns,
+            next_indicatrice_ns,
+            indicatrice_surfacique_efficace_face,
+            indicatrice_surfacique_efficace_face_initial);
+        }
+
+      solution_not_found = ::mp_max(solution_locally_not_found);
+    }
+  while (solution_not_found && iteration_solver_surface_efficace_face < maximum_iteration);
+
+  statistiques().end_count(calculer_surface_efficace_face_counter_);
+}
+
+void Cut_cell_surface_efficace::imprimer_informations_surface_effective_interface(
+  double timestep,
+  const Cut_field_vector& velocity,
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
+  const DoubleTabFT_cut_cell_scalar& surface_efficace_interface_initial,
+  const DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
+  const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  // Impression des resultats
+  int n_count = 0;
+  int n_count_surface = 0;
+  double moyenne_erreur_absolue = 0.;
+  double moyenne_erreur_relative = 0.;
+  double maximum_erreur_absolue = 0.;
+  double maximum_erreur_relative = 0.;
+  double moyenne_ecart_absolue_surface = 0.;
+  double moyenne_ecart_relatif_surface = 0.;
+  double maximum_ecart_absolue_surface = 0.;
+  double maximum_ecart_relatif_surface = 0.;
+  int switch_n_count = 0;
+  int switch_n_count_surface = 0;
+  double switch_moyenne_erreur_absolue = 0.;
+  double switch_moyenne_erreur_relative = 0.;
+  double switch_maximum_erreur_absolue = 0.;
+  double switch_maximum_erreur_relative = 0.;
+  double switch_moyenne_ecart_absolue_surface = 0.;
+  double switch_moyenne_ecart_relatif_surface = 0.;
+  double switch_maximum_ecart_absolue_surface = 0.;
+  double switch_maximum_ecart_relatif_surface = 0.;
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      bool centre_switch = (IJK_Interfaces::devient_pure(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k)) || (IJK_Interfaces::devient_diphasique(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k))));
+
+      const double delta_z = delta_z_all[k + offset];
+      const double volume = delta_x * delta_y * delta_z;
+
+      {
+        double erreur_relative;
+        if (surface_efficace_interface_initial(n) != 0.)
+          {
+            erreur_relative = std::fabs((surface_efficace_interface(n) - surface_efficace_interface_initial(n))/surface_efficace_interface_initial(n));
+          }
+        else
+          {
+            erreur_relative = 0.;
+            assert(surface_efficace_interface(n) == 0.);
+          }
+        double erreur_absolue = std::fabs(surface_efficace_interface(n) - surface_efficace_interface_initial(n));
+
+        moyenne_ecart_absolue_surface += erreur_absolue;
+        moyenne_ecart_relatif_surface += erreur_relative;
+        maximum_ecart_relatif_surface = erreur_relative > maximum_ecart_relatif_surface ? erreur_relative : maximum_ecart_relatif_surface;
+        maximum_ecart_absolue_surface = erreur_absolue > maximum_ecart_absolue_surface ? erreur_absolue : maximum_ecart_absolue_surface;
+
+        n_count_surface += 1;
+
+        if (centre_switch)
+          {
+            switch_moyenne_ecart_absolue_surface += erreur_absolue;
+            switch_moyenne_ecart_relatif_surface += erreur_relative;
+            switch_maximum_ecart_relatif_surface = erreur_relative > switch_maximum_ecart_relatif_surface ? erreur_relative : switch_maximum_ecart_relatif_surface;
+            switch_maximum_ecart_absolue_surface = erreur_absolue > switch_maximum_ecart_absolue_surface ? erreur_absolue : switch_maximum_ecart_absolue_surface;
+
+            switch_n_count_surface += 1;
+          }
+      }
+
+      const double vitesse_interface = -vitesse_deplacement_interface(n,0)*normale_deplacement_interface(n,0) - vitesse_deplacement_interface(n,1)*normale_deplacement_interface(n,1) - vitesse_deplacement_interface(n,2)*normale_deplacement_interface(n,2);
+      const double surface_interface = surface_efficace_interface(n);
+
+      double delta_volume_cible = volume * (next_indicatrice_ns(i, j, k) - old_indicatrice_ns(i, j, k));
+      double delta_volume_interface = vitesse_interface * surface_interface * timestep;
+
+      double erreur_relative = delta_volume_cible == 0. ? delta_volume_interface/volume : std::fabs((delta_volume_interface - delta_volume_cible)/delta_volume_cible);
+      double erreur_absolue = std::fabs(delta_volume_interface - delta_volume_cible);
+
+      n_count += 1;
+      moyenne_erreur_relative += erreur_relative;
+      moyenne_erreur_absolue += erreur_absolue;
+      maximum_erreur_relative = erreur_relative > maximum_erreur_relative ? erreur_relative : maximum_erreur_relative;
+      maximum_erreur_absolue = erreur_absolue > maximum_erreur_absolue ? erreur_absolue : maximum_erreur_absolue;
+
+      if (centre_switch)
+        {
+          switch_n_count += 1;
+          switch_moyenne_erreur_relative += erreur_relative;
+          switch_moyenne_erreur_absolue += erreur_absolue;
+          switch_maximum_erreur_relative = erreur_relative > switch_maximum_erreur_relative ? erreur_relative : switch_maximum_erreur_relative;
+          switch_maximum_erreur_absolue = erreur_absolue > switch_maximum_erreur_absolue ? erreur_absolue : switch_maximum_erreur_absolue;
+        }
+    }
+  moyenne_erreur_absolue = Process::mp_sum(moyenne_erreur_absolue);
+  moyenne_erreur_relative = Process::mp_sum(moyenne_erreur_relative);
+  maximum_erreur_absolue = Process::mp_max(maximum_erreur_absolue);
+  maximum_erreur_relative = Process::mp_max(maximum_erreur_relative);
+  moyenne_ecart_absolue_surface = Process::mp_sum(moyenne_ecart_absolue_surface);
+  moyenne_ecart_relatif_surface = Process::mp_sum(moyenne_ecart_relatif_surface);
+  maximum_ecart_absolue_surface = Process::mp_max(maximum_ecart_absolue_surface);
+  maximum_ecart_relatif_surface = Process::mp_max(maximum_ecart_relatif_surface);
+  switch_moyenne_erreur_absolue = Process::mp_sum(switch_moyenne_erreur_absolue);
+  switch_moyenne_erreur_relative = Process::mp_sum(switch_moyenne_erreur_relative);
+  switch_maximum_erreur_absolue = Process::mp_max(switch_maximum_erreur_absolue);
+  switch_maximum_erreur_relative = Process::mp_max(switch_maximum_erreur_relative);
+  switch_moyenne_ecart_absolue_surface = Process::mp_sum(switch_moyenne_ecart_absolue_surface);
+  switch_moyenne_ecart_relatif_surface = Process::mp_sum(switch_moyenne_ecart_relatif_surface);
+  switch_maximum_ecart_absolue_surface = Process::mp_max(switch_maximum_ecart_absolue_surface);
+  switch_maximum_ecart_relatif_surface = Process::mp_max(switch_maximum_ecart_relatif_surface);
+  n_count = Process::mp_sum(n_count);
+  n_count_surface = Process::mp_sum(n_count_surface);
+  switch_n_count = Process::mp_sum(switch_n_count);
+  switch_n_count_surface = Process::mp_sum(switch_n_count_surface);
+  assert(n_count_surface == n_count);
+  assert(switch_n_count_surface == switch_n_count);
+  if (n_count >= 1)
+    {
+      moyenne_erreur_relative /= n_count;
+      moyenne_erreur_absolue /= n_count;
+      moyenne_ecart_absolue_surface /= (n_count_surface);
+      moyenne_ecart_relatif_surface /= (n_count_surface);
+    }
+  if (switch_n_count >= 1)
+    {
+      switch_moyenne_erreur_relative /= switch_n_count;
+      switch_moyenne_erreur_absolue /= switch_n_count;
+      switch_moyenne_ecart_absolue_surface /= (switch_n_count_surface);
+      switch_moyenne_ecart_relatif_surface /= (switch_n_count_surface);
+    }
+  Cerr << "Calcul surface efficace interface:" << finl;
+  Cerr << " moyenne_erreur: " << moyenne_erreur_absolue << " (relative: " << moyenne_erreur_relative << ") max_erreur: " << maximum_erreur_absolue << " (relative: " << maximum_erreur_relative << ")" << finl;
+  Cerr << " moyenne_ecart_surface: " << moyenne_ecart_absolue_surface << " (relatif: " << moyenne_ecart_relatif_surface << ") max_ecart_surface: " << maximum_ecart_absolue_surface << " (relatif: " << maximum_ecart_relatif_surface << ")" << finl;
+  Cerr << " switch moyenne_erreur: " << switch_moyenne_erreur_absolue << " (relative: " << switch_moyenne_erreur_relative << ") max_erreur: " << switch_maximum_erreur_absolue << " (relative: " << switch_maximum_erreur_relative << ")" << finl;
+  Cerr << " switch moyenne_ecart_surface: " << switch_moyenne_ecart_absolue_surface << " (relatif: " << switch_moyenne_ecart_relatif_surface << ") max_ecart_surface: " << switch_maximum_ecart_absolue_surface << " (relatif: " << switch_maximum_ecart_relatif_surface << ")" << finl;
+}
+
+void Cut_cell_surface_efficace::imprimer_informations_surface_effective_face(
+  int iteration_solver_surface_efficace_face,
+  double timestep,
+  const Cut_field_vector& velocity,
+  const IJK_Field_double& old_indicatrice_ns,
+  const IJK_Field_double& next_indicatrice_ns,
+  DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
+  const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial)
+
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face.get_cut_cell_disc();
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
+
+  // Impression des resultats
+  int n_count = 0;
+  int n_count_surface = 0;
+  double moyenne_erreur_absolue = 0.;
+  double moyenne_erreur_relative = 0.;
+  double maximum_erreur_absolue = 0.;
+  double maximum_erreur_relative = 0.;
+  double moyenne_ecart_absolue_surface = 0.;
+  double moyenne_ecart_relatif_surface = 0.;
+  double maximum_ecart_absolue_surface = 0.;
+  double maximum_ecart_relatif_surface = 0.;
+  int switch_n_count = 0;
+  int switch_n_count_surface = 0;
+  double switch_moyenne_erreur_absolue = 0.;
+  double switch_moyenne_erreur_relative = 0.;
+  double switch_maximum_erreur_absolue = 0.;
+  double switch_maximum_erreur_relative = 0.;
+  double switch_moyenne_ecart_absolue_surface = 0.;
+  double switch_moyenne_ecart_relatif_surface = 0.;
+  double switch_maximum_ecart_absolue_surface = 0.;
+  double switch_maximum_ecart_relatif_surface = 0.;
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      bool centre_switch = (IJK_Interfaces::devient_pure(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k)) || (IJK_Interfaces::devient_diphasique(old_indicatrice_ns(i,j,k), next_indicatrice_ns(i,j,k))));
+
+      const double delta_z = delta_z_all[k + offset];
+      const double volume = delta_x * delta_y * delta_z;
+
+      const double fx = delta_y * delta_z * timestep;
+      const double fy = delta_x * delta_z * timestep;
+      const double fz = delta_x * delta_y * timestep;
+
+      double delta_volume_total = 0;
+      for (int num_face = 0; num_face < 6; num_face++)
+        {
+          int dir = num_face%3;
+          int decalage = num_face/3;
+          int sign = decalage*2 -1;
+
+          int di = decalage*(dir == 0);
+          int dj = decalage*(dir == 1);
+          int dk = decalage*(dir == 2);
+
+          double f = select(dir, fx, fy, fz);
+
+          int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+          if (n_face >= 0)
+            {
+              delta_volume_total -= sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity.diph_l_(n_face, dir);
+
+              {
+                double erreur_relative;
+                if (indicatrice_surfacique_efficace_face_initial(n_face, dir) != 0.)
+                  {
+                    erreur_relative = std::fabs((indicatrice_surfacique_efficace_face(n_face, dir) - indicatrice_surfacique_efficace_face_initial(n_face, dir))/indicatrice_surfacique_efficace_face_initial(n_face, dir));
+                  }
+                else
+                  {
+                    erreur_relative = 0.;
+                    assert(indicatrice_surfacique_efficace_face(n_face, dir) == 0.);
+                  }
+                double erreur_absolue = std::fabs(indicatrice_surfacique_efficace_face(n_face, dir) - indicatrice_surfacique_efficace_face_initial(n_face, dir));
+
+                moyenne_ecart_absolue_surface += erreur_absolue;
+                moyenne_ecart_relatif_surface += erreur_relative;
+                maximum_ecart_relatif_surface = erreur_relative > maximum_ecart_relatif_surface ? erreur_relative : maximum_ecart_relatif_surface;
+                maximum_ecart_absolue_surface = erreur_absolue > maximum_ecart_absolue_surface ? erreur_absolue : maximum_ecart_absolue_surface;
+
+                //position_typique = (indicatrice_surfacique_efficace_face(n_face, dir) - surface_min)/(surface_max - surface_min);
+                n_count_surface += 1;
+
+                if (centre_switch)
+                  {
+                    switch_moyenne_ecart_absolue_surface += erreur_absolue;
+                    switch_moyenne_ecart_relatif_surface += erreur_relative;
+                    switch_maximum_ecart_relatif_surface = erreur_relative > switch_maximum_ecart_relatif_surface ? erreur_relative : switch_maximum_ecart_relatif_surface;
+                    switch_maximum_ecart_absolue_surface = erreur_absolue > switch_maximum_ecart_absolue_surface ? erreur_absolue : switch_maximum_ecart_absolue_surface;
+
+                    switch_n_count_surface += 1;
+                  }
+              }
+            }
+          else
+            {
+              delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+            }
+
+        }
+
+      double delta_volume_cible = volume * (next_indicatrice_ns(i, j, k) - old_indicatrice_ns(i, j, k));
+
+      double erreur_relative = delta_volume_cible == 0. ? delta_volume_total/volume : std::fabs((delta_volume_total - delta_volume_cible)/delta_volume_cible);
+      double erreur_absolue = std::fabs(delta_volume_total - delta_volume_cible);
+
+      n_count += 1;
+      moyenne_erreur_relative += erreur_relative;
+      moyenne_erreur_absolue += erreur_absolue;
+      maximum_erreur_relative = erreur_relative > maximum_erreur_relative ? erreur_relative : maximum_erreur_relative;
+      maximum_erreur_absolue = erreur_absolue > maximum_erreur_absolue ? erreur_absolue : maximum_erreur_absolue;
+
+      if (centre_switch)
+        {
+          switch_n_count += 1;
+          switch_moyenne_erreur_relative += erreur_relative;
+          switch_moyenne_erreur_absolue += erreur_absolue;
+          switch_maximum_erreur_relative = erreur_relative > switch_maximum_erreur_relative ? erreur_relative : switch_maximum_erreur_relative;
+          switch_maximum_erreur_absolue = erreur_absolue > switch_maximum_erreur_absolue ? erreur_absolue : switch_maximum_erreur_absolue;
+        }
+    }
+  moyenne_erreur_absolue = Process::mp_sum(moyenne_erreur_absolue);
+  moyenne_erreur_relative = Process::mp_sum(moyenne_erreur_relative);
+  maximum_erreur_absolue = Process::mp_max(maximum_erreur_absolue);
+  maximum_erreur_relative = Process::mp_max(maximum_erreur_relative);
+  moyenne_ecart_absolue_surface = Process::mp_sum(moyenne_ecart_absolue_surface);
+  moyenne_ecart_relatif_surface = Process::mp_sum(moyenne_ecart_relatif_surface);
+  maximum_ecart_absolue_surface = Process::mp_max(maximum_ecart_absolue_surface);
+  maximum_ecart_relatif_surface = Process::mp_max(maximum_ecart_relatif_surface);
+  switch_moyenne_erreur_absolue = Process::mp_sum(switch_moyenne_erreur_absolue);
+  switch_moyenne_erreur_relative = Process::mp_sum(switch_moyenne_erreur_relative);
+  switch_maximum_erreur_absolue = Process::mp_max(switch_maximum_erreur_absolue);
+  switch_maximum_erreur_relative = Process::mp_max(switch_maximum_erreur_relative);
+  switch_moyenne_ecart_absolue_surface = Process::mp_sum(switch_moyenne_ecart_absolue_surface);
+  switch_moyenne_ecart_relatif_surface = Process::mp_sum(switch_moyenne_ecart_relatif_surface);
+  switch_maximum_ecart_absolue_surface = Process::mp_max(switch_maximum_ecart_absolue_surface);
+  switch_maximum_ecart_relatif_surface = Process::mp_max(switch_maximum_ecart_relatif_surface);
+  n_count = Process::mp_sum(n_count);
+  n_count_surface = Process::mp_sum(n_count_surface);
+  switch_n_count = Process::mp_sum(switch_n_count);
+  switch_n_count_surface = Process::mp_sum(switch_n_count_surface);
+  if (n_count >= 1)
+    {
+      moyenne_erreur_relative /= n_count;
+      moyenne_erreur_absolue /= n_count;
+      moyenne_ecart_absolue_surface /= (n_count_surface);
+      moyenne_ecart_relatif_surface /= (n_count_surface);
+    }
+  if (switch_n_count >= 1)
+    {
+      switch_moyenne_erreur_relative /= switch_n_count;
+      switch_moyenne_erreur_absolue /= switch_n_count;
+      switch_moyenne_ecart_absolue_surface /= (switch_n_count_surface);
+      switch_moyenne_ecart_relatif_surface /= (switch_n_count_surface);
+    }
+  Cerr << "Calcul surface efficace face: #iteration: " << iteration_solver_surface_efficace_face << finl;
+  Cerr << " moyenne_erreur: " << moyenne_erreur_absolue << " (relative: " << moyenne_erreur_relative << ") max_erreur: " << maximum_erreur_absolue << " (relative: " << maximum_erreur_relative << ")" << finl;
+  Cerr << " moyenne_ecart_surface: " << moyenne_ecart_absolue_surface << " (relatif: " << moyenne_ecart_relatif_surface << ") max_ecart_surface: " << maximum_ecart_absolue_surface << " (relatif: " << maximum_ecart_relatif_surface << ")" << finl;
+  Cerr << " switch moyenne_erreur: " << switch_moyenne_erreur_absolue << " (relative: " << switch_moyenne_erreur_relative << ") max_erreur: " << switch_maximum_erreur_absolue << " (relative: " << switch_maximum_erreur_relative << ")" << finl;
+  Cerr << " switch moyenne_ecart_surface: " << switch_moyenne_ecart_absolue_surface << " (relatif: " << switch_moyenne_ecart_relatif_surface << ") max_ecart_surface: " << switch_maximum_ecart_absolue_surface << " (relatif: " << switch_maximum_ecart_relatif_surface << ")" << finl;
+}
+

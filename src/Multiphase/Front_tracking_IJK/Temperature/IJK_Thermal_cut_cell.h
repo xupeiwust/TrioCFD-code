@@ -38,6 +38,8 @@
 #include <OpConvAmontIJK.h>
 #include <OpConvDiscQuickIJKScalar.h>
 #include <OpConvCentre4IJK.h>
+#include <Cut_cell_convection_auxiliaire.h>
+#include <Cut_cell_diffusion_auxiliaire.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -64,8 +66,6 @@ public :
   void set_param( Param& param ) override;
   void compute_temperature_init() override;
   void recompute_temperature_init() override;
-
-  void calculer_flux_interface();
 
   void euler_time_step(const double timestep) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time) override;
@@ -141,9 +141,6 @@ protected :
   double get_div_lambda_ijk(int i, int j, int k) const override;
   double compute_temperature_dimensionless_theta_mean(const IJK_Field_double& vx) override;
 
-  void add_convection_dying_cells(const Cut_field_vector& cut_field_velocity);
-  void add_convection_nascent_cells(const Cut_field_vector& cut_field_velocity);
-
   //Rustine
   double E0_;//volumique
   IJK_Field_double T_rust_;
@@ -157,6 +154,7 @@ protected :
   IJK_Field_double lambda_;
 
   IJK_Field_double RK3_F_temperature_diff_;
+  IJK_Field_double div_coeff_grad_T_volume_temp_;
 
   Cut_field_scalar cut_field_temperature_;
   Cut_field_scalar cut_field_RK3_F_temperature_diff_;
@@ -164,14 +162,28 @@ protected :
   Cut_cell_vector cut_cell_flux_diffusion_;
   Cut_cell_vector cut_cell_flux_convection_;
   Cut_field_scalar cut_field_div_coeff_grad_T_volume_;
+  Cut_field_scalar cut_field_div_coeff_grad_T_volume_temp_;
   Cut_field_scalar cut_field_d_temperature_;
 
-  IJK_Field_double flux_interface_ns_;
-  IJK_Field_double flux_interface_ft_;
-  DoubleTabFT_cut_cell_scalar flux_interface_;
+  // Temporary fields, to inspect each step of the time advance
+  int postraiter_champs_intermediaires_;
+  IJK_Field_double temperature_post_dying_;
+  IJK_Field_double temperature_post_regular_;
+  IJK_Field_double temperature_post_small_;
+  Cut_field_scalar cut_field_temperature_post_dying_;
+  Cut_field_scalar cut_field_temperature_post_regular_;
+  Cut_field_scalar cut_field_temperature_post_small_;
 
-  // Cut cell options
+  METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
+  Cut_cell_convection_auxiliaire convective_correction_;
+
   int activate_diffusion_interface_;
+  double scaled_distance_flux_interface_; // Distance a l'interface de l'interpolation utilisee pour calculer le flux a l'interface
+  ETALEMENT_DIFFUSION etalement_diffusion_;
+  METHODE_FLUX_INTERFACE methode_flux_interface_;
+  Cut_cell_diffusion_auxiliaire diffusive_correction_;
+
+  bool first_timestep_;
 };
 
 #endif /* IJK_Thermal_cut_cell_included */

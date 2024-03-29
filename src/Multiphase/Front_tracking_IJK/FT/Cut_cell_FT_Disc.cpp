@@ -45,10 +45,10 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   statut_diphasique_value_index_.resize(0, 1);
 }
 
-void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   // Initialisation des tableaux
-  n_loc_ = initialise_linear_index(indicatrice_old, indicatrice_next);
+  n_loc_ = initialise_linear_index(old_indicatrice, next_indicatrice);
   n_tot_ = n_loc_;
 
   permutation_.resize(n_loc_, permutation_.dimension(1));
@@ -90,14 +90,14 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& indicatrice_old, const
   update_index_sorted_by_k();
 
   // Creation des tableaux des indices tries par le statut diphasique
-  update_index_sorted_by_statut_diphasique(indicatrice_old, indicatrice_next);
+  update_index_sorted_by_statut_diphasique(old_indicatrice, next_indicatrice);
 
   // Verifications
   assert(verifier_coherence_coord_linear_index());
   assert(verifier_taille_tableaux());
 }
 
-void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   // Increment du compteur des iterations
   processed_count_ += 1;
@@ -110,7 +110,7 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK
   n_tot_ = n_loc_;
 
   // Mise a jour des elements locaus
-  n_loc_ = add_and_remove_local_elements(indicatrice_old, indicatrice_next);
+  n_loc_ = add_and_remove_local_elements(old_indicatrice, next_indicatrice);
   n_tot_ = n_loc_;
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
@@ -135,7 +135,7 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK
   update_index_sorted_by_k();
 
   // Creation des tableaux des indices tries par le statut diphasique
-  update_index_sorted_by_statut_diphasique(indicatrice_old, indicatrice_next);
+  update_index_sorted_by_statut_diphasique(old_indicatrice, next_indicatrice);
 
   // Verifications
   assert(verifier_coherence_coord_linear_index());
@@ -146,7 +146,7 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& indicatrice_old, const IJK
 
 // Initialise le tableau des indices a partir du champ de l'indicatrice
 // et renvoie le nombre local d'elements diphasiques n_loc.
-int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   const int ni = splitting_.get_nb_elem_local(0);
   const int nj = splitting_.get_nb_elem_local(1);
@@ -163,7 +163,7 @@ int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& indicatric
         {
           for (int i = 0; i < ni; i++)
             {
-              if (!interfaces_.is_pure(0.5*(indicatrice_old(i,j,k) + indicatrice_next(i,j,k))))
+              if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                 {
                   n_loc += 1;
                 }
@@ -181,7 +181,7 @@ int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& indicatric
           {
             for (int i = 0; i < ni; i++)
               {
-                if (!interfaces_.is_pure(0.5*(indicatrice_old(i,j,k) + indicatrice_next(i,j,k))))
+                if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                   {
                     linear_index_(n) = get_linear_index(i, j, k, ghost_size_, splitting_, true);
 
@@ -250,7 +250,7 @@ void Cut_cell_FT_Disc::set_coord()
 // Met a jour les tableaux des indices pour tenir compte des cellules
 // nouvellement diphasiques et les cellules anciennement diphasiques a supprimer
 // et renvoie le nombre local d'elements diphasiques n_loc.
-int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   const int ni = splitting_.get_nb_elem_local(0);
   const int nj = splitting_.get_nb_elem_local(1);
@@ -285,7 +285,7 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& indi
         {
           for (int i = 0; i < ni; i++)
             {
-              if (!interfaces_.is_pure(0.5*(indicatrice_old(i,j,k) + indicatrice_next(i,j,k))))
+              if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                 {
                   int linear_index = get_linear_index(i, j, k, ghost_size_, splitting_, true);
 
@@ -331,7 +331,7 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& indi
       int j = ijk[1];
       int k = ijk[2];
 
-      if (interfaces_.is_pure(0.5*(indicatrice_old(i,j,k) + indicatrice_next(i,j,k))))
+      if (interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
         {
           permutation_(index_perm) = n;
           index_perm += 1;
@@ -492,11 +492,32 @@ void Cut_cell_FT_Disc::initialise_schema_comm()
     {
       for (int direction = 0; direction < 3; direction++)
         {
-          int dest_pe = splitting_.get_neighbour_processor(next, direction);
-          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
-            continue;
+          for (int next_2 = 0; next_2 < 2; next_2++)
+            {
+              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+                {
+                  for (int next_3 = 0; next_3 < 2; next_3++)
+                    {
+                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
+                        {
+                          if ((direction_2 == 3) && (next_2 == 1))
+                            continue;
+                          if ((direction_3 == 3) && (next_3 == 1))
+                            continue;
 
-          pe_list.append_array(dest_pe);
+                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
+                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                            continue;
+
+                          pe_list.append_array(dest_pe);
+                        }
+                    }
+                }
+            }
         }
     }
   array_trier_retirer_doublons(pe_list);
@@ -525,29 +546,62 @@ int Cut_cell_FT_Disc::initialise_communications()
     {
       for (int direction = 0; direction < 3; direction++)
         {
-          int dest_pe = splitting_.get_neighbour_processor(next, direction);
-          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
-            continue;
-
-          int ni_dir = select(direction, ni, nj, nk);
-
-          Sortie& send_buffer = schema_comm_.send_buffer(dest_pe);
-
-          for (int n = 0; n < n_loc; n++)
+          for (int next_2 = 0; next_2 < 2; next_2++)
             {
-              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
-              if ((!next) && (i_selon_dir >= ghost_size_))
-                continue;
-              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
-                continue;
+              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+                {
+                  for (int next_3 = 0; next_3 < 2; next_3++)
+                    {
+                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
+                        {
+                          if ((direction_2 == 3) && (next_2 == 1))
+                            continue;
+                          if ((direction_3 == 3) && (next_3 == 1))
+                            continue;
 
-              assert(! espace_distant.contient_element(dest_pe, n));
+                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
+                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                            continue;
 
-              espace_distant.ajoute_element(dest_pe, n);
-              double x = coord_(n,0);
-              double y = coord_(n,1);
-              double z = coord_(n,2);
-              send_buffer << n << x << y << z;
+                          int ni_dir = select(direction, ni, nj, nk);
+                          int ni_dir2 = (direction_2 == 3) ? 0 : select(direction_2, ni, nj, nk);
+                          int ni_dir3 = (direction_3 == 3) ? 0 : select(direction_3, ni, nj, nk);
+
+                          Sortie& send_buffer = schema_comm_.send_buffer(dest_pe);
+
+                          for (int n = 0; n < n_loc; n++)
+                            {
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true);
+                              if ((!next) && (i_selon_dir >= ghost_size_))
+                                continue;
+                              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
+                                continue;
+                              if ((direction_2 != 3) && (!next_2) && (i_selon_dir2 >= ghost_size_))
+                                continue;
+                              if ((direction_2 != 3) && (next_2) && (i_selon_dir2 < ni_dir2 - ghost_size_))
+                                continue;
+                              if ((direction_3 != 3) && (!next_3) && (i_selon_dir3 >= ghost_size_))
+                                continue;
+                              if ((direction_3 != 3) && (next_3) && (i_selon_dir3 < ni_dir3 - ghost_size_))
+                                continue;
+
+                              assert(! espace_distant.contient_element(dest_pe, n));
+
+                              espace_distant.ajoute_element(dest_pe, n);
+                              double x = coord_(n,0);
+                              double y = coord_(n,1);
+                              double z = coord_(n,2);
+                              send_buffer << n << x << y << z;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -669,8 +723,12 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
     }
 }
 
-void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& indicatrice_old, const IJK_Field_double& indicatrice_next)
+void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
+  int initial_sort_multiplier = 20*int_indicatrice(.1);
+  int indicatrice_step = 10*int_indicatrice(.1);
+  assert(indicatrice_step < initial_sort_multiplier);
+
   // Remplissage du tableau
   for (int n = 0; n < n_loc_; n++)
     {
@@ -679,13 +737,24 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       int j = ijk[1];
       int k = ijk[2];
 
-      bool devient_pure = interfaces_.devient_pure(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
-      bool devient_diphasique = interfaces_.devient_diphasique(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
-      assert(!(devient_pure && devient_diphasique));
+      bool est_reguliere = interfaces_.est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_pure = interfaces_.devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_diphasique = interfaces_.devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_final = interfaces_.a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
+
+      double min_phase_old_indicatrice = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k))*devient_pure;
+      double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
-      index_sorted_by_statut_diphasique_(n,1) = devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT);
+      index_sorted_by_statut_diphasique_(n,1) = est_reguliere*static_cast<int>(STATUT_DIPHASIQUE::REGULIER) + devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT)
+                                                + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
+
+      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
+
+      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice);
     }
 
   for (int n = n_loc_; n < n_tot_; n++)
@@ -695,17 +764,35 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       int j = ijk[1];
       int k = ijk[2];
 
-      bool devient_pure = interfaces_.devient_pure(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
-      bool devient_diphasique = interfaces_.devient_diphasique(indicatrice_old(i,j,k), indicatrice_next(i,j,k));
-      assert(!(devient_pure && devient_diphasique));
+      bool est_reguliere = interfaces_.est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_pure = interfaces_.devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_diphasique = interfaces_.devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_final = interfaces_.a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
+
+      double min_phase_old_indicatrice = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k))*devient_pure;
+      double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
-      index_sorted_by_statut_diphasique_(n,1) = devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT);
+      index_sorted_by_statut_diphasique_(n,1) = est_reguliere*static_cast<int>(STATUT_DIPHASIQUE::REGULIER) + devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT)
+                                                + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
+
+      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
+
+      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice);
     }
 
   // Trie selon la colonne des statut diphasiques
   index_sorted_by_statut_diphasique_.sort_tot(1);
+
+  // Motivation : l'ajout des indicatrices au tri ne change pas l'ordre par construction, et permet
+  // d'avoir les donnees triees par indicatrice sur le tableau final
+  for (int n = 0; n < n_tot_; n++)
+    {
+      index_sorted_by_statut_diphasique_(n,1) = (int)(index_sorted_by_statut_diphasique_(n,1)/initial_sort_multiplier);
+    }
 
   // Trouve les indices des differents statut dipashiques
   statut_diphasique_value_index_.resize(STATUT_DIPHASIQUE::count+1, 1);
@@ -1001,26 +1088,59 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
     {
       for (int direction = 0; direction < 3; direction++)
         {
-          int dest_pe = splitting_.get_neighbour_processor(next, direction);
-          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
-            continue;
-
-          int ni_dir = select(direction, ni, nj, nk);
-
-          for (int n = 0; n < n_loc_; n++)
+          for (int next_2 = 0; next_2 < 2; next_2++)
             {
-              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
-              if ((!next) && (i_selon_dir >= ghost_size_))
-                continue;
-              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
-                continue;
+              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+                {
+                  for (int next_3 = 0; next_3 < 2; next_3++)
+                    {
+                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
+                        {
+                          if ((direction_2 == 3) && (next_2 == 1))
+                            continue;
+                          if ((direction_3 == 3) && (next_3 == 1))
+                            continue;
 
-              Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
-              int i = ijk[0];
-              int j = ijk[1];
-              int k = ijk[2];
+                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
+                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                            continue;
 
-              Cerr << n << " " << dest_pe << " " << i << " " << j << " " << k << " " << coord_(n,0) << " " << coord_(n,1) << " " << coord_(n,2) << finl;
+                          int ni_dir = select(direction, ni, nj, nk);
+                          int ni_dir2 = (direction_2 == 3) ? 0 : select(direction_2, ni, nj, nk);
+                          int ni_dir3 = (direction_3 == 3) ? 0 : select(direction_3, ni, nj, nk);
+
+                          for (int n = 0; n < n_loc_; n++)
+                            {
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true);
+                              if ((!next) && (i_selon_dir >= ghost_size_))
+                                continue;
+                              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
+                                continue;
+                              if ((direction_2 != 3) && (!next_2) && (i_selon_dir2 >= ghost_size_))
+                                continue;
+                              if ((direction_2 != 3) && (next_2) && (i_selon_dir2 < ni_dir2 - ghost_size_))
+                                continue;
+                              if ((direction_3 != 3) && (!next_3) && (i_selon_dir3 >= ghost_size_))
+                                continue;
+                              if ((direction_3 != 3) && (next_3) && (i_selon_dir3 < ni_dir3 - ghost_size_))
+                                continue;
+
+                              Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+                              int i = ijk[0];
+                              int j = ijk[1];
+                              int k = ijk[2];
+
+                              Cerr << n << " " << dest_pe << " " << i << " " << j << " " << k << " " << coord_(n,0) << " " << coord_(n,1) << " " << coord_(n,2) << finl;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

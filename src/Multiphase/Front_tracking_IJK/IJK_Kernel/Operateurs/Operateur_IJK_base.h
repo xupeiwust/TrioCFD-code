@@ -106,10 +106,6 @@ public:
     Process::exit();
     return nullptr;
   }
-  virtual const DoubleTabFT_cut_cell* get_flux_interface()
-  {
-    return nullptr;
-  }
 protected:
   // The derived class must implement the computation of fluxes (3 fluxes, one per direction)
   virtual void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
@@ -125,7 +121,6 @@ protected:
   virtual double compute_flux_local_y(int i, int j, int k) { return -DMINFLOAT; };
   virtual double compute_flux_local_z(int i, int j, int k) { return -DMINFLOAT; };
   virtual void compute_cut_cell_divergence(int phase, const DoubleTabFT_cut_cell& diph_flux,
-                                           const DoubleTabFT_cut_cell* flux_interface_ptr,
                                            const IJK_Field_local_double& flux_x,
                                            const IJK_Field_local_double& flux_y,
                                            const IJK_Field_local_double& flux_zmin,

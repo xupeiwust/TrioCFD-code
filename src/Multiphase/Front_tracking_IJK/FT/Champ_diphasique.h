@@ -294,6 +294,9 @@ public :
   void transfert_diphasique_vers_pures();
   void set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time);
 
+  void copy_from(Cut_field_scalar& data);
+  void add_from(Cut_field_scalar& data);
+
 protected :
 };
 

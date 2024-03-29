@@ -373,9 +373,8 @@ void Operateur_IJK_elem_base_double::compute_cut_cell_(Cut_field_scalar& dx, boo
       for (int phase = 0; phase < 2; phase++)
         {
           DoubleTabFT_cut_cell& diph_flux = *get_diph_flux(phase);
-          const DoubleTabFT_cut_cell* flux_interface_ptr = get_flux_interface();
           DoubleTabFT_cut_cell& diph_dx = (phase == 0) ? dx.diph_v_ : dx.diph_l_;
-          compute_cut_cell_divergence(phase, diph_flux, flux_interface_ptr, *flux_x, *flux_y, *flux_zmin, *flux_zmax, diph_dx, k, add);
+          compute_cut_cell_divergence(phase, diph_flux, *flux_x, *flux_y, *flux_zmin, *flux_zmax, diph_dx, k, add);
         }
 
       swap_data(flux_zmin, flux_zmax); // conserve le flux en z pour la couche z suivante

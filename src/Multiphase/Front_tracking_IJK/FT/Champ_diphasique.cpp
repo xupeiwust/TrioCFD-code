@@ -267,7 +267,7 @@ void Cut_field_scalar::remplir_cellules_maintenant_pures()
       int k = ijk[2];
 
       double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k); // Note : pas In car on est apres l'inversion
-      assert(cut_cell_disc_->get_interfaces().is_pure(indicatrice));
+      assert(cut_cell_disc_->get_interfaces().est_pure(indicatrice));
       // On garde les donnees de la cellule diphasique pour la nouvelle cellule_pure
       int phase_pure = (int)indicatrice;
       if (phase_pure == 1)
@@ -375,6 +375,60 @@ void Cut_field_scalar::set_field_data(const Nom& parser_expression_of_x_y_z_and_
   pure_.echange_espace_virtuel(pure_.ghost());
 }
 
+void Cut_field_scalar::copy_from(Cut_field_scalar& data)
+{
+  const int ni = data.pure_.ni();
+  const int nj = data.pure_.nj();
+  const int nk = data.pure_.nk();
+  const int ghost = data.pure_.ghost();
+  assert(ni == pure_.ni());
+  assert(nj == pure_.nj());
+  assert(nk == pure_.nk());
+  assert(ghost == pure_.ghost());
+  for (int k = -ghost; k < nk+ghost; k++)
+    {
+      for (int j = -ghost; j < nj+ghost; j++)
+        {
+          for (int i = -ghost; i < ni+ghost; i++)
+            {
+              pure_(i,j,k) = data.pure_(i,j,k);
+            }
+        }
+    }
+  for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
+    {
+      diph_l_(n) = data.diph_l_(n);
+      diph_v_(n) = data.diph_v_(n);
+    }
+}
+
+void Cut_field_scalar::add_from(Cut_field_scalar& data)
+{
+  const int ni = data.pure_.ni();
+  const int nj = data.pure_.nj();
+  const int nk = data.pure_.nk();
+  const int ghost = data.pure_.ghost();
+  assert(ni == pure_.ni());
+  assert(nj == pure_.nj());
+  assert(nk == pure_.nk());
+  assert(ghost == pure_.ghost());
+  for (int k = -ghost; k < nk+ghost; k++)
+    {
+      for (int j = -ghost; j < nj+ghost; j++)
+        {
+          for (int i = -ghost; i < ni+ghost; i++)
+            {
+              pure_(i,j,k) += data.pure_(i,j,k);
+            }
+        }
+    }
+  for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
+    {
+      diph_l_(n) += data.diph_l_(n);
+      diph_v_(n) += data.diph_v_(n);
+    }
+}
+
 Cut_field_vector::Cut_field_vector(FixedVector<IJK_Field_double, 3>& field) :
   pure_(field)
 {
@@ -457,7 +511,7 @@ void Cut_field_vector::remplir_cellules_maintenant_pures()
       int k = ijk[2];
 
       double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().is_pure(indicatrice));
+      assert(cut_cell_disc_->get_interfaces().est_pure(indicatrice));
       // On garde les donnees de la cellule diphasique pour la nouvelle cellule_pure
       int phase_pure = (int)indicatrice;
       if (phase_pure == 1)

@@ -115,7 +115,6 @@ void Operateur_IJK_elem_diff_base_double::ajouter(const IJK_Field_double& field,
 
 void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scalar& field,
                                                             Cut_cell_vector& cut_cell_flux,
-                                                            const DoubleTabFT_cut_cell& flux_interface,
                                                             Cut_field_scalar& result,
                                                             const IJK_Field_local_double& boundary_flux_kmin,
                                                             const IJK_Field_local_double& boundary_flux_kmax)
@@ -123,14 +122,12 @@ void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scal
   input_field_ = &field.pure_;
   input_cut_field_ = &field;
   cut_cell_flux_ = &cut_cell_flux;
-  flux_interface_ = &flux_interface;
   boundary_flux_kmin_ = &boundary_flux_kmin;
   boundary_flux_kmax_ = &boundary_flux_kmax;
   compute_set_cut_cell(result);
   input_field_ = nullptr;
   input_cut_field_ = nullptr;
   cut_cell_flux_ = nullptr;
-  flux_interface_ = nullptr;
   lambda_ = nullptr; // TODO: Why reset to nullptr? we could attribute it once only at initialize and never change it later. What was the reason?
   coeff_field_x_ = nullptr;
   coeff_field_y_ = nullptr;
@@ -140,7 +137,6 @@ void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scal
 
 void Operateur_IJK_elem_diff_base_double::ajouter_cut_cell(const Cut_field_scalar& field,
                                                            Cut_cell_vector& cut_cell_flux,
-                                                           const DoubleTabFT_cut_cell& flux_interface,
                                                            Cut_field_scalar& result,
                                                            const IJK_Field_local_double& boundary_flux_kmin,
                                                            const IJK_Field_local_double& boundary_flux_kmax)
@@ -148,14 +144,12 @@ void Operateur_IJK_elem_diff_base_double::ajouter_cut_cell(const Cut_field_scala
   input_field_ = &field.pure_;
   input_cut_field_ = &field;
   cut_cell_flux_ = &cut_cell_flux;
-  flux_interface_ = &flux_interface;
   boundary_flux_kmin_ = &boundary_flux_kmin;
   boundary_flux_kmax_ = &boundary_flux_kmax;
   compute_add_cut_cell(result);
   input_field_ = nullptr;
   input_cut_field_ = nullptr;
   cut_cell_flux_ = nullptr;
-  flux_interface_ = nullptr;
   lambda_ = nullptr;
   coeff_field_x_ = nullptr;
   coeff_field_y_ = nullptr;

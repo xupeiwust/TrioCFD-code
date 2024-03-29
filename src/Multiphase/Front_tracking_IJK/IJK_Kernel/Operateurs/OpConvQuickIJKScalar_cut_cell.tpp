@@ -130,8 +130,8 @@ double OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_(int i, int j, i
   const int dir_j = (_DIR_ == DIRECTION::Y);
   const int dir_k = (_DIR_ == DIRECTION::Z);
 
-  IJK_Field_local_double velocity_dir = get_input_velocity(_DIR_);
-  IJK_Field_local_double input_field = *input_field_;
+  IJK_Field_local_double& velocity_dir = get_input_velocity(_DIR_);
+  IJK_Field_local_double& input_field = *input_field_;
 
   const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k-1] + channel_data_.get_delta_z()[k]) * 0.5 : channel_data_.get_delta((int)_DIR_);
   const double surface = channel_data_.get_surface(k, 1, (int)_DIR_);
@@ -211,8 +211,6 @@ bool OpConvQuickIJKScalar_cut_cell_double::flux_determined_by_wall_(int k)
 template <DIRECTION _DIR_>
 Vecteur3 OpConvQuickIJKScalar_cut_cell_double::compute_curv_fram_local_(int k_layer, double input_left, double input_centre, double input_right)
 {
-  IJK_Field_local_double input_field = *input_field_;
-
   if(_DIR_ == DIRECTION::Z)
     {
       // Are we on the wall ?
@@ -276,8 +274,8 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
 {
   int dir = static_cast<int>(_DIR_);
 
-  IJK_Field_local_double velocity_dir = get_input_velocity(_DIR_);
-  IJK_Field_local_double input_field = *input_field_;
+  const IJK_Field_local_double& velocity_dir = get_input_velocity(_DIR_);
+  const IJK_Field_local_double& input_field = *input_field_;
   Cut_cell_FT_Disc& cut_cell_disc = cut_cell_flux_->get_cut_cell_disc();
 
   IJK_Field_int& treatment_count = cut_cell_disc.get_treatment_count();
@@ -378,6 +376,11 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       double indicatrice_left = cut_cell_disc.get_interfaces().I(i-dir_i,j-dir_j,k-dir_k);
                       double indicatrice_right = cut_cell_disc.get_interfaces().I(i+dir_i,j+dir_j,k+dir_k);
 
+                      double next_indicatrice_left_left = cut_cell_disc.get_interfaces().In(i-2*dir_i,j-2*dir_j,k-2*dir_k);
+                      double next_indicatrice_left = cut_cell_disc.get_interfaces().In(i-dir_i,j-dir_j,k-dir_k);
+                      double next_indicatrice_centre = cut_cell_disc.get_interfaces().In(i,j,k);
+                      double next_indicatrice_right = cut_cell_disc.get_interfaces().In(i+dir_i,j+dir_j,k+dir_k);
+
                       const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k-1] + channel_data_.get_delta_z()[k]) * 0.5 : channel_data_.get_delta((int)_DIR_);
 
                       const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
@@ -406,55 +409,25 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       //double flux_1l = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_left);
                       //double flux_1c = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_centre);
 
-                      double next_indicatrice_left_left = cut_cell_disc.get_interfaces().In(i-2*dir_i,j-2*dir_j,k-2*dir_k);
-                      double next_indicatrice_left = cut_cell_disc.get_interfaces().In(i-dir_i,j-dir_j,k-dir_k);
-                      double next_indicatrice_centre = cut_cell_disc.get_interfaces().In(i,j,k);
-                      double next_indicatrice_right = cut_cell_disc.get_interfaces().In(i+dir_i,j+dir_j,k+dir_k);
+                      int devient_pure_left_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left_left, next_indicatrice_left_left) && ((int)(1 - next_indicatrice_left_left) == phase);
+                      int devient_pure_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left, next_indicatrice_left) && ((int)(1 - next_indicatrice_left) == phase);
+                      int devient_pure_centre = cut_cell_disc.get_interfaces().devient_pure(indicatrice_centre, next_indicatrice_centre) && ((int)(1 - next_indicatrice_centre) == phase);
+                      int devient_pure_right = cut_cell_disc.get_interfaces().devient_pure(indicatrice_right, next_indicatrice_right) && ((int)(1 - next_indicatrice_right) == phase);
+                      int devient_diphasique_left_left = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left_left, next_indicatrice_left_left) && ((int)(1 - indicatrice_left_left) == phase);
+                      int devient_diphasique_left = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left, next_indicatrice_left) && ((int)(1 - indicatrice_left) == phase);
+                      int devient_diphasique_centre = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_centre, next_indicatrice_centre) && ((int)(1 - indicatrice_centre) == phase);
+                      int devient_diphasique_right = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_right, next_indicatrice_right) && ((int)(1 - indicatrice_right) == phase);
+                      //int petit_left_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left_left, next_indicatrice_left_left);
+                      //int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left, next_indicatrice_left);
+                      //int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_centre, next_indicatrice_centre);
+                      //int petit_right = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_right, next_indicatrice_right);
 
                       double flux_value;
-                      if ((cut_cell_disc.get_interfaces().devient_pure(indicatrice_centre, next_indicatrice_centre)) && (cut_cell_disc.get_interfaces().devient_pure(indicatrice_left, next_indicatrice_left)) && ((int)(1 - next_indicatrice_centre) == phase) && ((int)(1 - next_indicatrice_left) == phase))
+                      if (devient_pure_centre || devient_pure_left || devient_diphasique_centre || devient_diphasique_left) //|| petit_centre || petit_left)
                         {
                           flux_value = 0.;
                         }
-                      else if ((cut_cell_disc.get_interfaces().devient_pure(indicatrice_centre, next_indicatrice_centre)) && ((int)(1 - next_indicatrice_centre) == phase))
-                        {
-                          flux_value = 0.;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_pure(indicatrice_left, next_indicatrice_left)) && ((int)(1 - next_indicatrice_left) == phase))
-                        {
-                          flux_value = 0.;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_centre, next_indicatrice_centre)) && (cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left, next_indicatrice_left)) && ((int)(1 - indicatrice_centre) == phase) && ((int)(1 - indicatrice_left) == phase))
-                        {
-                          flux_value = 0.;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_centre, next_indicatrice_centre)) && ((int)(1 - indicatrice_centre) == phase))
-                        {
-                          flux_value = 0.;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left, next_indicatrice_left)) && ((int)(1 - indicatrice_left) == phase))
-                        {
-                          flux_value = 0.;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_pure(indicatrice_left_left, next_indicatrice_left_left)) && ((int)(1 - next_indicatrice_left_left) == phase))
-                        {
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
-                          flux_value = flux_2;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_pure(indicatrice_right, next_indicatrice_right)) && ((int)(1 - next_indicatrice_right) == phase))
-                        {
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
-                          flux_value = flux_2;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left_left, next_indicatrice_left_left)) && ((int)(1 - indicatrice_left_left) == phase))
-                        {
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
-                          flux_value = flux_2;
-                        }
-                      else if ((cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_right, next_indicatrice_right)) && ((int)(1 - indicatrice_right) == phase))
+                      else if (devient_pure_left_left || devient_pure_right || devient_diphasique_left_left || devient_diphasique_right) //|| petit_left_left || petit_right)
                         {
                           assert(input_left != 0);
                           assert(input_centre != 0);

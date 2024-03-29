@@ -52,13 +52,11 @@ public :
                const IJK_Field_local_double& boundary_flux_kmax);
   void calculer_cut_cell(const Cut_field_scalar& field,
                          Cut_cell_vector& cut_cell_flux,
-                         const DoubleTabFT_cut_cell& flux_interface,
                          Cut_field_scalar& result,
                          const IJK_Field_local_double& boundary_flux_kmin,
                          const IJK_Field_local_double& boundary_flux_kmax);
   void ajouter_cut_cell(const Cut_field_scalar& field,
                         Cut_cell_vector& cut_cell_flux,
-                        const DoubleTabFT_cut_cell& flux_interface,
                         Cut_field_scalar& result,
                         const IJK_Field_local_double& boundary_flux_kmin,
                         const IJK_Field_local_double& boundary_flux_kmax);
