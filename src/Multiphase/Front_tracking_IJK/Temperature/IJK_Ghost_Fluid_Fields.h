@@ -154,6 +154,11 @@ protected :
   FixedVector<IJK_Field_double, 3> tmp_old_vector_val_;
   FixedVector<IJK_Field_double, 3> tmp_new_vector_val_;
 
+  IJK_Field_int tmp_interf_cells_;
+  IJK_Field_int tmp_propagated_cells_;
+  ArrOfInt interf_cells_indices_;
+  ArrOfInt propagated_cells_indices_;
+
   IJK_Field_double tmp_old_dist_val_;
   IJK_Field_double tmp_new_dist_val_;
   IJK_Field_double tmp_old_curv_val_;

@@ -26,7 +26,13 @@
 #include <IJK_Bubble_tools.h>
 
 
-Implemente_instanciable( IJK_Ghost_Fluid_Fields, "IJK_Ghost_Fluid_Fields", Objet_U ) ;
+Implemente_instanciable_sans_constructeur( IJK_Ghost_Fluid_Fields, "IJK_Ghost_Fluid_Fields", Objet_U ) ;
+
+IJK_Ghost_Fluid_Fields::IJK_Ghost_Fluid_Fields()
+{
+  interf_cells_indices_.set_smart_resize(1);
+  propagated_cells_indices_.set_smart_resize(1);
+}
 
 Sortie& IJK_Ghost_Fluid_Fields::printOn( Sortie& os ) const
 {
@@ -58,6 +64,10 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
 
       tmp_old_dist_val_ = eulerian_distance_ft_;
       tmp_new_dist_val_ = eulerian_distance_ft_;
+      nalloc += 2;
+
+      tmp_interf_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
+      tmp_propagated_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
       nalloc += 2;
 
       // grad(d) necessitates 1 ghost cell ?
@@ -182,6 +192,10 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
                                                                   tmp_new_vector_val_,
                                                                   tmp_old_dist_val_,
                                                                   tmp_new_dist_val_,
+                                                                  tmp_interf_cells_,
+                                                                  tmp_propagated_cells_,
+                                                                  interf_cells_indices_,
+                                                                  propagated_cells_indices_,
                                                                   n_iter_distance_);
           eulerian_distance_ft_.echange_espace_virtuel(eulerian_distance_ft_.ghost());
           eulerian_distance_ns_.data() = 0.;
