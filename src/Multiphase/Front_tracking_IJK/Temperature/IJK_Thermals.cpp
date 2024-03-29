@@ -451,10 +451,11 @@ void IJK_Thermals::compute_eulerian_curvature_from_interface()
 void IJK_Thermals::compute_eulerian_distance_curvature()
 {
   if (!est_vide())
-    {
-      compute_eulerian_distance();
-      compute_eulerian_curvature_from_interface();
-    }
+    if (ghost_fluid_flag())
+      {
+        compute_eulerian_distance();
+        compute_eulerian_curvature_from_interface();
+      }
 }
 
 int IJK_Thermals::get_disable_post_processing_probes_out_files() const

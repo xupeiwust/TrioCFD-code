@@ -649,6 +649,13 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
+  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& ghost_fluid)
+  {
+    if (!is_diphasique_)
+      return 0;
+    return ijk_compo_connex_.allocate_fields(splitting, ghost_fluid);
+  }
+
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
                                              const int& fill_rising_velocities,
@@ -668,7 +675,7 @@ public :
   {
     if (!is_diphasique_)
       return;
-    ijk_compo_connex_.compute_rising_velocities(bubbles_velocities_);
+    ijk_compo_connex_.compute_rising_velocities();
   }
 
   const DoubleTab& get_bubble_barycentres_old_new(const int& get_new) const

@@ -704,7 +704,7 @@ protected:
   int gfm_zero_neighbour_value_mean_;
   int gfm_vapour_mixed_only_;
   int gfm_vapour_liquid_vapour_ = 0;
-  int gfm_smooth_factor_ = 10;
+  int gfm_smooth_factor_ = 20;
   int compute_distance_;
   int compute_curvature_;
   int compute_grad_T_interface_;

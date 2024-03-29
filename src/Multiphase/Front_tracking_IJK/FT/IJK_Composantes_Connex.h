@@ -49,9 +49,10 @@ class IJK_Composantes_Connex : public Objet_U
   Declare_instanciable( IJK_Composantes_Connex ) ;
 
 public :
-  int initialize(const IJK_Splitting& splitting,
-                 IJK_Interfaces& interfaces,
+  int initialize(IJK_Interfaces& interfaces,
                  const bool is_switch);
+  int allocate_fields(const IJK_Splitting& splitting,
+                      const int& is_ghost_fluid);
   void associer(const IJK_FT_double& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
@@ -61,7 +62,7 @@ public :
                                              const int& use_bubbles_velocities_from_barycentres);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
-  void compute_rising_velocities(const DoubleTab& bubbles_velocities_from_interface);
+  void compute_rising_velocities();
 
   const IJK_Field_double& get_eulerian_compo_connex_ft() const
   {
@@ -144,6 +145,8 @@ protected :
   void fill_mixed_cell_compo();
   REF(IJK_FT_double) ref_ijk_ft_;
   IJK_Interfaces * interfaces_ = nullptr;
+  bool is_switch_=false;
+  int is_ghost_fluid_=0;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;

@@ -44,15 +44,22 @@ Entree& IJK_Composantes_Connex::readOn( Entree& is )
   return is;
 }
 
-int IJK_Composantes_Connex::initialize(const IJK_Splitting& splitting,
-                                       IJK_Interfaces& interfaces,
+int IJK_Composantes_Connex::initialize(IJK_Interfaces& interfaces,
                                        const bool is_switch)
 {
-  int nalloc = 0;
+  is_switch_ = is_switch;
   if (!is_switch)
-    {
-      interfaces_ = &interfaces;
+    interfaces_ = &interfaces;
+  return 0;
+}
 
+int IJK_Composantes_Connex::allocate_fields(const IJK_Splitting& splitting,
+                                            const int& is_ghost_fluid)
+{
+  int nalloc = 0;
+  is_ghost_fluid_ = is_ghost_fluid;
+  if (!is_switch_ && is_ghost_fluid)
+    {
       if (Process::nproc() == 1)
         {
           eulerian_compo_connex_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
@@ -103,8 +110,6 @@ int IJK_Composantes_Connex::initialize(const IJK_Splitting& splitting,
       nalloc += 1;
       eulerian_compo_connex_valid_compo_field_.data() = 0;
       eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
-
-
     }
   return nalloc;
 }
@@ -126,18 +131,21 @@ int IJK_Composantes_Connex::associate_rising_velocities_parameters(const IJK_Spl
                                                                    const int& use_bubbles_velocities_from_barycentres)
 {
   int nalloc = 0;
-  compute_rising_velocities_ = compute_rising_velocities;
-  fill_rising_velocities_ = fill_rising_velocities;
-  use_bubbles_velocities_from_interface_ = use_bubbles_velocities_from_interface;
-  use_bubbles_velocities_from_barycentres_ = use_bubbles_velocities_from_barycentres;
-  if (use_bubbles_velocities_from_barycentres_)
-    use_bubbles_velocities_from_interface_ = 0;
-  if (fill_rising_velocities_)
+  if (is_ghost_fluid_)
     {
-      eulerian_rising_velocities_.allocate(splitting, IJK_Splitting::ELEM, 0);
-      eulerian_rising_velocities_.data() = 0;
-      nalloc += 1;
-      eulerian_rising_velocities_.echange_espace_virtuel(eulerian_rising_velocities_.ghost());
+      compute_rising_velocities_ = compute_rising_velocities;
+      fill_rising_velocities_ = fill_rising_velocities;
+      use_bubbles_velocities_from_interface_ = use_bubbles_velocities_from_interface;
+      use_bubbles_velocities_from_barycentres_ = use_bubbles_velocities_from_barycentres;
+      if (use_bubbles_velocities_from_barycentres_)
+        use_bubbles_velocities_from_interface_ = 0;
+      if (fill_rising_velocities_)
+        {
+          eulerian_rising_velocities_.allocate(splitting, IJK_Splitting::ELEM, 0);
+          eulerian_rising_velocities_.data() = 0;
+          nalloc += 1;
+          eulerian_rising_velocities_.echange_espace_virtuel(eulerian_rising_velocities_.ghost());
+        }
     }
   return nalloc;
 }
@@ -379,7 +387,7 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
   eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
 }
 
-void IJK_Composantes_Connex::compute_rising_velocities(const DoubleTab& )
+void IJK_Composantes_Connex::compute_rising_velocities()
 {
   if (compute_rising_velocities_)
     {

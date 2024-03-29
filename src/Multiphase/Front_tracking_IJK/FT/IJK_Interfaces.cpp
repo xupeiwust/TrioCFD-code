@@ -742,7 +742,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
    */
   intersection_ijk_cell_.initialize(splitting_NS, *this);
   intersection_ijk_face_.initialize(splitting_NS, *this);
-  nalloc += ijk_compo_connex_.initialize(splitting_NS, *this, is_switch);
+  nalloc += ijk_compo_connex_.initialize(*this, is_switch);
   return nalloc;
 }
 

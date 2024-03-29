@@ -1653,14 +1653,13 @@ int IJK_FT_double::initialise()
    */
   interfaces_.initialise_ijk_compo_connex_bubbles_params();
 
-  // if (!thermals_.est_vide())
-  {
-    thermals_.initialize(splitting_, nalloc);
-    thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
-                                               fill_rising_velocities_,
-                                               use_bubbles_velocities_from_interface_,
-                                               use_bubbles_velocities_from_barycentres_);
-  }
+  thermals_.initialize(splitting_, nalloc);
+  thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
+                                             fill_rising_velocities_,
+                                             use_bubbles_velocities_from_interface_,
+                                             use_bubbles_velocities_from_barycentres_);
+
+  nalloc += interfaces_.allocate_ijk_compo_connex_fields(splitting_, thermals_.ghost_fluid_flag());
   nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
                                                                compute_rising_velocities_,
                                                                fill_rising_velocities_,
