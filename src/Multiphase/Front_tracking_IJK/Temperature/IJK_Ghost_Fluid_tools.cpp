@@ -201,7 +201,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              FixedVector<IJK_Field_double, 3>& tmp_new_vector_val,
                                                              IJK_Field_double& tmp_old_val,
                                                              IJK_Field_double& tmp_new_val,
-                                                             const int& n_iter)
+                                                             const int& n_iter,
+                                                             const int& start_from_interface_cell)
 {
   /*
    * Compute the normal distance to the interface
@@ -231,6 +232,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   const IJK_Splitting& splitting_distance = distance_field.get_splitting();
   const IJK_Grid_Geometry& geom = splitting_distance.get_grid_geometry();
 
+  std::set<int> elems_valid;
   /*
    * M.G: Copy of B.M from Transport_Interfaces_FT_Disc::calculer_distance_interface
    * Distance calculation for the thickness 0 (vertices of the elements crossed by
@@ -247,6 +249,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
     const IntTab& facettes = maillage.facettes();
     const DoubleTab& sommets = maillage.sommets();
     // Loop on the elements
+
     for (int elem = 0; elem < nb_elem; elem++)
       {
         int index = index_elem[elem];
@@ -313,6 +316,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                 const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
                 distance_field(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = distance;
               }
+            elems_valid.insert(elem);
           }
         const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
         for (int j = 0; j < dim; j++)
@@ -343,7 +347,12 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
    */
+  // std::set<int> elems_valid_tmp = elems_valid;
+  // std::set<int> elems_valid_copy;
+  std::set<int> elems_valid_copy = elems_valid;
+
   int iteration;
+  const int n_iter_tmp = start_from_interface_cell ? n_iter + 1: n_iter;
   if (use_ijk)
     {
       int neighbours_i[6] = NEIGHBOURS_I;
@@ -353,7 +362,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int nj = normal_vect[0].nj();
       const int nk = normal_vect[0].nk();
       int m;
-      for (iteration = 0; iteration < n_iter; iteration++)
+      for (iteration = 0; iteration < n_iter_tmp; iteration++)
         {
           /*
            * Smoothing iterator, in theory:
@@ -364,10 +373,19 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
            */
 
           const double un_sur_ncontrib = 1. / (1. + nb_elem_voisins);
-          for (int k = 0; k < nk; k++)
-            for (int j = 0; j < nj; j++)
-              for (int i = 0; i < ni; i++)
+          if (start_from_interface_cell)
+            {
+              // elems_valid_copy = elems_valid_tmp;
+              // elems_valid_tmp.clear();
+
+              for (std::set<int>::iterator it=elems_valid_copy.begin(); it!=elems_valid_copy.end(); ++it)
                 {
+                  const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(*it);
+                  const int i = num_elem_ijk[DIRECTION_I];
+                  const int j = num_elem_ijk[DIRECTION_J];
+                  const int k = num_elem_ijk[DIRECTION_K];
+
+                  // elems_valid_tmp.insert(*it);
                   // Averaging the normal vector on the neighbours
                   double n[3] = {0., 0., 0.};
                   for (m = 0; m < dim; m++)
@@ -379,10 +397,38 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                       const int kk = neighbours_k[l];
                       for (m = 0; m < dim; m++)
                         n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+
+                      const int is_ghost = (i + ii < 0 || j + jj < 0 || k + kk < 0)
+                      										  || (i + ii >= ni || j + jj >= nj || k + kk >= nk);
+                      if(!is_ghost)
+                        elems_valid_copy.insert(splitting_distance.convert_ijk_cell_to_packed(i+ii, j+jj, k+kk));
                     }
                   for (m = 0; m < dim; m++)
                     tmp[m](i,j,k) = terme_src[m](i,j,k) + n[m] * un_sur_ncontrib;
                 }
+            }
+          else
+            {
+              for (int k = 0; k < nk; k++)
+                for (int j = 0; j < nj; j++)
+                  for (int i = 0; i < ni; i++)
+                    {
+                      // Averaging the normal vector on the neighbours
+                      double n[3] = {0., 0., 0.};
+                      for (m = 0; m < dim; m++)
+                        n[m] = normal_vect[m](i,j,k);
+                      for (int l=0; l<6; l++)
+                        {
+                          const int ii = neighbours_i[l];
+                          const int jj = neighbours_j[l];
+                          const int kk = neighbours_k[l];
+                          for (m = 0; m < dim; m++)
+                            n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+                        }
+                      for (m = 0; m < dim; m++)
+                        tmp[m](i,j,k) = terme_src[m](i,j,k) + n[m] * un_sur_ncontrib;
+                    }
+            }
           for (int l=0; l<dim; l++)
             normal_vect[l].data() = tmp[l].data();
           normal_vect.echange_espace_virtuel();
