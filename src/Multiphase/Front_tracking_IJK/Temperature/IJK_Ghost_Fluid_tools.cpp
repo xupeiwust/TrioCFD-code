@@ -197,6 +197,10 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              IJK_Field_double& distance_field,
                                                              FixedVector<IJK_Field_double, 3>& normal_vect,
                                                              FixedVector<IJK_Field_double, 3>& facets_barycentre,
+                                                             FixedVector<IJK_Field_double, 3>& tmp_old_vector_val,
+                                                             FixedVector<IJK_Field_double, 3>& tmp_new_vector_val,
+                                                             IJK_Field_double& tmp_old_val,
+                                                             IJK_Field_double& tmp_new_val,
                                                              const int& n_iter)
 {
   /*
@@ -321,8 +325,15 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
     DebogIJK::verifier("IJK_Ghost_Fluid_tools::compute_eulerian_normal_distance_field", distance_field);
   }
 
-  FixedVector<IJK_Field_double, 3> terme_src(normal_vect);
-  FixedVector<IJK_Field_double, 3> tmp(normal_vect);
+  //  FixedVector<IJK_Field_double, 3> terme_src(normal_vect);
+  //  FixedVector<IJK_Field_double, 3> tmp(normal_vect);
+  FixedVector<IJK_Field_double, 3>& terme_src = tmp_old_vector_val;
+  FixedVector<IJK_Field_double, 3>& tmp = tmp_new_vector_val;
+  for (int l=0; l<dim; l++)
+    {
+      terme_src[l].data() = normal_vect[l].data();
+      tmp[l].data() = normal_vect[l].data();
+    }
 
   const IntTab& face_voisins = domaine_vf.face_voisins();
   const IntTab& elem_faces   = domaine_vf.elem_faces();
@@ -372,7 +383,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                   for (m = 0; m < dim; m++)
                     tmp[m](i,j,k) = terme_src[m](i,j,k) + n[m] * un_sur_ncontrib;
                 }
-          normal_vect = tmp;
+          for (int l=0; l<dim; l++)
+            normal_vect[l].data() = tmp[l].data();
           normal_vect.echange_espace_virtuel();
         }
     }
@@ -452,8 +464,12 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
    */
-  IJK_Field_double terme_src_dist(distance_field);
-  IJK_Field_double tmp_dist(distance_field);
+  // IJK_Field_double terme_src_dist(distance_field);
+  // IJK_Field_double tmp_dist(distance_field);
+  IJK_Field_double& terme_src_dist = tmp_old_val;
+  IJK_Field_double& tmp_dist = tmp_new_val;
+  terme_src_dist.data() = distance_field.data();
+  tmp_dist.data() = distance_field.data();
 
   if (use_ijk)
     {
@@ -516,7 +532,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
 
                     }
                 }
-          distance_field = tmp_dist;
+          distance_field.data() = tmp_dist.data();
           distance_field.echange_espace_virtuel(distance_field.ghost());
         }
     }
@@ -651,6 +667,8 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,
+                                                     IJK_Field_double& tmp_old_val,
+                                                     IJK_Field_double& tmp_new_val,
                                                      const int& n_iter,
                                                      const int igroup)
 {
@@ -686,7 +704,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
   const int n_fa7 = maillage.nb_facettes();
   // Calculate the curvature in the cells crossed by the interface
   const ArrOfInt& compo_facette = maillage.compo_connexe_facettes();
-  ArrOfInt compo_to_group = interfaces.get_compo_to_group();
+  const ArrOfInt& compo_to_group = interfaces.get_compo_to_group();
   for (int fa7 = 0; fa7 < n_fa7; fa7++)
     {
       int icompo = compo_facette[fa7];
@@ -771,9 +789,15 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
             liste_elements.append_array(elem);
         }
     }
+
   // Curvature calculation at the interface
-  IJK_Field_double terme_src_curv(curvature);
-  IJK_Field_double tmp_curv(curvature);
+  // IJK_Field_double terme_src_curv(curvature);
+  // IJK_Field_double tmp_curv(curvature);
+
+  IJK_Field_double& terme_src_curv = tmp_old_val;
+  IJK_Field_double& tmp_curv = tmp_new_val;
+  terme_src_curv.data() = curvature.data();
+  tmp_curv.data() = curvature.data();
 
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
@@ -791,36 +815,38 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
-                // For all the element already crossed by the interface, the value is not computed again
-                if (terme_src_curv(i,j,k) > invalid_curvature_value)
-                  tmp_curv(i,j,k) = curvature(i,j,k);
-                else
-                  {
-                    // For the others, we compute a distance value per neighbour
-                    double ncontrib = 0.;
-                    double sum_kappa = 0.;
-                    for (int l = 0; l < 6; l++)
-                      {
-                        // Look for a neighbour
-                        const int ii = neighbours_i[l];
-                        const int jj = neighbours_j[l];
-                        const int kk = neighbours_k[l];
-                        const double curvature_voisin = curvature(i+ii,j+jj,k+kk);
-                        if (curvature_voisin > invalid_curvature_value)
-                          {
-                            // Average normal distance between an element and its neighbours
-                            sum_kappa += curvature_voisin;
-                            ncontrib++;
-                          }
-                      }
-                    // Averaging the distances obtained from neighbours
-                    if (ncontrib > 0.)
-                      {
-                        double kappa = sum_kappa / ncontrib;
-                        tmp_curv(i,j,k) = kappa;
-                      }
-                  }
-          curvature = tmp_curv;
+                {
+                  // For all the element already crossed by the interface, the value is not computed again
+                  if (terme_src_curv(i,j,k) > invalid_curvature_value)
+                    tmp_curv(i,j,k) = curvature(i,j,k);
+                  else
+                    {
+                      // For the others, we compute a distance value per neighbour
+                      double ncontrib = 0.;
+                      double sum_kappa = 0.;
+                      for (int l = 0; l < 6; l++)
+                        {
+                          // Look for a neighbour
+                          const int ii = neighbours_i[l];
+                          const int jj = neighbours_j[l];
+                          const int kk = neighbours_k[l];
+                          const double curvature_voisin = curvature(i+ii,j+jj,k+kk);
+                          if (curvature_voisin > invalid_curvature_value)
+                            {
+                              // Average normal distance between an element and its neighbours
+                              sum_kappa += curvature_voisin;
+                              ncontrib++;
+                            }
+                        }
+                      // Averaging the distances obtained from neighbours
+                      if (ncontrib > 0.)
+                        {
+                          double kappa = sum_kappa / ncontrib;
+                          tmp_curv(i,j,k) = kappa;
+                        }
+                    }
+                }
+          curvature.data() = tmp_curv.data();
           curvature.echange_espace_virtuel(curvature.ghost());
         }
     }

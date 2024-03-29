@@ -44,6 +44,10 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              IJK_Field_double& distance,
                                                              FixedVector<IJK_Field_double, 3>& normal_vect,
                                                              FixedVector<IJK_Field_double, 3>& facets_barycentre,
+                                                             FixedVector<IJK_Field_double, 3>& tmp_old_vector_val,
+                                                             FixedVector<IJK_Field_double, 3>& tmp_new_vector_val,
+                                                             IJK_Field_double& tmp_old_val,
+                                                             IJK_Field_double& tmp_new_val,
                                                              const int& n_iter);
 
 void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double& distance,
@@ -58,6 +62,8 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,
+                                                     IJK_Field_double& tmp_old_val,
+                                                     IJK_Field_double& tmp_new_val,
                                                      const int& n_iter,
                                                      int igroup);
 

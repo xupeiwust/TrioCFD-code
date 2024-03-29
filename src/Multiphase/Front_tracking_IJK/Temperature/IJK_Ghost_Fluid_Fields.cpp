@@ -55,12 +55,23 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       // Laplacian(d) necessitates 2 ghost cells like temperature
       eulerian_distance_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
       nalloc += 1;
+
+      tmp_old_dist_val_ = eulerian_distance_ft_;
+      tmp_new_dist_val_ = eulerian_distance_ft_;
+      nalloc += 2;
+
       // grad(d) necessitates 1 ghost cell ?
       allocate_cell_vector(eulerian_normal_vectors_ft_, ref_ijk_ft_->get_splitting_ft(), 1);
-      // allocate_velocity(eulerian_normal_vectors_, ref_ijk_ft_->get_splitting_ft(), 1);
       nalloc += 3;
+
+      tmp_old_vector_val_ = eulerian_normal_vectors_ft_;
+      tmp_new_vector_val_ = eulerian_normal_vectors_ft_;
+      nalloc += 6;
+      // allocate_velocity(eulerian_normal_vectors_, ref_ijk_ft_->get_splitting_ft(), 1);
+
       allocate_cell_vector(eulerian_facets_barycentre_ft_, ref_ijk_ft_->get_splitting_ft(), 0);
       nalloc += 3;
+
       eulerian_distance_ft_.echange_espace_virtuel(eulerian_distance_ft_.ghost());
       eulerian_normal_vectors_ft_.echange_espace_virtuel();
       eulerian_facets_barycentre_ft_.echange_espace_virtuel();
@@ -85,6 +96,11 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       // but if calculated using the neighbours maybe 1
       eulerian_curvature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 1);
       nalloc += 1;
+
+      tmp_old_curv_val_ = eulerian_curvature_ft_;
+      tmp_new_curv_val_ = eulerian_curvature_ft_;
+      nalloc += 2;
+
       eulerian_curvature_ft_.echange_espace_virtuel(eulerian_curvature_ft_.ghost());
       // Only calculated in the mixed cells ghost_cells = 0
       eulerian_interfacial_area_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
@@ -162,6 +178,10 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
                                                                   eulerian_distance_ft_,
                                                                   eulerian_normal_vectors_ft_,
                                                                   eulerian_facets_barycentre_ft_,
+                                                                  tmp_old_vector_val_,
+                                                                  tmp_new_vector_val_,
+                                                                  tmp_old_dist_val_,
+                                                                  tmp_new_dist_val_,
                                                                   n_iter_distance_);
           eulerian_distance_ft_.echange_espace_virtuel(eulerian_distance_ft_.ghost());
           eulerian_distance_ns_.data() = 0.;
@@ -264,6 +284,8 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_curvature_from_interface()
                                                               ref_ijk_ft_->get_interface(),
                                                               eulerian_interfacial_area_ft_,
                                                               eulerian_curvature_ft_,
+                                                              tmp_old_curv_val_,
+                                                              tmp_new_curv_val_,
                                                               n_iter_distance_,
                                                               igroup);
             }

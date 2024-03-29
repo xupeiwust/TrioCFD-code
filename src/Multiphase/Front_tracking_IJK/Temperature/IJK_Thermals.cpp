@@ -75,7 +75,7 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
 {
   int compute_distance = 1;
   int compute_curvature = 1;
-  int n_iter_distance = 6;
+  int n_iter_distance = 3;
   IJK_Field_local_double boundary_flux_kmin;
   IJK_Field_local_double boundary_flux_kmax;
   assert(!est_vide());

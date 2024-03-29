@@ -100,7 +100,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   side_temperature_ = 0;
   stencil_side_ = 2;
 
-  n_iter_distance_ = 6;
+  n_iter_distance_ = 3;
 
   gfm_recompute_field_ini_ = 1;
   gfm_zero_neighbour_value_mean_ = 0;

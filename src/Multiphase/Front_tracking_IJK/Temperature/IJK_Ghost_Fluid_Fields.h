@@ -151,6 +151,14 @@ protected :
   FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ns_normed_;
   FixedVector<IJK_Field_double, 3> eulerian_facets_barycentre_ns_;
 
+  FixedVector<IJK_Field_double, 3> tmp_old_vector_val_;
+  FixedVector<IJK_Field_double, 3> tmp_new_vector_val_;
+
+  IJK_Field_double tmp_old_dist_val_;
+  IJK_Field_double tmp_new_dist_val_;
+  IJK_Field_double tmp_old_curv_val_;
+  IJK_Field_double tmp_new_curv_val_;
+
   IJK_Field_double eulerian_curvature_ft_;
   IJK_Field_double eulerian_curvature_ns_;
   IJK_Field_double eulerian_interfacial_area_ft_;
