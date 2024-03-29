@@ -361,6 +361,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
 
   param.ajouter("vitesse_entree_dir", &vitesse_entree_dir_);
+  param.ajouter("vitesse_entree_compo_to_force", &vitesse_entree_compo_to_force_);
   param.ajouter("vitesse_entree", &vitesse_entree_); // XD_ADD_P floattant Velocity to prescribe at inlet
   param.ajouter("vitesse_upstream", &vitesse_upstream_); // XD_ADD_P floattant Velocity to prescribe at 'nb_diam_upstream_' before bubble 0.
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
