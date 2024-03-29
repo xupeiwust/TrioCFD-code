@@ -279,6 +279,8 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   os << front_space << "temperature_diffusion_op" << end_space << temperature_diffusion_op_ << escape;
   os << front_space << "temperature_convection_op" << end_space << temperature_convection_op_ << escape;
 
+  os << front_space << "gfm_smooth_factor" << end_space << gfm_smooth_factor_ << escape;
+
   /*
    * Neglect an operator
    */
@@ -382,11 +384,11 @@ void IJK_Thermal_base::set_param(Param& param)
 
   param.ajouter_flag("smooth_grad_T_elem", &smooth_grad_T_elem_);
 
-
-
+  param.ajouter_flag("gfm_vapour_liquid_vapour", &gfm_vapour_liquid_vapour_);
+  param.ajouter("gfm_smooth_factor", &gfm_smooth_factor_);
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
-  //  param.ajouter_flag("gfm_vapour_mixed_only", &gfm_vapour_mixed_only_);
+
 }
 
 /********************************************
@@ -464,6 +466,11 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
   nalloc += 3;
   compute_cell_volume();
   compute_min_cell_delta();
+
+  /*
+   * GFM
+   */
+  gfm_vapour_mixed_only_ = !gfm_vapour_liquid_vapour_;
 
   // if (!diff_temperature_negligible_)
   {
@@ -1200,7 +1207,8 @@ void IJK_Thermal_base::propagate_eulerian_grad_T_interface()
                                                                n_iter_distance_,
                                                                gfm_recompute_field_ini_,
                                                                gfm_zero_neighbour_value_mean_,
-                                                               gfm_vapour_mixed_only_);
+                                                               gfm_vapour_mixed_only_,
+                                                               gfm_smooth_factor_);
       eulerian_grad_T_interface_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
       ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
       eulerian_grad_T_interface_ns_.echange_espace_virtuel(eulerian_grad_T_interface_ns_.ghost());

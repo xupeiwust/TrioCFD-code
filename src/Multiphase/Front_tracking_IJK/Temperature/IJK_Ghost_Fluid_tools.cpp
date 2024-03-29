@@ -129,16 +129,17 @@ static void extrapolate_with_elem_faces_connectivity(const Domaine_VF& domaine_v
 static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
                                          const IJK_Field_double& indicator,
                                          IJK_Field_double& field,
-                                         const int stencil_width,
-                                         const int recompute_field_ini,
-                                         const int zero_neighbour_value_mean,
-                                         const int vapour_mixed_only)
+                                         const int& stencil_width,
+                                         const int& recompute_field_ini,
+                                         const int& zero_neighbour_value_mean,
+                                         const int& vapour_mixed_only,
+                                         const int& smooth_factor)
 {
   int neighbours_i[6] = NEIGHBOURS_I;
   int neighbours_j[6] = NEIGHBOURS_J;
   int neighbours_k[6] = NEIGHBOURS_K;
   const double invalid_test = INVALID_TEST;
-  const double n_iterations = zero_neighbour_value_mean ? 20 * stencil_width : stencil_width;
+  const double n_iterations = zero_neighbour_value_mean ? smooth_factor * stencil_width : stencil_width;
   const int ni = field.ni();
   const int nj = field.nj();
   const int nk = field.nk();
@@ -950,10 +951,11 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
 void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfaces& interfaces,
                                                               const IJK_Field_double& distance,
                                                               IJK_Field_double& grad_T_interface,
-                                                              const int stencil_width,
-                                                              const int recompute_field_ini,
-                                                              const int zero_neighbour_value_mean,
-                                                              const int vapour_mixed_only)
+                                                              const int& stencil_width,
+                                                              const int& recompute_field_ini,
+                                                              const int& zero_neighbour_value_mean,
+                                                              const int& vapour_mixed_only,
+                                                              const int& smooth_factor)
 {
   /*
    * Propagate value of grad_T_int stored in pure liquid phase towards the vapour phase and mixed cells
@@ -962,7 +964,14 @@ void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfac
   if (use_ijk)
     {
       // Using the ijk indices
-      extrapolate_with_ijk_indices(distance, interfaces.I_ft(), grad_T_interface, stencil_width, recompute_field_ini, zero_neighbour_value_mean, vapour_mixed_only);
+      extrapolate_with_ijk_indices(distance,
+                                   interfaces.I_ft(),
+                                   grad_T_interface,
+                                   stencil_width,
+                                   recompute_field_ini,
+                                   zero_neighbour_value_mean,
+                                   vapour_mixed_only,
+                                   smooth_factor);
     }
   else
     {

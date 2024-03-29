@@ -362,6 +362,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
 
   param.ajouter("vitesse_entree_dir", &vitesse_entree_dir_);
   param.ajouter("vitesse_entree_compo_to_force", &vitesse_entree_compo_to_force_);
+  param.ajouter("stencil_vitesse_entree", &stencil_vitesse_entree_);
   param.ajouter("vitesse_entree", &vitesse_entree_); // XD_ADD_P floattant Velocity to prescribe at inlet
   param.ajouter("vitesse_upstream", &vitesse_upstream_); // XD_ADD_P floattant Velocity to prescribe at 'nb_diam_upstream_' before bubble 0.
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
@@ -843,9 +844,14 @@ const IJK_Field_double& IJK_FT_double::get_IJK_field(const Nom& nom) const
   return post_.get_IJK_field(nom);
 }
 
-void IJK_FT_double::force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed, const int& dir, const int& compo)
+void IJK_FT_double::force_entry_velocity(IJK_Field_double& vx,
+                                         IJK_Field_double& vy,
+                                         IJK_Field_double& vz,
+                                         double v_imposed,
+                                         const int& dir,
+                                         const int& compo,
+                                         const int& stencil)
 {
-  const int stencil = 3;
   const IJK_Splitting& splitting = select(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
   const int offset_ijk = splitting.get_offset_local(dir);
   if (offset_ijk > 0)
@@ -3932,7 +3938,13 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_, vitesse_entree_dir_, vitesse_entree_compo_to_force_);
+        force_entry_velocity(velocity_[0],
+                             velocity_[1],
+                             velocity_[2],
+                             vitesse_entree_,
+                             vitesse_entree_dir_,
+                             vitesse_entree_compo_to_force_,
+                             stencil_vitesse_entree_);
 
       // Forcage de la vitesse en amont de la bulle :
       if (vitesse_upstream_ > -1e20)
@@ -4180,7 +4192,13 @@ void IJK_FT_double::rk3_sub_step(const int rk_step, const double total_timestep,
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_, vitesse_entree_dir_, vitesse_entree_compo_to_force_);
+        force_entry_velocity(velocity_[0],
+                             velocity_[1],
+                             velocity_[2],
+                             vitesse_entree_,
+                             vitesse_entree_dir_,
+                             vitesse_entree_compo_to_force_,
+                             stencil_vitesse_entree_);
 
 
       // Forcage de la vitesse en amont de la bulle :
