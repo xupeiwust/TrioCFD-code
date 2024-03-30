@@ -30,8 +30,12 @@ Implemente_instanciable_sans_constructeur( IJK_Ghost_Fluid_Fields, "IJK_Ghost_Fl
 
 IJK_Ghost_Fluid_Fields::IJK_Ghost_Fluid_Fields()
 {
-  interf_cells_indices_.set_smart_resize(1);
-  propagated_cells_indices_.set_smart_resize(1);
+  for (int l=0; l<3; l++)
+    {
+      interf_cells_indices_[l].set_smart_resize(1);
+      gfm_first_cells_indices_[l].set_smart_resize(1);
+      propagated_cells_indices_[l].set_smart_resize(1);
+    }
 }
 
 Sortie& IJK_Ghost_Fluid_Fields::printOn( Sortie& os ) const
@@ -68,12 +72,13 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       tmp_new_dist_val_ = eulerian_distance_ft_;
       nalloc += 2;
 
-      tmp_interf_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
-      tmp_propagated_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
+      const int dist_tmp_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 0;
+      tmp_interf_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_tmp_ghost);
+      tmp_propagated_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_tmp_ghost);
       nalloc += 2;
 
       // grad(d) necessitates 1 ghost cell ?
-      const int normal_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 1 : 1;
+      const int normal_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 1;
       allocate_cell_vector(eulerian_normal_vectors_ft_, ref_ijk_ft_->get_splitting_ft(), normal_ghost);
       nalloc += 3;
 
@@ -102,6 +107,14 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       allocate_cell_vector(eulerian_normal_vectors_ns_normed_, splitting, 1);
       nalloc += 3;
       eulerian_normal_vectors_ns_normed_.echange_espace_virtuel();
+
+      if (avoid_gfm_parallel_calls_)
+        {
+          assert(eulerian_distance_ft_.ghost()==tmp_old_dist_val_.ghost());
+          assert(eulerian_distance_ft_.ghost()==tmp_new_dist_val_.ghost());
+          assert(eulerian_normal_vectors_ft_[0].ghost()==tmp_old_vector_val_[0].ghost());
+          assert(eulerian_normal_vectors_ft_[0].ghost()==tmp_new_vector_val_[0].ghost());
+        }
     }
   if (compute_curvature_)
     {
@@ -200,6 +213,7 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
                                                                   tmp_interf_cells_,
                                                                   tmp_propagated_cells_,
                                                                   interf_cells_indices_,
+                                                                  gfm_first_cells_indices_,
                                                                   propagated_cells_indices_,
                                                                   n_iter_distance_,
                                                                   avoid_gfm_parallel_calls_);

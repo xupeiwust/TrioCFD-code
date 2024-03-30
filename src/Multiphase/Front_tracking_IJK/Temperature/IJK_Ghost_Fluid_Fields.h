@@ -158,8 +158,9 @@ protected :
 
   IJK_Field_int tmp_interf_cells_;
   IJK_Field_int tmp_propagated_cells_;
-  ArrOfInt interf_cells_indices_;
-  ArrOfInt propagated_cells_indices_;
+  FixedVector<ArrOfInt,3> interf_cells_indices_;
+  FixedVector<ArrOfInt,3> gfm_first_cells_indices_;
+  FixedVector<ArrOfInt,3> propagated_cells_indices_;
 
   IJK_Field_double tmp_old_dist_val_;
   IJK_Field_double tmp_new_dist_val_;

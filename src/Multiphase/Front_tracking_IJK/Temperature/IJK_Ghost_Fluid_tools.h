@@ -50,8 +50,9 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              IJK_Field_double& tmp_new_val,
                                                              IJK_Field_int& tmp_interf_cells,
                                                              IJK_Field_int& tmp_propagated_cells,
-                                                             ArrOfInt& interf_cells_indices,
-                                                             ArrOfInt& propagated_cells_indices,
+                                                             FixedVector<ArrOfInt,3>& interf_cells_indices,
+                                                             FixedVector<ArrOfInt,3>& gfm_first_cells_indices_,
+                                                             FixedVector<ArrOfInt,3>& propagated_cells_indices,
                                                              const int& n_iter,
                                                              const int& avoid_gfm_parallel_calls=0);
 
