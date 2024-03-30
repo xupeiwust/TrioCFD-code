@@ -101,6 +101,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   stencil_side_ = 2;
 
   n_iter_distance_ = 3;
+  avoid_gfm_parallel_calls_ = 0;
 
   gfm_recompute_field_ini_ = 1;
   gfm_zero_neighbour_value_mean_ = 0;
@@ -317,6 +318,9 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   if (compute_eulerian_compo_)
     os << front_space << "compute_eulerian_compo" <<  escape;
 
+  if (avoid_gfm_parallel_calls_)
+    os << front_space << "avoid_gfm_parallel_calls" <<  escape;
+
   return os;
 }
 
@@ -386,6 +390,7 @@ void IJK_Thermal_base::set_param(Param& param)
 
   param.ajouter_flag("gfm_vapour_liquid_vapour", &gfm_vapour_liquid_vapour_);
   param.ajouter("gfm_smooth_factor", &gfm_smooth_factor_);
+  param.ajouter_flag("avoid_gfm_parallel_calls", &avoid_gfm_parallel_calls_);
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
 
@@ -931,11 +936,13 @@ void IJK_Thermal_base::associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields&
 
 void IJK_Thermal_base::retrieve_ghost_fluid_params(int& compute_distance,
                                                    int& compute_curvature,
-                                                   int& n_iter_distance)
+                                                   int& n_iter_distance,
+                                                   int& avoid_gfm_parallel_calls)
 {
   compute_distance = compute_distance || compute_distance_;
   compute_curvature = compute_curvature || compute_curvature_;
   n_iter_distance = std::max(n_iter_distance, n_iter_distance_);
+  avoid_gfm_parallel_calls = avoid_gfm_parallel_calls || avoid_gfm_parallel_calls_;
 }
 
 void IJK_Thermal_base::get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin,

@@ -45,7 +45,7 @@ public :
   /*
    * Getters
    */
-  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance);
+  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance, int& avoid_gfm_parallel_calls);
   void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise() const { return valeur().get_fichier_reprise(); };
@@ -246,11 +246,15 @@ inline void IJK_Thermal::get_rising_velocities_parameters(int& compute_rising_ve
                                             use_bubbles_velocities_from_barycentres);
 }
 
-inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance)
+inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance,
+                                                     int& compute_curvature,
+                                                     int& n_iter_distance,
+                                                     int& avoid_gfm_parallel_calls)
 {
   valeur().retrieve_ghost_fluid_params(compute_distance,
                                        compute_curvature,
-                                       n_iter_distance);
+                                       n_iter_distance,
+                                       avoid_gfm_parallel_calls);
 }
 
 inline void IJK_Thermal::get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax)

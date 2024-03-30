@@ -74,7 +74,7 @@ public:
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face);
   void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);
-  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance);
+  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance, int& avoid_gfm_parallel_calls);
   void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
   void euler_time_step(const double timestep);
   void rk3_sub_step(const int rk_step,
@@ -705,6 +705,7 @@ protected:
   int gfm_vapour_mixed_only_;
   int gfm_vapour_liquid_vapour_ = 0;
   int gfm_smooth_factor_ = 20;
+  int avoid_gfm_parallel_calls_;
   int compute_distance_;
   int compute_curvature_;
   int compute_grad_T_interface_;

@@ -53,7 +53,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              ArrOfInt& interf_cells_indices,
                                                              ArrOfInt& propagated_cells_indices,
                                                              const int& n_iter,
-                                                             const int& start_from_interface_cells=1);
+                                                             const int& avoid_gfm_parallel_calls=0);
 
 void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double& distance,
                                                           IJK_Field_double& curvature,
@@ -78,7 +78,8 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                                                             const IJK_Field_double& curvature,
                                                             const	IJK_Field_double& temperature,
                                                             IJK_Field_double& grad_T_interface,
-                                                            const int& spherical_approx);
+                                                            const int& spherical_approx,
+                                                            const double& temperature_interf=0);
 
 void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfaces& interfaces,
                                                               const IJK_Field_double& distance,
@@ -94,7 +95,8 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            const IJK_Field_double& curvature,
                                            IJK_Field_double& grad_T_interface,
                                            IJK_Field_double& temperature,
-                                           const int& spherical_approx);
+                                           const int& spherical_approx,
+                                           const double& temperature_interf=0);
 
 void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
                          const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,

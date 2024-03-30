@@ -76,6 +76,7 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
   int compute_distance = 1;
   int compute_curvature = 1;
   int n_iter_distance = 3;
+  int avoid_gfm_parallel_calls = 0;
   IJK_Field_local_double boundary_flux_kmin;
   IJK_Field_local_double boundary_flux_kmax;
   assert(!est_vide());
@@ -83,10 +84,12 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
   for (auto& itr : *this)
     itr.retrieve_ghost_fluid_params(compute_distance,
                                     compute_curvature,
-                                    n_iter_distance);
+                                    n_iter_distance,
+                                    avoid_gfm_parallel_calls);
   ghost_fluid_fields_.retrieve_ghost_fluid_params(compute_distance,
                                                   compute_curvature,
                                                   n_iter_distance,
+                                                  avoid_gfm_parallel_calls,
                                                   boundary_flux_kmin,
                                                   boundary_flux_kmax);
 }

@@ -59,7 +59,9 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
        * TODO: Move to IJK_Interfaces
        */
       // Laplacian(d) necessitates 2 ghost cells like temperature
-      eulerian_distance_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
+      const int dist_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 2;
+
+      eulerian_distance_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_ghost);
       nalloc += 1;
 
       tmp_old_dist_val_ = eulerian_distance_ft_;
@@ -71,7 +73,8 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       nalloc += 2;
 
       // grad(d) necessitates 1 ghost cell ?
-      allocate_cell_vector(eulerian_normal_vectors_ft_, ref_ijk_ft_->get_splitting_ft(), 1);
+      const int normal_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 1 : 1;
+      allocate_cell_vector(eulerian_normal_vectors_ft_, ref_ijk_ft_->get_splitting_ft(), normal_ghost);
       nalloc += 3;
 
       tmp_old_vector_val_ = eulerian_normal_vectors_ft_;
@@ -104,7 +107,9 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
     {
       // Laplacian(d) necessitates 0 ghost cells like div_lambda_grad_T
       // but if calculated using the neighbours maybe 1
-      eulerian_curvature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 1);
+      // const int curvature_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ : 1;
+      const int curvature_ghost = avoid_gfm_parallel_calls_ ? 1 : 1;
+      eulerian_curvature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, curvature_ghost);
       nalloc += 1;
 
       tmp_old_curv_val_ = eulerian_curvature_ft_;
@@ -196,7 +201,8 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
                                                                   tmp_propagated_cells_,
                                                                   interf_cells_indices_,
                                                                   propagated_cells_indices_,
-                                                                  n_iter_distance_);
+                                                                  n_iter_distance_,
+                                                                  avoid_gfm_parallel_calls_);
           eulerian_distance_ft_.echange_espace_virtuel(eulerian_distance_ft_.ghost());
           eulerian_distance_ns_.data() = 0.;
           eulerian_distance_ns_.echange_espace_virtuel(eulerian_distance_ns_.ghost());

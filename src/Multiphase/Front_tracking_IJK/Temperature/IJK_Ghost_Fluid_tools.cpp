@@ -206,7 +206,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              ArrOfInt& interf_cells_indices,
                                                              ArrOfInt& propagated_cells_indices,
                                                              const int& n_iter,
-                                                             const int& start_from_interface_cells)
+                                                             const int& avoid_gfm_parallel_calls)
 {
   /*
    * Compute the normal distance to the interface
@@ -241,6 +241,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   propagated_cells_indices.reset();
   tmp_interf_cells.data() = 0;
   tmp_propagated_cells.data() = 0;
+
   /*
    * M.G: Copy of B.M from Transport_Interfaces_FT_Disc::calculer_distance_interface
    * Distance calculation for the thickness 0 (vertices of the elements crossed by
@@ -323,10 +324,13 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                   }
                 distance_field(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = distance;
               }
-            // elems_valid.insert(elem);
-            if (!tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]))
-              interf_cells_indices.append_array(elem);
-            tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = 1;
+            if (avoid_gfm_parallel_calls)
+              {
+                // elems_valid.insert(elem);
+                if (!tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]))
+                  interf_cells_indices.append_array(elem);
+                tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = 1;
+              }
           }
         for (int j = 0; j < dim; j++)
           facets_barycentre[j](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = centre[j];
@@ -367,7 +371,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   first_cells_indices_tmp.resize_array(1);
 
   int iteration;
-  const int n_iter_tmp = start_from_interface_cells ? n_iter + 1: n_iter;
+  const int n_iter_tmp = avoid_gfm_parallel_calls ? n_iter + 1: n_iter;
 
   if (use_ijk)
     {
@@ -389,7 +393,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
            */
 
           const double un_sur_ncontrib = 1. / (1. + nb_elem_voisins);
-          if (start_from_interface_cells)
+          if (avoid_gfm_parallel_calls)
             {
               // elems_valid_copy = elems_valid_tmp;
               // elems_valid_tmp.clear();
@@ -557,7 +561,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int nk = normal_vect[0].nk();
       for (iteration = 0; iteration < n_iter; iteration++)
         {
-          if (start_from_interface_cells)
+          if (avoid_gfm_parallel_calls)
             {
               propagated_cells_indices_tmp = propagated_cells_indices;
               propagated_cells_indices.reset();
@@ -1065,7 +1069,8 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                                                             const IJK_Field_double& curvature,
                                                             const	IJK_Field_double& temperature,
                                                             IJK_Field_double& grad_T_interface,
-                                                            const int& spherical_approx)
+                                                            const int& spherical_approx,
+                                                            const double& temperature_interf)
 {
   /*
    * Compute the normal temperature gradient at the bubble interface
@@ -1102,7 +1107,7 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                   if ((indic > liquid_indicator) && (d > invalid_value) && grad_T_interface(i+ii,j+jj,k+kk) == 0)
                     {
                       const double temperature_liquid = temperature(i+ii,j+jj,k+kk);
-                      const double second_order_gradient = temperature_liquid / d;
+                      const double second_order_gradient = (temperature_liquid - temperature_interf) / d;
                       const double kappa = curvature(i+ii,j+jj,k+kk);
                       double grad_T_modified = 0.;
                       // TODO: Check sign kappa
@@ -1163,7 +1168,8 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            const IJK_Field_double& curvature,
                                            IJK_Field_double& grad_T_interface,
                                            IJK_Field_double& temperature,
-                                           const int& spherical_approx)
+                                           const int& spherical_approx,
+                                           const double& temperature_interf)
 {
   /*
    * Compute the extended temperature field using propagated values of the temperature gradient
@@ -1185,11 +1191,11 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
               const double kappa = curvature(i,j,k);
               double temperature_ghost = 0.;
               if (spherical_approx)
-                temperature_ghost = d * grad_T * (1. + 0.5 * kappa * d + kappa * kappa * d * d / 6.);
+                temperature_ghost = temperature_interf + d * grad_T * (1. + 0.5 * kappa * d + kappa * kappa * d * d / 6.);
               else
                 {
                   const double kappa_non_zero = kappa + 1.e-16;
-                  temperature_ghost = grad_T * (- 2 / kappa_non_zero) * (1 - (- 2 / kappa_non_zero) / ((d - (2 / kappa_non_zero)) + 1e-16));
+                  temperature_ghost = temperature_interf + grad_T * (- 2 / kappa_non_zero) * (1 - (- 2 / kappa_non_zero) / ((d - (2 / kappa_non_zero)) + 1e-16));
                 }
               temperature(i,j,k) = temperature_ghost;
             }

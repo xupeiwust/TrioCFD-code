@@ -62,12 +62,14 @@ public :
   void retrieve_ghost_fluid_params(const int& compute_distance,
                                    const int& compute_curvature,
                                    const int& n_iter_distance,
+                                   const int& avoid_gfm_parallel_calls,
                                    const IJK_Field_local_double& boundary_flux_kmin,
                                    const IJK_Field_local_double& boundary_flux_kmax)
   {
     compute_distance_ = compute_distance;
     compute_curvature_ = compute_curvature;
     n_iter_distance_ = n_iter_distance;
+    avoid_gfm_parallel_calls_ = avoid_gfm_parallel_calls;
     boundary_flux_kmin_ = boundary_flux_kmin;
     boundary_flux_kmax_ = boundary_flux_kmax;
   }
@@ -179,7 +181,8 @@ protected :
   REF(IJK_FT_double) ref_ijk_ft_;
   int compute_distance_ = 1;
   int compute_curvature_ = 1;
-  int n_iter_distance_ = 6;
+  int n_iter_distance_ = 8;
+  int avoid_gfm_parallel_calls_ = 0;
   IJK_Field_local_double boundary_flux_kmin_;
   IJK_Field_local_double boundary_flux_kmax_;
 
