@@ -70,6 +70,8 @@ public :
     compute_curvature_ = compute_curvature;
     n_iter_distance_ = n_iter_distance;
     avoid_gfm_parallel_calls_ = avoid_gfm_parallel_calls;
+    use_n_iter_distance_ = 0;
+    nb_cells_gfm_parallel_calls_ = 2;
     boundary_flux_kmin_ = boundary_flux_kmin;
     boundary_flux_kmax_ = boundary_flux_kmax;
   }
@@ -184,6 +186,8 @@ protected :
   int compute_curvature_ = 1;
   int n_iter_distance_ = 8;
   int avoid_gfm_parallel_calls_ = 0;
+  int use_n_iter_distance_ = 0;
+  int nb_cells_gfm_parallel_calls_ = 2;
   IJK_Field_local_double boundary_flux_kmin_;
   IJK_Field_local_double boundary_flux_kmax_;
 

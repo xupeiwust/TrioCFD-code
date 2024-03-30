@@ -404,6 +404,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int ni = normal_vect[0].ni();
       const int nj = normal_vect[0].nj();
       const int nk = normal_vect[0].nk();
+      const int nghost = normal_vect[0].ghost();
       int m;
       for (iteration = 0; iteration < n_iter_tmp; iteration++)
         {
@@ -429,6 +430,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                   const int j = propagated_cells_indices_tmp[DIRECTION_J](ielem);
                   const int k = propagated_cells_indices_tmp[DIRECTION_K](ielem);
 
+                  Cerr << "iteration:" << iteration << finl;
+
                   // elems_valid_tmp.insert(*it);
                   // Averaging the normal vector on the neighbours
                   double n[3] = {0., 0., 0.};
@@ -439,18 +442,24 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                       const int ii = neighbours_i[l];
                       const int jj = neighbours_j[l];
                       const int kk = neighbours_k[l];
-                      for (m = 0; m < dim; m++)
-                        n[m] += normal_vect[m](i+ii,j+jj,k+kk);
 
-                      if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
+                      const int is_outside_proc = (i + ii < -nghost || j + jj < -nghost || k + kk < -nghost)
+                                                  || (i + ii >= ni + nghost || j + jj >= nj + nghost || k + kk >= nk + nghost);
+                      if (!is_outside_proc)
                         {
-                          const Int3 ijk_index(i+ii, j+jj, k+kk);
-                          for (m=0; m<dim; m++)
-                            propagated_cells_indices[m].append_array(ijk_index[m]);
-                          tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
-                          if (!iteration)
-                            for (m=0; m<dim; m++)
-                              gfm_first_cells_indices_[m].append_array(ijk_index[m]);
+                          for (m = 0; m < dim; m++)
+                            n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+
+                          if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
+                            {
+                              const Int3 ijk_index(i+ii, j+jj, k+kk);
+                              for (m=0; m<dim; m++)
+                                propagated_cells_indices[m].append_array(ijk_index[m]);
+                              tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
+                              if (!iteration)
+                                for (m=0; m<dim; m++)
+                                  gfm_first_cells_indices_[m].append_array(ijk_index[m]);
+                            }
                         }
                     }
                   for (m = 0; m < dim; m++)
@@ -583,6 +592,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int ni = normal_vect[0].ni();
       const int nj = normal_vect[0].nj();
       const int nk = normal_vect[0].nk();
+      const int nghost = normal_vect[0].ghost();
       int m;
       for (iteration = 0; iteration < n_iter; iteration++)
         {
@@ -614,36 +624,41 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                           const int jj = neighbours_j[l];
                           const int kk = neighbours_k[l];
 
-                          const Int3 ijk_index(i+ii, j+jj, k+kk);
-                          if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
+                          const int is_outside_proc = (i + ii < -nghost || j + jj < -nghost || k + kk < -nghost)
+                                                      || (i + ii >= ni + nghost || j + jj >= nj + nghost || k + kk >= nk + nghost);
+                          if (!is_outside_proc)
                             {
-                              for (m=0; m<dim; m++)
-                                propagated_cells_indices[m].append_array(ijk_index[m]);
-                              tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
-                            }
-
-                          const double distance_voisin = distance_field(i+ii, j+jj, k+kk);
-                          if (distance_voisin > invalid_distance_value)
-                            {
-                              // Average normal distance between an element and its neighbours
-                              double nx = normal_vect[0](i,j,k) + normal_vect[0](i+ii, j+jj, k+kk);
-                              double ny = normal_vect[1](i,j,k) + normal_vect[1](i+ii, j+jj, k+kk);
-                              double nz = normal_vect[2](i,j,k) + normal_vect[2](i+ii, j+jj, k+kk);
-                              double norm2 = nx*nx + ny*ny + nz*nz;
-                              if (norm2 > 0.)
+                              const Int3 ijk_index(i+ii, j+jj, k+kk);
+                              if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
                                 {
-                                  double i_norm = 1./sqrt(norm2);
-                                  nx *= i_norm;
-                                  ny *= i_norm;
-                                  nz *= i_norm;
+                                  for (m=0; m<dim; m++)
+                                    propagated_cells_indices[m].append_array(ijk_index[m]);
+                                  tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
                                 }
-                              // Element to neighbour vector calculation
-                              double dx = - geom.get_constant_delta(DIRECTION_I) * ii;
-                              double dy = - geom.get_constant_delta(DIRECTION_J) * jj;
-                              double dz = - geom.get_constant_delta(DIRECTION_K) * kk;
-                              double d = nx * dx + ny * dy + nz * dz + distance_voisin;
-                              somme_distances += d;
-                              ncontrib++;
+
+                              const double distance_voisin = distance_field(i+ii, j+jj, k+kk);
+                              if (distance_voisin > invalid_distance_value)
+                                {
+                                  // Average normal distance between an element and its neighbours
+                                  double nx = normal_vect[0](i,j,k) + normal_vect[0](i+ii, j+jj, k+kk);
+                                  double ny = normal_vect[1](i,j,k) + normal_vect[1](i+ii, j+jj, k+kk);
+                                  double nz = normal_vect[2](i,j,k) + normal_vect[2](i+ii, j+jj, k+kk);
+                                  double norm2 = nx*nx + ny*ny + nz*nz;
+                                  if (norm2 > 0.)
+                                    {
+                                      double i_norm = 1./sqrt(norm2);
+                                      nx *= i_norm;
+                                      ny *= i_norm;
+                                      nz *= i_norm;
+                                    }
+                                  // Element to neighbour vector calculation
+                                  double dx = - geom.get_constant_delta(DIRECTION_I) * ii;
+                                  double dy = - geom.get_constant_delta(DIRECTION_J) * jj;
+                                  double dz = - geom.get_constant_delta(DIRECTION_K) * kk;
+                                  double d = nx * dx + ny * dy + nz * dz + distance_voisin;
+                                  somme_distances += d;
+                                  ncontrib++;
+                                }
                             }
                         }
                       // Averaging the distances obtained from neighbours

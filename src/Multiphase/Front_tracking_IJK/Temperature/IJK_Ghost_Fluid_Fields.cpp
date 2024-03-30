@@ -63,7 +63,9 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
        * TODO: Move to IJK_Interfaces
        */
       // Laplacian(d) necessitates 2 ghost cells like temperature
-      const int dist_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 2;
+      const int n_iter_base = use_n_iter_distance_ ? n_iter_distance_ : nb_cells_gfm_parallel_calls_;
+      const int nb_ghost_parallel_calls = 2;
+      const int dist_ghost = avoid_gfm_parallel_calls_ ? n_iter_base + nb_ghost_parallel_calls : 2;
 
       eulerian_distance_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_ghost);
       nalloc += 1;
@@ -72,13 +74,13 @@ void IJK_Ghost_Fluid_Fields::initialize(int& nalloc, const IJK_Splitting& splitt
       tmp_new_dist_val_ = eulerian_distance_ft_;
       nalloc += 2;
 
-      const int dist_tmp_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 0;
+      const int dist_tmp_ghost = avoid_gfm_parallel_calls_ ? n_iter_base + nb_ghost_parallel_calls : 0;
       tmp_interf_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_tmp_ghost);
       tmp_propagated_cells_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, dist_tmp_ghost);
       nalloc += 2;
 
       // grad(d) necessitates 1 ghost cell ?
-      const int normal_ghost = avoid_gfm_parallel_calls_ ? n_iter_distance_ + 2 : 1;
+      const int normal_ghost = avoid_gfm_parallel_calls_ ? n_iter_base + nb_ghost_parallel_calls : 1;
       allocate_cell_vector(eulerian_normal_vectors_ft_, ref_ijk_ft_->get_splitting_ft(), normal_ghost);
       nalloc += 3;
 
