@@ -649,11 +649,11 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
-  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& ghost_fluid)
+  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& allocate_compo_fields)
   {
     if (!is_diphasique_)
       return 0;
-    return ijk_compo_connex_.allocate_fields(splitting, ghost_fluid);
+    return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
   }
 
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,

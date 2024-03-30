@@ -52,7 +52,7 @@ public :
   int initialize(IJK_Interfaces& interfaces,
                  const bool is_switch);
   int allocate_fields(const IJK_Splitting& splitting,
-                      const int& is_ghost_fluid);
+                      const int& compute_compo_fields);
   void associer(const IJK_FT_double& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
@@ -146,7 +146,7 @@ protected :
   REF(IJK_FT_double) ref_ijk_ft_;
   IJK_Interfaces * interfaces_ = nullptr;
   bool is_switch_=false;
-  int is_ghost_fluid_=0;
+  int compute_compo_fields_=0;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;

@@ -430,9 +430,6 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                   const int j = propagated_cells_indices_tmp[DIRECTION_J](ielem);
                   const int k = propagated_cells_indices_tmp[DIRECTION_K](ielem);
 
-                  Cerr << "iteration:" << iteration << finl;
-
-                  // elems_valid_tmp.insert(*it);
                   // Averaging the normal vector on the neighbours
                   double n[3] = {0., 0., 0.};
                   for (m = 0; m < dim; m++)

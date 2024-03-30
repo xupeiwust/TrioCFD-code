@@ -1659,9 +1659,9 @@ int IJK_FT_double::initialise()
                                              use_bubbles_velocities_from_interface_,
                                              use_bubbles_velocities_from_barycentres_);
 
-  nalloc += interfaces_.allocate_ijk_compo_connex_fields(splitting_, thermals_.ghost_fluid_flag());
+  nalloc += interfaces_.allocate_ijk_compo_connex_fields(splitting_, thermals_.ghost_fluid_flag() || upstream_velocity_measured_);
   nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
-                                                               compute_rising_velocities_,
+                                                               compute_rising_velocities_ || upstream_velocity_measured_,
                                                                fill_rising_velocities_,
                                                                use_bubbles_velocities_from_interface_,
                                                                use_bubbles_velocities_from_barycentres_);
