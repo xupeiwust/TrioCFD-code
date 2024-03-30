@@ -135,6 +135,9 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
                                          const int& vapour_mixed_only,
                                          const int& smooth_factor)
 {
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Extrapolte gfm temperature values");
+  statistiques().begin_count(stat_counter);
+
   int neighbours_i[6] = NEIGHBOURS_I;
   int neighbours_j[6] = NEIGHBOURS_J;
   int neighbours_k[6] = NEIGHBOURS_K;
@@ -188,6 +191,7 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
             }
       field.echange_espace_virtuel(field.ghost());
     }
+  statistiques().end_count(stat_counter);
 }
 
 /*
@@ -213,7 +217,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
    * Compute the normal distance to the interface
    */
   const bool use_ijk = true;
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "compute_eulerian_normal_distance_field");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian normal distance field");
   statistiques().begin_count(stat_counter);
 
   static const double invalid_distance_value = INVALID_TEST;
@@ -331,12 +335,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
               }
 
             if (avoid_gfm_parallel_calls)
-              {
-                // if (!tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]))
-                //   for (int l=0; l<dim; l++)
-                //     interf_cells_indices[l].append_array(num_elem_ijk[l]);
-                tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = 1;
-              }
+              tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = 1;
+
           }
         for (int j = 0; j < dim; j++)
           facets_barycentre[j](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = centre[j];
@@ -384,9 +384,6 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
    */
-  // std::set<int> elems_valid_tmp = elems_valid;
-  // std::set<int> elems_valid_copy;
-  // std::set<int> elems_valid_copy = elems_valid;
   tmp_propagated_cells.data() = tmp_interf_cells.data();
   propagated_cells_indices = interf_cells_indices;
   FixedVector<ArrOfInt,3> propagated_cells_indices_tmp;
@@ -419,11 +416,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
           const double un_sur_ncontrib = 1. / (1. + nb_elem_voisins);
           if (avoid_gfm_parallel_calls)
             {
-              // elems_valid_copy = elems_valid_tmp;
-              // elems_valid_tmp.clear();
               propagated_cells_indices_tmp = propagated_cells_indices;
 
-              // for (std::set<int>::iterator it=elems_valid_copy.begin(); it!=elems_valid_copy.end(); ++it)
               for (int ielem = 0; ielem < propagated_cells_indices_tmp[0].size_array(); ielem++)
                 {
                   const int i = propagated_cells_indices_tmp[DIRECTION_I](ielem);
@@ -825,6 +819,8 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
   /*
    * Compute the divergence of the normal vector field or the laplacian of the eulerian distance field
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian curvature dield from distance field");
+  statistiques().begin_count(stat_counter);
 
   // Laplacian operator
   Operateur_IJK_elem_diff laplacian_distance;
@@ -848,6 +844,8 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
       for (int i=0; i < nx; i++)
         curvature(i,j,k) /= vol;
   curvature.echange_espace_virtuel(curvature.ghost());
+
+  statistiques().end_count(stat_counter);
 }
 
 void compute_eulerian_curvature_field_from_normal_vector_field(const FixedVector<IJK_Field_double, 3>& normal_vect,
@@ -874,7 +872,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
   interfacial_area.echange_espace_virtuel(interfacial_area.ghost());
   curvature.echange_espace_virtuel(curvature.ghost());
 
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "compute_eulerian_curvature_field_from_interface");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian Curvature field from interface");
   statistiques().begin_count(stat_counter);
 
   static const double invalid_curvature_value = INVALID_TEST;
@@ -1100,6 +1098,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
           curvature.echange_espace_virtuel(curvature.ghost());
         }
     }
+  statistiques().end_count(stat_counter);
 }
 
 void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_double& distance,
@@ -1115,6 +1114,9 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
    * Compute the normal temperature gradient at the bubble interface
    * Write in the ijk manner !
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian normal temperature gradient interface");
+  statistiques().begin_count(stat_counter);
+
   int neighbours_i[6] = NEIGHBOURS_I;
   int neighbours_j[6] = NEIGHBOURS_J;
   int neighbours_k[6] = NEIGHBOURS_K;
@@ -1163,6 +1165,7 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
             }
         }
   grad_T_interface.echange_espace_virtuel(grad_T_interface.ghost());
+  statistiques().end_count(stat_counter);
   /*
    * Check if indicatrice of the neighbours is zero + interfacial_area to locate the mixed cells
    */
@@ -1213,6 +1216,9 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
   /*
    * Compute the extended temperature field using propagated values of the temperature gradient
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian ghost fluid temperature extension");
+  statistiques().begin_count(stat_counter);
+
   const double invalid_test = INVALID_TEST;
   const int ni = temperature.ni();
   const int nj = temperature.nj();
@@ -1240,6 +1246,8 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
             }
         }
   temperature.echange_espace_virtuel(temperature.ghost());
+
+  statistiques().end_count(stat_counter);
 }
 
 void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,

@@ -94,7 +94,7 @@ Entree& Remaillage_FT_IJK::readOn(Entree& is)
 void Remaillage_FT_IJK::barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& maillage,
                                                             ArrOfDouble& var_volume)
 {
-  static Stat_Counter_Id barycentre_lissage_sys_counter_ = statistiques().new_counter(2, "remaillage interf: bary/lissage systematiques");
+  static Stat_Counter_Id barycentre_lissage_sys_counter_ = statistiques().new_counter(2, "Remaillage interf: bary/lissage systematiques");
   statistiques().begin_count(barycentre_lissage_sys_counter_);
   regulariser_maillage(maillage,
                        var_volume,
@@ -112,7 +112,7 @@ void Remaillage_FT_IJK::barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& ma
 
 void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& maillage, ArrOfDouble& var_volume)
 {
-  static Stat_Counter_Id barycentre_lissage_apres_counter_ = statistiques().new_counter(2, "remaillage local : bary/lissage apres remaillage");
+  static Stat_Counter_Id barycentre_lissage_apres_counter_ = statistiques().new_counter(2, "Remaillage local: bary/lissage apres remaillage");
   statistiques().begin_count(barycentre_lissage_apres_counter_);
   regulariser_maillage(maillage, var_volume,
                        relax_barycentrage_,
@@ -132,7 +132,7 @@ void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& ma
 // A la creation des facettes, il faut leur attribuer un numero de compo connexe dans compo_connex_facettes_.
 int Remaillage_FT_IJK::diviser_grandes_aretes(Maillage_FT_IJK& maillage) const
 {
-  static Stat_Counter_Id sup_div_aretes_counter_ = statistiques().new_counter(2, "remaillage local : suppressions / divisions aretes");
+  static Stat_Counter_Id sup_div_aretes_counter_ = statistiques().new_counter(2, "Remaillage local: suppressions / divisions aretes");
   statistiques().begin_count(sup_div_aretes_counter_);
   static int compteur = 0;
   static int test_val = -1;
@@ -382,7 +382,7 @@ int Remaillage_FT_IJK::diviser_grandes_aretes(Maillage_FT_IJK& maillage) const
 
 void Remaillage_FT_IJK::remaillage_local_interface(double temps, Maillage_FT_IJK& maillage)
 {
-  static Stat_Counter_Id remaillage_loc_interf_counter_ = statistiques().new_counter(2, "remaillage interf: remaillage local");
+  static Stat_Counter_Id remaillage_loc_interf_counter_ = statistiques().new_counter(2, "Remaillage interf: remaillage local");
   statistiques().begin_count(remaillage_loc_interf_counter_);
   temps_dernier_remaillage_ = temps_dernier_lissage_ = temps_ = temps;
 

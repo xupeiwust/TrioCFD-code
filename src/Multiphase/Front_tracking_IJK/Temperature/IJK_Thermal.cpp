@@ -387,7 +387,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   if (liste_post_instantanes.contient_("GRAD_T_DIR_Z_ELEM_") || liste_post_instantanes.contient_("GRAD_T_ELEM")
       || liste_post_instantanes.contient_(nom_grad_T_dir_z))
     {
-      n++, dumplata_scalar(lata_name, nom_grad_T_dir_z, get_gradient_temperature_elem_smooth()[2], latastep);
+      n++, dumplata_scalar(lata_name, nom_grad_T_dir_z, get_gradient_temperature_elem()[2], latastep);
     }
   oss.str("");
 

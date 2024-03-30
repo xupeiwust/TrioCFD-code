@@ -60,7 +60,7 @@ int IJK_Composantes_Connex::allocate_fields(const IJK_Splitting& splitting,
   compute_compo_fields_ = allocate_compo_fields;
   if (!is_switch_ && allocate_compo_fields)
     {
-      if (Process::nproc() == 1)
+      if (Process::nproc() == 1 && compute_from_bounding_box_)
         {
           eulerian_compo_connex_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
           nalloc += 1;
@@ -152,9 +152,12 @@ int IJK_Composantes_Connex::associate_rising_velocities_parameters(const IJK_Spl
 
 void IJK_Composantes_Connex::compute_bounding_box_fill_compo_connex()
 {
+  static Stat_Counter_Id cnt_compo_connex_bounding_box = statistiques().new_counter(2, "Compo Connex - Bounding Box");
+  statistiques().begin_count(cnt_compo_connex_bounding_box);
+
   if (compute_compo_fields_)
     {
-      if (Process::nproc() != 1)
+      if (Process::nproc() != 1 || !compute_from_bounding_box_)
         interfaces_->calculer_bounding_box_bulles(bounding_box_);
       else
         {
@@ -178,10 +181,15 @@ void IJK_Composantes_Connex::compute_bounding_box_fill_compo_connex()
           eulerian_compo_connex_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_ghost_ns_.ghost());
         }
     }
+
+  statistiques().end_count(cnt_compo_connex_bounding_box);
 }
 
 void IJK_Composantes_Connex::compute_compo_connex_from_interface()
 {
+  static Stat_Counter_Id cnt_compo_connex_interface = statistiques().new_counter(2, "Compo Connex - From interface");
+  statistiques().begin_count(cnt_compo_connex_interface);
+
   if (compute_compo_fields_)
     {
       // interfaces_->calculer_volume_bulles(bubbles_volume_, bubbles_barycentre_);
@@ -245,10 +253,14 @@ void IJK_Composantes_Connex::compute_compo_connex_from_interface()
       eulerian_compo_connex_from_interface_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_int_ns_.ghost());
       eulerian_compo_connex_from_interface_ghost_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_int_ns_.ghost());
     }
+
+  statistiques().end_count(cnt_compo_connex_interface);
 }
 
 void IJK_Composantes_Connex::fill_mixed_cell_compo()
 {
+  static Stat_Counter_Id cnt_fill_mixed_cell_compo = statistiques().new_counter(3, "Fill Compo connex");
+  statistiques().begin_count(cnt_fill_mixed_cell_compo);
 
   const Domaine_dis_base& mon_dom_dis = interfaces_->get_domaine_dis().valeur();
   const int nb_elem = mon_dom_dis.domaine().nb_elem();
@@ -390,10 +402,15 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
   eulerian_compo_connex_from_interface_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_int_ns_.ghost());
   eulerian_compo_connex_from_interface_ghost_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_int_ns_.ghost());
   eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
+
+  statistiques().end_count(cnt_fill_mixed_cell_compo);
 }
 
 void IJK_Composantes_Connex::compute_rising_velocities()
 {
+  static Stat_Counter_Id cnt_compute_fill_rising_vel = statistiques().new_counter(2, "Compute and fill rising velocity");
+  statistiques().begin_count(cnt_compute_fill_rising_vel);
+
   if (compute_rising_velocities_)
     {
       const DoubleTab& bubbles_velocities_from_interface = interfaces_->get_bubble_velocities_from_interface();
@@ -440,4 +457,6 @@ void IJK_Composantes_Connex::compute_rising_velocities()
     }
   else
     Cerr << "Don't compute the ghost temperature field" << finl;
+
+  statistiques().end_count(cnt_compute_fill_rising_vel);
 }

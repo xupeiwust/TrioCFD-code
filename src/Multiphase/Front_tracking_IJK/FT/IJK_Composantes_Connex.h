@@ -147,6 +147,7 @@ protected :
   IJK_Interfaces * interfaces_ = nullptr;
   bool is_switch_=false;
   int compute_compo_fields_=0;
+  int compute_from_bounding_box_=0;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;

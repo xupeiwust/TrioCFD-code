@@ -3502,7 +3502,7 @@ static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
 void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
@@ -3576,7 +3576,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
   }
 
   static Stat_Counter_Id search_connex_components_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice : recherche compo connexes");
+    statistiques().new_counter(2, "Calcul de l'indicatrice : recherche compo connexes");
   statistiques().begin_count(search_connex_components_counter_);
   num_compo_.echange_espace_virtuel();
   // Recherche des composantes connexes sur le maillage eulerien
@@ -3712,7 +3712,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
 void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -3770,7 +3770,7 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
 void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
@@ -3871,7 +3871,7 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
 
   ArrOfInt drapeau[max_authorized_nb_of_groups_];
   static Stat_Counter_Id search_connex_components_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice : recherche compo connexes");
+    statistiques().new_counter(2, "Calcul de l'indicatrice : recherche compo connexes");
   for (int i = 0; i < nb_groups_; i++)
     {
       statistiques().begin_count(search_connex_components_counter_);
@@ -3917,7 +3917,7 @@ void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3
 {
 
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -4576,7 +4576,7 @@ void IJK_Interfaces::compute_drapeaux_vapeur_v4(const IntVect& vecteur_composant
                                                 ArrOfInt& drapeau_vapeur) const
 {
   static Stat_Counter_Id calculs_drapeaux_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice: calculs des drapeaux");
+    statistiques().new_counter(2, "Calcul de l'indicatrice: calculs des drapeaux");
   statistiques().begin_count(calculs_drapeaux_counter_);
 
   const IJK_Splitting& split = ref_splitting_.valeur();

@@ -1648,6 +1648,9 @@ int IJK_FT_double::initialise()
       idx2++;
     }
 
+  statistiques().end_count(calculer_thermique_prop_counter_);
+  Cout << "End of IJK_FT_double::initialise()" << finl;
+
   /*
    * Thermal problems
    */
@@ -1666,8 +1669,7 @@ int IJK_FT_double::initialise()
                                                                use_bubbles_velocities_from_interface_,
                                                                use_bubbles_velocities_from_barycentres_);
 
-  statistiques().end_count(calculer_thermique_prop_counter_);
-  Cout << "End of IJK_FT_double::initialise()" << finl;
+
 
   /*
    * TODO: Change this block with DERIV CLASS IJK_Thermal
