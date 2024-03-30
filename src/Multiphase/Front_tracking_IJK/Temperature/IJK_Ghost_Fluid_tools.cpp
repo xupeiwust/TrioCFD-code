@@ -135,7 +135,7 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
                                          const int& vapour_mixed_only,
                                          const int& smooth_factor)
 {
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Extrapolte gfm temperature values");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "Extrapolate gfm temperature values");
   statistiques().begin_count(stat_counter);
 
   int neighbours_i[6] = NEIGHBOURS_I;
@@ -1114,7 +1114,7 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
    * Compute the normal temperature gradient at the bubble interface
    * Write in the ijk manner !
    */
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian normal temperature gradient interface");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "Compute Eulerian normal temperature gradient interface");
   statistiques().begin_count(stat_counter);
 
   int neighbours_i[6] = NEIGHBOURS_I;
@@ -1216,7 +1216,7 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
   /*
    * Compute the extended temperature field using propagated values of the temperature gradient
    */
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "Compute Eulerian ghost fluid temperature extension");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "Compute Eulerian ghost fluid temperature extension");
   statistiques().begin_count(stat_counter);
 
   const double invalid_test = INVALID_TEST;

@@ -1367,6 +1367,7 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
    * d_temperature_ += div_lambda_grad_T_volume_;
    * It depends on the nature of the properties (one-fluid or single-fluid)
    */
+  const int post_pro_div_lambda_grad_T = liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T");
   const int ni = div_coeff_grad_T_volume_.ni();
   const int nj = div_coeff_grad_T_volume_.nj();
   const int nk = div_coeff_grad_T_volume_.nk();
@@ -1380,7 +1381,7 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
           const double resu = ope / rhocpVol;
           div_coeff_grad_T_volume_(i,j,k) = ope / rhocp_l;
           d_temperature_(i,j,k) += resu;
-          if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T"))
+          if (post_pro_div_lambda_grad_T)
             div_coeff_grad_T_(i,j,k) = resu;
         }
   if (debug_)
