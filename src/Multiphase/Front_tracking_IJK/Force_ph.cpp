@@ -28,7 +28,7 @@
 
 // #include <fftw3.h>
 
-Implemente_instanciable_sans_constructeur_ni_destructeur( Force_ph, "Force_ph", Objet_U ) ;
+Implemente_instanciable( Force_ph, "Force_ph", Objet_U ) ;
 
 Sortie& Force_ph::printOn( Sortie& os ) const
 {
@@ -40,18 +40,6 @@ Entree& Force_ph::readOn( Entree& is )
 {
   Objet_U::readOn( is );
   return is;
-}
-
-
-
-Force_ph::Force_ph() : ni(0),nj(0),nk(0),n_ijk(ni*nj*nk),nl(0),nm(0),nn(0),n_lmn(nl*nn*nm),kmin(0),kmax(0),energie(0)
-{
-
-}
-
-Force_ph::~Force_ph()
-{
-
 }
 
 void Force_ph::initialise(int a_nproc_tot, int a_ni,int a_nj,int a_nk,int a_nl,int a_nm, int a_nn,

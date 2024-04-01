@@ -169,22 +169,22 @@ public:
 protected:
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
-  int dt_post_;
-  int dt_post_thermals_probes_;
-  int dt_post_stats_plans_; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
-  int dt_post_stats_bulles_; // intervalle de posttraitement des donnees par bulles
+  int dt_post_ = 100;
+  int dt_post_thermals_probes_ = 100;
+  int dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
+  int dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   // Pour numeroter les fichiers .lata il faut compter combien on en a ecrit:
-  int compteur_post_instantanes_;
-  int postraiter_sous_pas_de_temps_; // drapeau 0 ou 1
+  int compteur_post_instantanes_ = 0;
+  int postraiter_sous_pas_de_temps_ = 0; // drapeau 0 ou 1
 
   // Pour des fiches de validation, on post-traite le champ analytique attendu dans le lata pour calcul de l'erreur:
   Noms expression_vitesse_analytique_; // on attend trois expressions
-  Nom expression_pression_analytique_; // on attend une expression
+  Nom expression_pression_analytique_ = "??"; // par defaut, invalide, on attend une expression
   Noms expression_dvitesse_analytique_; // on attend trois expressions
 
   // Pour check_stats (and_grads)
-  int check_stats_;
+  int check_stats_ = 0;
   Noms expression_gradP_analytique_; // on attend trois expressions
   Noms expression_gradU_analytique_; // on attend trois expressions
   Noms expression_gradV_analytique_; // on attend trois expressions
@@ -205,7 +205,7 @@ protected:
   // 2020.03.12. CHOIX : Meme en disable_diphasique, on fait appel a la classe fille stats FT.
   // La classe de stats monophasique n'est plus maintenue. Suppression du membre.
   // Statistiques_dns_ijk_monophasique statistiques_;
-  double t_debut_statistiques_;
+  double t_debut_statistiques_ = 1.e20;
   // -------------------------------------------------
 
   // Pour les cas a bulles fixes
@@ -214,10 +214,10 @@ protected:
   IJK_Field_double indicatrice_non_perturbe_;
   IJK_Field_double integrated_timescale_;
   // Pour la reprise bulles fixes, parametres de lecture de champ de condition initiale pour variables de post-tt:
-  Nom fichier_reprise_integrated_velocity_;
-  Nom fichier_reprise_integrated_pressure_;
-  Nom fichier_reprise_indicatrice_non_perturbe_;
-  Nom fichier_reprise_integrated_timescale_;
+  Nom fichier_reprise_integrated_velocity_ = "??";
+  Nom fichier_reprise_integrated_pressure_ = "??";
+  Nom fichier_reprise_indicatrice_non_perturbe_ = "??";
+  Nom fichier_reprise_integrated_timescale_ = "??";
 
   // Temporary storage for the coords (for postprocessing) :
   FixedVector<IJK_Field_double, 3> coords_;
@@ -234,7 +234,7 @@ protected:
   IJK_Field_double rebuilt_indic_;
   IJK_Field_double potentiel_;
   IJK_Field_double ai_ft_;
-  int extended_pressure_computed_;
+  int extended_pressure_computed_ = 0;
   IJK_Field_double pressure_ft_;
   IJK_Field_double extended_pl_ft_;
   IJK_Field_double extended_pv_ft_;
@@ -304,7 +304,7 @@ protected:
   FixedVector<IJK_Field_double, 3> cell_grad_p_;
 
 
-  int sondes_demande_;
+  int sondes_demande_ = 0;
   Sondes_IJK les_sondes_;  // Sondes a traiter
 
   /*

@@ -47,22 +47,6 @@ IJK_FT_Post::IJK_FT_Post(IJK_FT_double& ijk_ft) :
 
 void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
 {
-  t_debut_statistiques_ = 1.e20;
-  check_stats_ = 0;
-  expression_pression_analytique_ = "??"; // par defaut, invalide
-  fichier_reprise_integrated_velocity_ = "??"; // par defaut, invalide
-
-  fichier_reprise_integrated_pressure_ = "??"; // par defaut, invalide
-  fichier_reprise_indicatrice_non_perturbe_ = "??"; // par defaut, invalide
-  fichier_reprise_integrated_timescale_ = "??"; // par defaut, invalide
-  compteur_post_instantanes_ = 0;
-  dt_post_ = 100;
-  dt_post_thermals_probes_ = 100;
-  dt_post_stats_plans_ = 1;
-  dt_post_stats_bulles_ = 1;
-  //poisson_solver_post_ = xxxx;
-  postraiter_sous_pas_de_temps_ = 0;
-
   param.ajouter_flag("check_stats", &check_stats_);
   param.ajouter("dt_post", &dt_post_);
   param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
@@ -116,7 +100,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("expression_ddUdxdy_ana", &expression_grad2U_analytique_[3]);
   param.ajouter("expression_ddUdxdz_ana", &expression_grad2U_analytique_[4]);
   param.ajouter("expression_ddUdydz_ana", &expression_grad2U_analytique_[5]);
-  //
+
   expression_grad2V_analytique_.dimensionner_force(6);
   param.ajouter("expression_ddVdxdx_ana", &expression_grad2V_analytique_[0]);
   param.ajouter("expression_ddVdydy_ana", &expression_grad2V_analytique_[1]);
@@ -124,7 +108,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("expression_ddVdxdy_ana", &expression_grad2V_analytique_[3]);
   param.ajouter("expression_ddVdxdz_ana", &expression_grad2V_analytique_[4]);
   param.ajouter("expression_ddVdydz_ana", &expression_grad2V_analytique_[5]);
-  //
+
   expression_grad2W_analytique_.dimensionner_force(6);
   param.ajouter("expression_ddWdxdx_ana", &expression_grad2W_analytique_[0]);
   param.ajouter("expression_ddWdydy_ana", &expression_grad2W_analytique_[1]);
@@ -135,7 +119,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
 
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
 
-  //param.ajouter("multigrid_solver_post", &poisson_solver_post_);
+  // param.ajouter("multigrid_solver_post", &poisson_solver_post_);
   // Lecture des sondes :
   param.ajouter("Sondes", &les_sondes_);
 }
@@ -145,7 +129,7 @@ int IJK_FT_Post::initialise(int reprise)
   int nalloc = 0;
 
   source_spectrale_ = ref_ijk_ft_.forcage_.get_force_ph2();
-  //poisson_solver_post_.initialize(splitting_);
+  // poisson_solver_post_.initialize(splitting_);
   // pour relire les champs de temps integres:
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
     {

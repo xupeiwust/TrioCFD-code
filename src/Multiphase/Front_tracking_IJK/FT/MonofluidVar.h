@@ -67,8 +67,8 @@ public :
   double vap() const;
 
 private:
-  double liqu_val_;
-  double vap_val_;
+  double liqu_val_ = 0.;
+  double vap_val_ = 0.;
 };
 
 

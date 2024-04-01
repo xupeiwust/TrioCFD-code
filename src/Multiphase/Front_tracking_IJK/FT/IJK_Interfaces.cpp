@@ -56,13 +56,24 @@ Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Obje
 
 IJK_Interfaces::IJK_Interfaces()
 {
-  old_en_premier_ = true;
+  lata_interfaces_meshname_ = nom_par_defaut_interfaces;
+
+  RK3_G_store_vi_.set_smart_resize(1);
+  vinterp_.set_smart_resize(1);
+  distance_autres_interfaces_.set_smart_resize(1);
+  ghost_compo_converter_.set_smart_resize(1);
+
+  positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
+  mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
+
   bubbles_velocities_.set_smart_resize(1);
   bubbles_velocities_bary_.set_smart_resize(1);
   bubbles_bary_old_.set_smart_resize(1);
   bubbles_bary_new_.set_smart_resize(1);
   bubbles_rising_vectors_bary_.set_smart_resize(1);
   bubbles_velocities_bary_magnitude_.set_smart_resize(1);
+
+  compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
 }
 
 
@@ -332,55 +343,9 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 // XD interfaces interprete nul 1 not_set
 Entree& IJK_Interfaces::readOn(Entree& is)
 {
-  is_diphasique_ = true;
-  lata_interfaces_meshname_ = nom_par_defaut_interfaces;
-  reprise_ = 0;
-  timestep_reprise_interface_ = 1;
-  //timestep_sauvegarde_interface_ = 1;
-  fichier_sauvegarde_interface_ = "??";
-  portee_force_repulsion_ = 1e-8;
-  //delta_p_max_repulsion_ = 0.; // desactive par defaut
-  portee_wall_repulsion_ = 1e-8;
-  //delta_p_wall_max_repulsion_ = 0.; // desactive par defaut
-  //active_repulsion_paroi_ = 0;      // La repulsion paroi est desactive par defaut,
-  // meme si l'inter-bulles l'est
-  //follow_colors_ = 0;
-  RK3_G_store_vi_.set_smart_resize(1);
-  vinterp_.set_smart_resize(1);
-  distance_autres_interfaces_.set_smart_resize(1);
-  ghost_compo_converter_.set_smart_resize(1);
-  //nb_bulles_ghost_ = 0;
-  nb_bulles_ghost_before_ = 0;
-  //nb_bulles_reelles_ = 0;
-  compute_distance_autres_interfaces_ = 0;
-  recompute_indicator_ = 1; // doit-on calculer l'indicatrice avec une methode
-  // de debug (1) ou optimisee (0) ?
-  parser_ = 0;              // doit-on calculer le forcage avec une methode de parser (1,
-  // lente) ou optimisee basee sur le num_compo_ (0) ?
-  //             Dans le cas ou parser_ est a zero, il faut que
-  //             recompute_indicator_ soit a 1, car c'est cette methode qui
-  //             rempli num_compo_
-
-  // Pour calculer le terme source comme grad(potentiel*I) au lieu de
-  // potentiel_face*gradI
-  //correction_gradient_potentiel_ = 0;
-  terme_gravite_ = GRAVITE_GRAD_I; // Par defaut terme gravite ft sans courants parasites
-
-  // ncells_forbidden_ est le nombre de mailles au bord du domaine etendu ou on
-  // interdit a des bulles d'entrer (bulles detruites et remplacees par leur
-  // duplicata de l'autre cote)
-  ncells_forbidden_ = 3; // Valeur recommandee par defaut.
-  // Suppression des bulles sur le pourtour du domaine lors de la sauvegarde
-  // finale.
-  ncells_deleted_ = -1;           // Valeur recommandee par defaut. On ne veut pas supprimer de bulles.
-  //frozen_ = 0;                    // By default, we want the motion of the interfaces.
-  //flag_positions_reference_ = 0;  // Pas de position de reference imposee
-  positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
-  mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
-
   Param param(que_suis_je());
-  //nb_groups_ = 1;            // Par defaut toutes les bulles sont dans le meme group.
-  compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
+  lata_interfaces_meshname_ = nom_par_defaut_interfaces; // This line is necessary for reprendre_probleme in IJK_FT
+
   param.ajouter("bubble_groups", &compo_to_group_);
   param.ajouter("fichier_reprise_interface", &fichier_reprise_interface_, Param::REQUIRED); // XD_ADD_P  chaine not_set
   param.ajouter("timestep_reprise_interface", &timestep_reprise_interface_); // XD_ADD_P entier not_set
@@ -411,12 +376,15 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.dictionnaire("grad_i", GRAVITE_GRAD_I);
 
   param.lire_avec_accolades(is);
+
   Cout << "IJK_Interfaces::readOn : Option gravite : " << terme_gravite_
        << " { " << (int)GRAVITE_RHO_G << " : GRAVITE_RHO_G, "
        << (int)GRAVITE_GRAD_I << " : GRAVITE_GRAD_I} "
        << finl;
+
   //    Cout << "IJK_Interfaces::readOn : Les options lues sont : " << finl;
   //    param.print(Cout);
+
   if (compo_to_group_.size_array() != 0)
     {
       nb_groups_ = max_array(compo_to_group_) + 1;
@@ -484,7 +452,6 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   Cerr << "Entree dans IJK_Interfaces::initialize" << finl;
 
   int nalloc = 0;
-  // normale_par_compo_is_set_ = false;
   set_recompute_indicator(CLASSIC_METHOD);
 
   ref_splitting_ = splitting_FT;

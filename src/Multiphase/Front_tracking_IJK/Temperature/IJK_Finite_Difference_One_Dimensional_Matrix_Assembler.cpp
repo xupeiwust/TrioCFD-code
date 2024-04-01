@@ -62,16 +62,6 @@ static void sort_stencil(Matrice_Morse& sparse_matrix)
 
 IJK_Finite_Difference_One_Dimensional_Matrix_Assembler::IJK_Finite_Difference_One_Dimensional_Matrix_Assembler()
 {
-  precision_order_ = 2;
-  reduce_side_precision_ = 0;
-  core_matrix_type_ = centred;
-  equation_type_ = advection_diffusion;
-  nb_elem_ = 0;
-  non_zero_elem_ = 0;
-  stencil_forward_max_ = 0;
-  stencil_centred_max_ = 0;
-  stencil_backward_max_ = 0;
-  computed_stencil_=false;
   // Forward
   set_operators_indices(first_order_derivative_forward_vector_, first_order_derivative_forward_, 0);
   // Centred

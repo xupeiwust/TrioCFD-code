@@ -421,26 +421,26 @@ protected :
   FixedVector<IJK_Field_double, 3> terme_pression_local_;
   FixedVector<IJK_Field_double, 3> terme_pression_in_ustar_local_;
   FixedVector<IJK_Field_double, 3> d_v_diff_et_conv_;
-  Vecteur3 rho_u_euler_av_prediction_;
-  Vecteur3 rho_du_euler_ap_prediction_;
-  Vecteur3 rho_u_euler_ap_projection_;
-  Vecteur3 rho_du_euler_ap_projection_;
-  Vecteur3 rho_u_euler_av_rho_mu_ind_;
-  Vecteur3 rho_u_euler_ap_rho_mu_ind_;
-  Vecteur3 u_euler_ap_rho_mu_ind_;
-  Vecteur3 terme_diffusion_;
-  Vecteur3 terme_convection_;
-  Vecteur3 terme_pression_;
-  Vecteur3 terme_pression_bis_;
-  Vecteur3 terme_pression_ter_;
+  Vecteur3 rho_u_euler_av_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_av_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 terme_diffusion_ = {0.,0.,0.};
+  Vecteur3 terme_convection_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ = {0.,0.,0.};
+  Vecteur3 terme_pression_bis_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ter_ = {0.,0.,0.};
   Vecteur3 terme_interfaces_;
-  Vecteur3 terme_pression_in_ustar_;
-  Vecteur3 terme_interfaces_bf_mass_solver_;
-  Vecteur3 terme_interfaces_bf_mass_solver_bis_;
-  Vecteur3 terme_interfaces_af_mass_solver_;
-  Vecteur3 terme_interfaces_conv_diff_mass_solver_;
-  Vecteur3 terme_moyen_convection_mass_solver_;
-  Vecteur3 terme_moyen_diffusion_mass_solver_;
+  Vecteur3 terme_pression_in_ustar_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_bf_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_bf_mass_solver_bis_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_af_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_conv_diff_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_convection_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_diffusion_mass_solver_ = {0.,0.,0.};
   double pression_ap_proj_ = 0.;
 
   // GAB qdm patch a posteriori
@@ -481,7 +481,7 @@ protected :
   Noms expression_variable_source_; // on attend trois expressions
   Nom expression_potential_phi_ = "??"; // source variable formulee en gradient
   Vecteur3 store_rhov_moy_;
-  Vecteur3 integrated_residu_;
+  Vecteur3 integrated_residu_ = {0.,0.,0.};
   // terme source qdm pour pousser le fluide dans le canal (en m/s/s)
   double terme_source_acceleration_ = 0.; // par defaut, zero
   int compute_force_init_ = 0;

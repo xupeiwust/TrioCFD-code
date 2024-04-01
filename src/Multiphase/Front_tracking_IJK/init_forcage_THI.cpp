@@ -36,21 +36,7 @@ Implemente_instanciable_sans_constructeur( init_forcage_THI, "init_forcage_THI",
 //Force_sp f_sp_THI;
 //Force_ph f_ph_THI;
 //Random_process random;
-init_forcage_THI::init_forcage_THI():
-  type_forcage(0),
-  facteur_forcage_(0),
-  forced_advection_(0),
-  time_to_be_del_(0),
-  forcage_ts_stop(-1),
-  forcage_t_stop(-1.),
-  mode_min(0),
-  mode_max(0),
-  amplitude(1.0),
-  eps_etoile(0.1),
-  tL(0.02),
-  i_offset(0),
-  j_offset(0),
-  k_offset(0)
+init_forcage_THI::init_forcage_THI()
 {
   advection_length_.resize_array(3);
   advection_length_ = 0.;
@@ -87,9 +73,9 @@ Entree& init_forcage_THI::readOn( Entree& is )
   param.ajouter("facteur",&facteur_forcage_);
   param.ajouter("forced_advection",&forced_advection_);
   if (forced_advection_==1)
-    {param.ajouter("advection_velocity", &advection_velocity_, Param::REQUIRED);}
+    param.ajouter("advection_velocity", &advection_velocity_, Param::REQUIRED);
   else
-    {param.ajouter("advection_velocity", &advection_velocity_);}
+    param.ajouter("advection_velocity", &advection_velocity_);
   param.ajouter("advection_length", &advection_length_);
   param.ajouter("stops_at_time_step",&forcage_ts_stop);
   param.ajouter("stops_at_time",&forcage_t_stop);

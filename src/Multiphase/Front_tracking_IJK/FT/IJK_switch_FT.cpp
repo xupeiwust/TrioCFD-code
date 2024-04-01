@@ -20,11 +20,7 @@
 #include <Force_sp.h>
 
 
-Implemente_instanciable_sans_constructeur(Switch_FT_double, "Switch_FT_double", Switch_double);
-
-Switch_FT_double::Switch_FT_double() :
-    old_ijk_splitting_ft_extension_(0)
-{}
+Implemente_instanciable(Switch_FT_double, "Switch_FT_double", Switch_double);
 
 Sortie & Switch_FT_double::printOn(Sortie&s) const
 {

@@ -1372,11 +1372,11 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
   const int nj = div_coeff_grad_T_volume_.nj();
   const int nk = div_coeff_grad_T_volume_.nk();
   const double rhocp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  const double rhocpVol = rhocp_l * vol_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double rhocpVol = rhocp_l * vol_;
           const double ope = div_coeff_grad_T_volume_(i,j,k);
           const double resu = ope / rhocpVol;
           div_coeff_grad_T_volume_(i,j,k) = ope / rhocp_l;

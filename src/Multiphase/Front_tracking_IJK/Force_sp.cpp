@@ -31,7 +31,7 @@
 #include <Domaine_VF.h>
 #include <IJK_Navier_Stokes_tools.h>
 
-Implemente_instanciable_sans_constructeur_ni_destructeur( Force_sp, "Force_sp", Objet_U ) ;
+Implemente_instanciable( Force_sp, "Force_sp", Objet_U ) ;
 
 Sortie& Force_sp::printOn( Sortie& os ) const
 {
@@ -43,17 +43,6 @@ Entree& Force_sp::readOn( Entree& is )
 {
   Objet_U::readOn( is );
   return is;
-}
-
-
-Force_sp::Force_sp() : nl(0),nm(0),nn(0),n_lmn(nl*nn*nm),kmin(0),kmax(0), energie(0)
-{
-
-}
-
-Force_sp::~Force_sp()
-{
-
 }
 
 void Force_sp::initialise(int a_nl,int a_nn,int a_nm, int a_momin, int a_momax, double a_kmin, double a_kmax, std::string nom_fichier

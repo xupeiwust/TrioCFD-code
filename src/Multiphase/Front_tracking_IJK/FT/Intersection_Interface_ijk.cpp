@@ -40,7 +40,7 @@
  * Intersection_Interface_ijk
  */
 
-Implemente_base_sans_constructeur(Intersection_Interface_ijk, "Intersection_Interface_ijk", Objet_U);
+Implemente_base(Intersection_Interface_ijk, "Intersection_Interface_ijk", Objet_U);
 
 Sortie& Intersection_Interface_ijk::printOn(Sortie& os) const
 {

@@ -49,11 +49,11 @@ Sortie& Remaillage_FT_IJK::printOn(Sortie& os) const
      << "     pas_remaillage " << dt_remaillage_ << "\n"
      << "     nb_iter_barycentrage " << nb_iter_barycentrage_ << "\n"
      << "     relax_barycentrage " << relax_barycentrage_ << "\n";
-  os     << "     critere_arete " << critere_arete_ << "\n"
-         << "     seuil_dvolume_residuel " << seuil_dvolume_residuel_ << "\n";
-  os     << "     nb_iter_correction_volume " << nb_iter_bary_volume_seul_ << "\n"
-         << "     nb_iter_remaillage " << nb_iter_remaillage_ << "\n"
-         << "     facteur_longueur_ideale " << facteur_longueur_ideale_ << "\n";
+  os << "     critere_arete " << critere_arete_ << "\n"
+     << "     seuil_dvolume_residuel " << seuil_dvolume_residuel_ << "\n";
+  os << "     nb_iter_correction_volume " << nb_iter_bary_volume_seul_ << "\n"
+     << "     nb_iter_remaillage " << nb_iter_remaillage_ << "\n"
+     << "     facteur_longueur_ideale " << facteur_longueur_ideale_ << "\n";
   os << "     equilateral " << equilateral_ << "\n"
      << "     lissage_courbure_coeff " << lissage_courbure_coeff_ << "\n"
      << "     lissage_courbure_iterations_systematique " << lissage_courbure_iterations_systematique_ << "\n"
@@ -78,6 +78,7 @@ Entree& Remaillage_FT_IJK::readOn(Entree& is)
   p.ajouter("lissage_courbure_iterations_systematique", &lissage_courbure_iterations_systematique_); // XD_ADD_P entier not_set
   p.ajouter("lissage_courbure_iterations_si_remaillage", &lissage_courbure_iterations_si_remaillage_); // XD_ADD_P entier not_set
   p.lire_avec_accolades_depuis(is);
+
   Cout << "Remaillage_FT_IJK::readOn : Les options lues sont : " << finl;
   p.print(Cout);
 
@@ -106,8 +107,6 @@ void Remaillage_FT_IJK::barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& ma
                        seuil_dvolume_residuel_);
   supprimer_facettes_bord(maillage);
   statistiques().end_count(barycentre_lissage_sys_counter_);
-
-
 }
 
 void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& maillage, ArrOfDouble& var_volume)
@@ -125,7 +124,6 @@ void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& ma
   // Dans le doute, je laisse l'appel a nettoyer_maillage :
   nettoyer_maillage(maillage);
   statistiques().end_count(barycentre_lissage_apres_counter_);
-
 }
 
 // Surcharge de Remaillage_FT::diviser_grandes_aretes(Maillage_FT_Disc& maillage) const
@@ -432,7 +430,6 @@ void Remaillage_FT_IJK::remaillage_local_interface(double temps, Maillage_FT_IJK
 
   nettoyer_maillage(maillage);
   statistiques().end_count(remaillage_loc_interf_counter_);
-
 }
 
 Vecteur3 Remaillage_FT_IJK::get_delta_euler(const Maillage_FT_IJK& maillage) const

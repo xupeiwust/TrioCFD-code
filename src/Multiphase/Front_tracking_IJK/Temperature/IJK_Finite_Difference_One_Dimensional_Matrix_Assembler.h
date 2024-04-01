@@ -231,22 +231,22 @@ protected :
   };
   FixedVector<FixedVector<DoubleVect,2>,MAX_ORDER_DERIVATIVE> second_order_derivative_backward_;
 
-  int precision_order_;
-  int reduce_side_precision_;
-  int core_matrix_type_;
-  int equation_type_;
-  int nb_elem_;
-  int non_zero_elem_;
-  int stencil_forward_max_;
-  int stencil_centred_max_;
-  int stencil_backward_max_;
+  int precision_order_ = 2;
+  int reduce_side_precision_ = 0;
+  int core_matrix_type_ = centred;
+  int equation_type_ = advection_diffusion;
+  int nb_elem_ = 0;
+  int non_zero_elem_ = 0;
+  int stencil_forward_max_ = 0;
+  int stencil_centred_max_ = 0;
+  int stencil_backward_max_ = 0;
   int forward_left_offset_[3] = {0, 0, 0};
   int forward_right_offset_[3] = {0, 0, 0};
   int centred_left_offset_[3] = {0, 0, 0};
   int centred_right_offset_[3] = {0, 0, 0};
   int backward_left_offset_[3] = {0, 0, 0};
   int backward_right_offset_[3] = {0, 0, 0};
-  bool computed_stencil_;
+  bool computed_stencil_ = false;
   int known_pattern_=1;
 
   void set_operators_size(const std::vector<std::vector<double>>& fd_operator_vector, FixedVector<FixedVector<DoubleVect,2>,MAX_ORDER_DERIVATIVE>& fd_operator);

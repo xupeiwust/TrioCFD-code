@@ -64,26 +64,26 @@ IJK_FT_double::IJK_FT_double():
   gravite_.resize_array(3);
   gravite_ = 0.;
 
-  rho_u_euler_av_prediction_ = 0.;
-  rho_du_euler_ap_prediction_ = 0.;
-  rho_u_euler_ap_projection_ = 0.;
-  rho_du_euler_ap_projection_ = 0.;
-  rho_u_euler_av_rho_mu_ind_ = 0.;
-  rho_u_euler_ap_rho_mu_ind_ = 0.; // 7.;
-  u_euler_ap_rho_mu_ind_ = 0.;
-
-  terme_diffusion_ = 0.;
-  terme_convection_ = 0.;
-  terme_pression_ = 0.;
-  terme_pression_bis_ = 0.;
-  terme_pression_ter_ = 0.;
-  terme_interfaces_ = 0.;
-  terme_interfaces_bf_mass_solver_ = 0.;
-  terme_interfaces_bf_mass_solver_bis_ = 0.;
-  terme_interfaces_af_mass_solver_ = 0.;
-  terme_interfaces_conv_diff_mass_solver_ = 0.;
-  terme_moyen_convection_mass_solver_ = 0.;
-  terme_moyen_diffusion_mass_solver_ = 0.;
+  //  rho_u_euler_av_prediction_ = 0.;
+  //  rho_du_euler_ap_prediction_ = 0.;
+  //  rho_u_euler_ap_projection_ = 0.;
+  //  rho_du_euler_ap_projection_ = 0.;
+  //  rho_u_euler_av_rho_mu_ind_ = 0.;
+  //  rho_u_euler_ap_rho_mu_ind_ = 0.; // 7.;
+  //  u_euler_ap_rho_mu_ind_ = 0.;
+  //
+  //  terme_diffusion_ = 0.;
+  //  terme_convection_ = 0.;
+  //  terme_pression_ = 0.;
+  //  terme_pression_bis_ = 0.;
+  //  terme_pression_ter_ = 0.;
+  //  terme_interfaces_ = 0.;
+  //  terme_interfaces_bf_mass_solver_ = 0.;
+  //  terme_interfaces_bf_mass_solver_bis_ = 0.;
+  //  terme_interfaces_af_mass_solver_ = 0.;
+  //  terme_interfaces_conv_diff_mass_solver_ = 0.;
+  //  terme_moyen_convection_mass_solver_ = 0.;
+  //  terme_moyen_diffusion_mass_solver_ = 0.;
 
   terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
   terme_source_correction_ = 0.;
@@ -91,7 +91,7 @@ IJK_FT_double::IJK_FT_double():
   correction_force_ = 0;
 
   //ab-forcage-control-ecoulement-deb
-  integrated_residu_ = 0.;
+  //  integrated_residu_ = 0.;
   //ab-forcage-control-ecoulement-fin
 
   vol_bulles_.resize_array(0); // Initialement a zero, puis sera calcule a chaque iter.
@@ -1123,8 +1123,8 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
   Nom lata_name(fichier_sauvegarde);
   lata_name += ".lata";
   dumplata_header(lata_name, velocity_[0] /* on passe un champ pour ecrire la geometrie */);
-  dumplata_newtime(lata_name,current_time_);
-  dumplata_vector(lata_name,"VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
+  dumplata_newtime(lata_name, current_time_);
+  dumplata_vector(lata_name, "VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
 
   post_.sauvegarder_post(lata_name);
 

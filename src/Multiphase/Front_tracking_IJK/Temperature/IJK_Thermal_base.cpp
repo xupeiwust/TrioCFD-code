@@ -30,15 +30,11 @@
 #include <IJK_Ghost_Fluid_tools.h>
 #include <IJK_Bubble_tools.h>
 
-Implemente_base_sans_constructeur( IJK_Thermal_base, "IJK_Thermal_base", Objet_U ) ;
+Implemente_base(IJK_Thermal_base, "IJK_Thermal_base", Objet_U ) ;
 
 /********************************************
  * Methods inherited from Objet_U
  ********************************************/
-
-IJK_Thermal_base::IJK_Thermal_base()
-{
-}
 
 Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
 {

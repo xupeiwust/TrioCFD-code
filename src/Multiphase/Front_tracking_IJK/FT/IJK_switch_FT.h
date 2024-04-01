@@ -29,11 +29,9 @@
 
 class Switch_FT_double : public Switch_double
 {
-  Declare_instanciable_sans_constructeur(Switch_FT_double);
+  Declare_instanciable(Switch_FT_double);
   friend class IJK_Thermals;
 public:
-  Switch_FT_double();
-
   // Copy ctor is forbidden:
   Switch_FT_double(const Switch_FT_double&x) {
     Cerr << "Erreur Switch_double(Switch_double&) interdit a cause du membre IJK_Interfaces" << finl;
@@ -67,7 +65,7 @@ protected:
 
   // Le maillage des interfaces:
   IJK_Interfaces interfaces_;
-  int old_ijk_splitting_ft_extension_;
+  int old_ijk_splitting_ft_extension_ = 0;
   
   // GAB : gabriel.ramirez@cea.fr
   init_forcage_THI old_forcage_;
@@ -79,7 +77,7 @@ protected:
   double qdm_source_ = 0.;
   double last_source_qdm_update_time_ = 0.;
   int offset_list_index_ = 0.;
-  int size_listes_source_;
+  int size_listes_source_ = 0;
   ArrOfDouble liste_instants_;
   ArrOfDouble liste_vap_dl_;  // liste des v_v * dt
   ArrOfDouble liste_liq_dl_;  // liste des v_l * dt
