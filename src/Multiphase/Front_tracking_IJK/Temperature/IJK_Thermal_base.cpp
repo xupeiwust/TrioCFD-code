@@ -38,135 +38,6 @@ Implemente_base_sans_constructeur( IJK_Thermal_base, "IJK_Thermal_base", Objet_U
 
 IJK_Thermal_base::IJK_Thermal_base()
 {
-  rang_ = 0; // default value, used as an index for the list of thermal sub-problems
-  calulate_grad_T_=0;
-  calculate_local_energy_=0;
-
-  /*
-   * Physical parameters
-   */
-  dt_fo_=1.e20;
-  cp_liquid_=1.;
-  cp_vapour_=0.;
-  lambda_liquid_=1.;
-  lambda_vapour_=0.;
-  single_phase_=1.;
-  fo_ = 1.; // Fourier number
-
-  /*
-   * Initialisation of the problem
-   */
-  expression_T_init_="??";
-  fichier_reprise_temperature_= "??";
-  timestep_reprise_temperature_=1;
-
-  conv_temperature_negligible_=0;
-  diff_temperature_negligible_=0;
-
-  type_T_source_="??";
-  wall_flux_=0;
-  lambda_variable_=0; // terme source variable
-  // type_thermal_problem_=0;
-
-  /*
-   * Ceci est une initialisation des derivees des temperatures moyenne de chaque phase
-   * Il n'est peut-etre pas pertinent de les mettre ici
-   */
-  dTv_ = 0.;
-  dTl_ = 1.;
-  Tl_ = 0.;
-  Tv_ = 1.;
-  Tv0_ = 1.;  // Serait-ce plutot Tref (une temperature de reference pour reconstruire le champ dim??)
-  kl_ = -100000000000000.;
-  kv_ = -200000000000000.;
-  T0v_ = 1.;
-  T0l_ = 0.;
-  expression_T_ana_="??";
-  upstream_temperature_=-1.1e20;
-
-  E0_ = 0;
-  uniform_lambda_ = 0;
-  uniform_alpha_ = 0;
-  prandtl_number_=0;
-  global_energy_ = 0;
-  conserv_energy_global_ = 0;
-  vol_ = 0.;
-  min_delta_xyz_ = 0.;
-  cell_diagonal_ = 0.;
-  ghost_cells_ = 2;
-  rho_cp_post_ = 0;
-
-  nb_diam_upstream_ = 0;
-  side_temperature_ = 0;
-  stencil_side_ = 2;
-
-  n_iter_distance_ = 3;
-  avoid_gfm_parallel_calls_ = 0;
-
-  gfm_recompute_field_ini_ = 1;
-  gfm_zero_neighbour_value_mean_ = 0;
-  gfm_vapour_mixed_only_ = 1;
-
-  compute_grad_T_interface_ = 0;
-  compute_curvature_ = 0;
-  compute_distance_= 0;
-  ghost_fluid_ = 0;
-  compute_grad_T_elem_ = 0;
-  compute_hess_T_elem_ = 0;
-  compute_hess_diag_T_elem_ = 0;
-  compute_hess_cross_T_elem_ = 0;
-  smooth_grad_T_elem_ = 0;
-
-  compute_eulerian_compo_ = 0;
-  compute_rising_velocities_ = 0;
-  fill_rising_velocities_ = 0;
-  use_bubbles_velocities_from_interface_ = 0;
-  use_bubbles_velocities_from_barycentres_ = 0;
-
-  bounding_box_= nullptr;
-  min_max_larger_box_ = nullptr;
-
-  liquid_velocity_ = nullptr;
-  rising_velocities_ = nullptr;
-  rising_velocities_from_barycentres_ = nullptr;
-  rising_vectors_ = nullptr;
-  rising_vectors_from_barycentres_ = nullptr;
-  rising_velocity_overall_ = nullptr;
-  eulerian_rising_velocities_ = nullptr;
-  bubbles_volume_ = nullptr;
-  bubbles_barycentre_ = nullptr;
-
-  debug_ = 0;
-  spherical_approx_ = 1;
-  spherical_exact_ = 0;
-
-  ghost_fluid_fields_ = nullptr;
-
-  eulerian_compo_connex_ft_ = nullptr;
-  eulerian_compo_connex_ns_ = nullptr;
-  eulerian_compo_connex_ghost_ft_ = nullptr;
-  eulerian_compo_connex_ghost_ns_ = nullptr;
-  eulerian_compo_connex_from_interface_ns_ = nullptr;
-  eulerian_compo_connex_from_interface_ft_ = nullptr;
-  eulerian_compo_connex_from_interface_ghost_ft_ = nullptr;
-  eulerian_compo_connex_from_interface_ghost_ns_ = nullptr;
-  eulerian_compo_connex_from_interface_int_ns_ = nullptr;
-  eulerian_compo_connex_from_interface_ghost_int_ns_= nullptr;
-
-  eulerian_distance_ft_ = nullptr;
-  eulerian_distance_ns_ = nullptr;
-  eulerian_normal_vectors_ft_ = nullptr;
-  eulerian_facets_barycentre_ft_ = nullptr;
-  eulerian_normal_vectors_ns_ = nullptr;
-  eulerian_normal_vectors_ns_normed_ = nullptr;
-  eulerian_facets_barycentre_ns_ = nullptr;
-  eulerian_curvature_ft_ = nullptr;
-  eulerian_curvature_ns_ = nullptr;
-  eulerian_interfacial_area_ft_ = nullptr;
-  eulerian_interfacial_area_ns_ = nullptr;
-
-  latastep_reprise_=0;
-  latastep_reprise_ini_=0;
 }
 
 Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
@@ -1460,7 +1331,7 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
       statistiques().end_count(cnt_convective_flux_balance_op);
 
       statistiques().begin_count(cnt_convective_flux_balance_factor);
-      const double rhocp = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+      const double rhocp = get_rhocp_l();
       const int ni = d_temperature_.ni();
       const int nj = d_temperature_.nj();
       const int nk = d_temperature_.nk();
@@ -2273,12 +2144,12 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
 
 double IJK_Thermal_base::get_rhocp_l() const
 {
-  return  ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  return ref_ijk_ft_->get_rho_l() * cp_liquid_;
 }
 
 double IJK_Thermal_base::get_rhocp_v() const
 {
-  return  ref_ijk_ft_->get_rho_v() * cp_vapour_;
+  return ref_ijk_ft_->get_rho_v() * cp_vapour_;
 }
 
 /*

@@ -32,7 +32,6 @@ Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblem, "IJK_
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem()
 {
-
 }
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const IJK_FT_double& ijk_ft) : IJK_One_Dimensional_Subproblem()

@@ -519,12 +519,13 @@ protected:
                                   int gravity_dir, int upstream_stencil);
   virtual void enforce_periodic_temperature_boundary_value() { ; } ;
 
-  int debug_;
-  int latastep_reprise_, latastep_reprise_ini_;
+  int debug_ = 0;
+  int latastep_reprise_ = 0;
+  int latastep_reprise_ini_ = 0;
   /*
    * Patch to conserve energy
    */
-  double E0_; //volumique
+  double E0_ = 0.; //volumique
   IJK_Field_double T_rust_;
   IJK_Field_double d_T_rustine_; // Temperature increment to conserve the energy.
   IJK_Field_double RK3_F_rustine_; // Temporary storage for substeps in the RK3 algorithm for the rustine calculation.
@@ -536,59 +537,65 @@ protected:
   REF(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
   Corrige_flux_FT corrige_flux_;
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
-  int rang_;
+  int rang_ = 0; // default value, used as an index for the list of thermal sub-problems
 
   /*
    * Physical parameters and inputs
    */
-  double dt_fo_;
-  double fo_;
-  double cp_liquid_, cp_vapour_;
-  double lambda_liquid_, lambda_vapour_;
-  int single_phase_;
-  double uniform_lambda_;
-  double uniform_alpha_;
-  double prandtl_number_;
+  double dt_fo_ = 1.e20;
+  double fo_ = 1.; // Fourier number
+  double cp_liquid_ = 1.;
+  double cp_vapour_ = 0.;
+  double lambda_liquid_ = 1.;
+  double lambda_vapour_ = 0.;
+  int single_phase_ = 1.;
+  double uniform_lambda_ = 0.;
+  double uniform_alpha_ = 0.;
+  double prandtl_number_ = 0.;
   /*
    * Initialisation (B.Cs, expression)
    */
   Boundary_Conditions_Thermique boundary_conditions_;
   IJK_Field_local_double boundary_flux_kmin_;
   IJK_Field_local_double boundary_flux_kmax_;
-  Nom expression_T_init_;
-  double upstream_temperature_;
-  double nb_diam_upstream_;
-  int side_temperature_;
-  int stencil_side_;
+  Nom expression_T_init_ = "??";
+  double upstream_temperature_ = -1.1e20;
+  double nb_diam_upstream_ = 0;
+  int side_temperature_ = 0;
+  int stencil_side_ = 0;
 
   /*
    * Settings to resume a calculation
    */
-  Nom fichier_reprise_temperature_;
-  int timestep_reprise_temperature_;
+  Nom fichier_reprise_temperature_ = "??";
+  int timestep_reprise_temperature_ = 1;
 
   /*
    * Source of temperature, wall heating,
    * integral per boundary (Tryggvason)
    */
+  /*
+   * Ceci est une initialisation des derivees des temperatures moyenne de chaque phase
+   * Il n'est peut-etre pas pertinent de les mettre ici
+   */
   Nom expression_source_temperature_;
-  Nom type_T_source_;
-  int lambda_variable_;
-  int wall_flux_;
+  Nom type_T_source_ = "??";
+  int lambda_variable_ = 0; // terme source variable
+  int wall_flux_ = 0;
   IJK_Field_double source_temperature_;
   IJK_Field_double source_temperature_v_;
   IJK_Field_double source_temperature_l_;
   IJK_Field_double d_source_Tl_;
   IJK_Field_double d_source_Tv_;
-  double dTl_;
-  double dTv_;
-  double Tl_;
-  double Tv_;
-  double Tv0_; // Serait-ce plutot Tref (une temperature de reference pour reconstruire le champ dim??)
-  double kv_;
-  double kl_;
-  double T0v_;
-  double T0l_;
+  double dTl_ = 0.;
+  double dTv_ = 1.;
+  double Tl_ = 0.;
+  double Tv_ = 1.;
+  double Tv0_ = 1.; // Serait-ce plutot Tref (une temperature de reference pour reconstruire le champ dim??)
+  double kl_ = -100000000000000.;
+  double kv_ = -200000000000000.;
+  double T0v_ = 1.;
+  double T0l_ = 0.;
   IJK_Field_double source_temperature_ana_;
   IJK_Field_double ecart_source_t_ana_;
 
@@ -602,8 +609,8 @@ protected:
   /*
    * Storage for operators & time scheme
    */
-  int diff_temperature_negligible_;
-  int conv_temperature_negligible_;
+  int diff_temperature_negligible_ = 0;
+  int conv_temperature_negligible_ = 0;
 
   /*
    * type_temperature_convection_op_:
@@ -627,10 +634,10 @@ protected:
   /*
    * Fields
    */
-  double vol_;
-  double min_delta_xyz_;
-  double cell_diagonal_;
-  int ghost_cells_;
+  double vol_ = 0.;
+  double min_delta_xyz_ = 0.;
+  double cell_diagonal_ = 0.;
+  int ghost_cells_ = 2;
   IJK_Field_double rho_cp_;
   IJK_Field_double rho_cp_T_;
   IJK_Field_double temperature_;
@@ -639,8 +646,8 @@ protected:
   IJK_Field_double d_temperature_; // Temperature increment.
   IJK_Field_double RK3_F_temperature_; // Temporary storage for substeps in the RK3 algorithm.
   FixedVector<IJK_Field_double, 3> storage_; // Temporary storage for fluxes calculation.
-  int calculate_local_energy_;
-  int conserv_energy_global_;
+  int calculate_local_energy_ = 0;
+  int conserv_energy_global_ = 0;
 
   /*
    * Fields FT
@@ -651,51 +658,52 @@ protected:
   /*
    * Post-processing
    */
-  Nom expression_T_ana_;
+  Nom expression_T_ana_ = "??";
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   IJK_Field_double temperature_ana_, ecart_t_ana_, ecart_t_ana_rel_;
   FixedVector<IJK_Field_double, 3> grad_T_;
-  double global_energy_;
-  int calulate_grad_T_;
-  int rho_cp_post_;
+  double global_energy_ = 0.;
+  int calulate_grad_T_ = 0;
+  int rho_cp_post_ = 0;
 
   /*
    * For Ghost fluid method & Subresolution or Post-processing
    */
-  int ghost_fluid_;
-  int n_iter_distance_;
-  int gfm_recompute_field_ini_;
-  int gfm_zero_neighbour_value_mean_;
-  int gfm_vapour_mixed_only_;
+  int ghost_fluid_ = 0;
+  int n_iter_distance_ = 3;
+  int gfm_recompute_field_ini_ = 1;
+  int gfm_zero_neighbour_value_mean_ = 0;
+  int gfm_vapour_mixed_only_ = 1;
   int gfm_vapour_liquid_vapour_ = 0;
   int gfm_smooth_factor_ = 20;
-  int avoid_gfm_parallel_calls_;
-  int compute_distance_;
-  int compute_curvature_;
-  int compute_grad_T_interface_;
+  int avoid_gfm_parallel_calls_ = 0;
+
+  int compute_distance_ = 0;
+  int compute_curvature_ = 0;
+  int compute_grad_T_interface_ = 0;
   /*
    * TODO: Move fields and avoid redundancies in IJK_Interfaces
    * Clean FT_fields
    */
-  const DoubleTab * bounding_box_;
-  const DoubleTab * min_max_larger_box_;
-  const IJK_Ghost_Fluid_Fields * ghost_fluid_fields_;
-  const IJK_Field_double * eulerian_distance_ft_;
-  const IJK_Field_double * eulerian_distance_ns_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ft_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ft_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ns_;
-  const IJK_Field_double * eulerian_curvature_ft_;
-  const IJK_Field_double * eulerian_curvature_ns_;
-  const IJK_Field_double * eulerian_interfacial_area_ft_;
-  const IJK_Field_double * eulerian_interfacial_area_ns_;
+  const DoubleTab * bounding_box_ = nullptr;
+  const DoubleTab * min_max_larger_box_ = nullptr;
+  const IJK_Ghost_Fluid_Fields * ghost_fluid_fields_ = nullptr;
+  const IJK_Field_double * eulerian_distance_ft_ = nullptr;
+  const IJK_Field_double * eulerian_distance_ns_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ft_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ft_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_ = nullptr;
+  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ns_ = nullptr;
+  const IJK_Field_double * eulerian_curvature_ft_ = nullptr;
+  const IJK_Field_double * eulerian_curvature_ns_ = nullptr;
+  const IJK_Field_double * eulerian_interfacial_area_ft_ = nullptr;
+  const IJK_Field_double * eulerian_interfacial_area_ns_ = nullptr;
   IJK_Field_double eulerian_grad_T_interface_ft_;
   IJK_Field_double eulerian_grad_T_interface_ns_;
-  int compute_grad_T_elem_;
+  int compute_grad_T_elem_ = 0;
   FixedVector<IJK_Field_double, 3> grad_T_elem_;
-  int smooth_grad_T_elem_;
+  int smooth_grad_T_elem_ = 0;
   FixedVector<IJK_Field_double, 3> grad_T_elem_smooth_;
   /*
    * hess(T) = grad(grad(T))
@@ -713,9 +721,9 @@ protected:
   IJK_Field_double div_coeff_grad_T_volume_uncorrected_;
   Operateur_IJK_elem_conv temperature_convection_op_uncorrected_;
   Operateur_IJK_elem_diff temperature_diffusion_op_uncorrected_;
-  int compute_hess_T_elem_;
-  int compute_hess_diag_T_elem_;
-  int compute_hess_cross_T_elem_;
+  int compute_hess_T_elem_ = 0;
+  int compute_hess_diag_T_elem_ = 0;
+  int compute_hess_cross_T_elem_ = 0;
 
   int mixed_cells_number_ = 0;
   void compute_mixed_cells_number(const IJK_Field_double& indicator);
@@ -725,33 +733,33 @@ protected:
 //  IJK_Field_double eulerian_compo_connex_ns_;
 //  IJK_Field_double eulerian_compo_connex_ghost_ft_;
 //  IJK_Field_double eulerian_compo_connex_ghost_ns_;
-  int spherical_approx_;
-  int spherical_exact_;
-  const IJK_Field_double * eulerian_compo_connex_ft_;
-  const IJK_Field_double * eulerian_compo_connex_ns_;
-  const IJK_Field_double * eulerian_compo_connex_ghost_ft_;
-  const IJK_Field_double * eulerian_compo_connex_ghost_ns_;
-  const IJK_Field_double * eulerian_compo_connex_from_interface_ft_;
-  const IJK_Field_double * eulerian_compo_connex_from_interface_ns_;
-  const IJK_Field_double * eulerian_compo_connex_from_interface_ghost_ft_;
-  const IJK_Field_double * eulerian_compo_connex_from_interface_ghost_ns_;
-  const IJK_Field_int * eulerian_compo_connex_from_interface_int_ns_;
-  const IJK_Field_int * eulerian_compo_connex_from_interface_ghost_int_ns_;
+  int spherical_approx_ = 1;
+  int spherical_exact_ = 0;
+  const IJK_Field_double * eulerian_compo_connex_ft_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_ns_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_ghost_ft_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_ghost_ns_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_from_interface_ft_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_from_interface_ns_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_from_interface_ghost_ft_ = nullptr;
+  const IJK_Field_double * eulerian_compo_connex_from_interface_ghost_ns_ = nullptr;
+  const IJK_Field_int * eulerian_compo_connex_from_interface_int_ns_ = nullptr;
+  const IJK_Field_int * eulerian_compo_connex_from_interface_ghost_int_ns_ = nullptr;
 
-  int compute_rising_velocities_;
-  int fill_rising_velocities_;
-  int use_bubbles_velocities_from_interface_;
-  int use_bubbles_velocities_from_barycentres_;
+  int compute_rising_velocities_ = 0;
+  int fill_rising_velocities_ = 0;
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 
-  const Vecteur3 * liquid_velocity_;
-  const Vecteur3 * rising_velocity_overall_;
-  const ArrOfDouble * rising_velocities_;
-  const ArrOfDouble * rising_velocities_from_barycentres_;
-  const DoubleTab * rising_vectors_;
-  const DoubleTab * rising_vectors_from_barycentres_;
-  const IJK_Field_double * eulerian_rising_velocities_;
-  const ArrOfDouble * bubbles_volume_;
-  const DoubleTab * bubbles_barycentre_;
+  const Vecteur3 * liquid_velocity_ = nullptr;
+  const Vecteur3 * rising_velocity_overall_ = nullptr;
+  const ArrOfDouble * rising_velocities_ = nullptr;
+  const ArrOfDouble * rising_velocities_from_barycentres_ = nullptr;
+  const DoubleTab * rising_vectors_ = nullptr;
+  const DoubleTab * rising_vectors_from_barycentres_ = nullptr;
+  const IJK_Field_double * eulerian_rising_velocities_ = nullptr;
+  const ArrOfDouble * bubbles_volume_ = nullptr;
+  const DoubleTab * bubbles_barycentre_ = nullptr;
   const DoubleTab * bubbles_barycentres_old_ = nullptr;
   const DoubleTab * bubbles_barycentres_new_ = nullptr;
 
