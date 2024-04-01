@@ -1121,6 +1121,7 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
   statistiques().begin_count(sauvegarde_counter_);
 
   Nom lata_name(fichier_sauvegarde);
+  Nom interf_name = lata_name + ".interfaces";
   lata_name += ".lata";
   dumplata_header(lata_name, velocity_[0] /* on passe un champ pour ecrire la geometrie */);
   dumplata_newtime(lata_name, current_time_);
@@ -1137,7 +1138,7 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
       // dumpxyz_vector(velocity_, xyz_name_ascii, false);
     }
   if (!disable_diphasique_)
-    interfaces_.sauvegarder_interfaces(lata_name);
+    interfaces_.sauvegarder_interfaces(lata_name, interf_name);
 
   // thermique_->sauvegarder_temperature(lata_name);
   int idx =0;

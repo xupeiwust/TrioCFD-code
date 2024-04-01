@@ -71,7 +71,7 @@ public :
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
                                      const char *lata_name,
                                      const int lata_step) const;
-  void sauvegarder_interfaces(const char *lata_name); // const;
+  void sauvegarder_interfaces(const char *lata_name, const Nom& interf_name="??"); // const;
   void calculer_color(ArrOfInt& color) const;
   void postraiter_colors(Sortie& os, const double current_time) const;
 
@@ -321,6 +321,8 @@ public :
 
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
   void compute_surface_average_per_bubble(const ArrOfDouble& surfaces, const ArrOfDouble& in, ArrOfDouble& out) const;
+  void read_bubbles_barycentres(const Nom& interf_name);
+  void store_bubbles_barycentres(const Nom& interf_name);
   void compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
                                               DoubleTab& barycentres,
                                               const int& store_values);

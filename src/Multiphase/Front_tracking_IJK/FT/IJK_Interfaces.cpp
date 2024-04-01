@@ -999,11 +999,13 @@ void IJK_Interfaces::supprimer_certaines_bulles_reelles()
 
 // Attention a l'usage du mot cle 'ncells_deleted_' qui conduit a la suppression
 // de bulles (reelles) et pas uniquement des ghosts.
-void IJK_Interfaces::sauvegarder_interfaces(const char *lata_name) // const
+void IJK_Interfaces::sauvegarder_interfaces(const char *lata_name, const Nom& interf_name) // const
 {
   fichier_sauvegarde_interface_ = lata_name;
   timestep_sauvegarde_interface_ = 1;
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+
+  store_bubbles_barycentres(interf_name);
 
   // Suppression des bulles dans le domaine a eliminer pres des bords periodiques
   // lors de la sauvegarde.
@@ -1156,6 +1158,109 @@ void IJK_Interfaces::update_surface_normale() const
 void IJK_Interfaces::reset_flags_and_counters()
 {
   has_computed_bubble_barycentres_ = false;
+}
+
+void IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name)
+{
+  int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
+  bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
+  // const int header_bary_old_new = 5;
+  // const int header_bary_vel = 9;
+  DoubleTab bubbles_bary_tmp;
+  bubbles_bary_tmp.set_smart_resize(1);
+  int ibubble = 0;
+  if (Process::je_suis_maitre() && bubbles_bary_computed)
+    {
+      // Nom input_str = "";
+      int line_counter = 0;
+      std::string line;
+      const Nom interf_dir = dirname(interf_name);
+      const Nom case_name = (Objet_U::nom_du_cas());
+      const Nom suffix = ".sauv.barycentres";
+      // const int nbulles_reelles = get_nb_bulles_reelles();
+      EFichier fic_bary_old(interf_dir + "/" + case_name + suffix + ".old");
+      ifstream& ifstream_bary_old = fic_bary_old.get_ifstream();
+      const char delimiter = ' ';
+      while (std::getline(ifstream_bary_old, line))
+        {
+          std::stringstream ssline(line);
+          while (std::getline(ssline, line, delimiter))
+            {
+              Cerr << line << finl;
+              if(line_counter)
+                Cerr << line << finl;
+            }
+          if(line_counter)
+            ibubble++;
+          line_counter++;
+        }
+      // ifstream_bary_old >> line;
+      // Cerr << line << finl;
+      fic_bary_old.close();
+//      EFichier fic_bary_new(interf_dir + "/" + suffix + ".new");
+//      const ifstream& ifstream_bary_new = fic_bary_old.get_ifstream();
+//      ifstream_bary_new >> input_str;
+//      Cerr << input_str << finl;
+//      fic_bary_new.close();
+//      EFichier fic_bary_vel(interf_dir + "/" + suffix + ".vel");
+//      const ifstream& ifstream_bary_vel = fic_bary_old.get_ifstream();
+//      ifstream_bary_vel >> input_str;
+//      Cerr << input_str << finl;
+//      fic_bary_vel.close();
+    }
+}
+
+void IJK_Interfaces::store_bubbles_barycentres(const Nom& interf_name)
+{
+  const Nom end_space = " ";
+  const Nom escape = "\n";
+  int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
+  bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
+  if (Process::je_suis_maitre() && bubbles_bary_computed)
+    {
+      const Nom interf_dir = dirname(interf_name);
+      const Nom suffix = ".sauv.barycentres";
+      const int reset = 1;
+      const Nom bary_header_old = "ibubble bary_old_x bary_old_y bary_old_z";
+      const Nom bary_header_new = "ibubble bary_new_x bary_new_y bary_new_z";
+      const Nom bary_vel_header = "ibubble bary_vel_x bary_vel_y bary_vel_z bary_vect_x bary_vect_y bary_vect_z bary_vel_val";
+      const int nbulles_reelles = get_nb_bulles_reelles();
+      SFichier fic_bary_old = Open_file_folder(interf_dir, suffix + ".old", bary_header_old, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_old << ibubble << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 0) << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 1) << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 2) << escape;
+        }
+      fic_bary_old.close();
+      SFichier fic_bary_new = Open_file_folder(interf_dir, suffix + ".new", bary_header_new, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_new << ibubble << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 0) << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 1) << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 2) << escape;
+        }
+      fic_bary_new.close();
+      SFichier fic_bary_vel = Open_file_folder(interf_dir, suffix + ".vel", bary_vel_header, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_vel << ibubble << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 0) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 1) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 2) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 0) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 1) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 2) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_magnitude_(ibubble) << escape;
+        }
+      fic_bary_vel.close();
+    }
+  /*
+   * TEST
+   */
+  read_bubbles_barycentres(interf_name);
 }
 
 void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
