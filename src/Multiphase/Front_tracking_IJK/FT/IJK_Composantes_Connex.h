@@ -140,6 +140,14 @@ public :
   {
     return min_max_larger_box_;
   }
+  const int& get_compute_from_bounding_box() const
+  {
+    return compute_from_bounding_box_;
+  }
+  const int& get_compute_compo_fields() const
+  {
+    return compute_compo_fields_;
+  }
 
 protected :
   void fill_mixed_cell_compo();

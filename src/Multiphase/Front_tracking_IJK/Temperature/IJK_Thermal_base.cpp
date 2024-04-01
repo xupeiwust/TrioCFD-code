@@ -851,6 +851,67 @@ void IJK_Thermal_base::compute_cell_diagonal(const IJK_Splitting& splitting)
   cell_diagonal_ = sqrt(dx*dx + dy*dy + dz*dz);
 }
 
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_ft() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_from_bounding_box())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_ft_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_ghost_ft() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_from_bounding_box())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_ghost_ft_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_from_interface_ft() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_from_interface_ft_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_from_interface_ghost_ft() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_from_interface_ghost_ft_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_from_bounding_box())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_ns_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_ghost_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_from_bounding_box())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_ghost_ns_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_from_interface_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_from_interface_ns_;
+}
+const IJK_Field_double& IJK_Thermal_base::get_eulerian_compo_connex_from_interface_ghost_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_double_field_;
+  return *eulerian_compo_connex_from_interface_ghost_ns_;
+}
+const IJK_Field_int& IJK_Thermal_base::get_eulerian_compo_connex_int_from_interface_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_int_field_;
+  return *eulerian_compo_connex_from_interface_int_ns_;
+}
+const IJK_Field_int& IJK_Thermal_base::get_eulerian_compo_connex_int_from_interface_ghost_ns() const
+{
+  if (!ref_ijk_ft_->itfce().get_ijk_compo_connex().get_compute_compo_fields())
+    return dummy_int_field_;
+  return *eulerian_compo_connex_from_interface_ghost_int_ns_;
+}
+
 void IJK_Thermal_base::update_thermal_properties()
 {
   if (single_phase_)

@@ -804,9 +804,11 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
           distance_field.echange_espace_virtuel(distance_field.ghost());
         }
     }
-
-  normal_vect.echange_espace_virtuel();
-  distance_field.echange_espace_virtuel(distance_field.ghost());
+  if (avoid_gfm_parallel_calls)
+    {
+      normal_vect.echange_espace_virtuel();
+      distance_field.echange_espace_virtuel(distance_field.ghost());
+    }
 
   statistiques().end_count(stat_counter);
 }

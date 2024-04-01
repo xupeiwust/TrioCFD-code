@@ -1187,7 +1187,7 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
 #else
       fichier << "{\n";
       if (use_tstep_init_)
-        fichier << " tstep_init " << tstep_ + 1 << "\n";
+        fichier << " tstep_init " << (tstep_ + tstep_init_ + 1) << "\n";
       fichier << " tinit " << current_time_ << "\n"
               << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
               // GAB : qdm_source. Les valeurs des attributs utiles pour le calcul de source_qdm_gr sont
@@ -1196,10 +1196,13 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
               << " reprise_vap_velocity_tmoy " << vap_velocity_tmoy_ << "\n"
               << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
               << " fichier_reprise_vitesse " << basename(lata_name) << "\n";
-      fichier << " timestep_reprise_vitesse 1\n"
-              << " interfaces " << interfaces_  ;
-      fichier << " forcage " << forcage_
+      fichier << " timestep_reprise_vitesse 1" << "\n"
+              << " interfaces " << interfaces_  << "\n";
+      fichier << " forcage " << forcage_ << "\n"
               << " corrections_qdm " << qdm_corrections_;
+
+      fichier << "velocity_bubble_old " << velocity_bubble_old_ << "\n";
+      fichier << "vitesse_upstream_reprise " << vitesse_upstream_reprise_ << "\n";
 
       /*
        * TODO: Change this block with DERIV CLASS IJK_Thermal
@@ -1244,13 +1247,12 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
         }
       if (flag_list_not_empty_en)
         fichier << " } \n" ;
+
       /*
        * Thermals problems
        */
       thermals_.sauvegarder_thermals(fichier);
-      /*
-       *
-       */
+
       post_.sauvegarder_post_maitre(lata_name, fichier);
       fichier << "}\n" ;
 #endif
@@ -1272,6 +1274,9 @@ void IJK_FT_double::reprendre_probleme(const char *fichier_reprise)
   param.ajouter("fichier_reprise_vitesse", &fichier_reprise_vitesse_);
   param.ajouter("timestep_reprise_vitesse", &timestep_reprise_vitesse_);
   param.ajouter("interfaces", & interfaces_);
+
+  param.ajouter("vitesse_upstream_reprise", &vitesse_upstream_reprise_);
+  param.ajouter("velocity_bubble_old", &velocity_bubble_old_);
   // param.ajouter("force_init", &force_init_);
 
   /*
@@ -1307,7 +1312,7 @@ void IJK_FT_double::reprendre_probleme(const char *fichier_reprise)
   Nom prefix = dirname(fichier_reprise);
   interfaces_.set_fichier_reprise(prefix + interfaces_.get_fichier_reprise());
   thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
-  fichier_reprise_vitesse_=prefix+fichier_reprise_vitesse_;
+  fichier_reprise_vitesse_= prefix + fichier_reprise_vitesse_;
 }
 
 // Methode de calcul du pas de temps max base sur CFL, Oh et Fo
@@ -3978,7 +3983,16 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
               const Vecteur3& velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
               velocity_bubble_new_ = velocity_vector[dir]; //  * rising_vector[dir];
               if (tstep_ == 0)
-                vitesse_upstream_ = - velocity_bubble_scope_;
+                {
+                  if (velocity_bubble_old_ < -1e20)
+                    velocity_bubble_old_ = 0.;
+                  else
+                    velocity_bubble_new_ = velocity_bubble_old_;
+                  if (vitesse_upstream_reprise_ < -1e20)
+                    vitesse_upstream_ = - velocity_bubble_scope_;
+                  else
+                    vitesse_upstream_ = vitesse_upstream_reprise_;
+                }
               const double delta_velocity = velocity_bubble_scope_ + velocity_bubble_new_;
               const double ddelta_velocity = (velocity_bubble_new_ - velocity_bubble_old_) / timestep_;
               if (tstep_ % 100)
@@ -3994,6 +4008,7 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
               Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
               Cerr << "Velocity dir upstream: " << rising_vector(0, dir) << finl;
             }
+          vitesse_upstream_reprise_ = vitesse_upstream_;
           Cerr << "Force upstream velocity" << finl;
           force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
                                   vitesse_upstream_, interfaces_, nb_diam_upstream_,

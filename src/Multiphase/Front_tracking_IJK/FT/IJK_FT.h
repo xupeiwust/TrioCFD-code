@@ -649,8 +649,9 @@ protected :
   double vitesse_entree_ = -1.1e20;
   int stencil_vitesse_entree_ = 3;
   double vitesse_upstream_ = -1.1e20;
+  double vitesse_upstream_reprise_ = -1.1e20;
   double velocity_bubble_new_ = 0.;
-  double velocity_bubble_old_ = 0.;
+  double velocity_bubble_old_ = -1.1e20;
   double velocity_bubble_integral_err_ = 0.;
   double velocity_bubble_scope_ = 0.;
   double upstream_velocity_bubble_factor_ = 1.;
