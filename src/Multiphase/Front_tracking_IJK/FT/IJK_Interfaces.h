@@ -322,11 +322,11 @@ public :
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
   void compute_surface_average_per_bubble(const ArrOfDouble& surfaces, const ArrOfDouble& in, ArrOfDouble& out) const;
   void read_bubbles_barycentres_old_new(const Nom& interf_name);
-  void read_bubbles_barycentres_vel(const Nom& interf_name,
+  bool read_bubbles_barycentres_vel(const Nom& interf_name,
                                     FixedVector<ArrOfDouble,3>& bubbles_rising_dir,
                                     FixedVector<ArrOfDouble,3>& bubbles_rising_vel,
                                     ArrOfDouble& bubbles_rising_vel_mag);
-  void read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary);
+  bool read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary);
   void store_bubbles_barycentres(const Nom& interf_name);
   void compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
                                               DoubleTab& barycentres,
@@ -994,8 +994,10 @@ protected:
   ArrOfDouble bubbles_velocities_bary_magnitude_;
   DoubleTab bubbles_bary_old_;
   DoubleTab bubbles_bary_new_;
+  int read_barycentres_velocity_ = 0;
   int use_barycentres_velocity_ = 0;
   bool has_computed_bubble_barycentres_ = false;
+  bool has_readen_barycentres_prev_ = false;
 
 };
 

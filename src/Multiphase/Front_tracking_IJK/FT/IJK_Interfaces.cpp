@@ -93,9 +93,9 @@ static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr,
 
 
 // Ajoute ceci dans le fichier lata maitre:
-//  GEOM meshname type_elem=TRIANGLE_3D
-//  CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
-//  CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
+// GEOM meshname type_elem=TRIANGLE_3D
+// CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
+// CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
 void dumplata_ft_mesh(const char *filename, const char *meshname,
                       const Maillage_FT_IJK& mesh, int step)
 {
@@ -339,6 +339,8 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 
   if (use_barycentres_velocity_)
     os << "use_barycentres_velocity" << "\n";
+  if (read_barycentres_velocity_)
+    os << "use_barycentres_velocity" << "\n";
 
   double max_force_compo = 0.;
   if (mean_force_.size_array() > 0)
@@ -383,7 +385,8 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("mean_force", &mean_force_);
   param.ajouter("parcours_interface",&parcours_);
 
-  param.ajouter_flag("use_barycentres_velocity",&use_barycentres_velocity_);
+  param.ajouter_flag("use_barycentres_velocity", &use_barycentres_velocity_);
+  param.ajouter_flag("read_barycentres_velocity", &read_barycentres_velocity_);
 
   // param.ajouter_non_std("terme_gravite",(this));
   param.ajouter("terme_gravite", &terme_gravite_); // XD_ADD_P chaine(into=["rho_g","grad_i"]) not_set
@@ -722,6 +725,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   /*
    * TODO: Add nalloc
    */
+  read_bubbles_barycentres_old_new(fichier_reprise_interface_);
   intersection_ijk_cell_.initialize(splitting_NS, *this);
   intersection_ijk_face_.initialize(splitting_NS, *this);
   nalloc += ijk_compo_connex_.initialize(*this, is_switch);
@@ -1177,28 +1181,44 @@ void IJK_Interfaces::reset_flags_and_counters()
 
 void IJK_Interfaces::read_bubbles_barycentres_old_new(const Nom& interf_name)
 {
-  Nom suffix_tmp = ".old";
-  FixedVector<ArrOfDouble,3> bubbles_bary_old;
-  read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_old);
-  suffix_tmp = ".new";
-  FixedVector<ArrOfDouble,3> bubbles_bary_new;
-  read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_new);
-  FixedVector_to_DoubleTab(bubbles_bary_old, bubbles_bary_old_);
-  FixedVector_to_DoubleTab(bubbles_bary_new, bubbles_bary_new_);
+  if (reprise_ && use_barycentres_velocity_)
+    read_barycentres_velocity_ = 1;
+  if (read_barycentres_velocity_)
+    {
+      has_readen_barycentres_prev_ = true;
+      bool tmp_readen_flag = false;
+      Nom suffix_tmp = ".old";
+      FixedVector<ArrOfDouble,3> bubbles_bary_old;
+      tmp_readen_flag = read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_old);
+      if (tmp_readen_flag)
+        FixedVector_to_DoubleTab(bubbles_bary_old, bubbles_bary_old_);
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
 
-  FixedVector<ArrOfDouble,3> bubbles_rising_dir;
-  FixedVector<ArrOfDouble,3> bubbles_rising_vel;
-  read_bubbles_barycentres_vel(interf_name, bubbles_rising_dir, bubbles_rising_vel, bubbles_velocities_bary_magnitude_);
-  FixedVector_to_DoubleTab(bubbles_rising_dir, bubbles_rising_vectors_bary_);
-  FixedVector_to_DoubleTab(bubbles_rising_vel, bubbles_velocities_bary_);
+      suffix_tmp = ".new";
+      FixedVector<ArrOfDouble,3> bubbles_bary_new;
+      tmp_readen_flag = read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_new);
+      if (tmp_readen_flag)
+        FixedVector_to_DoubleTab(bubbles_bary_new, bubbles_bary_new_);
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
 
+      FixedVector<ArrOfDouble,3> bubbles_rising_dir;
+      FixedVector<ArrOfDouble,3> bubbles_rising_vel;
+      tmp_readen_flag = read_bubbles_barycentres_vel(interf_name, bubbles_rising_dir, bubbles_rising_vel, bubbles_velocities_bary_magnitude_);
+      if (tmp_readen_flag)
+        {
+          FixedVector_to_DoubleTab(bubbles_rising_dir, bubbles_rising_vectors_bary_);
+          FixedVector_to_DoubleTab(bubbles_rising_vel, bubbles_velocities_bary_);
+        }
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
+    }
 }
 
-void IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
+bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
                                                   FixedVector<ArrOfDouble,3>& bubbles_rising_dir,
                                                   FixedVector<ArrOfDouble,3>& bubbles_rising_vel,
                                                   ArrOfDouble& bubbles_rising_vel_mag)
 {
+  bool is_readen = false;
   int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
   bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
   bubbles_rising_vel_mag.set_smart_resize(1);
@@ -1220,61 +1240,69 @@ void IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
       const Nom interf_dir = dirname(interf_name);
       const Nom case_name = (Objet_U::nom_du_cas());
       const Nom suffix_bary = ".sauv.barycentres";
-      // const int nbulles_reelles = get_nb_bulles_reelles();
-      const Nom file_folder = interf_dir + "/" + case_name + suffix_bary + ".vel";
-      EFichier fic_bary_vel(file_folder);
-      ifstream& ifstream_bary_vel = fic_bary_vel.get_ifstream();
-      const char delimiter = ' ';
-      Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
-      while (std::getline(ifstream_bary_vel, line))
+      const Nom file_folder = interf_dir + case_name + suffix_bary + ".vel";
+      // creating an ifstream object named file
+      ifstream read_tmp;
+      read_tmp.open(file_folder);
+      const bool read_file = read_tmp ? true : false;
+      read_tmp.close();
+      if (read_file)
         {
-          std::stringstream ssline(line);
-          while (std::getline(ssline, line, delimiter))
+          EFichier fic_bary_vel(file_folder);
+          ifstream& ifstream_bary_vel = fic_bary_vel.get_ifstream();
+          const char delimiter = ' ';
+          Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
+          while (std::getline(ifstream_bary_vel, line))
             {
-              Cerr << "Line number: " << line << finl;
-              if(line_counter)
+              std::stringstream ssline(line);
+              Cerr << "Line number: " << line_counter << finl;
+              while (std::getline(ssline, line, delimiter))
                 {
-                  Cerr << "Param: " << line << finl;
-                  switch(var_index)
+                  if(line_counter)
                     {
-                    case 0:
-                      break;
-                    case 1:
-                    case 2:
-                    case 3:
-                      dir = var_index - 1;
-                      bubbles_rising_vel[dir].append_array(std::stod(line));
-                      break;
-                    case 4:
-                    case 5:
-                    case 6:
-                      dir = var_index - 4;
-                      bubbles_rising_dir[dir].append_array(std::stod(line));
-                      break;
-                    case 7:
-                      bubbles_rising_vel_mag.append_array(std::stod(line));
-                      break;
-                    default:
-                      break;
+                      Cerr << "Param: " << line << finl;
+                      switch(var_index)
+                        {
+                        case 0:
+                          break;
+                        case 1:
+                        case 2:
+                        case 3:
+                          dir = var_index - 1;
+                          bubbles_rising_vel[dir].append_array(std::stod(line));
+                          break;
+                        case 4:
+                        case 5:
+                        case 6:
+                          dir = var_index - 4;
+                          bubbles_rising_dir[dir].append_array(std::stod(line));
+                          break;
+                        case 7:
+                          bubbles_rising_vel_mag.append_array(std::stod(line));
+                          break;
+                        default:
+                          break;
+                        }
+                      var_index++;
                     }
-                  var_index++;
                 }
+              var_index = 0;
+              if(line_counter)
+                ibubble++;
+              line_counter++;
             }
-          var_index = 0;
-          if(line_counter)
-            ibubble++;
-          line_counter++;
+          fic_bary_vel.close();
+          is_readen = true;
         }
-      fic_bary_vel.close();
     }
+  return is_readen;
 }
 
-void IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary)
+bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary)
 {
+  bool is_readen = false;
   int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
   bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
-  // const int header_bary_old_new = 5;
-  // const int header_bary_vel = 9;
   for (int c=0; c<3; c++)
     {
       bubbles_bary[c].set_smart_resize(1);
@@ -1290,44 +1318,52 @@ void IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom&
       const Nom interf_dir = dirname(interf_name);
       const Nom case_name = (Objet_U::nom_du_cas());
       const Nom suffix_bary = ".sauv.barycentres";
-      // const int nbulles_reelles = get_nb_bulles_reelles();
-      const Nom file_folder = interf_dir + "/" + case_name + suffix_bary + suffix;
-      EFichier fic_bary(file_folder);
-      ifstream& ifstream_bary_old = fic_bary.get_ifstream();
-      const char delimiter = ' ';
-      Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
-      while (std::getline(ifstream_bary_old, line))
+      const Nom file_folder = interf_dir + case_name + suffix_bary + suffix;
+      ifstream read_tmp;
+      read_tmp.open(file_folder);
+      const bool read_file = read_tmp ? true : false;
+      read_tmp.close();
+      if (read_file)
         {
-          std::stringstream ssline(line);
-          while (std::getline(ssline, line, delimiter))
+          EFichier fic_bary(file_folder);
+          ifstream& ifstream_bary_old = fic_bary.get_ifstream();
+          const char delimiter = ' ';
+          Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
+          while (std::getline(ifstream_bary_old, line))
             {
-              Cerr << "Line number: " << line << finl;
-              if(line_counter)
+              std::stringstream ssline(line);
+              Cerr << "Line number: " << line_counter << finl;
+              while (std::getline(ssline, line, delimiter))
                 {
-                  Cerr << "Param: " << line << finl;
-                  switch(var_index)
+                  if(line_counter)
                     {
-                    case 0:
-                      break;
-                    case 1:
-                    case 2:
-                    case 3:
-                      dir = var_index - 1;
-                      bubbles_bary[dir].append_array(std::stod(line));
-                      break;
-                    default:
-                      break;
+                      Cerr << "Param: " << line << finl;
+                      switch(var_index)
+                        {
+                        case 0:
+                          break;
+                        case 1:
+                        case 2:
+                        case 3:
+                          dir = var_index - 1;
+                          bubbles_bary[dir].append_array(std::stod(line));
+                          break;
+                        default:
+                          break;
+                        }
+                      var_index++;
                     }
-                  var_index++;
                 }
+              var_index = 0;
+              if(line_counter)
+                ibubble++;
+              line_counter++;
             }
-          var_index = 0;
-          if(line_counter)
-            ibubble++;
-          line_counter++;
+          fic_bary.close();
+          is_readen = true;
         }
-      fic_bary.close();
     }
+  return is_readen;
 }
 
 void IJK_Interfaces::store_bubbles_barycentres(const Nom& interf_name)
@@ -1377,10 +1413,6 @@ void IJK_Interfaces::store_bubbles_barycentres(const Nom& interf_name)
         }
       fic_bary_vel.close();
     }
-  /*
-   * TEST
-   */
-  read_bubbles_barycentres_old_new(interf_name);
 }
 
 void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
@@ -1393,7 +1425,12 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
   if (store_values && !has_computed_bubble_barycentres_)
     {
       if (ref_ijk_ft_->get_tstep() == 0)
-        bubbles_bary_old_ = barycentres;
+        {
+          if (!has_readen_barycentres_prev_)
+            bubbles_bary_old_ = barycentres;
+          else
+            bubbles_bary_old_ = bubbles_bary_new_;
+        }
       else
         bubbles_bary_old_ = bubbles_bary_new_;
       bubbles_bary_new_ = barycentres;

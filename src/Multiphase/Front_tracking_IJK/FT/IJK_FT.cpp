@@ -3219,8 +3219,8 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
     for (int dir=0; dir<3; dir++)
       velocity_[dir].data() = 0.; //Velocity reset for test
 
-  static Stat_Counter_Id calcul_dv_counter_ = statistiques().new_counter(2, "maj vitesse : calcul derivee vitesse");
-  statistiques().begin_count(calcul_dv_counter_);
+  static Stat_Counter_Id calcul_dv_counter = statistiques().new_counter(2, "maj vitesse : calcul derivee vitesse");
+  statistiques().begin_count(calcul_dv_counter);
   // Calcul d_velocity = convection
   if (!disable_convection_qdm_)
     {
@@ -3665,7 +3665,7 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
   if (!splitting_.get_grid_geometry().get_periodic_flag(DIRECTION_K))
     force_zero_on_walls(d_velocity_[2]);
 
-  statistiques().end_count(calcul_dv_counter_);
+  statistiques().end_count(calcul_dv_counter);
 }
 
 void IJK_FT_double::compute_add_external_forces(const int dir)
