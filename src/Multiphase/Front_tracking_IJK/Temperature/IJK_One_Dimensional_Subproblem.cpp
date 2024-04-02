@@ -27,6 +27,7 @@
 #include <IJK_Thermal_Subresolution.h>
 #include <IJK_One_Dimensional_Subproblems.h>
 
+#define selectxy(a,x,y) ((a==0)?(x):(y))
 
 Implemente_instanciable( IJK_One_Dimensional_Subproblem, "IJK_One_Dimensional_Subproblem", Objet_U ) ;
 
@@ -4940,60 +4941,27 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
                                                                         const int flux_type,
                                                                         const int inv_sign)
 {
-  FixedVector<double, 6>* convective_diffusive_flux_op_value = nullptr;
-  FixedVector<double, 6>* convective_diffusive_flux_op_value_vap = nullptr;
-  FixedVector<double, 6>* convective_diffusive_flux_op_value_mixed = nullptr;
-  FixedVector<double, 6>* convective_diffusive_flux_op_value_normal_contrib = nullptr;
-  FixedVector<double, 6>* convective_diffusive_flux_op_value_leaving = nullptr;
-  FixedVector<double, 6>* convective_diffusive_flux_op_value_entering = nullptr;
 
-  double * sum_convective_diffusive_flux_op_value = nullptr;
-  double * sum_convective_diffusive_flux_op_value_vap = nullptr;
-  double * sum_convective_diffusive_flux_op_value_mixed = nullptr;
-  double * sum_convective_diffusive_flux_op_value_normal_contrib = nullptr;
-  double * sum_convective_diffusive_flux_op_value_leaving = nullptr;
-  double * sum_convective_diffusive_flux_op_value_entering = nullptr;
+  FixedVector<double, 6>& convective_diffusive_flux_op_value = selectxy(flux_type, convective_flux_op_value_, diffusive_flux_op_value_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_vap = selectxy(flux_type, convective_flux_op_value_vap_, diffusive_flux_op_value_vap_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_mixed = selectxy(flux_type, convective_flux_op_value_mixed_, diffusive_flux_op_value_mixed_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_normal_contrib = selectxy(flux_type, convective_flux_op_value_normal_contrib_, diffusive_flux_op_value_normal_contrib_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_leaving = selectxy(flux_type, convective_flux_op_leaving_value_, diffusive_flux_op_leaving_value_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_entering = selectxy(flux_type, convective_flux_op_entering_value_, diffusive_flux_op_entering_value_);
 
-  switch(flux_type)
-    {
-    case 0:
-      convective_diffusive_flux_op_value = &convective_flux_op_value_;
-      convective_diffusive_flux_op_value_vap = &convective_flux_op_value_vap_;
-      convective_diffusive_flux_op_value_mixed = &convective_flux_op_value_mixed_;
-      convective_diffusive_flux_op_value_normal_contrib = &convective_flux_op_value_normal_contrib_;
-      convective_diffusive_flux_op_value_leaving = &convective_flux_op_leaving_value_;
-      convective_diffusive_flux_op_value_entering = &convective_flux_op_entering_value_;
+  double& sum_convective_diffusive_flux_op_value = selectxy(flux_type, sum_convective_flux_op_value_, sum_diffusive_flux_op_value_);
+  double& sum_convective_diffusive_flux_op_value_vap = selectxy(flux_type, sum_convective_flux_op_value_vap_, sum_diffusive_flux_op_value_vap_);
+  double& sum_convective_diffusive_flux_op_value_mixed = selectxy(flux_type, sum_convective_flux_op_value_mixed_, sum_diffusive_flux_op_value_mixed_);
+  double& sum_convective_diffusive_flux_op_value_normal_contrib = selectxy(flux_type, sum_convective_flux_op_value_normal_contrib_, sum_diffusive_flux_op_value_normal_contrib_);
+  double& sum_convective_diffusive_flux_op_value_leaving = selectxy(flux_type, sum_convective_flux_op_leaving_value_, sum_diffusive_flux_op_leaving_value_);
+  double& sum_convective_diffusive_flux_op_value_entering = selectxy(flux_type, sum_convective_flux_op_entering_value_, sum_diffusive_flux_op_entering_value_);
 
-      sum_convective_diffusive_flux_op_value = &sum_convective_flux_op_value_;
-      sum_convective_diffusive_flux_op_value_vap = &sum_convective_flux_op_value_vap_;
-      sum_convective_diffusive_flux_op_value_mixed = &sum_convective_flux_op_value_mixed_;
-      sum_convective_diffusive_flux_op_value_normal_contrib = &sum_convective_flux_op_value_normal_contrib_;
-      sum_convective_diffusive_flux_op_value_leaving = &sum_convective_flux_op_leaving_value_;
-      sum_convective_diffusive_flux_op_value_entering = &sum_convective_flux_op_entering_value_;
-      break;
-    case 1:
-      convective_diffusive_flux_op_value = &diffusive_flux_op_value_;
-      convective_diffusive_flux_op_value_vap = &diffusive_flux_op_value_vap_;
-      convective_diffusive_flux_op_value_mixed = &diffusive_flux_op_value_mixed_;
-      convective_diffusive_flux_op_value_normal_contrib = &diffusive_flux_op_value_normal_contrib_;
-      convective_diffusive_flux_op_value_leaving = &diffusive_flux_op_leaving_value_;
-      convective_diffusive_flux_op_value_entering = &diffusive_flux_op_entering_value_;
-
-      sum_convective_diffusive_flux_op_value = &sum_diffusive_flux_op_value_;
-      sum_convective_diffusive_flux_op_value_vap = &sum_diffusive_flux_op_value_vap_;
-      sum_convective_diffusive_flux_op_value_mixed = &sum_diffusive_flux_op_value_mixed_;
-      sum_convective_diffusive_flux_op_value_normal_contrib = &sum_diffusive_flux_op_value_normal_contrib_;
-      sum_convective_diffusive_flux_op_value_leaving = &sum_diffusive_flux_op_leaving_value_;
-      sum_convective_diffusive_flux_op_value_entering = &sum_diffusive_flux_op_entering_value_;
-      break;
-    }
-
-  (*sum_convective_diffusive_flux_op_value) = 0.;
-  (*sum_convective_diffusive_flux_op_value_vap) = 0.;
-  (*sum_convective_diffusive_flux_op_value_mixed) = 0.;
-  (*sum_convective_diffusive_flux_op_value_normal_contrib) = 0.;
-  (*sum_convective_diffusive_flux_op_value_leaving) = 0.;
-  (*sum_convective_diffusive_flux_op_value_entering) = 0.;
+  sum_convective_diffusive_flux_op_value = 0.;
+  sum_convective_diffusive_flux_op_value_vap = 0.;
+  sum_convective_diffusive_flux_op_value_mixed = 0.;
+  sum_convective_diffusive_flux_op_value_normal_contrib = 0.;
+  sum_convective_diffusive_flux_op_value_leaving = 0.;
+  sum_convective_diffusive_flux_op_value_entering = 0.;
 
   if (!has_computed_liquid_neighbours_)
     compute_pure_liquid_neighbours();
@@ -5006,12 +4974,12 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
   const int face_dir[6] = FACES_DIR;
   for (int l=0; l<6; l++)
     {
-      (*convective_diffusive_flux_op_value)[l] = 0.;
-      (*convective_diffusive_flux_op_value_vap)[l] = 0.;
-      (*convective_diffusive_flux_op_value_mixed)[l] = 0.;
-      (*convective_diffusive_flux_op_value_normal_contrib)[l] = 0.;
-      (*convective_diffusive_flux_op_value_leaving)[l] = 0.;
-      (*convective_diffusive_flux_op_value_entering)[l] = 0.;
+      convective_diffusive_flux_op_value[l] = 0.;
+      convective_diffusive_flux_op_value_vap[l] = 0.;
+      convective_diffusive_flux_op_value_mixed[l] = 0.;
+      convective_diffusive_flux_op_value_normal_contrib[l] = 0.;
+      convective_diffusive_flux_op_value_leaving[l] = 0.;
+      convective_diffusive_flux_op_value_entering[l] = 0.;
 
       const int ii_f = neighbours_faces_i[l];
       const int jj_f = neighbours_faces_j[l];
@@ -5051,37 +5019,35 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
           //      Cerr << "flux_val: " << flux_val << finl;
           //  }
 
-          (*convective_diffusive_flux_op_value)[l] = flux_val;
-          (*sum_convective_diffusive_flux_op_value) += flux_val;
+          convective_diffusive_flux_op_value[l] = flux_val;
+          sum_convective_diffusive_flux_op_value += flux_val;
 
           if (flux_val >= 0)
             {
-              (*convective_diffusive_flux_op_value_leaving)[l] = flux_val;
-              (*sum_convective_diffusive_flux_op_value_leaving) += flux_val;
+              convective_diffusive_flux_op_value_leaving[l] = flux_val;
+              sum_convective_diffusive_flux_op_value_leaving += flux_val;
             }
           else
             {
               /*
                * Some cases where there are more than 4 faces to correct !!!
-               * | |_| |
-               * |/| |\|
                */
-              (*convective_diffusive_flux_op_value_entering)[l] = flux_val;
-              (*sum_convective_diffusive_flux_op_value_entering) += flux_val;
+              convective_diffusive_flux_op_value_entering[l] = flux_val;
+              sum_convective_diffusive_flux_op_value_entering += flux_val;
             }
 
-          (*convective_diffusive_flux_op_value_normal_contrib)[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
-          (*sum_convective_diffusive_flux_op_value_normal_contrib) += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          convective_diffusive_flux_op_value_normal_contrib[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          sum_convective_diffusive_flux_op_value_normal_contrib += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
         }
       else if (pure_vapour_neighbours_[l])
         {
-          (*convective_diffusive_flux_op_value_vap)[l] = flux_val;
-          (*sum_convective_diffusive_flux_op_value_vap) += flux_val;
+          convective_diffusive_flux_op_value_normal_contrib[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          sum_convective_diffusive_flux_op_value_normal_contrib += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
         }
       else
         {
-          (*convective_diffusive_flux_op_value_mixed)[l] = flux_val;
-          (*sum_convective_diffusive_flux_op_value_mixed) += flux_val;
+          convective_diffusive_flux_op_value_mixed[l] = flux_val;
+          sum_convective_diffusive_flux_op_value_mixed += flux_val;
         }
     }
 }

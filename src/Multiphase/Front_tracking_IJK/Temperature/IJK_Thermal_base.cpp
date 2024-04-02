@@ -2441,87 +2441,28 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
 
   const double x2 = (dirobj-origin_dir)/ ddir;
   int index_dir = (int)(floor(x2)) - offset_dir; // C'est l'index local, donc potentiellement negatif...
-  int ndir;
-  switch(dir)
-    {
-    case 0:
-      ndir = temperature.ni();
-      break;
-    case 1:
-      ndir = temperature.nj();
-      break;
-    case 2:
-      ndir = temperature.nk();
-      break;
-    default:
-      ndir = temperature.ni();
-      break;
-    }
+  const int& ndir = select(dir, temperature.ni(), temperature.nj(), temperature.nk());
+
   // Cerr << "index_dir " << index_dir << finl;
   if ((index_dir >=0) && (index_dir < ndir))
     {
       // On est sur le bon proc...
       if (index_dir+upstream_stencil >= ndir)
-        {
-          // On ne veut pas s'embeter sur 2 procs...
-          index_dir = ndir-upstream_stencil;
-        }
+        // On ne veut pas s'embeter sur 2 procs...
+        index_dir = ndir-upstream_stencil;
     }
   else
-    {
-      return;
-    }
-  {
-    // double imposed[3] = {0., 0., 0.};
-    // composed[dir] = T_imposed;
-    const double imposed = T_imposed;
-    // for (int direction = 0; direction < 3; direction++)
-    {
-      const int& imin = select(dir, index_dir, 0, 0);
-      const int& jmin = select(dir, 0, index_dir, 0);
-      const int& kmin = select(dir, 0, 0, index_dir);
-      const int& imax = select(dir, imin+upstream_stencil, temperature.ni(), temperature.nk());
-      const int& jmax = select(dir, temperature.ni(), jmin+upstream_stencil, temperature.nk());
-      const int& kmax = select(dir, temperature.ni(), temperature.ni(), kmin+upstream_stencil);
-//      switch (dir)
-//        {
-//        case 0:
-//          imin = index_dir;
-//          jmin = 0;
-//          kmin = 0;
-//          imax = imin+upstream_stencil;
-//          jmax = temperature.nj();
-//          kmax = temperature.nk();
-//          break;
-//        case 1:
-//          imin = 0;
-//          jmin = index_dir;
-//          kmin = 0;
-//          imax = temperature.ni();
-//          jmax = jmin+upstream_stencil;
-//          kmax = temperature.nk();
-//          break;
-//        case 2:
-//          imin = 0;
-//          jmin = 0;
-//          kmin = index_dir;
-//          imax = temperature.ni();
-//          jmax = temperature.nj();
-//          kmax = kmin+upstream_stencil;
-//          break;
-//        default:
-//          imin = index_dir;
-//          jmin = 0;
-//          kmin = 0;
-//          imax = imin+upstream_stencil;
-//          jmax = temperature.nj();
-//          kmax = temperature.nk();
-//          break;
-//        }
-      for (int k = kmin; k < kmax; k++)
-        for (int j = jmin; j < jmax; j++)
-          for (int i = imin; i < imax; i++)
-            temperature(i,j,k) = imposed;
-    }
-  }
+    return;
+
+  const double imposed = T_imposed;
+  const int& imin = select(dir, index_dir, 0, 0);
+  const int& jmin = select(dir, 0, index_dir, 0);
+  const int& kmin = select(dir, 0, 0, index_dir);
+  const int& imax = select(dir, imin + upstream_stencil, temperature.nj(), temperature.nk());
+  const int& jmax = select(dir, temperature.ni(), jmin + upstream_stencil, temperature.nk());
+  const int& kmax = select(dir, temperature.ni(), temperature.nj(), kmin + upstream_stencil);
+  for (int k = kmin; k < kmax; k++)
+    for (int j = jmin; j < jmax; j++)
+      for (int i = imin; i < imax; i++)
+        temperature(i,j,k) = imposed;
 }
