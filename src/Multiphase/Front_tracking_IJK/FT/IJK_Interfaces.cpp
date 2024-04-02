@@ -1231,7 +1231,7 @@ bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
       bubbles_rising_vel[c].reset();
     }
   int ibubble = 0;
-  if (Process::je_suis_maitre() && bubbles_bary_computed)
+  if (bubbles_bary_computed)
     {
       int line_counter = 0;
       int var_index = 0;
@@ -1309,7 +1309,7 @@ bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom&
       bubbles_bary[c].reset();
     }
   int ibubble = 0;
-  if (Process::je_suis_maitre() && bubbles_bary_computed)
+  if (bubbles_bary_computed)
     {
       int line_counter = 0;
       int var_index = 0;
