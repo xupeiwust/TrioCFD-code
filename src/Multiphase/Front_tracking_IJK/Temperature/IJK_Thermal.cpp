@@ -150,6 +150,33 @@ void IJK_Thermal::posttraiter_tous_champs_thermal(Motcles& liste, const int idx)
     }
 }
 
+void IJK_Thermal::post_process_std_thermal_field(const Motcles& liste_post_instantanes,
+                                                 const char * lata_name,
+                                                 const int latastep,
+                                                 const double current_time,
+                                                 const int idx,
+                                                 const Motcles& tested_names,
+                                                 const Nom& name_field,
+                                                 const Motcle& lata_suffix,
+                                                 const IJK_Field_double& field,
+                                                 std::ostringstream& oss,
+                                                 int& counter,
+                                                 const int& first_thermal_rank)
+{
+  oss << name_field << "_" << lata_suffix << idx;
+  Nom name_field_tmp(oss.str().c_str());
+  const int nb_names = tested_names.size();
+  bool check_names = false;
+  for (int i=0; i<nb_names; i++)
+    check_names = check_names || (liste_post_instantanes.contient_(tested_names[i]));
+  check_names = check_names || liste_post_instantanes.contient_(name_field_tmp);
+  if (check_names)
+    {
+      counter++, dumplata_scalar(lata_name, name_field_tmp, field, latastep);
+    }
+  oss.str("");
+}
+
 int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                                         const char * lata_name,
                                                         const int latastep,
@@ -165,6 +192,12 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   /*
    * TEMPERATURE
    */
+//  {
+//    Motcles tested_names(1);
+//    tested_names[0] = "TEMPERATURE";
+//    post_process_std_thermal_field(liste_post_instantanes, lata_name, latastep, current_time, idx, tested_names, "TEMPERATURE", lata_suffix, get_temperature(), oss, n);
+//  }
+
   oss << "TEMPERATURE_" << lata_suffix << idx;
   Nom nom_temp(oss.str().c_str());
   if ((liste_post_instantanes.contient_("TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
