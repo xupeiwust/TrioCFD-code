@@ -883,6 +883,7 @@ void IJK_Thermal_base::get_boundary_fluxes(IJK_Field_local_double& boundary_flux
 void IJK_Thermal_base::euler_time_step(const double timestep)
 {
   static Stat_Counter_Id cnt_euler_thermal = statistiques().new_counter(1, "Euler Time Step - Temperature");
+  static Stat_Counter_Id cnt_euler_thermal_post = statistiques().new_counter(2, "Euler Time Step - Temperature post");
   statistiques().begin_count(cnt_euler_thermal);
 
   if (debug_)
@@ -899,13 +900,16 @@ void IJK_Thermal_base::euler_time_step(const double timestep)
   /*
    * Erase the temperature increment (second call)
    */
+  statistiques().begin_count(cnt_euler_thermal_post);
   if (debug_)
     Cerr << "Temperature after increment" << finl;
   post_process_after_temperature_increment();
+  statistiques().end_count(cnt_euler_thermal_post);
 
   temperature_.echange_espace_virtuel(temperature_.ghost());
   const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<< rang_ << "] time t=" << ref_ijk_ft_->get_current_time()
+  Cerr << "[Energy-Budget-T" << rang_ << "]"
+       << " time t=" << ref_ijk_ft_->get_current_time()
        << " " << ene_ini
        << " " << ene_post << " [W.m-3]." << finl;
   source_callback();
@@ -949,14 +953,14 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
 // Mettre rk_step = -1 si schema temps different de rk3.
 void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity)
 {
-  static Stat_Counter_Id cnt_gfm_temperature = statistiques().new_counter(2, "Ghost-Fluid - Temperature");
+  static Stat_Counter_Id cnt_gfm_temperature = statistiques().new_counter(2, "GFM - Temperature");
   static Stat_Counter_Id cnt_temperature_grad_hess = statistiques().new_counter(2, "Gradient and Hessian Temperature calculation");
   static Stat_Counter_Id cnt_lrs_temperature = statistiques().new_counter(2, "Solve the LRS thermal problems");
+  static Stat_Counter_Id cnt_lrs_compute_flux = statistiques().new_counter(2, "Compute flux correction from LRS");
   static Stat_Counter_Id cnt_lrs_prepare_flux = statistiques().new_counter(2, "Prepare flux correction from LRS");
   static Stat_Counter_Id cnt_cell_temperature_first = statistiques().new_counter(2, "Temperature Cell centre - First call");
   static Stat_Counter_Id cnt_flux_balance = statistiques().new_counter(2, "Thermal flux balance");
   static Stat_Counter_Id cnt_upstream_temperature = statistiques().new_counter(2, "Upstream temperature");
-
   // static Stat_Counter_Id cnt_cell_temperature_second = statistiques().new_counter(1, "Temperature Cell centre - Second call");
 
   const double current_time = ref_ijk_ft_->get_current_time();
@@ -1031,9 +1035,11 @@ void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& veloc
   /*
    * Convective and Diffusive fluxes
    */
+  statistiques().begin_count(cnt_lrs_compute_flux);
   if (debug_)
     Cerr << "Compute thermal convective and diffusive fluxes from subproblems" << finl;
   compute_convective_diffusive_fluxes_face_centre();
+  statistiques().end_count(cnt_lrs_compute_flux);
 
   statistiques().begin_count(cnt_lrs_prepare_flux);
   if (debug_)
@@ -1259,8 +1265,6 @@ void IJK_Thermal_base::compute_temperature_gradient_elem()
         {
           smooth_vector_field(grad_T_elem_smooth_, eulerian_normal_vectors_ns_normed_);
           grad_T_elem_smooth_.echange_espace_virtuel();
-          // grad_T_elem_ = grad_T_elem_smooth_;
-          // grad_T_elem_.echange_espace_virtuel();
         }
     }
   else
@@ -1347,7 +1351,7 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
   statistiques().end_count(cnt_convective_flux_balance);
 }
 
-// Convect temperature field by velocity.
+// Convect temperature field by the velocity.
 // The output is stored in d_temperature_ (it is a volume integral over the CV)
 void IJK_Thermal_base::compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity)
 {
@@ -2026,6 +2030,7 @@ void IJK_Thermal_base::calculer_Nusselt(const IJK_Field_double& vx)
   if (std::fabs(theta_adim_moy)>1.e-10)
     Nu = 2./theta_adim_moy;
   const double rho_cp_u_moy = compute_rho_cp_u_mean(vx);
+
   // Impression dans le fichier source_temperature.out
   if (Process::je_suis_maitre())
     {
@@ -2119,7 +2124,7 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
   const int ny = temperature.nj();
   const int nz = temperature.nk();
   // To be sure we're on a regular mesh
-  assert(indic.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) >0);
+  assert(indic.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) > 0);
   for (int k=0; k < nz ; k++)
     for (int j=0; j< ny; j++)
       for (int i=0; i < nx; i++)
@@ -2128,8 +2133,8 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
           global_energy_ += (rhocpl * chi_l + (1.- chi_l) * rhocpv) * temperature(i,j,k);
         }
   const int ntot = temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
-                   *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
-                   *temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+                   * temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
+                   * temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
   global_energy_ = mp_sum(global_energy_)/(double)(ntot);
   return global_energy_;
 }
@@ -2472,52 +2477,51 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
     const double imposed = T_imposed;
     // for (int direction = 0; direction < 3; direction++)
     {
-      int imin;
-      int jmin;
-      int kmin;
-      int imax;
-      int jmax;
-      int kmax;
-      switch (dir)
-        {
-        case 0:
-          imin = index_dir;
-          jmin = 0;
-          kmin = 0;
-          imax = imin+upstream_stencil;
-          jmax = temperature.nj();
-          kmax = temperature.nk();
-          break;
-        case 1:
-          imin = 0;
-          jmin = index_dir;
-          kmin = 0;
-          imax = temperature.ni();
-          jmax = jmin+upstream_stencil;
-          kmax = temperature.nk();
-          break;
-        case 2:
-          imin = 0;
-          jmin = 0;
-          kmin = index_dir;
-          imax = temperature.ni();
-          jmax = temperature.nj();
-          kmax = kmin+upstream_stencil;
-          break;
-        default:
-          imin = index_dir;
-          jmin = 0;
-          kmin = 0;
-          imax = imin+upstream_stencil;
-          jmax = temperature.nj();
-          kmax = temperature.nk();
-          break;
-        }
+      const int& imin = select(dir, index_dir, 0, 0);
+      const int& jmin = select(dir, 0, index_dir, 0);
+      const int& kmin = select(dir, 0, 0, index_dir);
+      const int& imax = select(dir, imin+upstream_stencil, temperature.ni(), temperature.nk());
+      const int& jmax = select(dir, temperature.ni(), jmin+upstream_stencil, temperature.nk());
+      const int& kmax = select(dir, temperature.ni(), temperature.ni(), kmin+upstream_stencil);
+//      switch (dir)
+//        {
+//        case 0:
+//          imin = index_dir;
+//          jmin = 0;
+//          kmin = 0;
+//          imax = imin+upstream_stencil;
+//          jmax = temperature.nj();
+//          kmax = temperature.nk();
+//          break;
+//        case 1:
+//          imin = 0;
+//          jmin = index_dir;
+//          kmin = 0;
+//          imax = temperature.ni();
+//          jmax = jmin+upstream_stencil;
+//          kmax = temperature.nk();
+//          break;
+//        case 2:
+//          imin = 0;
+//          jmin = 0;
+//          kmin = index_dir;
+//          imax = temperature.ni();
+//          jmax = temperature.nj();
+//          kmax = kmin+upstream_stencil;
+//          break;
+//        default:
+//          imin = index_dir;
+//          jmin = 0;
+//          kmin = 0;
+//          imax = imin+upstream_stencil;
+//          jmax = temperature.nj();
+//          kmax = temperature.nk();
+//          break;
+//        }
       for (int k = kmin; k < kmax; k++)
         for (int j = jmin; j < jmax; j++)
           for (int i = imin; i < imax; i++)
             temperature(i,j,k) = imposed;
-      // temperature(i,j,k) = imposed[direction];
     }
   }
 }

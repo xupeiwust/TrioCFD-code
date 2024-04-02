@@ -2231,6 +2231,8 @@ void IJK_Thermal_Subresolution::approximate_temperature_increment_material_deriv
 
 void IJK_Thermal_Subresolution::solve_thermal_subproblems()
 {
+  static Stat_Counter_Id cnt_lrs_solv_lin = statistiques().new_counter(4, "Thermal Subresolution LRS - Solver - Linear");
+  static Stat_Counter_Id cnt_lrs_solv_retrieve_temp = statistiques().new_counter(4, "Thermal Subresolution LRS - Solver - Retrieve temperature");
   if (!disable_subresolution_)
     {
       check_wrong_values_rhs();
@@ -2264,15 +2266,19 @@ void IJK_Thermal_Subresolution::solve_thermal_subproblems()
             }
           else
             {
+              statistiques().begin_count(cnt_lrs_solv_lin);
               Cerr << "Finite-difference thermal sub-resolution has started !" << finl;
               one_dimensional_advection_diffusion_thermal_solver_.resoudre_systeme((*thermal_subproblems_matrix_assembly_for_solver_ref_).valeur(),
                                                                                    thermal_subproblems_rhs_assembly_,
                                                                                    thermal_subproblems_temperature_solution_);
               Cerr << "Finite-difference thermal sub-resolution has finished !" << finl;
+              statistiques().end_count(cnt_lrs_solv_lin);
             }
         }
     }
+  statistiques().begin_count(cnt_lrs_solv_retrieve_temp);
   retrieve_temperature_solution();
+  statistiques().end_count(cnt_lrs_solv_retrieve_temp);
 }
 
 void IJK_Thermal_Subresolution::convert_into_sparse_matrix()
@@ -2375,23 +2381,40 @@ void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre(
   //   thermal_local_subproblems_.dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched_,
   //                                                             ijk_indices_flux_out_,
   //                                                             thermal_flux_out_);
+  static Stat_Counter_Id cnt_lrs_conv_flux_corr = statistiques().new_counter(3, "Compute convective flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_diff_flux_corr = statistiques().new_counter(3, "Compute diffusive flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_dispatch_flux_corr = statistiques().new_counter(3, "Dispatch flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_complete_flux_cons = statistiques().new_counter(3, "Complete flux conservation from LRS");
+  static Stat_Counter_Id cnt_lrs_min_max_flux = statistiques().new_counter(3, "Compute far fluxes correction from LRS");
 
+  statistiques().begin_count(cnt_lrs_conv_flux_corr);
   if (!conv_temperature_negligible_)
     compute_convective_fluxes_face_centre();
+  statistiques().end_count(cnt_lrs_conv_flux_corr);
+
+  statistiques().begin_count(cnt_lrs_diff_flux_corr);
   if (!diff_temperature_negligible_)
     compute_diffusive_fluxes_face_centre();
+  statistiques().end_count(cnt_lrs_diff_flux_corr);
 
+  statistiques().begin_count(cnt_lrs_dispatch_flux_corr);
   if (fluxes_correction_conservations_)
     thermal_local_subproblems_.dispatch_interfacial_heat_flux_correction(interfacial_heat_flux_contrib_,
                                                                          ijk_indices_flux_contrib_,
                                                                          thermal_flux_out_contrib_,
                                                                          interfacial_heat_flux_current_);
+  statistiques().end_count(cnt_lrs_dispatch_flux_corr);
+
+  statistiques().begin_count(cnt_lrs_complete_flux_cons);
   complete_thermal_fluxes_face_centre(fluxes_correction_conservations_);
+  statistiques().end_count(cnt_lrs_complete_flux_cons);
 
   corrige_flux_->initialise_cell_neighbours_indices_to_correct();
   corrige_flux_->compute_cell_neighbours_faces_indices_for_spherical_correction(n_iter_distance_);
 
+  statistiques().begin_count(cnt_lrs_min_max_flux);
   compute_min_max_reachable_fluxes();
+  statistiques().end_count(cnt_lrs_min_max_flux);
 }
 
 void IJK_Thermal_Subresolution::compute_convective_fluxes_face_centre()

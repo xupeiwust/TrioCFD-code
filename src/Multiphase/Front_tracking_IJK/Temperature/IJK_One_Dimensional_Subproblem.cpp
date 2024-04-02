@@ -587,6 +587,9 @@ void IJK_One_Dimensional_Subproblem::associate_finite_difference_operators(const
 
 void IJK_One_Dimensional_Subproblem::initialise_thermal_probe()
 {
+  static Stat_Counter_Id cnt_lrs_ini_cell_dist = statistiques().new_counter(4, "Thermal Subresolution LRS - Initialisation - Cell dist");
+  static Stat_Counter_Id cnt_lrs_ini_face_dist = statistiques().new_counter(4, "Thermal Subresolution LRS - Initialisation - Face dist");
+
   if (debug_)
     Cerr << "Compute interface basis vectors" << finl;
   compute_interface_basis_vectors();
@@ -625,14 +628,18 @@ void IJK_One_Dimensional_Subproblem::initialise_thermal_probe()
   if (!reference_gfm_on_probes_)
     if (distance_cell_faces_from_lrs_)
       {
+        statistiques().begin_count(cnt_lrs_ini_cell_dist);
         compute_distance_cell_centre();
+        statistiques().end_count(cnt_lrs_ini_cell_dist);
         if (debug_)
           Cerr << "Compute cell and faces distance to the interface" << finl;
         if (correct_fluxes_ || correct_temperature_cell_neighbours_
             || find_cell_neighbours_for_fluxes_spherical_correction_
             || compute_reachable_fluxes_)
           {
+            statistiques().begin_count(cnt_lrs_ini_face_dist);
             compute_distance_faces_centres();
+            statistiques().end_count(cnt_lrs_ini_face_dist);
             if (!readjust_probe_length_from_vertices_ || !enable_resize_probe_collision_)
               {
                 if (debug_)
@@ -2717,9 +2724,15 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                                                                                      const double& end_boundary_condition_value,
                                                                                      const int& impose_user_boundary_condition_end_value)
 {
+  static Stat_Counter_Id cnt_lrs_source_terms_prep_bc = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Prepare B.C");
+  static Stat_Counter_Id cnt_lrs_source_terms_compute = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Compute");
+  static Stat_Counter_Id cnt_lrs_source_terms_impose_bc = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Impose B.C");
+  static Stat_Counter_Id cnt_lrs_source_terms_add = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Add B.C");
+
   int boundary_condition_interface_local = boundary_condition_interface;
   int boundary_condition_end_local = boundary_condition_end;
 
+  statistiques().begin_count(cnt_lrs_source_terms_prep_bc);
   prepare_boundary_conditions(thermal_subproblems_rhs_assembly_,
                               thermal_subproblems_temperature_solution_ini_,
                               boundary_condition_interface_local,
@@ -2728,9 +2741,13 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                               boundary_condition_end_local,
                               end_boundary_condition_value,
                               impose_user_boundary_condition_end_value);
+  statistiques().end_count(cnt_lrs_source_terms_prep_bc);
 
+  statistiques().begin_count(cnt_lrs_source_terms_compute);
   compute_source_terms();
+  statistiques().end_count(cnt_lrs_source_terms_compute);
 
+  statistiques().begin_count(cnt_lrs_source_terms_impose_bc);
   (*finite_difference_assembler_).impose_boundary_conditions_subproblem(thermal_subproblems_matrix_assembly_,
                                                                         thermal_subproblems_rhs_assembly_,
                                                                         rhs_assembly_,
@@ -2746,11 +2763,12 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                                                                         start_index_,
                                                                         first_indices_sparse_matrix_,
                                                                         use_sparse_matrix_);
+  statistiques().end_count(cnt_lrs_source_terms_impose_bc);
 
+  statistiques().begin_count(cnt_lrs_source_terms_add);
   add_source_terms(boundary_condition_interface_local, boundary_condition_end_local);
-
   add_source_terms_temporal_tests(boundary_condition_interface_local, boundary_condition_end_local);
-
+  statistiques().end_count(cnt_lrs_source_terms_add);
 }
 
 void IJK_One_Dimensional_Subproblem::compute_source_terms()
@@ -3156,6 +3174,8 @@ void IJK_One_Dimensional_Subproblem::retrieve_temperature_solution()
 
 void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution()
 {
+  // static Stat_Counter_Id cnt_lrs_solv_retrieve_temp = statistiques().new_counter(5, "Thermal Subresolution LRS - Solver - Local gradient solution");
+
   //	for (int dir=0; dir<3; dir++)
   //		temperature_gradient_solution_[dir].resize(temperature_solution_.size());
   normal_temperature_gradient_solution_.resize(temperature_solution_.size());

@@ -109,8 +109,8 @@ void OpHessCentre2IJKScalar_double::calculer_hess_zz(const IJK_Field_double& fie
 
 void OpHessCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir)
 {
-  int ni = resu.ni();
-  int nj = resu.nj();
+  const int ni = resu.ni();
+  const int nj = resu.nj();
   switch(dir)
     {
     case 0:
@@ -130,14 +130,12 @@ void OpHessCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_double&
 
 void OpHessCentre2IJKScalar_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k)
 {
-  int ni = resu.ni();
-  int nj = resu.nj();
+  const double dz_inv = is_flux_ ? 1. : 1 / (channel_data_.get_delta_z()[k] * channel_data_.get_delta_z()[k]);
+  const int ni = resu.ni();
+  const int nj = resu.nj();
   for (int i=0; i < ni; i++)
     for (int j=0; j < nj; j++)
-      {
-        const double dz_inv = is_flux_ ? 1. : 1 / (channel_data_.get_delta_z()[k] * channel_data_.get_delta_z()[k]);
-        resu(i,j,k) = (flux_min(i,j,0) - flux_max(i,j,0)) * dz_inv;
-      }
+      resu(i,j,k) = (flux_min(i,j,0) - flux_max(i,j,0)) * dz_inv;
 }
 
 
@@ -167,8 +165,8 @@ void OpHessFluxCentre2IJKScalar_double::calculer_hess_flux(const IJK_Field_doubl
 
 void OpHessFluxCentre2IJKScalar_double::fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir)
 {
-  int ni = resu.ni();
-  int nj = resu.nj();
+  const int ni = resu.ni();
+  const int nj = resu.nj();
   for (int i=0; i < ni; i++)
     for (int j=0; j < nj; j++)
       resu(i,j,k) = - flux(i,j,0);
