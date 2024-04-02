@@ -1620,6 +1620,15 @@ void IJK_Thermal_Subresolution::compute_mean_liquid_temperature()
 
 void IJK_Thermal_Subresolution::compute_thermal_subproblems()
 {
+  static Stat_Counter_Id cnt_lrs_ini = statistiques().new_counter(3, "Thermal Subresolution LRS - Initialisation");
+  static Stat_Counter_Id cnt_readjust = statistiques().new_counter(3, "Thermal Subresolution LRS - Readjustement");
+  static Stat_Counter_Id cnt_lrs_matrix_op = statistiques().new_counter(3, "Thermal Subresolution LRS - Matrix computation");
+  static Stat_Counter_Id cnt_lrs_temporal_scheme = statistiques().new_counter(3, "Thermal Subresolution LRS - Temporal scheme");
+  static Stat_Counter_Id cnt_lrs_source_terms = statistiques().new_counter(3, "Thermal Subresolution LRS - Source terms");
+  static Stat_Counter_Id cnt_lrs_solver = statistiques().new_counter(3, "Thermal Subresolution LRS - Solver");
+  static Stat_Counter_Id cnt_lrs_post = statistiques().new_counter(3, "Thermal Subresolution LRS - Miscellaneous post");
+  static Stat_Counter_Id cnt_lrs_prepare_corr = statistiques().new_counter(3, "Thermal Subresolution LRS - Prepare temp-flux correction");
+
   is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep()==0);
   first_step_thermals_post_ = (first_step_thermals_post_ && !ref_ijk_ft_->get_tstep());
   if (is_first_time_step_)
@@ -1633,8 +1642,12 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
 
   if (debug_)
     Cerr << "Initialise thermal subproblems" << finl;
-  initialise_thermal_subproblems();
 
+  statistiques().begin_count(cnt_lrs_ini);
+  initialise_thermal_subproblems();
+  statistiques().end_count(cnt_lrs_ini);
+
+  statistiques().begin_count(cnt_readjust);
   detect_probe_collision();
 
   int varying_probes_length = 1;
@@ -1658,7 +1671,9 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     if(varying_probes && !first_time_step_varying_probes_)
       Cerr << "Probes length is now fixed" << finl;
+  statistiques().end_count(cnt_readjust);
 
+  statistiques().begin_count(cnt_lrs_matrix_op);
   pre_initialise_thermal_subproblems_any_matrices();
 
   reset_subresolution_distributed_vectors();
@@ -1666,21 +1681,29 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     Cerr << "Compute radial subresolution convection and diffusion operators" << finl;
   compute_radial_subresolution_convection_diffusion_operators();
+  statistiques().end_count(cnt_lrs_matrix_op);
 
+  statistiques().begin_count(cnt_lrs_temporal_scheme);
   if (debug_)
     Cerr << "Compute local substep for the first iter" << finl;
   compute_local_substep();
   prepare_temporal_schemes();
+  statistiques().end_count(cnt_lrs_temporal_scheme);
 
+  statistiques().begin_count(cnt_lrs_source_terms);
   if (debug_)
     Cerr << "Prepare boundary conditions, compute source terms and impose boundary conditions" << finl;
   temperature_.echange_espace_virtuel(temperature_.ghost());
   compute_source_terms_impose_subresolution_boundary_conditions();
+  statistiques().end_count(cnt_lrs_source_terms);
 
+  statistiques().begin_count(cnt_lrs_solver);
   if (debug_)
     Cerr << "Solve thermal subproblems" << finl;
   solve_thermal_subproblems();
+  statistiques().end_count(cnt_lrs_solver);
 
+  statistiques().begin_count(cnt_lrs_post);
   if (debug_)
     Cerr << "Compute material derivative (modelling)" << finl;
   approximate_temperature_increment_material_derivative();
@@ -1688,11 +1711,14 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     Cerr << "Store probe temperature" << finl;
   store_previous_temperature_indicator_velocities();
+  statistiques().end_count(cnt_lrs_post);
 
+  statistiques().begin_count(cnt_lrs_prepare_corr);
   if (debug_)
     Cerr << "Prepare thermal flux correction" << finl;
   update_intersections();
   prepare_thermal_flux_correction();
+  statistiques().end_count(cnt_lrs_prepare_corr);
 }
 
 void IJK_Thermal_Subresolution::compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init)
