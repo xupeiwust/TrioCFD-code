@@ -120,7 +120,7 @@ void IJK_Thermal::posttraiter_tous_champs_thermal(Motcles& liste, const int idx)
   //
   liste.add("DISTANCE");
   liste.add("CURVATURE");
-  if (thermal_rank_==0 || thermal_rank_==1)
+  if (thermal_rank_== SUBRES || thermal_rank_== MSUBRES)
     {
       /*
        * TODO: ADD SOME PARTICULAR FIELDS OR DO SWITCH CASE(thermal_rank)
@@ -183,7 +183,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
                                                         const double current_time,
                                                         const int idx)
 {
-
+  const int& rank = valeur().get_rank();
   Cerr << liste_post_instantanes << finl;
   int n = 0; // number of post-processed field
   std::ostringstream oss;
@@ -195,7 +195,8 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
 //  {
 //    Motcles tested_names(1);
 //    tested_names[0] = "TEMPERATURE";
-//    post_process_std_thermal_field(liste_post_instantanes, lata_name, latastep, current_time, idx, tested_names, "TEMPERATURE", lata_suffix, get_temperature(), oss, n);
+//    post_process_std_thermal_field(liste_post_instantanes, lata_name, latastep, current_time, idx,
+//  																 tested_names, "TEMPERATURE", lata_suffix, get_temperature(), oss, n);
 //  }
 
   oss << "TEMPERATURE_" << lata_suffix << idx;
@@ -674,7 +675,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
 //    }
 //  oss.str("");
 
-  if (thermal_rank_ == 0)
+  if (rank == 0)
     {
       /*
        * DISTANCE
@@ -1439,7 +1440,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
     }
   oss.str("");
 
-  if (thermal_rank_ == 0)
+  if (rank == 0)
     {
       /*
        * PROBE_COLLISION_DEBUG
@@ -1563,7 +1564,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface(const Motcles&
                                                                   const int idx)
 {
   int n = 0; // nombre de champs postraites
-  if (thermal_rank_==0 || thermal_rank_==1)
+  if (thermal_rank_== SUBRES || thermal_rank_== MSUBRES)
     {
       /*
        * TODO: COMPUTE INTERFACIAL GRADIENT
@@ -1656,7 +1657,7 @@ void IJK_Thermal::thermal_subresolution_outputs(const Nom& interfacial_quantitie
                                                 const Nom& local_quantities_thermal_slices_time_index_folder,
                                                 const Nom& local_quantities_thermal_lines_time_index_folder)
 {
-  if (thermal_rank_==0 || thermal_rank_==1)
+  if (thermal_rank_== SUBRES || thermal_rank_== MSUBRES)
     {
       valeur().post_process_thermal_wake_slices(local_quantities_thermal_slices_time_index_folder);
       valeur().post_process_thermal_downstream_lines(local_quantities_thermal_lines_time_index_folder);

@@ -213,6 +213,7 @@ protected:
   Nom prefix_ = "IJK_Thermal_";
   Motcles thermal_words_;
   Motcles lata_suffix_;
+  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE};
 
   REF(IJK_FT_double) ref_ijk_ft_;
   REF(IJK_FT_Post) ref_ijk_ft_post_;

@@ -115,7 +115,7 @@ public:
    */
   double get_rhocp_l() const;
   double get_rhocp_v() const;
-
+  const int& get_rank() const { return rang_; };
   const IJK_Field_double& get_temperature() const
   {
     return temperature_ ;
