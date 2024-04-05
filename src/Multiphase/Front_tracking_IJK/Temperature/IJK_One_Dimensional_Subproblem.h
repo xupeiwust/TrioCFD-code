@@ -57,6 +57,7 @@
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
 #define INVALID_INDEX -100
+#define MAX_FLUX_TEST 1.e16
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -203,6 +204,7 @@ public :
   double get_temperature_profile_at_point(const double& dist) const;
   double get_temperature_times_velocity_profile_at_point(const double& dist,
                                                          const int& dir,
+                                                         bool& valid_val,
                                                          const int& l,
                                                          const int& index_i=INVALID_INDEX,
                                                          const int& index_j=INVALID_INDEX,
@@ -264,7 +266,7 @@ public :
                                            const int& index_j,
                                            const int& index_k) const;
   double get_temperature_gradient_profile_at_point(const double& dist, const int& dir) const;
-  double get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir) const;
+  double get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir, bool& valid_val) const;
   void get_discrete_two_dimensional_spacing(const int& dir, const int& level,
                                             const double& first_dir, const double& second_dir,
                                             double& dl1, double& dl2, Vecteur3& point_coords) const;

@@ -3258,6 +3258,8 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   else
     thermal_flux_ = normal_temperature_gradient_solution_;
 
+  thermal_flux_[0] = (abs(thermal_flux_[0]) > MAX_FLUX_TEST) ? 0.: thermal_flux_[0];
+
   const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
   if (reference_gfm_on_probes_)
     {
@@ -3774,6 +3776,7 @@ double IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_at_point
 
 double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist,
                                                                                        const int& dir,
+                                                                                       bool& valid_val,
                                                                                        const int& l,
                                                                                        const int& index_i,
                                                                                        const int& index_j,
@@ -3782,6 +3785,11 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
 {
   double temperature_interp = get_field_profile_at_point(dist, temperature_solution_, temperature_interp_, *temperature_,
                                                          1, 1, interp_eulerian_);
+  if (abs(temperature_interp) > INVALID_INTERP_TEST)
+    {
+      temperature_interp = 0.;
+      valid_val = false;
+    }
   if (temperature)
     return temperature_interp;
   double velocity_interp = get_velocity_component_at_point(dist, dir, index_i, index_j, index_k);
@@ -3797,15 +3805,20 @@ double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at
     }
   const double temperature_interp_conv = temperature_interp_conv_flux_[dir];
   // temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
-  if ( l!=-1 )
+  if (l != -1)
     temperature_interp_conv_flux_[l] = (temperature_interp_conv + temperature_interp);
   return temperature_interp * velocity_interp;
 }
 
-double IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir, bool& valid_val) const
 {
   double diffusive_flux = 0;
   diffusive_flux = get_temperature_gradient_profile_at_point(dist, dir);
+  if (abs(diffusive_flux) > INVALID_INTERP_TEST)
+    {
+      diffusive_flux = 0.;
+      valid_val = false;
+    }
   diffusive_flux *= (*lambda_);
   return diffusive_flux;
 }

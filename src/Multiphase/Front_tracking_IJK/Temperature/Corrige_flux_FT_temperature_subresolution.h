@@ -43,6 +43,8 @@
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
 #define FLUX_SIGN {FLUX_SIGN_CONV, FLUX_SIGN_DIFF}
+#define MAX_FLUX_VAL 1e16
+#define MAX_FLUX_DIFF 1e10
 
 
 class Corrige_flux_FT_temperature_subresolution : public Corrige_flux_FT_base
@@ -228,6 +230,13 @@ public :
                                                          FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                          FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity);
 
+  bool identify_wrong_predicted_values(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
+                                       FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective_diffusive_flux,
+                                       const int& dir,
+                                       const int& index_i,
+                                       const int& index_j,
+                                       const int& index_k,
+                                       double& convective_diffusive_flux);
   void get_add_replace_flux_value(FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective_diffusive_flux,
                                   const int& dir,
                                   const int& i,
@@ -242,7 +251,8 @@ public :
                                                      FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                      FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
                                                      const int& compute_fluxes_values);
-  void compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
+  void compute_cell_neighbours_fluxes_to_correct(FixedVector<IJK_Field_int, 3>& cell_faces_neighbours_corrected_bool,
+                                                 FixedVector<IJK_Field_double, 3>& neighbours_weighting_colinearity,
                                                  FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_convective,
                                                  FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_diffusive,
                                                  FixedVector<IJK_Field_double, 3>& cell_faces_neighbours_corrected_velocity_temperature,
@@ -254,7 +264,7 @@ public :
                                                  const int& compute_fluxes_values,
                                                  double& convective_flux,
                                                  double& diffusive_flux);
-  void compute_cell_neighbours_convective_fluxes_to_correct(double& convective_flux,
+  bool compute_cell_neighbours_convective_fluxes_to_correct(double& convective_flux,
                                                             const int& subproblem_index,
                                                             const double& dist,
                                                             const int& dir,
@@ -263,7 +273,7 @@ public :
                                                             const int& index_j,
                                                             const int& index_k,
                                                             const int& temperature=0);
-  void compute_cell_neighbours_thermal_convective_fluxes_face_centre(double& convective_flux,
+  bool compute_cell_neighbours_thermal_convective_fluxes_face_centre(double& convective_flux,
                                                                      const int& subproblem_index,
                                                                      const double& dist,
                                                                      const int& dir,
@@ -280,7 +290,7 @@ public :
                                                                                        const int& index_i,
                                                                                        const int& index_j,
                                                                                        const int& index_k);
-  void compute_cell_neighbours_diffusive_fluxes_to_correct(double& diffusive_flux,
+  bool compute_cell_neighbours_diffusive_fluxes_to_correct(double& diffusive_flux,
                                                            const int& subproblem_index,
                                                            const double& dist,
                                                            const int& dir,
@@ -288,7 +298,7 @@ public :
                                                            const int& index_i,
                                                            const int& index_j,
                                                            const int& index_k);
-  void compute_cell_neighbours_thermal_diffusive_fluxes_face_centre(double& diffusive_flux,
+  bool compute_cell_neighbours_thermal_diffusive_fluxes_face_centre(double& diffusive_flux,
                                                                     const int& subproblem_index,
                                                                     const double& dist,
                                                                     const int& dir,
@@ -304,7 +314,7 @@ public :
                                                                                       const int& index_i,
                                                                                       const int& index_j,
                                                                                       const int& index_k);
-  void compute_cell_neighbours_thermal_fluxes_face_centre(double& flux,
+  bool compute_cell_neighbours_thermal_fluxes_face_centre(double& flux,
                                                           const int fluxes_type,
                                                           const int& subproblem_index,
                                                           const double& dist,
@@ -348,6 +358,7 @@ public :
                                           const int& index_subproblem,
                                           const double& dist,
                                           const int& dir,
+                                          bool& valid_val,
                                           const int& l=-1,
                                           const int& index_i=INVALID_INDEX,
                                           const int& index_j=INVALID_INDEX,

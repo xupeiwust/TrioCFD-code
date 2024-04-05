@@ -1286,6 +1286,7 @@ void IJK_One_Dimensional_Subproblems::complete_frame_of_reference_lrs_fluxes_eva
 double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_at_point(const int& i,
                                                                                         const double& dist,
                                                                                         const int& dir,
+                                                                                        bool& valid_val,
                                                                                         const int& l,
                                                                                         const int& index_i,
                                                                                         const int& index_j,
@@ -1294,6 +1295,7 @@ double IJK_One_Dimensional_Subproblems::get_temperature_times_velocity_profile_a
 {
   return one_dimensional_effective_subproblems_[i]->get_temperature_times_velocity_profile_at_point(dist,
                                                                                                     dir,
+                                                                                                    valid_val,
                                                                                                     l,
                                                                                                     index_i,
                                                                                                     index_j,
@@ -1320,9 +1322,9 @@ double IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_at_poin
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_profile_at_point(dist, dir);
 }
 
-double IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir)
+double IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir, bool& valid_val)
 {
-  return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_at_point(dist, dir);
+  return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_at_point(dist, dir, valid_val);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir)

@@ -147,6 +147,7 @@ public :
   double get_temperature_times_velocity_profile_at_point(const int& i,
                                                          const double& dist,
                                                          const int& dir,
+                                                         bool& valid_val,
                                                          const int& l,
                                                          const int& index_i,
                                                          const int& index_j,
@@ -157,7 +158,7 @@ public :
   DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir);
   DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const int& i, const double& dist, const int& level, const int& dir);
   double get_temperature_gradient_profile_at_point(const int& i, const double& dist, const int& dir);
-  double get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir);
+  double get_temperature_gradient_times_conductivity_profile_at_point(const int& i, const double& dist, const int& dir, bool& valid_val);
 
   Nom get_header_from_string_lists(const std::vector<std::string>& key_results_int,
                                    const std::vector<std::string>& key_results_double);
