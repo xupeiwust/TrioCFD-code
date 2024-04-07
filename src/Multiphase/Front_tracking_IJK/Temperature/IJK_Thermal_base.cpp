@@ -838,6 +838,7 @@ void IJK_Thermal_base::associer(const IJK_FT_double& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.get_post().get_liste_post_instantanes();
+  thermal_local_subproblems_interfaces_fields_.associer(ijk_ft);
 }
 
 void IJK_Thermal_base::associer_post(const IJK_FT_Post& ijk_ft_post)
@@ -2465,4 +2466,19 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
     for (int j = jmin; j < jmax; j++)
       for (int i = imin; i < imax; i++)
         temperature(i,j,k) = imposed;
+}
+
+
+void IJK_Thermal_base::copy_previous_interface_state()
+{
+  thermal_local_subproblems_interfaces_fields_.copy_previous_interface_state();
+}
+
+int IJK_Thermal_base::post_process_quantities_from_subresolution(const Motcles& liste_post_instantanes,
+                                                                 const char *lata_name,
+                                                                 const int latastep)
+{
+  return thermal_local_subproblems_interfaces_fields_.posttraiter_champs_instantanes(liste_post_instantanes,
+                                                                                     lata_name,
+                                                                                     latastep);
 }

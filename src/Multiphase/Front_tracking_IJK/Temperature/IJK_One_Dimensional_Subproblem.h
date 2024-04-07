@@ -588,6 +588,7 @@ public :
   void compute_error_flux_interface();
   void compute_weighting_coefficient(const int& l, double& weight, const int& weight_type=0);
   void compare_flux_interface(std::vector<double>& radial_flux_error);
+  double get_value_from_index(const int& index_val);
 protected :
   void clear_vectors();
   void reset_counters();

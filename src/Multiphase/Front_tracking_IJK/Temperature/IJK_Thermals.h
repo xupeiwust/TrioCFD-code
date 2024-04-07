@@ -109,7 +109,7 @@ public :
                                  IntTab Indice_j,
                                  DoubleTab& coeff_k,
                                  IntTab Indice_k);
-
+  void copy_previous_interface_state();
 
 protected :
   REF(IJK_FT_double) ref_ijk_ft_;

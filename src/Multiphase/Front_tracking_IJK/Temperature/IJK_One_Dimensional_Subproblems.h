@@ -46,6 +46,7 @@ class IJK_One_Dimensional_Subproblems : public LIST(IJK_One_Dimensional_Subprobl
 
   Declare_instanciable(IJK_One_Dimensional_Subproblems);
   friend class IJK_One_Dimensional_Subproblem;
+  friend class IJK_One_Dimensional_Subproblems_Interfaces_Fields;
 
 public :
   IJK_One_Dimensional_Subproblems(const IJK_FT_double& ijk_ft);
@@ -240,6 +241,8 @@ public :
   void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);
+
+  double get_thermal_subproblem_value_at_ijk_index(const int& m, int& index_i, int& index_j, int& index_k, const int& val_index);
 
 protected :
   std::vector<IJK_One_Dimensional_Subproblem*> one_dimensional_effective_subproblems_;

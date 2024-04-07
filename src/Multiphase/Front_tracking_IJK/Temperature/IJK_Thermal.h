@@ -206,6 +206,7 @@ public :
                                      const Nom& local_quantities_thermal_lines_time_index_folder);
   int get_first_step_thermals_post() { return valeur().get_first_step_thermals_post(); };
   inline void compute_temperature_init();
+  inline void copy_previous_interface_state();
 
 protected:
   int thermal_rank_ = 0;
@@ -368,6 +369,11 @@ inline void IJK_Thermal::compute_eulerian_curvature_from_interface()
 inline void IJK_Thermal::compute_temperature_init()
 {
   valeur().compute_temperature_init();
+}
+
+inline void IJK_Thermal::copy_previous_interface_state()
+{
+  valeur().copy_previous_interface_state();
 }
 
 #endif /* IJK_Thermal_included */

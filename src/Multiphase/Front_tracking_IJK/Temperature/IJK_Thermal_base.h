@@ -38,6 +38,7 @@
 #include <TRUST_Ref.h>
 #include <IJK_FT_Post.h>
 #include <IJK_Ghost_Fluid_Fields.h>
+#include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -435,6 +436,11 @@ public:
                                                  const Nom& local_quantities_thermal_probes_time_index_folder) { ; };
   virtual void compute_temperature_init();
   virtual void recompute_temperature_init();
+  virtual int set_subproblems_interfaces_fields(const IJK_Splitting& splitting) { return 0; };
+  void copy_previous_interface_state();
+  int post_process_quantities_from_subresolution(const Motcles& liste_post_instantanes,
+                                                 const char *lata_name,
+                                                 const int latastep);
 
 protected:
 
@@ -770,6 +776,8 @@ protected:
 
   int store_flux_operators_for_energy_balance_ = 0;
   int disable_relative_velocity_energy_balance_ = 0;
+
+  IJK_One_Dimensional_Subproblems_Interfaces_Fields thermal_local_subproblems_interfaces_fields_;
 };
 
 #endif /* IJK_Thermal_base_included */

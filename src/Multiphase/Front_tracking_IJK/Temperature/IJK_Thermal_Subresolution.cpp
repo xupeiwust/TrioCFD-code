@@ -866,6 +866,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
     fo_ = 0.95 * pow((sqrt(2) / 2), 2); // squared or not?
 
+  nalloc += set_subproblems_interfaces_fields(splitting);
+
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
   return nalloc;
 }
@@ -4224,3 +4226,14 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
     }
 }
 
+int IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const IJK_Splitting& splitting)
+{
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(2);
+  else
+    thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(1);
+  int nalloc = thermal_local_subproblems_interfaces_fields_.initialise(splitting,
+                                                                       thermal_local_subproblems_,
+                                                                       debug_);
+  return nalloc;
+}

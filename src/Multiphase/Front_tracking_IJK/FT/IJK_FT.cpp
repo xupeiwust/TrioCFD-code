@@ -4342,6 +4342,8 @@ void IJK_FT_double::deplacer_interfaces(const double timestep, const int rk_step
   thermals_.compute_eulerian_distance_curvature();
   Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
+  Cerr << "Copy interface state for post-processing on surface" << finl;
+  thermals_.copy_previous_interface_state();
   // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
   Cerr << "Reset bubble rising velocity calculations" << finl;
   interfaces_.reset_flags_and_counters();

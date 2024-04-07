@@ -3486,3 +3486,15 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
 }
 
 
+double IJK_One_Dimensional_Subproblems::get_thermal_subproblem_value_at_ijk_index(const int& m,
+                                                                                  int& index_i,
+                                                                                  int& index_j,
+                                                                                  int& index_k,
+                                                                                  const int& val_index)
+{
+  assert(m < effective_subproblems_counter_);
+  one_dimensional_effective_subproblems_[m]->get_ijk_indices(index_i, index_j, index_k);
+  return one_dimensional_effective_subproblems_[m]->get_value_from_index(val_index);
+}
+
+

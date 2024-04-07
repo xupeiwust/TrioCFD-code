@@ -611,3 +611,9 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
       ++idth;
     }
 }
+
+void IJK_Thermals::copy_previous_interface_state()
+{
+  for (auto& itr : (*this))
+    itr.copy_previous_interface_state();
+}

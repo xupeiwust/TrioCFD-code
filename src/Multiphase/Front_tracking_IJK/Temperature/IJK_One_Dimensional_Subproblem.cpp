@@ -3154,6 +3154,7 @@ void IJK_One_Dimensional_Subproblem::copy_interpolations_on_solution_variables_f
   thermal_flux_interp_gfm_ = thermal_flux_;
   radial_temperature_diffusion_solution_ = radial_temperature_diffusion_;
   const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+  thermal_flux_total_ = thermal_flux_[0];
   thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
 
   thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
@@ -5063,4 +5064,35 @@ void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const Fi
           sum_convective_diffusive_flux_op_value_mixed += flux_val;
         }
     }
+}
+
+double IJK_One_Dimensional_Subproblem::get_value_from_index(const int& index_val)
+{
+  switch (index_val)
+    {
+    case 0:
+      return normal_temperature_gradient_solution_[0] * (*lambda_);
+      // return thermal_flux_total_;
+      break;
+    case 1:
+      return velocity_magnitude_[0];
+      break;
+    case 2:
+      return temperature_solution_[0];
+      break;
+    case 3:
+      return normal_temperature_gradient_solution_[0];
+      break;
+    case 4:
+      return temperature_interp_[0];
+      break;
+    case 5:
+      return normal_temperature_gradient_interp_[0];
+      break;
+    case 6:
+      return normal_temperature_gradient_interp_[0] * (*lambda_);
+      // return thermal_flux_total_;
+      break;
+    }
+  return 0.;
 }

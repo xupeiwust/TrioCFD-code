@@ -1558,7 +1558,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
 }
 
 int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface(const Motcles& liste_post_instantanes,
-                                                                  const char *lata_name,
+                                                                  const char * lata_name,
                                                                   const int latastep,
                                                                   const double current_time,
                                                                   const int idx)
@@ -1566,6 +1566,9 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface(const Motcles&
   int n = 0; // nombre de champs postraites
   if (thermal_rank_== SUBRES || thermal_rank_== MSUBRES)
     {
+      n = valeur().post_process_quantities_from_subresolution(liste_post_instantanes,
+                                                              lata_name,
+                                                              latastep);
       /*
        * TODO: COMPUTE INTERFACIAL GRADIENT
        */

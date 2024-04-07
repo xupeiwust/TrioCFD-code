@@ -412,7 +412,7 @@ public :
     return disable_post_processing_probes_out_files_;
   }
   int get_first_step_thermals_post() override { return first_step_thermals_post_; }
-
+  int set_subproblems_interfaces_fields(const IJK_Splitting& splitting) override;
 protected :
   void reset_subresolution_distributed_vectors();
   void compute_thermal_subproblems() override;
@@ -779,7 +779,6 @@ protected :
   FixedVector<IJK_Field_double,3> interfacial_heat_flux_current_;
   FixedVector<ArrOfInt, 4> ijk_indices_flux_contrib_;
   ArrOfDouble thermal_flux_out_contrib_;
-
 };
 
 #endif /* IJK_Thermal_Subresolution_included */
