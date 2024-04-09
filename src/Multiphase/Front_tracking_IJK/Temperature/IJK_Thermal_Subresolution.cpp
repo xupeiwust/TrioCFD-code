@@ -1562,6 +1562,7 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
 {
   if (clip_temperature_values_)
     {
+      const double clip_threshold = 0.95;
       const int ni = temperature_.ni();
       const int nj = temperature_.nj();
       const int nk = temperature_.nk();
@@ -1571,7 +1572,7 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
             {
               const double temperature = temperature_(i,j,k);
               if (temperature < delta_T_subcooled_overheated_)
-                temperature_(i,j,k) = delta_T_subcooled_overheated_;
+                temperature_(i,j,k) = delta_T_subcooled_overheated_ * clip_threshold;
             }
       temperature_.echange_espace_virtuel(temperature_.ghost());
     }
