@@ -1562,7 +1562,7 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
 {
   if (clip_temperature_values_)
     {
-      const double clip_threshold = 0.95;
+      const double clip_threshold = 0.98;
       const int ni = temperature_.ni();
       const int nj = temperature_.nj();
       const int nk = temperature_.nk();
@@ -1580,6 +1580,7 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
 
 void IJK_Thermal_Subresolution::clip_max_temperature_values()
 {
+  const double clip_threshold = 1.e-5;
   if (clip_temperature_values_)
     {
       const int ni = temperature_.ni();
@@ -1591,7 +1592,8 @@ void IJK_Thermal_Subresolution::clip_max_temperature_values()
             {
               const double temperature = temperature_(i,j,k);
               const double indic = ref_ijk_ft_->itfce().I(i,j,k);
-              if (temperature > 0 && indic > LIQUID_INDICATOR_TEST)
+              // Work only with bubble at zero, temperature liquid negative
+              if ((temperature + clip_threshold) > 0 && indic > LIQUID_INDICATOR_TEST)
                 temperature_(i,j,k) = 0;
             }
       temperature_.echange_espace_virtuel(temperature_.ghost());

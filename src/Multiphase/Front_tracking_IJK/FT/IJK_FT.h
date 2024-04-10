@@ -620,6 +620,7 @@ protected :
    * full_adaptative    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
    *     mu : switch from arithmetic to geometric mean depending on the direction (Not available yet)
    */
+  int use_harmonic_viscosity_ = 0;
   Operateur_IJK_faces_diff velocity_diffusion_op_;
   enum velocity_diffusion_options_ { simple_arithmetic, full_arithmetic, full_adaptative};
 

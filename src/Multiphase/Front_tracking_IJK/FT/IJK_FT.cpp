@@ -427,6 +427,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("improved_initial_pressure_guess", &improved_initial_pressure_guess_); // XD_ADD_P chaine not_set
   param.ajouter_flag("include_pressure_gradient_in_ustar", &include_pressure_gradient_in_ustar_); // XD_ADD_P chaine not_set
 
+  param.ajouter_flag("use_harmonic_viscosity", &use_harmonic_viscosity_);
   // param.ajouter_flag("use_inv_rho", &use_inv_rho_);
   param.ajouter_flag("use_inv_rho_for_mass_solver_and_calculer_rho_v", &use_inv_rho_for_mass_solver_and_calculer_rho_v_); // XD_ADD_P chaine not_set
   param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P chaine not_set
@@ -4532,14 +4533,24 @@ void IJK_FT_double::maj_indicatrice_rho_mu(const bool parcourir)
     }
   else
     {
-      for (int k=0; k < nz; k++)
-        for (int j=0; j < ny; j++)
-          for (int i=0; i < nx; i++)
-            {
-              double chi_l = interfaces_.I(i,j,k);
-              rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
-              molecular_mu_(i,j,k) = mu_liquide_ * chi_l + (1.- chi_l) * mu_vapeur_ ;
-            }
+      if (use_harmonic_viscosity_)
+        for (int k=0; k < nz; k++)
+          for (int j=0; j < ny; j++)
+            for (int i=0; i < nx; i++)
+              {
+                double chi_l = interfaces_.I(i,j,k);
+                rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+                molecular_mu_(i,j,k) = (mu_liquide_ * mu_vapeur_) / (chi_l * mu_vapeur_ + (1.- chi_l) * mu_liquide_);
+              }
+      else
+        for (int k=0; k < nz; k++)
+          for (int j=0; j < ny; j++)
+            for (int i=0; i < nx; i++)
+              {
+                double chi_l = interfaces_.I(i,j,k);
+                rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+                molecular_mu_(i,j,k) = mu_liquide_ * chi_l + (1.- chi_l) * mu_vapeur_ ;
+              }
     }
 
   //Mise a jour des espaces virtuels des champs :
