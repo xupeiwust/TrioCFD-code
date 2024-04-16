@@ -3472,7 +3472,7 @@ void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const N
   is_on_proc_tmp -= 1;
   if (Process::je_suis_maitre())
     {
-      Cerr << "Post-processing on the slices" << finl;
+      Cerr << "Post-processing on the lines - INI" << finl;
       const int reset = 1;
       const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
       const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
@@ -3548,6 +3548,7 @@ void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const N
           fic << finl;
         }
       fic.close();
+      Cerr << "Post-processing on the lines - END" << finl;
     }
 }
 
@@ -4172,7 +4173,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
 {
   if (Process::je_suis_maitre())
     {
-      Cerr << "Post-processing on the slices" << finl;
+      Cerr << "Post-processing on the slices - INI" << finl;
       const int reset = 1;
       const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
       const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
@@ -4226,6 +4227,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
           }
       assert(counter == nb_elem);
       fic.close();
+      Cerr << "Post-processing on the slices - END" << finl;
     }
 }
 

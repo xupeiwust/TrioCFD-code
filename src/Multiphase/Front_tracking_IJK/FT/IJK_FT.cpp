@@ -832,8 +832,7 @@ void IJK_FT_double::force_entry_velocity(IJK_Field_double& vx,
   if (offset_ijk > 0)
     return;
   {
-    double imposed[3] = {0., 0., 0.};
-    imposed[dir] = v_imposed;
+    double imposed[3] = {v_imposed, v_imposed, v_imposed};
     const int direction_min = (compo == -1) ? 0 : dir;
     const int direction_max = (compo == -1) ? 3 : dir + 1;
     for (int direction = direction_min; direction < direction_max; direction++)
