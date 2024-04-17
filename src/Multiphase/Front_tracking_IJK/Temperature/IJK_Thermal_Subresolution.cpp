@@ -234,8 +234,6 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "fluxes_correction_conservations" << escape;
   if (conserve_max_interfacial_fluxes_)
     os << front_space << "conserve_max_interfacial_fluxes" << escape;
-  if (fluxes_corrections_weighting_)
-    os << front_space << "fluxes_corrections_weighting" << escape;
   if (keep_max_flux_correction_)
     os << front_space << "keep_max_flux_correction" << escape;
   if (use_normal_gradient_for_flux_corr_)
@@ -280,7 +278,7 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
   os << front_space << "nb_thermal_lines" << end_space << nb_thermal_lines_ << escape;
   os << front_space << "nb_thermal_concentric_circles" << end_space << nb_thermal_concentric_circles_ << escape;
   os << front_space << "nb_thermal_line_points" << end_space << nb_thermal_line_points_ << escape;
-
+  os << front_space << "fluxes_corrections_weighting" << end_space << fluxes_corrections_weighting_ << escape;
   os << "}" << escape;
   return os;
 }
