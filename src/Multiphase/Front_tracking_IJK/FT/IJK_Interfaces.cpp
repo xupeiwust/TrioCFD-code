@@ -58,6 +58,7 @@ Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Obje
 IJK_Interfaces::IJK_Interfaces()
 {
   old_en_premier_ = true;
+  seuil_indicatrice_petite_ = 0.05;
 }
 
 
@@ -397,6 +398,7 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("positions_reference", &positions_reference_);
   param.ajouter("mean_force", &mean_force_);
   param.ajouter("parcours_interface",&parcours_);
+  param.ajouter("seuil_indicatrice_petite", &seuil_indicatrice_petite_);
 
   // param.ajouter_non_std("terme_gravite",(this));
   param.ajouter("terme_gravite", &terme_gravite_); // XD_ADD_P chaine(into=["rho_g","grad_i"]) not_set
@@ -458,6 +460,174 @@ void IJK_Interfaces::activate_cut_cell()
   coord_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   vitesse_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   normale_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+}
+
+void IJK_Interfaces::imprime_bilan_indicatrice()
+{
+  int count_total = 0;
+  int count_40pct = 0;
+  int count_30pct = 0;
+  int count_20pct = 0;
+  int count_10pct = 0;
+  int count_5pct = 0;
+  int count_1pct = 0;
+  int count_0pct = 0;
+  int count_pure = 0;
+
+  double min_indicatrice = 1.;
+
+  const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface_.get_cut_cell_disc();
+  for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
+    {
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      count_total += 1;
+
+      double indicatrice = std::min(indicatrice_ns_[next()](i,j,k), 1 - indicatrice_ns_[next()](i,j,k));
+      if (indicatrice > 0.)
+        {
+          min_indicatrice = std::min(min_indicatrice, indicatrice);
+        }
+
+      if (indicatrice <= .5 && indicatrice > .4)
+        {
+          count_40pct += 1;
+        }
+      else if (indicatrice <= .4 && indicatrice > .3)
+        {
+          count_30pct += 1;
+        }
+      else if (indicatrice <= .3 && indicatrice > .2)
+        {
+          count_20pct += 1;
+        }
+      else if (indicatrice <= .2 && indicatrice > .1)
+        {
+          count_10pct += 1;
+        }
+      else if (indicatrice <= .1 && indicatrice > .05)
+        {
+          count_5pct += 1;
+        }
+      else if (indicatrice <= .05 && indicatrice > .01)
+        {
+          count_1pct += 1;
+        }
+      else if (indicatrice <= .01 && indicatrice > .0)
+        {
+          count_0pct += 1;
+        }
+      else
+        {
+          assert(indicatrice == 0.);
+          count_pure += 1;
+        }
+    }
+  count_total = mp_sum(count_total);
+  count_40pct = mp_sum(count_40pct);
+  count_30pct = mp_sum(count_30pct);
+  count_20pct = mp_sum(count_20pct);
+  count_10pct = mp_sum(count_10pct);
+  count_5pct  = mp_sum(count_5pct);
+  count_1pct  = mp_sum(count_1pct);
+  count_0pct  = mp_sum(count_0pct);
+  count_pure  = mp_sum(count_pure);
+
+  min_indicatrice = Process::mp_min(min_indicatrice);
+
+  Cerr << "Bilan de l'indicatrice:" << finl;
+  Cerr << "  Valeur minimale: " << min_indicatrice << finl;
+  Cerr << "  Compte sur les cellules de la structure diphasique:" << finl;
+  Cerr << "    40-50%    " << count_40pct << finl;
+  Cerr << "    30-40%    " << count_30pct << finl;
+  Cerr << "    20-30%    " << count_20pct << finl;
+  Cerr << "    10-20%    " << count_10pct << finl;
+  Cerr << "     5-10%    " << count_5pct  << finl;
+  Cerr << "     1-5%     " << count_1pct  << finl;
+  Cerr << "     0-1%     " << count_0pct  << finl;
+  Cerr << "     pure     " << count_pure  << finl;
+  Cerr << "    ------    " << finl;
+  Cerr << "     total    " << count_total  << finl;
+}
+
+void IJK_Interfaces::calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity)
+{
+  int iteration_solver_surface_efficace_face = 0;
+  Cut_cell_surface_efficace::calcul_surface_face_effective_initiale(
+    indicatrice_surfacique_face_ns_[old()],
+    indicatrice_surfacique_face_ns_[next()],
+    indicatrice_surfacique_efficace_face_,
+    indicatrice_surfacique_efficace_face_initial_);
+
+  if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::ITERATIF)
+    {
+      Cerr << "Raffinement de l'estimation initiale la surface efficace des faces" << finl;
+      Cut_cell_surface_efficace::calcul_surface_face_effective(
+        timestep,
+        velocity,
+        iteration_solver_surface_efficace_face,
+        indicatrice_ns_[old()],
+        indicatrice_ns_[next()],
+        indicatrice_surfacique_face_ns_[old()],
+        indicatrice_surfacique_face_ns_[next()],
+        indicatrice_surfacique_efficace_face_,
+        indicatrice_surfacique_efficace_face_initial_,
+        indicatrice_surfacique_efficace_face_correction_,
+        indicatrice_surfacique_efficace_face_absolute_error_);
+    }
+  Cut_cell_surface_efficace::imprimer_informations_surface_effective_face(
+    iteration_solver_surface_efficace_face,
+    timestep,
+    velocity,
+    indicatrice_ns_[old()],
+    indicatrice_ns_[next()],
+    indicatrice_surfacique_efficace_face_,
+    indicatrice_surfacique_efficace_face_initial_);
+
+  Cut_cell_surface_efficace::calcul_surface_interface_effective_initiale(
+    indicatrice_ns_[old()],
+    indicatrice_ns_[next()],
+    surface_interface_ns_[old()],
+    surface_interface_ns_[next()],
+    normal_of_interf_ns_[old()],
+    normal_of_interf_ns_[next()],
+    normale_deplacement_interface_,
+    surface_efficace_interface_,
+    surface_efficace_interface_initial_);
+
+  Cut_cell_surface_efficace::calcul_vitesse_interface(
+    velocity,
+    indicatrice_ns_[old()],
+    indicatrice_ns_[next()],
+    barycentre_phase1_ns_[old()],
+    barycentre_phase1_ns_[next()],
+    coord_deplacement_interface_,
+    vitesse_deplacement_interface_);
+
+  if (type_surface_efficace_interface == TYPE_SURFACE_EFFICACE_INTERFACE::ITERATIF)
+    {
+      Cerr << "Raffinement de l'estimation initiale la surface efficace de l'interface" << finl;
+      Cut_cell_surface_efficace::calcul_surface_interface_effective(
+        timestep,
+        velocity,
+        indicatrice_ns_[old()],
+        indicatrice_ns_[next()],
+        vitesse_deplacement_interface_,
+        normale_deplacement_interface_,
+        surface_efficace_interface_);
+    }
+  Cut_cell_surface_efficace::imprimer_informations_surface_effective_interface(
+    timestep,
+    velocity,
+    indicatrice_ns_[old()],
+    indicatrice_ns_[next()],
+    surface_efficace_interface_,
+    surface_efficace_interface_initial_,
+    normale_deplacement_interface_,
+    vitesse_deplacement_interface_);
 }
 
 void IJK_Interfaces::compute_vinterp()

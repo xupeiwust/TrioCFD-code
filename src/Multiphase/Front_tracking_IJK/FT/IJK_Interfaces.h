@@ -47,8 +47,6 @@ class Domaine_dis;
 
 #define VERIF_INDIC 0
 
-#define SEUIL_INDICATRICE_PETITE 0.05
-
 /*! @brief : class IJK_Interfaces
  *
  *  Cette classe rassemble tous les algorithmes de gestion des interfaces pour le ijk
@@ -530,6 +528,314 @@ public :
         return bary_dir;
       }
   }
+  double get_barycentre_face_old(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  {
+    if (face_dir == dir)
+      {
+        return 0.;
+      }
+    else
+      {
+        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
+                        -1));
+        assert(dir2D >= 0);
+        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+        {
+            return .5;
+          }
+        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+          {
+            return .5;
+          }
+        else if (old_indicatrice_surfacique == 0.)
+          {
+            assert(barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 0)
+              {
+                return .5;
+              }
+            else
+              {
+                double next_bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
+                if (next_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else if (old_indicatrice_surfacique == 1.)
+          {
+            assert(barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 1)
+              {
+                return .5;
+              }
+            else
+              {
+                double next_bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
+                next_bary_dir = opposing_barycentre(next_bary_dir, next_indicatrice_surfacique);
+                if (next_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else
+          {
+            double bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
+
+            if (phase == 0)
+              {
+                bary_dir = opposing_barycentre(bary_dir, old_indicatrice_surfacique);
+              }
+            return bary_dir;
+          }
+      }
+  }
+  double get_barycentre_face_next(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  {
+    if (face_dir == dir)
+      {
+        return 0.;
+      }
+    else
+      {
+        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
+                        -1));
+        assert(dir2D >= 0);
+        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+        {
+            return .5;
+          }
+        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+          {
+            return .5;
+          }
+        else if (next_indicatrice_surfacique == 0.)
+          {
+            assert(barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 0)
+              {
+                return .5;
+              }
+            else
+              {
+                double old_bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
+                if (old_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else if (next_indicatrice_surfacique == 1.)
+          {
+            assert(barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 1)
+              {
+                return .5;
+              }
+            else
+              {
+                double old_bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
+                old_bary_dir = opposing_barycentre(old_bary_dir, old_indicatrice_surfacique);
+                if (old_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else
+          {
+            double bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
+
+            if (phase == 0)
+              {
+                bary_dir = opposing_barycentre(bary_dir, next_indicatrice_surfacique);
+              }
+            return bary_dir;
+          }
+      }
+  }
+  double get_barycentre_face_old_ft(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  {
+    if (face_dir == dir)
+      {
+        return 0.;
+      }
+    else
+      {
+        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
+                        -1));
+        assert(dir2D >= 0);
+        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+        {
+            return .5;
+          }
+        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+          {
+            return .5;
+          }
+        else if (old_indicatrice_surfacique == 0.)
+          {
+            assert(barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 0)
+              {
+                return .5;
+              }
+            else
+              {
+                double next_bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
+                if (next_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else if (old_indicatrice_surfacique == 1.)
+          {
+            assert(barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 1)
+              {
+                return .5;
+              }
+            else
+              {
+                double next_bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
+                next_bary_dir = opposing_barycentre(next_bary_dir, next_indicatrice_surfacique);
+                if (next_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else
+          {
+            double bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
+
+            if (phase == 0)
+              {
+                bary_dir = opposing_barycentre(bary_dir, old_indicatrice_surfacique);
+              }
+            return bary_dir;
+          }
+      }
+  }
+  double get_barycentre_face_next_ft(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  {
+    if (face_dir == dir)
+      {
+        return 0.;
+      }
+    else
+      {
+        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
+                        -1));
+        assert(dir2D >= 0);
+        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+        {
+            return .5;
+          }
+        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+          {
+            return .5;
+          }
+        else if (next_indicatrice_surfacique == 0.)
+          {
+            assert(barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 0)
+              {
+                return .5;
+              }
+            else
+              {
+                double old_bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
+                if (old_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else if (next_indicatrice_surfacique == 1.)
+          {
+            assert(barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 1)
+              {
+                return .5;
+              }
+            else
+              {
+                double old_bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
+                old_bary_dir = opposing_barycentre(old_bary_dir, old_indicatrice_surfacique);
+                if (old_bary_dir > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else
+          {
+            double bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
+
+            if (phase == 0)
+              {
+                bary_dir = opposing_barycentre(bary_dir, next_indicatrice_surfacique);
+              }
+            return bary_dir;
+          }
+      }
+  }
 
   // Getter des surfaces par face
   const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face_ft() const
@@ -544,9 +850,13 @@ public :
   {
     return indicatrice_surfacique_face_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face() const
+  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_old() const
   {
     return indicatrice_surfacique_face_ns_[old()];
+  }
+  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_next() const
+  {
+    return indicatrice_surfacique_face_ns_[next()];
   }
   const DoubleTabFT_cut_cell_vector3& get_indicatrice_surfacique_efficace_face() const
   {
@@ -696,6 +1006,7 @@ public :
   const IJK_Field_double& I_ft() const { return indicatrice_ft_[old()]; }
   const double& I_ft(const int i, const int j, const int k) const { return indicatrice_ft_[old()](i, j, k); }
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
+  const double& In_ft(const int i, const int j, const int k) const { return indicatrice_ft_[next()](i, j, k); }
 
   const FixedVector<IJK_Field_double, 3>& BoI() const { return bary_of_interf_ns_[old()]; }
   const FixedVector<IJK_Field_double, 3>& BoIn() const { return bary_of_interf_ns_[next()]; }
@@ -708,17 +1019,18 @@ public :
   static inline int est_pure(double indicatrice) { return ((indicatrice == 0.) || (indicatrice == 1.)); }
   static inline int devient_pure(double old_indicatrice, double next_indicatrice) { return ((!est_pure(old_indicatrice)) && (est_pure(next_indicatrice))); }
   static inline int devient_diphasique(double old_indicatrice, double next_indicatrice) { return ((est_pure(old_indicatrice)) && (!est_pure(next_indicatrice))); }
-  static inline int est_reguliere(double old_indicatrice, double next_indicatrice) { return ((old_indicatrice >= SEUIL_INDICATRICE_PETITE) && (old_indicatrice <= 1-SEUIL_INDICATRICE_PETITE) && (next_indicatrice >= SEUIL_INDICATRICE_PETITE) && (next_indicatrice <= 1-SEUIL_INDICATRICE_PETITE)); }
 
-  static inline int est_desequilibre(double indicatrice) { return (((indicatrice < SEUIL_INDICATRICE_PETITE) || (indicatrice > 1-SEUIL_INDICATRICE_PETITE)) && (!est_pure(indicatrice))); }
-  static inline int a_desequilibre_final(double old_indicatrice, double next_indicatrice) { return est_desequilibre(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
-  static inline int a_desequilibre_initial_uniquement(double old_indicatrice, double next_indicatrice) { return est_desequilibre(old_indicatrice) && (!a_desequilibre_final(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
+  inline int est_reguliere(double old_indicatrice, double next_indicatrice) const { return ((old_indicatrice >= seuil_indicatrice_petite_) && (old_indicatrice <= 1-seuil_indicatrice_petite_) && (next_indicatrice >= seuil_indicatrice_petite_) && (next_indicatrice <= 1-seuil_indicatrice_petite_)); }
 
-  static inline int below_small_threshold(double indicatrice) { return ((indicatrice < SEUIL_INDICATRICE_PETITE) && (!est_pure(indicatrice))); }
-  static inline int next_below_small_threshold(double old_indicatrice, double next_indicatrice) { return below_small_threshold(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
-  static inline int only_old_below_small_threhshold(double old_indicatrice, double next_indicatrice) { return below_small_threshold(old_indicatrice) && (!next_below_small_threshold(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
-  static inline int next_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) { return (phase ==0) ? next_below_small_threshold(1 - old_indicatrice, 1 - next_indicatrice) : next_below_small_threshold(old_indicatrice, next_indicatrice); }
-  static inline int only_old_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) { return (phase ==0) ? only_old_below_small_threhshold(1 - old_indicatrice, 1 - next_indicatrice) : only_old_below_small_threhshold(old_indicatrice, next_indicatrice); }
+  inline int est_desequilibre(double indicatrice) const { return (((indicatrice < seuil_indicatrice_petite_) || (indicatrice > 1-seuil_indicatrice_petite_)) && (!est_pure(indicatrice))); }
+  inline int a_desequilibre_final(double old_indicatrice, double next_indicatrice) const { return est_desequilibre(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
+  inline int a_desequilibre_initial_uniquement(double old_indicatrice, double next_indicatrice) const { return est_desequilibre(old_indicatrice) && (!a_desequilibre_final(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
+
+  inline int below_small_threshold(double indicatrice) const { return ((indicatrice < seuil_indicatrice_petite_) && (!est_pure(indicatrice))); }
+  inline int next_below_small_threshold(double old_indicatrice, double next_indicatrice) const { return below_small_threshold(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
+  inline int only_old_below_small_threhshold(double old_indicatrice, double next_indicatrice) const { return below_small_threshold(old_indicatrice) && (!next_below_small_threshold(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
+  inline int next_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) const { return (phase ==0) ? next_below_small_threshold(1 - old_indicatrice, 1 - next_indicatrice) : next_below_small_threshold(old_indicatrice, next_indicatrice); }
+  inline int only_old_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) const { return (phase ==0) ? only_old_below_small_threhshold(1 - old_indicatrice, 1 - next_indicatrice) : only_old_below_small_threhshold(old_indicatrice, next_indicatrice); }
 
   const double& SI(const int compo, const int i, const int j, const int k) const
   {
@@ -1173,6 +1485,8 @@ protected:
   Intersection_Interface_ijk_face intersection_ijk_face_;
 
   IJK_Composantes_Connex ijk_compo_connex_;
+
+  double seuil_indicatrice_petite_;
 
   // Pour le calcul des champs cut-cell
   int cut_cell_activated_;

@@ -444,7 +444,6 @@ void IJK_FT_cut_cell::run()
     }
 
   // Initialisation des structures cut-cell
-  // Pour tester, je donne la masse volumique diphasique et le barycentre de l'interface.
   cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In());
 
   cut_field_velocity_.remplir_cellules_diphasiques();

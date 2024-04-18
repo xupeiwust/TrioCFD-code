@@ -17,6 +17,7 @@
 #define OpConvQuickIJKScalar_cut_cell_TPP_included
 
 #include <IJK_Field.h>
+#include <Cut_cell_convection_auxiliaire.h>
 
 
 template <DIRECTION _DIR_>
@@ -337,7 +338,6 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                   {
                     Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                     index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                    assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                     treatment_count(ijk[0],ijk[1],ijk[2]) = new_treatment;
                   }
@@ -401,13 +401,126 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       double input_centre = (n_centre < 0) ? input_field(i,j,k) : diph_input(n_centre);
                       double input_right = (n_right < 0) ? input_field(i+dir_i,j+dir_j,k+dir_k) : diph_input(n_right);
 
-                      double flux_4 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(k, delta_xyz, surface, velocity, input_left_left, input_left, input_centre, input_right);
+                      double flux_2 = 0.;
+                      if        ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::CENTRE2)
+                                 || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_STENCIL)
+                                 || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_PERPENDICULAR_DISTANCE))
+                        {
+                          double input_milieu = (input_left + input_centre) * 0.5;
+                          flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_milieu);
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::LINEAIRE2)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE))
+                        {
+                          double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left, next_indicatrice_left);
+                          assert((n_left >= 0) || (bar_dir_left == .5));
 
-                      double input_milieu = (input_left + input_centre) * 0.5;
-                      double flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_milieu);
+                          double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
+                          assert((n_centre >= 0) || (bar_dir_centre == .5));
+
+                          // Note : suppose un maillage uniforme, splitting_.get_grid_geometry().is_uniform(_DIR_)
+                          double input_milieu = (input_left + input_centre) * 0.5;
+                          double input_lineaire = (1 - bar_dir_left + bar_dir_centre) == 0. ? input_milieu : input_left + (1 - bar_dir_left)/(1 - bar_dir_left + bar_dir_centre)*(input_centre - input_left);
+                          assert(std::abs(input_lineaire - input_left) <= std::abs(input_centre - input_left));
+                          assert((input_lineaire - input_left)*(input_centre - input_left) >= 0);
+                          flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_lineaire);
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::AMONT)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_PERPENDICULAR_DISTANCE))
+                        {
+                          double input_amont = velocity < 0. ? input_centre : input_left;
+                          flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_amont);
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL))
+                        {
+                          double T_face = (*temperature_face_)[phase][dir](i,j,k);
+                          if (T_face != 0.)
+                            {
+                              flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, T_face);
+                            }
+                          else
+                            {
+                              double input_amont = velocity < 0. ? input_centre : input_left;
+                              flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_amont);
+                            }
+                        }
+                      else
+                        {
+                          Cerr << "OpConvQuickIJKScalar_cut_cell.tpp: cut_cell_conv_scheme_ inconnu pour flux_2." << finl;
+                          Process::exit();
+                        }
 
                       //double flux_1l = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_left);
                       //double flux_1c = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_centre);
+
+                      double flux_4 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(k, delta_xyz, surface, velocity, input_left_left, input_left, input_centre, input_right);
+                      if      ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_STENCIL))
+                        {
+                          // Ne fait rien : on garde le flux_4 quick
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_PERPENDICULAR_DISTANCE)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_PERPENDICULAR_DISTANCE))
+                        {
+                          double bar_dir_perp1_left_left = cut_cell_disc.get_interfaces().get_barycentre_next((dir+1)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left_left, next_indicatrice_left_left);
+                          double bar_dir_perp2_left_left = cut_cell_disc.get_interfaces().get_barycentre_next((dir+2)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left_left, next_indicatrice_left_left);
+                          assert((n_left_left >= 0) || (bar_dir_perp1_left_left == .5));
+                          assert((n_left_left >= 0) || (bar_dir_perp2_left_left == .5));
+
+                          double bar_dir_perp1_left = cut_cell_disc.get_interfaces().get_barycentre_next((dir+1)%3, phase, i,j,k, indicatrice_left, next_indicatrice_left);
+                          double bar_dir_perp2_left = cut_cell_disc.get_interfaces().get_barycentre_next((dir+2)%3, phase, i,j,k, indicatrice_left, next_indicatrice_left);
+                          assert((n_left >= 0) || (bar_dir_perp1_left == .5));
+                          assert((n_left >= 0) || (bar_dir_perp2_left == .5));
+
+                          double bar_dir_perp1_centre = cut_cell_disc.get_interfaces().get_barycentre_next((dir+1)%3, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
+                          double bar_dir_perp2_centre = cut_cell_disc.get_interfaces().get_barycentre_next((dir+2)%3, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
+                          assert((n_centre >= 0) || (bar_dir_perp1_centre == .5));
+                          assert((n_centre >= 0) || (bar_dir_perp2_centre == .5));
+
+                          double bar_dir_perp1_right = cut_cell_disc.get_interfaces().get_barycentre_next((dir+1)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_right, next_indicatrice_right);
+                          double bar_dir_perp2_right = cut_cell_disc.get_interfaces().get_barycentre_next((dir+2)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_right, next_indicatrice_right);
+                          assert((n_right >= 0) || (bar_dir_perp1_right == .5));
+                          assert((n_right >= 0) || (bar_dir_perp2_right == .5));
+
+                          bool small_perpendicular_distance_left_left = ((std::abs(bar_dir_perp1_left_left - .5) < 0.1) && (std::abs(bar_dir_perp2_left_left - .5) < 0.1));
+                          bool small_perpendicular_distance_left      = ((std::abs(bar_dir_perp1_left      - .5) < 0.1) && (std::abs(bar_dir_perp2_left      - .5) < 0.1));
+                          bool small_perpendicular_distance_centre    = ((std::abs(bar_dir_perp1_centre    - .5) < 0.1) && (std::abs(bar_dir_perp2_centre    - .5) < 0.1));
+                          bool small_perpendicular_distance_right     = ((std::abs(bar_dir_perp1_right     - .5) < 0.1) && (std::abs(bar_dir_perp2_right     - .5) < 0.1));
+
+                          if (small_perpendicular_distance_left_left && small_perpendicular_distance_left && small_perpendicular_distance_centre && small_perpendicular_distance_right)
+                            {
+                              flux_4 = flux_2;
+                            }
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::CENTRE2)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::LINEAIRE2)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::AMONT))
+                        {
+                          flux_4 = flux_2;
+                        }
+                      else if ((*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL)
+                               || (*cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL))
+                        {
+                          double T_face = (*temperature_face_)[phase][dir](i,j,k);
+                          if (T_face != 0.)
+                            {
+                              flux_4 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, T_face);
+                            }
+                          else
+                            {
+                              // Ne fait rien : on garde le flux_4 quick
+                            }
+                        }
+                      else
+                        {
+                          Cerr << "OpConvQuickIJKScalar_cut_cell.tpp: cut_cell_conv_scheme_ inconnu pour flux_4." << finl;
+                          Process::exit();
+                        }
 
                       int devient_pure_left_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left_left, next_indicatrice_left_left) && ((int)(1 - next_indicatrice_left_left) == phase);
                       int devient_pure_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left, next_indicatrice_left) && ((int)(1 - next_indicatrice_left) == phase);
@@ -418,12 +531,16 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       int devient_diphasique_centre = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_centre, next_indicatrice_centre) && ((int)(1 - indicatrice_centre) == phase);
                       int devient_diphasique_right = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_right, next_indicatrice_right) && ((int)(1 - indicatrice_right) == phase);
                       //int petit_left_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left_left, next_indicatrice_left_left);
-                      //int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left, next_indicatrice_left);
-                      //int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_centre, next_indicatrice_centre);
+                      int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left, next_indicatrice_left);
+                      int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_centre, next_indicatrice_centre);
                       //int petit_right = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_right, next_indicatrice_right);
 
                       double flux_value;
                       if (devient_pure_centre || devient_pure_left || devient_diphasique_centre || devient_diphasique_left) //|| petit_centre || petit_left)
+                        {
+                          flux_value = 0.;
+                        }
+                      else if (*ignore_small_cells_ && (petit_centre || petit_left))
                         {
                           flux_value = 0.;
                         }
@@ -455,7 +572,6 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                             {
                               Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                               index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                              assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                               (*flux)(ijk[0],ijk[1],0) = flux_value;
                             }
@@ -470,7 +586,6 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                                 {
                                   Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                                   index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                                  assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                                   (*flux)(ijk[0],ijk[1],0) = flux_value;
                                 }

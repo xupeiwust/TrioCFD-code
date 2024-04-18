@@ -38,6 +38,7 @@
 #include <OpConvAmontIJK.h>
 #include <OpConvDiscQuickIJKScalar.h>
 #include <OpConvCentre4IJK.h>
+#include <Cut_cell_correction_petites_cellules.h>
 #include <Cut_cell_convection_auxiliaire.h>
 #include <Cut_cell_diffusion_auxiliaire.h>
 
@@ -165,14 +166,23 @@ protected :
   Cut_field_scalar cut_field_div_coeff_grad_T_volume_temp_;
   Cut_field_scalar cut_field_d_temperature_;
 
+  CUT_CELL_CONV_SCHEME cut_cell_conv_scheme_;
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_;
+  FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_ft_;
+
+  ArrOfDouble interfacial_temperature_;
+  ArrOfDouble interfacial_phin_ai_;
+
   // Temporary fields, to inspect each step of the time advance
   int postraiter_champs_intermediaires_;
   IJK_Field_double temperature_post_dying_;
   IJK_Field_double temperature_post_regular_;
   IJK_Field_double temperature_post_small_;
+  IJK_Field_double temperature_post_diff_regular_;
   Cut_field_scalar cut_field_temperature_post_dying_;
   Cut_field_scalar cut_field_temperature_post_regular_;
   Cut_field_scalar cut_field_temperature_post_small_;
+  Cut_field_scalar cut_field_temperature_post_diff_regular_;
 
   METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
   Cut_cell_convection_auxiliaire convective_correction_;
@@ -183,7 +193,9 @@ protected :
   METHODE_FLUX_INTERFACE methode_flux_interface_;
   Cut_cell_diffusion_auxiliaire diffusive_correction_;
 
-  bool first_timestep_;
+  int correction_petites_cellules_diffusion_;
+  CORRECTION_PETITES_CELLULES diffusion_petites_cellules_;
+  CORRECTION_PETITES_CELLULES convection_petites_cellules_;
 };
 
 #endif /* IJK_Thermal_cut_cell_included */

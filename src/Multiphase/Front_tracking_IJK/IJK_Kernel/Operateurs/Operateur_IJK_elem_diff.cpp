@@ -231,7 +231,8 @@ void Operateur_IJK_elem_diff::ajouter(const IJK_Field_double& field,
                           boundary_flux_kmax);
 }
 
-void Operateur_IJK_elem_diff::calculer_cut_cell(const Cut_field_scalar& field,
+void Operateur_IJK_elem_diff::calculer_cut_cell(bool ignore_small_cells,
+                                                const Cut_field_scalar& field,
                                                 Cut_cell_vector& cut_cell_flux,
                                                 Cut_field_scalar& result,
                                                 const IJK_Field_local_double& boundary_flux_kmin,
@@ -239,7 +240,8 @@ void Operateur_IJK_elem_diff::calculer_cut_cell(const Cut_field_scalar& field,
 {
   if (diffusion_rank_ == 1)
     Cerr << "Uniform lambda: " << get_uniform_lambda() << finl;
-  return valeur().calculer_cut_cell(field,
+  return valeur().calculer_cut_cell(ignore_small_cells,
+                                    field,
                                     cut_cell_flux,
                                     result,
                                     boundary_flux_kmin,
@@ -247,13 +249,15 @@ void Operateur_IJK_elem_diff::calculer_cut_cell(const Cut_field_scalar& field,
 }
 
 
-void Operateur_IJK_elem_diff::ajouter_cut_cell(const Cut_field_scalar& field,
+void Operateur_IJK_elem_diff::ajouter_cut_cell(bool ignore_small_cells,
+                                               const Cut_field_scalar& field,
                                                Cut_cell_vector& cut_cell_flux,
                                                Cut_field_scalar& result,
                                                const IJK_Field_local_double& boundary_flux_kmin,
                                                const IJK_Field_local_double& boundary_flux_kmax)
 {
-  return valeur().ajouter_cut_cell(field,
+  return valeur().ajouter_cut_cell(ignore_small_cells,
+                                   field,
                                    cut_cell_flux,
                                    result,
                                    boundary_flux_kmin,

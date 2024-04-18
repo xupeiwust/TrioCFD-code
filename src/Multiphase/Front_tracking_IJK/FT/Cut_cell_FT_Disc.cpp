@@ -221,9 +221,9 @@ void Cut_cell_FT_Disc::initialise_processed()
 void Cut_cell_FT_Disc::set_coord()
 {
   const int processed_sign = (processed_.dimension(0) == 0) ? 1 : (processed_(0) > 0 ? 1 : -1);
-  splitting_.get_grid_geometry().is_uniform(0);
-  splitting_.get_grid_geometry().is_uniform(1);
-  splitting_.get_grid_geometry().is_uniform(2);
+  assert(splitting_.get_grid_geometry().is_uniform(0));
+  assert(splitting_.get_grid_geometry().is_uniform(1));
+  assert(splitting_.get_grid_geometry().is_uniform(2));
   for (int n = 0; n < n_loc_; n++)
     {
       Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
@@ -725,7 +725,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
 
 void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  int initial_sort_multiplier = 20*int_indicatrice(.1);
+  int initial_sort_multiplier = 30*int_indicatrice(.1);
   int indicatrice_step = 10*int_indicatrice(.1);
   assert(indicatrice_step < initial_sort_multiplier);
 
@@ -744,7 +744,6 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
 
-      double min_phase_old_indicatrice = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k))*devient_pure;
       double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
@@ -752,9 +751,9 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
                                                 + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
 
-      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
+      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
 
-      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice);
+      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice);
     }
 
   for (int n = n_loc_; n < n_tot_; n++)
@@ -771,7 +770,6 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
 
-      double min_phase_old_indicatrice = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k))*devient_pure;
       double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
@@ -779,9 +777,9 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
                                                 + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
 
-      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
+      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
 
-      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_old_indicatrice) + (int)(indicatrice_step * min_phase_next_indicatrice);
+      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice);
     }
 
   // Trie selon la colonne des statut diphasiques
@@ -837,94 +835,40 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
 
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
+      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int i = ijk_no_per[0];
+      int j = ijk_no_per[1];
+      int k = ijk_no_per[2];
 
-      indice_diphasique_(i,j,k) = n;
+      {
+        int index_ijk_per = 0;
+        while (index_ijk_per >= 0)
+          {
+            Int3 ijk = ijk_per_of_index(i, j, k, index_ijk_per);
+            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, 2, 2);
 
-      for (int dir = 0; dir < 3 ; dir++)
-        {
-          if (splitting_.get_grid_geometry().get_periodic_flag(dir))
-            {
-              int n_dir = splitting_.get_nb_elem_local(dir);
-              int n_dir_tot = splitting_.get_grid_geometry().get_nb_elem_tot(dir);
-
-              // Le processeur contient deux fois les valeurs sur les bords
-              if (n_dir == n_dir_tot)
-                {
-                  int i_dir = select(dir, i, j, k);
-
-                  if (i_dir < ghost_size_)
-                    {
-                      int i_per = (dir != 0)*i + (dir == 0)*(n_dir + i);
-                      int j_per = (dir != 1)*j + (dir == 1)*(n_dir + j);
-                      int k_per = (dir != 2)*k + (dir == 2)*(n_dir + k);
-                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
-                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
-                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
-                      indice_diphasique_(i_per,j_per,k_per) = n;
-                    }
-                  if (i_dir >= n_dir - ghost_size_)
-                    {
-                      int i_per = (dir != 0)*i + (dir == 0)*(i - n_dir);
-                      int j_per = (dir != 1)*j + (dir == 1)*(j - n_dir);
-                      int k_per = (dir != 2)*k + (dir == 2)*(k - n_dir);
-                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
-                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
-                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
-                      indice_diphasique_(i_per,j_per,k_per) = n;
-                    }
-                }
-            }
-        }
+            indice_diphasique_(ijk[0],ijk[1],ijk[2]) = n;
+          }
+      }
     }
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
+      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      int i = ijk_no_per[0];
+      int j = ijk_no_per[1];
+      int k = ijk_no_per[2];
 
-      indice_diphasique_(i,j,k) = n;
+      {
+        int index_ijk_per = 0;
+        while (index_ijk_per >= 0)
+          {
+            Int3 ijk = ijk_per_of_index(i, j, k, index_ijk_per);
+            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, 2, 2);
 
-      for (int dir = 0; dir < 3 ; dir++)
-        {
-          if (splitting_.get_grid_geometry().get_periodic_flag(dir))
-            {
-              int n_dir = splitting_.get_nb_elem_local(dir);
-              int n_dir_tot = splitting_.get_grid_geometry().get_nb_elem_tot(dir);
-
-              // Le processeur contient deux fois les valeurs sur les bords
-              if (n_dir == n_dir_tot)
-                {
-                  int i_dir = select(dir, i, j, k);
-
-                  if (i_dir < ghost_size_)
-                    {
-                      int i_per = (dir != 0)*i + (dir == 0)*(n_dir + i);
-                      int j_per = (dir != 1)*j + (dir == 1)*(n_dir + j);
-                      int k_per = (dir != 2)*k + (dir == 2)*(n_dir + k);
-                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
-                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
-                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
-                      indice_diphasique_(i_per,j_per,k_per) = n;
-                    }
-                  if (i_dir >= n_dir - ghost_size_)
-                    {
-                      int i_per = (dir != 0)*i + (dir == 0)*(i - n_dir);
-                      int j_per = (dir != 1)*j + (dir == 1)*(j - n_dir);
-                      int k_per = (dir != 2)*k + (dir == 2)*(k - n_dir);
-                      assert((dir != 0) || (i_per < 0 || i_per >= n_dir));
-                      assert((dir != 1) || (j_per < 0 || j_per >= n_dir));
-                      assert((dir != 2) || (k_per < 0 || k_per >= n_dir));
-                      indice_diphasique_(i_per,j_per,k_per) = n;
-                    }
-                }
-            }
-        }
+            indice_diphasique_(ijk[0],ijk[1],ijk[2]) = n;
+          }
+      }
     }
 }
 

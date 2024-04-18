@@ -269,7 +269,7 @@ inline void Cut_cell_FT_Disc::add_to_lazy_int_data(IntTabFT_cut_cell& field, int
 
 inline int Cut_cell_FT_Disc::int_indicatrice(double indicatrice)
 {
-  int indicatrice_step = 10000;
+  int indicatrice_step = 1000000;
   return (int)(indicatrice_step * indicatrice);
 }
 
@@ -434,73 +434,319 @@ inline Int3 Cut_cell_FT_Disc::ijk_per_of_index(int i, int j, int k, int index) c
     }
   else
     {
-      assert(((index - 1)%2 == 0) || ((index - 1)%2 == 1));
+      int per_z = index/9;
+      int per_y = (index%9)/3;
+      int per_x = (index%9)%3;
 
-      int dir = (index - 1)/2;
-      assert(splitting_.get_grid_geometry().get_periodic_flag(dir));
+      assert((per_x == 0) || splitting_.get_grid_geometry().get_periodic_flag(0));
+      assert((per_y == 0) || splitting_.get_grid_geometry().get_periodic_flag(1));
+      assert((per_z == 0) || splitting_.get_grid_geometry().get_periodic_flag(2));
 
-      int n_dir = splitting_.get_nb_elem_local(dir);
-      assert(n_dir == splitting_.get_grid_geometry().get_nb_elem_tot(dir));
+      int n_dir_x = splitting_.get_nb_elem_local(0);
+      int n_dir_y = splitting_.get_nb_elem_local(1);
+      int n_dir_z = splitting_.get_nb_elem_local(2);
+      assert((per_x == 0) || (n_dir_x == splitting_.get_grid_geometry().get_nb_elem_tot(0)));
+      assert((per_y == 0) || (n_dir_y == splitting_.get_grid_geometry().get_nb_elem_tot(1)));
+      assert((per_z == 0) || (n_dir_z == splitting_.get_grid_geometry().get_nb_elem_tot(2)));
 
-      if ((index - 1)%2 == 0)
-        {
-          assert(select(dir, i, j, k) < ghost_size_);
-          int i_per = (dir != 0)*i + (dir == 0)*(n_dir + i);
-          int j_per = (dir != 1)*j + (dir == 1)*(n_dir + j);
-          int k_per = (dir != 2)*k + (dir == 2)*(n_dir + k);
-          return {i_per, j_per, k_per};
-        }
-      else
-        {
-          assert(select(dir, i, j, k) >= n_dir - ghost_size_);
-          int i_per = (dir != 0)*i + (dir == 0)*(i - n_dir);
-          int j_per = (dir != 1)*j + (dir == 1)*(j - n_dir);
-          int k_per = (dir != 2)*k + (dir == 2)*(k - n_dir);
-          return {i_per, j_per, k_per};
-        }
+      assert((per_x == 0) || ((i < ghost_size_) || (i >= n_dir_x - ghost_size_)));
+      assert((per_y == 0) || ((j < ghost_size_) || (j >= n_dir_y - ghost_size_)));
+      assert((per_z == 0) || ((k < ghost_size_) || (k >= n_dir_z - ghost_size_)));
+      int i_per = (per_x == 0)*i + (per_x == 1)*(n_dir_x + i) + (per_x == 2)*(i - n_dir_x);
+      int j_per = (per_y == 0)*j + (per_y == 1)*(n_dir_y + j) + (per_y == 2)*(j - n_dir_y);
+      int k_per = (per_z == 0)*k + (per_z == 1)*(n_dir_z + k) + (per_z == 2)*(k - n_dir_z);
+      return {i_per, j_per, k_per};
+
     }
 }
 
 inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, int negative_ghost_size, int positive_ghost_size) const
 {
-  if (index == 6)
+  // per =
+  //   0: no change in the given direction
+  //   1: periodic towards the negative values in the given direction
+  //   2: periodic towards the positive values in the given direction
+  //
+  // index = per_z * 9 + per_y * 3 + per_x
+  //
+  if (index == 26)
     {
       return -1;
     }
   else
     {
       int max_dir = 3;
-      int min_dir = (index == 0) ? 0 : index/2;
+      int min_dir = ((index >= 16) ? 2 : ((index >= 10) ? 1 : 0));
       assert(index >= 0);
       assert(min_dir >= 0 && min_dir <=2);
-      for (int dir = min_dir; dir < max_dir ; dir++)
+      for (int dir_1 = min_dir; dir_1 < max_dir ; dir_1++)
         {
-          if (splitting_.get_grid_geometry().get_periodic_flag(dir))
+          if (splitting_.get_grid_geometry().get_periodic_flag(dir_1))
             {
-              int n_dir = splitting_.get_nb_elem_local(dir);
-              int n_dir_tot = splitting_.get_grid_geometry().get_nb_elem_tot(dir);
+              int n_dir_1 = splitting_.get_nb_elem_local(dir_1);
+              int n_dir_tot_1 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_1);
 
-              // Le processeur contient deux fois les valeurs sur les bords
-              if (n_dir == n_dir_tot)
+              if (n_dir_1 == n_dir_tot_1)
                 {
-                  int i_dir = select(dir, i, j, k);
+                  int i_dir_1 = select(dir_1, i, j, k);
 
-                  if (i_dir < positive_ghost_size)
+                  if (i_dir_1 < positive_ghost_size)
                     {
-                      int next_index = 1 + (2*dir);
-                      assert(next_index >= index);
-                      assert(next_index <= 6);
+                      int per_x = (dir_1 == 0)*1;
+                      int per_y = (dir_1 == 1)*1;
+                      int per_z = (dir_1 == 2)*1;
+
+                      int next_index = per_x + per_y*3 + per_z*9;
                       if (next_index > index)
                         {
                           return next_index;
                         }
+
+                      for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
+                        {
+                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_2))
+                            {
+                              int n_dir_2 = splitting_.get_nb_elem_local(dir_2);
+                              int n_dir_tot_2 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_2);
+
+                              if (n_dir_2 == n_dir_tot_2)
+                                {
+                                  int i_dir_2 = select(dir_2, i, j, k);
+
+                                  if (i_dir_2 < positive_ghost_size)
+                                    {
+                                      per_x += (dir_2 == 0)*1;
+                                      per_y += (dir_2 == 1)*1;
+                                      per_z += (dir_2 == 2)*1;
+
+                                      next_index = per_x + per_y*3 + per_z*9;
+                                      if (next_index > index)
+                                        {
+                                          return next_index;
+                                        }
+
+                                      for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
+                                        {
+                                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
+                                            {
+                                              int n_dir_3 = splitting_.get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_3);
+
+                                              if (n_dir_3 == n_dir_tot_3)
+                                                {
+                                                  int i_dir_3 = select(dir_3, i, j, k);
+
+                                                  if (i_dir_3 < positive_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*1;
+                                                      per_y += (dir_3 == 1)*1;
+                                                      per_z += (dir_3 == 2)*1;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                  if (i_dir_3 >= n_dir_3 - negative_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*2;
+                                                      per_y += (dir_3 == 1)*2;
+                                                      per_z += (dir_3 == 2)*2;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                  if (i_dir_2 >= n_dir_2 - negative_ghost_size)
+                                    {
+                                      per_x += (dir_2 == 0)*2;
+                                      per_y += (dir_2 == 1)*2;
+                                      per_z += (dir_2 == 2)*2;
+
+                                      next_index = per_x + per_y*3 + per_z*9;
+                                      if (next_index > index)
+                                        {
+                                          return next_index;
+                                        }
+
+                                      for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
+                                        {
+                                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
+                                            {
+                                              int n_dir_3 = splitting_.get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_3);
+
+                                              if (n_dir_3 == n_dir_tot_3)
+                                                {
+                                                  int i_dir_3 = select(dir_3, i, j, k);
+
+                                                  if (i_dir_3 < positive_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*1;
+                                                      per_y += (dir_3 == 1)*1;
+                                                      per_z += (dir_3 == 2)*1;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                  if (i_dir_3 >= n_dir_3 - negative_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*2;
+                                                      per_y += (dir_3 == 1)*2;
+                                                      per_z += (dir_3 == 2)*2;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                  if (i_dir >= n_dir - negative_ghost_size)
+                  if (i_dir_1 >= n_dir_1 - negative_ghost_size)
                     {
-                      int next_index = 1 + (2*dir + 1);
-                      assert(next_index > index);
-                      assert(next_index <= 6);
-                      return next_index;
+                      int per_x = (dir_1 == 0)*2;
+                      int per_y = (dir_1 == 1)*2;
+                      int per_z = (dir_1 == 2)*2;
+
+                      int next_index = per_x + per_y*3 + per_z*9;
+                      if (next_index > index)
+                        {
+                          return next_index;
+                        }
+
+                      for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
+                        {
+                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_2))
+                            {
+                              int n_dir_2 = splitting_.get_nb_elem_local(dir_2);
+                              int n_dir_tot_2 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_2);
+
+                              if (n_dir_2 == n_dir_tot_2)
+                                {
+                                  int i_dir_2 = select(dir_2, i, j, k);
+
+                                  if (i_dir_2 < positive_ghost_size)
+                                    {
+                                      per_x += (dir_2 == 0)*1;
+                                      per_y += (dir_2 == 1)*1;
+                                      per_z += (dir_2 == 2)*1;
+
+                                      next_index = per_x + per_y*3 + per_z*9;
+                                      if (next_index > index)
+                                        {
+                                          return next_index;
+                                        }
+
+                                      for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
+                                        {
+                                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
+                                            {
+                                              int n_dir_3 = splitting_.get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_3);
+
+                                              if (n_dir_3 == n_dir_tot_3)
+                                                {
+                                                  int i_dir_3 = select(dir_3, i, j, k);
+
+                                                  if (i_dir_3 < positive_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*1;
+                                                      per_y += (dir_3 == 1)*1;
+                                                      per_z += (dir_3 == 2)*1;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                  if (i_dir_3 >= n_dir_3 - negative_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*2;
+                                                      per_y += (dir_3 == 1)*2;
+                                                      per_z += (dir_3 == 2)*2;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                  if (i_dir_2 >= n_dir_2 - negative_ghost_size)
+                                    {
+                                      per_x += (dir_2 == 0)*2;
+                                      per_y += (dir_2 == 1)*2;
+                                      per_z += (dir_2 == 2)*2;
+
+                                      next_index = per_x + per_y*3 + per_z*9;
+                                      if (next_index > index)
+                                        {
+                                          return next_index;
+                                        }
+
+                                      for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
+                                        {
+                                          if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
+                                            {
+                                              int n_dir_3 = splitting_.get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = splitting_.get_grid_geometry().get_nb_elem_tot(dir_3);
+
+                                              if (n_dir_3 == n_dir_tot_3)
+                                                {
+                                                  int i_dir_3 = select(dir_3, i, j, k);
+
+                                                  if (i_dir_3 < positive_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*1;
+                                                      per_y += (dir_3 == 1)*1;
+                                                      per_z += (dir_3 == 2)*1;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                  if (i_dir_3 >= n_dir_3 - negative_ghost_size)
+                                                    {
+                                                      per_x += (dir_3 == 0)*2;
+                                                      per_y += (dir_3 == 1)*2;
+                                                      per_z += (dir_3 == 2)*2;
+
+                                                      next_index = per_x + per_y*3 + per_z*9;
+                                                      if (next_index > index)
+                                                        {
+                                                          return next_index;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

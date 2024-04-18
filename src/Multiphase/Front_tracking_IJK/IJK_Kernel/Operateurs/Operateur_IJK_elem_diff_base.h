@@ -37,12 +37,14 @@ public:
                        IJK_Field_double& result,
                        const IJK_Field_local_double& boundary_flux_kmin,
                        const IJK_Field_local_double& boundary_flux_kmax);
-  virtual void calculer_cut_cell(const Cut_field_scalar& field,
+  virtual void calculer_cut_cell(bool ignore_small_cells,
+                                 const Cut_field_scalar& field,
                                  Cut_cell_vector& cut_cell_flux,
                                  Cut_field_scalar& result,
                                  const IJK_Field_local_double& boundary_flux_kmin,
                                  const IJK_Field_local_double& boundary_flux_kmax);
-  virtual void ajouter_cut_cell(const Cut_field_scalar& field,
+  virtual void ajouter_cut_cell(bool ignore_small_cells,
+                                const Cut_field_scalar& field,
                                 Cut_cell_vector& cut_cell_flux,
                                 Cut_field_scalar& result,
                                 const IJK_Field_local_double& boundary_flux_kmin,
@@ -187,6 +189,8 @@ protected:
 
   // Pointers to input data (set by calculer, used by compute_flux_...)
   const IJK_Field_local_double *input_field_;
+
+  bool *ignore_small_cells_;
 
   const Cut_field_scalar *input_cut_field_;
   Cut_cell_vector *cut_cell_flux_;

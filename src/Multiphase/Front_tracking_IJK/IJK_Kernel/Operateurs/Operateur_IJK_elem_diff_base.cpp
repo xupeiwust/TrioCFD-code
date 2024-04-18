@@ -113,18 +113,22 @@ void Operateur_IJK_elem_diff_base_double::ajouter(const IJK_Field_double& field,
   boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
 }
 
-void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scalar& field,
+void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(bool ignore_small_cells,
+                                                            const Cut_field_scalar& field,
                                                             Cut_cell_vector& cut_cell_flux,
                                                             Cut_field_scalar& result,
                                                             const IJK_Field_local_double& boundary_flux_kmin,
                                                             const IJK_Field_local_double& boundary_flux_kmax)
 {
+  // Cerr << "Uniform lambda: " << get_uniform_lambda() << finl;
+  ignore_small_cells_ = &ignore_small_cells;
   input_field_ = &field.pure_;
   input_cut_field_ = &field;
   cut_cell_flux_ = &cut_cell_flux;
   boundary_flux_kmin_ = &boundary_flux_kmin;
   boundary_flux_kmax_ = &boundary_flux_kmax;
   compute_set_cut_cell(result);
+  ignore_small_cells_ = nullptr;
   input_field_ = nullptr;
   input_cut_field_ = nullptr;
   cut_cell_flux_ = nullptr;
@@ -135,18 +139,21 @@ void Operateur_IJK_elem_diff_base_double::calculer_cut_cell(const Cut_field_scal
   boundary_flux_kmin_ = boundary_flux_kmax_ = nullptr;
 }
 
-void Operateur_IJK_elem_diff_base_double::ajouter_cut_cell(const Cut_field_scalar& field,
+void Operateur_IJK_elem_diff_base_double::ajouter_cut_cell(bool ignore_small_cells,
+                                                           const Cut_field_scalar& field,
                                                            Cut_cell_vector& cut_cell_flux,
                                                            Cut_field_scalar& result,
                                                            const IJK_Field_local_double& boundary_flux_kmin,
                                                            const IJK_Field_local_double& boundary_flux_kmax)
 {
+  ignore_small_cells_ = &ignore_small_cells;
   input_field_ = &field.pure_;
   input_cut_field_ = &field;
   cut_cell_flux_ = &cut_cell_flux;
   boundary_flux_kmin_ = &boundary_flux_kmin;
   boundary_flux_kmax_ = &boundary_flux_kmax;
   compute_add_cut_cell(result);
+  ignore_small_cells_ = nullptr;
   input_field_ = nullptr;
   input_cut_field_ = nullptr;
   cut_cell_flux_ = nullptr;

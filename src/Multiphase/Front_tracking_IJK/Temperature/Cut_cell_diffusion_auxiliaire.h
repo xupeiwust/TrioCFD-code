@@ -24,8 +24,12 @@
 
 #include <FixedVector.h>
 #include <IJK_Field.h>
-#include <IJK_FT_cut_cell.h>
+#include <IJK_Interfaces.h>
 #include <Champ_diphasique.h>
+#include <Cut_cell_correction_petites_cellules.h>
+#include <Maillage_FT_IJK.h>
+
+class IJK_FT_cut_cell;
 
 enum class METHODE_FLUX_INTERFACE : int
 {
@@ -55,6 +59,8 @@ public:
                                double scaled_distance,
                                double lambda_liquid,
                                double lambda_vapour,
+                               ArrOfDouble& interfacial_temperature,
+                               ArrOfDouble& interfacial_phin_ai,
                                Cut_field_scalar& cut_field_temperature,
                                REF(IJK_FT_cut_cell)& ref_ijk_ft,
                                const IJK_Field_double& temperature_ns,
@@ -87,6 +93,8 @@ public:
   void ajout_flux_interface_a_divergence_simple(Cut_field_scalar& cut_field_div_coeff_grad_T_volume);
   void ajout_flux_interface_a_divergence_etale(Cut_field_scalar& cut_field_div_coeff_grad_T_volume);
   void etalement_divergence_flux_diffusifs(Cut_field_scalar& cut_field_div_coeff_grad_T_volume, Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp);
+
+  void add_diffusion_small_cells(CORRECTION_PETITES_CELLULES diffusion_petites_cellules, const Cut_field_scalar& cut_field_temperature_post_convection, Cut_field_scalar& cut_field_temperature);
 
   void calcul_temperature_flux_interface(const IJK_Field_double& temperature, const double ldal, const double ldav,
                                          const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,

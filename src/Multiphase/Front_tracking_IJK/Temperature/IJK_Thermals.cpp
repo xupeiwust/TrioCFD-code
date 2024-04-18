@@ -261,6 +261,10 @@ void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, 
         case 3:
           Cerr << "RK3 Time scheme is not implemented  with" << itr.get_thermal_words()[thermal_rank] << finl;
           break;
+        case 4:
+          itr.rk3_sub_step(rk_step, total_timestep, time);
+          Cerr << "RK3 Time scheme is implemented with" << itr.get_thermal_words()[thermal_rank] << finl;
+          break;
         default:
           Process::exit();
         }

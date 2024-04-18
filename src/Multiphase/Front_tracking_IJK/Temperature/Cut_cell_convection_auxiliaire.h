@@ -25,6 +25,10 @@
 #include <FixedVector.h>
 #include <IJK_Field.h>
 #include <Champ_diphasique.h>
+#include <Cut_cell_correction_petites_cellules.h>
+#include <Maillage_FT_IJK.h>
+
+class IJK_FT_cut_cell;
 
 enum class METHODE_TEMPERATURE_REMPLISSAGE : int
 {
@@ -33,16 +37,33 @@ enum class METHODE_TEMPERATURE_REMPLISSAGE : int
   SEMI_LAGRANGIEN     // Approximation semi-lagrangienne du deplacement pour estimer la temperature
 };
 
+enum class CUT_CELL_CONV_SCHEME : int
+{
+  QUICK_OU_CENTRE2_STENCIL,                  // Utilise le schema quick si le stencil est disponible, le schema centre2 sinon
+  QUICK_OU_CENTRE2_PERPENDICULAR_DISTANCE,   // Utilise le schema quick si le stencil est disponible et si la distance perpendiculaire n'est pas grande, le schema centre2 sinon
+  QUICK_OU_LINEAIRE2_STENCIL,                // Utilise le schema quick si le stencil est disponible, le schema lineaire2 sinon
+  QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE, // Utilise le schema quick si le stencil est disponible et si la distance perpendiculaire n'est pas grande, le schema lineaire2 sinon
+  QUICK_OU_AMONT_STENCIL,                    // Utilise le schema quick si le stencil est disponible, le schema amont sinon
+  QUICK_OU_AMONT_PERPENDICULAR_DISTANCE,     // Utilise le schema quick si le stencil est disponible et si la distance perpendiculaire n'est pas grande, le schema amont sinon
+  CENTRE2,                                   // Utilise toujours le schema centre2
+  LINEAIRE2,                                 // Utilise toujours le schema lineaire2
+  AMONT,                                     // Utilise toujours le schema amont
+  INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL,  // Routine d'interpolation sur la face fondee sur la temperature et le flux sur la facette la plus proche
+  INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL     // Routine d'interpolation sur la face fondee sur la temperature de la cellule et le flux a l'interface
+};
+
 class Cut_cell_convection_auxiliaire
 {
 public:
   DoubleTabFT_cut_cell_scalar temperature_remplissage_;
 
 public:
-  void add_convection_dying_cells(const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
-  void add_convection_small_nascent_cells(const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
+  void add_convection_dying_cells(CORRECTION_PETITES_CELLULES convection_petites_cellules, const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
+  void add_convection_small_nascent_cells(CORRECTION_PETITES_CELLULES convection_petites_cellules, const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
   void calcule_temperature_remplissage_ponderation_voisin(const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
   void calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_vector& cut_field_velocity, Cut_field_scalar& cut_field_temperature);
+  void calcule_temperature_face_depuis_centre(double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, Cut_field_scalar& cut_field_temperature, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face);
+  void calcule_temperature_face_depuis_facette(double lambda_liquid, double lambda_vapour, const ArrOfDouble& interfacial_temperature, const ArrOfDouble& interfacial_phin_ai, Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ns);
 };
 
 #endif /* Cut_cell_convection_auxiliaire_included */

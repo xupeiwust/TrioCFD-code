@@ -39,7 +39,7 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell() :
   cut_field_temperature_post_dying_(temperature_post_dying_),
   cut_field_temperature_post_regular_(temperature_post_regular_),
   cut_field_temperature_post_small_(temperature_post_small_),
-  first_timestep_(true)
+  cut_field_temperature_post_diff_regular_(temperature_post_diff_regular_)
 {
   single_phase_=0;
   type_temperature_convection_form_ = 0;  // Default value: 0 : non conservative
@@ -75,6 +75,15 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell() :
   methode_temperature_remplissage_ = METHODE_TEMPERATURE_REMPLISSAGE::NON_INITIALISE;
   methode_flux_interface_ = METHODE_FLUX_INTERFACE::NON_INITIALISE;
   scaled_distance_flux_interface_ = 1.52*sqrt(3);
+
+  correction_petites_cellules_diffusion_ = 0;
+  diffusion_petites_cellules_ = CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE;
+  convection_petites_cellules_ = CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE;
+
+  cut_cell_conv_scheme_ = CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_STENCIL;
+
+  interfacial_temperature_.set_smart_resize(1);
+  interfacial_phin_ai_.set_smart_resize(1);
 }
 
 Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
@@ -152,6 +161,35 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.dictionnaire("interp_cut_cell", (int)METHODE_FLUX_INTERFACE::INTERP_CUT_CELL);
   param.dictionnaire("local_cellule", (int)METHODE_FLUX_INTERFACE::LOCAL_CELLULE);
   param.ajouter("scaled_distance_flux_interface", &scaled_distance_flux_interface_);
+
+  param.ajouter_flag("correction_petites_cellules_diffusion", &correction_petites_cellules_diffusion_);
+  param.ajouter("diffusion_petites_cellules", (int*)&diffusion_petites_cellules_);
+  param.dictionnaire("direction_privilegiee", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE);
+  param.dictionnaire("direction_privilegiee_2", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_2);
+  param.dictionnaire("correction_symetrique", (int)CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE);
+  param.dictionnaire("direction_privilegiee_avec_limitation", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION);
+  param.dictionnaire("direction_privilegiee_avec_limitation_2", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2);
+  param.dictionnaire("correction_symetrique_avec_limitation", (int)CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE_AVEC_LIMITATION);
+  param.ajouter("convection_petites_cellules", (int*)&convection_petites_cellules_);
+  param.dictionnaire("direction_privilegiee", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE);
+  param.dictionnaire("direction_privilegiee_2", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_2);
+  param.dictionnaire("correction_symetrique", (int)CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE);
+  param.dictionnaire("direction_privilegiee_avec_limitation", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION);
+  param.dictionnaire("direction_privilegiee_avec_limitation_2", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2);
+  param.dictionnaire("correction_symetrique_avec_limitation", (int)CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE_AVEC_LIMITATION);
+
+  param.ajouter("cut_cell_conv_scheme", (int*)&cut_cell_conv_scheme_);
+  param.dictionnaire("quick_ou_centre2_stencil", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_STENCIL);
+  param.dictionnaire("quick_ou_centre2_perpendicular_distance", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_CENTRE2_PERPENDICULAR_DISTANCE);
+  param.dictionnaire("quick_ou_lineaire2_stencil", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_STENCIL);
+  param.dictionnaire("quick_ou_lineaire2_perpendicular_distance", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE);
+  param.dictionnaire("quick_ou_amont_stencil", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_STENCIL);
+  param.dictionnaire("quick_ou_amont_perpendicular_distance", (int)CUT_CELL_CONV_SCHEME::QUICK_OU_AMONT_PERPENDICULAR_DISTANCE);
+  param.dictionnaire("centre2", (int)CUT_CELL_CONV_SCHEME::CENTRE2);
+  param.dictionnaire("lineaire2", (int)CUT_CELL_CONV_SCHEME::LINEAIRE2);
+  param.dictionnaire("amont", (int)CUT_CELL_CONV_SCHEME::AMONT);
+  param.dictionnaire("interp_facette_ou_quick_ou_amont_stencil", (int)CUT_CELL_CONV_SCHEME::INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL);
+  param.dictionnaire("interp_point_ou_quick_ou_amont_stencil", (int)CUT_CELL_CONV_SCHEME::INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL);
 }
 
 int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int idx)
@@ -168,18 +206,30 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   cut_field_RK3_F_temperature_diff_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   cut_field_RK3_F_temperature_conv_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
+  temperature_post_small_.allocate(splitting, IJK_Splitting::ELEM, 2);
+  cut_field_temperature_post_small_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+
   if (postraiter_champs_intermediaires_)
     {
       temperature_post_dying_.allocate(splitting, IJK_Splitting::ELEM, 2);
       temperature_post_regular_.allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_small_.allocate(splitting, IJK_Splitting::ELEM, 2);
+      temperature_post_diff_regular_.allocate(splitting, IJK_Splitting::ELEM, 2);
       cut_field_temperature_post_dying_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
       cut_field_temperature_post_regular_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
-      cut_field_temperature_post_small_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+      cut_field_temperature_post_diff_regular_.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
     }
 
   cut_cell_flux_diffusion_.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   cut_cell_flux_convection_.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+
+  for (int d = 0; d < 3; d++)
+    {
+      temperature_face_[0][d].allocate(splitting, IJK_Splitting::ELEM, 2);
+      temperature_face_ft_[0][d].allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
+      temperature_face_[1][d].allocate(splitting, IJK_Splitting::ELEM, 2);
+      temperature_face_ft_[1][d].allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
+    }
+  nalloc += 6;
 
   temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
   nalloc += 1;
@@ -317,6 +367,11 @@ void IJK_Thermal_cut_cell::recompute_temperature_init()
       Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
       cut_field_temperature_.set_field_data(expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
     }
+
+  // Calcul du flux a l'interface pour le premier pas de temps.
+  // Cela n'est pas fait a l'initialisation car il faut que les structures diphasiques soient creees.
+  // A deplacer dans un endroit plus approprie.
+  diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
 }
 
 struct CutCell_GlobalInfo
@@ -338,11 +393,6 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   // Calcul du flux a l'interface au premier pas de temps.
   // Pour les autres pas de temps, la valeur a la fin du pas de temps precedent est utilisee.
   // Cela n'est pas fait a l'initialisation car il faut que les structures diphasiques soient creees.
-  if (first_timestep_)
-    {
-      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
-      first_timestep_ = false;
-    }
 
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
@@ -371,11 +421,26 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
         }
     }
 
+  if (cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL)
+    {
+      convective_correction_.calcule_temperature_face_depuis_centre(lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_, cut_field_temperature_, temperature_face_);
+    }
+  else if (cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL)
+    {
+      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+
+      convective_correction_.calcule_temperature_face_depuis_facette(lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_);
+    }
+  else
+    {
+      // Do nothing
+    }
+
   const CutCell_GlobalInfo ene_ini = compute_global_energy_cut_cell(cut_field_temperature_, 0);
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_convection_dying_cells(cut_field_velocity, cut_field_temperature_);
+      convective_correction_.add_convection_dying_cells(convection_petites_cellules_, cut_field_velocity, cut_field_temperature_);
       cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
     }
 
@@ -398,19 +463,16 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_convection_small_nascent_cells(cut_field_velocity, cut_field_temperature_);
+      convective_correction_.add_convection_small_nascent_cells(convection_petites_cellules_, cut_field_velocity, cut_field_temperature_);
       cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
     }
 
-  if (postraiter_champs_intermediaires_)
-    {
-      cut_field_temperature_post_small_.copy_from(cut_field_temperature_);
-    }
+  cut_field_temperature_post_small_.copy_from(cut_field_temperature_);
   const CutCell_GlobalInfo ene_postconv_small_nascent = compute_global_energy_cut_cell(cut_field_temperature_, 1);
 
   if (activate_diffusion_interface_)
     {
-      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
     }
   else
     {
@@ -421,10 +483,23 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   ref_ijk_ft_cut_cell_->euler_explicit_update_cut_cell_notransport(cut_field_d_temperature_, cut_field_temperature_);
   cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
 
-  const CutCell_GlobalInfo ene_postdiff = compute_global_energy_cut_cell(cut_field_temperature_, 1);
+  if (postraiter_champs_intermediaires_)
+    {
+      cut_field_temperature_post_diff_regular_.copy_from(cut_field_temperature_);
+    }
+  const CutCell_GlobalInfo ene_postdiff_regular = compute_global_energy_cut_cell(cut_field_temperature_, 1);
+
+
+  if (!diff_temperature_negligible_ && correction_petites_cellules_diffusion_)
+    {
+      diffusive_correction_.add_diffusion_small_cells(diffusion_petites_cellules_, cut_field_temperature_post_small_, cut_field_temperature_);
+      cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
+    }
+
+  const CutCell_GlobalInfo ene_postdiff_small = compute_global_energy_cut_cell(cut_field_temperature_, 1);
 
   // Recalcul du flux a l'interface pour l'estimation de la temperature de remplissage au prochain pas de temps
-  diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+  diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
 
   Cerr.precision(16);
   Cerr << "dT_budget, overall time: " << current_time << " dT_conv: " << d_ene_Conv.overall << " dT_diff: " << d_ene_Diffu.overall << finl;
@@ -438,16 +513,16 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   Cerr << "dT_budget, diph_nascent.. time: " << current_time << " dT_conv: " << d_ene_Conv.diph_nascent << " dT_diff: " << d_ene_Diffu.diph_nascent << finl;
   Cerr << "dT_budget, diph_dying.... time: " << current_time << " dT_conv: " << d_ene_Conv.diph_dying   << " dT_diff: " << d_ene_Diffu.diph_dying   << finl;
 
-  Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_regular: " << ene_postconv_regular.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff: " << ene_postdiff.overall << finl;
-  Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_regular: " << ene_postconv_regular.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff: " << ene_postdiff.overall_l << finl;
-  Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_regular: " << ene_postconv_regular.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff: " << ene_postdiff.overall_v << finl;
-  Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_regular: " << ene_postconv_regular.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff: " << ene_postdiff.pure         << finl;
-  Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_regular: " << ene_postconv_regular.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff: " << ene_postdiff.diph_l       << finl;
-  Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_regular: " << ene_postconv_regular.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff: " << ene_postdiff.diph_v       << finl;
-  Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_regular: " << ene_postconv_regular.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff: " << ene_postdiff.diph_small   << finl;
-  Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_regular: " << ene_postconv_regular.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff: " << ene_postdiff.diph_regular << finl;
-  Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_regular: " << ene_postconv_regular.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff: " << ene_postdiff.diph_nascent << finl;
-  Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff: " << ene_postdiff.diph_dying   << finl;
+  Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_regular: " << ene_postconv_regular.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff_regular: " << ene_postdiff_regular.overall << " post_diff_small: " << ene_postdiff_small.overall << finl;
+  Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_regular: " << ene_postconv_regular.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff_regular: " << ene_postdiff_regular.overall_l << " post_diff_small: " << ene_postdiff_small.overall_l << finl;
+  Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_regular: " << ene_postconv_regular.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff_regular: " << ene_postdiff_regular.overall_v << " post_diff_small: " << ene_postdiff_small.overall_v << finl;
+  Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_regular: " << ene_postconv_regular.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff_regular: " << ene_postdiff_regular.pure << " post_diff_small: " << ene_postdiff_small.pure         << finl;
+  Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_regular: " << ene_postconv_regular.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff_regular: " << ene_postdiff_regular.diph_l << " post_diff_small: " << ene_postdiff_small.diph_l       << finl;
+  Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_regular: " << ene_postconv_regular.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff_regular: " << ene_postdiff_regular.diph_v << " post_diff_small: " << ene_postdiff_small.diph_v       << finl;
+  Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_regular: " << ene_postconv_regular.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff_regular: " << ene_postdiff_regular.diph_small << " post_diff_small: " << ene_postdiff_small.diph_small   << finl;
+  Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_regular: " << ene_postconv_regular.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff_regular: " << ene_postdiff_regular.diph_regular << " post_diff_small: " << ene_postdiff_small.diph_regular << finl;
+  Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_regular: " << ene_postconv_regular.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff_regular: " << ene_postdiff_regular.diph_nascent << " post_diff_small: " << ene_postdiff_small.diph_nascent << finl;
+  Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff_regular: " << ene_postdiff_regular.diph_dying << " post_diff_small: " << ene_postdiff_small.diph_dying   << finl;
 
   CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature_, 1);
   CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature_, 1);
@@ -466,15 +541,6 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
                                         const double time)
 {
-  // Calcul du flux a l'interface au premier pas de temps.
-  // Pour les autres pas de temps, la valeur a la fin du sous pas de temps precedent est utilisee.
-  // Cela n'est pas fait a l'initialisation car il faut que les structures diphasiques soient creees.
-  if (first_timestep_)
-    {
-      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
-      first_timestep_ = false;
-    }
-
   if (debug_)
     Cerr << "Thermal Runge-Kutta3 time-step" << finl;
   update_thermal_properties();
@@ -502,11 +568,26 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
         }
     }
 
+  if (cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_POINT_OU_QUICK_OU_AMONT_STENCIL)
+    {
+      convective_correction_.calcule_temperature_face_depuis_centre(lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_, cut_field_temperature_, temperature_face_);
+    }
+  else if (cut_cell_conv_scheme_ == CUT_CELL_CONV_SCHEME::INTERP_FACETTE_OU_QUICK_OU_AMONT_STENCIL)
+    {
+      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+
+      convective_correction_.calcule_temperature_face_depuis_facette(lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_);
+    }
+  else
+    {
+      // Do nothing
+    }
+
   const CutCell_GlobalInfo ene_ini = compute_global_energy_cut_cell(cut_field_temperature_, 0);
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_convection_dying_cells(cut_field_velocity, cut_field_temperature_);
+      convective_correction_.add_convection_dying_cells(convection_petites_cellules_, cut_field_velocity, cut_field_temperature_);
       cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
     }
 
@@ -529,19 +610,16 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_convection_small_nascent_cells(cut_field_velocity, cut_field_temperature_);
+      convective_correction_.add_convection_small_nascent_cells(convection_petites_cellules_, cut_field_velocity, cut_field_temperature_);
       cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
     }
 
-  if (postraiter_champs_intermediaires_)
-    {
-      cut_field_temperature_post_small_.copy_from(cut_field_temperature_);
-    }
+  cut_field_temperature_post_small_.copy_from(cut_field_temperature_);
   const CutCell_GlobalInfo ene_postconv_small_nascent = compute_global_energy_cut_cell(cut_field_temperature_, 1);
 
   if (activate_diffusion_interface_)
     {
-      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+      diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
     }
   else
     {
@@ -549,13 +627,25 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
     }
   add_temperature_diffusion();
   const CutCell_GlobalInfo d_ene_Diffu = compute_global_energy_cut_cell(cut_field_d_temperature_, 1);
-  ref_ijk_ft_cut_cell_->runge_kutta3_update_cut_cell_transport(cut_field_d_temperature_, cut_field_RK3_F_temperature_diff_, cut_field_temperature_, rk_step, total_timestep);
+  ref_ijk_ft_cut_cell_->runge_kutta3_update_cut_cell_notransport(cut_field_d_temperature_, cut_field_RK3_F_temperature_diff_, cut_field_temperature_, rk_step, total_timestep);
   cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
 
-  const CutCell_GlobalInfo ene_postdiff = compute_global_energy_cut_cell(cut_field_temperature_, 1);
+  if (postraiter_champs_intermediaires_)
+    {
+      cut_field_temperature_post_diff_regular_.copy_from(cut_field_temperature_);
+    }
+  const CutCell_GlobalInfo ene_postdiff_regular = compute_global_energy_cut_cell(cut_field_temperature_, 1);
+
+  if (!diff_temperature_negligible_ && correction_petites_cellules_diffusion_)
+    {
+      diffusive_correction_.add_diffusion_small_cells(diffusion_petites_cellules_, cut_field_temperature_post_small_, cut_field_temperature_);
+      cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
+    }
+
+  const CutCell_GlobalInfo ene_postdiff_small = compute_global_energy_cut_cell(cut_field_temperature_, 1);
 
   // Recalcul du flux a l'interface pour l'estimation de la temperature de remplissage au prochain sous pas de temps
-  diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
+  diffusive_correction_.calculer_flux_interface(methode_flux_interface_, scaled_distance_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature_, ref_ijk_ft_cut_cell_, temperature_, temperature_ft_);
 
   Cerr.precision(16);
   Cerr << "dT_budget, overall time: " << current_time << " dT_conv: " << d_ene_Conv.overall << " dT_diff: " << d_ene_Diffu.overall << finl;
@@ -569,16 +659,16 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
   Cerr << "dT_budget, diph_nascent.. time: " << current_time << " dT_conv: " << d_ene_Conv.diph_nascent << " dT_diff: " << d_ene_Diffu.diph_nascent << finl;
   Cerr << "dT_budget, diph_dying.... time: " << current_time << " dT_conv: " << d_ene_Conv.diph_dying   << " dT_diff: " << d_ene_Diffu.diph_dying   << finl;
 
-  Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_regular: " << ene_postconv_regular.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff: " << ene_postdiff.overall << finl;
-  Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_regular: " << ene_postconv_regular.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff: " << ene_postdiff.overall_l << finl;
-  Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_regular: " << ene_postconv_regular.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff: " << ene_postdiff.overall_v << finl;
-  Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_regular: " << ene_postconv_regular.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff: " << ene_postdiff.pure         << finl;
-  Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_regular: " << ene_postconv_regular.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff: " << ene_postdiff.diph_l       << finl;
-  Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_regular: " << ene_postconv_regular.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff: " << ene_postdiff.diph_v       << finl;
-  Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_regular: " << ene_postconv_regular.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff: " << ene_postdiff.diph_small   << finl;
-  Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_regular: " << ene_postconv_regular.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff: " << ene_postdiff.diph_regular << finl;
-  Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_regular: " << ene_postconv_regular.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff: " << ene_postdiff.diph_nascent << finl;
-  Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff: " << ene_postdiff.diph_dying   << finl;
+  Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_regular: " << ene_postconv_regular.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff_regular: " << ene_postdiff_regular.overall << " post_diff_small: " << ene_postdiff_small.overall << finl;
+  Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_regular: " << ene_postconv_regular.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff_regular: " << ene_postdiff_regular.overall_l << " post_diff_small: " << ene_postdiff_small.overall_l << finl;
+  Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_regular: " << ene_postconv_regular.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff_regular: " << ene_postdiff_regular.overall_v << " post_diff_small: " << ene_postdiff_small.overall_v << finl;
+  Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_regular: " << ene_postconv_regular.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff_regular: " << ene_postdiff_regular.pure << " post_diff_small: " << ene_postdiff_small.pure         << finl;
+  Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_regular: " << ene_postconv_regular.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff_regular: " << ene_postdiff_regular.diph_l << " post_diff_small: " << ene_postdiff_small.diph_l       << finl;
+  Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_regular: " << ene_postconv_regular.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff_regular: " << ene_postdiff_regular.diph_v << " post_diff_small: " << ene_postdiff_small.diph_v       << finl;
+  Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_regular: " << ene_postconv_regular.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff_regular: " << ene_postdiff_regular.diph_small << " post_diff_small: " << ene_postdiff_small.diph_small   << finl;
+  Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_regular: " << ene_postconv_regular.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff_regular: " << ene_postdiff_regular.diph_regular << " post_diff_small: " << ene_postdiff_small.diph_regular << finl;
+  Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_regular: " << ene_postconv_regular.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff_regular: " << ene_postdiff_regular.diph_nascent << " post_diff_small: " << ene_postdiff_small.diph_nascent << finl;
+  Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff_regular: " << ene_postdiff_regular.diph_dying << " post_diff_small: " << ene_postdiff_small.diph_dying   << finl;
 
   CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature_, 1);
   CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature_, 1);
@@ -780,7 +870,7 @@ void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const Cut_fie
     }
   else
     {
-      temperature_convection_op_.calculer_cut_cell(cut_field_temperature_, cut_field_velocity, cut_cell_flux_diffusion_, cut_field_d_temperature_);
+      temperature_convection_op_.calculer_cut_cell(false, cut_cell_conv_scheme_, cut_field_temperature_, cut_field_velocity, temperature_face_, cut_cell_flux_convection_, cut_field_d_temperature_);
       const int ni = cut_field_d_temperature_.pure_.ni();
       const int nj = cut_field_d_temperature_.pure_.nj();
       const int nk = cut_field_d_temperature_.pure_.nk();
@@ -883,7 +973,8 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
       /*
        * Correct the diffusive fluxes here or in the operator ?
        */
-      temperature_diffusion_op_.calculer_cut_cell(cut_field_temperature_,
+      temperature_diffusion_op_.calculer_cut_cell(false,
+                                                  cut_field_temperature_,
                                                   cut_cell_flux_diffusion_,
                                                   cut_field_div_coeff_grad_T_volume_,
                                                   boundary_flux_kmin_,

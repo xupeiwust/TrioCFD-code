@@ -22,11 +22,16 @@
 #include <Cut_cell_diffusion_auxiliaire.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_Thermal_base.h>
+#include <IJK_FT_cut_cell.h>
 #include <Process.h>
 #include <stat_counters.h>
-#include <IJK_FT_cut_cell.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Navier_Stokes_tools_cut_cell.h>
+
+inline double select(int a, double x, double y,double z)
+{
+  return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
+}
 
 void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(METHODE_FLUX_INTERFACE methode_flux_interface, double scaled_distance, double lambda_liquid, double lambda_vapour, Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
 {
@@ -92,7 +97,7 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(METHODE_FLUX_INTERFA
             {
               for (int i = 0; i < ni; i++)
                 {
-                  if (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I_ft(i,j,k)))
+                  if (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().In_ft(i,j,k)))
                     {
                       assert(mesh.ref_splitting().valeur() == s);
                       const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
@@ -300,7 +305,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_local_normal
         {
           for (int i = 0; i < ni; i++)
             {
-              if (!interfaces.est_pure(interfaces.I_ft(i,j,k)))
+              if (!interfaces.est_pure(interfaces.In_ft(i,j,k)))
                 {
                   assert(maillage.ref_splitting().valeur() == s);
                   const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
@@ -563,6 +568,179 @@ void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_fiel
     }
 
   cut_field_div_coeff_grad_T_volume.add_from(cut_field_div_coeff_grad_T_volume_temp);
+}
+
+void Cut_cell_diffusion_auxiliaire::add_diffusion_small_cells(CORRECTION_PETITES_CELLULES diffusion_petites_cellules, const Cut_field_scalar& cut_field_temperature_post_convection, Cut_field_scalar& cut_field_temperature)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
+
+  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const double delta_x = geom.get_constant_delta(0);
+  const double delta_y = geom.get_constant_delta(1);
+  const double delta_z = geom.get_constant_delta(2);
+  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
+  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
+  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+
+  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
+  int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
+  int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
+  for (int index = index_min; index < index_max; index++)
+    {
+      int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
+
+      Int3 ijk = cut_cell_disc.get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+        continue;
+
+      double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
+      double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+      int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
+      int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      assert(est_naissant || cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice));
+
+      assert(((phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n)) != 0.); // La cellule est normalement deja remplie
+
+      double temperature_centre = (phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n);
+      double temperature_remplissage = (phase == 0) ? cut_field_temperature_post_convection.diph_v_(n) : cut_field_temperature_post_convection.diph_l_(n);
+      double quantite_totale = (phase == 0) ? (1 - next_indicatrice)*(temperature_remplissage - temperature_centre) : next_indicatrice*(temperature_remplissage - temperature_centre);
+
+      double flux[6] = {0};
+      double flux_max[6] = {0};
+      for (int num_face = 0; num_face < 6; num_face++)
+        {
+          int dir = num_face%3;
+          int decalage = num_face/3;
+          int sign = decalage*2 -1;
+
+          int di = decalage*(dir == 0);
+          int dj = decalage*(dir == 1);
+          int dk = decalage*(dir == 2);
+          int di_decale = sign*(dir == 0);
+          int dj_decale = sign*(dir == 1);
+          int dk_decale = sign*(dir == 2);
+
+          double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
+          double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
+          bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
+          bool decale_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+          bool decale_small = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_decale, next_indicatrice_decale);
+          bool decale_smaller = (phase == 0) ? (1 - next_indicatrice_decale) < (1 - next_indicatrice) : (next_indicatrice_decale) < (next_indicatrice);
+          if (decale_also_dying || (est_naissant && decale_nascent && decale_smaller) || ((!est_naissant) && decale_nascent) || ((!est_naissant) && decale_small && decale_smaller))
+            {
+              flux[num_face] = 0;
+              flux_max[num_face] = 0;
+            }
+          else
+            {
+              double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+              int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
+              if (n_decale >= 0)
+                {
+                  temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
+                }
+
+              double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i,j,k, old_indicatrice, next_indicatrice);
+              assert((n >= 0) || (bar_dir_centre == .5));
+
+              double bar_dir_decale = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i+di_decale,j+dj_decale,k+dk_decale, old_indicatrice_decale, next_indicatrice_decale);
+              assert((n_decale >= 0) || (bar_dir_decale == .5));
+
+              double delta_dir = select(dir, delta_x, delta_y, delta_z);
+              double delta_dir_decale = select(dir, delta_x, delta_y, delta_z);
+
+              double dist_decale = (1 - bar_dir_decale)*delta_dir_decale + (bar_dir_centre)*delta_dir;
+
+              int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+              if (n_face >= 0)
+                {
+                  double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir) : cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir);
+                  if (surface_efficace > 0)
+                    {
+                      flux[num_face] = surface_efficace*(temperature_decale - temperature_remplissage)/dist_decale; // No need for lambda since it is the same for all the fluxes
+                      double next_volume_decale = (phase == 0) ? 1 - next_indicatrice_decale : next_indicatrice_decale;
+                      double next_volume = (phase == 0) ? 1 - next_indicatrice : next_indicatrice;
+                      flux_max[num_face] = (temperature_decale - temperature_centre)/(1/next_volume_decale + 1/next_volume);
+                      flux_max[num_face] = flux[num_face] >= 0 ? std::max(0., flux_max[num_face]) : std::max(0., -flux_max[num_face]);
+                    }
+                }
+              else
+                {
+                  double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+                  if (surface_efficace > 0)
+                    {
+                      flux[num_face] = surface_efficace*(temperature_decale - temperature_remplissage)/dist_decale; // No need for lambda since it is the same for all the fluxes
+                      double next_volume_decale = (phase == 0) ? 1 - next_indicatrice_decale : next_indicatrice_decale;
+                      double next_volume = (phase == 0) ? 1 - next_indicatrice : next_indicatrice;
+                      flux_max[num_face] = (temperature_decale - temperature_centre)/(1/next_volume_decale + 1/next_volume);
+                      flux_max[num_face] = flux[num_face] >= 0 ? std::max(0., flux_max[num_face]) : std::max(0., -flux_max[num_face]);
+                    }
+                }
+            }
+        }
+
+      Cut_cell_correction_petites_cellules::modification_flux_petites_cellules(diffusion_petites_cellules, quantite_totale, flux);
+      double somme_flux = Cut_cell_correction_petites_cellules::calcul_somme_flux(flux);
+      assert(somme_flux != 0.);
+      if (somme_flux == 0.)
+        {
+          continue;
+        }
+
+      Cut_cell_correction_petites_cellules::limitation_flux_avec_flux_max(diffusion_petites_cellules, quantite_totale, somme_flux, flux_max, flux);
+
+      assert((flux[0] != 0) || (flux[1] != 0) || (flux[2] != 0) || (flux[3] != 0) || (flux[4] != 0) || (flux[5] != 0));
+
+      for (int num_face = 0; num_face < 6; num_face++)
+        {
+          if (flux[num_face] != 0.)
+            {
+              int dir = num_face%3;
+              int decalage = num_face/3;
+              int sign = decalage*2 -1;
+
+              int di_decale = sign*(dir == 0);
+              int dj_decale = sign*(dir == 1);
+              int dk_decale = sign*(dir == 2);
+
+              int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
+              double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
+              if (n_decale >= 0)
+                {
+                  if (phase == 0)
+                    {
+                      cut_field_temperature.diph_v_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale/(1 - next_indicatrice_decale);
+                      cut_field_temperature.diph_v_(n) += (flux[num_face]/somme_flux)*quantite_totale/(1 - cut_cell_disc.get_interfaces().In(i,j,k));
+                    }
+                  else
+                    {
+                      cut_field_temperature.diph_l_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale/next_indicatrice_decale;
+                      cut_field_temperature.diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale/cut_cell_disc.get_interfaces().In(i,j,k);
+                    }
+                }
+              else
+                {
+                  assert((int)next_indicatrice_decale == 1 - (int)(1 - next_indicatrice_decale));
+                  assert(phase == (int)next_indicatrice_decale);
+                  cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                  if (phase == 0)
+                    {
+                      cut_field_temperature.diph_v_(n) += (flux[num_face]/somme_flux)*quantite_totale/(1 - cut_cell_disc.get_interfaces().In(i,j,k));
+                    }
+                  else
+                    {
+                      cut_field_temperature.diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale/cut_cell_disc.get_interfaces().In(i,j,k);
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface(

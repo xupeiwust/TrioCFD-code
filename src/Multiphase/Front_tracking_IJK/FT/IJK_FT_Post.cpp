@@ -33,6 +33,7 @@
 #include <IJK_FT_cut_cell.h>
 #include <sstream>
 #include <IJK_Thermals.h>
+#include <IJK_Thermal_cut_cell.h>
 
 /*
  * Take as main parameter reference to FT to be able to use its members.
@@ -891,7 +892,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   if (liste_post_instantanes_.contient_("GROUPS_FT"))
     n--, dumplata_cellvector(lata_name, "GROUPS_FT", interfaces_.groups_indicatrice_n_ft(), latastep);
   if (liste_post_instantanes_.contient_("INDICATRICE_SURFACIQUE_FACE"))
-    n--, dumplata_vector(lata_name, "INDICATRICE_SURFACIQUE_FACE", interfaces_.get_indicatrice_surfacique_face()[0], interfaces_.get_indicatrice_surfacique_face()[1], interfaces_.get_indicatrice_surfacique_face()[2], latastep);
+    n--, dumplata_vector(lata_name, "INDICATRICE_SURFACIQUE_FACE", interfaces_.get_indicatrice_surfacique_face_old()[0], interfaces_.get_indicatrice_surfacique_face_old()[1], interfaces_.get_indicatrice_surfacique_face_old()[2], latastep);
   if (liste_post_instantanes_.contient_("SURFACE_VAPEUR_PAR_FACE"))
     {
       Cerr << "Tentative de sauvegarder champ surface vapeur par face" << finl;

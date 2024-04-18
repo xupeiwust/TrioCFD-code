@@ -112,7 +112,6 @@ public :
                                  DoubleTab& coeff_k,
                                  IntTab Indice_k);
 
-
 protected :
   REF(IJK_FT_base) ref_ijk_ft_;
   REF(IJK_FT_Post) ref_ijk_ft_post_;

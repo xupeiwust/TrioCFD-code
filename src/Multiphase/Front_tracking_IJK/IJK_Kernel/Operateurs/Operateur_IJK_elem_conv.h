@@ -24,6 +24,7 @@
 
 #include <TRUST_Deriv.h>
 #include <Operateur_IJK_elem_conv_base.h>
+#include <Cut_cell_convection_auxiliaire.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -50,12 +51,18 @@ public :
                const IJK_Field_double& vy,
                const IJK_Field_double& vz,
                IJK_Field_double& result);
-  void calculer_cut_cell(const Cut_field_scalar& field,
+  void calculer_cut_cell(bool ignore_small_cells,
+                         CUT_CELL_CONV_SCHEME cut_cell_conv_scheme,
+                         const Cut_field_scalar& field,
                          const Cut_field_vector& v,
+                         const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
                          Cut_cell_vector& cut_cell_flux,
                          Cut_field_scalar& result);
-  void ajouter_cut_cell(const Cut_field_scalar& field,
+  void ajouter_cut_cell(bool ignore_small_cells,
+                        CUT_CELL_CONV_SCHEME cut_cell_conv_scheme,
+                        const Cut_field_scalar& field,
                         const Cut_field_vector& v,
+                        const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
                         Cut_cell_vector& cut_cell_flux,
                         Cut_field_scalar& result);
   Nom get_convection_op_type(Motcle word);

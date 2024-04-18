@@ -428,7 +428,6 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                   {
                     Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                     index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                    assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                     treatment_count(ijk[0],ijk[1],ijk[2]) = new_treatment;
                   }
@@ -496,11 +495,15 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                       int devient_pure_centre = cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_centre, indicatrice_centre) && ((int)(1 - indicatrice_centre) == phase);
                       int devient_diphasique_left = cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_left, indicatrice_left) && ((int)(1 - old_indicatrice_left) == phase);
                       int devient_diphasique_centre = cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_centre, indicatrice_centre) && ((int)(1 - old_indicatrice_centre) == phase);
-                      //int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_left, indicatrice_left);
-                      //int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_centre, indicatrice_centre);
+                      int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_left, indicatrice_left);
+                      int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_centre, indicatrice_centre);
 
                       double flux_value;
                       if (devient_pure_centre || devient_pure_left || devient_diphasique_centre || devient_diphasique_left) //|| petit_centre || petit_left)
+                        {
+                          flux_value = 0.;
+                        }
+                      else if (*ignore_small_cells_ && (petit_centre || petit_left))
                         {
                           flux_value = 0.;
                         }
@@ -516,7 +519,6 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                             {
                               Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                               index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                              assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                               (*flux)(ijk[0],ijk[1],0) = flux_value;
                             }
@@ -531,7 +533,6 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                                 {
                                   Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
                                   index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
-                                  assert((index_ijk_per - 1 >= 5 || index_ijk_per < 0) || (k_layer == ijk[2]));
 
                                   (*flux)(ijk[0],ijk[1],0) = flux_value;
                                 }
