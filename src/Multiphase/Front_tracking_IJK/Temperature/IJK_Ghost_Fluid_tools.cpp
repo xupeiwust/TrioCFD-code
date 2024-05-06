@@ -1253,83 +1253,221 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
 }
 
 void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
+                         FixedVector<IJK_Field_double, 3>& vector_field_init,
                          const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                         const IJK_Interfaces& interfaces,
+                         const double (&direct_smoothing_factors) [7],
+                         const double (&gaussian_smoothing_factors) [3][3][3],
+                         const int& smooth_numbers,
+                         const int& remove_normal_compo,
                          const int& direct_neighbours,
-                         const int& smooth_number,
-                         const int& remove_normal_compo)
+                         const int& use_field_init,
+                         const int& use_unique_phase)
 {
   for (int c=0; c<3; c++)
     {
       IJK_Field_double& field = vector_field[c];
+      IJK_Field_double& field_init = vector_field_init[c];
       smooth_eulerian_field(field,
-                            vector_field,
+                            field_init,
                             c,
+                            vector_field_init,
                             eulerian_normal_vectors_ns_normed,
+                            interfaces,
+                            direct_smoothing_factors,
+                            gaussian_smoothing_factors,
+                            smooth_numbers,
+                            remove_normal_compo,
                             direct_neighbours,
-                            smooth_number,
-                            remove_normal_compo);
+                            use_field_init,
+                            use_unique_phase);
     }
 }
 
 void smooth_eulerian_field(IJK_Field_double& field,
-                           FixedVector<IJK_Field_double, 3> vector_field,
+                           IJK_Field_double& field_init,
                            const int& dir,
+                           FixedVector<IJK_Field_double, 3>& vector_field_init,
                            const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                           const IJK_Interfaces& interfaces,
+                           const double (&direct_smoothing_factors) [7],
+                           const double (&gaussian_smoothing_factors) [3][3][3],
+                           const int& smooth_numbers,
+                           const int& remove_normal_compo,
                            const int& direct_neighbours,
-                           const int& smooth_number,
-                           const int& remove_normal_compo)
+                           const int& use_field_init,
+                           const int& use_unique_phase)
 {
-  for (int m=0; m<smooth_number; m++)
+  const IJK_Field_double& indicator = interfaces.I();
+  const int smooth_numbers_end = (smooth_numbers < 1) ? 1: smooth_numbers;
+  const int use_field_init_usr = use_field_init && (smooth_numbers_end == 1);
+  IJK_Field_double field_copy;
+  for (int m=0; m<smooth_numbers_end; m++)
     {
       const int ni = field.ni();
       const int nj = field.nj();
       const int nk = field.nk();
-      IJK_Field_double field_copy = field;
-      field_copy.echange_espace_virtuel(field_copy.ghost());
+      IJK_Field_double& field_raw = use_field_init_usr ? field_init : field_copy;
+      if (!use_field_init_usr)
+        {
+          if (m == 0)
+            field_copy = field_init;
+          else
+            field_copy.data() = field.data();
+          field_copy.echange_espace_virtuel(field_copy.ghost());
+        }
       const int neighbours_i[6] = NEIGHBOURS_I;
       const int neighbours_j[6] = NEIGHBOURS_J;
       const int neighbours_k[6] = NEIGHBOURS_K;
+
+      double sum_factors = 0;
+      double sum_factors_phase = 0;
+      double sum_direct_smoothing_factors = 0.;
+      double sum_gaussian_smoothing_factors = 0.;
+
+      for (int c=0; c<7; c++)
+        sum_direct_smoothing_factors += direct_smoothing_factors[c];
+      for (int c=0; c<3; c++)
+        for (int l=0; l<3; l++)
+          for (int n=0; n<3; n++)
+            sum_gaussian_smoothing_factors += gaussian_smoothing_factors[n][l][c];
+
+      sum_factors = (direct_neighbours) ? sum_direct_smoothing_factors : sum_gaussian_smoothing_factors;
+      sum_factors_phase = sum_factors;
+      Cerr << "Sum of smoothing factors: " << sum_factors << finl;
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
               if (direct_neighbours)
                 {
-                  field(i,j,k) = 0.;
+                  field(i,j,k) = direct_smoothing_factors[6] * field_raw(i,j,k);
                   for (int l=0; l<6; l++)
                     {
                       const int ii = neighbours_i[l];
                       const int jj = neighbours_j[l];
                       const int kk = neighbours_k[l];
                       if (!remove_normal_compo)
-                        field(i,j,k) += field_copy(i+ii,j+jj,k+kk);
+                        field(i,j,k) += direct_smoothing_factors[l] * field_raw(i+ii,j+jj,k+kk);
                       else
                         {
-                          const double normal_compo = vector_field[dir](i+ii,j+jj,k+kk) * (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
-                          field(i,j,k) += field_copy(i+ii,j+jj,k+kk) - normal_compo;
+                          const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+                          const double normal_compo = (field_raw(i+ii,j+jj,k+kk) *
+                                                       direct_smoothing_factors[l] *
+                                                       normal_vect);
+                          // const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
+                          // const double normal_compo = (field_raw(i+ii,j+jj,k+kk) *
+                          //                              direct_smoothing_factors[l] *
+                          //                              (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk));
+                          field(i,j,k) += (direct_smoothing_factors[l] * field_raw(i+ii,j+jj,k+kk) - normal_compo);
                         }
                     }
-                  field(i,j,k) /= 6;
                 }
               else
                 {
+                  sum_factors_phase = use_unique_phase ? 0 : sum_factors;
+                  bool test_indicator;
                   field(i,j,k) = 0.;
-                  for (int c=0; c<3; c++)
+                  // for (int c=0; c<3; c++)
+                  for (int c=-1; c<=1; c++)
                     for (int l=-1; l<=1; l++)
-                      {
-                        const int ii = select(c, l, 0, 0);
-                        const int jj = select(c, 0, l, 0);
-                        const int kk = select(c, 0, 0, l);
-                        if (!remove_normal_compo)
-                          field(i,j,k) += field_copy(i+ii,j+jj,k+kk);
-                        else
-                          {
-                            const double normal_compo = vector_field[dir](i+ii,j+jj,k+kk) * (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
-                            field(i,j,k) += field_copy(i+ii,j+jj,k+kk) - normal_compo;
-                          }
-                      }
-                  field(i,j,k) /= 27;
+                      for (int n=-1; n<=1; n++)
+                        {
+                          test_indicator=true;
+                          // const int ii = select(c, l, 0, 0);
+                          // const int jj = select(c, 0, l, 0);
+                          // const int kk = select(c, 0, 0, l);
+                          const int ii = n;
+                          const int jj = l;
+                          const int kk = c;
+                          const double indic = indicator(i+ii,j+jj,k+kk);
+                          if (use_unique_phase && indic < VAPOUR_INDICATOR_TEST)
+                            test_indicator = false;
+                          if (test_indicator)
+                            {
+                              const double smoothing_factor_index = gaussian_smoothing_factors[n+1][l+1][c+1];
+                              if (!remove_normal_compo)
+                                field(i,j,k) += smoothing_factor_index * field_raw(i+ii,j+jj,k+kk);
+                              else
+                                {
+                                  const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+//                                  const double normal_compo = (smoothing_factor_index *
+//                                                               field_raw(i+ii,j+jj,k+kk) *
+//                                                               normal_vect * normal_vect);
+                                  double normal_compo_tot = 0;
+                                  for (int cc=0; cc<3; cc++)
+                                    {
+                                      const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+                                      normal_compo_tot += (smoothing_factor_index *
+                                                           vector_field_init[cc](i+ii,j+jj,k+kk) *
+                                                           normal_vect_dir * normal_vect);
+                                    }
+                                  // normal_compo_tot = normal_compo;
+                                  // const double sign_projection = signbit(normal_vect) ? -1.: 1.;
+                                  // const double normal_compo = (smoothing_factor_index *
+                                  //                             field_raw(i+ii,j+jj,k+kk) *
+                                  //                             (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk));
+                                  field(i,j,k) += (smoothing_factor_index * field_raw(i+ii,j+jj,k+kk) - normal_compo_tot);
+                                  if (use_unique_phase)
+                                    sum_factors_phase += smoothing_factor_index;
+                                }
+                            }
+                        }
+                }
+              if (sum_factors_phase != 0)
+                {
+                  field(i,j,k) /= sum_factors_phase;
+
+                  if (remove_normal_compo)
+                    {
+                      const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+                      double normal_compo_tot = 0;
+                      for (int cc=0; cc<3; cc++)
+                        {
+                          const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+                          normal_compo_tot += vector_field_init[cc](i,j,k) * normal_vect_dir;
+                        }
+                      // normal_compo_tot = field_raw(i,j,k) * normal_vect;
+                      const double normal_compo = normal_compo_tot * normal_vect;
+                      field(i,j,k) += normal_compo;
+                    }
                 }
             }
     }
+}
+
+void fill_tangential_gradient(const FixedVector<IJK_Field_double, 3>& vector_field,
+                              const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                              FixedVector<IJK_Field_double, 3>& tangential_vector_field)
+{
+  for (int c=0; c<3; c++)
+    {
+      IJK_Field_double& field = tangential_vector_field[c];
+      fill_tangential_gradient_compo(vector_field,
+                                     eulerian_normal_vectors_ns_normed,
+                                     field, c);
+    }
+}
+
+void fill_tangential_gradient_compo(const FixedVector<IJK_Field_double, 3>& vector_field,
+                                    const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                                    IJK_Field_double& tangential_field,
+                                    const int& dir)
+{
+  const int ni = tangential_field.ni();
+  const int nj = tangential_field.nj();
+  const int nk = tangential_field.nk();
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+          double normal_compo_tot = 0;
+          for (int cc=0; cc<3; cc++)
+            {
+              const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+              normal_compo_tot += vector_field[cc](i,j,k) * normal_vect_dir * normal_vect;
+            }
+          tangential_field(i,j,k) = vector_field[dir](i,j,k) - normal_compo_tot;
+        }
 }

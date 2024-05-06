@@ -101,16 +101,37 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            const double& temperature_interf=0);
 
 void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
+                         FixedVector<IJK_Field_double, 3>& vector_field_init,
                          const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
-                         const int& direct_neighbours=1,
-                         const int& smooth_number=1,
-                         const int& remove_normal_compo=0);
+                         const IJK_Interfaces& interfaces,
+                         const double (&direct_smoothing_factors) [7],
+                         const double (&gaussian_smoothing_factors) [3][3][3],
+                         const int& smooth_numbers=1,
+                         const int& remove_normal_compo=0,
+                         const int& direct_neighbours=0,
+                         const int& use_field_init=1,
+                         const int& use_unique_phase=1);
 
 void smooth_eulerian_field(IJK_Field_double& field,
-                           FixedVector<IJK_Field_double, 3> vector_field,
+                           IJK_Field_double& field_init,
                            const int& c,
+                           FixedVector<IJK_Field_double, 3>& vector_field_init,
                            const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
-                           const int& direct_neighbours=1,
-                           const int& smooth_number=1,
-                           const int& remove_normal_compo=0);
+                           const IJK_Interfaces& interfaces,
+                           const double (&direct_smoothing_factors) [7],
+                           const double (&gaussian_smoothing_factors) [3][3][3],
+                           const int& smooth_numbers=1,
+                           const int& remove_normal_compo=0,
+                           const int& direct_neighbours=0,
+                           const int& use_field_init=1,
+                           const int& use_unique_phase=1);
+
+void fill_tangential_gradient(const FixedVector<IJK_Field_double, 3>& vector_field,
+                              const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                              FixedVector<IJK_Field_double, 3>& tangential_vector_field);
+
+void fill_tangential_gradient_compo(const FixedVector<IJK_Field_double, 3>& vector_field,
+                                    const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                                    IJK_Field_double& tangential_field,
+                                    const int& dir);
 

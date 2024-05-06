@@ -54,6 +54,7 @@ public :
   inline Motcles& get_thermal_words() { return thermal_words_; };
   inline Motcles& get_thermal_suffix() { return lata_suffix_; };
   inline const IJK_Field_double& get_temperature() const { return valeur().get_temperature(); };
+  inline const IJK_Field_double& get_temperature_elem_smooth() const { return valeur().get_temperature_elem_smooth(); };
   inline const IJK_Field_double& get_temperature_before_extrapolation() const { return valeur().get_temperature_before_extrapolation(); }
   inline const IJK_Field_double& get_temperature_cell_neighbours() const { return valeur().get_temperature_cell_neighbours(); }
   inline const IJK_Field_double& get_temperature_cell_neighbours_debug() const { return valeur().get_temperature_cell_neighbours_debug(); }
@@ -90,6 +91,7 @@ public :
   inline const FixedVector<IJK_Field_double, 3>& get_bary() const { return valeur().get_bary(); }
   inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem() { return valeur().get_gradient_temperature_elem(); }
   inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem_smooth() { return valeur().get_gradient_temperature_elem_smooth(); }
+  inline const FixedVector<IJK_Field_double, 3>& get_tangential_gradient_temperature_elem_smooth() { return valeur().get_tangential_gradient_temperature_elem_smooth(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const { return valeur().get_normal_vector_ns(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns_normed() const { return valeur().get_normal_vector_ns_normed();}
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ft() const { return valeur().get_normal_vector_ft(); }

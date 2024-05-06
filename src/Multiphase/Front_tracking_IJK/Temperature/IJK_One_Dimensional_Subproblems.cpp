@@ -2489,8 +2489,8 @@ void IJK_One_Dimensional_Subproblems::compute_nusselt_numbers_per_bubbles(const 
       overall_nusselt_number_per_bubble_raw_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_raw_(i) * liquid_nusselt_coeff);
       overall_nusselt_number_per_bubble_gfm_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_gfm_(i) * liquid_nusselt_coeff);
       overall_nusselt_number_per_bubble_lrs_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_lrs_(i) * liquid_nusselt_coeff);
-      overall_nusselt_number_per_bubble_max_raw_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_max_raw_(i) * delta_nusselt_coeff);
-      overall_nusselt_number_per_bubble_max_gfm_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_max_gfm_(i) * delta_nusselt_coeff);
+      overall_nusselt_number_per_bubble_max_raw_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_max_raw_(i) * liquid_nusselt_coeff);
+      overall_nusselt_number_per_bubble_max_gfm_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_max_gfm_(i) * liquid_nusselt_coeff);
       overall_nusselt_number_per_bubble_max_liquid_(i) = abs(interfacial_thermal_flux_per_bubble_max_(i) * liquid_nusselt_coeff);
 
       overall_nusselt_number_face_fluxes_per_bubble_(i) = abs(sum_fluxes_liquid_faces_per_bubble_(i) * delta_nusselt_coeff);
@@ -3065,6 +3065,7 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
                              "\ttotal_surface\ttotal_volume"
                              "\tradius_surface\tradius_volume"
                              "\terror_temperature_ana\terror_temperature_ana_norm\terror_temperature_ana_rel"
+                             "\tdelta_temperature\tmean_liquid_temperature"
                              "\tliquid_velocity"
                              "\tliquid_velocity_x\tliquid_velocity_y\tliquid_velocity_z"
                              "\tgravity_dir\tupstream_velocity"
@@ -3174,6 +3175,9 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << error_temperature_ana_total_ << " ";
           fic << error_temperature_ana_squared_total_ << " ";
           fic << error_temperature_ana_rel_total_ << " ";
+          //--------------------------------------------------------------------------------------------
+          fic << delta_temperature_ << " ";
+          fic << mean_liquid_temperature_ << " ";
           //--------------------------------------------------------------------------------------------
           fic << (*liquid_velocity_).length() << " ";
           fic << (*liquid_velocity_)[0] << " ";
@@ -3360,6 +3364,9 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
           fic << error_temperature_ana_total_ << " ";
           fic << error_temperature_ana_squared_total_ << " ";
           fic << error_temperature_ana_rel_total_ << " ";
+          //--------------------------------------------------------------------------------------------
+          fic << delta_temperature_ << " ";
+          fic << mean_liquid_temperature_ << " ";
           //--------------------------------------------------------------------------------------------
           fic << (*liquid_velocity_).length() << " ";
           fic << (*liquid_velocity_)[0] << " ";

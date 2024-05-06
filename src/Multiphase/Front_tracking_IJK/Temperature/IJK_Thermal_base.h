@@ -77,7 +77,7 @@ public:
   void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);
   void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance, int& avoid_gfm_parallel_calls);
   void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
-  void euler_time_step(const double timestep);
+  void euler_time_step(const double& timestep);
   void rk3_sub_step(const int rk_step,
                     const double total_timestep,
                     const double time);
@@ -237,6 +237,20 @@ public:
       return grad_T_elem_smooth_;
     else
       return dummy_double_vect_;
+  }
+  const FixedVector<IJK_Field_double, 3>& get_tangential_gradient_temperature_elem_smooth() const
+  {
+    if (smooth_grad_T_elem_)
+      return grad_T_elem_tangential_;
+    else
+      return dummy_double_vect_;
+  }
+  const IJK_Field_double& get_temperature_elem_smooth() const
+  {
+    if (smooth_grad_T_elem_)
+      return temperature_gaussian_filtered_;
+    else
+      return dummy_double_field_;
   }
   const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const
   {
@@ -483,7 +497,7 @@ protected:
 
   virtual void correct_temperature_for_visu() { ; };
   virtual void correct_operators_for_visu() { ; };
-  virtual void clip_temperature_values() { ; };
+  virtual void clip_min_temperature_values() { ; };
   virtual void clip_max_temperature_values() { ; };
 
   virtual void compute_thermal_subproblems() { ; };
@@ -520,9 +534,13 @@ protected:
   virtual double compute_rho_cp_u_mean(const IJK_Field_double& vx);
   double compute_variable_wall_temperature(const int kmin, const int kmax);
 
-  void force_upstream_temperature(IJK_Field_double& temperature, double T_imposed,
-                                  const IJK_Interfaces& interfaces, double nb_diam, int upstream_dir,
-                                  int gravity_dir, int upstream_stencil);
+  void force_upstream_temperature(IJK_Field_double& temperature,
+                                  const double& T_imposed,
+                                  const IJK_Interfaces& interfaces,
+                                  double& nb_diam,
+                                  const int& upstream_dir,
+                                  const int& gravity_dir,
+                                  const int& upstream_stencil);
   virtual void enforce_periodic_temperature_boundary_value() { ; } ;
 
   int debug_ = 0;
@@ -778,6 +796,40 @@ protected:
   int disable_relative_velocity_energy_balance_ = 0;
 
   IJK_One_Dimensional_Subproblems_Interfaces_Fields thermal_local_subproblems_interfaces_fields_;
+  IJK_Field_double temperature_gaussian_filtered_;
+  IJK_Field_double tmp_smoothing_field_;
+  FixedVector<IJK_Field_double,3> grad_T_elem_tangential_;
+  // FixedVector<IJK_Field_double, 3> grad_T_elem_gaussian_filtered_;
+  int smoothing_numbers_ = 1;
+  int smoothing_remove_normal_compo_ = 0;
+  int smoothing_use_unique_phase_ = 0;
+  double direct_smoothing_factors_[7] = {1.,1.,1.,1.,1.,1.,2.};
+  double gaussian_smoothing_factors_[3][3][3] = {{{1,2,1},
+      {2,4,2},
+      {1,2,1}
+    },
+    { {1,4,1},
+      {4,8,4},
+      {2,4,2}
+    },
+    { {1,2,1},
+      {2,4,2},
+      {1,2,1}
+    }
+  };
+  double sharpen_smoothing_factors_[3][3][3] = {{{0,0,0},
+      {0,-1,0},
+      {0,0,0}
+    },
+    { {0,-1,0},
+      {-1,8,-1},
+      {0,-1,0}
+    },
+    { {0,0,0},
+      {0,-1,0},
+      {0,0,0}
+    }
+  };
 };
 
 #endif /* IJK_Thermal_base_included */

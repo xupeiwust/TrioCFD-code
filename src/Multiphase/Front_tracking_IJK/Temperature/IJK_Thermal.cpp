@@ -207,6 +207,14 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
     }
   oss.str("");
 
+  oss << "TEMPERATURE_SMOOTH_" << lata_suffix << idx;
+  Nom nom_temp_smooth(oss.str().c_str());
+  if ((liste_post_instantanes.contient_("TEMPERATURE_SMOOTH")) || (liste_post_instantanes.contient_(nom_temp_smooth)))
+    {
+      n++, dumplata_scalar(lata_name, nom_temp_smooth, get_temperature_elem_smooth(), latastep);
+    }
+  oss.str("");
+
   /*
    * TEMPERATURE_BEFORE_EXTRAP
    */
@@ -458,6 +466,42 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
       || liste_post_instantanes.contient_(nom_grad_T_dir_z_smooth))
     {
       n++, dumplata_scalar(lata_name, nom_grad_T_dir_z_smooth, get_gradient_temperature_elem_smooth()[2], latastep);
+    }
+  oss.str("");
+
+  /*
+     * GRAD_T_DIR_X_ELEM_SMOOTH
+     */
+  oss << "GRAD_T_DIR_X_ELEM_TAN_SMOOTH_" << lata_suffix << idx;
+  Nom nom_tangential_grad_T_dir_x_smooth(oss.str().c_str());
+  if (liste_post_instantanes.contient_("GRAD_T_DIR_X_ELEM_TAN_SMOOTH") || liste_post_instantanes.contient_("GRAD_T_ELEM_TAN_SMOOTH")
+      || liste_post_instantanes.contient_(nom_tangential_grad_T_dir_x_smooth))
+    {
+      n++, dumplata_scalar(lata_name, nom_tangential_grad_T_dir_x_smooth, get_tangential_gradient_temperature_elem_smooth()[0], latastep);
+    }
+  oss.str("");
+
+  /*
+   * GRAD_T_DIR_Y_ELEM_SMOOTH
+   */
+  oss << "GRAD_T_DIR_Y_ELEM_TAN_SMOOTH_" << lata_suffix << idx;
+  Nom nom_tangential_grad_T_dir_y_smooth(oss.str().c_str());
+  if (liste_post_instantanes.contient_("GRAD_T_DIR_Y_ELEM_TAN_SMOOTH") || liste_post_instantanes.contient_("GRAD_T_ELEM_TAN_SMOOTH")
+      || liste_post_instantanes.contient_(nom_tangential_grad_T_dir_y_smooth))
+    {
+      n++, dumplata_scalar(lata_name, nom_tangential_grad_T_dir_y_smooth, get_tangential_gradient_temperature_elem_smooth()[1], latastep);
+    }
+  oss.str("");
+
+  /*
+   * GRAD_T_DIR_Z_ELEM_SMOOTH
+   */
+  oss << "GRAD_T_DIR_Z_ELEM_TAN_SMOOTH_" << lata_suffix << idx;
+  Nom nom_tangential_grad_T_dir_z_smooth(oss.str().c_str());
+  if (liste_post_instantanes.contient_("GRAD_T_DIR_Z_ELEM_TAN_SMOOTH") || liste_post_instantanes.contient_("GRAD_T_ELEM_TAN_SMOOTH")
+      || liste_post_instantanes.contient_(nom_tangential_grad_T_dir_z_smooth))
+    {
+      n++, dumplata_scalar(lata_name, nom_tangential_grad_T_dir_z_smooth, get_tangential_gradient_temperature_elem_smooth()[2], latastep);
     }
   oss.str("");
 

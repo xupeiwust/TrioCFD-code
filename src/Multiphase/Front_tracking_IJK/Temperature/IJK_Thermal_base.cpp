@@ -149,6 +149,8 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
 
   os << front_space << "gfm_smooth_factor" << end_space << gfm_smooth_factor_ << escape;
 
+  os << front_space << "smoothing_numbers" << end_space << smoothing_numbers_ << escape;
+
   /*
    * Neglect an operator
    */
@@ -182,6 +184,10 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
 
   if (smooth_grad_T_elem_)
     os << front_space << "smooth_grad_T_elem" <<  escape;
+  if (smoothing_remove_normal_compo_)
+    os << front_space << "smoothing_remove_normal_compo" <<  escape;
+  if (smoothing_use_unique_phase_)
+    os << front_space << "smoothing_use_unique_phase" <<  escape;
   if (compute_eulerian_compo_)
     os << front_space << "compute_eulerian_compo" <<  escape;
 
@@ -254,6 +260,9 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter_flag("use_bubbles_velocities_from_barycentres", &use_bubbles_velocities_from_barycentres_);
 
   param.ajouter_flag("smooth_grad_T_elem", &smooth_grad_T_elem_);
+  param.ajouter("smoothing_numbers", &smoothing_numbers_);
+  param.ajouter_flag("smoothing_remove_normal_compo", &smoothing_remove_normal_compo_);
+  param.ajouter_flag("smoothing_use_unique_phase", &smoothing_use_unique_phase_);
 
   param.ajouter_flag("gfm_vapour_liquid_vapour", &gfm_vapour_liquid_vapour_);
   param.ajouter("gfm_smooth_factor", &gfm_smooth_factor_);
@@ -615,9 +624,19 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
     }
   if (smooth_grad_T_elem_)
     {
+      temperature_gaussian_filtered_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+      nalloc += 1;
+      temperature_gaussian_filtered_.echange_espace_virtuel(temperature_gaussian_filtered_.ghost());
+      tmp_smoothing_field_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+      nalloc += 1;
+      tmp_smoothing_field_.echange_espace_virtuel(tmp_smoothing_field_.ghost());
       allocate_cell_vector(grad_T_elem_smooth_, splitting, ghost_cells_); // 1 or 0 ?
       nalloc += 3;
       grad_T_elem_smooth_.echange_espace_virtuel();
+      allocate_cell_vector(grad_T_elem_tangential_, splitting, ghost_cells_); // 1 or 0 ?
+      nalloc += 3;
+      grad_T_elem_tangential_.echange_espace_virtuel();
+
     }
 
   if (compute_hess_diag_T_elem_)
@@ -881,7 +900,7 @@ void IJK_Thermal_base::get_boundary_fluxes(IJK_Field_local_double& boundary_flux
   boundary_flux_kmax = boundary_flux_kmax_;
 }
 
-void IJK_Thermal_base::euler_time_step(const double timestep)
+void IJK_Thermal_base::euler_time_step(const double& timestep)
 {
   static Stat_Counter_Id cnt_euler_thermal = statistiques().new_counter(1, "Euler Time Step - Temperature");
   static Stat_Counter_Id cnt_euler_thermal_post = statistiques().new_counter(2, "Euler Time Step - Temperature post");
@@ -1132,7 +1151,7 @@ void IJK_Thermal_base::post_process_after_temperature_increment()
   enforce_periodic_temperature_boundary_value();
   if (debug_)
     Cerr << "Clip temperature values" << finl;
-  clip_temperature_values();
+  clip_min_temperature_values();
   clip_max_temperature_values();
   if (debug_)
     Cerr << "Correct temperature for visu" << finl;
@@ -1260,12 +1279,36 @@ void IJK_Thermal_base::compute_temperature_gradient_elem()
       temperature_grad_op_centre_.calculer_grad(temperature_, grad_T_elem_);
       grad_T_elem_.echange_espace_virtuel();
 
-      grad_T_elem_smooth_ = grad_T_elem_;
-      grad_T_elem_smooth_.echange_espace_virtuel();
       if (smooth_grad_T_elem_)
         {
-          smooth_vector_field(grad_T_elem_smooth_, eulerian_normal_vectors_ns_normed_);
+          // temperature_gaussian_filtered_.data() = temperature_.data();
+          smooth_eulerian_field(temperature_gaussian_filtered_,
+                                temperature_,
+                                0,
+                                grad_T_elem_,
+                                eulerian_normal_vectors_ns_normed_,
+                                ref_ijk_ft_->itfce(),
+                                direct_smoothing_factors_,
+                                gaussian_smoothing_factors_,
+                                smoothing_numbers_, 0, 1, 0);
+          temperature_gaussian_filtered_.echange_espace_virtuel(temperature_gaussian_filtered_.ghost());
+
+          // grad_T_elem_smooth_ = grad_T_elem_;
+          // grad_T_elem_smooth_.echange_espace_virtuel();
+          smooth_vector_field(grad_T_elem_smooth_,
+                              grad_T_elem_,
+                              eulerian_normal_vectors_ns_normed_,
+                              ref_ijk_ft_->itfce(),
+                              direct_smoothing_factors_,
+                              gaussian_smoothing_factors_,
+                              smoothing_numbers_,
+                              smoothing_remove_normal_compo_, 0, 1, smoothing_use_unique_phase_);
           grad_T_elem_smooth_.echange_espace_virtuel();
+
+          fill_tangential_gradient(grad_T_elem_smooth_,
+                                   eulerian_normal_vectors_ns_normed_,
+                                   grad_T_elem_tangential_);
+          grad_T_elem_tangential_.echange_espace_virtuel();
         }
     }
   else
@@ -2394,10 +2437,13 @@ void IJK_Thermal_base::compute_interfacial_temperature2(ArrOfDouble& interfacial
     }
 }
 
-void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature, double T_imposed,
-                                                  const IJK_Interfaces& interfaces, double nb_diam,
-                                                  int upstream_dir, int gravity_dir,
-                                                  int upstream_stencil)
+void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
+                                                  const double& T_imposed,
+                                                  const IJK_Interfaces& interfaces,
+                                                  double& nb_diam,
+                                                  const int& upstream_dir,
+                                                  const int& gravity_dir,
+                                                  const int& upstream_stencil)
 {
   int dir = 0;
   if (upstream_dir == -1)

@@ -1556,8 +1556,13 @@ void IJK_Thermal_Subresolution::correct_temperature_for_visu()
     correct_any_temperature_field_for_visu(div_coeff_grad_T_volume_);
 }
 
-void IJK_Thermal_Subresolution::clip_temperature_values()
+void IJK_Thermal_Subresolution::clip_min_temperature_values()
 {
+  //  const int delta_pos = (delta_T_subcooled_overheated_ > 0) ? 1: 0;
+  //  const int mean_temp_pos = (mean_liquid_temperature_ > 0) ? 1: 0;
+  // min_liquid_temperature_;
+  // max_liquid_temperature_;
+  // mean_liquid_temperature_;
   if (clip_temperature_values_)
     {
       const double clip_threshold = 0.98;
@@ -1578,6 +1583,11 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
 
 void IJK_Thermal_Subresolution::clip_max_temperature_values()
 {
+  //  const int delta_pos = (delta_T_subcooled_overheated_ > 0) ? 1: 0;
+  //  const int mean_temp_pos = (mean_liquid_temperature_ > 0) ? 1: 0;
+  // min_liquid_temperature_;
+  // max_liquid_temperature_;
+  // mean_liquid_temperature_;
   const double clip_threshold = 1.e-5;
   if (clip_temperature_values_)
     {

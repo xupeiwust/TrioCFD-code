@@ -24,7 +24,6 @@
 #include <Interprete_bloc.h>
 #include <EFichier.h>
 #include <SFichier.h>
-#include <stat_counters.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <communications.h>

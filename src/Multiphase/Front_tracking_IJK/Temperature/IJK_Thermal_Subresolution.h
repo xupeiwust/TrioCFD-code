@@ -431,7 +431,7 @@ protected :
                                                double& total_parameter);
   void correct_any_temperature_field_for_visu(IJK_Field_double& temperature);
   void correct_temperature_for_visu() override;
-  void clip_temperature_values() override;
+  void clip_min_temperature_values() override;
   void clip_max_temperature_values() override;
   void compute_mean_liquid_temperature();
   void compute_overall_probes_parameters();
