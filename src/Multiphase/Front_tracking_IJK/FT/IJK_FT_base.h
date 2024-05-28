@@ -578,8 +578,8 @@ protected :
 
   double vol_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
   double diam_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
+  double coeff_evol_volume_ = 0.;
   ArrOfDouble vol_bulles_;   // Le volume impose individuellement a chaque bulle.
-
   // Field only needed for the option type_velocity_convection_form_== Nom("non_conservative_rhou")
   IJK_Field_double div_rhou_;
 

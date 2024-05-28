@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_FT.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_FT.h>
 #include <IJK_Field_vector.h>
@@ -866,7 +860,14 @@ void IJK_FT::run()
       current_time_ += timestep_;
       // stock dans le spliting le decallage periodique total avec condition de shear (current_time_) et celui du pas de temps (timestep_)
       IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
-
+      // Pour creer une dilatation forcee (cas test champs FT)
+      if (coeff_evol_volume_!=0.)
+        {
+          vol_bulle_monodisperse_ = vol_bulle_monodisperse_ * (1.+coeff_evol_volume_*timestep_);
+          const int nb_reelles = interfaces_.get_nb_bulles_reelles();
+          for (int ib = 0; ib < nb_reelles; ib++)
+            vol_bulles_[ib] = vol_bulle_monodisperse_;
+        }
       if (current_time_ >= post_.t_debut_statistiques())
         {
           if (boundary_conditions_.get_correction_conserv_qdm()==2)

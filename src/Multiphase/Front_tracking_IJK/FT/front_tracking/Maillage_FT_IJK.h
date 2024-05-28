@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Maillage_FT_IJK.h
-// Directory : $IJK_ROOT/src/FT/front_tracking
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Maillage_FT_IJK_included
 #define Maillage_FT_IJK_included
@@ -27,14 +21,11 @@
 #include <Linear_algebra_tools.h>
 #include <IJK_Splitting.h>
 #include <TRUSTTab.h>
-
+#include <FT_Field.h>
+class Domaine_dis_base;
 
 class Parcours_interface;
 /*! @brief : class Maillage_FT_IJK
- *
- *  <Description of class Maillage_FT_IJK>
- *
- *
  *
  */
 class Maillage_FT_IJK : public Maillage_FT_Disc
@@ -43,6 +34,7 @@ class Maillage_FT_IJK : public Maillage_FT_Disc
   Declare_instanciable(Maillage_FT_IJK) ;
 
 public:
+  FT_Field Surfactant_facettes_;
   Maillage_FT_IJK(const Maillage_FT_IJK&) = default;
   void initialize(const IJK_Splitting&, const Domaine_dis_base&, const Parcours_interface&);
   const ArrOfInt& compo_connexe_facettes() const
@@ -53,9 +45,35 @@ public:
   {
     return compo_connexe_facettes_;
   };
+  const FT_Field& Surfactant_facettes() const
+  {
+    return Surfactant_facettes_;
+  };
+  FT_Field& Surfactant_facettes_non_const()
+  {
+    return Surfactant_facettes_;
+  };
 
+  void update_gradient_laplacien_Surfactant()
+  {
+    Surfactant_facettes_.update_gradient_laplacien_FT(*this);
+  };
+  void update_sigma_grad_sigma(const IJK_Splitting& splitting)
+  {
+    Surfactant_facettes_.update_sigma_grad_sigma(*this, splitting);
+  };
+
+  void set_Surfactant_facettes(ArrOfDouble Surfactant_field);
+  void set_Surfactant_facettes_sommets(ArrOfDouble Surfactant_field);
 // Surcharge de Maillage_FT_Disc:
+  void supprimer_facettes(const ArrOfInt& liste_facettes);
+
+
   void nettoyer_maillage() override;
+  void sauv_facette_indexation_avant_transport();
+  void corriger_proprietaires_facettes();
+  void update_surfactant_apres_transport();
+  void parcourir_maillage();
   void transporter(const DoubleTab& deplacement) override;
   void deplacer_sommets(const ArrOfInt& liste_sommets_initiale,
                         const DoubleTab& deplacement_initial,
@@ -67,6 +85,10 @@ public:
 // Surcharge de Maillage_FT_Disc :
 // surcharge: initialise les composantes connexes et appelle la methode ajouter_maillage_IJK.
   void ajouter_maillage(const Maillage_FT_Disc& maillage_tmp,int skip_facettes=0) override;
+  void echanger_facettes(const ArrOfInt& liste_facettes,
+                         const ArrOfInt& liste_elem_arrivee,
+                         ArrOfInt& facettes_recues_numfacettes,
+                         ArrOfInt& facettes_recues_numelement);
 // ajout et gestion du tableau des compo_connexes a partir du tableau compo_connex du maillage source
   void ajouter_maillage_IJK(const Maillage_FT_IJK& added_mesh);
 
@@ -116,6 +138,10 @@ public:
     const IJK_Splitting& s = ref_splitting_.valeur();
     sommet_elem_[num_sommet] = s.convert_ijk_cell_to_packed(ijk[0],ijk[1],ijk[2]);
   }
+  void set_barycentrage(bool bary)
+  {
+    during_barycentrage_=bary;
+  }
   Int3 get_ijk_cell_index(int num_sommet) const
   {
     const IJK_Splitting& s = ref_splitting_.valeur();
@@ -138,12 +164,14 @@ public:
   };
 
   double minimum_longueur_arrete() const;
+  int nb_facettes_sans_duplicata() const;
   const OBS_PTR(IJK_Splitting) ref_splitting() const
   {
     return ref_splitting_;
   }
 protected:
   // Surcharge de Maillage_FT_Disc :
+  bool during_barycentrage_ = false;
   void   calculer_costheta_minmax(DoubleTab& costheta) const override;
 
   const Maillage_FT_IJK& operator=(const Maillage_FT_IJK&)
@@ -171,6 +199,8 @@ protected:
 
   // Pour chaque facette d'interface, numero de la composante connexe (numero de la bulle)
   ArrOfIntFT compo_connexe_facettes_;
+
+  DoubleTab indexation_facettes_avant_transport_;
 
 };
 #endif /* Maillage_FT_IJK_included */

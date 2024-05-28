@@ -13,29 +13,54 @@
 *
 *****************************************************************************/
 
-#ifndef IJK_FT_included
-#define IJK_FT_included
+#ifndef Operator_FT_Disc_included
+#define Operator_FT_Disc_included
 
-#include <IJK_FT_base.h>
+#include <TRUSTTabFT.h>
+#include <Maillage_FT_Disc.h>
 
-/*! @brief : class IJK_FT
- *
- *  La classe IJK_FT herite de la classe IJK_FT_base.
- *
+/*! @brief : class Operator_FT_Disc
  */
-class IJK_FT : public IJK_FT_base
+
+class Operator_FT_Disc
 {
-  friend class IJK_Thermique;
-  friend class Statistiques_dns_ijk_FT;
-  Declare_instanciable(IJK_FT) ;
+public:
+  void Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Facet,const Maillage_FT_Disc& FTmesh, ArrOfDouble& Laplacian_Phi_Facet,DoubleTab& Grad_Phi_Sommet);
 
-public :
-  Entree& interpreter(Entree&) override;
-  void run() override;
-  void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
-  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
+  void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
+                                    DoubleTab& Grad_Phi_Sommet);
+  //void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, DoubleTab& Grad_Phi_Sommet, const Maillage_FT_Disc& FTmesh);
+  void produit_vectoriel(const ArrOfDouble& a, const ArrOfDouble& b, ArrOfDouble& resu);
+  double norme(const ArrOfDouble& a);
+  void unitarisation(ArrOfDouble& a);
+  ArrOfDouble Phi_sommet_;
+  ArrOfDouble Surface_sommet_;
+  DoubleTab Kappa_n_, n_sommet_;
+  const ArrOfDouble& get_Phi_sommet() const
+  {
+    return Phi_sommet_;
+  };
+  const ArrOfDouble& get_Surface_sommet() const
+  {
+    return Surface_sommet_;
+  };
+  const DoubleTab& get_n_sommet() const
+  {
+    return n_sommet_;
+  };
 
-protected :
+  ArrOfDouble get_n_sommet(int dir) const
+  {
+    int nbsom = n_sommet_.dimension(0);
+    ArrOfDouble  n_dir_sommet;
+    n_dir_sommet.resize(nbsom);
+    for (int som=0 ; som<nbsom ; som++)
+      {
+        n_dir_sommet(som)=n_sommet_(som, dir);
+      }
+    return n_dir_sommet;
+  };
+
 };
 
-#endif /* IJK_FT_included */
+#endif /* Operator_FT_Disc_included */

@@ -1050,6 +1050,9 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   DoubleTab position;
   ArrOfDouble surface;
   ArrOfDouble aspect_ratio;
+  ArrOfDouble surfactant;
+  ArrOfDouble surfactant_min;
+  ArrOfDouble surfactant_max;
   const int nbulles = interfaces_.get_nb_bulles_reelles();
   DoubleTab hauteurs_bulles(nbulles, 3);
   DoubleTab bounding_box;
@@ -1067,6 +1070,7 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   // Pour les enlever, il suffit simplement de reduire la taille du tableau :
   interfaces_.calculer_volume_bulles(volume, position);
   interfaces_.calculer_aspect_ratio(aspect_ratio);
+  interfaces_.calculer_surfactant(surfactant, surfactant_min, surfactant_max);
   volume.resize_array(nbulles);
   position.resize(nbulles, 3);
 
@@ -1274,8 +1278,44 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
         }
       fic << finl;
       fic.close();
+      if (!interfaces_.maillage_ft_ijk().Surfactant_facettes().get_disable_surfactant())
+        {
+          snprintf(s, 1000, "%s_bulles_surfactant.out", nomcas);
+          fic.ouvrir(s, mode);
+          snprintf(s, 1000, "%.16e ", current_time);
+          fic << s;
+          for (int i = 0; i < surfactant.size_array(); i++)
+            {
+              snprintf(s, 1000, "%.16e ", surfactant[i]);
+              fic << s;
+            }
+          fic << finl;
+          fic.close();
 
+          snprintf(s, 1000, "%s_bulles_surfactant_min.out", nomcas);
+          fic.ouvrir(s, mode);
+          snprintf(s, 1000, "%.16e ", current_time);
+          fic << s;
+          for (int i = 0; i < surfactant_min.size_array(); i++)
+            {
+              snprintf(s, 1000, "%.16e ", surfactant_min[i]);
+              fic << s;
+            }
+          fic << finl;
+          fic.close();
 
+          snprintf(s, 1000, "%s_bulles_surfactant_max.out", nomcas);
+          fic.ouvrir(s, mode);
+          snprintf(s, 1000, "%.16e ", current_time);
+          fic << s;
+          for (int i = 0; i < surfactant_max.size_array(); i++)
+            {
+              snprintf(s, 1000, "%.16e ", surfactant_max[i]);
+              fic << s;
+            }
+          fic << finl;
+          fic.close();
+        }
       if (interfaces_.follow_colors())
         {
           const ArrOfInt& colors = interfaces_.get_colors();

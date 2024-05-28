@@ -285,6 +285,11 @@ public :
   void parcourir_maillage()
   {
     maillage_ft_ijk_.parcourir_maillage();
+    if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
+      {
+        maillage_ft_ijk_.update_gradient_laplacien_Surfactant();
+        maillage_ft_ijk_.update_sigma_grad_sigma(ref_splitting_);
+      }
     return;
   };
 
@@ -384,6 +389,7 @@ public :
                               DoubleTab& centre_gravite) const;
 
   void calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const;
+  void calculer_surfactant(ArrOfDouble& surfactant,ArrOfDouble& surfactant_min,ArrOfDouble& surfactant_max) const;
   void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
@@ -1106,6 +1112,7 @@ protected:
   );
 
   void calculer_phi_repuls_par_compo(
+    FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& grad_sigma_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
     IJK_Field_double& field_repulsion,
@@ -1411,6 +1418,10 @@ protected:
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> surface_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> courbure_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> phi_par_compo_;
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>, 2> grad_sigma_par_compo_;
+  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> gradx_sigma_par_compo_;
+  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> grady_sigma_par_compo_;
+  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> gradz_sigma_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> repuls_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>, 2> normale_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>, 2> bary_par_compo_;

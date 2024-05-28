@@ -362,6 +362,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   param.ajouter("vol_bulle_monodisperse", &vol_bulle_monodisperse_); // XD_ADD_P chaine not_set
   param.ajouter("diam_bulle_monodisperse", &diam_bulle_monodisperse_); // XD_ADD_P chaine not_set
+  param.ajouter("coeff_evol_volume", &coeff_evol_volume_); // XD_ADD_P chaine not_set
   param.ajouter("vol_bulles", &vol_bulles_); // XD_ADD_P chaine not_set
 
   param.ajouter("time_scheme", &time_scheme_); // XD_ADD_P chaine(into=["euler_explicit","RK3_FT"]) Type of time scheme
@@ -1670,10 +1671,29 @@ double IJK_FT_base::find_timestep(const double max_timestep,
    */
   double ideal_length_factor = get_remaillage_ft_ijk().get_facteur_longueur_ideale();
   ideal_length_factor = (ideal_length_factor == -1) ? 1.7 : ideal_length_factor;
+
+  double max_sigma = -1e10 ;
+  /*if (!interfaces_.maillage_ft_ijk().Surfactant_facettes().get_disable_surfactant())
+    {
+      // alors on a une tension de surface variable
+      // Il faut prendre le max de la tension de surface dans le critere de stabilite ?
+      const int nb_som=interfaces_.maillage_ft_ijk().nb_sommets();
+      const ArrOfDouble& sigma_sommets = interfaces_.maillage_ft_ijk().Surfactant_facettes().get_sigma_sommets();
+      for (int i = 0; i < nb_som; i++)
+        {
+          if (max_sigma<sigma_sommets[i])
+            max_sigma= sigma_sommets[i];
+        }
+      max_sigma=Process::mp_max(max_sigma);
+    }
+  else*/
+  {
+    max_sigma = sigma_;
+  }
   if (enable_dt_oh_ideal_length_factor_)
-    dt_oh_  = sqrt((rho_liquide_ + rho_vapeur_) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (sigma_ + 1e-20)) * oh;
+    dt_oh_  = sqrt((rho_liquide_ + rho_vapeur_) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (max_sigma + 1e-20)) * oh;
   else
-    dt_oh_  = sqrt((rho_liquide_+rho_vapeur_)/2. * lg_cube/(sigma_+1e-20) ) * oh;
+    dt_oh_  = sqrt((rho_liquide_+rho_vapeur_)/2. * lg_cube/(max_sigma+1e-20) ) * oh;
   if (disable_convection_qdm_)
     dt_oh_ = 1.e20;
 

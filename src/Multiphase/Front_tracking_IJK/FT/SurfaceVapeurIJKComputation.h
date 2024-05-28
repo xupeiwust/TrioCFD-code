@@ -45,6 +45,7 @@ using MCF = MCAuto<MEDCouplingFieldDouble>;
 
 static const int max_authorized_nb_of_groups_ = 3;
 static const int max_authorized_nb_of_components_ = 3;
+static const int dir_ = 3;
 static const double EPS_ = 1.e-12;
 
 void get_coo_to_keep(const int d, std::vector<int>& COO2KEEP);

@@ -12,19 +12,11 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Connex_components_FT.h
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/4
-//
-//////////////////////////////////////////////////////////////////////////////
+
 #ifndef Connex_components_FT_H_INCLU
 #define Connex_components_FT_H_INCLU
 #include <arch.h>
 
-#include <TRUSTTabs_forward.h>
-#include <TRUSTTabs_forward.h>
 #include <TRUSTTabs_forward.h>
 class Maillage_FT_Disc;
 

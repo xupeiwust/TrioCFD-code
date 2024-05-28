@@ -24,6 +24,8 @@
 
 #include <Remaillage_FT.h>
 #include <Maillage_FT_IJK.h>
+#include <vector>
+#include <iostream>
 /*! @brief : class Remaillage_FT_IJK
  *
  *  <Description of class Remaillage_FT_IJK>
@@ -43,9 +45,9 @@ class Remaillage_FT_IJK : public Remaillage_FT
 
 public :
   Vecteur3 get_delta_euler(const Maillage_FT_IJK& maillage) const;
-  void barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& maillage,
+  void barycentrer_lisser_systematique_ijk(Maillage_FT_IJK& maillage,
                                            ArrOfDouble& var_volume);
-  void barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& maillage, ArrOfDouble& var_volume);
+  void barycentrer_lisser_apres_remaillage(Maillage_FT_IJK& maillage, ArrOfDouble& var_volume);
 
   void remaillage_local_interface(double temps, Maillage_FT_IJK& maillage);
 
@@ -53,9 +55,9 @@ public :
 protected :
 // N'oublie pas de mettre a jour le tableau compo_connexe_facettes
   int diviser_grandes_aretes(Maillage_FT_IJK& maillage) const;
-
+  int supprimer_petites_aretes(Maillage_FT_IJK& maillage,
+                               ArrOfDouble& varVolume) const;
   double calculer_longueurIdeale2_arete(const Maillage_FT_Disc& maillage, int som0, double x, double y, double z) const override;
-
 };
 
 #endif /* Remaillage_FT_IJK_included */

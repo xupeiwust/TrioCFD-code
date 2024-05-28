@@ -21,6 +21,7 @@
 
 #include <Maillage_FT_IJK.h>
 #include <IJK_Field.h>
+#include <Param.h>
 #include <IJK_Lata_writer.h>
 #include <LataDB.h>
 #include <Process.h>
@@ -30,7 +31,18 @@
 #include <Statistiques.h>
 #include <TRUSTTabs.h>
 #include <TRUSTArrays.h>
+#include <Array_tools.h>
+#include <IJK_Splitting.h>
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
+#include <variant>
+#include <Remaillage_FT_IJK.h>
+#include <IJK_communications.h>
 
+using namespace std;
 Implemente_instanciable(Maillage_FT_IJK,"Maillage_FT_IJK",Objet_U) ;
 
 Sortie& Maillage_FT_IJK::printOn(Sortie& os) const
@@ -41,7 +53,9 @@ Sortie& Maillage_FT_IJK::printOn(Sortie& os) const
 
 Entree& Maillage_FT_IJK::readOn(Entree& is)
 {
-  Objet_U::readOn(is);
+  Param param(que_suis_je());
+  param.ajouter("FT_Field", &Surfactant_facettes_);
+  param.lire_avec_accolades(is);
   return is;
 }
 
@@ -97,6 +111,156 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
   ArrOfInt send_pe_list; // Liste des processeurs a qui on envoie des sommets
   ArrOfInt drapeau_processeur_destination(Process::nproc());
   int max_voisinage = 0;
+  //////////////////////// GESTION DU CHAMP DE SURFACTANT QUAND ON DEPLACE LES SOMMETS DES FACETTES //////////////////
+  /* Idem a la procedure de suppression d'arrete (cas asymptotique de barycentrage)
+   * Avant de changer le sommet, on stocke les triangles (facettes) initiaux avant changement (i.e. les triangles dont l'un des trois sommets va changer)
+   * Apres la modification du sommet, on stocke les triangles modifiés (i.e. les triangles dont l'un des trois sommets va changer)
+   * On calcule ensuite toute les intersections entre les triangles initiaux et les triangles finaux
+   * Ces intersections permettent de reconstruire le champ de surfactant apres transport des sommets de maniere conservative et sans diffusion numerique
+   * ATTENTION : la fonction deplacer_sommets peut etre appeles dans le cas d'un transport physique des marqueurs
+   * Dans ce cas, il ne faut pas changer le champ de surfactant.
+   * Les modifications ne s'active que si during_barycentrage_=true
+   * */
+  FT_Field& surfactant = Surfactant_facettes_non_const();
+  if (!surfactant.get_disable_surfactant())
+    {
+      if(during_barycentrage_)
+        {
+          surfactant.echange_espace_virtuel(*this);
+          desc_sommets_.echange_espace_virtuel(sommets_);
+          const ArrOfDouble& Sfa7 = get_surface_facettes();
+          double longueur_cara_fa7 = 0.;
+          int n = 0 ;
+          for (int fa = 0; fa < Sfa7.size_array(); fa++)
+            {
+              longueur_cara_fa7 += Sfa7(fa);
+              n++;
+            }
+          longueur_cara_fa7= Process::mp_sum(longueur_cara_fa7);
+          n= Process::mp_sum(n);
+          if (n>0)
+            {
+              longueur_cara_fa7 /= n ;
+              longueur_cara_fa7 = std::sqrt(longueur_cara_fa7);
+            }
+
+          surfactant.set_tolerance_point_identique(longueur_cara_fa7);
+          surfactant.echange_espace_virtuel(*this);
+          DoubleTab liste_sommets_avant_deplacement(nb_som, 3);
+          DoubleTab liste_sommets_apres_deplacement(nb_som, 3);
+          ArrOfInt compo_connexe_sommets_deplace(nb_som);
+          ArrOfInt& compo_connexe_facettes = compo_connexe_facettes_non_const();
+          surfactant.champ_sommet_from_facettes(compo_connexe_facettes, *this);
+          ArrOfInt compo_connexe_sommet = surfactant.get_compo_connexe_sommets();
+          for (int i_sommet = 0; i_sommet < nb_som; i_sommet++)
+            {
+              const int num_sommet = liste_sommets[i_sommet];
+              Vecteur3 pos(sommets_, num_sommet);
+              Vecteur3 d(deplacement, i_sommet);
+              liste_sommets_avant_deplacement(i_sommet, 0) = pos[0];
+              liste_sommets_avant_deplacement(i_sommet, 1) = pos[1];
+              liste_sommets_avant_deplacement(i_sommet, 2) = pos[2];
+              pos += d;
+              liste_sommets_apres_deplacement(i_sommet, 0) = pos[0];
+              liste_sommets_apres_deplacement(i_sommet, 1) = pos[1];
+              liste_sommets_apres_deplacement(i_sommet, 2) = pos[2];
+              compo_connexe_sommets_deplace(i_sommet) = compo_connexe_sommet(num_sommet);
+            }
+
+          surfactant.completer_compo_connexe_partielle(*this, splitting, liste_sommets_apres_deplacement, liste_sommets_avant_deplacement, compo_connexe_sommets_deplace);
+          DoubleTab& facettes_sommets_full_compo = surfactant.get_facettes_sommets_full_compo_non_const();
+          DoubleTab& liste_sommets_et_deplacements_full_compo = surfactant.get_liste_sommets_et_deplacements_non_const();
+          ArrOfInt sorted_index = surfactant.get_sorted_index();
+
+          int nb_facettes_compo_complete = facettes_sommets_full_compo.dimension(0);
+          int nbsom_compo_complete = liste_sommets_et_deplacements_full_compo.dimension(0);
+
+          /*Process::barrier();
+          int nb_proc = splitting.get_nprocessor_per_direction(0)*splitting.get_nprocessor_per_direction(1)*splitting.get_nprocessor_per_direction(2);
+          int ny = splitting.get_nprocessor_per_direction(1);
+          int nz = splitting.get_nprocessor_per_direction(2);
+          int x = splitting.get_local_slice_index(0);
+          int y = splitting.get_local_slice_index(1);
+          int z = splitting.get_local_slice_index(2);
+          int proc_index = z + y * nz + x * ny * nz ;
+          int index_global = 0;
+          for (int proc = 0; proc < nb_proc; proc++)
+            {
+              index_global = Process::mp_max(index_global);
+              Process::barrier();
+              if (proc == proc_index)
+                {*/
+
+
+
+
+          for (int indice_sommet_unsorted = 0; indice_sommet_unsorted < nbsom_compo_complete; indice_sommet_unsorted++)
+            {
+              int indice_sommet = sorted_index(indice_sommet_unsorted);
+              Vecteur3 pos(liste_sommets_et_deplacements_full_compo(indice_sommet,0),liste_sommets_et_deplacements_full_compo(indice_sommet,1),liste_sommets_et_deplacements_full_compo(indice_sommet,2));
+              Vecteur3 pos_apres_dep(liste_sommets_et_deplacements_full_compo(indice_sommet,3),liste_sommets_et_deplacements_full_compo(indice_sommet,4),liste_sommets_et_deplacements_full_compo(indice_sommet,5));
+              int deplacement_residuel = 0;
+              Point3D dep = {pos_apres_dep[0]-pos[0],pos_apres_dep[1]-pos[1],pos_apres_dep[2]-pos[2]};
+              if(dep.norme()<Point3D::tol)
+                {
+                  deplacement_residuel = 1;
+                }
+              surfactant.reinit_remeshing_table();
+              if(!deplacement_residuel)
+                {
+                  for (int fa = 0; fa < nb_facettes_compo_complete; fa++)
+                    {
+                      for (int somfa7 = 0; somfa7 < 3; somfa7++)
+                        {
+                          double sx = facettes_sommets_full_compo(fa, 3*somfa7+0);
+                          double sy = facettes_sommets_full_compo(fa, 3*somfa7+1);
+                          double sz = facettes_sommets_full_compo(fa, 3*somfa7+2);
+                          Point3D p1 = {sx,sy,sz};
+                          Point3D p2 = {pos[0],pos[1],pos[2]};
+                          if (p1==p2)
+                            {
+                              sx = facettes_sommets_full_compo(fa, 0);
+                              sy = facettes_sommets_full_compo(fa, 1);
+                              sz = facettes_sommets_full_compo(fa, 2);
+                              Point3D s0 = {sx,sy,sz};
+                              sx = facettes_sommets_full_compo(fa, 3);
+                              sy = facettes_sommets_full_compo(fa, 4);
+                              sz = facettes_sommets_full_compo(fa, 5);
+                              Point3D s1 = {sx,sy,sz};
+                              sx = facettes_sommets_full_compo(fa, 6);
+                              sy = facettes_sommets_full_compo(fa, 7);
+                              sz = facettes_sommets_full_compo(fa, 8);
+                              Point3D s2 = {sx,sy,sz};
+
+                              if (!(s0 == s1 or s1 == s2 or s0 == s2))
+                                {
+                                  // on sauvegarde le triangle avant deplacement
+                                  // on deplace le sommet du triangle dans facettes_sommets_full_compo
+                                  // on sauvegarde le triangle apres deplacement
+                                  surfactant.sauvegarder_triangle(*this, fa, 0);
+                                  Point3D n_apres_dep = surfactant.calculer_normale_apres_deplacement(fa, somfa7, pos_apres_dep);
+                                  for (int dir = 0; dir < 3; dir++)
+                                    facettes_sommets_full_compo(fa, 3*somfa7+dir)=pos_apres_dep[dir];
+                                  facettes_sommets_full_compo(fa, 12)=n_apres_dep.x;
+                                  facettes_sommets_full_compo(fa, 13)=n_apres_dep.y;
+                                  facettes_sommets_full_compo(fa, 14)=n_apres_dep.z;
+                                  surfactant.sauvegarder_triangle(*this, fa, 1);
+                                  break;
+                                }
+                            }
+                        }
+                    }
+                  surfactant.remailler_FT_Field(*this);
+                }
+            }
+          //}
+          //}
+          //Process::barrier();
+          surfactant.update_FT_Field_local_from_full_compo(*this);
+          surfactant.echange_espace_virtuel(*this);
+        }
+
+    }
   for (int i_sommet = 0; i_sommet < nb_som; i_sommet++)
     {
       // Indice dans le maillage du sommet a deplacer:
@@ -583,6 +747,8 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
   facettes_.resize(nbelem,3);
   facette_num_owner_.resize_array(nbelem);
   compo_connexe_facettes_.resize_array(nbelem);
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    Surfactant_facettes_.resize_array(nbelem);
   for (int i=0; i< nbelem; i++)
     {
       for (int j = 0; j < 3; j++)
@@ -632,18 +798,103 @@ void Maillage_FT_IJK::transporter(const DoubleTab& deplacement)
   // la gestion des compo connexes a moins d'endroits du code.
   // Inconvenient: la mise a jour des compo connexes sera faite plus souvent,
   // pas optimal en nombre d'operations.
-
   // preparer_tableau_avant_transport(compo_connexe_facettes_, desc_facettes_);
   Maillage_FT_Disc::transporter(deplacement);
   // update_tableau_apres_transport(compo_connexe_facettes_, nb_facettes() , desc_facettes_);
 }
 
+void Maillage_FT_IJK::parcourir_maillage()
+{
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    sauv_facette_indexation_avant_transport();
+
+  Maillage_FT_Disc::parcourir_maillage();
+
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    update_surfactant_apres_transport();
+}
+
+void Maillage_FT_IJK::sauv_facette_indexation_avant_transport()
+{
+  // on stocke les barycentre de chaque fa7 ainsi que la quantite de surfactant associe avant que l'indexation des fa7 ne change
+  // Cela permet de reconstruire le champ de surfactant apres changement de l'indexation non deterministe.
+  // On suppose que les mouvements de l'interface sont suffisament faible pour que toutes les fa7 qui changent de proprietaires
+  // étaient initialement contenues dans l'espace virtuel du proc courant.
+  // Il faut donc stocker les valeurs dans les espaces virtuels.
+  {
+    indexation_facettes_avant_transport_.resize(nb_facettes(), 4);
+    for (int i = 0; i < nb_facettes(); i++)
+      {
+        // coordonnees centre gravite fa7_x
+        indexation_facettes_avant_transport_(i, 0)=(sommets_(facettes_(i,0),0)+sommets_(facettes_(i,1),0)+sommets_(facettes_(i,2),0))/3.;
+        // coordonnees centre gravite fa7_y
+        indexation_facettes_avant_transport_(i, 1)=(sommets_(facettes_(i,0),1)+sommets_(facettes_(i,1),1)+sommets_(facettes_(i,2),1))/3.;
+        // coordonnees centre gravite fa7_z
+        indexation_facettes_avant_transport_(i, 2)=(sommets_(facettes_(i,0),2)+sommets_(facettes_(i,1),2)+sommets_(facettes_(i,2),2))/3.;
+        // quantite de surfactant sur cette facette
+        indexation_facettes_avant_transport_(i, 3)=Surfactant_facettes_(i);
+      }
+  }
+}
+
+void Maillage_FT_IJK::update_surfactant_apres_transport()
+{
+  Surfactant_facettes_.resize(nb_facettes());
+  {
+    for (int i = 1; i < nb_facettes(); i++)
+      {
+        if (!facette_virtuelle(i) and compo_connexe_facettes_[i]>=0)
+          {
+            // on cherche la facette avant transport correspondante
+            int facette_avant_transport = -1 ;
+            for (int j = 0; j < indexation_facettes_avant_transport_.dimension(0); j++)
+              {
+                Point3D p1 = {indexation_facettes_avant_transport_(j, 0),indexation_facettes_avant_transport_(j, 1),indexation_facettes_avant_transport_(j, 2)};
+                Point3D p2 = {(sommets_(facettes_(i,0),0)+sommets_(facettes_(i,1),0)+sommets_(facettes_(i,2),0))/3., (sommets_(facettes_(i,0),1)+sommets_(facettes_(i,1),1)+sommets_(facettes_(i,2),1))/3., (sommets_(facettes_(i,0),2)+sommets_(facettes_(i,1),2)+sommets_(facettes_(i,2),2))/3.};
+                if(p1 == p2)
+                  {
+                    facette_avant_transport = j;
+                    break;
+                  }
+              }
+            if (facette_avant_transport!=-1)
+              {
+                Surfactant_facettes_(i) = indexation_facettes_avant_transport_(facette_avant_transport, 3);
+              }
+          }
+      }
+  }
+  Surfactant_facettes_.echange_espace_virtuel(*this);
+}
+void Maillage_FT_IJK::corriger_proprietaires_facettes()
+{
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    sauv_facette_indexation_avant_transport();
+  // Lorsque le premier sommet d'une facette est recu ou envoyer,
+  // il faut changer son proprietaire.
+
+  Maillage_FT_Disc::corriger_proprietaires_facettes();
+
+  // Nouvelle indexation des facettes, certaines ont change de proprietaire
+  // on reorganise le tableau des surfactant pour etre en accord avec le nouvel index
+  // Comme il ny a pas dindexation propre, on teste les position des fa7 pour retrouver qui va avec qui...
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    update_surfactant_apres_transport();
+
+}
+
+void Maillage_FT_IJK::supprimer_facettes(const ArrOfInt& liste_facettes)
+{
+  Maillage_FT_Disc::supprimer_facettes(liste_facettes);
+}
+
 void Maillage_FT_IJK::nettoyer_maillage()
 {
-  // Nettoyage des composantes connexes:
+  const int nb_fa7 = facettes_.dimension(0);
+  int n = 0;
   {
-    const int nb_fa7 = facettes_.dimension(0);
-    int n = 0;
+    // Nettoyage des composantes connexes et du tableau de surfactant
+    n = 0;
     for (int i = 0; i < nb_fa7; i++)
       {
         const int invalide = (facettes_(i,0) == facettes_(i,1));
@@ -655,6 +906,23 @@ void Maillage_FT_IJK::nettoyer_maillage()
           }
       }
     compo_connexe_facettes_.resize_array(n);
+    if (!Surfactant_facettes_.get_disable_surfactant())
+      {
+        n = 0;
+        for (int i = 0; i < nb_fa7; i++)
+          {
+            const int invalide = (facettes_(i,0) == facettes_(i,1));
+            const int virtuelle = facette_virtuelle(i);
+            if (!invalide && !virtuelle)
+              {
+                Surfactant_facettes_[n] = Surfactant_facettes_[i];
+                n++;
+              }
+          }
+        Surfactant_facettes_.resize_array(n);
+      }
+
+
   }
   // Appel a l'ancienne methode
   Maillage_FT_Disc::nettoyer_maillage();
@@ -675,7 +943,12 @@ void Maillage_FT_IJK::creer_facettes_virtuelles(const ArrOfInt& liste_facettes,
 // static Stat_Counter_Id cmpt = statistiques().new_counter(0, "Mise a jour compo connex dans creer facette virt");
   //statistiques().begin_count(cmpt);
   compo_connexe_facettes_.resize_array(nb_facettes());
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    Surfactant_facettes_.resize_array(nb_facettes());
+
   desc_facettes().echange_espace_virtuel(compo_connexe_facettes_);
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    Surfactant_facettes_.echange_espace_virtuel(*this);
 
   // La verification du tableau des compo_connexe n'a pas ete faite par
   // Maillage_FT_Disc::creer_facettes_virtuelles. On la fait ici :
@@ -758,6 +1031,13 @@ int Maillage_FT_IJK::check_mesh(int error_is_fatal, int skip_facette_pe, int ski
     {
       Journal() << "Erreur Maillage_FT_IJK::check_mesh : taille de compo_connexe_facettes_ invalide" << finl;
       Journal() << "nb_facettes = " << nf << " et compo_connexe_facettes_ = " <<  compo_connexe_facettes_.size_array() << finl ;
+      assert(0);
+      exit();
+    }
+  if (nf != Surfactant_facettes_.size_array() and !Surfactant_facettes_.get_disable_surfactant())
+    {
+      Journal() << "Erreur Maillage_FT_IJK::check_mesh : taille de Surfactant_facettes_ invalide" << finl;
+      Journal() << "nb_facettes = " << nf << " et Surfactant_facettes_ = " <<  Surfactant_facettes_.size_array() << finl ;
       assert(0);
       exit();
     }
@@ -1004,6 +1284,7 @@ void Maillage_FT_IJK::recopie(const Maillage_FT_Disc& source_mesh, Statut_Mailla
 
       Maillage_FT_Disc::recopie(source_mesh, niveau_copie);
       compo_connexe_facettes_.copy_array(source_mesh_ijk.compo_connexe_facettes());
+      Surfactant_facettes_.copy_FT_Field(source_mesh_ijk.Surfactant_facettes());
     }
   else
     {
@@ -1018,7 +1299,6 @@ void Maillage_FT_IJK::recopie(const Maillage_FT_Disc& source_mesh, Statut_Mailla
 // Surcharge de la methode Maillage_FT_Disc::ajouter_maillage
 void Maillage_FT_IJK::ajouter_maillage(const Maillage_FT_Disc& maillage_tmp,int skip_facettes)
 {
-
   if (sub_type(Maillage_FT_IJK, maillage_tmp))
     {
       ajouter_maillage_IJK(ref_cast(Maillage_FT_IJK, maillage_tmp)) ; // copie les compo connexes existantes
@@ -1041,13 +1321,20 @@ void Maillage_FT_IJK::ajouter_maillage_IJK(const Maillage_FT_IJK& added_mesh)
   const int nb_facettes_ini = nb_facettes(); // du maillage initial : *this.
   const int nb_facettes_add = added_mesh.nb_facettes(); // du maillage a ajouter.
   const ArrOfInt& compo_connexe_add = added_mesh.compo_connexe_facettes();  // Compo connexes a ajouter
-
+  const FT_Field& Surfactant_add = added_mesh.Surfactant_facettes();
   // On etends le tableau de composantes connexes en ajoutant celui de added_mesh a la fin:
   compo_connexe_facettes_.resize_array(nb_facettes_ini+nb_facettes_add);
   compo_connexe_facettes_.inject_array(compo_connexe_add, -1, /* tous les elements de la source */
                                        nb_facettes_ini, /* indice destination */
                                        0); /* indice source */
 
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    {
+      Surfactant_facettes_.resize_array(nb_facettes_ini+nb_facettes_add);
+      Surfactant_facettes_.inject_array(Surfactant_add, -1, /* tous les elements de la source */
+                                        nb_facettes_ini, /* indice destination */
+                                        0); /* indice source */
+    }
   // La methode Maillage_FT_Disc::ajouter_maillage va ajouter les facettes, les sommets...
   // et elle va mettre a jour les desc et les num_owner... en ajoutant des elements dans les decripteurs
   // Mais elle ne fait pas d'echange. Pas de renumerotation (seulement la gestion du decalage nb_facettes_ini
@@ -1109,4 +1396,19 @@ double Maillage_FT_IJK::minimum_longueur_arrete() const
   lg = Process::mp_min(lg);
   return lg;
 
+}
+
+int Maillage_FT_IJK::nb_facettes_sans_duplicata() const
+{
+  if (statut_< MINIMAL)
+    return 0;
+  int compt = 0 ;
+  for (int ifa=0 ; ifa<facettes_.dimension(0) ; ifa++)
+    {
+      if (compo_connexe_facettes_(ifa)>=0)
+        {
+          compt++;
+        }
+    }
+  return compt;
 }

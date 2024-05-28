@@ -1024,6 +1024,8 @@ double Remaillage_FT::redistribuer_sommets(Maillage_FT_Disc&   maillage,
                                            ArrOfDouble& var_volume_impose,
                                            ArrOfDouble& var_volume_obtenu) const
 {
+
+  var_volume_impose.resize_array(maillage.nb_sommets());
   assert(relaxation_direction_tangente >= 0. && relaxation_direction_tangente <= 1.);
   assert(relaxation_direction_normale >= 0. && relaxation_direction_normale <= 1.);
   assert(var_volume_impose.size_array() == maillage.sommets().dimension(0));

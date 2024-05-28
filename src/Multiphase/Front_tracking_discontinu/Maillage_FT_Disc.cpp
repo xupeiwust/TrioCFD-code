@@ -1884,6 +1884,20 @@ int Maillage_FT_Disc::nb_facettes() const
 
   return facettes_.dimension(0);
 }
+int Maillage_FT_Disc::nb_facettes_reelles() const
+{
+  if (statut_< MINIMAL)
+    return 0;
+  int compt = 0 ;
+  for (int ifa=0 ; ifa<facettes_.dimension(0) ; ifa++)
+    {
+      if (! facette_virtuelle(ifa))
+        {
+          compt++;
+        }
+    }
+  return compt;
+}
 
 /*! @brief renvoie le nombre de facettes (reelles et virtuelles) au pas de temps precedent
  *
@@ -1896,6 +1910,34 @@ int Maillage_FT_Disc::nb_facettes_old() const
   return facettes_old_.dimension(0);
 }
 
+int Maillage_FT_Disc::nb_facettes_reelle_totale() const
+{
+  if (statut_< MINIMAL)
+    return 0;
+  int compt = 0 ;
+  for (int ifa=0 ; ifa<facettes_.dimension(0) ; ifa++)
+    {
+      if (! facette_virtuelle(ifa))
+        {
+          compt++;
+        }
+    }
+  compt = Process::mp_sum(compt);
+  return compt;
+}
+
+int Maillage_FT_Disc::nb_facettes_totale() const
+{
+  if (statut_< MINIMAL)
+    return 0;
+  int compt = 0 ;
+  for (int ifa=0 ; ifa<facettes_.dimension(0) ; ifa++)
+    {
+      compt++;
+    }
+  compt = Process::mp_sum(compt);
+  return compt;
+}
 /*! @brief Cette methode teste si les facettes sont voisines : Des facettes sont voisines si :
  *
  *     -elles ont 1 sommet commun en 2D

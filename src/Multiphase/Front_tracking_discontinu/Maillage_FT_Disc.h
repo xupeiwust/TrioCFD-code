@@ -71,16 +71,19 @@ public:
   // Acces aux elements du maillage
   const DoubleTab& sommets() const;
   const DoubleTab& sommets_old() const;
-  int              nb_sommets() const;  // Egal a sommets().dimension(0)
-  int              nb_sommets_old() const;  // Egal a sommets_old().dimension(0)
-  const IntTab&     facettes() const;
-  const IntTab&     facettes_old() const;
-  int              nb_facettes() const; // Egal a facettes().dimension(0)
-  int              nb_facettes_old() const; // Egal a facettes_old().dimension(0)
+  int nb_sommets() const;  // Egal a sommets().dimension(0)
+  int nb_sommets_old() const;  // Egal a sommets_old().dimension(0)
+  const IntTab& facettes() const;
+  const IntTab& facettes_old() const;
+  int nb_facettes() const; // Egal a facettes().dimension(0)
+  int nb_facettes_old() const; // Egal a facettes_old().dimension(0)
+  int nb_facettes_reelle_totale() const;
+  int nb_facettes_reelles() const;
+  int nb_facettes_totale() const;
   const ArrOfInt& drapeaux_sommets() const;  // pour postraitement uniquement
   const ArrOfInt& sommet_PE_owner() const;   // pour postraitement uniquement
   const ArrOfInt& sommet_num_owner() const;   // pour postraitement uniquement
-  void               facette_PE_owner(ArrOfInt& facette_pe) const; // pour postraitement uniquement
+  void facette_PE_owner(ArrOfInt& facette_pe) const; // pour postraitement uniquement
   const ArrOfInt& sommet_elem() const;       // pour postraitement uniquement
   const ArrOfInt& sommet_elem_old() const;       // pour postraitement uniquement
   const ArrOfInt& sommet_face_bord() const;  // pour postraitement uniquement
@@ -154,6 +157,23 @@ public:
   virtual const ArrOfDouble& get_surface_facettes_old() const;
   virtual const DoubleTab& get_normale_facettes() const;
   virtual const DoubleTab& get_normale_facettes_old() const;
+
+  const IntTabFT& get_liste_facette_supprimees_et_voisines() const
+  {
+    return liste_facette_supprimees_et_voisines_;
+  };
+  void set_liste_facette_supprimees_et_voisines(IntTabFT tab)
+  {
+    liste_facette_supprimees_et_voisines_=tab;
+  };
+  const int& get_nb_facette_supprimees() const
+  {
+    return nb_facette_supprimees_;
+  };
+  void set_nb_facette_supprimees(int nb)
+  {
+    nb_facette_supprimees_=nb;
+  };
 
   inline int set_niveau_plot(int niv);
 
@@ -370,6 +390,8 @@ protected:
   //  noeuds de la facette.
   IntTabFT    facettes_;
   IntTabFT    facettes_old_;
+  IntTabFT    liste_facette_supprimees_et_voisines_;
+  int nb_facette_supprimees_;
 
   // Pour chaque sommet du maillage, numero de l'element eulerien qui
   // le contient et -1 si le sommet est virtuel.
