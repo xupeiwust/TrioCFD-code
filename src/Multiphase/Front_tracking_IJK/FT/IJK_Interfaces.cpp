@@ -58,20 +58,8 @@ IJK_Interfaces::IJK_Interfaces()
 {
   lata_interfaces_meshname_ = nom_par_defaut_interfaces;
 
-  RK3_G_store_vi_.set_smart_resize(1);
-  vinterp_.set_smart_resize(1);
-  distance_autres_interfaces_.set_smart_resize(1);
-  ghost_compo_converter_.set_smart_resize(1);
-
   positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
   mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
-
-  bubbles_velocities_.set_smart_resize(1);
-  bubbles_velocities_bary_.set_smart_resize(1);
-  bubbles_bary_old_.set_smart_resize(1);
-  bubbles_bary_new_.set_smart_resize(1);
-  bubbles_rising_vectors_bary_.set_smart_resize(1);
-  bubbles_velocities_bary_magnitude_.set_smart_resize(1);
 
   compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
 }
@@ -83,7 +71,6 @@ static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr,
     size_fixed_arr[c] = fixed_arr[c].size_array();
   assert(size_fixed_arr[0] == size_fixed_arr[1]);
   assert(size_fixed_arr[0] == size_fixed_arr[2]);
-  tab.set_smart_resize(1);
   tab.reset();
   tab.resize(size_fixed_arr[0],3);
   for (int c=0; c<3; c++)
@@ -1231,12 +1218,9 @@ bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
   bool is_readen = false;
   int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
   bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
-  bubbles_rising_vel_mag.set_smart_resize(1);
   bubbles_rising_vel_mag.reset();
   for (int c=0; c<3; c++)
     {
-      bubbles_rising_dir[c].set_smart_resize(1);
-      bubbles_rising_vel[c].set_smart_resize(1);
       bubbles_rising_dir[c].reset();
       bubbles_rising_vel[c].reset();
     }
@@ -1315,7 +1299,6 @@ bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom&
   bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
   for (int c=0; c<3; c++)
     {
-      bubbles_bary[c].set_smart_resize(1);
       bubbles_bary[c].reset();
     }
   int ibubble = 0;

@@ -30,12 +30,7 @@ Implemente_instanciable_sans_constructeur( IJK_Ghost_Fluid_Fields, "IJK_Ghost_Fl
 
 IJK_Ghost_Fluid_Fields::IJK_Ghost_Fluid_Fields()
 {
-  for (int l=0; l<3; l++)
-    {
-      interf_cells_indices_[l].set_smart_resize(1);
-      gfm_first_cells_indices_[l].set_smart_resize(1);
-      propagated_cells_indices_[l].set_smart_resize(1);
-    }
+
 }
 
 Sortie& IJK_Ghost_Fluid_Fields::printOn( Sortie& os ) const

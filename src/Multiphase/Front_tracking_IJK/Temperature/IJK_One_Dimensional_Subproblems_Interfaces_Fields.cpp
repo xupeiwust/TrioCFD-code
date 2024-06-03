@@ -27,21 +27,7 @@ Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblems_Inter
 
 IJK_One_Dimensional_Subproblems_Interfaces_Fields::IJK_One_Dimensional_Subproblems_Interfaces_Fields()
 {
-  ft_vertices_.set_smart_resize(1);
-  vertices_surface_.set_smart_resize(1);
-  elem_crossed_.set_smart_resize(1);
-  eulerian_values_.set_smart_resize(1);
 
-  interfacial_heat_flux_.set_smart_resize(1);
-  interfacial_heat_flux_sol_.set_smart_resize(1);
-  velocity_magnitude_.set_smart_resize(1);
-  temperature_.set_smart_resize(1);
-  temperature_sol_.set_smart_resize(1);
-  temperature_gradient_.set_smart_resize(1);
-  temperature_gradient_sol_.set_smart_resize(1);
-
-  surface_facettes_.set_smart_resize(1);
-  facettes_.set_smart_resize(1);
 }
 
 int IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const IJK_Splitting& splitting,

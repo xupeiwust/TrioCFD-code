@@ -26,10 +26,7 @@ Implemente_instanciable_sans_constructeur( Corrige_flux_FT_temperature_subresolu
 
 Corrige_flux_FT_temperature_subresolution::Corrige_flux_FT_temperature_subresolution()
 {
-  for (int c=0; c<3; c++)
-    indices_temperature_neighbours_on_procs_[c].set_smart_resize(1);
-  temperature_neighbours_on_procs_.set_smart_resize(1);
-  neighbours_weighting_colinearity_on_procs_.set_smart_resize(1);
+
 }
 
 void Corrige_flux_FT_temperature_subresolution::associate_thermal_problems(IJK_One_Dimensional_Subproblems& thermal_subproblems)
@@ -638,12 +635,6 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
             weighting_flux_xyz_faces_sorted[dir][k_layer].reset();
             colinearity_flux_xyz_faces_sorted[dir][k_layer].reset();
             temperature_flux_xyz_faces_sorted[dir][k_layer].reset();
-            if (first_iter)
-              {
-                weighting_flux_xyz_faces_sorted[dir][k_layer].set_smart_resize(1);
-                colinearity_flux_xyz_faces_sorted[dir][k_layer].set_smart_resize(1);
-                temperature_flux_xyz_faces_sorted[dir][k_layer].set_smart_resize(1);
-              }
           }
       }
 }

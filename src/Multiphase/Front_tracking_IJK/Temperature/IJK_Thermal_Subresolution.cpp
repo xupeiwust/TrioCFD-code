@@ -842,11 +842,6 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       for (int c=0; c<3; c++)
         interfacial_heat_flux_dispatched_[c].data() = 0.;
       interfacial_heat_flux_dispatched_.echange_espace_virtuel();
-      for (int c=0; c<3; c++)
-        {
-          ijk_indices_flux_out_[c].set_smart_resize(1);
-          thermal_flux_out_[c].set_smart_resize(1);
-        }
 
       allocate_cell_vector(interfacial_heat_flux_contrib_, splitting, 1);
       allocate_cell_vector(interfacial_heat_flux_current_, splitting, 1);
@@ -856,9 +851,6 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
           interfacial_heat_flux_current_[c].data() = 0.;
         }
       nalloc += 6;
-      for (int l=0; l<4; l++)
-        ijk_indices_flux_contrib_[l].set_smart_resize(1);
-      thermal_flux_out_contrib_.set_smart_resize(1);
     }
 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
@@ -2827,11 +2819,9 @@ void IJK_Thermal_Subresolution::post_process_thermal_downstream_lines(const Nom&
       ArrOfDouble linear_coord;
       FixedVector<ArrOfDouble,3> coordinates_line;
       std::vector<std::vector<FixedVector<ArrOfInt,3>>> indices_ijk;
-      linear_coord.set_smart_resize(1);
       linear_coord.resize(nb_thermal_line_points_);
       for (int c=0; c<3; c++)
         {
-          coordinates_line[c].set_smart_resize(1);
           coordinates_line[c].resize(nb_thermal_line_points_);
         }
       double diameter_approx = 0.;
@@ -2971,7 +2961,6 @@ void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vect
         {
           for (int c=0; c<3; c++)
             {
-              parameters[circle][line][c].set_smart_resize(1);
               parameters[circle][line][c].resize(nb_thermal_line_points_);
             }
         }
@@ -2993,7 +2982,6 @@ void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vect
         {
           for (int c=0; c<2; c++)
             {
-              parameters[circle][line][c].set_smart_resize(1);
               parameters[circle][line][c].resize(nb_thermal_line_points_);
             }
         }
@@ -3013,7 +3001,6 @@ void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vect
         parameters[circle].resize(nb_thermal_lines);
       for (int line=0; line< (int) parameters[circle].size(); line++)
         {
-          parameters[circle][line].set_smart_resize(1);
           parameters[circle][line].resize(nb_thermal_line_points_);
         }
     }
@@ -3032,7 +3019,6 @@ void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vect
         parameters[circle].resize(nb_thermal_lines);
       for (int line=0; line< (int) parameters[circle].size(); line++)
         {
-          parameters[circle][line].set_smart_resize(1);
           parameters[circle][line].resize(nb_thermal_line_points_);
         }
     }
@@ -3558,7 +3544,6 @@ void IJK_Thermal_Subresolution::post_process_thermal_wake_slices(const Nom& loca
   if (post_process_thermal_slices_ && nb_real_bubbles==1)
     {
       ArrOfDouble nb_diam_slices;
-      nb_diam_slices.set_smart_resize(1);
       nb_diam_slices.append_array(nb_diam_slice_);
       double diam_incr = nb_diam_slice_ / nb_slices_;
       double diam_incr_int, diam_incr_ext;
