@@ -34,7 +34,7 @@ Lire sch
    	tmax    3
 	dt_impr 0.01
 	seuil_statio	1.e-4
-	seuil_statio_relatif_deconseille 1 
+	Residuals { relative 1 } 
         facsec		500
 	facsec_max	500
 	Solveur Implicite
@@ -88,8 +88,12 @@ Lire pb
             		}
 			turbulence_paroi loi_standard_hydr dt_impr_ustar 0.05
 		}
-		Ecrire_fichier_xyz_valeur k_eps		1. bords 1 perio
-		Ecrire_fichier_xyz_valeur vitesse	1. bords 1 perio
+		Ecrire_fichier_xyz_valeur
+		{
+	 		dt 1.
+			fields 2 vitesse k_eps
+			boundaries 1 perio
+		}
 	}
 	Postraitement
 	{

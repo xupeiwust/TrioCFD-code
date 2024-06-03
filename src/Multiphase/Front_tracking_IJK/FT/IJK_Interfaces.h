@@ -333,6 +333,8 @@ public :
                                               const int& store_values);
   void calculer_volume_bulles(ArrOfDouble& volumes,
                               DoubleTab& centre_gravite) const;
+
+  void calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const;
   void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,

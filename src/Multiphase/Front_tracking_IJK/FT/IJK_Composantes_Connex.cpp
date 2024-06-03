@@ -294,10 +294,6 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
       compo_ghost_per_cell.reset();
       count_compo_per_cell.reset();
       count_compo_ghost_per_cell.reset();
-      compo_per_cell.set_smart_resize(1);
-      compo_ghost_per_cell.set_smart_resize(1);
-      count_compo_per_cell.set_smart_resize(1);
-      count_compo_ghost_per_cell.set_smart_resize(1);
       // Loop on the facets which cross the element
       while (index >= 0)
         {

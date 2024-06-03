@@ -1953,14 +1953,6 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
 
 void IJK_Thermal_Subresolution::reset_subresolution_distributed_vectors()
 {
-  if (ref_ijk_ft_->get_tstep()==0)
-    {
-      thermal_subproblems_rhs_assembly_.set_smart_resize(1);
-      thermal_subproblems_temperature_solution_.set_smart_resize(1);
-      if (first_time_step_temporal_ && first_time_step_explicit_)
-        thermal_subproblems_temperature_solution_ini_.set_smart_resize(1);
-    }
-
   thermal_subproblems_rhs_assembly_.reset();
   thermal_subproblems_temperature_solution_.detach_vect();
   if (first_time_step_temporal_ && first_time_step_explicit_)
@@ -2343,8 +2335,8 @@ void IJK_Thermal_Subresolution::compute_md_vector()
                                        pe_voisins_dummy, items_to_send_dummy,
                                        items_to_recv_dummy, blocs_to_recv_dummy);
   md_.copy(md_std);
-  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_rhs_assembly_); //, Array_base::NOCOPY_NOINIT);
-  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_temperature_solution_); //, Array_base::NOCOPY_NOINIT);
+  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_rhs_assembly_); //, RESIZE_OPTIONS::NOCOPY_NOINIT);
+  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_temperature_solution_); //, RESIZE_OPTIONS::NOCOPY_NOINIT);
 }
 
 void IJK_Thermal_Subresolution::retrieve_temperature_solution()
@@ -2533,7 +2525,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 1
-                            && !ref_ijk_ft_->get_reprise() != 0);
+                            && ref_ijk_ft_->get_reprise() == 0);
   if (debug_)
     Cerr << "Set correction cell neighbours" << finl;
   if (correct_first_iter_deactivate_cell_neighbours_ && correct_first_iter)
@@ -2585,7 +2577,7 @@ void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(cons
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 0
-                            && !ref_ijk_ft_->get_reprise());
+                            && ref_ijk_ft_->get_reprise() == 0);
   if (use_temperature_cell_neighbours_)
     {
       if (keep_first_reachable_fluxes_)

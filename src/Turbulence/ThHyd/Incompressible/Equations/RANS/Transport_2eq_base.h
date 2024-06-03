@@ -23,11 +23,11 @@
 #ifndef Transport_2eq_base_included
 #define Transport_2eq_base_included
 
-#include <Mod_turb_hyd_RANS_2eq.h>
+#include <Modele_turbulence_hyd_2_eq_base.h>
 #include <Equation_base.h>
 #include <TRUST_Ref.h>
 
-class Mod_turb_hyd_RANS_2eq;
+class Modele_turbulence_hyd_2_eq_base;
 class Champ_Inc_base;
 class Milieu_base;
 class Champ_Inc;
@@ -39,11 +39,10 @@ class Champ_Inc;
  */
 class Transport_2eq_base: public Equation_base
 {
-  Declare_base_sans_constructeur(Transport_2eq_base);
+  Declare_base(Transport_2eq_base);
 
 public:
 
-  Transport_2eq_base();
   void set_param(Param&) override;
   void associer(const Equation_base&);
   inline void associer_vitesse(const Champ_base&);

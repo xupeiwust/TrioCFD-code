@@ -590,8 +590,6 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
           if ((dir==DIRECTION_I || dir==DIRECTION_J) && k_layer==nb_k_layer)
             break;
           index_face_ij_flux_xyz_faces_sorted[l][dir][k_layer].reset();
-          if (first_iter)
-            index_face_ij_flux_xyz_faces_sorted[l][dir][k_layer].set_smart_resize(1);
         }
 }
 
@@ -635,8 +633,6 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
         if ((dir==DIRECTION_I || dir==DIRECTION_J) && k_layer==nb_k_layer)
           break;
         fluxes[dir][k_layer].reset();
-        if (first_iter)
-          fluxes[dir][k_layer].set_smart_resize(1);
         if (weighting_colinearity && !ini_index)
           {
             weighting_flux_xyz_faces_sorted[dir][k_layer].reset();
@@ -1994,9 +1990,6 @@ void Corrige_flux_FT_temperature_subresolution::replace_temperature_cell_centre_
       ArrOfInt corrected_values;
       ArrOfInt out_of_bounds_corrected_values;
       ArrOfDouble out_of_bounds_values;
-      corrected_values.set_smart_resize(1);
-      out_of_bounds_values.set_smart_resize(1);
-      out_of_bounds_corrected_values.set_smart_resize(1);
 
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
@@ -2084,7 +2077,6 @@ void Corrige_flux_FT_temperature_subresolution::smooth_temperature_cell_centre_n
     {
       const IJK_Splitting& splitting = temperature.get_splitting();
       ArrOfDouble temperature_smoothed;
-      temperature_smoothed.set_smart_resize(1);
       int counter;
       double temperature_neighbour;
       for (int ielem=0; ielem<out_of_bounds_corrected_values.size_array(); ielem++)
@@ -2669,10 +2661,6 @@ void Corrige_flux_FT_temperature_subresolution::compute_min_max_ijk_any_reachabl
               ArrOfInt indices_fluxes_to_remove;
               FixedVector<ArrOfInt,2> indices_sorted;
               FixedVector<ArrOfInt,2> indices_fluxes_sorted;
-              indices_found_ini.set_smart_resize(1);
-              indices_found_end.set_smart_resize(1);
-              indices_flux_found_ini.set_smart_resize(1);
-              indices_flux_found_end.set_smart_resize(1);
 
 //              if (max_flux_per_dir)
 //                {
@@ -2880,14 +2868,12 @@ void Corrige_flux_FT_temperature_subresolution::sort_ini_end_arrays(ArrOfInt& in
   size_references[1] = &size_end;
   int max_counter = 0;
   const int max_index = size_ini + size_end;
-  for (int l=0; l<2; l++)
-    indices_sorted[l].set_smart_resize(1);
   std::vector<int> index_tmp;
   while(counter_ini < size_ini || counter_end < size_end)
     {
       for (int l=0; l<2; l++)
         {
-          const int index_int_tmp = (*counters[l] < *size_references[l]) ? (*indices_references[l])(*counters[l]) : (int) 1e20;
+          const int index_int_tmp = (*counters[l] < *size_references[l]) ? (*indices_references[l])(*counters[l]) : std::numeric_limits<int>::max();
           index_tmp.push_back(index_int_tmp);
         }
       const int index_min = (int) std::distance(index_tmp.begin(), std::min_element(index_tmp.begin(), index_tmp.end()));
@@ -2944,8 +2930,6 @@ void Corrige_flux_FT_temperature_subresolution::remove_non_overlapping_fluxes_va
     }
   const int factor_pos[3][3] = {{1, 0, 0},{0, 1, 0},{0, 0, 1}};
   std::vector<int> is_in_interval = {0, 0};
-  indices_to_remove.set_smart_resize(1);
-  indices_fluxes_to_remove.set_smart_resize(1);
   int ll;
   int m = 0;
   for(int l=0; l<indices_sorted[0].size_array(); l++)
@@ -2997,7 +2981,6 @@ void Corrige_flux_FT_temperature_subresolution::remove_min_max_ijk_reachable_flu
   const int nk = cell_faces_neighbours_corrected_all_bool[0].nk();
 
   int i,j,k,c;
-  ArrOfInt neighbour_left_right(3);
   const int nb_ghost = 1;
 
   for (c = 0; c < 3; c++)
@@ -3843,7 +3826,6 @@ void Corrige_flux_FT_temperature_subresolution::check_pure_fluxes_duplicates(con
   // FixedVector<DoubleVect, 3>& pure_face_to_correct = intersection_ijk_cell_->get_set_ijk_pure_face_to_correct();
   FixedVector<IntVect, 4>& pure_face_to_correct = ijk_faces_to_correct_;
   const int nb_fluxes = fluxes.size();
-  fluxes_unique.set_smart_resize(1);
   fluxes_unique.reset();
   int i;
   if (known_unique)
@@ -3857,7 +3839,6 @@ void Corrige_flux_FT_temperature_subresolution::check_pure_fluxes_duplicates(con
   else
     {
       DoubleVect shared_face;
-      shared_face.set_smart_resize(1);
       shared_face.reset();
       for (i=0; i<nb_fluxes; i++)
         {

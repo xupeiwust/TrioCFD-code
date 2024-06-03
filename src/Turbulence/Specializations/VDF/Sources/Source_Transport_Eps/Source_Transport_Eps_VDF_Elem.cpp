@@ -86,7 +86,7 @@ void Source_Transport_Eps_VDF_Elem::fill_resu(const DoubleVect& P, DoubleTab& re
 {
   const DoubleVect& volumes = le_dom_VDF->volumes(), &porosite_vol = le_dom_Cl_VDF->equation().milieu().porosite_elem();
   const DoubleTab& K = mon_eq_transport_K->inconnue().valeurs(), &Eps = mon_eq_transport_Eps->inconnue().valeurs();
-  const double LeK_MIN = mon_eq_transport_K->modele_turbulence().get_LeK_MIN();
+  const double LeK_MIN = mon_eq_transport_K->modele_turbulence().get_K_MIN();
   for (int elem = 0; elem < le_dom_VDF->nb_elem(); elem++)
     if (K(elem) >= LeK_MIN)
       resu(elem) += (C1*P(elem)- C2*Eps(elem))*volumes(elem)*porosite_vol(elem)*Eps(elem)/K(elem);
@@ -95,11 +95,10 @@ void Source_Transport_Eps_VDF_Elem::fill_resu(const DoubleVect& P, DoubleTab& re
 void Source_Transport_Eps_VDF_Elem::dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl) const
 {
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
-  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : NULL, mat2;
+  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr, mat2;
   if(!mat) return;
 
   IntTab stencil(0, 2);
-  stencil.set_smart_resize(1);
   const int size = mon_eq_transport_K->inconnue().valeurs().dimension(0);
   for (int e = 0; e < size; e++)
     stencil.append_line(e, e);
@@ -113,7 +112,7 @@ void Source_Transport_Eps_VDF_Elem::ajouter_blocs(matrices_t matrices, DoubleTab
   Source_Transport_VDF_Elem_base::ajouter_keps(secmem);
 
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
-  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : NULL;
+  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr;
   if(!mat) return;
 
   const DoubleTab& K = mon_eq_transport_K->inconnue().valeurs(), &Eps = mon_eq_transport_Eps->inconnue().valeurs();
