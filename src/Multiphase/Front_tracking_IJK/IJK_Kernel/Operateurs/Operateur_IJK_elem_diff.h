@@ -53,12 +53,16 @@ public :
   void calculer_cut_cell(bool ignore_small_cells,
                          const Cut_field_scalar& field,
                          Cut_cell_vector& cut_cell_flux,
+                         IJK_Field_int& treatment_count,
+                         int& new_treatment,
                          Cut_field_scalar& result,
                          const IJK_Field_local_double& boundary_flux_kmin,
                          const IJK_Field_local_double& boundary_flux_kmax);
   void ajouter_cut_cell(bool ignore_small_cells,
                         const Cut_field_scalar& field,
                         Cut_cell_vector& cut_cell_flux,
+                        IJK_Field_int& treatment_count,
+                        int& new_treatment,
                         Cut_field_scalar& result,
                         const IJK_Field_local_double& boundary_flux_kmin,
                         const IJK_Field_local_double& boundary_flux_kmax);

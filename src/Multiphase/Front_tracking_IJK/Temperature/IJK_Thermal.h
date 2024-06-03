@@ -162,6 +162,7 @@ public :
   inline double get_modified_time();
   inline void get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities);
 
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface, const int idx);
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
   int posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                              const char * lata_name,

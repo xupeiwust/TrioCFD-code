@@ -24,6 +24,7 @@
 
 enum class CORRECTION_PETITES_CELLULES : int
 {
+  CORRECTION_DIRECTE,   // Utilise  directement les flux, pas besoin de sophistications
   DIRECTION_PRIVILEGIEE,   // Certaines directions sont privilegiees (le sens oppose)
   DIRECTION_PRIVILEGIEE_2, // Certaines directions sont privilegiees (le sens positif)
   CORRECTION_SYMETRIQUE,   // Pas de directions privilegiees

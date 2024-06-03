@@ -42,9 +42,10 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
-  Cut_cell_FT_Disc& get_cut_cell_disc() { return cut_cell_disc_.valeur(); }
+  const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
 
   void sort_tot(int colum);
+  void sort_tot(int column_1, int column_2);
 
   void echange_espace_virtuel() override;
   void echange_espace_virtuel(MD_Vector_tools::Operations_echange op);
@@ -66,7 +67,10 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
-  Cut_cell_FT_Disc& get_cut_cell_disc() { return cut_cell_disc_.valeur(); }
+  const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
+
+  void sort_tot(int colum);
+  void sort_tot(int column_1, int column_2);
 
   void echange_espace_virtuel() override;
   void echange_espace_virtuel(MD_Vector_tools::Operations_echange op);
@@ -225,9 +229,7 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc, int dimension);
-  Cut_cell_FT_Disc& get_cut_cell_disc() { return cut_cell_disc_.valeur(); }
-
-  void set_valeur_cellules_diphasiques(double valeur);
+  const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
 
   DoubleTabFT_cut_cell diph_l_;
   DoubleTabFT_cut_cell diph_v_;
@@ -252,6 +254,7 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
+  void set_valeur_cellules_diphasiques(double valeur);
 
 protected :
 };
@@ -269,6 +272,7 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
+  void set_valeur_cellules_diphasiques(double valeur);
 
 protected :
 };
@@ -319,6 +323,8 @@ public :
   void remplir_cellules_devenant_diphasiques();
   void remplir_cellules_maintenant_pures();
   void transfert_diphasique_vers_pures();
+
+  void set_to_sum(const Cut_field_vector& data_1, const Cut_field_vector& data_2);
 
 protected :
 };

@@ -86,6 +86,34 @@ public:
   {
     return postraiter_sous_pas_de_temps_;
   }
+  double get_timestep_simu_post(double current_time, double max_simu_time) const
+  {
+    // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
+    // Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
+    double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
+    double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
+    double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
+    double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
+    double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
+    if (max_post_timestep == 0)
+      {
+        max_post_timestep = max_simu_timestep;
+      }
+    if (max_post_thermals_probes_timestep == 0)
+      {
+        max_post_thermals_probes_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_plans_timestep == 0)
+      {
+        max_post_stats_plans_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_bulles_timestep == 0)
+      {
+        max_post_stats_bulles_timestep = max_simu_timestep;
+      }
+
+    return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, max_post_stats_bulles_timestep))));
+  }
   int dt_post() const
   {
     return dt_post_;
@@ -170,10 +198,19 @@ public:
 protected:
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
+
+  // Post-traitement selon un nombre de pas de temps
   int dt_post_;
   int dt_post_thermals_probes_;
   int dt_post_stats_plans_; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
   int dt_post_stats_bulles_; // intervalle de posttraitement des donnees par bulles
+
+  // Post-traitement selon un intervale de temps (en secondes)
+  double time_interval_post_;
+  double time_interval_post_thermals_probes_;
+  double time_interval_post_stats_plans_;
+  double time_interval_post_stats_bulles_;
+
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   // Pour numeroter les fichiers .lata il faut compter combien on en a ecrit:
   int compteur_post_instantanes_;

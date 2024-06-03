@@ -214,8 +214,6 @@ double funck_double(double x, double y, double z)
   //return sin(x*2*M_PI*8)*sin(y*2*M_PI*3)*sin(z*2*M_PI*12)*100;
   return 0.;
 }
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
-
 
 double function_rho_init(double x, double y, double z)
 {

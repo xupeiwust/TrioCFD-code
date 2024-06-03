@@ -50,8 +50,6 @@
 // #define SMOOTHING_RHO
 // static Stat_Counter_Id cnt_SourceInterf;
 
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
-
 //#define SMOOTHING_RHO
 
 Implemente_base_sans_constructeur(IJK_FT_base, "IJK_FT_base", Interprete);
@@ -490,6 +488,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
   type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
+  deactivate_remeshing_velocity_ = 0;
 
   // valeurs par default des parametres de bulles fixes
   coef_immobilisation_ = 0.;
@@ -515,7 +514,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("oh", &oh_); // XD_ADD_P floattant not_set
   param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
   param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED); // XD_ADD_P entier maximum limit for the number of timesteps
-  param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P entier maximum limit for the number of timesteps
+  param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P double maximum limit for the simulation time
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
   param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
@@ -620,12 +619,13 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
-  param.dictionnaire("algebrique",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE);
-  param.dictionnaire("iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::ITERATIF);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME);
   param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
-  param.dictionnaire("algebrique",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE);
-  param.dictionnaire("iteratif", (int)TYPE_SURFACE_EFFICACE_INTERFACE::ITERATIF);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
+  param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
 
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);
@@ -1565,6 +1565,8 @@ double IJK_FT_base::find_timestep(const double max_timestep,
       fic.close();
     }
   statistiques().end_count(dt_counter_);
+
+  assert(dt > 0);
 
   return dt;
 }
@@ -2734,9 +2736,9 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
       // dans d_velocity_moyen on a la contrib de interfaces, forces ajoutees
       terme_interfaces_conv_diff_mass_solver_[dir] = calculer_v_moyen(d_velocity_[dir]);
 
-      Cerr << "disable_diffusion_qdm_ : "<< disable_diffusion_qdm_ << finl;
-      Cerr << "diffusion_alternative_ : "<< diffusion_alternative_ << finl;
-      Cerr << "type_velocity_diffusion_form : "<< velocity_diffusion_op_.get_diffusion_op_option() << finl;
+      //Cerr << "disable_diffusion_qdm_ : "<< disable_diffusion_qdm_ << finl;
+      //Cerr << "diffusion_alternative_ : "<< diffusion_alternative_ << finl;
+      //Cerr << "type_velocity_diffusion_form : "<< velocity_diffusion_op_.get_diffusion_op_option() << finl;
       for (int k = 0; k < kmax; k++)
         {
           // #else
@@ -3259,7 +3261,7 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
       //statistiques().end_count(projection_counter_);
     }
 
-  Cerr << "Copy pressure on extended field for probes" << finl;
+  //Cerr << "Copy pressure on extended field for probes" << finl;
   copy_field_values(pressure_ghost_cells_, pressure_);
 
   if (Process::je_suis_maitre())
@@ -3515,16 +3517,16 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
   /*
    * Calculation of intersections on interface at time (n)
    */
-  Cerr << "Compute Eulerian distance and curvature fields" << finl;
+  //Cerr << "Compute Eulerian distance and curvature fields" << finl;
   thermals_.compute_eulerian_distance_curvature();
-  Cerr << "Clean IJK intersections" << finl;
+  //Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
   // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
-  Cerr << "Compute compo_connex from bounding box" << finl;
+  //Cerr << "Compute compo_connex from bounding box" << finl;
   interfaces_.compute_compo_connex_from_bounding_box();
-  Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;
+  //Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;
   interfaces_.compute_compo_connex_from_interface();
-  Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
+  //Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
   interfaces_.compute_rising_velocities_from_compo();
 
   // On supprime les duplicatas avant le transport :
@@ -3535,10 +3537,18 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
    * to use the remeshing algo
    */
   // if (counter_first_iter_ && first_step_interface_smoothing_)
-  interfaces_.transporter_maillage(timestep/* total meme si RK3*/,
-                                   var_volume_par_bulle,
-                                   rk_step, current_time_,
-                                   first_step_interface_smoothing);
+  interfaces_.transporter_maillage_deplacement(timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
+
+  // Note : Pour que l'indicatrice intermediaire puisse etre calculee,
+  // il faut dupliquer les bulles aux frontieres periodiques ; puis
+  // supprimer ces bulles pour realiser le remailage de l'interface ;
+  // puis les dupliquer a nouveau pour calculer l'indicatrice finale.
+  interfaces_.transferer_bulle_perio();
+  interfaces_.creer_duplicata_bulles();
+  update_intermediary_indicator_field();
+  interfaces_.supprimer_duplicata_bulles();
+
+  interfaces_.transporter_maillage_remaillage(var_volume_par_bulle, rk_step, current_time_);
 
   // Apres le transport, est-ce que certaines bulles reeles sont trop proche du bord
   // du domaine etendu? Si on en trouve, on les transferts :
@@ -3604,9 +3614,11 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
   // On conserve les duplicatas que l'on transporte comme le reste.
 
   // Normalement, transporter_maillage gere aussi les duplicatas...
-  interfaces_.transporter_maillage(timestep/* total meme si RK3*/,
-                                   var_volume_par_bulle,
-                                   rk_step, current_time_);
+  interfaces_.transporter_maillage_deplacement(timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
+
+  update_intermediary_indicator_field();
+
+  interfaces_.transporter_maillage_remaillage(var_volume_par_bulle, rk_step, current_time_);
 
   statistiques().end_count(deplacement_interf_counter_);
   // On verra a la fin du pas de temps si certaines bulles reeles sont trop proche du bord
@@ -4255,8 +4267,22 @@ void IJK_FT_base::update_indicator_field()
                                        );
 }
 
+void IJK_FT_base::update_intermediary_indicator_field()
+{
+  interfaces_.calculer_indicatrice_intermediaire();
+}
+
 void IJK_FT_base::update_twice_indicator_field()
 {
   for(int i=0; i<2; i++)
-    update_indicator_field();
+    {
+      update_indicator_field();
+      update_old_intersections();
+    }
 }
+
+void IJK_FT_base::update_old_intersections()
+{
+  interfaces_.update_old_intersections();
+}
+

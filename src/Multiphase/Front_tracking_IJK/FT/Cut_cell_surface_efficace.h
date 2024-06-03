@@ -29,21 +29,21 @@
 enum class TYPE_SURFACE_EFFICACE_FACE : int
 {
   NON_INITIALISE, // Valeur non valide
-  ALGEBRIQUE,     // Calcul algrebrique simple de la surface efficace
-  ITERATIF        // Calcul iteratif couteux de la surface efficace
+  ALGEBRIQUE_SIMPLE,  // Calcul algrebrique simple de la surface efficace
+  CONSERVATION_VOLUME // Calcul de la surface efficace fonde sur la conservation du volume
 };
 
 enum class TYPE_SURFACE_EFFICACE_INTERFACE : int
 {
   NON_INITIALISE, // Valeur non valide
-  ALGEBRIQUE,     // Calcul algrebrique simple de la surface efficace
-  ITERATIF        // Calcul iteratif couteux de la surface efficace
+  ALGEBRIQUE_SIMPLE,  // Calcul algrebrique simple de la surface efficace
+  CONSERVATION_VOLUME // Calcul de la surface efficace fonde sur la conservation du volume
 };
 
 class Cut_cell_surface_efficace
 {
 public:
-  static void calcul_surface_interface_effective_initiale(
+  static void calcul_surface_interface_efficace_initiale(
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const IJK_Field_double& surface_interface_ns_old,
@@ -63,7 +63,7 @@ public:
     DoubleTabFT_cut_cell_vector3& coord_deplacement_interface,
     DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface);
 
-  static void calcul_surface_interface_effective(
+  static void calcul_surface_interface_efficace(
     double timestep,
     const Cut_field_vector& velocity,
     const IJK_Field_double& old_indicatrice_ns,
@@ -72,13 +72,14 @@ public:
     const DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
     DoubleTabFT_cut_cell_scalar& surface_efficace_interface);
 
-  static void calcul_surface_face_effective_initiale(
+  static void calcul_surface_face_efficace_initiale(
     const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face_ns,
     const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face_ns,
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
 
-  static void calcul_surface_face_effective(
+  static void calcul_surface_face_efficace(
+    int verbosite_surface_efficace_face,
     double timestep,
     const Cut_field_vector& velocity,
     int& iteration_solver_surface_efficace_face,
@@ -91,24 +92,32 @@ public:
     DoubleTabFT_cut_cell_vector6& indicatrice_surfacique_efficace_face_correction,
     DoubleTabFT_cut_cell_scalar& indicatrice_surfacique_efficace_face_absolute_error);
 
-  static void imprimer_informations_surface_effective_interface(
+  static void imprimer_informations_surface_efficace_interface(
+    int verbosite_surface_efficace_interface,
     double timestep,
     const Cut_field_vector& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
-    DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
+    const DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
     const DoubleTabFT_cut_cell_scalar& surface_efficace_interface_initial,
     const DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
     const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface);
 
-  static void imprimer_informations_surface_effective_face(
+  static void imprimer_informations_surface_efficace_face(
+    int verbosite_surface_efficace_face,
     int iteration_solver_surface_efficace_face,
     double timestep,
     const Cut_field_vector& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
-    DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
+    const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
     const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
+
+  static void calcul_vitesse_remaillage(double timestep,
+                                        const IJK_Field_double& indicatrice_avant_remaillage,
+                                        const IJK_Field_double& indicatrice_apres_remaillage,
+                                        DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_intermediaire_efficace_face,
+                                        Cut_field_vector& remeshing_velocity);
 };
 
 #endif /* Cut_cell_surface_efficace_included */

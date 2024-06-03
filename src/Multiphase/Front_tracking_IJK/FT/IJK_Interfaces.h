@@ -78,11 +78,13 @@ public :
   void calculer_color(ArrOfInt& color) const;
   void postraiter_colors(Sortie& os, const double current_time) const;
 
-  void transporter_maillage(const double dt_tot,
-                            ArrOfDouble& dvol,
-                            const int rk_step,
-                            const double temps,
-                            const int first_step_interface_smoothing = 0);
+  void transporter_maillage_deplacement(const double dt_tot,
+                                        ArrOfDouble& dvol,
+                                        const int rk_step,
+                                        const int first_step_interface_smoothing = 0);
+  void transporter_maillage_remaillage(ArrOfDouble& dvol,
+                                       const int rk_step,
+                                       const double temps);
   void calculer_bounding_box_bulles(DoubleTab& bounding_box, int option_shear = 0) const;
   void preparer_duplicata_bulles(const DoubleTab& bounding_box_of_bubbles,
                                  const DoubleTab& bounding_box_offsetp,
@@ -139,12 +141,20 @@ public :
 
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
-  void calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity);
+
+  void calcul_vitesse_remaillage(double timestep, Cut_field_vector& remeshing_velocity);
+  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector& total_velocity);
+  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity);
 
   // fin de methode pour bulles fixes
   const Domaine_dis& get_domaine_dis() const
   {
     return refdomaine_dis_.valeur();
+  };
+
+  int get_dt_impression_bilan_indicatrice() const
+  {
+    return dt_impression_bilan_indicatrice_;
   };
 
   int get_nb_bulles_reelles() const
@@ -247,6 +257,12 @@ public :
     return;
   };
 
+  void parcourir_maillage_intermediaire()
+  {
+    maillage_intermediaire_ft_ijk_.parcourir_maillage();
+    return;
+  };
+
   void RK3_G_store_vi_resize(int n, int n2)
   {
     RK3_G_store_vi_.resize(n, n2);
@@ -274,6 +290,11 @@ public :
   const Maillage_FT_IJK& maillage_ft_ijk() const
   {
     return maillage_ft_ijk_;
+  }
+
+  const Maillage_FT_IJK& maillage_intermediaire_ft_ijk() const
+  {
+    return maillage_intermediaire_ft_ijk_;
   }
 
   const Remaillage_FT_IJK& remaillage_ft_ijk() const
@@ -404,8 +425,14 @@ public :
   {
     return barycentre_phase1_ns_[next()];
   }
-  double get_barycentre_old(int dir, int phase, int i, int j, int k, double old_indicatrice, double next_indicatrice) const
+  double get_barycentre(bool next_time, int dir, int phase, int i, int j, int k, double old_indicatrice, double next_indicatrice) const
   {
+    int current_time = next_time ? next() : old();
+    int other_time = next_time ? old() : next();
+
+    double current_indicatrice = next_time ? next_indicatrice : old_indicatrice;
+    double other_time_indicatrice = next_time ? old_indicatrice : next_indicatrice;
+
     if ((old_indicatrice == 0.) && (next_indicatrice == 0.))
       {
         return .5;
@@ -414,17 +441,17 @@ public :
       {
         return .5;
       }
-    else if (old_indicatrice == 0.)
+    else if (current_indicatrice == 0.)
       {
-        assert(barycentre_phase1_ns_[old()][dir](i,j,k) == .5);
+        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
         if (phase == 0)
           {
             return .5;
           }
         else
           {
-            double next_bary_dir = barycentre_phase1_ns_[next()][dir](i,j,k);
-            if (next_bary_dir > .5)
+            double other_time_bary_dir = barycentre_phase1_ns_[other_time][dir](i,j,k);
+            if (other_time_bary_dir > .5)
               {
                 return 1;
               }
@@ -434,18 +461,18 @@ public :
               }
           }
       }
-    else if (old_indicatrice == 1.)
+    else if (current_indicatrice == 1.)
       {
-        assert(barycentre_phase1_ns_[old()][dir](i,j,k) == .5);
+        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
         if (phase == 1)
           {
             return .5;
           }
         else
           {
-            double next_bary_dir = barycentre_phase1_ns_[next()][dir](i,j,k);
-            next_bary_dir = opposing_barycentre(next_bary_dir, next_indicatrice);
-            if (next_bary_dir > .5)
+            double other_time_bary_dir = barycentre_phase1_ns_[other_time][dir](i,j,k);
+            other_time_bary_dir = opposing_barycentre(other_time_bary_dir, other_time_indicatrice);
+            if (other_time_bary_dir > .5)
               {
                 return 1;
               }
@@ -457,79 +484,23 @@ public :
       }
     else
       {
-        double bary_dir = barycentre_phase1_ns_[old()][dir](i,j,k);
+        double bary_dir = barycentre_phase1_ns_[current_time][dir](i,j,k);
 
         if (phase == 0)
           {
-            bary_dir = opposing_barycentre(bary_dir, old_indicatrice);
+            bary_dir = opposing_barycentre(bary_dir, current_indicatrice);
           }
         return bary_dir;
       }
   }
-  double get_barycentre_next(int dir, int phase, int i, int j, int k, double old_indicatrice, double next_indicatrice) const
+  double get_barycentre_face(bool next_time, int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
   {
-    if ((old_indicatrice == 0.) && (next_indicatrice == 0.))
-      {
-        return .5;
-      }
-    else if ((old_indicatrice == 1.) && (next_indicatrice == 1.))
-      {
-        return .5;
-      }
-    else if (next_indicatrice == 0.)
-      {
-        assert(barycentre_phase1_ns_[next()][dir](i,j,k) == .5);
-        if (phase == 0)
-          {
-            return .5;
-          }
-        else
-          {
-            double old_bary_dir = barycentre_phase1_ns_[old()][dir](i,j,k);
-            if (old_bary_dir > .5)
-              {
-                return 1;
-              }
-            else
-              {
-                return 0;
-              }
-          }
-      }
-    else if (next_indicatrice == 1.)
-      {
-        assert(barycentre_phase1_ns_[next()][dir](i,j,k) == .5);
-        if (phase == 1)
-          {
-            return .5;
-          }
-        else
-          {
-            double old_bary_dir = barycentre_phase1_ns_[old()][dir](i,j,k);
-            old_bary_dir = opposing_barycentre(old_bary_dir, old_indicatrice);
-            if (old_bary_dir > .5)
-              {
-                return 1;
-              }
-            else
-              {
-                return 0;
-              }
-          }
-      }
-    else
-      {
-        double bary_dir = barycentre_phase1_ns_[next()][dir](i,j,k);
+    int current_time = next_time ? next() : old();
+    int other_time = next_time ? old() : next();
 
-        if (phase == 0)
-          {
-            bary_dir = opposing_barycentre(bary_dir, next_indicatrice);
-          }
-        return bary_dir;
-      }
-  }
-  double get_barycentre_face_old(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
-  {
+    double current_indicatrice_surfacique = next_time ? next_indicatrice_surfacique : old_indicatrice_surfacique;
+    double other_time_indicatrice_surfacique = next_time ? old_indicatrice_surfacique : next_indicatrice_surfacique;
+
     if (face_dir == dir)
       {
         return 0.;
@@ -552,17 +523,17 @@ public :
           {
             return .5;
           }
-        else if (old_indicatrice_surfacique == 0.)
+        else if (current_indicatrice_surfacique == 0.)
           {
-            assert(barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k) == .5);
+            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
             if (phase == 0)
               {
                 return .5;
               }
             else
               {
-                double next_bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
-                if (next_bary_dir > .5)
+                double other_time_bary_dir = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
+                if (other_time_bary_dir > .5)
                   {
                     return 1;
                   }
@@ -572,18 +543,18 @@ public :
                   }
               }
           }
-        else if (old_indicatrice_surfacique == 1.)
+        else if (current_indicatrice_surfacique == 1.)
           {
-            assert(barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k) == .5);
+            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
             if (phase == 1)
               {
                 return .5;
               }
             else
               {
-                double next_bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
-                next_bary_dir = opposing_barycentre(next_bary_dir, next_indicatrice_surfacique);
-                if (next_bary_dir > .5)
+                double other_time_bary_dir = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
+                other_time_bary_dir = opposing_barycentre(other_time_bary_dir, other_time_indicatrice_surfacique);
+                if (other_time_bary_dir > .5)
                   {
                     return 1;
                   }
@@ -595,242 +566,11 @@ public :
           }
         else
           {
-            double bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
+            double bary_dir = barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k);
 
             if (phase == 0)
               {
-                bary_dir = opposing_barycentre(bary_dir, old_indicatrice_surfacique);
-              }
-            return bary_dir;
-          }
-      }
-  }
-  double get_barycentre_face_next(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
-  {
-    if (face_dir == dir)
-      {
-        return 0.;
-      }
-    else
-      {
-        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
-        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
-        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
-        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
-                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
-                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
-                        -1));
-        assert(dir2D >= 0);
-        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
-        {
-            return .5;
-          }
-        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
-          {
-            return .5;
-          }
-        else if (next_indicatrice_surfacique == 0.)
-          {
-            assert(barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 0)
-              {
-                return .5;
-              }
-            else
-              {
-                double old_bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
-                if (old_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else if (next_indicatrice_surfacique == 1.)
-          {
-            assert(barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 1)
-              {
-                return .5;
-              }
-            else
-              {
-                double old_bary_dir = barycentre_phase1_face_ns_[old()][face_dir][dir2D](i,j,k);
-                old_bary_dir = opposing_barycentre(old_bary_dir, old_indicatrice_surfacique);
-                if (old_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else
-          {
-            double bary_dir = barycentre_phase1_face_ns_[next()][face_dir][dir2D](i,j,k);
-
-            if (phase == 0)
-              {
-                bary_dir = opposing_barycentre(bary_dir, next_indicatrice_surfacique);
-              }
-            return bary_dir;
-          }
-      }
-  }
-  double get_barycentre_face_old_ft(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
-  {
-    if (face_dir == dir)
-      {
-        return 0.;
-      }
-    else
-      {
-        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
-        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
-        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
-        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
-                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
-                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
-                        -1));
-        assert(dir2D >= 0);
-        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
-        {
-            return .5;
-          }
-        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
-          {
-            return .5;
-          }
-        else if (old_indicatrice_surfacique == 0.)
-          {
-            assert(barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 0)
-              {
-                return .5;
-              }
-            else
-              {
-                double next_bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
-                if (next_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else if (old_indicatrice_surfacique == 1.)
-          {
-            assert(barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 1)
-              {
-                return .5;
-              }
-            else
-              {
-                double next_bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
-                next_bary_dir = opposing_barycentre(next_bary_dir, next_indicatrice_surfacique);
-                if (next_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else
-          {
-            double bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
-
-            if (phase == 0)
-              {
-                bary_dir = opposing_barycentre(bary_dir, old_indicatrice_surfacique);
-              }
-            return bary_dir;
-          }
-      }
-  }
-  double get_barycentre_face_next_ft(int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
-  {
-    if (face_dir == dir)
-      {
-        return 0.;
-      }
-    else
-      {
-        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
-        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
-        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
-        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
-                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
-                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
-                        -1));
-        assert(dir2D >= 0);
-        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
-        {
-            return .5;
-          }
-        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
-          {
-            return .5;
-          }
-        else if (next_indicatrice_surfacique == 0.)
-          {
-            assert(barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 0)
-              {
-                return .5;
-              }
-            else
-              {
-                double old_bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
-                if (old_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else if (next_indicatrice_surfacique == 1.)
-          {
-            assert(barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 1)
-              {
-                return .5;
-              }
-            else
-              {
-                double old_bary_dir = barycentre_phase1_face_ft_[old()][face_dir][dir2D](i,j,k);
-                old_bary_dir = opposing_barycentre(old_bary_dir, old_indicatrice_surfacique);
-                if (old_bary_dir > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else
-          {
-            double bary_dir = barycentre_phase1_face_ft_[next()][face_dir][dir2D](i,j,k);
-
-            if (phase == 0)
-              {
-                bary_dir = opposing_barycentre(bary_dir, next_indicatrice_surfacique);
+                bary_dir = opposing_barycentre(bary_dir, current_indicatrice_surfacique);
               }
             return bary_dir;
           }
@@ -1133,6 +873,7 @@ public :
     return (surface_vapeur_par_face_ns_[old()][compo](i, j, k) + surface_vapeur_par_face_ns_[next()][compo](i, j, k)) * 0.5;
   }
 
+  void update_old_intersections(); // Copie de l'interface et des intersections associees au pas de temps precedent
   void switch_indicatrice_next_old();
   void calculer_indicatrice_next(
     IJK_Field_double& field_repulsion,
@@ -1141,6 +882,9 @@ public :
     const double sigma,
     const double time,
     const int itstep,
+    const bool parcourir = true
+  );
+  void calculer_indicatrice_intermediaire(
     const bool parcourir = true
   );
   void set_compute_surfaces_mouillees() { surface_vapeur_par_face_computation_.set_compute_surfaces_mouillees(); }
@@ -1349,6 +1093,7 @@ protected:
   int parser_;
   // Stockage du maillage:
   Maillage_FT_IJK maillage_ft_ijk_;
+  Maillage_FT_IJK maillage_intermediaire_ft_ijk_;
 
   // Tableau intermediaire pour le deplacement des marqueurs en RK3 :
   DoubleTab RK3_G_store_vi_;
@@ -1445,6 +1190,10 @@ protected:
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
 
+  // Indicatrice apres le deplacement de l'interface mais avant le remaillage/lissage de l'interface
+  IJK_Field_double indicatrice_intermediaire_ns_;
+  IJK_Field_double indicatrice_intermediaire_ft_;
+
   FixedVector<IJK_Field_double, 2> surface_interface_ns_;
   FixedVector<IJK_Field_double, 2> surface_interface_ft_;
 
@@ -1457,8 +1206,15 @@ protected:
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ns_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ft_;
 
+  // Indicatrice surfacique apres le deplacement de l'interface mais avant le remaillage/lissage de l'interface
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_intermediaire_face_ns_;
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_intermediaire_face_ft_;
+
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ns_;
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ft_;
+
+  FixedVector<FixedVector<IJK_Field_double, 2>, 3> barycentre_phase1_intermediaire_face_ns_;
+  FixedVector<FixedVector<IJK_Field_double, 2>, 3> barycentre_phase1_intermediaire_face_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
@@ -1486,6 +1242,9 @@ protected:
 
   IJK_Composantes_Connex ijk_compo_connex_;
 
+  int dt_impression_bilan_indicatrice_;
+  int verbosite_surface_efficace_face_;
+  int verbosite_surface_efficace_interface_;
   double seuil_indicatrice_petite_;
 
   // Pour le calcul des champs cut-cell
@@ -1494,6 +1253,7 @@ protected:
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
   DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
   DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
+  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_intermediaire_efficace_face_;
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_;
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_initial_;
   DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;

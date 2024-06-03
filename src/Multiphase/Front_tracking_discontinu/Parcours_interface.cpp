@@ -29,6 +29,7 @@
 #include <Scatter.h>
 #include <Debog.h>
 #include <FTd_tools.h>
+#include <IJK_Navier_Stokes_tools.h>
 //#define EXTENSION_TRIANGLE_POUR_CALCUL_INDIC_AVEC_CONSERVATION_FACETTE_COIN
 Implemente_instanciable_sans_constructeur(Parcours_interface,"Parcours_interface",Objet_U);
 
@@ -2119,7 +2120,7 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
       barycentre[2] /= abs(volume);
     }
 
-  if (std::abs(volume) > 1e-15)
+  if (std::abs(volume) > 1e-11)
     {
       assert(barycentre[0] != 0);
       assert(barycentre[1] != 0);
@@ -2140,11 +2141,6 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
 #endif
 
   return {volume, {barycentre[0], barycentre[1], barycentre[2]}};
-}
-
-inline int select(int a, int x, int y,int z)
-{
-  return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
 }
 
 /*! @brief Calcul de la contribution d'une facette a l'indicatrice surfacique et au barycentre sur une face d'un element.

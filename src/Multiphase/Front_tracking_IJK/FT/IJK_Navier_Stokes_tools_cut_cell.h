@@ -18,9 +18,12 @@
 
 #include <Champ_diphasique.h>
 
-void ijk_interpolate_cut_cell(int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result);
+void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result);
 
-void ijk_interpolate_cut_cell_skip_unknown_points(int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result,
-                                                  const double value_for_bad_points);
+void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points);
+
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status);
+
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
 
 #endif /* IJK_Navier_Stokes_tools_cut_cell_included */

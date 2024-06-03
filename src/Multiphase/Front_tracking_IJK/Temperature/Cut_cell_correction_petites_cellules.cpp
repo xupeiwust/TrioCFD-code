@@ -33,7 +33,11 @@ void Cut_cell_correction_petites_cellules::modification_flux_petites_cellules(CO
         }
     }
 
-  if (correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_2 || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2)
+  if (correction_petites_cellules == CORRECTION_PETITES_CELLULES::CORRECTION_DIRECTE)
+    {
+      // Ne fait rien
+    }
+  else if (correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_2 || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2)
     {
       int direction_positive = quantite_totale > 0;
       double flux_max_positif = 0.;
@@ -73,14 +77,14 @@ void Cut_cell_correction_petites_cellules::modification_flux_petites_cellules(CO
 
 void Cut_cell_correction_petites_cellules::limitation_flux_avec_flux_max(CORRECTION_PETITES_CELLULES correction_petites_cellules, double quantite_totale, double somme_flux, double flux_max[6], double flux[6])
 {
-  // Je pense que tous les flux et flux_max sont positifs
-  assert((flux[0] >= 0 && flux[1] >= 0 && flux[2] >= 0 && flux[3] >= 0 && flux[4] >= 0 && flux[5] >= 0));
-  assert((flux_max[0] >= 0 && flux_max[1] >= 0 && flux_max[2] >= 0 && flux_max[3] >= 0 && flux_max[4] >= 0 && flux_max[5] >= 0));
-
   // Ne fait rien si l'option n'inclue pas une limitation ou egalement
   // si le changmeent total a effectuer est nul
   if (quantite_totale != 0 && (correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION || correction_petites_cellules == CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2 || correction_petites_cellules == CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE_AVEC_LIMITATION))
     {
+      // Je pense que tous les flux et flux_max sont positifs
+      assert((flux[0] >= 0 && flux[1] >= 0 && flux[2] >= 0 && flux[3] >= 0 && flux[4] >= 0 && flux[5] >= 0));
+      assert((flux_max[0] >= 0 && flux_max[1] >= 0 && flux_max[2] >= 0 && flux_max[3] >= 0 && flux_max[4] >= 0 && flux_max[5] >= 0));
+
       int number_of_unlimited_cells = 0.; // Compte le nombre de flux sans limite
       double excess_fluxes = 0.; // Ce qu'il faut repartir a la suite de la limitation
       double flux_room[6] = {0}; // Espace disponible pour la repartition les flux (0 = pas de limites)

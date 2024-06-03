@@ -404,7 +404,7 @@ public:
   void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
 
   virtual void calculer_ecart_T_ana();
-  void compute_interfacial_temperature2(
+  virtual void compute_interfacial_temperature2(
     ArrOfDouble& interfacial_temperature,
     ArrOfDouble& flux_normal_interp); //const ;
 #if 0

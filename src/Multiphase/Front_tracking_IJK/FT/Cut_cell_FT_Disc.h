@@ -23,6 +23,7 @@
 #include <IJK_Splitting.h>
 #include <Champ_diphasique.h>
 #include <IJK_Field_simd_tools.h>
+#include <IJK_Navier_Stokes_tools.h>
 
 /*! @brief : class Cut_cell_FT_Disc
  *
@@ -70,14 +71,14 @@ public:
   void echange_espace_virtuel(MD_Vector_tools::Operations_echange op);
 
   void update_index_sorted_by_k();
+  void update_index_sorted_by_indicatrice(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
   void update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
-
-  static inline int int_indicatrice(double indicatrice);
 
   template<typename T>
   void fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component = 0);
 
   void remplir_indice_diphasique();
+  void remove_dead_and_virtual_cells(const IJK_Field_double& next_indicatrice);
 
   bool verifier_coherence_coord_linear_index();
   bool verifier_taille_tableaux();
@@ -103,9 +104,7 @@ public:
   const IJK_Interfaces& get_interfaces() const { return interfaces_; }
   const IJK_Splitting& get_splitting() const { return splitting_; }
   const Desc_Structure_FT& get_desc_structure() const { return desc_; }
-  IJK_Field_int& get_treatment_count() { return treatment_count_; }
 
-  inline int new_treatment();
   inline Int3 ijk_per_of_index(int i, int j, int k, int index) const;
   inline int next_index_ijk_per(int i, int j, int k, int index, int negative_ghost_size, int positive_ghost_size) const;
   inline Int3 get_ijk(int n) const;
@@ -123,10 +122,12 @@ public:
 
   inline int get_k_value_index(int k) const;
   inline int get_n_from_k_index(int index) const;
+  inline int get_n_from_indicatrice_index(int index) const;
   inline int get_statut_diphasique_value_index(int statut_diphasique) const;
   inline int get_n_from_statut_diphasique_index(int index) const;
 
-  static inline int get_i_selon_dir(int direction, double coord_dir, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value);
+  inline int get_i_selon_dir(int direction, double coord_dir) const;
+  static inline int get_i_selon_dir(int direction, double coord_dir, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value, bool ignore_invalid_values);
   static inline Int3 get_ijk_from_coord(double coord_x, double coord_y, double coord_z, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value);
   static inline Int3 get_ijk_from_linear_index(int linear_index, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value);
   static inline int get_linear_index(int i, int j, int k, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value);
@@ -157,19 +158,12 @@ protected:
   // Ce tableau semble pertinent pour acceder aux cellules diphasiques voisines.
   IJK_Field_int indice_diphasique_;
 
-  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
-  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
-  IJK_Field_int treatment_count_;
-
   Schema_Comm_FT schema_comm_;
   Desc_Structure_FT desc_;
 
   IJK_Interfaces& interfaces_;
   IJK_Splitting& splitting_;
   int ghost_size_;
-
-  // Compteur du dernier traitement effectue dans treatment_count_
-  int new_treatment_;
 
   // Compteur du nombre de mise a jour des champs diphasiques
   int processed_count_;
@@ -185,9 +179,13 @@ protected:
   IntTabFT_cut_cell_vector2 index_sorted_by_k_;
   IntTabFT k_value_index_;
 
+  // Tableaux pour permettre le parcours des cellules diphasiques dans le
+  // sens d'une indicatrice croissante
+  DoubleTabFT_cut_cell_vector3 index_sorted_by_indicatrice_;
+
   // Tableaux pour permettre le parcours des cellules diphasiques selon le
   // statut_diphasique (pour les cellules naissantes ou mourrantes)
-  IntTabFT_cut_cell_vector2 index_sorted_by_statut_diphasique_;
+  IntTabFT_cut_cell_vector3 index_sorted_by_statut_diphasique_;
   IntTabFT statut_diphasique_value_index_;
 
   // linear_index_ est l'indice lineaire IJK de la cellule diphasique.
@@ -267,13 +265,7 @@ inline void Cut_cell_FT_Disc::add_to_lazy_int_data(IntTabFT_cut_cell& field, int
   lazy_int_data_.add(field);
 }
 
-inline int Cut_cell_FT_Disc::int_indicatrice(double indicatrice)
-{
-  int indicatrice_step = 1000000;
-  return (int)(indicatrice_step * indicatrice);
-}
-
-inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value)
+inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value, bool ignore_invalid_values)
 {
   const int offset_dir = splitting.get_offset_local(direction);
   double origin_dir = splitting.get_grid_geometry().get_origin(direction);
@@ -301,8 +293,11 @@ inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir, in
                 }
               else
                 {
-                  Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << " (which is not periodic)." << finl;
-                  assert(false);
+                  if (!(ignore_invalid_values))
+                    {
+                      Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << " (which is not periodic)." << finl;
+                      assert(false);
+                    }
                 }
             }
           else if (index >= n + ghost_size)
@@ -313,16 +308,22 @@ inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir, in
                 }
               else
                 {
-                  Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << " (which is not periodic)." << finl;
-                  assert(false);
+                  if (!(ignore_invalid_values))
+                    {
+                      Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << " (which is not periodic)." << finl;
+                      assert(false);
+                    }
                 }
             }
 
           index = (int)(std::floor((coord_dir - origin_dir)/d)) - offset_dir;
           if ((index < -ghost_size) || (index >= n + ghost_size))
             {
-              Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << finl;
-              assert(false);
+              if (!(ignore_invalid_values))
+                {
+                  Cerr << "Error: In get_ijk_from_coord(), invalid index along direction " << direction << finl;
+                  assert(false);
+                }
             }
         }
     }
@@ -335,11 +336,17 @@ inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir, in
   return index;
 }
 
+inline int Cut_cell_FT_Disc::get_i_selon_dir(int direction, double coord_dir) const
+{
+  return get_i_selon_dir(direction, coord_dir, ghost_size_, splitting_, false, false);
+}
+
+
 inline Int3 Cut_cell_FT_Disc::get_ijk_from_coord(double coord_x, double coord_y, double coord_z, int ghost_size, const IJK_Splitting& splitting, bool expect_local_value)
 {
-  int i = get_i_selon_dir(0, coord_x, ghost_size, splitting, expect_local_value);
-  int j = get_i_selon_dir(1, coord_y, ghost_size, splitting, expect_local_value);
-  int k = get_i_selon_dir(2, coord_z, ghost_size, splitting, expect_local_value);
+  int i = get_i_selon_dir(0, coord_x, ghost_size, splitting, expect_local_value, false);
+  int j = get_i_selon_dir(1, coord_y, ghost_size, splitting, expect_local_value, false);
+  int k = get_i_selon_dir(2, coord_z, ghost_size, splitting, expect_local_value, false);
 
   if (expect_local_value)
     {
@@ -413,21 +420,10 @@ inline int Cut_cell_FT_Disc::get_linear_index(int i, int j, int k, int ghost_siz
   return linear_index;
 }
 
-inline int select(int a, int x, int y,int z)
-{
-  return (((a%3)==0)?(x):(((a%3)==1)?(y):(z)));
-}
-
-inline int Cut_cell_FT_Disc::new_treatment()
-{
-  new_treatment_ += 1;
-  return new_treatment_;
-}
-
 inline Int3 Cut_cell_FT_Disc::ijk_per_of_index(int i, int j, int k, int index) const
 {
   assert(index >= 0);
-  assert(index <= 6);
+  assert(index <= 26);
   if (index == 0)
     {
       return {i, j, k};
@@ -502,6 +498,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                           return next_index;
                         }
 
+                      int per_x_debut_boucle_2 = per_x;
+                      int per_y_debut_boucle_2 = per_y;
+                      int per_z_debut_boucle_2 = per_z;
                       for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
                         {
                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_2))
@@ -515,9 +514,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                   if (i_dir_2 < positive_ghost_size)
                                     {
-                                      per_x += (dir_2 == 0)*1;
-                                      per_y += (dir_2 == 1)*1;
-                                      per_z += (dir_2 == 2)*1;
+                                      per_x = per_x_debut_boucle_2 + (dir_2 == 0)*1;
+                                      per_y = per_y_debut_boucle_2 + (dir_2 == 1)*1;
+                                      per_z = per_z_debut_boucle_2 + (dir_2 == 2)*1;
 
                                       next_index = per_x + per_y*3 + per_z*9;
                                       if (next_index > index)
@@ -525,6 +524,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                           return next_index;
                                         }
 
+                                      int per_x_debut_boucle_3 = per_x;
+                                      int per_y_debut_boucle_3 = per_y;
+                                      int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
                                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
@@ -538,9 +540,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*1;
-                                                      per_y += (dir_3 == 1)*1;
-                                                      per_z += (dir_3 == 2)*1;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*1;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*1;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*1;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -550,9 +552,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                                     }
                                                   if (i_dir_3 >= n_dir_3 - negative_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*2;
-                                                      per_y += (dir_3 == 1)*2;
-                                                      per_z += (dir_3 == 2)*2;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*2;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*2;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*2;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -566,9 +568,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                     }
                                   if (i_dir_2 >= n_dir_2 - negative_ghost_size)
                                     {
-                                      per_x += (dir_2 == 0)*2;
-                                      per_y += (dir_2 == 1)*2;
-                                      per_z += (dir_2 == 2)*2;
+                                      per_x = per_x_debut_boucle_2 + (dir_2 == 0)*2;
+                                      per_y = per_y_debut_boucle_2 + (dir_2 == 1)*2;
+                                      per_z = per_z_debut_boucle_2 + (dir_2 == 2)*2;
 
                                       next_index = per_x + per_y*3 + per_z*9;
                                       if (next_index > index)
@@ -576,6 +578,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                           return next_index;
                                         }
 
+                                      int per_x_debut_boucle_3 = per_x;
+                                      int per_y_debut_boucle_3 = per_y;
+                                      int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
                                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
@@ -589,9 +594,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*1;
-                                                      per_y += (dir_3 == 1)*1;
-                                                      per_z += (dir_3 == 2)*1;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*1;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*1;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*1;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -601,9 +606,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                                     }
                                                   if (i_dir_3 >= n_dir_3 - negative_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*2;
-                                                      per_y += (dir_3 == 1)*2;
-                                                      per_z += (dir_3 == 2)*2;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*2;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*2;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*2;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -631,6 +636,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                           return next_index;
                         }
 
+                      int per_x_debut_boucle_2 = per_x;
+                      int per_y_debut_boucle_2 = per_y;
+                      int per_z_debut_boucle_2 = per_z;
                       for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
                         {
                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_2))
@@ -644,9 +652,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                   if (i_dir_2 < positive_ghost_size)
                                     {
-                                      per_x += (dir_2 == 0)*1;
-                                      per_y += (dir_2 == 1)*1;
-                                      per_z += (dir_2 == 2)*1;
+                                      per_x = per_x_debut_boucle_2 + (dir_2 == 0)*1;
+                                      per_y = per_y_debut_boucle_2 + (dir_2 == 1)*1;
+                                      per_z = per_z_debut_boucle_2 + (dir_2 == 2)*1;
 
                                       next_index = per_x + per_y*3 + per_z*9;
                                       if (next_index > index)
@@ -654,6 +662,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                           return next_index;
                                         }
 
+                                      int per_x_debut_boucle_3 = per_x;
+                                      int per_y_debut_boucle_3 = per_y;
+                                      int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
                                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
@@ -667,9 +678,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*1;
-                                                      per_y += (dir_3 == 1)*1;
-                                                      per_z += (dir_3 == 2)*1;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*1;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*1;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*1;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -679,9 +690,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                                     }
                                                   if (i_dir_3 >= n_dir_3 - negative_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*2;
-                                                      per_y += (dir_3 == 1)*2;
-                                                      per_z += (dir_3 == 2)*2;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*2;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*2;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*2;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -695,9 +706,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                     }
                                   if (i_dir_2 >= n_dir_2 - negative_ghost_size)
                                     {
-                                      per_x += (dir_2 == 0)*2;
-                                      per_y += (dir_2 == 1)*2;
-                                      per_z += (dir_2 == 2)*2;
+                                      per_x = per_x_debut_boucle_2 + (dir_2 == 0)*2;
+                                      per_y = per_y_debut_boucle_2 + (dir_2 == 1)*2;
+                                      per_z = per_z_debut_boucle_2 + (dir_2 == 2)*2;
 
                                       next_index = per_x + per_y*3 + per_z*9;
                                       if (next_index > index)
@@ -705,6 +716,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                           return next_index;
                                         }
 
+                                      int per_x_debut_boucle_3 = per_x;
+                                      int per_y_debut_boucle_3 = per_y;
+                                      int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
                                           if (splitting_.get_grid_geometry().get_periodic_flag(dir_3))
@@ -718,9 +732,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*1;
-                                                      per_y += (dir_3 == 1)*1;
-                                                      per_z += (dir_3 == 2)*1;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*1;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*1;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*1;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -730,9 +744,9 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                                     }
                                                   if (i_dir_3 >= n_dir_3 - negative_ghost_size)
                                                     {
-                                                      per_x += (dir_3 == 0)*2;
-                                                      per_y += (dir_3 == 1)*2;
-                                                      per_z += (dir_3 == 2)*2;
+                                                      per_x = per_x_debut_boucle_3 + (dir_3 == 0)*2;
+                                                      per_y = per_y_debut_boucle_3 + (dir_3 == 1)*2;
+                                                      per_z = per_z_debut_boucle_3 + (dir_3 == 2)*2;
 
                                                       next_index = per_x + per_y*3 + per_z*9;
                                                       if (next_index > index)
@@ -851,13 +865,28 @@ inline bool Cut_cell_FT_Disc::within_ghost_(int i, int j, int k, int negative_gh
 inline int Cut_cell_FT_Disc::get_k_value_index(int k) const
 {
   assert(k <= splitting_.get_nb_elem_local(2) + 2*ghost_size_);
-  return k_value_index_(k + 2);
+  return k_value_index_(k + ghost_size_);
 }
 
 inline int Cut_cell_FT_Disc::get_n_from_k_index(int index) const
 {
   assert(index >= 0);
   return index_sorted_by_k_(index,0);
+}
+
+inline int Cut_cell_FT_Disc::get_n_from_indicatrice_index(int index) const
+{
+  assert(index >= 0);
+
+  union
+  {
+    double d;
+    long long int i;
+  } u;
+  u.d = index_sorted_by_indicatrice_(index,0);
+
+  // Retrieving the bits of the index, which were stored into a double variable.
+  return (int)(u.i);
 }
 
 inline int Cut_cell_FT_Disc::get_statut_diphasique_value_index(int statut_diphasique) const
@@ -880,6 +909,7 @@ inline int Cut_cell_FT_Disc::periodic_get_processor_by_ijk(int slice_i, int slic
 
   const IJK_Grid_Geometry& geom = splitting_.get_grid_geometry();
 
+  // Correction du processeur a chercher dans le cas periodique
   if (geom.get_periodic_flag(0) && (slice_i < 0))
     {
       periodic_slice_i += splitting_.get_nprocessor_per_direction(0);
@@ -907,7 +937,38 @@ inline int Cut_cell_FT_Disc::periodic_get_processor_by_ijk(int slice_i, int slic
       periodic_slice_k -= splitting_.get_nprocessor_per_direction(2);
     }
 
-  return splitting_.get_processor_by_ijk(periodic_slice_i, periodic_slice_j, periodic_slice_k);
+  // Si on est pas periodique dans une direction, on retourne -1 pour indiquer l'absence de processeur
+  if ((!geom.get_periodic_flag(0)) && (slice_i < 0))
+    {
+      return -1;
+    }
+  else if ((!geom.get_periodic_flag(0)) && (slice_i >= splitting_.get_nprocessor_per_direction(0)))
+    {
+      return -1;
+    }
+
+  if ((!geom.get_periodic_flag(1)) && (slice_j < 0))
+    {
+      return -1;
+    }
+  else if ((!geom.get_periodic_flag(1)) && (slice_j >= splitting_.get_nprocessor_per_direction(1)))
+    {
+      return -1;
+    }
+
+  if ((!geom.get_periodic_flag(2)) && (slice_k < 0))
+    {
+      return -1;
+    }
+  else if ((!geom.get_periodic_flag(2)) && (slice_k >= splitting_.get_nprocessor_per_direction(2)))
+    {
+      return -1;
+    }
+  else
+    {
+      // Sinon, on retourne le numero du processeur
+      return splitting_.get_processor_by_ijk(periodic_slice_i, periodic_slice_j, periodic_slice_k);
+    }
 }
 
 #endif /* Cut_cell_FT_Disc_included */

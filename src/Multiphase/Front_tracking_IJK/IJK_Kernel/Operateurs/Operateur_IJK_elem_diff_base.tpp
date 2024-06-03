@@ -367,10 +367,11 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
 
   const IJK_Field_local_double& input_field = *input_field_;
   const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
-  Cut_cell_FT_Disc& cut_cell_disc = cut_cell_flux_->get_cut_cell_disc();
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_cell_flux_->get_cut_cell_disc();
 
-  IJK_Field_int& treatment_count = cut_cell_disc.get_treatment_count();
-  int new_treatment = cut_cell_disc.new_treatment();
+  IJK_Field_int& treatment_count = *treatment_count_;
+  int& new_treatment = *new_treatment_;
+  new_treatment += 1;
 
   int backward_receptive_stencil = 0;
   int forward_receptive_stencil = 1;
@@ -465,10 +466,10 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                       double old_indicatrice_left = cut_cell_disc.get_interfaces().I(i-dir_i,j-dir_j,k-dir_k);
                       double old_indicatrice_centre = cut_cell_disc.get_interfaces().I(i,j,k);
 
-                      double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i-dir_i,j-dir_j,k-dir_k, old_indicatrice_left, indicatrice_left);
+                      double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k, old_indicatrice_left, indicatrice_left);
                       assert((n_left >= 0) || (bar_dir_left == .5));
 
-                      double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre_next(dir, phase, i,j,k, old_indicatrice_centre, indicatrice_centre);
+                      double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k, old_indicatrice_centre, indicatrice_centre);
                       assert((n_centre >= 0) || (bar_dir_centre == .5));
 
                       Vecteur3 surface_d0_d1 = compute_surface_d0_d1_<_DIR_>(k);
@@ -499,16 +500,18 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                       int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_centre, indicatrice_centre);
 
                       double flux_value;
-                      if (devient_pure_centre || devient_pure_left || devient_diphasique_centre || devient_diphasique_left) //|| petit_centre || petit_left)
+                      if (devient_pure_centre || devient_pure_left)
                         {
                           flux_value = 0.;
                         }
-                      else if (*ignore_small_cells_ && (petit_centre || petit_left))
+                      else if (*ignore_small_cells_ && (petit_centre || petit_left || devient_diphasique_centre || devient_diphasique_left))
                         {
                           flux_value = 0.;
                         }
                       else
                         {
+                          assert(input_left != 0.);
+                          assert(input_centre != 0.);
                           flux_value = Operateur_IJK_elem_diff_base_double::compute_flux_local_<_DIR_>(d0, d1, surface, input_left, input_centre, lambda_value, lambda_value, struct_model);
                         }
 

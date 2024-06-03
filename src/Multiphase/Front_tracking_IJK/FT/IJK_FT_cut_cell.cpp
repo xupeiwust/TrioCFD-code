@@ -31,9 +31,13 @@
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
 IJK_FT_cut_cell::IJK_FT_cut_cell():
   cut_cell_disc_(interfaces_, splitting_),
-  cut_field_velocity_(velocity_)
+  cut_field_velocity_(velocity_),
+  cut_field_remeshing_velocity_(remeshing_velocity_),
+  cut_field_total_velocity_(total_velocity_)
 {
   cut_field_velocity_.associer_persistant(cut_cell_disc_);
+  cut_field_remeshing_velocity_.associer_ephemere(cut_cell_disc_);
+  cut_field_total_velocity_.associer_ephemere(cut_cell_disc_);
 }
 
 Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
@@ -63,10 +67,12 @@ void IJK_FT_cut_cell::run()
                                   delta_z_local_);
   Cerr << "IJK_FT_cut_cell::run()" << finl;
   int nalloc = 0;
-  thermal_probes_ghost_cells_ = 2;
+  thermal_probes_ghost_cells_ = 4;
   thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
   allocate_velocity(velocity_, splitting_, thermal_probes_ghost_cells_);
+  allocate_velocity(remeshing_velocity_, splitting_, thermal_probes_ghost_cells_);
+  allocate_velocity(total_velocity_, splitting_, thermal_probes_ghost_cells_);
   allocate_velocity(d_velocity_, splitting_, 1);
   nalloc += 6;
   // GAB, qdm
@@ -545,14 +551,15 @@ void IJK_FT_cut_cell::run()
 
       if (timestep_facsec_ > 0.)
         {
-          timestep_ = find_timestep(max_timestep, cfl_, fo_, oh_);
+          double max_post_simu_timestep = post_.get_timestep_simu_post(current_time_, max_simu_time_);
+          timestep_ = find_timestep(std::min(max_timestep, max_post_simu_timestep), cfl_, fo_, oh_);
         }
 
       // Tableau permettant de calculer la variation de volume au cours du pas de temps :
       // Si on veut le mettre en optionel, il faut faire attention a faire vivre la taille de ce tableau avec les
       // creations et destructions de ghosts :
       const int nbulles_tot = interfaces_.get_nb_bulles_reelles()
-                              + interfaces_.get_nb_bulles_ghost(1/*print=1*/);
+                              + interfaces_.get_nb_bulles_ghost(0/*print=0*/);
       var_volume_par_bulle.resize_array(nbulles_tot);
       var_volume_par_bulle = 0.; // Je ne suis pas sur que ce soit un bon choix. Si on ne le remet pas a zero
       //                          a chaque dt, on corrigera la petite erreur qui pouvait rester d'avant...
@@ -570,6 +577,10 @@ void IJK_FT_cut_cell::run()
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
               do
                 {
+                  thermals_.remplir_cellules_maintenant_pures();
+                  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
+                  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
+
                   first_step_interface_smoothing_ = first_step_interface_smoothing_ && (counter_first_iter_ == 2);
                   deplacer_interfaces(timestep_,
                                       -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
@@ -577,15 +588,25 @@ void IJK_FT_cut_cell::run()
                                       first_step_interface_smoothing_);
 
                   // Mise a jour des structures cut-cell
-                  thermals_.remplir_cellules_maintenant_pures(); // Important avant update
                   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
                   thermals_.remplir_cellules_devenant_diphasiques();
                   cut_field_velocity_.remplir_cellules_diphasiques();
                   thermals_.transfert_diphasique_vers_pures();
 
-                  interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, timestep_, cut_field_velocity_);
-                  interfaces_.imprime_bilan_indicatrice();
+                  if (!deactivate_remeshing_velocity_)
+                    {
+                      interfaces_.calcul_vitesse_remaillage(timestep_, cut_field_remeshing_velocity_);
+                    }
+                  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
+
+                  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, timestep_, cut_field_total_velocity_);
+                  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, timestep_, cut_field_velocity_);
+
+                  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
+                    {
+                      interfaces_.imprime_bilan_indicatrice();
+                    }
 
                   counter_first_iter_--;
                   if(first_step_interface_smoothing_)
@@ -701,19 +722,33 @@ void IJK_FT_cut_cell::run()
               // Deplacement des interfaces par le champ de vitesse au sous pas de temps k :
               if (!disable_diphasique_)
                 {
+                  thermals_.remplir_cellules_maintenant_pures();
+                  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
+                  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
+
                   deplacer_interfaces_rk3(timestep_ /* total */, rk_step_,
                                           var_volume_par_bulle);
 
                   // Mise a jour des structures cut-cell
-                  thermals_.remplir_cellules_maintenant_pures(); // Important avant update
                   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
                   thermals_.remplir_cellules_devenant_diphasiques();
                   cut_field_velocity_.remplir_cellules_diphasiques();
                   thermals_.transfert_diphasique_vers_pures();
 
-                  interfaces_.calcul_surface_effective(type_surface_efficace_face_, type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
-                  interfaces_.imprime_bilan_indicatrice();
+                  if (!deactivate_remeshing_velocity_)
+                    {
+                      interfaces_.calcul_vitesse_remaillage(fractionnal_timestep, cut_field_remeshing_velocity_);
+                    }
+                  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
+
+                  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_total_velocity_);
+                  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
+
+                  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
+                    {
+                      interfaces_.imprime_bilan_indicatrice();
+                    }
 
                   parcourir_maillage();
                 }
@@ -770,7 +805,8 @@ void IJK_FT_cut_cell::run()
               current_time_at_rk3_step_ += fractionnal_timestep;
               // On ne postraite pas le sous-dt 2 car c'est fait plus bas si on post-traite le pas de temps :
               if (post_.postraiter_sous_pas_de_temps()
-                  && (tstep_ % post_.dt_post() == post_.dt_post() - 1)
+                  && ((tstep_ % post_.dt_post() == post_.dt_post() - 1)
+                      || (std::floor((current_time_-timestep_)/post_.get_timestep_simu_post(current_time_, max_simu_time_)) < std::floor(current_time_/post_.get_timestep_simu_post(current_time_, max_simu_time_))))
                   && (rk_step_ != 2))
                 {
                   post_.posttraiter_champs_instantanes(lata_name, current_time_at_rk3_step, tstep_);
@@ -1049,10 +1085,10 @@ void IJK_FT_cut_cell::run()
 
 }
 
-void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& v) const
+void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v) const
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const double delta_t = timestep_;
+  const double delta_t = timestep;
   const int imax = v.pure_.ni();
   const int jmax = v.pure_.nj();
   const int kmax = v.pure_.nk();
@@ -1062,7 +1098,7 @@ void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(const Cut_field
         {
           for (int i = 0; i < imax; i++)
             {
-              double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+              double indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In(i,j,k) : cut_cell_disc.get_interfaces().I(i,j,k);
               double indicatrice_v = 1 - indicatrice_l;
 
               int n = cut_cell_disc.get_n(i,j,k);
@@ -1079,15 +1115,15 @@ void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(const Cut_field
 
                   double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t;
                   double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t;
-                  v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
-                  v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                  v.diph_l_(n) = (indicatrice_l == 0) ? next_v_vol_l : next_v_vol_l/indicatrice_l;
+                  v.diph_v_(n) = (indicatrice_v == 0) ? next_v_vol_v : next_v_vol_v/indicatrice_v;
                 }
             }
         }
     }
 }
 
-void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot)
+void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1111,7 +1147,7 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_s
             {
               for (int i = 0; i < imax; i++)
                 {
-                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In(i,j,k) : cut_cell_disc.get_interfaces().I(i,j,k);
                   double indicatrice_v = 1 - indicatrice_l;
 
                   int n = cut_cell_disc.get_n(i,j,k);
@@ -1131,8 +1167,8 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_s
                       double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
                       F.diph_l_(n) = x_l;
                       F.diph_v_(n) = x_v;
-                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
-                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? next_v_vol_l : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? next_v_vol_v : next_v_vol_v/indicatrice_v;
                     }
                 }
             }
@@ -1146,28 +1182,28 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_s
             {
               for (int i = 0; i < imax; i++)
                 {
-                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In(i,j,k) : cut_cell_disc.get_interfaces().I(i,j,k);
                   double indicatrice_v = 1 - indicatrice_l;
 
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
                       double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
                       F.pure_(i,j,k) = x;
                       v.pure_(i,j,k) = next_v_vol;
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
 
                       double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t_divided_by_Fk;
                       double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
                       F.diph_l_(n) = x_l;
                       F.diph_v_(n) = x_v;
-                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
-                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? next_v_vol_l : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? next_v_vol_v : next_v_vol_v/indicatrice_v;
                     }
                 }
             }
@@ -1181,25 +1217,25 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_s
             {
               for (int i = 0; i < imax; i++)
                 {
-                  double indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+                  double indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In(i,j,k) : cut_cell_disc.get_interfaces().I(i,j,k);
                   double indicatrice_v = 1 - indicatrice_l;
 
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
                       double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
                       v.pure_(i,j,k) = next_v_vol;
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
 
                       double next_v_vol_l = v.diph_l_(n) * indicatrice_l + x_l * delta_t_divided_by_Fk;
                       double next_v_vol_v = v.diph_v_(n) * indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      v.diph_l_(n) = (indicatrice_l == 0) ? 0. : next_v_vol_l/indicatrice_l;
-                      v.diph_v_(n) = (indicatrice_v == 0) ? 0. : next_v_vol_v/indicatrice_v;
+                      v.diph_l_(n) = (indicatrice_l == 0) ? next_v_vol_l : next_v_vol_l/indicatrice_l;
+                      v.diph_v_(n) = (indicatrice_v == 0) ? next_v_vol_v : next_v_vol_v/indicatrice_v;
                     }
                 }
             }
@@ -1211,10 +1247,10 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(const Cut_field_s
     };
 }
 
-void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& v) const
+void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v) const
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const double delta_t = timestep_;
+  const double delta_t = timestep;
   const int imax = v.pure_.ni();
   const int jmax = v.pure_.nj();
   const int kmax = v.pure_.nk();
@@ -1242,8 +1278,8 @@ void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(const Cut_field_s
                   double x_l = dv.diph_l_(n);
                   double x_v = dv.diph_v_(n);
 
-                  double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t;
-                  double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t;
+                  double next_v_vol_l = ((old_indicatrice_l == 0) ? v.diph_l_(n) : v.diph_l_(n) * old_indicatrice_l) + x_l * delta_t;
+                  double next_v_vol_v = ((old_indicatrice_v == 0) ? v.diph_v_(n) : v.diph_v_(n) * old_indicatrice_v) + x_v * delta_t;
                   v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
                   v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
                 }
@@ -1252,7 +1288,7 @@ void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(const Cut_field_s
     }
 }
 
-void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot)
+void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1295,8 +1331,8 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_sca
                       double x_l = dv.diph_l_(n);
                       double x_v = dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      double next_v_vol_l = ((old_indicatrice_l == 0) ? v.diph_l_(n) : v.diph_l_(n) * old_indicatrice_l) + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = ((old_indicatrice_v == 0) ? v.diph_v_(n) : v.diph_v_(n) * old_indicatrice_v) + x_v * delta_t_divided_by_Fk;
                       F.diph_l_(n) = x_l;
                       F.diph_v_(n) = x_v;
                       v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
@@ -1322,7 +1358,7 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_sca
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
                       assert(old_indicatrice_l == next_indicatrice_l);
                       double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
                       F.pure_(i,j,k) = x;
@@ -1330,11 +1366,11 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_sca
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      double next_v_vol_l = ((old_indicatrice_l == 0) ? v.diph_l_(n) : v.diph_l_(n) * old_indicatrice_l) + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = ((old_indicatrice_v == 0) ? v.diph_v_(n) : v.diph_v_(n) * old_indicatrice_v) + x_v * delta_t_divided_by_Fk;
                       F.diph_l_(n) = x_l;
                       F.diph_v_(n) = x_v;
                       v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
@@ -1360,18 +1396,18 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_sca
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
                       assert(old_indicatrice_l == next_indicatrice_l);
                       double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
                       v.pure_(i,j,k) = next_v_vol;
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n) * old_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n) * old_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      double next_v_vol_l = ((old_indicatrice_l == 0) ? v.diph_l_(n) : v.diph_l_(n) * old_indicatrice_l) + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = ((old_indicatrice_v == 0) ? v.diph_v_(n) : v.diph_v_(n) * old_indicatrice_v) + x_v * delta_t_divided_by_Fk;
                       v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
                       v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
                     }
@@ -1383,4 +1419,40 @@ void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_sca
       Cerr << "Error in runge_kutta_update: wrong step" << finl;
       Process::exit();
     };
+}
+
+void IJK_FT_cut_cell::cut_cell_switch_field_time(Cut_field_scalar& v) const
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double old_indicatrice_l = cut_cell_disc.get_interfaces().I(i,j,k);
+              double next_indicatrice_l = cut_cell_disc.get_interfaces().In(i,j,k);
+              double old_indicatrice_v = 1 - old_indicatrice_l;
+              double next_indicatrice_v = 1 - next_indicatrice_l;
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  assert(old_indicatrice_l == next_indicatrice_l);
+                  double next_v_vol = v.pure_(i,j,k);
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double next_v_vol_l = (old_indicatrice_l == 0) ? v.diph_l_(n) : v.diph_l_(n) * old_indicatrice_l;
+                  double next_v_vol_v = (old_indicatrice_v == 0) ? v.diph_v_(n) : v.diph_v_(n) * old_indicatrice_v;
+                  v.diph_l_(n) = (next_indicatrice_l == 0) ? 0. : next_v_vol_l/next_indicatrice_l;
+                  v.diph_v_(n) = (next_indicatrice_v == 0) ? 0. : next_v_vol_v/next_indicatrice_v;
+                }
+            }
+        }
+    }
 }

@@ -59,10 +59,14 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   fichier_reprise_indicatrice_non_perturbe_ = "??"; // par defaut, invalide
   fichier_reprise_integrated_timescale_ = "??"; // par defaut, invalide
   compteur_post_instantanes_ = 0;
-  dt_post_ = 100;
-  dt_post_thermals_probes_ = 100;
-  dt_post_stats_plans_ = 1;
-  dt_post_stats_bulles_ = 1;
+  dt_post_ = -1;
+  dt_post_thermals_probes_ = -1;
+  dt_post_stats_plans_ = -1;
+  dt_post_stats_bulles_ = -1;
+  time_interval_post_ = DMAXFLOAT;
+  time_interval_post_thermals_probes_ = DMAXFLOAT;
+  time_interval_post_stats_plans_ = DMAXFLOAT;
+  time_interval_post_stats_bulles_ = DMAXFLOAT;
   //poisson_solver_post_ = xxxx;
   postraiter_sous_pas_de_temps_ = 0;
 
@@ -71,6 +75,10 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
   param.ajouter("dt_post_stats_plans", &dt_post_stats_plans_);
   param.ajouter("dt_post_stats_bulles", &dt_post_stats_bulles_);
+  param.ajouter("time_interval_post", &time_interval_post_);
+  param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
+  param.ajouter("time_interval_post_stats_plans", &time_interval_post_stats_plans_);
+  param.ajouter("time_interval_post_stats_bulles", &time_interval_post_stats_bulles_);
   param.ajouter("champs_a_postraiter", &liste_post_instantanes_);
   param.ajouter_flag("postraiter_sous_pas_de_temps", &postraiter_sous_pas_de_temps_);
 
@@ -1138,6 +1146,8 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
         }
     }
 
+  thermals_.ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
+
   if (Process::je_suis_maitre())
     {
       char s[1000];
@@ -2013,21 +2023,29 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
 void IJK_FT_Post::postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
 {
   thermals_.set_first_step_thermals_post(first_step_thermals_post_);
-  if (tstep % dt_post_ == dt_post_ - 1 || stop || first_step_thermals_post_)
+  if (stop || first_step_thermals_post_
+      || (dt_post_ >= 0 && tstep % dt_post_ == dt_post_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
     {
       Cout << "tstep : " << tstep << finl;
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
-  if (tstep % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1 || stop || first_step_thermals_post_)
+  if (stop || first_step_thermals_post_
+      || (dt_post_thermals_probes_ >= 0 && tstep % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
     {
       Cout << "tstep : " << tstep << finl;
       thermals_.thermal_subresolution_outputs(dt_post_thermals_probes_);
     }
-  if (tstep % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_bulles_ >= 0 && tstep % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_bulles_) < std::floor(current_time/time_interval_post_stats_bulles_)))
     {
       ecrire_statistiques_bulles(0, nom_cas, gravite, current_time);
     }
-  if (tstep % dt_post_stats_plans_ == dt_post_stats_plans_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_plans_ >= 0 && tstep % dt_post_stats_plans_ == dt_post_stats_plans_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_plans_) < std::floor(current_time/time_interval_post_stats_plans_)))
     {
       if (current_time >= t_debut_statistiques_)
         posttraiter_statistiques_plans(current_time);

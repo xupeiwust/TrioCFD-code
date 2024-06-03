@@ -161,6 +161,68 @@ void IJK_Thermal::posttraiter_tous_champs_thermal(Motcles& liste, const int idx)
     }
 }
 
+void IJK_Thermal::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface, const int idx)
+{
+  ArrOfDouble interfacial_temperature;
+  ArrOfDouble interfacial_phin_ai;
+  // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
+  IJK_Field_double& temperature_ft = get_temperature_ft();
+  ref_ijk_ft_->redistribute_to_splitting_ft_elem(get_temperature(), temperature_ft);
+  temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
+  //compute_interfacial_temperature(interfacial_temperature, interfacial_phin_ai, get_storage());
+  compute_interfacial_temperature2(interfacial_temperature, interfacial_phin_ai);
+
+  // Compute Bubble mean :
+  ArrOfDouble Ti_per_bubble;
+  ArrOfDouble phin_per_bubble;
+  ref_ijk_ft_->itfce().compute_surface_average_per_bubble(surface, interfacial_temperature, Ti_per_bubble);
+  ref_ijk_ft_->itfce().compute_surface_average_per_bubble(surface, interfacial_phin_ai, phin_per_bubble);
+  if (Process::je_suis_maitre())
+    {
+      char s[1000];
+      const char *nomcas = nom_cas;
+      SFichier fic;
+      const int n = Ti_per_bubble.size_array();
+      IOS_OPEN_MODE mode = (reset) ? ios::out : ios::app;
+
+#ifndef INT_is_64_
+      snprintf(s, 1000, "%s_bulles_Ti_%d.out", nomcas, idx);
+#else
+      snprintf(s, 1000, "%s_bulles_Ti_%ld.out", nomcas, idx);
+#endif
+      // Cerr << "Ecriture des donnees par bulles: fichier " << s << finl;
+      fic.ouvrir(s, mode);
+      snprintf(s, 1000, "%.16e ", current_time);
+      fic << s;
+      for (int i = 0; i < n; i++)
+        {
+          snprintf(s, 1000, "%.16e ", Ti_per_bubble[i]);
+          fic << s;
+        }
+      fic << finl;
+      fic.close();
+
+      // Cerr << "Ecriture des donnees par bulles: fichier " << s << finl;
+#ifndef INT_is_64_
+      snprintf(s, 1000, "%s_bulles_phin_%d.out", nomcas, idx);
+#else
+      snprintf(s, 1000, "%s_bulles_phin_%ld.out", nomcas, idx);
+#endif
+      fic.ouvrir(s, mode);
+      snprintf(s, 1000, "%.16e ", current_time);
+      fic << s;
+      for (int i = 0; i < n; i++)
+        {
+          snprintf(s, 1000, "%.16e ", phin_per_bubble[i]);
+          fic << s;
+        }
+      fic << finl;
+      fic.close();
+
+      Cerr << "Fin de l'ecriture des stats par bulles pour la temperature " << idx << finl;
+    }
+}
+
 int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                                         const char * lata_name,
                                                         const int latastep,

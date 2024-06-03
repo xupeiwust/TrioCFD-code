@@ -17,19 +17,70 @@
 #include <Champ_diphasique.h>
 #include <Cut_cell_FT_Disc.h>
 
-struct struct_int_double
+struct Sommet
+{
+  int sommet;
+  int fa7;
+  double value;
+  int count;
+};
+
+int compare_sommet(const void *a, const void *b)
+{
+  Sommet *a1 = (Sommet *)a;
+  Sommet *a2 = (Sommet *)b;
+  if ((*a1).sommet > (*a2).sommet)   // Sorting in descending order
+    {
+      return -1;
+    }
+  else if ((*a1).sommet < (*a2).sommet)
+    {
+      return 1;
+    }
+  else
+    {
+      if ((*a1).fa7 > (*a2).fa7) // Secondly, sorting in descending order of the fa7
+        return -1;
+      else if ((*a1).fa7 < (*a2).fa7)
+        return 1;
+      else
+        return 0;
+    }
+}
+
+struct struct_index_dist
 {
   int index;
+  double dist;
+};
+
+int compare_value_index_dist(const void *a, const void *b)
+{
+  struct_index_dist *a1 = (struct_index_dist *)a;
+  struct_index_dist *a2 = (struct_index_dist *)b;
+  if ((*a1).dist < (*a2).dist)
+    return -1;
+  else if ((*a1).dist > (*a2).dist)
+    return 1;
+  else
+    return 0;
+}
+
+struct Candidate
+{
+  int index;
+  double dist;
+  double coord[3];
   double value;
 };
 
-int compare_value(const void *a, const void *b)
+int compare_value_candidate(const void *a, const void *b)
 {
-  struct_int_double *a1 = (struct_int_double *)a;
-  struct_int_double *a2 = (struct_int_double *)b;
-  if ((*a1).value < (*a2).value)
+  Candidate *a1 = (Candidate *)a;
+  Candidate *a2 = (Candidate *)b;
+  if ((*a1).dist < (*a2).dist)
     return -1;
-  else if ((*a1).value > (*a2).value)
+  else if ((*a1).dist > (*a2).dist)
     return 1;
   else
     return 0;
@@ -57,13 +108,91 @@ void inverse(double* A, int N)
   delete[] WORK;
 }
 
-static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
+static const int max_number_of_involved_sommet = 512; // Note: Pour ce maximum, les sommets sont comptes une fois pour chaque facette et pour chaque cellule contenant cette facette
+
+static const int max_number_of_cell_candidates = 27;
+static const Int3 candidate_offset[max_number_of_cell_candidates] =
+{
+  {-1,-1,-1}, {-1,-1, 0}, {-1,-1,+1},
+  {-1, 0,-1}, {-1, 0, 0}, {-1, 0,+1},
+  {-1,+1,-1}, {-1,+1, 0}, {-1,+1,+1},
+  { 0,-1,-1}, { 0,-1, 0}, { 0,-1,+1},
+  { 0, 0,-1}, { 0, 0, 0}, { 0, 0,+1},
+  { 0,+1,-1}, { 0,+1, 0}, { 0,+1,+1},
+  {+1,-1,-1}, {+1,-1, 0}, {+1,-1,+1},
+  {+1, 0,-1}, {+1, 0, 0}, {+1, 0,+1},
+  {+1,+1,-1}, {+1,+1, 0}, {+1,+1,+1}
+};
+
+static const int max_number_of_candidates = max_number_of_involved_sommet + max_number_of_cell_candidates;
+
+Vecteur3 compute_lambda(int index_vertex0, int index_vertex1, int index_vertex2, int index_vertex3, Candidate candidates[max_number_of_candidates], double xfact, double yfact, double zfact)
+{
+  double x_0 = candidates[index_vertex0].coord[0];
+  double y_0 = candidates[index_vertex0].coord[1];
+  double z_0 = candidates[index_vertex0].coord[2];
+
+  double x_1 = candidates[index_vertex1].coord[0];
+  double y_1 = candidates[index_vertex1].coord[1];
+  double z_1 = candidates[index_vertex1].coord[2];
+  double dx_1 = x_1 - x_0;
+  double dy_1 = y_1 - y_0;
+  double dz_1 = z_1 - z_0;
+
+  double x_2 = candidates[index_vertex2].coord[0];
+  double y_2 = candidates[index_vertex2].coord[1];
+  double z_2 = candidates[index_vertex2].coord[2];
+
+  double dx_2 = x_2 - x_0;
+  double dy_2 = y_2 - y_0;
+  double dz_2 = z_2 - z_0;
+
+  double x_3 = candidates[index_vertex3].coord[0];
+  double y_3 = candidates[index_vertex3].coord[1];
+  double z_3 = candidates[index_vertex3].coord[2];
+
+  double dx_3 = x_3 - x_0;
+  double dy_3 = y_3 - y_0;
+  double dz_3 = z_3 - z_0;
+
+  // En coordonnees barycentriques, puisque dX_0 = 0
+  //
+  // x_target_to_interpolate = dx_1 lambda_1 + dx_2 lamdba_2 + dx_3 lambda_3
+  // y_target_to_interpolate = dy_1 lambda_1 + dy_2 lamdba_2 + dy_3 lambda_3
+  // z_target_to_interpolate = dz_1 lambda_1 + dz_2 lamdba_2 + dz_3 lambda_3
+  // ---
+  // X_target_to_interpolate = Matrix * Lambda_vector
+  //
+  // Donc Lambda_vector = Matrix^-1 * X_target_to_interpolate
+  double Matrix[3*3] =
+  {
+    dx_1, dx_2, dx_3,
+    dy_1, dy_2, dy_3,
+    dz_1, dz_2, dz_3,
+  };
+
+  inverse(Matrix, 3);
+
+  double lambda_1 = Matrix[0] * (xfact - x_0) + Matrix[1] * (yfact - y_0) + Matrix[2] * (zfact - z_0);
+  double lambda_2 = Matrix[3] * (xfact - x_0) + Matrix[4] * (yfact - y_0) + Matrix[5] * (zfact - z_0);
+  double lambda_3 = Matrix[6] * (xfact - x_0) + Matrix[7] * (yfact - y_0) + Matrix[8] * (zfact - z_0);
+
+  Vecteur3 lambda_vec = {lambda_1, lambda_2, lambda_3};
+  return lambda_vec;
+}
+
+static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, const Cut_field_scalar& field, const double coordinates[3], ArrOfDouble& result, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
 
   //const int ghost = field.pure_.ghost();
   const int ghost = cut_cell_disc.get_ghost_size();
+  const int reduced_ghost = ghost - 1;
   assert(field.pure_.ghost() >= ghost);
+
+  const double x = coordinates[0];
+  const double y = coordinates[1];
+  const double z = coordinates[2];
 
   const int ni = field.pure_.ni();
   const int nj = field.pure_.nj();
@@ -76,17 +205,13 @@ static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_f
   const double dz = geom.get_constant_delta(DIRECTION_K);
   //const IJK_Splitting::Localisation loc = field.pure_.get_localisation();
   // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
-  double origin_x = geom.get_origin(DIRECTION_I); //+ ((loc == IJK_Splitting::FACES_J || loc == IJK_Splitting::FACES_K || loc == IJK_Splitting::ELEM) ? (dx * 0.5) : 0.);
-  double origin_y = geom.get_origin(DIRECTION_J); //+ ((loc == IJK_Splitting::FACES_K || loc == IJK_Splitting::FACES_I || loc == IJK_Splitting::ELEM) ? (dy * 0.5) : 0.);
-  double origin_z = geom.get_origin(DIRECTION_K); //+ ((loc == IJK_Splitting::FACES_I || loc == IJK_Splitting::FACES_J || loc == IJK_Splitting::ELEM) ? (dz * 0.5) : 0.);
+  double origin_x = geom.get_origin(DIRECTION_I);
+  double origin_y = geom.get_origin(DIRECTION_J);
+  double origin_z = geom.get_origin(DIRECTION_K);
 
   const int offset_x = splitting.get_offset_local(DIRECTION_I);
   const int offset_y = splitting.get_offset_local(DIRECTION_J);
   const int offset_z = splitting.get_offset_local(DIRECTION_K);
-
-  const double x = coordinates(idx, 0);
-  const double y = coordinates(idx, 1);
-  const double z = coordinates(idx, 2);
 
   const double x2 = (x - origin_x) / dx;
   const double y2 = (y - origin_y) / dy;
@@ -99,9 +224,276 @@ static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_f
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_i_selon_dir(0, x, 2, splitting, false);
-  const int index_j = cut_cell_disc.get_i_selon_dir(1, y, 2, splitting, false);
-  const int index_k = cut_cell_disc.get_i_selon_dir(2, z, 2, splitting, false);
+  const int index_i = cut_cell_disc.get_i_selon_dir(0, x, ghost, splitting, false, true);
+  const int index_j = cut_cell_disc.get_i_selon_dir(1, y, ghost, splitting, false, true);
+  const int index_k = cut_cell_disc.get_i_selon_dir(2, z, ghost, splitting, false, true);
+
+  // is point in the domain ? (ghost cells ok...)
+  bool ok = (index_i >= -reduced_ghost && index_i < ni + reduced_ghost) && (index_j >= -reduced_ghost && index_j < nj + reduced_ghost) && (index_k >= -reduced_ghost && index_k < nk + reduced_ghost);
+  bool close_to_edge = (index_i == -reduced_ghost || index_i == ni + reduced_ghost - 1) || (index_j == -reduced_ghost || index_j == nj + reduced_ghost - 1) || (index_k == -reduced_ghost || index_k == nk + reduced_ghost - 1);
+  if (!ok)
+    {
+      if (skip_unknown_points)
+        {
+          return value_for_bad_points;
+        }
+      else
+        {
+          // Error!
+          Cerr << "Error in ijk_interpolate_cut_cell_implementation: request cut-cell interpolation of point " << x << " " << y << " " << z << " which is outside of the domain on processor " << Process::me() << finl;
+          Process::exit();
+        }
+    }
+
+  int number_of_candidates = 0;
+  Candidate candidates[max_number_of_candidates];
+  for (int i = 0; i < max_number_of_cell_candidates; i++)
+    {
+      int i_candidate_aperio = index_i + candidate_offset[i][0];
+      int j_candidate_aperio = index_j + candidate_offset[i][1];
+      int k_candidate_aperio = index_k + candidate_offset[i][2];
+
+      // Prise en compte de la periodicite
+      double x_candidate_centred_aperio = (i_candidate_aperio + offset_x + .5)*dx + origin_x;
+      double y_candidate_centred_aperio = (j_candidate_aperio + offset_y + .5)*dy + origin_y;
+      double z_candidate_centred_aperio = (k_candidate_aperio + offset_z + .5)*dz + origin_z;
+      int i_candidate = cut_cell_disc.get_i_selon_dir(0, x_candidate_centred_aperio);
+      int j_candidate = cut_cell_disc.get_i_selon_dir(1, y_candidate_centred_aperio);
+      int k_candidate = cut_cell_disc.get_i_selon_dir(2, z_candidate_centred_aperio);
+      assert((i_candidate_aperio == i_candidate) || (close_to_edge));
+      assert((j_candidate_aperio == j_candidate) || (close_to_edge));
+      assert((k_candidate_aperio == k_candidate) || (close_to_edge));
+
+      double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
+      double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
+      double indicatrice = next_time ? next_indicatrice : old_indicatrice;
+      if ((phase == 0 && indicatrice == 1.) || (phase == 1 && indicatrice == 0.))
+        {
+          // Point invalide
+        }
+      else
+        {
+          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double decalage_x = candidate_x - xfact;
+          double decalage_y = candidate_y - yfact;
+          double decalage_z = candidate_z - zfact;
+          candidates[number_of_candidates].index = number_of_candidates;
+          candidates[number_of_candidates].dist = sqrt(decalage_x*decalage_x + decalage_y*decalage_y + decalage_z*decalage_z);
+          candidates[number_of_candidates].coord[0] = candidate_x;
+          candidates[number_of_candidates].coord[1] = candidate_y;
+          candidates[number_of_candidates].coord[2] = candidate_z;
+
+          int n_candidate = cut_cell_disc.get_n(i_candidate, j_candidate, k_candidate);
+          if (n_candidate >= 0)
+            {
+              candidates[number_of_candidates].value = (phase == 0) ? field.diph_v_(n_candidate) : field.diph_l_(n_candidate);
+            }
+          else
+            {
+              assert((!next_time) || (cut_cell_disc.get_interfaces().In(i_candidate,j_candidate,k_candidate) == (double)phase));
+              assert((next_time) || (cut_cell_disc.get_interfaces().I(i_candidate,j_candidate,k_candidate) == (double)phase));
+              candidates[number_of_candidates].value = field.pure_(i_candidate,j_candidate,k_candidate);
+            }
+          assert(candidates[number_of_candidates].value != 0); // Suggests a bug, but not necessarily implies so
+          number_of_candidates += 1;
+        }
+
+    }
+
+
+  assert(number_of_candidates <= max_number_of_candidates);
+  assert(number_of_candidates <= max_number_of_cell_candidates);
+  qsort(candidates, number_of_candidates, sizeof(Candidate), compare_value_candidate);
+
+  // On boucle d'abord sur n_neighbours, le nombre de points que l'on s'autorise a chercher
+  // dans la liste des voisins. Par exemple, n_neighbours=6 veut dire que l'on cherche a former
+  // des tetraedres a partir des 6 premiers voisins.
+  const bool limit_count = false;
+  const int max_count = 100;
+  int count = 0;
+  int closest_tetrahedron[4] = {-1,-1,-1,-1};
+  double closest_lambda_error = DMAXFLOAT;
+  for (int n_neighbours = 4; (n_neighbours < number_of_candidates && ((!limit_count) || count < max_count)); n_neighbours++)
+    {
+      int index_vertex0 = n_neighbours; // Le premier point est toujours fixe au dernier possible. Cela garanti que tous les tetraedres d'un nouveau n_neighbours sont nouveaux.
+
+      for (int index_vertex1 = 0; (index_vertex1 < index_vertex0-2 && ((!limit_count) || count < max_count)); index_vertex1++)
+        {
+          for (int index_vertex2 = index_vertex1+1; (index_vertex2 < index_vertex0-1 && ((!limit_count) || count < max_count)); index_vertex2++)
+            {
+              for (int index_vertex3 = index_vertex2+1; (index_vertex3 < index_vertex0 && ((!limit_count) || count < max_count)); index_vertex3++)
+                {
+                  Vecteur3 lambda_vec = compute_lambda(index_vertex0, index_vertex1, index_vertex2, index_vertex3, candidates, xfact, yfact, zfact);
+                  double lambda_1 = lambda_vec[0];
+                  double lambda_2 = lambda_vec[1];
+                  double lambda_3 = lambda_vec[2];
+
+                  double lambda_0 = 1 - lambda_1 - lambda_2 - lambda_3;
+
+                  int lambda_0_within_bounds = ((lambda_0 >= 0) && (lambda_0 <= 1));
+                  int lambda_1_within_bounds = ((lambda_1 >= 0) && (lambda_1 <= 1));
+                  int lambda_2_within_bounds = ((lambda_2 >= 0) && (lambda_2 <= 1));
+                  int lambda_3_within_bounds = ((lambda_3 >= 0) && (lambda_3 <= 1));
+
+                  int point_within_tetrahedron = lambda_0_within_bounds && lambda_1_within_bounds && lambda_2_within_bounds && lambda_3_within_bounds;
+
+                  count++;
+                  if (point_within_tetrahedron)
+                    {
+                      double field_0 = candidates[index_vertex0].value;
+                      double field_1 = candidates[index_vertex1].value;
+                      double field_2 = candidates[index_vertex2].value;
+                      double field_3 = candidates[index_vertex3].value;
+                      assert(field_0 != 0); // Suggests a bug, but not necessarily implies so
+                      assert(field_1 != 0); //  .
+                      assert(field_2 != 0); //  .
+                      assert(field_3 != 0); //  .
+
+                      double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
+
+                      status = count;
+                      return r;
+                    }
+                  else
+                    {
+                      double lambda_error_0 = std::max((lambda_0 < 0)*(-lambda_0), (lambda_0 > 1)*(lambda_0 - 1));
+                      double lambda_error_1 = std::max((lambda_1 < 0)*(-lambda_1), (lambda_1 > 1)*(lambda_1 - 1));
+                      double lambda_error_2 = std::max((lambda_2 < 0)*(-lambda_2), (lambda_2 > 1)*(lambda_2 - 1));
+                      double lambda_error_3 = std::max((lambda_3 < 0)*(-lambda_3), (lambda_3 > 1)*(lambda_3 - 1));
+
+                      double lambda_error = std::max(lambda_error_0, std::max(lambda_error_1, std::max(lambda_error_2, lambda_error_3)));
+                      assert(lambda_error > 0);
+
+                      if (closest_lambda_error > lambda_error)
+                        {
+                          closest_tetrahedron[0] = index_vertex0;
+                          closest_tetrahedron[1] = index_vertex1;
+                          closest_tetrahedron[2] = index_vertex2;
+                          closest_tetrahedron[3] = index_vertex3;
+                          closest_lambda_error = lambda_error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+  // Utilise le tetrahedre le plus proche selon les parametres de tolerance
+  if ((tolerate_not_within_tetrahedron == 2) || (tolerate_not_within_tetrahedron == 1 && closest_lambda_error < 1e-9))
+    {
+      Vecteur3 lambda_vec = compute_lambda(closest_tetrahedron[0], closest_tetrahedron[1], closest_tetrahedron[2], closest_tetrahedron[3], candidates, xfact, yfact, zfact);
+      double lambda_1 = lambda_vec[0];
+      double lambda_2 = lambda_vec[1];
+      double lambda_3 = lambda_vec[2];
+
+      double lambda_0 = 1 - lambda_1 - lambda_2 - lambda_3;
+
+      assert(!(((lambda_0 >= 0) && (lambda_0 <= 1)) && ((lambda_1 >= 0) && (lambda_1 <= 1)) && ((lambda_2 >= 0) && (lambda_2 <= 1)) && ((lambda_3 >= 0) && (lambda_3 <= 1))));
+
+      double field_0 = candidates[closest_tetrahedron[0]].value;
+      double field_1 = candidates[closest_tetrahedron[1]].value;
+      double field_2 = candidates[closest_tetrahedron[2]].value;
+      double field_3 = candidates[closest_tetrahedron[3]].value;
+
+      double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
+
+      status = -1;
+      return r;
+    }
+  else
+    {
+      Cerr << "Value of close_to_edge: " << (int)close_to_edge << finl;
+      Cerr << "Error in ijk_interpolate_cut_cell_for_given_index: no tetrahedron containing the point " << x << " " << y << " " << z << " on processor " << Process::me() << finl;
+      Cerr << "For information, closest_lambda_error=" << closest_lambda_error << finl;
+      // Note: While maybe not most likely, I noticed this error could occur if
+      //  * the number of cells per particle diameter is too small <=3
+      //  * ijk_splitting_ft_extension is not large enough
+      Process::exit();
+      return -1;
+    }
+}
+
+static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+{
+  if (Process::me() > 0)
+    {
+      Cerr << "Error in ijk_interpolate_cut_cell_using_interface_for_given_index: Le calcul est parallele mais cette methode n'est pas correcte dans le cas parallele" << finl;
+      Process::exit();
+    }
+
+  const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
+
+  const Maillage_FT_IJK& mesh = cut_cell_disc.get_interfaces().maillage_ft_ijk();
+  const IntTab& facettes = next_time ? mesh.facettes() : mesh.facettes_old();
+  const DoubleTab& sommets = next_time ? mesh.sommets() : mesh.sommets_old();
+  const ArrOfDouble& surface_facettes = next_time ? mesh.get_update_surface_facettes() : mesh.get_surface_facettes_old();
+  const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
+
+  //const int ghost = field.pure_.ghost();
+  const int ghost = cut_cell_disc.get_ghost_size();
+  assert(field.pure_.ghost() >= ghost);
+
+  const double x = coordinates[0];
+  const double y = coordinates[1];
+  const double z = coordinates[2];
+
+  const int ni_ft = field_ft.ni();
+  const int nj_ft = field_ft.nj();
+  const int nk_ft = field_ft.nk();
+
+  const IJK_Splitting& splitting_ft = field_ft.get_splitting();
+  const IJK_Grid_Geometry& geom_ft = splitting_ft.get_grid_geometry();
+
+  const double dx_ft = geom_ft.get_constant_delta(DIRECTION_I);
+  const double dy_ft = geom_ft.get_constant_delta(DIRECTION_J);
+  const double dz_ft = geom_ft.get_constant_delta(DIRECTION_K);
+  double origin_x_ft = geom_ft.get_origin(DIRECTION_I);
+  double origin_y_ft = geom_ft.get_origin(DIRECTION_J);
+  double origin_z_ft = geom_ft.get_origin(DIRECTION_K);
+
+  const double x2_ft = (x - origin_x_ft) / dx_ft;
+  const double y2_ft = (y - origin_y_ft) / dy_ft;
+  const double z2_ft = (z - origin_z_ft) / dz_ft;
+
+  const int index_i_ft = (int)(std::floor(x2_ft)) - splitting_ft.get_offset_local(DIRECTION_I);
+  const int index_j_ft = (int)(std::floor(y2_ft)) - splitting_ft.get_offset_local(DIRECTION_J);
+  const int index_k_ft = (int)(std::floor(z2_ft)) - splitting_ft.get_offset_local(DIRECTION_K);
+
+  const int ni = field.pure_.ni();
+  const int nj = field.pure_.nj();
+  const int nk = field.pure_.nk();
+
+  const IJK_Splitting& splitting = field.pure_.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const double dx = geom.get_constant_delta(DIRECTION_I);
+  const double dy = geom.get_constant_delta(DIRECTION_J);
+  const double dz = geom.get_constant_delta(DIRECTION_K);
+  //const IJK_Splitting::Localisation loc = field.pure_.get_localisation();
+  // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
+  double origin_x = geom.get_origin(DIRECTION_I);
+  double origin_y = geom.get_origin(DIRECTION_J);
+  double origin_z = geom.get_origin(DIRECTION_K);
+
+  const int offset_x = splitting.get_offset_local(DIRECTION_I);
+  const int offset_y = splitting.get_offset_local(DIRECTION_J);
+  const int offset_z = splitting.get_offset_local(DIRECTION_K);
+
+  const double x2 = (x - origin_x) / dx;
+  const double y2 = (y - origin_y) / dy;
+  const double z2 = (z - origin_z) / dz;
+
+  // Coordonnes barycentriques du points dans la cellule :
+  const double xfact = x2 - floor(x2);
+  const double yfact = y2 - floor(y2);
+  const double zfact = z2 - floor(z2);
+
+  // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
+  // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
+  const int index_i = cut_cell_disc.get_i_selon_dir(0, x);
+  const int index_j = cut_cell_disc.get_i_selon_dir(1, y);
+  const int index_k = cut_cell_disc.get_i_selon_dir(2, z);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -ghost && index_i < ni + ghost) && (index_j >= -ghost && index_j < nj + ghost) && (index_k >= -ghost && index_k < nk + ghost);
@@ -120,26 +512,20 @@ static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_f
         }
     }
 
-  const int max_number_of_candidates = 27;
-  Int3 candidate_offset[max_number_of_candidates] =
-  {
-    {-1,-1,-1}, {-1,-1, 0}, {-1,-1,+1},
-    {-1, 0,-1}, {-1, 0, 0}, {-1, 0,+1},
-    {-1,+1,-1}, {-1,+1, 0}, {-1,+1,+1},
-    { 0,-1,-1}, { 0,-1, 0}, { 0,-1,+1},
-    { 0, 0,-1}, { 0, 0, 0}, { 0, 0,+1},
-    { 0,+1,-1}, { 0,+1, 0}, { 0,+1,+1},
-    {+1,-1,-1}, {+1,-1, 0}, {+1,-1,+1},
-    {+1, 0,-1}, {+1, 0, 0}, {+1, 0,+1},
-    {+1,+1,-1}, {+1,+1, 0}, {+1,+1,+1}
-  };
+  Sommet involved_sommet[max_number_of_involved_sommet] = {};
+  for (int i = 0; i < max_number_of_involved_sommet; i++)
+    {
+      involved_sommet[i].sommet = -1;
+      involved_sommet[i].fa7 = -1;
+      involved_sommet[i].value = 0.;
+      involved_sommet[i].count = 0;
+    }
+  int number_of_involved_sommet = 0;
 
   int number_of_candidates = 0;
-  struct_int_double dist[max_number_of_candidates];
-  for (int i = 0; i < max_number_of_candidates; i++)
+  Candidate candidates[max_number_of_candidates];
+  for (int i = 0; i < max_number_of_cell_candidates; i++)
     {
-      dist[i].index = i;
-
       int i_candidate_aperio = index_i + candidate_offset[i][0];
       int j_candidate_aperio = index_j + candidate_offset[i][1];
       int k_candidate_aperio = index_k + candidate_offset[i][2];
@@ -148,173 +534,193 @@ static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_f
       double x_candidate_centred_aperio = (i_candidate_aperio + offset_x + .5)*dx + origin_x;
       double y_candidate_centred_aperio = (j_candidate_aperio + offset_y + .5)*dy + origin_y;
       double z_candidate_centred_aperio = (k_candidate_aperio + offset_z + .5)*dz + origin_z;
-      int i_candidate = cut_cell_disc.get_i_selon_dir(0, x_candidate_centred_aperio, 2, splitting, false);
-      int j_candidate = cut_cell_disc.get_i_selon_dir(1, y_candidate_centred_aperio, 2, splitting, false);
-      int k_candidate = cut_cell_disc.get_i_selon_dir(2, z_candidate_centred_aperio, 2, splitting, false);
+      int i_candidate = cut_cell_disc.get_i_selon_dir(0, x_candidate_centred_aperio);
+      int j_candidate = cut_cell_disc.get_i_selon_dir(1, y_candidate_centred_aperio);
+      int k_candidate = cut_cell_disc.get_i_selon_dir(2, z_candidate_centred_aperio);
       assert((i_candidate_aperio == i_candidate) || (close_to_edge));
       assert((j_candidate_aperio == j_candidate) || (close_to_edge));
       assert((k_candidate_aperio == k_candidate) || (close_to_edge));
 
+      double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
-      if ((phase == 0 && next_indicatrice == 1.) || (phase == 1 && next_indicatrice == 0.))
+      double indicatrice = next_time ? next_indicatrice : old_indicatrice;
+      if ((phase == 0 && indicatrice == 1.) || (phase == 1 && indicatrice == 0.))
         {
-          dist[i].value = DMAXFLOAT; // Point invalide
+          // Point invalide
         }
       else
         {
-          number_of_candidates += 1;
-          double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
-          double candidate_x = (double)candidate_offset[i][0] + cut_cell_disc.get_interfaces().get_barycentre_next(0, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice);
-          double candidate_y = (double)candidate_offset[i][1] + cut_cell_disc.get_interfaces().get_barycentre_next(1, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice);
-          double candidate_z = (double)candidate_offset[i][2] + cut_cell_disc.get_interfaces().get_barycentre_next(2, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice);
+          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
           double decalage_x = candidate_x - xfact;
           double decalage_y = candidate_y - yfact;
           double decalage_z = candidate_z - zfact;
-          dist[i].value = sqrt(decalage_x*decalage_x + decalage_y*decalage_y + decalage_z*decalage_z);
+          candidates[number_of_candidates].index = number_of_candidates;
+          candidates[number_of_candidates].dist = sqrt(decalage_x*decalage_x + decalage_y*decalage_y + decalage_z*decalage_z);
+          candidates[number_of_candidates].coord[0] = candidate_x;
+          candidates[number_of_candidates].coord[1] = candidate_y;
+          candidates[number_of_candidates].coord[2] = candidate_z;
+
+          int n_candidate = cut_cell_disc.get_n(i_candidate, j_candidate, k_candidate);
+          if (n_candidate >= 0)
+            {
+              candidates[number_of_candidates].value = (phase == 0) ? field.diph_v_(n_candidate) : field.diph_l_(n_candidate);
+            }
+          else
+            {
+              assert((!next_time) || (cut_cell_disc.get_interfaces().In(i_candidate,j_candidate,k_candidate) == (double)phase));
+              assert((next_time) || (cut_cell_disc.get_interfaces().I(i_candidate,j_candidate,k_candidate) == (double)phase));
+              candidates[number_of_candidates].value = field.pure_(i_candidate,j_candidate,k_candidate);
+            }
+          assert(candidates[number_of_candidates].value != 0); // Suggests a bug, but not necessarily implies so
+          number_of_candidates += 1;
+        }
+
+      int i_candidate_ft = index_i_ft + candidate_offset[i][0];
+      int j_candidate_ft = index_j_ft + candidate_offset[i][1];
+      int k_candidate_ft = index_k_ft + candidate_offset[i][2];
+
+      if (i_candidate_ft < 0 || j_candidate_ft < 0 || k_candidate_ft < 0 || i_candidate_ft >= ni_ft || j_candidate_ft >= nj_ft || k_candidate_ft >= nk_ft)
+        {
+          continue; // Ne fait rien, car ces conditions semblent impliquer que le point est inutile.
+        }
+
+      const ArrOfInt& index_elem = intersec.index_elem();
+      assert(mesh.ref_splitting().valeur() == splitting_ft);
+      const int num_elem = splitting_ft.convert_ijk_cell_to_packed(i_candidate_ft,j_candidate_ft,k_candidate_ft);
+      int index = index_elem[num_elem];
+
+      // Boucle sur les facettes qui traversent cet element
+      while (index >= 0)
+        {
+          const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+          const int fa7 = data.numero_facette_;
+
+          for (int som = 0; som < 3; som++)
+            {
+              // Note : Incomplet
+              // On ne prend en compte que les sommets reels
+              // car il semble difficile de prendre en compte les facettes que le PE ne connait pas
+              // et je suppose que l'on connait toutes les facettes associees a un sommet reel.
+              // Cela veut dire qu'il y aura une difference entre sequentiel et parallele.
+              if (!mesh.sommet_virtuel_old(facettes(fa7, som)))
+                {
+                  assert(number_of_involved_sommet < max_number_of_involved_sommet);
+                  involved_sommet[number_of_involved_sommet].sommet = facettes(fa7, som);
+                  involved_sommet[number_of_involved_sommet].fa7 = fa7;
+                  involved_sommet[number_of_involved_sommet].value = interfacial_temperature(fa7)/surface_facettes(fa7);
+                  involved_sommet[number_of_involved_sommet].count = 1;
+                  number_of_involved_sommet += 1;
+                }
+            }
+
+          index = data.index_facette_suivante_;
+        };
+    }
+
+  qsort(involved_sommet, number_of_involved_sommet, sizeof(Sommet), compare_sommet);
+
+  int initial_number_of_involved_sommet = number_of_involved_sommet;
+
+  int precedente_fa7 = -1;
+  int precedent_sommet = -1;
+  int premier_i_avec_ce_sommet = -1;
+  for (int i = 0; i < initial_number_of_involved_sommet; i++)
+    {
+      int sommet = involved_sommet[i].sommet;
+      int fa7 = involved_sommet[i].fa7;
+      assert(sommet != -1);
+      if (sommet == precedent_sommet)
+        {
+          assert(fa7 != -1);
+          if (fa7 == precedente_fa7)
+            {
+              // This is a duplicate, thus the information is destroyed (below).
+            }
+          else
+            {
+              // This is the contribution of a different facet,
+              // the information is moved to the first instance of the vertex, then destroyed (below).
+              involved_sommet[premier_i_avec_ce_sommet].value += involved_sommet[i].value;
+              involved_sommet[premier_i_avec_ce_sommet].count += 1;
+
+              precedente_fa7 = fa7;
+            }
+
+          involved_sommet[i].sommet = -1;
+          involved_sommet[i].fa7 = -1;
+          involved_sommet[i].value = 0.;
+          involved_sommet[i].count = 1;
+
+          number_of_involved_sommet -= 1;
+
+        }
+      else
+        {
+          premier_i_avec_ce_sommet = i;
+          precedent_sommet = sommet;
+          precedente_fa7 = -1;
         }
     }
+
+  for (int i = 0; i < initial_number_of_involved_sommet; i++)
+    {
+      involved_sommet[i].value /= involved_sommet[i].count;
+      involved_sommet[i].count = 1;
+    }
+
+  qsort(involved_sommet, initial_number_of_involved_sommet, sizeof(Sommet), compare_sommet);
+
+  for (int i = 0; i < number_of_involved_sommet; i++)
+    {
+      int sommet = involved_sommet[i].sommet;
+      if (i >= 1)
+        {
+          assert(sommet != involved_sommet[i-1].sommet);
+        }
+
+      double decalage_x = (sommets(sommet, 0) - x)/dx;
+      double decalage_y = (sommets(sommet, 1) - y)/dy;
+      double decalage_z = (sommets(sommet, 2) - z)/dz;
+      double candidate_x = decalage_x + xfact;
+      double candidate_y = decalage_y + yfact;
+      double candidate_z = decalage_z + zfact;
+
+      candidates[number_of_candidates].dist = sqrt(decalage_x*decalage_x + decalage_y*decalage_y + decalage_z*decalage_z);
+      candidates[number_of_candidates].coord[0] = candidate_x;
+      candidates[number_of_candidates].coord[1] = candidate_y;
+      candidates[number_of_candidates].coord[2] = candidate_z;
+      candidates[number_of_candidates].value = involved_sommet[i].value;
+      number_of_candidates += 1;
+    }
+
   assert(number_of_candidates <= max_number_of_candidates);
-  qsort(dist, max_number_of_candidates, sizeof(struct_int_double), compare_value);
+  qsort(candidates, number_of_candidates, sizeof(Candidate), compare_value_candidate);
 
   // On boucle d'abord sur n_neighbours, le nombre de points que l'on s'autorise a chercher
   // dans la liste des voisins. Par exemple, n_neighbours=6 veut dire que l'on cherche a former
   // des tetraedres a partir des 6 premiers voisins.
-  for (int n_neighbours = 4; n_neighbours < number_of_candidates; n_neighbours++)
+  const bool limit_count = false;
+  const bool force_use_fist_neighbour = true; // Force l'utilisation du voisin le plus proche. Avantage : garanti de rester proche de ce point si le premier voisin est tres proche.
+  const int max_count = 100;
+  int count = 0;
+  int closest_tetrahedron[4] = {-1,-1,-1,-1};
+  double closest_lambda_error = DMAXFLOAT;
+  for (int n_neighbours = 4; (n_neighbours < number_of_candidates && ((!limit_count) || count < max_count)); n_neighbours++)
     {
       int index_vertex0 = n_neighbours; // Le premier point est toujours fixe au dernier possible. Cela garanti que tous les tetraedres d'un nouveau n_neighbours sont nouveaux.
-      int vertex0 = dist[index_vertex0].index;
 
-      int i_0_aperio = index_i + candidate_offset[vertex0][0];
-      int j_0_aperio = index_j + candidate_offset[vertex0][1];
-      int k_0_aperio = index_k + candidate_offset[vertex0][2];
-
-      // Prise en compte de la periodicite
-      double x_0_centred_aperio = (i_0_aperio + offset_x + .5)*dx + origin_x;
-      double y_0_centred_aperio = (j_0_aperio + offset_y + .5)*dy + origin_y;
-      double z_0_centred_aperio = (k_0_aperio + offset_z + .5)*dz + origin_z;
-      int i_0 = cut_cell_disc.get_i_selon_dir(0, x_0_centred_aperio, 2, splitting, false);
-      int j_0 = cut_cell_disc.get_i_selon_dir(1, y_0_centred_aperio, 2, splitting, false);
-      int k_0 = cut_cell_disc.get_i_selon_dir(2, z_0_centred_aperio, 2, splitting, false);
-      assert((i_0_aperio == i_0) || (close_to_edge));
-      assert((j_0_aperio == j_0) || (close_to_edge));
-      assert((k_0_aperio == k_0) || (close_to_edge));
-
-      double next_indicatrice_0 = cut_cell_disc.get_interfaces().In(i_0, j_0, k_0);
-      double old_indicatrice_0 = cut_cell_disc.get_interfaces().I(i_0, j_0, k_0);
-      double x_0 = (double)candidate_offset[vertex0][0] + cut_cell_disc.get_interfaces().get_barycentre_next(0, phase, i_0, j_0, k_0, old_indicatrice_0, next_indicatrice_0);
-      double y_0 = (double)candidate_offset[vertex0][1] + cut_cell_disc.get_interfaces().get_barycentre_next(1, phase, i_0, j_0, k_0, old_indicatrice_0, next_indicatrice_0);
-      double z_0 = (double)candidate_offset[vertex0][2] + cut_cell_disc.get_interfaces().get_barycentre_next(2, phase, i_0, j_0, k_0, old_indicatrice_0, next_indicatrice_0);
-      //double dx_0 = 0.;
-      //double dy_0 = 0.;
-      //double dz_0 = 0.;
-
-      for (int index_vertex1 = 0; index_vertex1 < index_vertex0-2; index_vertex1++)
+      for (int index_vertex1 = 0; (index_vertex1 < (force_use_fist_neighbour ? 1 : index_vertex0-2) && ((!limit_count) || count < max_count)); index_vertex1++)
         {
-          int vertex1 = dist[index_vertex1].index;
-
-          int i_1_aperio = index_i + candidate_offset[vertex1][0];
-          int j_1_aperio = index_j + candidate_offset[vertex1][1];
-          int k_1_aperio = index_k + candidate_offset[vertex1][2];
-
-          // Prise en compte de la periodicite
-          double x_1_centred_aperio = (i_1_aperio + offset_x + .5)*dx + origin_x;
-          double y_1_centred_aperio = (j_1_aperio + offset_y + .5)*dy + origin_y;
-          double z_1_centred_aperio = (k_1_aperio + offset_z + .5)*dz + origin_z;
-          int i_1 = cut_cell_disc.get_i_selon_dir(0, x_1_centred_aperio, 2, splitting, false);
-          int j_1 = cut_cell_disc.get_i_selon_dir(1, y_1_centred_aperio, 2, splitting, false);
-          int k_1 = cut_cell_disc.get_i_selon_dir(2, z_1_centred_aperio, 2, splitting, false);
-          assert((i_1_aperio == i_1) || (close_to_edge));
-          assert((j_1_aperio == j_1) || (close_to_edge));
-          assert((k_1_aperio == k_1) || (close_to_edge));
-
-          double next_indicatrice_1 = cut_cell_disc.get_interfaces().In(i_1, j_1, k_1);
-          double old_indicatrice_1 = cut_cell_disc.get_interfaces().I(i_1, j_1, k_1);
-          double x_1 = (double)candidate_offset[vertex1][0] + cut_cell_disc.get_interfaces().get_barycentre_next(0, phase, i_1, j_1, k_1, old_indicatrice_1, next_indicatrice_1);
-          double y_1 = (double)candidate_offset[vertex1][1] + cut_cell_disc.get_interfaces().get_barycentre_next(1, phase, i_1, j_1, k_1, old_indicatrice_1, next_indicatrice_1);
-          double z_1 = (double)candidate_offset[vertex1][2] + cut_cell_disc.get_interfaces().get_barycentre_next(2, phase, i_1, j_1, k_1, old_indicatrice_1, next_indicatrice_1);
-          double dx_1 = x_1 - x_0;
-          double dy_1 = y_1 - y_0;
-          double dz_1 = z_1 - z_0;
-
-          for (int index_vertex2 = index_vertex1+1; index_vertex2 < index_vertex0-1; index_vertex2++)
+          for (int index_vertex2 = index_vertex1+1; (index_vertex2 < index_vertex0-1 && ((!limit_count) || count < max_count)); index_vertex2++)
             {
-              int vertex2 = dist[index_vertex2].index;
-
-              int i_2_aperio = index_i + candidate_offset[vertex2][0];
-              int j_2_aperio = index_j + candidate_offset[vertex2][1];
-              int k_2_aperio = index_k + candidate_offset[vertex2][2];
-
-              // Prise en compte de la periodicite
-              double x_2_centred_aperio = (i_2_aperio + offset_x + .5)*dx + origin_x;
-              double y_2_centred_aperio = (j_2_aperio + offset_y + .5)*dy + origin_y;
-              double z_2_centred_aperio = (k_2_aperio + offset_z + .5)*dz + origin_z;
-              int i_2 = cut_cell_disc.get_i_selon_dir(0, x_2_centred_aperio, 2, splitting, false);
-              int j_2 = cut_cell_disc.get_i_selon_dir(1, y_2_centred_aperio, 2, splitting, false);
-              int k_2 = cut_cell_disc.get_i_selon_dir(2, z_2_centred_aperio, 2, splitting, false);
-              assert((i_2_aperio == i_2) || (close_to_edge));
-              assert((j_2_aperio == j_2) || (close_to_edge));
-              assert((k_2_aperio == k_2) || (close_to_edge));
-
-              double next_indicatrice_2 = cut_cell_disc.get_interfaces().In(i_2, j_2, k_2);
-              double old_indicatrice_2 = cut_cell_disc.get_interfaces().I(i_2, j_2, k_2);
-              double x_2 = (double)candidate_offset[vertex2][0] + cut_cell_disc.get_interfaces().get_barycentre_next(0, phase, i_2, j_2, k_2, old_indicatrice_2, next_indicatrice_2);
-              double y_2 = (double)candidate_offset[vertex2][1] + cut_cell_disc.get_interfaces().get_barycentre_next(1, phase, i_2, j_2, k_2, old_indicatrice_2, next_indicatrice_2);
-              double z_2 = (double)candidate_offset[vertex2][2] + cut_cell_disc.get_interfaces().get_barycentre_next(2, phase, i_2, j_2, k_2, old_indicatrice_2, next_indicatrice_2);
-
-              double dx_2 = x_2 - x_0;
-              double dy_2 = y_2 - y_0;
-              double dz_2 = z_2 - z_0;
-
-              for (int index_vertex3 = index_vertex2+1; index_vertex3 < index_vertex0; index_vertex3++)
+              for (int index_vertex3 = index_vertex2+1; (index_vertex3 < index_vertex0 && ((!limit_count) || count < max_count)); index_vertex3++)
                 {
-                  int vertex3 = dist[index_vertex3].index;
-
-                  int i_3_aperio = index_i + candidate_offset[vertex3][0];
-                  int j_3_aperio = index_j + candidate_offset[vertex3][1];
-                  int k_3_aperio = index_k + candidate_offset[vertex3][2];
-
-                  // Prise en compte de la periodicite
-                  double x_3_centred_aperio = (i_3_aperio + offset_x + .5)*dx + origin_x;
-                  double y_3_centred_aperio = (j_3_aperio + offset_y + .5)*dy + origin_y;
-                  double z_3_centred_aperio = (k_3_aperio + offset_z + .5)*dz + origin_z;
-                  int i_3 = cut_cell_disc.get_i_selon_dir(0, x_3_centred_aperio, 2, splitting, false);
-                  int j_3 = cut_cell_disc.get_i_selon_dir(1, y_3_centred_aperio, 2, splitting, false);
-                  int k_3 = cut_cell_disc.get_i_selon_dir(2, z_3_centred_aperio, 2, splitting, false);
-                  assert((i_3_aperio == i_3) || (close_to_edge));
-                  assert((j_3_aperio == j_3) || (close_to_edge));
-                  assert((k_3_aperio == k_3) || (close_to_edge));
-
-                  double next_indicatrice_3 = cut_cell_disc.get_interfaces().In(i_3, j_3, k_3);
-                  double old_indicatrice_3 = cut_cell_disc.get_interfaces().I(i_3, j_3, k_3);
-                  double x_3 = (double)candidate_offset[vertex3][0] + cut_cell_disc.get_interfaces().get_barycentre_next(0, phase, i_3, j_3, k_3, old_indicatrice_3, next_indicatrice_3);
-                  double y_3 = (double)candidate_offset[vertex3][1] + cut_cell_disc.get_interfaces().get_barycentre_next(1, phase, i_3, j_3, k_3, old_indicatrice_3, next_indicatrice_3);
-                  double z_3 = (double)candidate_offset[vertex3][2] + cut_cell_disc.get_interfaces().get_barycentre_next(2, phase, i_3, j_3, k_3, old_indicatrice_3, next_indicatrice_3);
-
-                  double dx_3 = x_3 - x_0;
-                  double dy_3 = y_3 - y_0;
-                  double dz_3 = z_3 - z_0;
-
-                  // En coordonnees barycentriques, puisque dX_0 = 0
-                  //
-                  // x_target_to_interpolate = dx_1 lambda_1 + dx_2 lamdba_2 + dx_3 lambda_3
-                  // y_target_to_interpolate = dy_1 lambda_1 + dy_2 lamdba_2 + dy_3 lambda_3
-                  // z_target_to_interpolate = dz_1 lambda_1 + dz_2 lamdba_2 + dz_3 lambda_3
-                  // ---
-                  // X_target_to_interpolate = Matrix * Lambda_vector
-                  //
-                  // Donc Lambda_vector = Matrix^-1 * X_target_to_interpolate
-                  double Matrix[3*3] =
-                  {
-                    dx_1, dx_2, dx_3,
-                    dy_1, dy_2, dy_3,
-                    dz_1, dz_2, dz_3,
-                  };
-
-                  inverse(Matrix, 3);
-
-                  double lambda_1 = Matrix[0] * (xfact - x_0) + Matrix[1] * (yfact - y_0) + Matrix[2] * (zfact - z_0);
-                  double lambda_2 = Matrix[3] * (xfact - x_0) + Matrix[4] * (yfact - y_0) + Matrix[5] * (zfact - z_0);
-                  double lambda_3 = Matrix[6] * (xfact - x_0) + Matrix[7] * (yfact - y_0) + Matrix[8] * (zfact - z_0);
+                  Vecteur3 lambda_vec = compute_lambda(index_vertex0, index_vertex1, index_vertex2, index_vertex3, candidates, xfact, yfact, zfact);
+                  double lambda_1 = lambda_vec[0];
+                  double lambda_2 = lambda_vec[1];
+                  double lambda_3 = lambda_vec[2];
 
                   double lambda_0 = 1 - lambda_1 - lambda_2 - lambda_3;
 
@@ -325,90 +731,115 @@ static double ijk_interpolate_cut_cell_for_given_index(int idx, int phase, Cut_f
 
                   int point_within_tetrahedron = lambda_0_within_bounds && lambda_1_within_bounds && lambda_2_within_bounds && lambda_3_within_bounds;
 
+                  count++;
                   if (point_within_tetrahedron)
                     {
-                      double field_0;
-                      double field_1;
-                      double field_2;
-                      double field_3;
-
-                      int n_0 = cut_cell_disc.get_n(i_0, j_0, k_0);
-                      if (n_0 >= 0)
-                        {
-                          field_0 = (phase == 0) ? field.diph_v_(n_0) : field.diph_l_(n_0);
-                        }
-                      else
-                        {
-                          assert(cut_cell_disc.get_interfaces().In(i_0,j_0,k_0) == (double)phase);
-                          field_0 = field.pure_(i_0,j_0,k_0);
-                        }
-
-                      int n_1 = cut_cell_disc.get_n(i_1, j_1, k_1);
-                      if (n_1 >= 0)
-                        {
-                          field_1 = (phase == 0) ? field.diph_v_(n_1) : field.diph_l_(n_1);
-                        }
-                      else
-                        {
-                          assert(cut_cell_disc.get_interfaces().In(i_1,j_1,k_1) == (double)phase);
-                          field_1 = field.pure_(i_1,j_1,k_1);
-                        }
-
-                      int n_2 = cut_cell_disc.get_n(i_2, j_2, k_2);
-                      if (n_2 >= 0)
-                        {
-                          field_2 = (phase == 0) ? field.diph_v_(n_2) : field.diph_l_(n_2);
-                        }
-                      else
-                        {
-                          assert(cut_cell_disc.get_interfaces().In(i_2,j_2,k_2) == (double)phase);
-                          field_2 = field.pure_(i_2,j_2,k_2);
-                        }
-
-                      int n_3 = cut_cell_disc.get_n(i_3, j_3, k_3);
-                      if (n_3 >= 0)
-                        {
-                          field_3 = (phase == 0) ? field.diph_v_(n_3) : field.diph_l_(n_3);
-                        }
-                      else
-                        {
-                          assert(cut_cell_disc.get_interfaces().In(i_3,j_3,k_3) == (double)phase);
-                          field_3 = field.pure_(i_3,j_3,k_3);
-                        }
+                      double field_0 = candidates[index_vertex0].value;
+                      double field_1 = candidates[index_vertex1].value;
+                      double field_2 = candidates[index_vertex2].value;
+                      double field_3 = candidates[index_vertex3].value;
+                      assert(field_0 != 0); // Suggests a bug, but not necessarily implies so
+                      assert(field_1 != 0); //  .
+                      assert(field_2 != 0); //  .
+                      assert(field_3 != 0); //  .
 
                       double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
 
+                      status = count;
                       return r;
+                    }
+                  else
+                    {
+                      double lambda_error_0 = std::max((lambda_0 < 0)*(-lambda_0), (lambda_0 > 1)*(lambda_0 - 1));
+                      double lambda_error_1 = std::max((lambda_1 < 0)*(-lambda_1), (lambda_1 > 1)*(lambda_1 - 1));
+                      double lambda_error_2 = std::max((lambda_2 < 0)*(-lambda_2), (lambda_2 > 1)*(lambda_2 - 1));
+                      double lambda_error_3 = std::max((lambda_3 < 0)*(-lambda_3), (lambda_3 > 1)*(lambda_3 - 1));
+
+                      double lambda_error = std::max(lambda_error_0, std::max(lambda_error_1, std::max(lambda_error_2, lambda_error_3)));
+                      assert(lambda_error > 0);
+
+                      if (closest_lambda_error > lambda_error)
+                        {
+                          closest_tetrahedron[0] = index_vertex0;
+                          closest_tetrahedron[1] = index_vertex1;
+                          closest_tetrahedron[2] = index_vertex2;
+                          closest_tetrahedron[3] = index_vertex3;
+                          closest_lambda_error = lambda_error;
+                        }
                     }
                 }
             }
         }
     }
 
-  // No suitable tetrahedron was found
-  Cerr << "Value of close_to_edge: " << (int)close_to_edge << finl;
-  Cerr << "Error in ijk_interpolate_cut_cell_for_given_index: no tetrahedron containing the point " << x << " " << y << " " << z << " on processor " << Process::me() << finl;
-  Process::exit();
-  return -1;
+  // Utilise le tetrahedre le plus proche selon les parametres de tolerance
+  if ((tolerate_not_within_tetrahedron == 2) || (tolerate_not_within_tetrahedron == 1 && closest_lambda_error < 5e-2))
+    {
+      Vecteur3 lambda_vec = compute_lambda(closest_tetrahedron[0], closest_tetrahedron[1], closest_tetrahedron[2], closest_tetrahedron[3], candidates, xfact, yfact, zfact);
+      double lambda_1 = lambda_vec[0];
+      double lambda_2 = lambda_vec[1];
+      double lambda_3 = lambda_vec[2];
+
+      double lambda_0 = 1 - lambda_1 - lambda_2 - lambda_3;
+
+      assert(!(((lambda_0 >= 0) && (lambda_0 <= 1)) && ((lambda_1 >= 0) && (lambda_1 <= 1)) && ((lambda_2 >= 0) && (lambda_2 <= 1)) && ((lambda_3 >= 0) && (lambda_3 <= 1))));
+
+      double field_0 = candidates[closest_tetrahedron[0]].value;
+      double field_1 = candidates[closest_tetrahedron[1]].value;
+      double field_2 = candidates[closest_tetrahedron[2]].value;
+      double field_3 = candidates[closest_tetrahedron[3]].value;
+
+      double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
+
+      status = -1;
+      return r;
+    }
+  else
+    {
+      Cerr << "Value of close_to_edge: " << (int)close_to_edge << finl;
+      Cerr << "Error in ijk_interpolate_cut_cell_for_given_index: no tetrahedron containing the point " << x << " " << y << " " << z << " on processor " << Process::me() << finl;
+      Cerr << "For information, closest_lambda_error=" << closest_lambda_error << finl;
+      // Note: While maybe not most likely, I noticed this error could occur if
+      //  * the number of cells per particle diameter is too small <=3
+      //  * ijk_splitting_ft_extension is not large enough
+      Process::exit();
+      return -1;
+    }
 }
 
 // Interpolate the "field" at the requested "coordinates" (array with 3 columns), and stores into "result"
-static void ijk_interpolate_cut_cell_implementation(int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
+static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
 {
   const int nb_coords = coordinates.dimension(0);
   result.resize_array(nb_coords);
   for (int idx = 0; idx < nb_coords; idx++)
     {
-      double interpolated_value = ijk_interpolate_cut_cell_for_given_index(idx, phase, field, coordinates, result, skip_unknown_points, value_for_bad_points);
+      double coordinates_for_given_index[3] = {coordinates(idx, 0), coordinates(idx, 1), coordinates(idx, 2)};
+      int tolerate_not_within_tetrahedron = 1;
+      int status = -2;
+      double interpolated_value = ijk_interpolate_cut_cell_for_given_index(next_time, phase, field, coordinates_for_given_index, result, tolerate_not_within_tetrahedron, skip_unknown_points, value_for_bad_points, status);
       result[idx] = interpolated_value;
     }
 }
-void ijk_interpolate_cut_cell_skip_unknown_points(int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points)
+
+void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points)
 {
-  ijk_interpolate_cut_cell_implementation(phase, field, coordinates, result, 1 /* yes:skip unknown points */, value_for_bad_points);
+  ijk_interpolate_cut_cell_implementation(next_time, phase, field, coordinates, result, 1 /* yes:skip unknown points */, value_for_bad_points);
 }
 
-void ijk_interpolate_cut_cell(int phase, Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result)
+void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result)
 {
-  ijk_interpolate_cut_cell_implementation(phase, field, coordinates, result, 0 /* skip unknown points=no */, 0.);
+  ijk_interpolate_cut_cell_implementation(next_time, phase, field, coordinates, result, 0 /* skip unknown points=no */, 0.);
+}
+
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
+{
+  double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 1, value_for_bad_points, status);
+  return interpolated_value;
+}
+
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status)
+{
+  double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 0, 0., status);
+  return interpolated_value;
 }

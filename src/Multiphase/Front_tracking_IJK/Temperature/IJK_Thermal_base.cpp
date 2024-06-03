@@ -92,7 +92,7 @@ IJK_Thermal_base::IJK_Thermal_base()
   vol_ = 0.;
   min_delta_xyz_ = 0.;
   cell_diagonal_ = 0.;
-  ghost_cells_ = 2;
+  ghost_cells_ = 4;
   rho_cp_post_ = 0;
 
   nb_diam_upstream_ = 0;
@@ -434,7 +434,7 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
 
   // if (!diff_temperature_negligible_)
   {
-    div_coeff_grad_T_volume_.allocate(splitting, IJK_Splitting::ELEM, 0);
+    div_coeff_grad_T_volume_.allocate(splitting, IJK_Splitting::ELEM, 2);
     nalloc += 1;
     div_coeff_grad_T_volume_.data() = 0.;
   }
@@ -1192,7 +1192,9 @@ void IJK_Thermal_base::compute_eulerian_temperature_ghost(const int on_splitting
       temperature_.echange_espace_virtuel(temperature_.ghost());
     }
   else
-    Cerr << "Don't compute the ghost temperature field" << finl;
+    {
+      //Cerr << "Don't compute the ghost temperature field" << finl;
+    }
 }
 
 void IJK_Thermal_base::compute_eulerian_bounding_box_fill_compo()

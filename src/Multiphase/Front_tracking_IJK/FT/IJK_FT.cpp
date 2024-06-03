@@ -51,7 +51,7 @@ void IJK_FT::run()
                                   delta_z_local_);
   Cerr << "IJK_FT::run()" << finl;
   int nalloc = 0;
-  thermal_probes_ghost_cells_ = 2;
+  thermal_probes_ghost_cells_ = 4;
   thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
   allocate_velocity(velocity_, splitting_, thermal_probes_ghost_cells_);
@@ -526,14 +526,15 @@ void IJK_FT::run()
 
       if (timestep_facsec_ > 0.)
         {
-          timestep_ = find_timestep(max_timestep, cfl_, fo_, oh_);
+          double max_post_simu_timestep = post_.get_timestep_simu_post(current_time_, max_simu_time_);
+          timestep_ = find_timestep(std::min(max_timestep, max_post_simu_timestep), cfl_, fo_, oh_);
         }
 
       // Tableau permettant de calculer la variation de volume au cours du pas de temps :
       // Si on veut le mettre en optionel, il faut faire attention a faire vivre la taille de ce tableau avec les
       // creations et destructions de ghosts :
       const int nbulles_tot = interfaces_.get_nb_bulles_reelles()
-                              + interfaces_.get_nb_bulles_ghost(1/*print=1*/);
+                              + interfaces_.get_nb_bulles_ghost(0/*print=0*/);
       var_volume_par_bulle.resize_array(nbulles_tot);
       var_volume_par_bulle = 0.; // Je ne suis pas sur que ce soit un bon choix. Si on ne le remet pas a zero
       //                          a chaque dt, on corrigera la petite erreur qui pouvait rester d'avant...
@@ -727,7 +728,8 @@ void IJK_FT::run()
               current_time_at_rk3_step_ += fractionnal_timestep;
               // On ne postraite pas le sous-dt 2 car c'est fait plus bas si on post-traite le pas de temps :
               if (post_.postraiter_sous_pas_de_temps()
-                  && (tstep_ % post_.dt_post() == post_.dt_post() - 1)
+                  && ((tstep_ % post_.dt_post() == post_.dt_post() - 1)
+                      || (std::floor((current_time_-timestep_)/post_.get_timestep_simu_post(current_time_, max_simu_time_)) < std::floor(current_time_/post_.get_timestep_simu_post(current_time_, max_simu_time_))))
                   && (rk_step_ != 2))
                 {
                   post_.posttraiter_champs_instantanes(lata_name, current_time_at_rk3_step, tstep_);

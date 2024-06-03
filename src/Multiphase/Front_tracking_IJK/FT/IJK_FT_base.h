@@ -332,7 +332,10 @@ public :
                                            IJK_Field_double& output_field);
   void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
   void update_indicator_field();
+  void update_intermediary_indicator_field();
   void update_twice_indicator_field();
+
+  void update_old_intersections();
 
   virtual Cut_cell_FT_Disc* get_cut_cell_disc()
   {
@@ -634,7 +637,7 @@ protected :
   Multigrille_Adrien poisson_solver_;
   // Simulation parameters
   int nb_timesteps_;
-  int max_simu_time_;
+  double max_simu_time_;
   double timestep_;
   double timestep_facsec_;
   double cfl_, fo_, oh_;
@@ -747,6 +750,7 @@ protected :
   // Options for the cut-cell computation of effective surfaces
   TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_;
   TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_;
+  int deactivate_remeshing_velocity_;
 };
 
 #endif /* IJK_FT_base_included */

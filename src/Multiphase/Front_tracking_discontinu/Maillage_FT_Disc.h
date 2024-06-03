@@ -70,24 +70,31 @@ public:
 
   // Acces aux elements du maillage
   const DoubleTab& sommets() const;
+  const DoubleTab& sommets_old() const;
   int              nb_sommets() const;  // Egal a sommets().dimension(0)
+  int              nb_sommets_old() const;  // Egal a sommets_old().dimension(0)
   const IntTab&     facettes() const;
+  const IntTab&     facettes_old() const;
   int              nb_facettes() const; // Egal a facettes().dimension(0)
+  int              nb_facettes_old() const; // Egal a facettes_old().dimension(0)
   const ArrOfInt& drapeaux_sommets() const;  // pour postraitement uniquement
   const ArrOfInt& sommet_PE_owner() const;   // pour postraitement uniquement
   const ArrOfInt& sommet_num_owner() const;   // pour postraitement uniquement
   void               facette_PE_owner(ArrOfInt& facette_pe) const; // pour postraitement uniquement
   const ArrOfInt& sommet_elem() const;       // pour postraitement uniquement
+  const ArrOfInt& sommet_elem_old() const;       // pour postraitement uniquement
   const ArrOfInt& sommet_face_bord() const;  // pour postraitement uniquement
 
   const Desc_Structure_FT& desc_sommets() const;
   const Desc_Structure_FT& desc_facettes() const;
 
   const Intersections_Elem_Facettes& intersections_elem_facettes() const;
+  const Intersections_Elem_Facettes& intersections_elem_facettes_old() const;
 
   const ArrOfInt& som_init_util() const;
   // Ces fonctions renvoient 1 si le test est vrai, 0 sinon
   inline int sommet_virtuel(int i) const;
+  inline int sommet_virtuel_old(int i) const;
   inline int sommet_ligne_contact(int i) const;
   inline int sommet_face_bord(int i) const;
   inline int facette_virtuelle(int i) const;
@@ -133,6 +140,9 @@ public:
 
   enum AjoutPhase { AJOUTE_TOUTES_PHASES = -1, AJOUTE_PHASE0 = 0 ,AJOUTE_PHASE1  = 1 };
 
+  // Met a jour la copie des intersections au pas de temps precedent
+  void update_old_intersections();
+
   // Acces aux grandeurs calculees a partir du maillage:
   virtual const ArrOfDouble& get_update_surface_facettes() const;
   virtual const DoubleTab& get_update_normale_facettes() const;
@@ -141,7 +151,9 @@ public:
   virtual const ArrOfDouble& get_update_courbure_sommets() const;
 
   virtual const ArrOfDouble& get_surface_facettes() const;
+  virtual const ArrOfDouble& get_surface_facettes_old() const;
   virtual const DoubleTab& get_normale_facettes() const;
+  virtual const DoubleTab& get_normale_facettes_old() const;
 
   inline int set_niveau_plot(int niv);
 
@@ -342,6 +354,7 @@ protected:
   // il est virtuel pour tous les autres. Pour les sommets situes a proximite d'un
   // joint (a epsilon pres), le choix du PE proprietaire est arbitraire.
   DoubleTabFT sommets_;
+  DoubleTabFT sommets_old_;
   // mes_facettes(i,j) = indice du j-ieme sommet de la i-ieme facette du maillage
   //                     En 2D : j=0..1, en 3D j=0..2
   // Conventions :
@@ -356,12 +369,14 @@ protected:
   //  Une facette est dite "virtuelle pure" si le processeur ne possede aucun des
   //  noeuds de la facette.
   IntTabFT    facettes_;
+  IntTabFT    facettes_old_;
 
   // Pour chaque sommet du maillage, numero de l'element eulerien qui
   // le contient et -1 si le sommet est virtuel.
   // Par definition, le sommet m'appartient ssi sommet_elem_ >= 0
   // (si sommet_elem_ < 0, le sommet est virtuel)
   ArrOfIntFT sommet_elem_;
+  ArrOfIntFT sommet_elem_old_;
   // Pour chaque sommet du maillage, numero de la face de bord eulerienne
   // ou se trouve le sommet si le sommet est de type "ligne de contact",
   // -1 si le sommet n'est pas sur le bord. Si le sommet est virtuel et sur
@@ -406,6 +421,7 @@ protected:
   // euleriens (ce champ est rempli lors du parcours de l'interface)
   //
   Intersections_Elem_Facettes intersections_elem_facettes_;
+  Intersections_Elem_Facettes intersections_elem_facettes_old_;
 
   // voisins_(i,j)  = indice de la facette voisine de la i-eme facette du
   // maillage par l'arete j.
@@ -462,6 +478,16 @@ inline int Maillage_FT_Disc::sommet_virtuel(int i) const
 }
 
 // Description :
+//  Renvoie 0 si le sommet m'appartient, 1 sinon.
+//  Si le sommet i m'appartient, alors il se trouve a l'interieur de l'element
+//  sommet_elem_old_[i]. On garantit qu'un sommet est reel sur exactement un
+//  processeur et virtuel sur tous les autres.
+inline int Maillage_FT_Disc::sommet_virtuel_old(int i) const
+{
+  return (sommet_elem_old_[i] < 0) ? 1 : 0;
+}
+
+// Description :
 //  Renvoie 1 si le sommet se trouve sur un bord du domaine, 0 sinon.
 //  Si le sommet est virtuel mais qu'il se trouve sur un bord du domaine
 //  du proceseur voisin, on renvoie 1 aussi.
@@ -505,9 +531,12 @@ public:
 
   int        tag_surface_;
   ArrOfDoubleFT surface_facettes_;
+  ArrOfDoubleFT surface_facettes_old_;
   int        tag_normale_;
   DoubleTabFT   normale_facettes_;
+  DoubleTabFT   normale_facettes_old_;
   int        tag_courbure_;
   ArrOfDoubleFT courbure_sommets_;
+  ArrOfDoubleFT courbure_sommets_old_;
 };
 #endif

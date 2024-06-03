@@ -110,11 +110,13 @@ void Operateur_IJK_elem_conv_base_double::ajouter(const IJK_Field_double& field,
 }
 
 void Operateur_IJK_elem_conv_base_double::calculer_cut_cell(bool ignore_small_cells,
-                                                            CUT_CELL_CONV_SCHEME cut_cell_conv_scheme,
+                                                            Cut_cell_conv_scheme cut_cell_conv_scheme,
                                                             const Cut_field_scalar& field,
                                                             const Cut_field_vector& v,
                                                             const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
                                                             Cut_cell_vector& cut_cell_flux,
+                                                            IJK_Field_int& treatment_count,
+                                                            int& new_treatment,
                                                             Cut_field_scalar& result)
 {
   // Si ce test plante, c'est qu'on a oublie d'appeler la methode initialize() !!!
@@ -130,6 +132,8 @@ void Operateur_IJK_elem_conv_base_double::calculer_cut_cell(bool ignore_small_ce
   input_cut_field_ = &field;
   temperature_face_ = &temperature_face;
   cut_cell_flux_ = &cut_cell_flux;
+  treatment_count_ = &treatment_count;
+  new_treatment_ = &new_treatment;
   stored_curv_fram_layer_z_ = -1000; // put a non-existant layer index: curv_fram will be computed at first call
   // Storage for curvature and fram limiter. We need 1 ghost layer:
   // flux at left of the leftmost field data requires curv and fram on the element at left
@@ -145,6 +149,8 @@ void Operateur_IJK_elem_conv_base_double::calculer_cut_cell(bool ignore_small_ce
   input_cut_field_ = nullptr;
   temperature_face_ = nullptr;
   cut_cell_flux_ = nullptr;
+  treatment_count_ = nullptr;
+  new_treatment_ = nullptr;
   cut_field_velocity_ = nullptr;
   input_velocity_x_ = nullptr;
   input_velocity_y_ = nullptr;
@@ -153,11 +159,13 @@ void Operateur_IJK_elem_conv_base_double::calculer_cut_cell(bool ignore_small_ce
 }
 
 void Operateur_IJK_elem_conv_base_double::ajouter_cut_cell(bool ignore_small_cells,
-                                                           CUT_CELL_CONV_SCHEME cut_cell_conv_scheme,
+                                                           Cut_cell_conv_scheme cut_cell_conv_scheme,
                                                            const Cut_field_scalar& field,
                                                            const Cut_field_vector& v,
                                                            const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
                                                            Cut_cell_vector& cut_cell_flux,
+                                                           IJK_Field_int& treatment_count,
+                                                           int& new_treatment,
                                                            Cut_field_scalar& result)
 {
   // Si ce test plante, c'est qu'on a oublie d'appeler la methode initialize() !!!
@@ -173,6 +181,8 @@ void Operateur_IJK_elem_conv_base_double::ajouter_cut_cell(bool ignore_small_cel
   input_cut_field_ = &field;
   temperature_face_ = &temperature_face;
   cut_cell_flux_ = &cut_cell_flux;
+  treatment_count_ = &treatment_count;
+  new_treatment_ = &new_treatment;
   stored_curv_fram_layer_z_ = -1000; // put a non-existant layer index: curv_fram will be computed at first call
   // Storage for curvature and fram limiter. We need 1 ghost layer:
   //  flux at left of the leftmost field data requires curv and fram on the element at left
@@ -188,6 +198,8 @@ void Operateur_IJK_elem_conv_base_double::ajouter_cut_cell(bool ignore_small_cel
   input_cut_field_ = nullptr;
   temperature_face_ = nullptr;
   cut_cell_flux_ = nullptr;
+  treatment_count_ = nullptr;
+  new_treatment_ = nullptr;
   cut_field_velocity_ = nullptr;
   input_velocity_x_ = nullptr;
   input_velocity_y_ = nullptr;

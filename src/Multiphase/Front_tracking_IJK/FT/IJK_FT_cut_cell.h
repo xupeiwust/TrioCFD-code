@@ -56,18 +56,33 @@ public :
   {
     return cut_field_velocity_;
   }
+  const Cut_field_vector& get_cut_field_remeshing_velocity() const
+  {
+    return cut_field_remeshing_velocity_;
+  }
+  const Cut_field_vector& get_cut_field_total_velocity() const
+  {
+    return cut_field_total_velocity_;
+  }
 
-  void euler_explicit_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& v) const;
-  void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot);
+  void cut_cell_switch_field_time(Cut_field_scalar& v) const;
 
-  void euler_explicit_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& v) const;
-  void runge_kutta3_update_cut_cell_notransport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot);
+  void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v) const;
+  void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
+
+  void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v) const;
+  void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
 
 protected :
   friend class IJK_FT_Post;
   Cut_cell_FT_Disc cut_cell_disc_;
 
+  FixedVector<IJK_Field_double, 3> remeshing_velocity_;
+  FixedVector<IJK_Field_double, 3> total_velocity_;
+
   Cut_field_vector cut_field_velocity_;
+  Cut_field_vector cut_field_remeshing_velocity_;
+  Cut_field_vector cut_field_total_velocity_;
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 };
 

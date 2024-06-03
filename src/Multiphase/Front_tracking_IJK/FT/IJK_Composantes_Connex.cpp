@@ -391,5 +391,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
         }
     }
   else
-    Cerr << "Don't compute the ghost temperature field" << finl;
+    {
+      //Cerr << "Don't compute the ghost temperature field" << finl;
+    }
 }

@@ -72,6 +72,7 @@ public :
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time) override;
 
   CutCell_GlobalInfo compute_global_energy_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
+  CutCell_GlobalInfo compute_d_global_energy_cut_cell(Cut_field_scalar& cut_field_d_temperature, bool next);
   double compute_global_energy() override
   {
     Cerr << "I want to make sure the function compute_global_energy is not used." << finl;
@@ -80,6 +81,7 @@ public :
   }
   CutCell_GlobalInfo compute_Tmin_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
   CutCell_GlobalInfo compute_Tmax_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
+  void calculer_flux_interface();
 
   void remplir_cellules_diphasiques() override
   {
@@ -130,8 +132,10 @@ protected :
   double error_temperature_ana_squared_total_;
   double error_temperature_ana_rel_total_;
 
-  void calculer_dT_cut_cell(const Cut_field_vector& cut_field_velocity);
-  void compute_temperature_convection_cut_cell(const Cut_field_vector& cut_field_velocity);
+  void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
+
+  void calculer_dT_cut_cell(const Cut_field_vector& cut_field_total_velocity);
+  void compute_temperature_convection_cut_cell(const Cut_field_vector& cut_field_total_velocity);
   void add_temperature_diffusion() override;
   void compute_diffusion_increment() override;
   /* correct_temperature_for_eulerian_fluxes() May be clearly overridden later */
@@ -141,6 +145,8 @@ protected :
   double compute_rho_cp_u_mean(const IJK_Field_double& vx) override;
   double get_div_lambda_ijk(int i, int j, int k) const override;
   double compute_temperature_dimensionless_theta_mean(const IJK_Field_double& vx) override;
+  double get_flux_interfacial_moyen() const { return flux_interfacial_moyen_ ; }
+  double get_temperature_interfaciale_moyenne() const { return temperature_interfaciale_moyenne_ ; }
 
   //Rustine
   double E0_;//volumique
@@ -154,48 +160,56 @@ protected :
   IJK_Field_double div_rho_cp_T_;
   IJK_Field_double lambda_;
 
-  IJK_Field_double RK3_F_temperature_diff_;
   IJK_Field_double div_coeff_grad_T_volume_temp_;
 
   Cut_field_scalar cut_field_temperature_;
-  Cut_field_scalar cut_field_RK3_F_temperature_diff_;
-  Cut_field_scalar cut_field_RK3_F_temperature_conv_;
+  Cut_field_scalar cut_field_RK3_F_temperature_;
   Cut_cell_vector cut_cell_flux_diffusion_;
   Cut_cell_vector cut_cell_flux_convection_;
   Cut_field_scalar cut_field_div_coeff_grad_T_volume_;
   Cut_field_scalar cut_field_div_coeff_grad_T_volume_temp_;
   Cut_field_scalar cut_field_d_temperature_;
 
-  CUT_CELL_CONV_SCHEME cut_cell_conv_scheme_;
+  Cut_cell_conv_scheme cut_cell_conv_scheme_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_ft_;
 
-  ArrOfDouble interfacial_temperature_;
-  ArrOfDouble interfacial_phin_ai_;
+  double flux_interfacial_moyen_;
+  double temperature_interfaciale_moyenne_;
+  Facettes_data coord_facettes_;
+  Facettes_data interfacial_temperature_;
+  DoubleTabFT interfacial_phin_ai_;
+
+  IJK_Field_double temperature_debut_sous_pas_;
+  Cut_field_scalar cut_field_temperature_debut_sous_pas_;
+
+  IJK_Field_int cellule_rk_restreint_;
+  IJK_Field_double temperature_post_convection_;
+  Cut_field_scalar cut_field_temperature_post_convection_;
 
   // Temporary fields, to inspect each step of the time advance
   int postraiter_champs_intermediaires_;
   IJK_Field_double temperature_post_dying_;
   IJK_Field_double temperature_post_regular_;
-  IJK_Field_double temperature_post_small_;
   IJK_Field_double temperature_post_diff_regular_;
   Cut_field_scalar cut_field_temperature_post_dying_;
   Cut_field_scalar cut_field_temperature_post_regular_;
-  Cut_field_scalar cut_field_temperature_post_small_;
   Cut_field_scalar cut_field_temperature_post_diff_regular_;
 
-  METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
   Cut_cell_convection_auxiliaire convective_correction_;
-
-  int activate_diffusion_interface_;
-  double scaled_distance_flux_interface_; // Distance a l'interface de l'interpolation utilisee pour calculer le flux a l'interface
-  ETALEMENT_DIFFUSION etalement_diffusion_;
-  METHODE_FLUX_INTERFACE methode_flux_interface_;
   Cut_cell_diffusion_auxiliaire diffusive_correction_;
 
-  int correction_petites_cellules_diffusion_;
-  CORRECTION_PETITES_CELLULES diffusion_petites_cellules_;
-  CORRECTION_PETITES_CELLULES convection_petites_cellules_;
+  int deactivate_diffusion_interface_;
+  ETALEMENT_DIFFUSION etalement_diffusion_;
+
+  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
+  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
+  IJK_Field_int treatment_count_;
+
+  // Compteur du dernier traitement effectue dans treatment_count_
+  int new_treatment_;
+
+  int verbosite_;
 };
 
 #endif /* IJK_Thermal_cut_cell_included */

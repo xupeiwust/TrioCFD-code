@@ -58,7 +58,10 @@ Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Obje
 IJK_Interfaces::IJK_Interfaces()
 {
   old_en_premier_ = true;
-  seuil_indicatrice_petite_ = 0.05;
+  dt_impression_bilan_indicatrice_ = -1;
+  verbosite_surface_efficace_face_ = 1;
+  verbosite_surface_efficace_interface_ = 1;
+  seuil_indicatrice_petite_ = 0.01;
 }
 
 
@@ -398,6 +401,9 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("positions_reference", &positions_reference_);
   param.ajouter("mean_force", &mean_force_);
   param.ajouter("parcours_interface",&parcours_);
+  param.ajouter("dt_impression_bilan_indicatrice", &dt_impression_bilan_indicatrice_);
+  param.ajouter("verbosite_surface_efficace_face", &verbosite_surface_efficace_face_);
+  param.ajouter("verbosite_surface_efficace_interface", &verbosite_surface_efficace_interface_);
   param.ajouter("seuil_indicatrice_petite", &seuil_indicatrice_petite_);
 
   // param.ajouter_non_std("terme_gravite",(this));
@@ -455,6 +461,7 @@ void IJK_Interfaces::activate_cut_cell()
   indicatrice_surfacique_efficace_face_initial_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   indicatrice_surfacique_efficace_face_correction_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   indicatrice_surfacique_efficace_face_absolute_error_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+  indicatrice_surfacique_intermediaire_efficace_face_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   surface_efficace_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   surface_efficace_interface_initial_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   coord_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
@@ -553,21 +560,38 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
   Cerr << "     total    " << count_total  << finl;
 }
 
-void IJK_Interfaces::calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity)
+void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, Cut_field_vector& remeshing_velocity)
+{
+  // Calcul des surfaces efficaces intermediaires (associees au remaillage/lissage de l'interface)
+  Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
+    indicatrice_surfacique_intermediaire_face_ns_,
+    indicatrice_surfacique_face_ns_[next()],
+    indicatrice_surfacique_intermediaire_efficace_face_,
+    indicatrice_surfacique_intermediaire_efficace_face_);
+
+  Cut_cell_surface_efficace::calcul_vitesse_remaillage(timestep,
+                                                       indicatrice_intermediaire_ns_,
+                                                       indicatrice_ns_[next()],
+                                                       indicatrice_surfacique_intermediaire_efficace_face_,
+                                                       remeshing_velocity);
+}
+
+void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector& total_velocity)
 {
   int iteration_solver_surface_efficace_face = 0;
-  Cut_cell_surface_efficace::calcul_surface_face_effective_initiale(
+  Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
     indicatrice_surfacique_face_ns_[old()],
     indicatrice_surfacique_face_ns_[next()],
     indicatrice_surfacique_efficace_face_,
     indicatrice_surfacique_efficace_face_initial_);
 
-  if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::ITERATIF)
+  if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME)
     {
-      Cerr << "Raffinement de l'estimation initiale la surface efficace des faces" << finl;
-      Cut_cell_surface_efficace::calcul_surface_face_effective(
+      // Raffinement de l'estimation initiale la surface efficace des faces
+      Cut_cell_surface_efficace::calcul_surface_face_efficace(
+        verbosite_surface_efficace_face_,
         timestep,
-        velocity,
+        total_velocity,
         iteration_solver_surface_efficace_face,
         indicatrice_ns_[old()],
         indicatrice_ns_[next()],
@@ -578,16 +602,20 @@ void IJK_Interfaces::calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_su
         indicatrice_surfacique_efficace_face_correction_,
         indicatrice_surfacique_efficace_face_absolute_error_);
     }
-  Cut_cell_surface_efficace::imprimer_informations_surface_effective_face(
+  Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
+    verbosite_surface_efficace_face_,
     iteration_solver_surface_efficace_face,
     timestep,
-    velocity,
+    total_velocity,
     indicatrice_ns_[old()],
     indicatrice_ns_[next()],
     indicatrice_surfacique_efficace_face_,
     indicatrice_surfacique_efficace_face_initial_);
+}
 
-  Cut_cell_surface_efficace::calcul_surface_interface_effective_initiale(
+void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity)
+{
+  Cut_cell_surface_efficace::calcul_surface_interface_efficace_initiale(
     indicatrice_ns_[old()],
     indicatrice_ns_[next()],
     surface_interface_ns_[old()],
@@ -607,10 +635,10 @@ void IJK_Interfaces::calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_su
     coord_deplacement_interface_,
     vitesse_deplacement_interface_);
 
-  if (type_surface_efficace_interface == TYPE_SURFACE_EFFICACE_INTERFACE::ITERATIF)
+  if (type_surface_efficace_interface == TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME)
     {
-      Cerr << "Raffinement de l'estimation initiale la surface efficace de l'interface" << finl;
-      Cut_cell_surface_efficace::calcul_surface_interface_effective(
+      // Raffinement de l'estimation initiale la surface efficace de l'interface
+      Cut_cell_surface_efficace::calcul_surface_interface_efficace(
         timestep,
         velocity,
         indicatrice_ns_[old()],
@@ -619,7 +647,8 @@ void IJK_Interfaces::calcul_surface_effective(TYPE_SURFACE_EFFICACE_FACE type_su
         normale_deplacement_interface_,
         surface_efficace_interface_);
     }
-  Cut_cell_surface_efficace::imprimer_informations_surface_effective_interface(
+  Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface(
+    verbosite_surface_efficace_interface_,
     timestep,
     velocity,
     indicatrice_ns_[old()],
@@ -669,7 +698,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   surface_vapeur_par_face_computation_.initialize(splitting_FT);
   val_par_compo_in_cell_computation_.initialize(splitting_FT, maillage_ft_ijk_);
 
-  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 2);
+  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
   indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   indicatrice_ft_[old()].data() = 1.;
@@ -685,7 +714,13 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   indicatrice_ns_[next()].data() = 1.;
   indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
-  nalloc += 4;
+  indicatrice_intermediaire_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+  indicatrice_intermediaire_ft_.data() = 1.;
+  indicatrice_intermediaire_ft_.echange_espace_virtuel(indicatrice_intermediaire_ft_.ghost());
+  indicatrice_intermediaire_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+  indicatrice_intermediaire_ns_.data() = 1.;
+  indicatrice_intermediaire_ns_.echange_espace_virtuel(indicatrice_intermediaire_ns_.ghost());
+  nalloc += 8;
   allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
   allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
   nalloc += 6;
@@ -727,8 +762,8 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
 
   surface_interface_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   surface_interface_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  surface_interface_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
-  surface_interface_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+  surface_interface_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+  surface_interface_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   nalloc += 4;
 
   surface_interface_ft_[old()].data() = 0.;
@@ -740,8 +775,8 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
     {
       barycentre_phase1_ft_[old()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
       barycentre_phase1_ft_[next()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
-      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       nalloc += 4;
     }
 
@@ -755,8 +790,8 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
 
   allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
   allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 2);
-  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, 2);
-  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, 2);
+  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, nb_ghost_cells);
+  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, nb_ghost_cells);
   nalloc += 12;
 
   for (int d = 0; d < 3; d++)
@@ -767,14 +802,24 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
       indicatrice_surfacique_face_ns_[next()][d].data() = 0.;
     }
 
+  allocate_velocity(indicatrice_surfacique_intermediaire_face_ft_, splitting_FT, 2);
+  allocate_velocity(indicatrice_surfacique_intermediaire_face_ns_, splitting_NS, nb_ghost_cells);
+  nalloc += 12;
+
+  for (int d = 0; d < 3; d++)
+    {
+      indicatrice_surfacique_intermediaire_face_ft_[d].data() = 0.;
+      indicatrice_surfacique_intermediaire_face_ns_[d].data() = 0.;
+    }
+
   for (int d = 0; d < 3; d++)
     {
       for (int dir = 0; dir < 2; dir++)
         {
           barycentre_phase1_face_ft_[old()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
           barycentre_phase1_face_ft_[next()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ns_[old()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ns_[next()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ns_[old()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+          barycentre_phase1_face_ns_[next()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
           nalloc += 4;
         }
     }
@@ -790,10 +835,29 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
         }
     }
 
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          barycentre_phase1_intermediaire_face_ft_[d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_intermediaire_face_ns_[d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+          nalloc += 4;
+        }
+    }
+
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          barycentre_phase1_intermediaire_face_ft_[d][dir].data() = 0.;
+          barycentre_phase1_intermediaire_face_ns_[d][dir].data() = 0.;
+        }
+    }
+
   allocate_velocity(normal_of_interf_[old()], splitting_FT, 2);
   allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
-  allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, 2);
-  allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, 2);
+  allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, nb_ghost_cells);
+  allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, nb_ghost_cells);
   nalloc += 12;
 
   allocate_velocity(bary_of_interf_[old()], splitting_FT, 1);
@@ -1476,7 +1540,7 @@ void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& cen
     }
   mp_sum_for_each_item(volumes);
   mp_sum_for_each_item(centre_gravite);
-  Cerr << "volumes : " << volumes << finl;
+  //Cerr << "volumes : " << volumes << finl;
   for (int i = 0; i < nbulles_tot; i++)
     {
       // const double x = 1./volumes[i];
@@ -1971,10 +2035,13 @@ static void calculer_normale_sommets_interface(const Maillage_FT_IJK& maillage,
 // dvol : la variation de volume par bulle au cours du pas de temps.
 // Cette methode est a present capable de transporter aussi les bulles ghost.
 // Pre-requis : il faut que le tableau dvol soit bien dimensionne a nbulles_tot
-void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol,
-                                          const int rk_step = -1,
-                                          const double temps = -1, /*pas de remaillage*/
-                                          const int first_step_interface_smoothing)
+// La fonction transporter_maillage a ete separee en deux pour inserer un
+// calcul de l'indicatrice apres le deplacement et avant le remaillage.
+// Cette fonction realise le deplacement, mais pas le remaillage.
+void IJK_Interfaces::transporter_maillage_deplacement(const double dt_tot,
+                                                      ArrOfDouble& dvol,
+                                                      const int rk_step = -1,
+                                                      const int first_step_interface_smoothing)
 {
   // nouvelle version:
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
@@ -2205,10 +2272,7 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
   ArrOfDouble var_volume_par_bulle(nbulles_tot);
 
   // On recalcule certaines grandeurs apres le deplacement :
-  const ArrOfInt& compo_connex_apres_transport = mesh.compo_connexe_facettes();
-  calculer_surface_bulles(surface_par_bulle);
   mesh.calculer_compo_connexe_sommets(compo_connex_som);
-  const ArrOfDouble& surface_facette_apres_transport = mesh.get_update_surface_facettes();
 
   for (int isom = 0; isom < nbsom; isom++)
     {
@@ -2241,6 +2305,29 @@ void IJK_Interfaces::transporter_maillage(const double dt_tot, ArrOfDouble& dvol
       dvol[icompo] += var_volume_par_bulle[icompo];
     }
   //  }
+}
+
+// La fonction transporter_maillage a ete separee en deux pour inserer un
+// calcul de l'indicatrice apres le deplacement et avant le remaillage.
+// Cette fonction realise le remaillage uniquement. Elle suppose que la
+// fonction transporter_maillage_deplacement a ete precedemment appelee pour
+// realiser le deplacement et remplir dvol en entree.
+void IJK_Interfaces::transporter_maillage_remaillage(ArrOfDouble& dvol,
+                                                     const int rk_step = -1,
+                                                     const double temps = -1 /*pas de remaillage*/)
+{
+  Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+  const DoubleTab& sommets = mesh.sommets(); // Tableau des coordonnees des marqueurs.
+  int nbsom = sommets.dimension(0);
+
+  ArrOfDouble var_volume(nbsom);
+  ArrOfDouble surface_par_bulle;
+
+  const int nbulles_reelles = get_nb_bulles_reelles();
+
+  const ArrOfInt& compo_connex_apres_transport = mesh.compo_connexe_facettes();
+  calculer_surface_bulles(surface_par_bulle);
+  const ArrOfDouble& surface_facette_apres_transport = mesh.get_update_surface_facettes();
 
   // Calculer une variation de volume a imposer sur chaque sommet pour conserver
   // le volume des bulles (necessaire si euler, cad rk_step = -1 ou si dernier
@@ -6739,6 +6826,8 @@ void IJK_Interfaces::calculer_indicatrice_next(
         bary_of_interf_[next()][c],
         bary_of_interf_ns_[next()][c]);
     }
+  normal_of_interf_ns_[next()].echange_espace_virtuel();
+  bary_of_interf_ns_[next()].echange_espace_virtuel();
 
   // Aux faces mouillees
   n_faces_mouilles_[next()] = surface_vapeur_par_face_computation_.compute_surf_and_barys(
@@ -6755,6 +6844,76 @@ void IJK_Interfaces::calculer_indicatrice_next(
     ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
       barycentre_vapeur_par_face_[next()][c],
       barycentre_vapeur_par_face_ns_[next()][c]);
+
+  // Overwriting the MedCoupling computation of the face surfaces.
+  //
+  //{
+  //  const IJK_Splitting& s = indicatrice_ns_[next()].get_splitting();
+  //
+  //  double dx = s.get_grid_geometry().get_constant_delta(DIRECTION_I);
+  //  double dy = s.get_grid_geometry().get_constant_delta(DIRECTION_J);
+  //  double dz = s.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  //
+  //  const IJK_Grid_Geometry& geom = s.get_grid_geometry();
+  //  double origin_x = geom.get_origin(DIRECTION_I);
+  //  double origin_y = geom.get_origin(DIRECTION_J);
+  //  double origin_z = geom.get_origin(DIRECTION_K);
+  //
+  //  int offset_x = s.get_offset_local(DIRECTION_I);
+  //  int offset_y = s.get_offset_local(DIRECTION_J);
+  //  int offset_z = s.get_offset_local(DIRECTION_K);
+  //
+  //  const int ni = indicatrice_ns_[next()].ni();
+  //  const int nj = indicatrice_ns_[next()].nj();
+  //  const int nk = indicatrice_ns_[next()].nk();
+  //  for (int k = 0; k < nk; k++)
+  //    {
+  //      for (int j = 0; j < nj; j++)
+  //        {
+  //          for (int i = 0; i < ni; i++)
+  //            {
+  //              int phase = 0;
+  //
+  //              for (int dir = 0; dir < 3; dir++)
+  //                {
+  //                  double old_indicatrice_surfacique  = indicatrice_surfacique_face_ns_[old()][dir](i,j,k);
+  //                  double next_indicatrice_surfacique = indicatrice_surfacique_face_ns_[next()][dir](i,j,k);
+  //
+  //                  double face_bary_x = origin_x + dx*(i + offset_x + (get_barycentre_face(1, dir, 0, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+  //                  double face_bary_y = origin_y + dy*(j + offset_y + (get_barycentre_face(1, dir, 1, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+  //                  double face_bary_z = origin_z + dz*(k + offset_z + (get_barycentre_face(1, dir, 2, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+  //
+  //
+  //                  double f_dir = select(dir, dy*dz, dx*dz, dx*dy);
+  //                  surface_vapeur_par_face_ns_[next()][dir](i,j,k) = (1 - next_indicatrice_surfacique)*f_dir;
+  //
+  //                  barycentre_vapeur_par_face_ns_[next()][dir][0](i,j,k) = face_bary_x;
+  //                  barycentre_vapeur_par_face_ns_[next()][dir][1](i,j,k) = face_bary_y;
+  //                  barycentre_vapeur_par_face_ns_[next()][dir][2](i,j,k) = face_bary_z;
+  //                }
+  //            }
+  //        }
+  //    }
+  //}
+  //
+  //surface_vapeur_par_face_ns_[old()].echange_espace_virtuel();
+  //for (int c = 0; c < 3; c++)
+  //  {
+  //    barycentre_vapeur_par_face_ns_[old()][c].echange_espace_virtuel();
+  //  }
+  //
+  //// Passage au domaine FT
+  //ref_ijk_ft_->redistrib_to_ft_elem().redistribute(surface_vapeur_par_face_ns_[next()], surface_vapeur_par_face_[next()]);
+  //for (int c=0; c<3; c++)
+  //  {
+  //    ref_ijk_ft_->redistrib_to_ft_elem().redistribute(barycentre_vapeur_par_face_ns_[next()][c], barycentre_vapeur_par_face_[next()][c]);
+  //  }
+  //
+  //surface_vapeur_par_face_[old()].echange_espace_virtuel();
+  //for (int c = 0; c < 3; c++)
+  //  {
+  //    barycentre_vapeur_par_face_[old()][c].echange_espace_virtuel();
+  //  }
 
   // Calcul de la surface interfaciale
   calculer_surface_interface(surface_interface_ft_[next()], indicatrice_ft_[next()]);
@@ -6806,6 +6965,80 @@ void IJK_Interfaces::calculer_indicatrice_next(
   statistiques().end_count(calculer_indicatrice_next_counter_);
 }
 
+// Dans cette methode on calcule l'indicatrice_intermediaire_ en fonction de
+// la variable interfaces_intermediaire_, qui doit correspondre a l'interface
+// deplacee mais avant l'etape de remaillage.
+void IJK_Interfaces::calculer_indicatrice_intermediaire(
+  const bool parcourir
+)
+{
+  // En monophasique, les champs sont a jours donc on zap :
+  if (!is_diphasique_)
+    {
+      return;
+    }
+
+  static Stat_Counter_Id calculer_indicatrice_next_counter_ = statistiques().new_counter(2, "Calcul Indicatrice Next");
+  statistiques().begin_count(calculer_indicatrice_next_counter_);
+  // En diphasique sans bulle (pour cas tests), on met tout a 1.
+  if (get_nb_bulles_reelles() == 0)
+    {
+      indicatrice_intermediaire_ft_.data() = 1.;
+      indicatrice_intermediaire_ns_.data() = 1.;
+      indicatrice_intermediaire_ft_.echange_espace_virtuel(indicatrice_intermediaire_ft_.ghost());
+      indicatrice_intermediaire_ns_.echange_espace_virtuel(indicatrice_intermediaire_ns_.ghost());
+
+      if (parcourir)
+        parcourir_maillage();
+      return;
+    }
+
+  if (parcourir)
+    parcourir_maillage();
+
+  // Calcul de l'indicatrice sur le domaine etendu :
+  // faut-il calculer les valeurs de l'indicatrice from scratch ? (avec methode
+  // des composantes connexes)
+  if (get_recompute_indicator())
+    calculer_indicatrice(indicatrice_intermediaire_ft_);
+  else
+    calculer_indicatrice_optim(indicatrice_intermediaire_ft_);
+
+  indicatrice_intermediaire_ft_.echange_espace_virtuel(indicatrice_intermediaire_ft_.ghost());
+
+  // Calcul de l'indicatrice sur le domaine NS :
+  ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
+    indicatrice_intermediaire_ft_, indicatrice_intermediaire_ns_);
+  indicatrice_intermediaire_ns_.echange_espace_virtuel(indicatrice_intermediaire_ns_.ghost());
+
+  // Calcul de l'indicatrice surfacique et du barycentre correspondant
+  calculer_indicatrice_surfacique_barycentre_face(indicatrice_surfacique_intermediaire_face_ft_, barycentre_phase1_intermediaire_face_ft_, indicatrice_intermediaire_ft_, normal_of_interf_[next()]);
+  indicatrice_surfacique_intermediaire_face_ft_.echange_espace_virtuel();
+
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          barycentre_phase1_intermediaire_face_ft_[d][dir].echange_espace_virtuel(barycentre_phase1_intermediaire_face_ft_[d][dir].ghost());
+        }
+    }
+
+  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+    indicatrice_surfacique_intermediaire_face_ft_,
+    indicatrice_surfacique_intermediaire_face_ns_);
+  indicatrice_surfacique_intermediaire_face_ns_.echange_espace_virtuel();
+
+  for (int d = 0; d < 3; d++)
+    {
+      for (int dir = 0; dir < 2; dir++)
+        {
+          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_intermediaire_face_ft_[d][dir], barycentre_phase1_intermediaire_face_ns_[d][dir]);
+          barycentre_phase1_intermediaire_face_ns_[d][dir].echange_espace_virtuel(barycentre_phase1_intermediaire_face_ns_[d][dir].ghost());
+        }
+    }
+
+  statistiques().end_count(calculer_indicatrice_next_counter_);
+}
 
 #if VERIF_INDIC
 void IJK_Interfaces::verif_indic()
@@ -6856,6 +7089,12 @@ void IJK_Interfaces::verif_indic()
     }
 }
 #endif
+
+// Copie de l'interface et des intersections associees au pas de temps precedent
+void IJK_Interfaces::update_old_intersections()
+{
+  maillage_ft_ijk_.update_old_intersections();
+}
 
 void IJK_Interfaces::switch_indicatrice_next_old()
 {
@@ -7135,11 +7374,11 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
   potentiels_sommets *= dxi * dxj * dxk;
 
   // Au pire, on prend la plus grande largeur de maille eulerienne :
-  double lg_euler = std::max(std::max(dxi, dxj), dxk);
-  double lg_lagrange = mesh.minimum_longueur_arrete();
-  const double sqrt_3 = 1.7320508075688772;
-  bool ok = (lg_lagrange > lg_euler * sqrt_3);
-  Cerr << "Test de la taille de maille eulerienne : lg_lagrange=" << lg_lagrange << " > (lg_euler=" << lg_euler
-       << ")*1.7320... ? " << (ok ? "ok" : "ko") << " (ratio : " << lg_lagrange / (lg_euler * sqrt_3)
-       << (ok ? " >" : " <") << "1 )" << finl;
+  //double lg_euler = std::max(std::max(dxi, dxj), dxk);
+  //double lg_lagrange = mesh.minimum_longueur_arrete();
+  //const double sqrt_3 = 1.7320508075688772;
+  //bool ok = (lg_lagrange > lg_euler * sqrt_3);
+  //Cerr << "Test de la taille de maille eulerienne : lg_lagrange=" << lg_lagrange << " > (lg_euler=" << lg_euler
+  //     << ")*1.7320... ? " << (ok ? "ok" : "ko") << " (ratio : " << lg_lagrange / (lg_euler * sqrt_3)
+  //     << (ok ? " >" : " <") << "1 )" << finl;
 }

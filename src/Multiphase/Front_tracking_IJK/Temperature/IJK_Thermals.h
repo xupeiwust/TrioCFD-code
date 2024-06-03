@@ -69,6 +69,7 @@ public :
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time);
   void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
                             const double fractionnal_timestep, const double time);
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface);
   void posttraiter_tous_champs_thermal(Motcles& liste_post_instantanes_);
   void posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                               const char *lata_name,

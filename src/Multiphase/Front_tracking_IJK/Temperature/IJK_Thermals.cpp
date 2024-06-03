@@ -286,6 +286,16 @@ void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_ti
       }
 }
 
+void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface)
+{
+  int idx_th = 0;
+  for (auto &itr : (*this))
+    {
+      itr.ecrire_statistiques_bulles(reset, nom_cas, current_time, surface, idx_th);
+      ++idx_th;
+    }
+}
+
 void IJK_Thermals::posttraiter_tous_champs_thermal(Motcles& liste_post_instantanes_)
 {
   int idx_th = 0;

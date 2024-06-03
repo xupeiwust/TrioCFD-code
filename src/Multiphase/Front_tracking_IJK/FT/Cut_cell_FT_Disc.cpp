@@ -19,13 +19,10 @@
 #include <Array_tools.h>
 #include <IJK_Splitting.h>
 
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
-
 Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& splitting) :
   interfaces_(interfaces),
   splitting_(splitting),
-  ghost_size_(2),
-  new_treatment_(0),
+  ghost_size_(4),
   processed_count_(0),
   n_loc_(0),
   n_tot_(0)
@@ -39,6 +36,8 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   index_sorted_by_k_.associer_paresseux(*this);
   k_value_index_.set_smart_resize(1);
   k_value_index_.resize(0, 1);
+
+  index_sorted_by_indicatrice_.associer_paresseux(*this);
 
   index_sorted_by_statut_diphasique_.associer_paresseux(*this);
   statut_diphasique_value_index_.set_smart_resize(1);
@@ -63,10 +62,7 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const
   write_buffer_.allocate(splitting_, IJK_Splitting::ELEM, 1);
 
   // Initialisation du champ IJK_Field des indices diphasiques
-  indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, 2);
-
-  // Initialisation du champ IJK_Field des indices diphasiques
-  treatment_count_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_);
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
   set_coord();
@@ -88,6 +84,9 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const
 
   // Creation des tableaux des indices tries par k
   update_index_sorted_by_k();
+
+  // Creation des tableaux des indices tries par l'indicatrice
+  update_index_sorted_by_indicatrice(old_indicatrice, next_indicatrice);
 
   // Creation des tableaux des indices tries par le statut diphasique
   update_index_sorted_by_statut_diphasique(old_indicatrice, next_indicatrice);
@@ -133,6 +132,9 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK
 
   // Creation des tableaux des indices tries par k
   update_index_sorted_by_k();
+
+  // Creation des tableaux des indices tries par l'indicatrice
+  update_index_sorted_by_indicatrice(old_indicatrice, next_indicatrice);
 
   // Creation des tableaux des indices tries par le statut diphasique
   update_index_sorted_by_statut_diphasique(old_indicatrice, next_indicatrice);
@@ -575,9 +577,9 @@ int Cut_cell_FT_Disc::initialise_communications()
 
                           for (int n = 0; n < n_loc; n++)
                             {
-                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true);
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true);
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true, false);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true, false);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true, false);
                               if ((!next) && (i_selon_dir >= ghost_size_))
                                 continue;
                               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
@@ -702,8 +704,8 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
   const int nk_tot = splitting_.get_nb_elem_local(2) + 2*ghost_size_;
   k_value_index_.resize(nk_tot+1, 1);
 
-  int previous_k = -2;
-  k_value_index_(previous_k + 2) = 0;
+  int previous_k = -ghost_size_;
+  k_value_index_(previous_k + ghost_size_) = 0;
   for (int index = 0; index < n_tot_; index++)
     {
       int k = index_sorted_by_k_(index,1);
@@ -712,23 +714,19 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
         {
           for (int k_intermediaire = previous_k+1; k_intermediaire <= k; k_intermediaire++)
             {
-              k_value_index_(k_intermediaire + 2) = index;
+              k_value_index_(k_intermediaire + ghost_size_) = index;
             }
           previous_k = k;
         }
     }
   for (int k_intermediaire = previous_k+1; k_intermediaire <= splitting_.get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
     {
-      k_value_index_(k_intermediaire + 2) = n_tot_;
+      k_value_index_(k_intermediaire + ghost_size_) = n_tot_;
     }
 }
 
-void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
+void Cut_cell_FT_Disc::update_index_sorted_by_indicatrice(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  int initial_sort_multiplier = 30*int_indicatrice(.1);
-  int indicatrice_step = 10*int_indicatrice(.1);
-  assert(indicatrice_step < initial_sort_multiplier);
-
   // Remplissage du tableau
   for (int n = 0; n < n_loc_; n++)
     {
@@ -737,23 +735,16 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       int j = ijk[1];
       int k = ijk[2];
 
-      bool est_reguliere = interfaces_.est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool devient_pure = interfaces_.devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool devient_diphasique = interfaces_.devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool desequilibre_final = interfaces_.a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
+      union
+      {
+        double d;
+        long long int i;
+      } u;
+      u.i = (long long int)n;
 
-      double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
-
-      index_sorted_by_statut_diphasique_(n,0) = n;
-      index_sorted_by_statut_diphasique_(n,1) = est_reguliere*static_cast<int>(STATUT_DIPHASIQUE::REGULIER) + devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT)
-                                                + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
-      assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
-
-      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
-
-      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice);
+      index_sorted_by_indicatrice_(n,0) = u.d; // Storing the bits of the (int64) index of the cell into a double variable
+      index_sorted_by_indicatrice_(n,1) = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k));
+      index_sorted_by_indicatrice_(n,2) = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k));
     }
 
   for (int n = n_loc_; n < n_tot_; n++)
@@ -763,6 +754,33 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       int j = ijk[1];
       int k = ijk[2];
 
+      union
+      {
+        double d;
+        long long int i;
+      } u;
+      u.i = (long long int)n;
+
+      index_sorted_by_indicatrice_(n,0) = u.d; // Storing the bits of the (int64) index of the cell into a double variable
+      index_sorted_by_indicatrice_(n,1) = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k));
+      index_sorted_by_indicatrice_(n,2) = std::min(old_indicatrice(i,j,k), 1 - old_indicatrice(i,j,k));
+    }
+
+  // Trie selon la colonne des indicatrices
+  index_sorted_by_indicatrice_.sort_tot(1,2);
+}
+
+void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
+{
+  for (int index = 0; index < n_tot_; index++)
+    {
+      int n = get_n_from_indicatrice_index(index);
+
+      Int3 ijk = get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
       bool est_reguliere = interfaces_.est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       bool devient_pure = interfaces_.devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       bool devient_diphasique = interfaces_.devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
@@ -770,27 +788,17 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
 
-      double min_phase_next_indicatrice = std::min(next_indicatrice(i,j,k), 1 - next_indicatrice(i,j,k))*(!devient_pure);
-
       index_sorted_by_statut_diphasique_(n,0) = n;
       index_sorted_by_statut_diphasique_(n,1) = est_reguliere*static_cast<int>(STATUT_DIPHASIQUE::REGULIER) + devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT)
                                                 + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
-
-      assert(index_sorted_by_statut_diphasique_(n,1) == (int)((initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice))/initial_sort_multiplier));
-
-      index_sorted_by_statut_diphasique_(n,1) = initial_sort_multiplier*index_sorted_by_statut_diphasique_(n,1) + (int)(indicatrice_step * min_phase_next_indicatrice);
+      index_sorted_by_statut_diphasique_(n,2) = index;
     }
 
   // Trie selon la colonne des statut diphasiques
-  index_sorted_by_statut_diphasique_.sort_tot(1);
-
-  // Motivation : l'ajout des indicatrices au tri ne change pas l'ordre par construction, et permet
-  // d'avoir les donnees triees par indicatrice sur le tableau final
-  for (int n = 0; n < n_tot_; n++)
-    {
-      index_sorted_by_statut_diphasique_(n,1) = (int)(index_sorted_by_statut_diphasique_(n,1)/initial_sort_multiplier);
-    }
+  // Le tri secondaire est selon l'indice du tableau trie selon l'indicatrice, c'est-a-dire
+  // dans le sens de l'indicatrice (de la plus petite phase) croissante.
+  index_sorted_by_statut_diphasique_.sort_tot(1,2);
 
   // Trouve les indices des differents statut dipashiques
   statut_diphasique_value_index_.resize(STATUT_DIPHASIQUE::count+1, 1);
@@ -845,7 +853,7 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
         while (index_ijk_per >= 0)
           {
             Int3 ijk = ijk_per_of_index(i, j, k, index_ijk_per);
-            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, 2, 2);
+            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, ghost_size_, ghost_size_);
 
             indice_diphasique_(ijk[0],ijk[1],ijk[2]) = n;
           }
@@ -864,12 +872,83 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
         while (index_ijk_per >= 0)
           {
             Int3 ijk = ijk_per_of_index(i, j, k, index_ijk_per);
-            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, 2, 2);
+            index_ijk_per = next_index_ijk_per(i, j, k, index_ijk_per, ghost_size_, ghost_size_);
 
             indice_diphasique_(ijk[0],ijk[1],ijk[2]) = n;
           }
       }
     }
+}
+
+void Cut_cell_FT_Disc::remove_dead_and_virtual_cells(const IJK_Field_double& next_indicatrice)
+{
+  // Annule l'information de l'indice diphasique pour les cellules pures au pas suivant.
+  // Motivation : Les cellules qui meurrent et reapparaissent au pas suivant doivent
+  // etre supprimees puis reajoutees.
+
+  linear_index_.resize(n_loc_, linear_index_.dimension(1));
+  permutation_.resize(n_loc_, permutation_.dimension(1));
+  processed_.resize(n_loc_, processed_.dimension(1));
+  resize_data(n_loc_);
+  n_tot_ = n_loc_;
+
+  int index_perm = 0;
+  int n_deletion = 0;
+
+  for (int n = 0; n < n_loc_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      if ((next_indicatrice(i,j,k) == 0) || (next_indicatrice(i,j,k) == 1))
+        {
+          n_deletion += 1;
+          permutation_(n_loc_ - n_deletion) = n;
+        }
+      else
+        {
+          permutation_(index_perm) = n;
+          index_perm += 1;
+        }
+    }
+
+  assert(index_perm + n_deletion  == n_loc_);
+  assert(verifier_valide_permutation(permutation_));
+
+  // Application des differentes permutations
+  apply_permutation(processed_, permutation_, processed_);
+  apply_permutation(linear_index_, permutation_, processed_);
+
+  assert(verifier_si_ordonne(linear_index_, 0, n_loc_ - n_deletion));
+
+  assert(persistent_double_data_(0).valeur().dimension(0) <= n_loc_);
+  resize_data(n_loc_);
+
+  for (int i = 0; i < persistent_double_data_.size(); i++)
+    {
+      apply_permutation(persistent_double_data_(i).valeur(), permutation_, processed_);
+    }
+
+  for (int i = 0; i < persistent_int_data_.size(); i++)
+    {
+      apply_permutation(persistent_int_data_(i).valeur(), permutation_, processed_);
+    }
+
+  // Redimensionnement pour suppression des elements anciennement diphasiques
+  resize_data(n_loc_ - n_deletion);
+  linear_index_.resize(n_loc_ - n_deletion, linear_index_.dimension(1));
+  permutation_.resize(n_loc_ - n_deletion, permutation_.dimension(1));
+  processed_.resize(n_loc_ - n_deletion, permutation_.dimension(1));
+
+  n_loc_ -= n_deletion;
+
+  assert(verifier_si_ordonne(linear_index_, 0, n_loc_));
+
+  n_tot_ = n_loc_;
+
+  remplir_indice_diphasique();
 }
 
 template<typename T>
@@ -1059,9 +1138,9 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
 
                           for (int n = 0; n < n_loc_; n++)
                             {
-                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true);
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true);
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true);
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true, false);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true, false);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true, false);
                               if ((!next) && (i_selon_dir >= ghost_size_))
                                 continue;
                               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
