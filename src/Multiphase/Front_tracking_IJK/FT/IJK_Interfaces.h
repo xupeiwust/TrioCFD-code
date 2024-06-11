@@ -756,6 +756,35 @@ public :
   inline double I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
   inline double In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
 
+  // Indicatrice non-zero : Cette indicatrice est utilisee pour calculer l'energie vol*indicatrice*T d'une cellule coupee en IJK_FT_cut_cell.
+  // Pour ne pas perdre d'information, le volume de l'autre temps est utilise si le volume est zero pour le temps consideree.
+  inline double I_nonzero(const int phase, const int i, const int j, const int k) const
+  {
+    double current_indic = (phase == 0) ? 1 - I(i, j, k) : I(i, j, k);
+    if (current_indic == 0)
+      {
+        double other_indic = (phase == 0) ? 1 - In(i, j, k) : In(i, j, k);
+        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+      }
+    else
+      {
+        return current_indic;
+      }
+  }
+  inline double In_nonzero(const int phase, const int i, const int j, const int k) const
+  {
+    double current_indic = (phase == 0) ? 1 - In(i, j, k) : In(i, j, k);
+    if (current_indic == 0)
+      {
+        double other_indic = (phase == 0) ? 1 - I(i, j, k) : I(i, j, k);
+        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+      }
+    else
+      {
+        return current_indic;
+      }
+  }
+
   static inline int est_pure(double indicatrice) { return ((indicatrice == 0.) || (indicatrice == 1.)); }
   static inline int devient_pure(double old_indicatrice, double next_indicatrice) { return ((!est_pure(old_indicatrice)) && (est_pure(next_indicatrice))); }
   static inline int devient_diphasique(double old_indicatrice, double next_indicatrice) { return ((est_pure(old_indicatrice)) && (!est_pure(next_indicatrice))); }

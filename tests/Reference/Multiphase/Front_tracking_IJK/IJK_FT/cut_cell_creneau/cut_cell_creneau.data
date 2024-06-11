@@ -22,9 +22,9 @@ Lire DOM
   perio_i
   perio_j
   perio_k
-  origin_i -0.0025
-  origin_j -0.0025
-  origin_k -0.0025
+  origin_i -0.002
+  origin_j -0.002
+  origin_k -0.002
 }
 
 IJK_Splitting grid_splitting
@@ -38,7 +38,7 @@ Lire grid_splitting { ijk_grid_geometry DOM  nproc_i 2  nproc_j 2  nproc_k 2 }
 IJK_FT_cut_cell
 {
   ijk_splitting grid_splitting
-  ijk_splitting_ft_extension 7
+  ijk_splitting_ft_extension 0
   time_scheme euler_explicit
   velocity_convection_op Centre
   Boundary_Conditions {
@@ -76,6 +76,7 @@ IJK_FT_cut_cell
    terme_gravite rho_g
    fichier_reprise_interface init.lata
    timestep_reprise_interface 1
+   seuil_indicatrice_petite 0.01
    lata_meshname   FTMESH 
    remaillage_ft_ijk {
      pas_remaillage -1
@@ -91,9 +92,9 @@ IJK_FT_cut_cell
   mu_liquide 6.8237e-05
   mu_vapeur 2.303e-05
   sigma 0.
-  expression_vx_init  0.04
+  expression_vx_init  0.004
   expression_vy_init  0.
-  expression_vz_init  0.02
+  expression_vz_init  0.002
 
   disable_diffusion_qdm
   disable_convection_qdm
@@ -120,12 +121,12 @@ IJK_FT_cut_cell
     cut_cell_schema_convection quick_ou_amont_perpendicular_distance
     convection_auxiliaire {
       methode_temperature_remplissage ponderation_voisin
-      convection_petites_cellules correction_symetrique
+      correction_petites_cellules correction_symetrique
     }
     
     diffusion_auxiliaire {
       methode_flux_interface interp_cut_cell
-      diffusion_petites_cellules correction_directe
+      correction_petites_cellules correction_directe
       scaled_distance_flux_interface 1.0
     }
   }

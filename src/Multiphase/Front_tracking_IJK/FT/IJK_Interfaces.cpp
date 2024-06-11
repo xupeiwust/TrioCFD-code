@@ -61,7 +61,7 @@ IJK_Interfaces::IJK_Interfaces()
   dt_impression_bilan_indicatrice_ = -1;
   verbosite_surface_efficace_face_ = 1;
   verbosite_surface_efficace_interface_ = 1;
-  seuil_indicatrice_petite_ = 0.01;
+  seuil_indicatrice_petite_ = 0.025; // 0.01 would often work but not always be stable
 }
 
 

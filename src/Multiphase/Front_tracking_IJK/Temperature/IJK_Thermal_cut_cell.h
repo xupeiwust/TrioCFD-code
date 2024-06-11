@@ -184,16 +184,16 @@ protected :
   Cut_field_scalar cut_field_temperature_debut_sous_pas_;
 
   IJK_Field_int cellule_rk_restreint_;
-  IJK_Field_double temperature_post_convection_;
-  Cut_field_scalar cut_field_temperature_post_convection_;
 
   // Temporary fields, to inspect each step of the time advance
   int postraiter_champs_intermediaires_;
   IJK_Field_double temperature_post_dying_;
   IJK_Field_double temperature_post_regular_;
+  IJK_Field_double temperature_post_convection_;
   IJK_Field_double temperature_post_diff_regular_;
   Cut_field_scalar cut_field_temperature_post_dying_;
   Cut_field_scalar cut_field_temperature_post_regular_;
+  Cut_field_scalar cut_field_temperature_post_convection_;
   Cut_field_scalar cut_field_temperature_post_diff_regular_;
 
   Cut_cell_convection_auxiliaire convective_correction_;

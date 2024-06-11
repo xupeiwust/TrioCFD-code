@@ -1,0 +1,220 @@
+Parameters {
+	Title "Méthode des cellules coupées : convection-diffusion de la température"
+	Author "D. Dupuy"
+
+	Description <<EOF
+        Ce cas test vérifie convection et diffusion de la température avec la méthode
+        des cellules coupées. Une bulle initialement chaude, en translation uniforme,
+        diffuse sa chaleur vers le fluide environnant.
+
+        Les résultats sont comparés à un profil de référence obtenue avec un code 1D
+        sphérique en diffusion pure, ainsi qu'à une formulation mono-fluide.
+	EOF
+
+ 	TestCase baseline_A30_convection_diffusion baseline_A30_convection_diffusion.data 8
+ 	TestCase baseline_A60_convection_diffusion baseline_A60_convection_diffusion.data 8
+ 	TestCase cut_cell_A30_convection_diffusion cut_cell_A30_convection_diffusion.data 8
+ 	TestCase cut_cell_A60_convection_diffusion cut_cell_A60_convection_diffusion.data 8
+
+ 	TestCase baseline_A60_convection_pure baseline_A60_convection_pure.data 8
+ 	TestCase cut_cell_A60_convection_pure cut_cell_A60_convection_pure.data 8
+
+ 	TestCase baseline_A60_diffusion_pure  baseline_A60_diffusion_pure.data 8
+ 	TestCase cut_cell_A60_diffusion_pure  cut_cell_A60_diffusion_pure.data 8
+
+ 	TestCase baseline_C30_convection_diffusion baseline_C30_convection_diffusion.data 8
+ 	TestCase cut_cell_C30_convection_diffusion cut_cell_C30_convection_diffusion.data 8
+}
+
+Chapter {
+        Title "Convergence en maillage"
+
+	Description <<EOF
+        Cette section compare le profil final de température avec deux maillages.
+        Avec un raffinement de 24 mailles par diamètre, le profil de température
+        au sein de la bulle est très proche de la référence avec la méthode des
+        cellules coupées (cut-cell). La formulation mono-fluide (baseline), en
+        revanche, ne semble pas converger en maillage.
+	EOF
+
+        Figure {
+                Titre "Maillage avec 12 mailles par diamètre"
+                rangeX  -2 2
+                rangeY  0.1 0.8
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier reference_A.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                courbe {
+                        fichier baseline_A30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                courbe {
+                        fichier cut_cell_A30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+        Figure {
+                Titre "Maillage avec 24 mailles par diamètre"
+                rangeX  -2 2
+                rangeY  0.1 0.8
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier reference_A.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                Curve {
+                        fichier baseline_A60_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/60.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                Curve {
+                        fichier cut_cell_A60_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/60.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+}
+
+Chapter {
+        Title "Cas limites"
+
+	Description <<EOF
+        Cette section montre un cas de convection pure et un cas de diffusion pure.
+        Le maillage utilisé (24 mailles par diamètre) est le plus fin de la section
+        précédente.
+        En convection pure, la formulation mono-fluide (baseline) est en accord avec
+        la référence. Avec la méthode des cellules coupées, on observe une discontinuité
+        sur le profil de température proche de l'interface entre les phases.
+        En diffusion pure, les deux méthodes fournissent un profil similaire et en
+        accord avec la référence.
+	EOF
+
+        Figure {
+                Titre "Convection pure"
+                rangeX  -2 2
+                rangeX  -2 2
+                rangeY  0.1 1.
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier initial.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                courbe {
+                        fichier baseline_A60_convection_pure/profile.txt
+                        colonnes (($1+.5*0.005/60.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                courbe {
+                        fichier cut_cell_A60_convection_pure/profile.txt
+                        colonnes (($1+.5*0.005/60.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+        Figure {
+                Titre "Diffusion pure"
+                rangeX  -2 2
+                rangeY  0.1 0.8
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier reference_A.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                courbe {
+                        fichier baseline_A60_diffusion_pure/profile.txt
+                        colonnes (($1+.5*0.005/60.)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                courbe {
+                        fichier cut_cell_A60_diffusion_pure/profile.txt
+                        colonnes (($1+.5*0.005/60.)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+}
+
+Chapter {
+        Title "Effet des propriétés thermiques"
+
+	Description <<EOF
+        Cette section compare les profiles avec deux jeux de propriétés pour la
+        bulle. Le second jeu de propriétés est sélectionné pour induire
+        artificiellement un profil de température uniforme au sein de la bulle.
+        Le maillage utilisé (12 mailles par diamètre) ne permet pas la convergence
+        en maillages des résultats.
+	EOF
+
+        Figure {
+                Titre "Premier jeu de propriétés"
+                rangeX  -2 2
+                rangeY  0.1 0.8
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier reference_A.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                courbe {
+                        fichier baseline_A30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                courbe {
+                        fichier cut_cell_A30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+        Figure {
+                Titre "Second jeu de propriétés"
+                rangeX  -2 2
+                rangeY  0.1 0.8
+                labelX  "x/R"
+                labelY  "T"
+                Curve {
+                        fichier reference_C.txt
+                        colonnes (($1)/0.001) (($2-293)/(373-293))
+                        style lines
+                        Legende "Reference"
+                }
+                courbe {
+                        fichier baseline_C30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Baseline"
+                }
+                courbe {
+                        fichier cut_cell_C30_convection_diffusion/profile.txt
+                        colonnes (($1+.5*0.005/30.-0.001)/0.001) (($2-293)/(373-293))
+                        style linespoints
+                        Legende "Cut-cell"
+                }
+        }
+}

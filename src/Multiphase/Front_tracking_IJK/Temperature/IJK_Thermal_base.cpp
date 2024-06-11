@@ -619,10 +619,11 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
       nalloc += 1;
       eulerian_grad_T_interface_ns_.echange_espace_virtuel(eulerian_grad_T_interface_ns_.ghost());
       //
-      temperature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, ghost_cells_);
-      nalloc += 1;
-      temperature_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
     }
+
+  temperature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, ghost_cells_);
+  nalloc += 1;
+  temperature_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
 
   compute_eulerian_compo_ = compute_eulerian_compo_ || (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("EULERIAN_COMPO"))
                             || (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("EULERIAN_COMPO_NS"));

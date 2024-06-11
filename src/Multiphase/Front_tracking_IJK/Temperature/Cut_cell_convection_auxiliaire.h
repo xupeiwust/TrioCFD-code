@@ -24,21 +24,13 @@
 
 #include <FixedVector.h>
 #include <IJK_Field.h>
+#include <Param.h>
 #include <Champ_diphasique.h>
 #include <Cut_cell_correction_petites_cellules.h>
+#include <Cut_cell_schema_auxiliaire.h>
 #include <Maillage_FT_IJK.h>
-#include <Objet_U.h>
 
 class IJK_FT_cut_cell;
-
-enum class METHODE_TEMPERATURE_REMPLISSAGE : int
-{
-  NON_INITIALISE,     // Valeur invalide par defaut, pour forcer le choix
-  PONDERATION_VOISIN, // Moyenne ponderee des voisins pour estimer la temperature
-  PONDERATION_DIRECTIONNELLE_VOISIN, // Moyenne ponderee et directionnelle des voisins pour estimer la temperature
-  SEMI_LAGRANGIEN,    // Approximation semi-lagrangienne du deplacement pour estimer la temperature
-  SEMI_LAGRANGIEN_INTERPOLATE // Approximation semi-lagrangienne du deplacement pour estimer la temperature
-};
 
 enum class CUT_CELL_SCHEMA_CONVECTION : int
 {
@@ -75,23 +67,16 @@ struct Cut_cell_conv_scheme
 };
 
 
-class Cut_cell_convection_auxiliaire : public Objet_U
+class Cut_cell_convection_auxiliaire : public Cut_cell_schema_auxiliaire
 {
   Declare_instanciable(Cut_cell_convection_auxiliaire);
-public:
-  DoubleTabFT_cut_cell_scalar temperature_remplissage_;
-  DoubleTabFT_cut_cell_vector6 flux_naive_;
-  METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
-  CORRECTION_PETITES_CELLULES convection_petites_cellules_;
 
 public:
-  void compute_flux_dying_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
-  void compute_flux_small_nascent_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
-  void add_convection_dying_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
-  void add_convection_small_nascent_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
-  void calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
-  void calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_scalar& cut_field_temperature);
-  void calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_scalar& cut_field_temperature);
+  void set_param(Param& param);
+
+  double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
+  double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
+
   void calcule_temperature_face_depuis_centre(double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_scalar& cut_field_temperature, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face);
   void calcule_temperature_face_depuis_facette(double lambda_liquid, double lambda_vapour, const ArrOfDouble& interfacial_temperature, const ArrOfDouble& interfacial_phin_ai, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ns);
   void calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ns, const Cut_field_vector& cut_field_total_velocity);

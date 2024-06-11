@@ -24,11 +24,12 @@
 
 #include <FixedVector.h>
 #include <IJK_Field.h>
+#include <Param.h>
 #include <IJK_Interfaces.h>
 #include <Champ_diphasique.h>
 #include <Cut_cell_correction_petites_cellules.h>
+#include <Cut_cell_schema_auxiliaire.h>
 #include <Maillage_FT_IJK.h>
-#include <Objet_U.h>
 
 class IJK_FT_cut_cell;
 
@@ -57,17 +58,21 @@ struct Facettes_data
   DoubleTabFT vap_2;  // A une certaine distance (plus grande) du cote vapeur
 };
 
-class Cut_cell_diffusion_auxiliaire : public Objet_U
+class Cut_cell_diffusion_auxiliaire : public Cut_cell_schema_auxiliaire
 {
   Declare_instanciable(Cut_cell_diffusion_auxiliaire);
 public:
   FixedVector<IJK_Field_double, 2> flux_interface_ns_; // Note : contrairement au champs de IJK_Interfaces, on a toujours [0] = old et [1] = next pour le flux_interface
   FixedVector<IJK_Field_double, 2> flux_interface_ft_;
   DoubleTabFT_cut_cell_scalar flux_interface_efficace_;
-  DoubleTabFT_cut_cell_vector6 flux_naive_;
   int deactivate_correction_petites_cellules_diffusion_;
 
 public:
+  void set_param(Param& param);
+
+  double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
+  double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
+
   void calculer_flux_interface(bool next_time,
                                double lambda_liquid,
                                double lambda_vapour,
@@ -130,11 +135,6 @@ public:
   void ajout_flux_interface_a_divergence_etale(Cut_field_scalar& cut_field_div_coeff_grad_T_volume);
   void etalement_divergence_flux_diffusifs(Cut_field_scalar& cut_field_div_coeff_grad_T_volume, Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp);
 
-  void compute_flux_dying_cells(Cut_field_scalar& cut_field_temperature);
-  void compute_flux_small_cells(const Cut_field_scalar& cut_field_temperature_post_convection, Cut_field_scalar& cut_field_temperature);
-  void add_diffusion_dying_cells(Cut_field_scalar& cut_field_temperature);
-  void add_diffusion_small_cells(const Cut_field_scalar& cut_field_temperature_post_convection, Cut_field_scalar& cut_field_temperature);
-
   void calcul_temperature_flux_interface(const IJK_Field_double& temperature, const double ldal, const double ldav,
                                          const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,
                                          DoubleTabFT& temperature_interp,
@@ -186,8 +186,6 @@ protected:
   double scaled_distance_flux_interface_; // Distance a l'interface de l'interpolation utilisee pour calculer le flux a l'interface
   double scaled_distance_second_point_flux_interface_; // Distance a l'interface de l'interpolation utilisee pour calculer le flux a l'interface
   METHODE_FLUX_INTERFACE methode_flux_interface_;
-
-  CORRECTION_PETITES_CELLULES diffusion_petites_cellules_;
 };
 
 #endif /* Cut_cell_diffusion_auxiliaire_included */
