@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <stat_counters.h>
 #include <DebogIJK.h>
@@ -933,7 +934,7 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
 
 
 // Mettre rk_step = -1 si schema temps different de rk3.
-void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
 {
   const double current_time = ref_ijk_ft_->get_current_time();
   const double ene_ini = compute_global_energy(d_temperature_);
@@ -1235,7 +1236,7 @@ void IJK_Thermal_base::compute_temperature_hessian_cross_elem()
 
 // Convect temperature field by velocity.
 // The output is stored in d_temperature_ (it is a volume integral over the CV)
-void IJK_Thermal_base::compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermal_base::compute_temperature_convection(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho");
   statistiques().begin_count(cnt_conv_temp);
@@ -1927,7 +1928,7 @@ void IJK_Thermal_base::calculer_ecart_T_ana()
     }
 }
 
-void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T)
+void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T)
 {
   if ((liste_post_instantanes_.contient_("GRAD_T") || (calulate_grad_T_)))
     {

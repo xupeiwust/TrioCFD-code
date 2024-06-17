@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblem.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <Ouvrir_fichier.h>
 #include <IJK_FT.h>
@@ -196,8 +197,8 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                                                      ArrOfDouble bubble_barycentre,
                                                                      const double& indicator,
                                                                      const IJK_Interfaces& interfaces,
-                                                                     const FixedVector<IJK_Field_double, 3>& velocity,
-                                                                     const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                                                     const IJK_Field_vector3_double& velocity,
+                                                                     const IJK_Field_vector3_double& velocity_ft,
                                                                      const IJK_Field_double& pressure)
 {
   /*
@@ -382,17 +383,17 @@ void IJK_One_Dimensional_Subproblem::associate_eulerian_fields_references(const 
                                                                           const IJK_Field_double * eulerian_distance,
                                                                           const IJK_Field_double * eulerian_curvature,
                                                                           const IJK_Field_double * eulerian_interfacial_area,
-                                                                          const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect,
-                                                                          const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre,
+                                                                          const IJK_Field_vector3_double * eulerian_normal_vect,
+                                                                          const IJK_Field_vector3_double * eulerian_facets_barycentre,
                                                                           const IJK_Field_double& temperature,
                                                                           const IJK_Field_double& temperature_ft,
                                                                           const IJK_Field_double& temperature_before_extrapolation,
-                                                                          const FixedVector<IJK_Field_double, 3>& velocity,
-                                                                          const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                                                          const IJK_Field_vector3_double& velocity,
+                                                                          const IJK_Field_vector3_double& velocity_ft,
                                                                           const IJK_Field_double& pressure,
-                                                                          const FixedVector<IJK_Field_double, 3>& grad_T_elem,
-                                                                          const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
-                                                                          const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
+                                                                          const IJK_Field_vector3_double& grad_T_elem,
+                                                                          const IJK_Field_vector3_double& hess_diag_T_elem,
+                                                                          const IJK_Field_vector3_double& hess_cross_T_elem,
                                                                           const IJK_Field_double& eulerian_grad_T_interface_ns,
                                                                           IJK_Field_double& probe_collision_debug_field)
 {

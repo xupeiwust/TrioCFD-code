@@ -36,6 +36,7 @@
 #define IJK_Energie_included
 
 #include <Boundary_Conditions_Thermique.h>
+#include <IJK_Field_vector.h>
 #include <IJK_FT_Post.h>
 #include <IJK_Field.h>
 #include <IJK_Lata_writer.h>
@@ -74,7 +75,7 @@ public:
   void update_thermal_properties();
   double compute_timestep(const double timestep, const double dxmin) const;
   void associer(const IJK_FT_double& ijk_ft);
-  void euler_time_step(const FixedVector<IJK_Field_double, 3>& velocity);
+  void euler_time_step(const IJK_Field_vector3_double& velocity);
   const IJK_Field_double& get_temperature() const { return temperature_; }
   int calculer_k_pour_bord(const IJK_Field_double& temperature, const bool bord_kmax);
   int calculer_flux_thermique_bord(const IJK_Field_double& temperature,
@@ -87,7 +88,7 @@ public:
                                   IJK_Field_local_double& flux_bord,
                                   const bool bord_kmax);
   IJK_Field_double& set_temperature() { return temperature_; }
-  FixedVector<IJK_Field_double, 3>& get_gradient_temperature()
+  IJK_Field_vector3_double& get_gradient_temperature()
   {
     return grad_T_;
   }
@@ -117,12 +118,12 @@ public:
   double get_lda_v() const;
 
 protected:
-  void calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity);
+  void calculer_dT(const IJK_Field_vector3_double& velocity);
   void add_temperature_diffusion();
   void add_temporal_rho_cp_term();
   void divide_by_rho_cp_np1();
   void compute_energy_convection(
-    const FixedVector<IJK_Field_double, 3>& velocity);
+    const IJK_Field_vector3_double& velocity);
   void calculer_energies(double& E_liq_pure, double& E_lta, double& E_lth,
                          double& E_vap_pure, double& E_vta, double& E_vth,
                          double& E_mixt_arithm, double& E_mixt_harmo,
@@ -131,7 +132,7 @@ protected:
 
   void calculer_ecart_T_ana();
   void calculer_gradient_temperature(const IJK_Field_double& temperature,
-                                     FixedVector<IJK_Field_double, 3>& grad_T);
+                                     IJK_Field_vector3_double& grad_T);
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,
                                         ArrOfDouble& interfacial_phin_ai) const;
 
@@ -189,7 +190,7 @@ protected:
 
   IJK_Field_double temperature_ana_, ecart_t_ana_;
 
-  FixedVector<IJK_Field_double, 3> grad_T_;
+  IJK_Field_vector3_double grad_T_;
 };
 
 #endif /* IJK_Energie_included */

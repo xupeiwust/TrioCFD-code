@@ -23,6 +23,7 @@
 #define IJK_Thermal_base_included
 
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <Objet_U.h>
 #include <Boundary_Conditions_Thermique.h>
 #include <IJK_Splitting.h>
@@ -127,7 +128,7 @@ public:
   {
     return temperature_ft_ ;
   }
-  const FixedVector<IJK_Field_double, 3>& get_grad_T() const
+  const IJK_Field_vector3_double& get_grad_T() const
   {
     return grad_T_ ;
   }
@@ -257,38 +258,38 @@ public:
   {
     return temperature_adim_bulles_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_gradient_temperature() const
+  const IJK_Field_vector3_double& get_gradient_temperature() const
   {
     return grad_T_ ;
   }
-  const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem() const
+  const IJK_Field_vector3_double& get_gradient_temperature_elem() const
   {
     return grad_T_elem_ ;
   }
-  const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const
+  const IJK_Field_vector3_double& get_normal_vector_ns() const
   {
     return ghost_fluid_fields_->get_eulerian_normal_vectors_ns();
     // return eulerian_normal_vectors_ns_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns_normed() const
+  const IJK_Field_vector3_double& get_normal_vector_ns_normed() const
   {
     return ghost_fluid_fields_->get_eulerian_normal_vectors_ns_normed();
     // return eulerian_normal_vectors_ns_normed_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_normal_vector_ft() const
+  const IJK_Field_vector3_double& get_normal_vector_ft() const
   {
     return ghost_fluid_fields_->get_eulerian_normal_vectors_ft();
     // return eulerian_normal_vectors_ft_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_hessian_diag_temperature_elem() const
+  const IJK_Field_vector3_double& get_hessian_diag_temperature_elem() const
   {
     return hess_diag_T_elem_ ;
   }
-  const FixedVector<IJK_Field_double, 3>& get_hessian_cross_temperature_elem() const
+  const IJK_Field_vector3_double& get_hessian_cross_temperature_elem() const
   {
     return hess_cross_T_elem_ ;
   }
-  const FixedVector<IJK_Field_double, 3>& get_bary() const
+  const IJK_Field_vector3_double& get_bary() const
   {
     return ghost_fluid_fields_->get_eulerian_facets_barycentre_ft();
     // return eulerian_facets_barycentre_ft_;
@@ -329,39 +330,39 @@ public:
   {
     return 1;
   };
-  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_diffusive() const
+  virtual const IJK_Field_vector3_double& get_cell_faces_corrected_diffusive() const
   {
     return dummy_double_vect_; //dummy
   }
-  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_convective() const
+  virtual const IJK_Field_vector3_double& get_cell_faces_corrected_convective() const
   {
     return dummy_double_vect_; //dummy
   }
-  virtual const FixedVector<IJK_Field_int,3>& get_cell_faces_corrected_bool() const
+  virtual const IJK_Field_vector3_int& get_cell_faces_corrected_bool() const
   {
     return dummy_int_vect_;
   }
-  virtual const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_diag_bool() const
+  virtual const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_diag_bool() const
   {
     return dummy_int_vect_;
   }
-  virtual const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_all_bool() const
+  virtual const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_all_bool() const
   {
     return dummy_int_vect_;
   }
-  virtual const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_min_max_bool() const
+  virtual const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_min_max_bool() const
   {
     return dummy_int_vect_;
   }
-  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective() const
+  virtual const IJK_Field_vector3_double& get_cell_faces_neighbours_corrected_convective() const
   {
     return dummy_double_vect_;
   }
-  virtual const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const
+  virtual const IJK_Field_vector3_double& get_cell_faces_neighbours_corrected_diffusive() const
   {
     return dummy_double_vect_;
   }
-  virtual const FixedVector<IJK_Field_double,3>& get_neighbours_faces_weighting_colinearity() const
+  virtual const IJK_Field_vector3_double& get_neighbours_faces_weighting_colinearity() const
   {
     return dummy_double_vect_;
   }
@@ -401,7 +402,7 @@ public:
   const double& get_E0() const { return E0_; };
 
   void compute_dT_rustine(const double dE);
-  void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   virtual void calculer_ecart_T_ana();
   void compute_interfacial_temperature2(
@@ -429,9 +430,9 @@ protected:
   void compute_cell_volume();
   void compute_min_cell_delta();
   void compute_cell_diagonal(const IJK_Splitting& splitting);
-  void calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity);
+  void calculer_dT(const IJK_Field_vector3_double& velocity);
   virtual void post_process_after_temperature_increment();
-  void compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_temperature_convection(const IJK_Field_vector3_double& velocity);
   virtual void add_temperature_diffusion();
   virtual void compute_diffusion_increment()=0;
   virtual void correct_temperature_for_eulerian_fluxes()=0;
@@ -465,7 +466,7 @@ protected:
   virtual void clean_thermal_subproblems() { ; };
 
   void calculer_gradient_temperature(const IJK_Field_double& temperature,
-                                     FixedVector<IJK_Field_double, 3>& grad_T);
+                                     IJK_Field_vector3_double& grad_T);
   void calculer_energies(double& E_liq_pure,
                          double& E_liq,
                          double& E_vap_pure,
@@ -603,7 +604,7 @@ protected:
   IJK_Field_double temperature_before_extrapolation_;
   IJK_Field_double d_temperature_; // Temperature increment.
   IJK_Field_double RK3_F_temperature_; // Temporary storage for substeps in the RK3 algorithm.
-  FixedVector<IJK_Field_double, 3> storage_; // Temporary storage for fluxes calculation.
+  IJK_Field_vector3_double storage_; // Temporary storage for fluxes calculation.
   int calculate_local_energy_;
   int conserv_energy_global_;
 
@@ -619,7 +620,7 @@ protected:
   Nom expression_T_ana_;
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   IJK_Field_double temperature_ana_, ecart_t_ana_, ecart_t_ana_rel_;
-  FixedVector<IJK_Field_double, 3> grad_T_;
+  IJK_Field_vector3_double grad_T_;
   double global_energy_;
   int calulate_grad_T_;
   int rho_cp_post_;
@@ -644,11 +645,11 @@ protected:
   const IJK_Ghost_Fluid_Fields * ghost_fluid_fields_;
   const IJK_Field_double * eulerian_distance_ft_;
   const IJK_Field_double * eulerian_distance_ns_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ft_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ft_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_ns_;
+  const IJK_Field_vector3_double * eulerian_normal_vectors_ft_;
+  const IJK_Field_vector3_double * eulerian_facets_barycentre_ft_;
+  const IJK_Field_vector3_double * eulerian_normal_vectors_ns_;
+  const IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed_;
+  const IJK_Field_vector3_double * eulerian_facets_barycentre_ns_;
   const IJK_Field_double * eulerian_curvature_ft_;
   const IJK_Field_double * eulerian_curvature_ns_;
   const IJK_Field_double * eulerian_interfacial_area_ft_;
@@ -656,7 +657,7 @@ protected:
   IJK_Field_double eulerian_grad_T_interface_ft_;
   IJK_Field_double eulerian_grad_T_interface_ns_;
   int compute_grad_T_elem_;
-  FixedVector<IJK_Field_double, 3> grad_T_elem_;
+  IJK_Field_vector3_double grad_T_elem_;
   /*
    * hess(T) = grad(grad(T))
    * Only 6 coefficients in
@@ -666,9 +667,9 @@ protected:
    * | - - * |
    *   FixedVector<IJK_Field_double, 6> grad_grad_T_elem_;
    */
-  FixedVector<IJK_Field_double, 3> hess_diag_T_elem_;
-  FixedVector<IJK_Field_double, 3> hess_cross_T_elem_;
-  FixedVector<IJK_Field_double, 3> facets_barycentre;
+  IJK_Field_vector3_double hess_diag_T_elem_;
+  IJK_Field_vector3_double hess_cross_T_elem_;
+  IJK_Field_vector3_double facets_barycentre;
   IJK_Field_double d_temperature_uncorrected_;
   IJK_Field_double div_coeff_grad_T_volume_uncorrected_;
   Operateur_IJK_elem_conv temperature_convection_op_uncorrected_;
@@ -708,8 +709,8 @@ protected:
   const ArrOfDouble * bubbles_volume_;
   const DoubleTab * bubbles_barycentre_;
 
-  FixedVector<IJK_Field_int,3> dummy_int_vect_;
-  FixedVector<IJK_Field_double,3> dummy_double_vect_;
+  IJK_Field_vector3_int dummy_int_vect_;
+  IJK_Field_vector3_double dummy_double_vect_;
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
 };

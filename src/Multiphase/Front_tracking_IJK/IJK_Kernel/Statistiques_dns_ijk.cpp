@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Statistiques_dns_ijk.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Grid_Geometry.h>
 #include <TRUSTTab.h>
 #include <communications.h>
@@ -529,7 +530,7 @@ void Statistiques_dns_ijk::initialize(const IJK_Grid_Geometry& geom,double T_KMA
     }
 }
 
-void Statistiques_dns_ijk::update_stat(const FixedVector<IJK_Field_double, 3>& vitesse,
+void Statistiques_dns_ijk::update_stat(const IJK_Field_vector3_double& vitesse,
                                        const IJK_Field_double& pression,
                                        const IJK_Field_double& temperature,
                                        const IJK_Field_double& masse_vol,
@@ -552,7 +553,7 @@ void Statistiques_dns_ijk::update_stat(const FixedVector<IJK_Field_double, 3>& v
                                        const int flag_structural_uu,
                                        const FixedVector<IJK_Field_double, 6>& structural_uu_tensor,
                                        const int flag_structural_uscalar,
-                                       const FixedVector<IJK_Field_double, 3>& structural_uscalar_vector,
+                                       const IJK_Field_vector3_double& structural_uscalar_vector,
                                        const int flag_formulation_favre,
                                        const int flag_formulation_velocity,
                                        const double cp_gaz,
@@ -1170,7 +1171,7 @@ void Statistiques_dns_ijk::update_stat(const FixedVector<IJK_Field_double, 3>& v
 //modif AT 20/06/2013
 // ce post traitement calcule les correlations en 1 points sur lenergie cinetique turbulente.
 
-void Statistiques_dns_ijk::update_stat_k(const FixedVector<IJK_Field_double, 3>& vitesse,
+void Statistiques_dns_ijk::update_stat_k(const IJK_Field_vector3_double& vitesse,
                                          const IJK_Field_double& pression,
                                          //const IJK_Field_double &temperature,
                                          const IJK_Field_double& masse_vol,
@@ -2393,7 +2394,7 @@ double Statistiques_dns_ijk::calculer_produit_scalaire_faces_to_center(
   return produit_scalaire;
 }
 
-void Statistiques_dns_ijk::compute_vecA_minus_vecB_in_vecA(FixedVector<IJK_Field_double, 3>& vecA, const FixedVector<IJK_Field_double, 3>& vecB)
+void Statistiques_dns_ijk::compute_vecA_minus_vecB_in_vecA(IJK_Field_vector3_double& vecA, const IJK_Field_vector3_double& vecB)
 {
   const IJK_Splitting& splitting = vecA.get_splitting();
   // Nombre total de mailles en K

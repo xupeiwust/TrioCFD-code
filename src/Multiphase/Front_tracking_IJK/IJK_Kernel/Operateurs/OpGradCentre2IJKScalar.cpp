@@ -34,7 +34,7 @@ Entree& OpGradCentre2IJKScalar_double::readOn( Entree& is )
 }
 
 void OpGradCentre2IJKScalar_double::calculer_grad(const IJK_Field_double& field,
-                                                  FixedVector<IJK_Field_double, 3>& result)
+                                                  IJK_Field_vector3_double& result)
 {
   input_field_ = &field;
   compute_grad(result);

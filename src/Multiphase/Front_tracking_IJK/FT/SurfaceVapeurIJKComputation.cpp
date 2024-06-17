@@ -346,7 +346,7 @@ void SurfaceVapeurIJKComputation::get_IJK_ind_from_ind2d(
 }
 
 void SurfaceVapeurIJKComputation::check_if_vect_is_from_liquid2vapor(
-  const FixedVector<IJK_Field_double, 3>& normale_of_interf,
+  const IJK_Field_vector3_double& normale_of_interf,
   const DataArrayDouble *vector,
   const int dim, const int i_plan,
   const int nx, const DataArrayIdType *ids_old,
@@ -472,9 +472,9 @@ void SurfaceVapeurIJKComputation::get_vect_from_sub_cells_tuple(
 
 void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vapeur(
   const Maillage_FT_IJK& maillage_ft_ijk,
-  const FixedVector<IJK_Field_double, 3>& normale_of_interf,
-  FixedVector<IJK_Field_double, 3>& surfaces,
-  FixedVector<FixedVector<IJK_Field_double, 3>, 3>& barycentres)
+  const IJK_Field_vector3_double& normale_of_interf,
+  IJK_Field_vector3_double& surfaces,
+  FixedVector<IJK_Field_vector3_double, 3>& barycentres)
 {
   // Lors de l'appel de cette méthode (une fois à chaque passage dans la boucle
   // principale en temps), on convertit le maillage au format MED.
@@ -775,9 +775,9 @@ void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vap
 int SurfaceVapeurIJKComputation::compute_surf_and_barys(
   const Maillage_FT_IJK& maillage_ft_ijk,
   const IJK_Field_double& indicatrice_ft,
-  const FixedVector<IJK_Field_double, 3>& normale_of_interf,
-  FixedVector<IJK_Field_double, 3>& surface_vapeur_par_face,
-  FixedVector<FixedVector<IJK_Field_double, 3>, 3>& barycentre_vapeur_par_face)
+  const IJK_Field_vector3_double& normale_of_interf,
+  IJK_Field_vector3_double& surface_vapeur_par_face,
+  FixedVector<IJK_Field_vector3_double, 3>& barycentre_vapeur_par_face)
 {
   for (int dir = 0; dir < 3; dir++)
     surface_vapeur_par_face[dir].data() = 0.;
@@ -797,7 +797,7 @@ int SurfaceVapeurIJKComputation::compute_surf_and_barys(
 }
 
 int SurfaceVapeurIJKComputation::rempli_surface_vapeur_par_face_interieur_bulles(
-  FixedVector<IJK_Field_double, 3>& surface_vapeur_par_face,
+  IJK_Field_vector3_double& surface_vapeur_par_face,
   const IJK_Field_double& indicatrice_ft)
 {
   const int ni = surface_vapeur_par_face[0].ni();

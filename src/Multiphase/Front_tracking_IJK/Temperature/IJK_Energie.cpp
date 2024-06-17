@@ -33,6 +33,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <DebogIJK.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Energie.h>
 #include <IJK_FT.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -321,7 +322,7 @@ double IJK_Energie::compute_timestep(const double timestep,
 }
 
 void IJK_Energie::euler_time_step(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   calculer_dT(velocity);
   // Update the temperature :
@@ -341,7 +342,7 @@ void IJK_Energie::euler_time_step(
 
 // Mettre rk_step = -1 si schema temps different de rk3.
 void IJK_Energie::calculer_dT(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   const double current_time = ref_ijk_ft_->get_current_time();
   const double ene_ini = compute_global_energy(d_temperature_);
@@ -382,7 +383,7 @@ void IJK_Energie::calculer_dT(
 // Convect energy field by velocity.
 // The output is stored in d_temperature_ (it is a volume integral over the CV)
 void IJK_Energie::compute_energy_convection(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp =
     statistiques().new_counter(1, "FT convection rho");
@@ -743,7 +744,7 @@ void IJK_Energie::calculer_ecart_T_ana()
 
 void IJK_Energie::calculer_gradient_temperature(
   const IJK_Field_double& temperature,
-  FixedVector<IJK_Field_double, 3>& grad_T)
+  IJK_Field_vector3_double& grad_T)
 {
   // Remise a zero :
   for (int dir = 0; dir < 3; dir++)

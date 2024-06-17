@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_FT.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <Interprete_bloc.h>
 #include <EFichier.h>
@@ -619,7 +620,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter_flag("include_pressure_gradient_in_ustar", &include_pressure_gradient_in_ustar_); // XD_ADD_P chaine not_set
   // param.ajouter_flag("use_inv_rho", &use_inv_rho_);
   param.ajouter_flag("use_inv_rho_for_mass_solver_and_calculer_rho_v", &use_inv_rho_for_mass_solver_and_calculer_rho_v_); // XD_ADD_P chaine not_set
-  param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P chaine not_set
+  param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P flag not_set
   param.ajouter_flag("diffusion_alternative", &diffusion_alternative_); // XD_ADD_P chaine not_set
   param.ajouter_flag("suppression_rejetons", &suppression_rejetons_); // XD_ADD_P chaine not_set
   // param.ajouter("correction_bilan_qdm", &correction_bilan_qdm_); // XD_ADD_P chaine not_set
@@ -1016,7 +1017,7 @@ const IJK_Field_double& IJK_FT_double::get_IJK_field(const Nom& nom) const
     Process::exit();
   }
   */
-  // FixedVector<IJK_Field_double, 3> velocity_;
+  // IJK_Field_vector3_double velocity_;
   // IJK_Field_double & velocity = select(direction, vx, vy, vz);
 
   // Dans ce cas, le champ velocity_ft_ n'est pas utilise :
@@ -1443,7 +1444,7 @@ void IJK_FT_double::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_doub
   Cerr << "Upstream Velocity has been forced" << finl;
 }
 
-void IJK_FT_double::ecrire_donnees(const FixedVector<IJK_Field_double, 3>& f3compo, SFichier& le_fichier, const int compo, bool binary) const
+void IJK_FT_double::ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const
 {
   const IJK_Field_double& f =  f3compo[compo];
 
@@ -1504,7 +1505,7 @@ void IJK_FT_double::ecrire_donnees(const FixedVector<IJK_Field_double, 3>& f3com
 }
 
 // Initialize field with specified string expression (must be understood by Parser class)
-void IJK_FT_double::dumpxyz_vector(const FixedVector<IJK_Field_double, 3>& f3compo, const char * filename, bool binary) const
+void IJK_FT_double::dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const char * filename, bool binary) const
 {
   int np = Process::nproc();
   int rank = Process::me();
@@ -2949,7 +2950,7 @@ void IJK_FT_double::run()
 
           if (!disable_diphasique_)
             {
-              FixedVector<IJK_Field_double, 3>& coords = post_.coords();
+              IJK_Field_vector3_double& coords = post_.coords();
 
               // Calcul du potentiel.
               for (int dir = 0; dir < 3; dir++)
@@ -3945,10 +3946,10 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
         {
           // if (rk_step==-1 || rk_step==0) // revient a rk_step>0 // euler ou premier pdt de rk3
           terme_diffusion_[dir] = calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme - terme_convection_[dir];
-          terme_diffusion_mass_solver_[dir] = d_velocity_[dir];
-          // terme_diffusion_mass_solver_ contient la diffusion et la convection
           if (test_etapes_et_bilan_)
             {
+              terme_diffusion_mass_solver_[dir] = d_velocity_[dir];
+              // terme_diffusion_mass_solver_ contient la diffusion et la convection
               if (!disable_diphasique_)
                 {
                   for (int k=0; k<terme_diffusion_mass_solver_[dir].nk(); k++)
@@ -4392,7 +4393,7 @@ void IJK_FT_double::compute_add_external_forces(const int dir)
 
 // -----------------------------------------------------------------------------------
 //  FORCAGE EXTERIEUR, DEFINI DANS L'ESPACE SPECTRAL
-void IJK_FT_double::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>& vitesse,
+void IJK_FT_double::compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
                                           const int time_iteration,
                                           const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                           const double current_time,
@@ -4422,7 +4423,7 @@ void IJK_FT_double::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>
 
   statistiques().begin_count(m3_counter_);
 
-  const FixedVector<IJK_Field_double, 3>& force = forcage_.get_force_ph2();
+  const IJK_Field_vector3_double& force = forcage_.get_force_ph2();
   for(int dir=0; dir<3; dir++)
     {
       // d_velocity_ est deja decoupe sur les differents procs; donc ni, nj, nk =! nb elem.
@@ -4445,7 +4446,7 @@ void IJK_FT_double::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>
   statistiques().end_count(m3_counter_);
 }
 
-void IJK_FT_double::compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_Field_double, 3>& vitesse,
+void IJK_FT_double::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
                                                          const int time_iteration,
                                                          const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                                          const double current_time,
@@ -4479,7 +4480,7 @@ void IJK_FT_double::compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_F
 
   statistiques().begin_count(m3_counter_);
 
-  const FixedVector<IJK_Field_double, 3>& force = forcage_.get_force_ph2();
+  const IJK_Field_vector3_double& force = forcage_.get_force_ph2();
 
   for(int dir=0; dir<3; dir++)
     {
@@ -5406,7 +5407,7 @@ void IJK_FT_double::fill_variable_source_and_potential_phi(const double time)
 {
   // Ajout du terme source (force acceleration)
   // Solveur masse pour chaque composante du bilan de QdM
-  const FixedVector<IJK_Field_double, 3>& grad_I_ns = post_.get_grad_I_ns();
+  const IJK_Field_vector3_double& grad_I_ns = post_.get_grad_I_ns();
   for (int dir = 0; dir < 3; dir++)
     {
       // Si on est en presence d'une source analytique variable spatialement:
@@ -5447,7 +5448,7 @@ int IJK_FT_double::get_direction(const ArrOfDouble& vecteur)
 //            inspire de : void IJK_FT_Post::calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic)
 Vecteur3 IJK_FT_double::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,const IJK_Field_double& pression)
 {
-  FixedVector<IJK_Field_double, 3> champ;
+  IJK_Field_vector3_double champ;
   allocate_velocity(champ, splitting_, 1);
   Vecteur3 resu;
 
@@ -5474,7 +5475,7 @@ Vecteur3 IJK_FT_double::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rh
 
 Vecteur3 IJK_FT_double::calculer_grad_p_moyen(const IJK_Field_double& pression)
 {
-  FixedVector<IJK_Field_double, 3> champ;
+  IJK_Field_vector3_double champ;
   allocate_velocity(champ, splitting_, 1);
   Vecteur3 resu;
 
@@ -5502,7 +5503,7 @@ Vecteur3 IJK_FT_double::calculer_grad_p_over_rho_moyen(const IJK_Field_double& p
   /*
    * Calcule Moyenne_spatiale{ 1/rho * grad(p) }
    * */
-  FixedVector<IJK_Field_double, 3> champ;
+  IJK_Field_vector3_double champ;
   allocate_velocity(champ, splitting_, 1);
   Vecteur3 resu;
 
@@ -5941,7 +5942,7 @@ void IJK_FT_double::write_qdm_corrections_information()
 
 // -----------------------------------------------------------------------------------
 //  PRODUITS DE CHAMPS
-IJK_Field_double IJK_FT_double::scalar_product(const FixedVector<IJK_Field_double, 3>& V1, const FixedVector<IJK_Field_double, 3>& V2)
+IJK_Field_double IJK_FT_double::scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2)
 {
   /*
    * * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
@@ -5969,7 +5970,7 @@ IJK_Field_double IJK_FT_double::scalar_product(const FixedVector<IJK_Field_doubl
   return resu;
 }
 
-FixedVector<IJK_Field_double, 3> IJK_FT_double::scalar_times_vector(const IJK_Field_double& Sca, const FixedVector<IJK_Field_double, 3>& Vec)
+IJK_Field_vector3_double IJK_FT_double::scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec)
 {
   /*
    * Produit d'un champ scalaire (Sca) par un champ de vecteur (Vec).
@@ -5978,7 +5979,7 @@ FixedVector<IJK_Field_double, 3> IJK_FT_double::scalar_times_vector(const IJK_Fi
    * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
    */
 
-  FixedVector<IJK_Field_double, 3> resu;
+  IJK_Field_vector3_double resu;
   allocate_velocity(resu,splitting_,3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
   int nk = Vec[0].nk();
   if (nk != Sca.nk()) {Cerr << "scalar fields has different dimension from vector field  (nk)"<< finl;}

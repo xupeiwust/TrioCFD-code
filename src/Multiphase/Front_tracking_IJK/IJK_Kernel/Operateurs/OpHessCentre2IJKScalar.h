@@ -23,6 +23,7 @@
 #define OpHessCentre2IJKScalar_included
 
 #include <Operateur_IJK_elem_diff_base.h>
+#include <IJK_Field_vector.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -39,7 +40,7 @@ class OpHessCentre2IJKScalar_double : public OpDiffUniformIJKScalar_double
 
 public:
   void calculer_hess(const IJK_Field_double& field,
-                     FixedVector<IJK_Field_double, 3>& result,
+                     IJK_Field_vector3_double& result,
                      const IJK_Field_local_double& boundary_flux_kmin,
                      const IJK_Field_local_double& boundary_flux_kmax);
 

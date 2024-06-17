@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblems.h>
+#include <IJK_Field_vector.h>
 #include <IJK_FT.h>
 #include <IJK_switch_FT.h>
 #include <IJK_Bubble_tools.h>
@@ -267,8 +268,8 @@ void IJK_One_Dimensional_Subproblems::associate_sub_problem_to_inputs(IJK_Therma
                                                                       double global_time_step,
                                                                       double current_time,
                                                                       const IJK_Interfaces& interfaces,
-                                                                      const FixedVector<IJK_Field_double, 3>& velocity,
-                                                                      const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                                                      const IJK_Field_vector3_double& velocity,
+                                                                      const IJK_Field_vector3_double& velocity_ft,
                                                                       const IJK_Field_double& pressure)
 {
   if (!init_ && subproblems_counter_ > max_subproblems_ && (pre_initialise_thermal_subproblems_list_ && !remove_append_subproblems_))

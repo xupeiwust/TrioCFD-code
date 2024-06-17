@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Interfaces.h>
 #include <Maillage_FT_IJK.h>
 
@@ -42,8 +43,8 @@
 
 void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interfaces& interface,
                                                              IJK_Field_double& distance,
-                                                             FixedVector<IJK_Field_double, 3>& normal_vect,
-                                                             FixedVector<IJK_Field_double, 3>& facets_barycentre,
+                                                             IJK_Field_vector3_double& normal_vect,
+                                                             IJK_Field_vector3_double& facets_barycentre,
                                                              const int& n_iter);
 
 void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double& distance,
@@ -51,10 +52,10 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
                                                           const IJK_Field_local_double& boundary_flux_kmin,
                                                           const IJK_Field_local_double& boundary_flux_kmax);
 
-void compute_eulerian_curvature_field_from_normal_vector_field(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_normal_vector_field(const IJK_Field_vector3_double& normal_vect,
                                                                IJK_Field_double& curvature);
 
-void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_interface(const IJK_Field_vector3_double& normal_vect,
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,

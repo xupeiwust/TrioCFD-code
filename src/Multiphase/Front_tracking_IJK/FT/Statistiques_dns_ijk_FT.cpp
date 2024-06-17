@@ -19,6 +19,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 #include <Statistiques_dns_ijk_FT.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Grid_Geometry.h>
 #include <TRUSTTab.h>
 #include <communications.h>
@@ -976,16 +977,16 @@ double Calculer_valeur_seuil(double p_seuil, double pressionijk, double p_seuil_
 
 void Statistiques_dns_ijk_FT::update_stat(IJK_FT_double& cas, const double dt)
 {
-  FixedVector<IJK_Field_double, 3>& vitesse=cas.velocity_;
+  IJK_Field_vector3_double& vitesse=cas.velocity_;
   // GR262753 : travail des forces d'interfaces
-  FixedVector<IJK_Field_double, 3>& force_interfaces=cas.terme_source_interfaces_ft_;
-  const FixedVector<IJK_Field_double, 3>& repulsion_interfaces=cas.terme_repulsion_interfaces_ft_;
+  IJK_Field_vector3_double& force_interfaces=cas.terme_source_interfaces_ft_;
+  const IJK_Field_vector3_double& repulsion_interfaces=cas.terme_repulsion_interfaces_ft_;
   // ---
   IJK_Field_double& extended_pressure_liq= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pl_: cas.pressure_;
   IJK_Field_double& extended_pressure_vap= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pv_: cas.pressure_;
   IJK_Field_double& pression=cas.pressure_;
   const IJK_Field_double& indicatrice=cas.itfce().I();
-  FixedVector<IJK_Field_double, 3>& gradP=cas.post_.grad_P_;
+  IJK_Field_vector3_double& gradP=cas.post_.grad_P_;
 
   // Nombre total de mailles en K
   const int nktot = pression.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
@@ -1010,13 +1011,13 @@ void Statistiques_dns_ijk_FT::update_stat(IJK_FT_double& cas, const double dt)
   zeros.allocate(imax, jmax, kmax, 1 /* ghost pour le grad */, 1. /* additional_layers */, 3 /*nb compo*/);
   //allocate_velocity()
 
-  FixedVector<IJK_Field_double, 3>& gradI=cas.post_.grad_I_ns_;
-  FixedVector<IJK_Field_double, 3>& sourceI=cas.terme_source_interfaces_ns_;
-  FixedVector<IJK_Field_double, 3>& repuls=cas.terme_repulsion_interfaces_ns_;
-  FixedVector<IJK_Field_double, 3>& absrepuls=cas.terme_abs_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double& gradI=cas.post_.grad_I_ns_;
+  IJK_Field_vector3_double& sourceI=cas.terme_source_interfaces_ns_;
+  IJK_Field_vector3_double& repuls=cas.terme_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double& absrepuls=cas.terme_abs_repulsion_interfaces_ns_;
   IJK_Field_double& field_ai=cas.post_.ai_ns_;
   IJK_Field_double& field_kappa_ai=cas.post_.kappa_ai_ns_;
-  FixedVector<IJK_Field_double, 3>& normale_cell=cas.post_.normale_cell_ns_;
+  IJK_Field_vector3_double& normale_cell=cas.post_.normale_cell_ns_;
   IJK_Field_double& field_dudx=cas.post_.dudx_ ;
   IJK_Field_double& field_dvdy=cas.post_.dvdy_ ;
   IJK_Field_double& field_dwdx=cas.post_.dwdx_ ;
@@ -1024,14 +1025,14 @@ void Statistiques_dns_ijk_FT::update_stat(IJK_FT_double& cas, const double dt)
   IJK_Field_double& field_dvdz=cas.post_.dvdz_ ;
   IJK_Field_double& field_dwdz=cas.post_.dwdz_ ;
   const Motcles& liste_post_instantanes = ref_ijk_ft_->post_.get_liste_post_instantanes();
-  FixedVector<IJK_Field_double, 3>& rot=cas.post_.rot_ ;
+  IJK_Field_vector3_double& rot=cas.post_.rot_ ;
   IJK_Field_double& critere_Q=cas.post_.critere_Q_;
 
   double coef_immobilisation_=cas.coef_immobilisation_;
   IJK_Field_double& indicatrice_np=cas.post_.indicatrice_non_perturbe_;
-  FixedVector<IJK_Field_double, 3>& integral_vitesse=cas.post_.integrated_velocity_;
+  IJK_Field_vector3_double& integral_vitesse=cas.post_.integrated_velocity_;
   IJK_Field_double& integral_pression=cas.post_.integrated_pressure_;
-  FixedVector<IJK_Field_double, 3> force_rappel=cas.force_rappel_;
+  IJK_Field_vector3_double force_rappel=cas.force_rappel_;
   double p_seuil_max = cas.p_seuil_max_;
   double p_seuil_min = cas.p_seuil_min_;
   const IJK_Field_double& integral_vitesse_i = integral_vitesse[0];
@@ -1506,7 +1507,7 @@ void Statistiques_dns_ijk_FT::update_stat(IJK_FT_double& cas, const double dt)
 
 
                   // Derivee seconde de la temperature :
-                  FixedVector<IJK_Field_double, 3>& gradT = itr.get_gradient_temperature();
+                  IJK_Field_vector3_double& gradT = itr.get_gradient_temperature();
                   double ddTdxdx = 0.;
                   double ddTdxdy = 0.;
                   double ddTdxdz = 0.;
@@ -2883,7 +2884,7 @@ int Statistiques_dns_ijk_FT::initialize(const IJK_FT_double& ijk_ft, const IJK_S
   return nalloc;
 }
 
-const FixedVector<IJK_Field_double, 3>& Statistiques_dns_ijk_FT::get_IJK_vector_field(const Nom& nom) const
+const IJK_Field_vector3_double& Statistiques_dns_ijk_FT::get_IJK_vector_field(const Nom& nom) const
 {
 
   if (nom== "gradU")

@@ -23,7 +23,7 @@
 #define IJK_Interfaces_included
 
 #include <Connectivite_frontieres.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h> // est-ce que j'en ai vraiment besoin ?
 #include <Linear_algebra_tools_impl.h>
 #include <Maillage_FT_IJK.h>
@@ -102,9 +102,9 @@ public :
 
   void compute_vinterp();
   // methode pour bulles fixes
-  void compute_external_forces_(FixedVector<IJK_Field_double, 3>& rappel_ft,
-                                FixedVector<IJK_Field_double, 3>& rappel,
-                                const FixedVector<IJK_Field_double, 3>& vitesse,
+  void compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
+                                IJK_Field_vector3_double& rappel,
+                                const IJK_Field_vector3_double& vitesse,
                                 const IJK_Field_double& indic_ns,
                                 const IJK_Field_double& indic_ft,
                                 const double coef_immo,
@@ -115,13 +115,13 @@ public :
                                 double compteur,
                                 double coef_mean_force,
                                 double coef_force_time_n);
-  void compute_external_forces_parser(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_parser(IJK_Field_vector3_double& rappel,
                                       const IJK_Field_double& indic_ns,
                                       const DoubleTab& individual_forces,
                                       const ArrOfDouble& volume_reel,
                                       const DoubleTab& position,
                                       const double coef_rayon_force_rappel);
-  void compute_external_forces_color_function(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_color_function(IJK_Field_vector3_double& rappel,
                                               const IJK_Field_double& indic_ns,
                                               const IJK_Field_double& indic_ft,
                                               DoubleTab& individual_forces,
@@ -304,7 +304,7 @@ public :
 
   void calculer_normales_et_aires_interfaciales(IJK_Field_double& ai,
                                                 IJK_Field_double& kappa_ai,
-                                                FixedVector<IJK_Field_double, 3>& normale_cell,
+                                                IJK_Field_vector3_double& normale_cell,
                                                 const int igroup) const;
 
   int compute_list_compo_connex_in_element(const Maillage_FT_IJK& mesh,
@@ -328,7 +328,7 @@ public :
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
                                              IJK_Field_double& kappa_ai,
-                                             FixedVector<IJK_Field_double, 3>& normale_cell) const;
+                                             IJK_Field_vector3_double& normale_cell) const;
 
   void compute_drapeaux_vapeur_v2(const IntVect& vecteur_composantes,
                                   ArrOfInt& drapeau_liquide) const;
@@ -342,9 +342,9 @@ public :
   void convert_to_IntVect(const ArrOfInt& in, IntVect& out) const;
 
   void ajouter_terme_source_interfaces(
-    FixedVector<IJK_Field_double, 3>& vpoint,
-    FixedVector<IJK_Field_double, 3>& vrepul,
-    FixedVector<IJK_Field_double, 3>& vabsrepul
+    IJK_Field_vector3_double& vpoint,
+    IJK_Field_vector3_double& vrepul,
+    IJK_Field_vector3_double& vabsrepul
   ) const;
 
   void remailler_interface(const double temps,
@@ -364,22 +364,22 @@ public :
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
 
   // Getter des surfaces par face
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face_ft() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const
   {
     return surface_vapeur_par_face_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face() const
   {
     return surface_vapeur_par_face_ns_[old()];
   }
   // Getter des surfaces par face
-  // void get_surface_vapeur_par_face_ns(FixedVector<IJK_Field_double, 3> &surfs) const ;
+  // void get_surface_vapeur_par_face_ns(IJK_Field_vector3_double &surfs) const ;
   // Getter des barycentres par face
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face_ft() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face_ft() const
   {
     return barycentre_vapeur_par_face_[old()];
   }
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face() const
   {
     return barycentre_vapeur_par_face_ns_[old()];
   }
@@ -415,7 +415,7 @@ public :
   static void mean_over_compo(
     const FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& field_for_compo,
     const IJK_Field_int& nb_compo_traversante,
-    FixedVector<IJK_Field_double, 3>& mean_par_compo_field
+    IJK_Field_vector3_double& mean_par_compo_field
   )
   {
     const int ni = nb_compo_traversante.ni();
@@ -497,19 +497,19 @@ public :
     return res;
   }
 
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
   {
     return groups_indicatrice_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
   {
     return groups_indicatrice_ns_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
   {
     return groups_indicatrice_ft_[next()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
   {
     return groups_indicatrice_ns_[next()];
   }
@@ -695,8 +695,8 @@ protected:
 
   void calculer_indicatrice(IJK_Field_double& indic);
   void calculer_indicatrice_optim(IJK_Field_double& indic);
-  void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
-  void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
+  void calculer_indicatrices(IJK_Field_vector3_double& indic);
+  void calculer_indicatrices_optim(IJK_Field_vector3_double& indic);
 
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
@@ -871,19 +871,19 @@ protected:
   bool is_diphasique_;
 
   // Surfaces vapeur des faces du maillage IJK
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_ns_;
 
   // Normale de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_ns_;
   // Barycentre de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_ns_;
 
   // Barycentres vapeur des faces du maillage IJK
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_;
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_ns_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_ns_;
 
   /////////////////////////////////////
   // indicatrice et var moy par cell //
@@ -896,13 +896,13 @@ protected:
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
 
 #if VERIF_INDIC
   // pour verifier le calcul optimise de l'indicatrice
   IJK_Field_double indicatrice_ft_test_;
-  FixedVector<IJK_Field_double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
+  IJK_Field_vector<double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
 #endif
 
   // Vecteur des composantes normale dans chaque cellule par composante connexe

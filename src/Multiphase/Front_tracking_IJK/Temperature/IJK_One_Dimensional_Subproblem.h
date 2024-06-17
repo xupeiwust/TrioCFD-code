@@ -26,7 +26,7 @@
 #include <IJK_Field.h>
 #include <IJK_Interfaces.h>
 #include <Linear_algebra_tools.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <TRUSTArrays.h>
 #include <TRUSTTab.h>
 #include <Vecteur3.h>
@@ -92,8 +92,8 @@ public :
                                        ArrOfDouble bubble_barycentre,
                                        const double& indicator,
                                        const IJK_Interfaces& interfaces,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
-                                       const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                       const IJK_Field_vector3_double& velocity,
+                                       const IJK_Field_vector3_double& velocity_ft,
                                        const IJK_Field_double& pressure);
 
   void interpolate_indicator_on_probes();
@@ -497,17 +497,17 @@ protected :
                                             const IJK_Field_double *  eulerian_distance,
                                             const IJK_Field_double * eulerian_curvature,
                                             const IJK_Field_double * eulerian_interfacial_area,
-                                            const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect,
-                                            const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre,
+                                            const IJK_Field_vector3_double * eulerian_normal_vect,
+                                            const IJK_Field_vector3_double * eulerian_facets_barycentre,
                                             const IJK_Field_double& temperature,
                                             const IJK_Field_double& temperature_ft,
                                             const IJK_Field_double& temperature_before_extrapolation,
-                                            const FixedVector<IJK_Field_double, 3>& velocity,
-                                            const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                            const IJK_Field_vector3_double& velocity,
+                                            const IJK_Field_vector3_double& velocity_ft,
                                             const IJK_Field_double& pressure,
-                                            const FixedVector<IJK_Field_double, 3>& grad_T_elem,
-                                            const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
-                                            const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
+                                            const IJK_Field_vector3_double& grad_T_elem,
+                                            const IJK_Field_vector3_double& hess_diag_T_elem,
+                                            const IJK_Field_vector3_double& hess_cross_T_elem,
                                             const IJK_Field_double& eulerian_grad_T_interface_ns,
                                             IJK_Field_double& probe_collision_debug_field);
   void associate_flags_neighbours_correction(const int& correct_temperature_cell_neighbours,
@@ -749,21 +749,21 @@ protected :
   const IJK_Field_double * eulerian_distance_;
   const IJK_Field_double * eulerian_curvature_;
   const IJK_Field_double * eulerian_interfacial_area_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_;
+  const IJK_Field_vector3_double * eulerian_normal_vect_;
+  const IJK_Field_vector3_double * eulerian_facets_barycentre_;
 
   const IJK_Field_double * temperature_;
   const IJK_Field_double * temperature_ft_;
   const IJK_Field_double * temperature_before_extrapolation_;
-  const FixedVector<IJK_Field_double, 3> * velocity_;
-  const FixedVector<IJK_Field_double, 3> * velocity_ft_;
+  const IJK_Field_vector3_double * velocity_;
+  const IJK_Field_vector3_double * velocity_ft_;
   const IJK_Field_double * pressure_;
   const IJK_Field_double * eulerian_grad_T_interface_ns_;
   IJK_Field_double * probe_collision_debug_field_;
 
-  const FixedVector<IJK_Field_double, 3> * grad_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_cross_T_elem_;
+  const IJK_Field_vector3_double * grad_T_elem_;
+  const IJK_Field_vector3_double * hess_diag_T_elem_;
+  const IJK_Field_vector3_double * hess_cross_T_elem_;
 
   const double * dr_base_ = 0;
   // FIXME: Should I use DoubleTab instead ?

@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Ghost_Fluid_tools.h>
+#include <IJK_Field_vector.h>
 #include <Probleme_base.h>
 #include <DebogIJK.h>
 #include <stat_counters.h>
@@ -194,8 +195,8 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
  */
 void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interfaces& interfaces, //  ref_problem_ft_disc,
                                                              IJK_Field_double& distance_field,
-                                                             FixedVector<IJK_Field_double, 3>& normal_vect,
-                                                             FixedVector<IJK_Field_double, 3>& facets_barycentre,
+                                                             IJK_Field_vector3_double& normal_vect,
+                                                             IJK_Field_vector3_double& facets_barycentre,
                                                              const int& n_iter)
 {
   /*
@@ -320,8 +321,8 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
     DebogIJK::verifier("IJK_Ghost_Fluid_tools::compute_eulerian_normal_distance_field", distance_field);
   }
 
-  FixedVector<IJK_Field_double, 3> terme_src(normal_vect);
-  FixedVector<IJK_Field_double, 3> tmp(normal_vect);
+  IJK_Field_vector3_double terme_src(normal_vect);
+  IJK_Field_vector3_double tmp(normal_vect);
 
   const IntTab& face_voisins = domaine_vf.face_voisins();
   const IntTab& elem_faces   = domaine_vf.elem_faces();
@@ -640,13 +641,13 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
   curvature.echange_espace_virtuel(curvature.ghost());
 }
 
-void compute_eulerian_curvature_field_from_normal_vector_field(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_normal_vector_field(const IJK_Field_vector3_double& normal_vect,
                                                                IJK_Field_double& curvature)
 {
 
 }
 
-void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_interface(const IJK_Field_vector3_double& normal_vect,
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,

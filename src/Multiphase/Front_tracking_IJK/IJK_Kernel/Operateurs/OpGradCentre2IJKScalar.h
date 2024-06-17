@@ -23,6 +23,7 @@
 #define OpGradCentre2IJKScalar_included
 
 #include <OpConvCentre2IJKScalar.h>
+#include <IJK_Field_vector.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -37,7 +38,7 @@ class OpGradCentre2IJKScalar_double : public OpConvCentre2IJKScalar_double
   Declare_instanciable_sans_constructeur( OpGradCentre2IJKScalar_double ) ;
 public :
   OpGradCentre2IJKScalar_double() :  OpConvCentre2IJKScalar_double() { is_grad_ = true; };
-  void calculer_grad(const IJK_Field_double& field, FixedVector<IJK_Field_double, 3>& result);
+  void calculer_grad(const IJK_Field_double& field, IJK_Field_vector3_double& result);
   void calculer_grad_x(const IJK_Field_double& field, IJK_Field_double& result);
   void calculer_grad_y(const IJK_Field_double& field, IJK_Field_double& result);
   void calculer_grad_z(const IJK_Field_double& field, IJK_Field_double& result);

@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Fourier_trans.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Grid_Geometry.h>
 #include <TRUSTTab.h>
 #include <communications.h>
@@ -547,7 +548,7 @@ void Fourier_trans::initialize(const IJK_Splitting& split_origine,const IJK_Spli
 }
 
 
-void Fourier_trans::update(const FixedVector<IJK_Field_double, 3>& vitesse_ori,
+void Fourier_trans::update(const IJK_Field_vector3_double& vitesse_ori,
                            const IJK_Field_double& pression_ori,
                            //const IJK_Field_double &temperature,
                            const IJK_Field_double& masse_vol_ori,

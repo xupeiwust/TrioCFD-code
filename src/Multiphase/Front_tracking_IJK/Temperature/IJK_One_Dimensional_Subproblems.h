@@ -23,6 +23,7 @@
 #define IJK_One_Dimensional_Subproblems_included
 
 #include <IJK_One_Dimensional_Subproblem.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Finite_Difference_One_Dimensional_Matrix_Assembler.h>
 #include <TRUSTList.h>
 #include <TRUST_List.h>
@@ -86,8 +87,8 @@ public :
                                        double global_time_step,
                                        double current_time,
                                        const IJK_Interfaces& interfaces,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
-                                       const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                       const IJK_Field_vector3_double& velocity,
+                                       const IJK_Field_vector3_double& velocity_ft,
                                        const IJK_Field_double& pressure);
   void store_previous_temperature_indicator_velocities();
   void share_previous_temperature_indicator_velocities();

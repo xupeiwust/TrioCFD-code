@@ -24,6 +24,7 @@
 #define IJK_FT_Post_included
 
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <Motcle.h>
 #include <TRUST_Vector.h>
 #include <Statistiques_dns_ijk_FT.h>
@@ -75,7 +76,7 @@ public:
   {
     return potentiel_;
   }
-  FixedVector<IJK_Field_double, 3>& coords()
+  IJK_Field_vector3_double& coords()
   {
     return coords_;
   }
@@ -107,9 +108,9 @@ public:
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   const int& get_IJK_flag(const Nom& nom) const;
 
-  const FixedVector<IJK_Field_double, 3>& get_IJK_vector_field(const Nom& nom) const;
+  const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
 
-  inline FixedVector<IJK_Field_double, 3>& get_grad_I_ns()
+  inline IJK_Field_vector3_double& get_grad_I_ns()
   {
     return grad_I_ns_;
   }
@@ -119,9 +120,9 @@ public:
   void reprendre_post(Param& param);
 
   void fill_op_conv();
-  void fill_surface_force(FixedVector<IJK_Field_double, 3>& the_field_you_know);//const Nom lata_name, double instant, int iteration);
+  void fill_surface_force(IJK_Field_vector3_double& the_field_you_know);//const Nom lata_name, double instant, int iteration);
   void fill_surface_force_bis(const char * lata_name, double time, int time_iteration);
-  FixedVector<IJK_Field_double, 3> get_rho_Ssigma();
+  IJK_Field_vector3_double get_rho_Ssigma();
 
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
@@ -170,7 +171,7 @@ public:
                                                           const int lata_step, const double current_time,
                                                           IJK_Energie& ,  const int idx);
 
-//  void calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T);
+//  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
 
   Motcles get_liste_post_instantanes() const
   {
@@ -223,7 +224,7 @@ protected:
   // -------------------------------------------------
 
   // Pour les cas a bulles fixes
-  FixedVector<IJK_Field_double, 3> integrated_velocity_;
+  IJK_Field_vector3_double integrated_velocity_;
   IJK_Field_double integrated_pressure_;
   IJK_Field_double indicatrice_non_perturbe_;
   IJK_Field_double integrated_timescale_;
@@ -234,19 +235,19 @@ protected:
   Nom fichier_reprise_integrated_timescale_;
 
   // Temporary storage for the coords (for postprocessing) :
-  FixedVector<IJK_Field_double, 3> coords_;
-  FixedVector<IJK_Field_double, 3> velocity_ana_;
-  FixedVector<IJK_Field_double, 3> ecart_ana_;
-  FixedVector<IJK_Field_double, 3> op_conv_;
-  FixedVector<IJK_Field_double, 3> cell_op_conv_;
-  FixedVector<IJK_Field_double, 3> rho_Ssigma_;
-  FixedVector<IJK_Field_double, 3> cell_rho_Ssigma_;
+  IJK_Field_vector3_double coords_;
+  IJK_Field_vector3_double velocity_ana_;
+  IJK_Field_vector3_double ecart_ana_;
+  IJK_Field_vector3_double op_conv_;
+  IJK_Field_vector3_double cell_op_conv_;
+  IJK_Field_vector3_double rho_Ssigma_;
+  IJK_Field_vector3_double cell_rho_Ssigma_;
 
-  FixedVector<IJK_Field_double, 3> d_velocity_ana_;
+  IJK_Field_vector3_double d_velocity_ana_;
   IJK_Field_double pressure_ana_,ecart_p_ana_;
 
   // Celui la est discretise sur le maillage etendu:
-  FixedVector<IJK_Field_double, 3> grad_I_ft_;
+  IJK_Field_vector3_double grad_I_ft_;
 
   // Pour postraitement :
   IJK_Field_double rebuilt_indic_;
@@ -263,10 +264,10 @@ protected:
   // FixedVector<IJK_Field_double 3> dP_;
   // Pour le calcul des stats  :
   IJK_Field_double kappa_ai_ft_;
-  FixedVector<IJK_Field_double, 3> normale_cell_ft_;
+  IJK_Field_vector3_double normale_cell_ft_;
   IJK_Field_double ai_ns_;
   IJK_Field_double kappa_ai_ns_;
-  FixedVector<IJK_Field_double, 3> normale_cell_ns_;
+  IJK_Field_vector3_double normale_cell_ns_;
   // The following three fields are needed too for the gradient extension
 // /IJK_Field_double dudy_;
   //IJK_Field_double dvdx_;//
@@ -279,35 +280,35 @@ protected:
   IJK_Field_double dvdz_;
   IJK_Field_double dwdz_;
   IJK_Field_double critere_Q_;
-  FixedVector<IJK_Field_double, 3> rot_;
-  FixedVector<IJK_Field_double, 3> grad_I_ns_;
-  FixedVector<IJK_Field_double, 3> grad_P_;
-  //  FixedVector<IJK_Field_double, 3> grad_U_ns_;
-  //  FixedVector<IJK_Field_double, 3> grad_V_ns_;
-  //  FixedVector<IJK_Field_double, 3> grad_W_ns_;
+  IJK_Field_vector3_double rot_;
+  IJK_Field_vector3_double grad_I_ns_;
+  IJK_Field_vector3_double grad_P_;
+  //  IJK_Field_vector3_double grad_U_ns_;
+  //  IJK_Field_vector3_double grad_V_ns_;
+  //  IJK_Field_vector3_double grad_W_ns_;
   IJK_Field_double num_compo_ft_;
 
   // Pour la verification des stats :
   // Le gradient de pression aux faces :
-  //  FixedVector<IJK_Field_double, 3> gradP_;
+  //  IJK_Field_vector3_double gradP_;
   // Les gradients des compo de vitesses aux elems : (sont finalement stockes dans statistiques_FT_ si besoin)
-  //FixedVector<IJK_Field_double, 3> dUd_;
-  //FixedVector<IJK_Field_double, 3> dVd_;
-  //FixedVector<IJK_Field_double, 3> dWd_;
+  //IJK_Field_vector3_double dUd_;
+  //IJK_Field_vector3_double dVd_;
+  //IJK_Field_vector3_double dWd_;
   // Et leurs solutions analytiques :
-  FixedVector<IJK_Field_double, 3> ana_gradP_;
-  FixedVector<IJK_Field_double, 3> ana_dUd_;
-  FixedVector<IJK_Field_double, 3> ana_dVd_;
-  FixedVector<IJK_Field_double, 3> ana_dWd_;
+  IJK_Field_vector3_double ana_gradP_;
+  IJK_Field_vector3_double ana_dUd_;
+  IJK_Field_vector3_double ana_dVd_;
+  IJK_Field_vector3_double ana_dWd_;
   // Pour les deriv secondes :
-  FixedVector<IJK_Field_double, 3> ana_grad2Pi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Pc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Ui_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Uc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Vi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Vc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Wi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Wc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Pi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Pc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Ui_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Uc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Vi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Vc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Wi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Wc_; // contient les deriv croisees
 
   // GAB
   IJK_Field_double IFd_source_spectraleX_;
@@ -316,14 +317,14 @@ protected:
   IJK_Field_double source_spectraleZ_;
   // Pour post-traitement :
   IJK_Field_double lambda2_, dudy_, dvdx_, dwdy_;
-  FixedVector<IJK_Field_double, 3> cell_velocity_;
-  FixedVector<IJK_Field_double, 3> cell_source_spectrale_;
-  FixedVector<IJK_Field_double, 3> cell_bk_tsi_ns_;
-  //  FixedVector<IJK_Field_double, 3> cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> cell_grad_p_;
-  FixedVector<IJK_Field_double, 3> cell_source_interface_; // toujours en _ns_
-  FixedVector<IJK_Field_double, 3> cell_backup_source_interface_; // toujours en _ns_
-  FixedVector<IJK_Field_double, 3> cell_repulsion_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_velocity_;
+  IJK_Field_vector3_double cell_source_spectrale_;
+  IJK_Field_vector3_double cell_bk_tsi_ns_;
+  //  IJK_Field_vector3_double cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double cell_grad_p_;
+  IJK_Field_vector3_double cell_source_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_backup_source_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_repulsion_interface_; // toujours en _ns_
 
 
   int sondes_demande_;
@@ -337,13 +338,13 @@ protected:
   const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;
   IJK_Field_double& pressure_;                   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& velocity_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& source_spectrale_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& bk_tsi_ns_;
-  FixedVector<IJK_Field_double, 3> source_interface_ft_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> source_interface_ns_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
-  const FixedVector<IJK_Field_double, 3>& d_velocity_;
+  IJK_Field_vector3_double& velocity_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double& source_spectrale_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double& bk_tsi_ns_;
+  IJK_Field_vector3_double source_interface_ft_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double source_interface_ns_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
+  const IJK_Field_vector3_double& d_velocity_;
 
   IJK_Splitting& splitting_;
   IJK_Splitting& splitting_ft_;
@@ -355,7 +356,7 @@ protected:
   /* IJK_Field_double temperature_ana_, ecart_t_ana_;
     Nom expression_T_ana_;
     IJK_Field_double source_temperature_ana_, ecart_source_t_ana_; */
-  // FixedVector<IJK_Field_double, 3> grad_T_;
+  // IJK_Field_vector3_double grad_T_;
 
   Multigrille_Adrien poisson_solver_post_;
 };

@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Connex_components.h>
+#include <IJK_Field_vector.h>
 #include <Connex_components_FT.h>
 #include <EcrFicPartageBin.h>
 #include <IJK_FT.h>
@@ -442,7 +443,7 @@ int IJK_Interfaces::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
 
 void IJK_Interfaces::compute_vinterp()
 {
-  const FixedVector<IJK_Field_double, 3>& velocity_ft = ref_ijk_ft_->get_velocity_ft();
+  const IJK_Field_vector3_double& velocity_ft = ref_ijk_ft_->get_velocity_ft();
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const DoubleTab& sommets = mesh.sommets(); // Tableau des coordonnees des marqueurs.
   int nbsom = sommets.dimension(0);
@@ -1287,11 +1288,11 @@ void IJK_Interfaces::calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const
       const double d_i_1 = sqrt( (sommets(i1, 0)-centre_gravite(compo,0))*(sommets(i1, 0)-centre_gravite(compo,0)) + (sommets(i1, 1)-centre_gravite(compo,1))*(sommets(i1, 1)-centre_gravite(compo,1)) + (sommets(i1, 2)-centre_gravite(compo,2))*(sommets(i1, 2)-centre_gravite(compo,2)) );
       const double d_i_2 = sqrt( (sommets(i2, 0)-centre_gravite(compo,0))*(sommets(i2, 0)-centre_gravite(compo,0)) + (sommets(i2, 1)-centre_gravite(compo,1))*(sommets(i2, 1)-centre_gravite(compo,1)) + (sommets(i2, 2)-centre_gravite(compo,2))*(sommets(i2, 2)-centre_gravite(compo,2)) );
 
-      // On rÃ©cupÃ¨re la plus grande distance et la plus petite distance parmi les 3 calculÃ©es
+      // On recupere la plus grande distance et la plus petite distance parmi les 3 calculees
       d_imax = std::max(d_i_0,std::max(d_i_1,d_i_2));
       d_imin = std::min(d_i_0,std::min(d_i_1,d_i_2));
 
-      // On met Ã  jour le grand axe et le petit axe
+      // On met a jour le grand axe et le petit axe
       if (d_imax > d_max[compo])
         d_max[compo] = d_imax;
 
@@ -1481,7 +1482,7 @@ void IJK_Interfaces::calculer_kappa_ft(IJK_Field_double& kappa_ft)
 // splitting_ft_ car le dom_vdf n'est pas construit pour le splitting ns. Par
 // definition, mettre igroup a -1 pour inclure toutes les bulles
 void IJK_Interfaces::calculer_normales_et_aires_interfaciales(IJK_Field_double& ai, IJK_Field_double& kappa_ai,
-                                                              FixedVector<IJK_Field_double, 3>& normale_cell,
+                                                              IJK_Field_vector3_double& normale_cell,
                                                               const int igroup) const
 {
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
@@ -3049,7 +3050,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
           // la bulle sort du domaine (et le domaine est periodique)
 
           // pour le shear_periodic,
-          // on passe d'une variable 6 bit, à 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
+          // on passe d'une variable 6 bit, a 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
           for (int direction = 0; direction < 3; direction++)
             {
               if (perio_NS_[direction])
@@ -3109,7 +3110,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
           // Stocke le masque dans le tableau resultat :
           masque_duplicata_pour_compo[icompo] = masque_sortie_domaine_reel;
           // duCluzeau : pour shear-perio, il faut stocker un autre tableau avec le nombre de duplicata par bulles.
-          // pour ça, il faut tester la position de la bulle ghost en z, et verifier si elle sort en x
+          // pour ca, il faut tester la position de la bulle ghost en z, et verifier si elle sort en x
         }
     }
   envoyer_broadcast(masque_duplicata_pour_compo, 0);
@@ -3132,7 +3133,7 @@ void IJK_Interfaces::preparer_duplicata_bulles_masque_6bit(const DoubleTab& boun
           // la bulle sort du domaine (et le domaine est periodique)
 
           // pour le shear_periodic,
-          // on passe d'une variable 6 bit, à 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
+          // on passe d'une variable 6 bit, a 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
           for (int direction = 0; direction < 3; direction++)
             {
               if (perio_NS_[direction])
@@ -3759,7 +3760,7 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
   statistiques().end_count(calculer_indicatrice_counter_);
 }
 
-void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic)
+void IJK_Interfaces::calculer_indicatrices(IJK_Field_vector3_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
     statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
@@ -3905,7 +3906,7 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
   statistiques().end_count(calculer_indicatrice_counter_);
 }
 
-void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic)
+void IJK_Interfaces::calculer_indicatrices_optim(IJK_Field_vector3_double& indic)
 {
 
   static Stat_Counter_Id calculer_indicatrice_counter_ =
@@ -4136,9 +4137,9 @@ void IJK_Interfaces::convert_to_IntVect(const ArrOfInt& in, IntVect& out) const
 // vrepul : Champ etendu de potentiel de repulsion seul
 // vabsrepul : Champ etendu de la valeur absolue des repulsions.
 void IJK_Interfaces::ajouter_terme_source_interfaces(
-  FixedVector<IJK_Field_double, 3>& vpoint,
-  FixedVector<IJK_Field_double, 3>& vrepul,
-  FixedVector<IJK_Field_double, 3>& vabsrepul
+  IJK_Field_vector3_double& vpoint,
+  IJK_Field_vector3_double& vrepul,
+  IJK_Field_vector3_double& vabsrepul
 ) const
 {
   statistiques().begin_count(source_counter_);
@@ -5512,9 +5513,9 @@ void IJK_Interfaces::detecter_et_supprimer_rejeton(bool duplicatas_etaient_prese
 
 // Rempli le champ de force de rappel pour les bulles fixes.
 // coef_rayon_force_rappel : coef de taille du domaine de rappel const (attention aux superposition de bulles)
-void IJK_Interfaces::compute_external_forces_(FixedVector<IJK_Field_double, 3>& rappel_ft,
-                                              FixedVector<IJK_Field_double, 3>& rappel,
-                                              const FixedVector<IJK_Field_double, 3>& vitesse,
+void IJK_Interfaces::compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
+                                              IJK_Field_vector3_double& rappel,
+                                              const IJK_Field_vector3_double& vitesse,
                                               const IJK_Field_double& indic/*_ns*/,
                                               const IJK_Field_double& indic_ft,
                                               const double coef_immo,
@@ -5667,7 +5668,7 @@ void IJK_Interfaces::compute_external_forces_(FixedVector<IJK_Field_double, 3>& 
 // The method is based on an eulerian color function refering to each bubble
 // BEWARE : individual_forces should contain the value of each force in inlet and
 //          modify it to return the integrated value (homogeneous to "F*vol") at the end of the function
-void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Field_double, 3>& rappel_ft,
+void IJK_Interfaces::compute_external_forces_color_function(IJK_Field_vector3_double& rappel_ft,
                                                             const IJK_Field_double& indic_ns,
                                                             const IJK_Field_double& indic_ft,
                                                             DoubleTab& individual_forces,
@@ -5908,7 +5909,7 @@ void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Fiel
 // individual_forces : The instantaneous value of the force for each bubble.
 // force_time_n_ : The same, but stored in the class for later use (only on master process).
 // mean_force_   : Time average of the force for each bubble (only on master process).
-void IJK_Interfaces::compute_external_forces_parser(FixedVector<IJK_Field_double, 3>& rappel,
+void IJK_Interfaces::compute_external_forces_parser(IJK_Field_vector3_double& rappel,
                                                     const IJK_Field_double& indic, // ns
                                                     const DoubleTab& individual_forces,
                                                     const ArrOfDouble& volume_reel,

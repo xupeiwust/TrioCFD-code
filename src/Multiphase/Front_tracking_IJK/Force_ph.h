@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 #include <Force_sp.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 // #include <fftw3.h>
 #include <IJK_Splitting.h>
 #include <communications.h>
@@ -66,10 +66,10 @@ public:
   void write_offset_index_position( const IJK_Splitting& my_splitting);
   void compute_energie();
   double get_energie();
-  FixedVector<IJK_Field_double, 3> get_force_attribute();
-  FixedVector<IJK_Field_double, 3>& get_force_attribute2();
+  IJK_Field_vector3_double get_force_attribute();
+  IJK_Field_vector3_double& get_force_attribute2();
 
-  void gbz_gather(FixedVector<IJK_Field_double, 3> force_);
+  void gbz_gather(IJK_Field_vector3_double force_);
 
 private:
   int nproc_tot;
@@ -80,7 +80,7 @@ private:
   double Ox, Oy, Oz;
   double kmin,kmax;
   int momin,momax;
-  FixedVector<IJK_Field_double, 3> force_;
+  IJK_Field_vector3_double force_;
   std::vector<std::vector< std:: vector < double > > > force;
   double energie;
 
@@ -94,7 +94,7 @@ private:
 
 std::vector< std::vector< std:: vector <double >>> set_dimensions(std::vector< std::vector< std:: vector <double >>> the_vector, int dim_one, int dim_two, int dim_three);
 
-// FixedVector<IJK_Field_double, 3> set_to_zero(FixedVector<IJK_Field_double, 3> vector)
+// IJK_Field_vector3_double set_to_zero(IJK_Field_vector3_double vector)
 // {
 // 		for (int dir=0; dir<3; dir++)
 // 			for (int i=0; i<vector[0].ni(); i++)
