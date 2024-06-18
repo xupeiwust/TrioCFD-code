@@ -492,19 +492,19 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
 
                       double struct_model = is_structural_ ? structural_model(i,j,k) : -1;
 
-                      int devient_pure_left = cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_left, indicatrice_left) && ((int)(1 - indicatrice_left) == phase);
-                      int devient_pure_centre = cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_centre, indicatrice_centre) && ((int)(1 - indicatrice_centre) == phase);
-                      int devient_diphasique_left = cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_left, indicatrice_left) && ((int)(1 - old_indicatrice_left) == phase);
-                      int devient_diphasique_centre = cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_centre, indicatrice_centre) && ((int)(1 - old_indicatrice_centre) == phase);
+                      int phase_mourrante_left = cut_cell_disc.get_interfaces().phase_mourrante(phase, old_indicatrice_left, indicatrice_left);
+                      int phase_mourrante_centre = cut_cell_disc.get_interfaces().phase_mourrante(phase, old_indicatrice_centre, indicatrice_centre);
+                      int phase_naissante_left = cut_cell_disc.get_interfaces().phase_naissante(phase, old_indicatrice_left, indicatrice_left);
+                      int phase_naissante_centre = cut_cell_disc.get_interfaces().phase_naissante(phase, old_indicatrice_centre, indicatrice_centre);
                       int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_left, indicatrice_left);
                       int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_centre, indicatrice_centre);
 
                       double flux_value;
-                      if (devient_pure_centre || devient_pure_left)
+                      if (phase_mourrante_centre || phase_mourrante_left)
                         {
                           flux_value = 0.;
                         }
-                      else if (*ignore_small_cells_ && (petit_centre || petit_left || devient_diphasique_centre || devient_diphasique_left))
+                      else if (*ignore_small_cells_ && (petit_centre || petit_left || phase_naissante_centre || phase_naissante_left))
                         {
                           flux_value = 0.;
                         }

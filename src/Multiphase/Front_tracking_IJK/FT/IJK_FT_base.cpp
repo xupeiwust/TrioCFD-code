@@ -75,6 +75,7 @@ IJK_FT_base::IJK_FT_base():
   mu_vapeur_ = 0.;
   sigma_ = 0.;
 
+  projection_initiale_demandee_ = 0;
   disable_solveur_poisson_ = 0;
   disable_diffusion_qdm_ = 0;
   disable_convection_qdm_ = 0;
@@ -140,6 +141,10 @@ IJK_FT_base::IJK_FT_base():
 
   sauvegarder_xyz_ = 0;
   reprise_ = 0;
+
+  vitesses_translation_bulles_.set_smart_resize(1);
+  mean_bubble_rotation_vector_.set_smart_resize(1);
+  centre_gravite_bulles_.set_smart_resize(1);
 }
 
 IJK_FT_base::IJK_FT_base(const IJK_FT_base& x):
@@ -418,6 +423,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   nb_diam_upstream_ = 0.;
   upstream_dir_=-1;
   upstream_stencil_=3;
+  projection_initiale_demandee_ = 0;
   disable_solveur_poisson_ = 0;
   resolution_fluctuations_ = 0;
   disable_diffusion_qdm_ = 0;
@@ -489,6 +495,12 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
   type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
   deactivate_remeshing_velocity_ = 0;
+
+  correction_semi_locale_volume_bulle_ = 0;
+
+  vitesses_translation_bulles_.set_smart_resize(1);
+  mean_bubble_rotation_vector_.set_smart_resize(1);
+  centre_gravite_bulles_.set_smart_resize(1);
 
   // valeurs par default des parametres de bulles fixes
   coef_immobilisation_ = 0.;
@@ -584,6 +596,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("timestep_reprise_vitesse", &timestep_reprise_vitesse_); // XD_ADD_P chaine not_set
 
   param.ajouter("boundary_conditions", &boundary_conditions_, Param::REQUIRED); // XD_ADD_P bloc_lecture BC
+  param.ajouter_flag("projection_initiale", &projection_initiale_demandee_);
   param.ajouter_flag("disable_solveur_poisson", &disable_solveur_poisson_); // XD_ADD_P rien Disable pressure poisson solver
   param.ajouter_flag("resolution_fluctuations", &resolution_fluctuations_); // XD_ADD_P rien Disable pressure poisson solver
   param.ajouter_flag("disable_diffusion_qdm", &disable_diffusion_qdm_); // XD_ADD_P rien Disable diffusion operator in momentum
@@ -626,6 +639,8 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
   param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
   param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
+
+  param.ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
 
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);
@@ -1748,7 +1763,7 @@ int IJK_FT_base::initialise()
   post_.complete(reprise_);
 
   // On la met a jour 2 fois, une fois next et une fois old
-  update_twice_indicator_field();
+  IJK_FT_base::update_twice_indicator_field();
 
   if (!disable_diphasique_)
     {
@@ -1817,13 +1832,13 @@ int IJK_FT_base::initialise()
   if (energie_.size() > 0)
     {
       interfaces_.set_compute_surfaces_mouillees();
-      update_twice_indicator_field();
+      IJK_FT_base::update_twice_indicator_field();
     }
 
   if (thermals_.size_thermal_problem(Nom("onefluidenergy")) > 0)
     {
       interfaces_.set_compute_surfaces_mouillees();
-      update_twice_indicator_field();
+      IJK_FT_base::update_twice_indicator_field();
     }
 
   if (!disable_diphasique_)
@@ -3518,7 +3533,7 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
    * Calculation of intersections on interface at time (n)
    */
   //Cerr << "Compute Eulerian distance and curvature fields" << finl;
-  thermals_.compute_eulerian_distance_curvature();
+  //thermals_.compute_eulerian_distance_curvature(); /* :integration(Dorian) Ligne mise en commentaire la fonction est tres couteuse en temps de calcul ; brise certainement des fonctionalites */
   //Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
   // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
@@ -3529,37 +3544,56 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
   //Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
   interfaces_.compute_rising_velocities_from_compo();
 
-  // On supprime les duplicatas avant le transport :
-  interfaces_.supprimer_duplicata_bulles();
-
   /*
    * TODO: Advect with zero velocity at the beggining of the simulation
    * to use the remeshing algo
    */
   // if (counter_first_iter_ && first_step_interface_smoothing_)
-  interfaces_.transporter_maillage_deplacement(timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
+  if (correction_semi_locale_volume_bulle_)
+    {
+      interfaces_.calculer_vecteurs_de_deplacement_rigide(vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, first_step_interface_smoothing);
 
-  // Note : Pour que l'indicatrice intermediaire puisse etre calculee,
-  // il faut dupliquer les bulles aux frontieres periodiques ; puis
-  // supprimer ces bulles pour realiser le remailage de l'interface ;
-  // puis les dupliquer a nouveau pour calculer l'indicatrice finale.
-  interfaces_.transferer_bulle_perio();
-  interfaces_.creer_duplicata_bulles();
-  update_intermediary_indicator_field();
-  interfaces_.supprimer_duplicata_bulles();
+      interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
 
-  interfaces_.transporter_maillage_remaillage(var_volume_par_bulle, rk_step, current_time_);
+      update_pre_remeshing_indicator_field();
 
-  // Apres le transport, est-ce que certaines bulles reeles sont trop proche du bord
-  // du domaine etendu? Si on en trouve, on les transferts :
-  interfaces_.transferer_bulle_perio();
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+
+      update_post_remeshing_indicator_field();
+
+      interfaces_.transporter_maillage_rigide(timestep, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, rk_step, first_step_interface_smoothing);
+    }
+  else
+    {
+      // :integration(Dorian) Pour ne pas alterer les cas tests, on supprime
+      // les duplicatas avant le transport dans ce cas. Si on ne supprime pas
+      // les duplicatas, cela fonctionne aussi, mais le resultat des cas tests
+      // est un peu different.
+      // Dans ce cadre, pour que l'indicatrice intermediaire puisse etre calculee,
+      // il faut dupliquer les bulles aux frontieres periodiques ; puis supprimer
+      // ces bulles pour realiser le remailage de l'interface ; puis les dupliquer
+      // a nouveau pour calculer l'indicatrice finale.
+      interfaces_.supprimer_duplicata_bulles();
+
+      interfaces_.calculer_vecteurs_de_deplacement_rigide(vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, first_step_interface_smoothing);
+
+      interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
+
+      interfaces_.transferer_bulle_perio();
+      interfaces_.creer_duplicata_bulles();
+
+      update_pre_remeshing_indicator_field();
+
+      interfaces_.supprimer_duplicata_bulles();
+
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+
+      interfaces_.transferer_bulle_perio();
+      interfaces_.creer_duplicata_bulles();
+    }
 
   // On supprime les fragments de bulles.
   //interfaces_.detecter_et_supprimer_rejeton(false);
-
-  // On cree les duplicatas pour le prochain pas de temps avant le posttraitement.
-  // Comme ca, ils seront visibles a la visu.
-  interfaces_.creer_duplicata_bulles();
 
   // On met a jour l'indicatrice du pas de temps d'apres.
   // On met aussi a jour le surf et bary des faces mouillees,
@@ -3614,11 +3648,30 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
   // On conserve les duplicatas que l'on transporte comme le reste.
 
   // Normalement, transporter_maillage gere aussi les duplicatas...
-  interfaces_.transporter_maillage_deplacement(timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
+  if (correction_semi_locale_volume_bulle_)
+    {
+      interfaces_.calculer_vecteurs_de_deplacement_rigide(vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_);
 
-  update_intermediary_indicator_field();
+      interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
 
-  interfaces_.transporter_maillage_remaillage(var_volume_par_bulle, rk_step, current_time_);
+      update_pre_remeshing_indicator_field();
+
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+
+      update_post_remeshing_indicator_field();
+
+      interfaces_.transporter_maillage_rigide(timestep, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, rk_step);
+    }
+  else
+    {
+      interfaces_.calculer_vecteurs_de_deplacement_rigide(vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_);
+
+      interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
+
+      update_pre_remeshing_indicator_field();
+
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+    }
 
   statistiques().end_count(deplacement_interf_counter_);
   // On verra a la fin du pas de temps si certaines bulles reeles sont trop proche du bord
@@ -4212,6 +4265,33 @@ void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle
           var_volume_par_bulle[nb_reelles + i] = volume_reel[nb_reelles+ i] - vol_bulles_[ibulle_reelle];
         }
     }
+  else
+    {
+      // Initialisation de vol_bulles_ a la valeur initiale du volume des bulles, dans le cas ou il n'est pas specifie dans le jeu de donnees.
+      // :integration(Dorian) uniquement dans le cas de la correction_semi_locale du volume, pour ne pas impacter les cas tests
+      if (correction_semi_locale_volume_bulle_)
+        {
+          ArrOfDouble volume_reel;
+          DoubleTab position;
+          interfaces_.calculer_volume_bulles(volume_reel, position);
+          const int nb_reelles = interfaces_.get_nb_bulles_reelles();
+          vol_bulles_.resize_array(nb_reelles);
+          for (int ib = 0; ib < nb_reelles; ib++)
+            {
+              var_volume_par_bulle[ib] = 0.;
+              vol_bulles_[ib] = volume_reel[ib];
+            }
+          // Pour les ghost : on retrouve leur vrai numero pour savoir quel est leur volume...
+          for (int i = 0; i < interfaces_.get_nb_bulles_ghost(0 /* no print*/); i++)
+            {
+              const int ighost = interfaces_.ghost_compo_converter(i);
+              const int ibulle_reelle = decoder_numero_bulle(-ighost);
+              // Cerr << " aaaa " << i << " " << ighost << " " << ibulle_reelle << finl;
+              var_volume_par_bulle[nb_reelles + i] = 0.;
+              vol_bulles_[ibulle_reelle] = volume_reel[nb_reelles+ i];
+            }
+        }
+    }
 }
 
 void IJK_FT_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
@@ -4267,16 +4347,21 @@ void IJK_FT_base::update_indicator_field()
                                        );
 }
 
-void IJK_FT_base::update_intermediary_indicator_field()
+void IJK_FT_base::update_pre_remeshing_indicator_field()
 {
-  interfaces_.calculer_indicatrice_intermediaire();
+  interfaces_.calculer_indicatrice_avant_remaillage();
+}
+
+void IJK_FT_base::update_post_remeshing_indicator_field()
+{
+  interfaces_.calculer_indicatrice_apres_remaillage();
 }
 
 void IJK_FT_base::update_twice_indicator_field()
 {
   for(int i=0; i<2; i++)
     {
-      update_indicator_field();
+      IJK_FT_base::update_indicator_field();
       update_old_intersections();
     }
 }

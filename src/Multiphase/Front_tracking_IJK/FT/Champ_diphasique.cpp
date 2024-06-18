@@ -402,7 +402,7 @@ void Cut_field_scalar::remplir_cellules_devenant_diphasiques()
       int k = ijk[2];
 
       double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().devient_diphasique(old_indicatrice, cut_cell_disc_->get_interfaces().In(i,j,k)));
+      assert(cut_cell_disc_->get_interfaces().devient_diphasique(i,j,k));
 
       // On garde les donnees de l'ancienne phase pour la nouvelle cellule_diphasique
       int ancienne_phase = (int)old_indicatrice;
@@ -642,7 +642,7 @@ void Cut_field_vector::remplir_cellules_devenant_diphasiques()
       int k = ijk[2];
 
       double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().devient_diphasique(old_indicatrice, cut_cell_disc_->get_interfaces().In(i,j,k)));
+      assert(cut_cell_disc_->get_interfaces().devient_diphasique(i,j,k));
       // On garde les donnees de l'ancienne phase pour la nouvelle cellule_diphasique
       int ancienne_phase = (int)old_indicatrice;
       if (ancienne_phase == 1)

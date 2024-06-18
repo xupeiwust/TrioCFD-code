@@ -26,4 +26,13 @@ double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const
 
 double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
 
+void cut_cell_switch_field_time(Cut_field_scalar& v);
+
+void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v);
+void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
+
+void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v);
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
+
+
 #endif /* IJK_Navier_Stokes_tools_cut_cell_included */

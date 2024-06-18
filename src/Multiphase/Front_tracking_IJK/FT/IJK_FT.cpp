@@ -432,6 +432,24 @@ void IJK_FT::run()
         }
     }
 
+
+  // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
+  if (!disable_solveur_poisson_)
+    {
+      if (projection_initiale_demandee_)
+        {
+          Cerr << "*****************************************************************************\n"
+               << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
+               << "*****************************************************************************" << finl;
+
+          pressure_projection_with_rho(rho_field_, velocity_[0],
+                                       velocity_[1], velocity_[2], pressure_, 1.,
+                                       pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          pressure_.data() = 0.;
+          pressure_rhs_.data() = 0.;
+        }
+    }
+
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
     interfaces_.compute_vinterp();
@@ -541,6 +559,13 @@ void IJK_FT::run()
 
       compute_var_volume_par_bulle(var_volume_par_bulle);
 
+      // Au cas ou on soit dans un cas ou des duplicatas sont necessaires mais n'ont pas ete
+      // crees, on les cree :
+      if (!interfaces_.get_nb_bulles_ghost() && !disable_diphasique_)
+        {
+          interfaces_.creer_duplicata_bulles();
+        }
+
       // Choix de l'avancement en temps :
       // euler_explicite ou RK3.
       if (get_time_scheme() == EULER_EXPLICITE)
@@ -589,6 +614,14 @@ void IJK_FT::run()
 
           if (!disable_diphasique_) // && !marker_advection_first_)
             {
+              // Les sous-pas de temps sont termines. Il n'est plus necessaire de gerer le tableau
+              // RK3_G_store_vi_. On peut donc transferer les bulles et re-creer les duplicatas :
+              interfaces_.supprimer_duplicata_bulles();
+              interfaces_.transferer_bulle_perio();
+              // On supprime les fragments de bulles.
+              //interfaces_.detecter_et_supprimer_rejeton(false);
+              interfaces_.creer_duplicata_bulles();
+
               // indicatrice (and rho, mu...) are updated from the new interface position.
               // GB 2019.01.01 It is important to keep that calculation, because without it, the interface status would be
               // set to "minimal" where it should be "parcouru".
@@ -655,12 +688,6 @@ void IJK_FT::run()
           // Evaluation de la variation de volume accumule au cours des sous pas de temps.
           // On la laisse croitre pendant les sous dt 0 et 1 puis on la corrige a la fin du 2eme :
 
-          // Au cas ou on soit dans un cas ou des duplicatas sont necessaires mais n'ont pas ete
-          // crees, on les cree :
-          if (!interfaces_.get_nb_bulles_ghost() && !disable_diphasique_)
-            {
-              interfaces_.creer_duplicata_bulles();
-            }
           for (rk_step_ = 0; rk_step_ < 3; rk_step_++)
             {
               const double fractionnal_timestep =

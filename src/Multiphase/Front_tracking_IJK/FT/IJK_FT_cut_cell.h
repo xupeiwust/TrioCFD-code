@@ -48,6 +48,15 @@ public :
   Entree& interpreter(Entree&) override;
   void run() override;
 
+  void deplacer_interfaces(const double timestep,
+                           const int rk_step,
+                           ArrOfDouble& var_volume_par_bulle,
+                           const int first_step_interface_smoothing) override;
+  void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle) override;
+
+  void update_indicator_field() override;
+  void update_twice_indicator_field() override;
+
   Cut_cell_FT_Disc* get_cut_cell_disc() override
   {
     return &cut_cell_disc_;
@@ -64,14 +73,6 @@ public :
   {
     return cut_field_total_velocity_;
   }
-
-  void cut_cell_switch_field_time(Cut_field_scalar& v) const;
-
-  void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v) const;
-  void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
-
-  void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v) const;
-  void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
 
 protected :
   friend class IJK_FT_Post;

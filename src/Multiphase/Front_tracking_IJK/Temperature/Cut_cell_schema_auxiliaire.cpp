@@ -33,6 +33,7 @@ Implemente_base_sans_constructeur(Cut_cell_schema_auxiliaire, "Cut_cell_schema_a
 
 Cut_cell_schema_auxiliaire::Cut_cell_schema_auxiliaire()
 {
+  tolerate_not_within_tetrahedron_ = -1;
 }
 
 Sortie& Cut_cell_schema_auxiliaire::printOn(Sortie& os) const
@@ -66,6 +67,8 @@ void Cut_cell_schema_auxiliaire::set_param(Param& param)
   param.dictionnaire("direction_privilegiee_avec_limitation", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION);
   param.dictionnaire("direction_privilegiee_avec_limitation_2", (int)CORRECTION_PETITES_CELLULES::DIRECTION_PRIVILEGIEE_AVEC_LIMITATION_2);
   param.dictionnaire("correction_symetrique_avec_limitation", (int)CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE_AVEC_LIMITATION);
+
+  param.ajouter("tolerate_not_within_tetrahedron", (int*)&tolerate_not_within_tetrahedron_);
 }
 
 void Cut_cell_schema_auxiliaire::initialise(Cut_cell_FT_Disc& cut_cell_disc)
@@ -151,9 +154,8 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
           double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
           double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
-          double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
-          bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
-          bool decale_also_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+          bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
+          bool decale_also_nascent = (cut_cell_disc.get_interfaces().phase_naissante(phase, i+di_decale,j+dj_decale,k+dk_decale));
           bool decale_smaller = (phase == 0) ? (1 - old_indicatrice_decale) < (1 - old_indicatrice) : (old_indicatrice_decale) < (old_indicatrice);
           if (decale_also_nascent || (decale_also_dying && decale_smaller))
             {
@@ -186,9 +188,8 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
               double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
               double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
-              double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
-              bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
-              bool decale_also_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+              bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
+              bool decale_also_nascent = (cut_cell_disc.get_interfaces().phase_naissante(phase, i+di_decale,j+dj_decale,k+dk_decale));
               bool decale_smaller = (phase == 0) ? (1 - old_indicatrice_decale) < (1 - old_indicatrice) : (old_indicatrice_decale) < (old_indicatrice);
               if (decale_also_nascent || (decale_also_dying && decale_smaller))
                 {
@@ -208,6 +209,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
                   else
                     {
                       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk);
+                      assert((surface_efficace == 0) || (surface_efficace == 1));
                       if (surface_efficace > 0)
                         {
                           flux[num_face] = f_dir*surface_efficace;
@@ -273,8 +275,8 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
 
           double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
           double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
-          bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
-          bool decale_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+          bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
+          bool decale_nascent = (cut_cell_disc.get_interfaces().phase_naissante(phase, i+di_decale,j+dj_decale,k+dk_decale));
           bool decale_small = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_decale, next_indicatrice_decale);
           bool decale_smaller = (phase == 0) ? (1 - next_indicatrice_decale) < (1 - next_indicatrice) : (next_indicatrice_decale) < (next_indicatrice);
           if (decale_also_dying || (est_naissant && decale_nascent && decale_smaller) || ((!est_naissant) && decale_nascent) || ((!est_naissant) && decale_small && decale_smaller))
@@ -309,8 +311,8 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
 
               double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
               double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
-              bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
-              bool decale_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+              bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
+              bool decale_nascent = (cut_cell_disc.get_interfaces().phase_naissante(phase, i+di_decale,j+dj_decale,k+dk_decale));
               bool decale_small = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_decale, next_indicatrice_decale);
               bool decale_smaller = (phase == 0) ? (1 - next_indicatrice_decale) < (1 - next_indicatrice) : (next_indicatrice_decale) < (next_indicatrice);
               if (decale_also_dying || (est_naissant && decale_nascent && decale_smaller) || ((!est_naissant) && decale_nascent) || ((!est_naissant) && decale_small && decale_smaller))
@@ -331,6 +333,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
                   else
                     {
                       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+                      assert((surface_efficace == 0) || (surface_efficace == 1));
                       if (surface_efficace > 0)
                         {
                           flux[num_face] = f_dir*surface_efficace;
@@ -453,6 +456,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
           else
             {
               double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+              assert((surface_efficace == 0) || (surface_efficace == 1));
               total_velocity[num_face] = cut_field_total_velocity.pure_[dir](i+di,j+dj,k+dk);
               double temperature = temperature_decale;
               flux[num_face] = -sign*f_dir*surface_efficace*temperature*total_velocity[num_face];
@@ -502,6 +506,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
               else
                 {
                   double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+                  assert((surface_efficace == 0) || (surface_efficace == 1));
                   double temperature = temperature_decale;
                   flux[num_face] = f_dir*surface_efficace*temperature;
                   temp[num_face] = temperature;
@@ -689,7 +694,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       double coordinates[3] = {coordinates_x, coordinates_y, coordinates_z};
 
       int status = -2;
-      const int tolerate_not_within_tetrahedron = 1;
+      const int tolerate_not_within_tetrahedron = std::max(1, tolerate_not_within_tetrahedron_);
       double temperature_interpolate = ijk_interpolate_cut_cell_using_interface(false, phase, temperature_ft, cut_field_temperature, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, status);
       temperature_remplissage_(n) = temperature_interpolate;
 
@@ -924,8 +929,8 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector&
 
           double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
           double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
-          bool decale_also_dying = (cut_cell_disc.get_interfaces().devient_pure(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - next_indicatrice_decale) == phase));
-          bool decale_nascent = (cut_cell_disc.get_interfaces().devient_diphasique(old_indicatrice_decale, next_indicatrice_decale) && ((int)(1 - old_indicatrice_decale) == phase));
+          bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
+          bool decale_nascent = (cut_cell_disc.get_interfaces().phase_naissante(phase, i+di_decale,j+dj_decale,k+dk_decale));
           bool decale_small = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_decale, next_indicatrice_decale);
           bool decale_smaller = (phase == 0) ? (1 - next_indicatrice_decale) < (1 - next_indicatrice) : (next_indicatrice_decale) < (next_indicatrice);
           if (decale_also_dying || (est_naissant && decale_nascent && decale_smaller) || ((!est_naissant) && decale_nascent) || ((!est_naissant) && decale_small && decale_smaller))
@@ -957,6 +962,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector&
               else
                 {
                   double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+                  assert((surface_efficace == 0) || (surface_efficace == 1));
                   if (surface_efficace > 0)
                     {
                       double next_volume_decale = (phase == 0) ? 1 - next_indicatrice_decale : next_indicatrice_decale;

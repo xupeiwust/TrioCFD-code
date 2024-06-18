@@ -24,6 +24,7 @@
 #include <IJK_FT.h>
 #include <DebogIJK.h>
 #include <IJK_Navier_Stokes_tools.h>
+#include <IJK_Navier_Stokes_tools_cut_cell.h>
 #include <Cut_cell_convection_auxiliaire.h>
 #include <Cut_cell_diffusion_auxiliaire.h>
 
@@ -444,7 +445,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   compute_temperature_convection_cut_cell(cut_field_total_velocity);
   const CutCell_GlobalInfo d_ene_Conv = compute_d_global_energy_cut_cell(cut_field_d_temperature_, 0);
-  ref_ijk_ft_cut_cell_->euler_explicit_update_cut_cell_notransport(timestep, false, cut_field_d_temperature_, cut_field_temperature_);
+  euler_explicit_update_cut_cell_notransport(timestep, false, cut_field_d_temperature_, cut_field_temperature_);
   cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
 
   if (postraiter_champs_intermediaires_)
@@ -453,7 +454,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     }
   const CutCell_GlobalInfo ene_postconv_regular = compute_global_energy_cut_cell(cut_field_temperature_, 0);
 
-  ref_ijk_ft_cut_cell_->cut_cell_switch_field_time(cut_field_temperature_);
+  cut_cell_switch_field_time(cut_field_temperature_);
   cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
   const CutCell_GlobalInfo ene_postconv_switch = compute_global_energy_cut_cell(cut_field_temperature_, 1);
 
@@ -502,7 +503,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     }
   add_temperature_diffusion();
   const CutCell_GlobalInfo d_ene_Diffu = compute_d_global_energy_cut_cell(cut_field_d_temperature_, 1);
-  ref_ijk_ft_cut_cell_->euler_explicit_update_cut_cell_notransport(timestep, true, cut_field_d_temperature_, cut_field_temperature_);
+  euler_explicit_update_cut_cell_notransport(timestep, true, cut_field_d_temperature_, cut_field_temperature_);
   cut_field_temperature_.echange_espace_virtuel(temperature_.ghost());
 
   if (postraiter_champs_intermediaires_)
@@ -667,7 +668,7 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
 
   cut_field_temperature_.copy_from(cut_field_temperature_debut_sous_pas_);
 
-  ref_ijk_ft_cut_cell_->runge_kutta3_update_cut_cell_transport(cut_field_d_temperature_, cut_field_RK3_F_temperature_, cut_field_temperature_, rk_step, total_timestep, cellule_rk_restreint_);
+  runge_kutta3_update_cut_cell_transport(cut_field_d_temperature_, cut_field_RK3_F_temperature_, cut_field_temperature_, rk_step, total_timestep, cellule_rk_restreint_);
 }
 
 void IJK_Thermal_cut_cell::compute_diffusion_increment()
@@ -1064,7 +1065,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_fi
                   global_energy_diph_v += chi_T_v;
                   count_diph_v += 1;
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(i,j,k))
                     {
                       int phase_dying = (int)(1 - indic_next(i,j,k));
                       if (phase_dying == 1)
@@ -1078,7 +1079,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_fi
                           count_diph_dying += 1;
                         }
                     }
-                  else if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(indic_old(i,j,k), indic_next(i,j,k)))
+                  else if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(i,j,k))
                     {
                       int phase_nascent = (int)(1 - indic_old(i,j,k));
                       if (phase_nascent == 1)
@@ -1222,7 +1223,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                   global_energy_diph_v += rhocpv * chi_T_v;
                   count_diph_v += chi_v;
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(i,j,k))
                     {
                       int phase_dying = (int)(1 - indic_next(i,j,k));
                       if (phase_dying == 1)
@@ -1236,7 +1237,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                           count_diph_dying += chi_v;
                         }
                     }
-                  else if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(indic_old(i,j,k), indic_next(i,j,k)))
+                  else if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(i,j,k))
                     {
                       int phase_nascent = (int)(1 - indic_old(i,j,k));
                       if (phase_nascent == 1)
@@ -1342,8 +1343,8 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_scalar&
               else
                 {
                   // Excluding the value of the phase in dying cells
-                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k))) && ((int)(1 - indic_next(i,j,k)) == 1.);
-                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k))) && ((int)(1 - indic_next(i,j,k)) == 0.);
+                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k));
+                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k));
 
                   Tmin_overall = exclude_l ? Tmin_overall : std::min(Tmin_overall, cut_field_temperature.diph_l_(n));
                   Tmin_overall = exclude_v ? Tmin_overall : std::min(Tmin_overall, cut_field_temperature.diph_v_(n));
@@ -1370,7 +1371,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_scalar&
                       Tmin_diph_regular = exclude_v ? Tmin_diph_regular : std::min(Tmin_diph_regular, cut_field_temperature.diph_v_(n));
                     }
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(i,j,k))
                     {
                       int phase_dying = (int)(1 - indic_next(i,j,k));
                       if (phase_dying == 1)
@@ -1383,7 +1384,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_scalar&
                         }
                     }
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(i,j,k))
                     {
                       int phase_nascent = (int)(1 - indic_old(i,j,k));
                       if (phase_nascent == 1)
@@ -1451,8 +1452,8 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_scalar&
               else
                 {
                   // Excluding the value of the phase in dying cells
-                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k))) && ((int)(1 - indic_next(i,j,k)) == 1.);
-                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k))) && ((int)(1 - indic_next(i,j,k)) == 0.);
+                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k));
+                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k));
 
                   Tmax_overall = exclude_l ? Tmax_overall : std::max(Tmax_overall, cut_field_temperature.diph_l_(n));
                   Tmax_overall = exclude_v ? Tmax_overall : std::max(Tmax_overall, cut_field_temperature.diph_v_(n));
@@ -1479,7 +1480,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_scalar&
                       Tmax_diph_regular = exclude_v ? Tmax_diph_regular : std::max(Tmax_diph_regular, cut_field_temperature.diph_v_(n));
                     }
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_pure(i,j,k))
                     {
                       int phase_dying = (int)(1 - indic_next(i,j,k));
                       if (phase_dying == 1)
@@ -1492,7 +1493,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_scalar&
                         }
                     }
 
-                  if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(indic_old(i,j,k), indic_next(i,j,k)))
+                  if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(i,j,k))
                     {
                       int phase_nascent = (int)(1 - indic_old(i,j,k));
                       if (phase_nascent == 1)
@@ -1527,6 +1528,13 @@ void IJK_Thermal_cut_cell::compute_interfacial_temperature2(ArrOfDouble& interfa
   const int nb_facettes = ref_ijk_ft_->itfce().maillage_ft_ijk().nb_facettes();
   interfacial_temperature.resize_array(nb_facettes);
   flux_normal_interp.resize_array(nb_facettes);
+
+  // Peut-etre que des facettes virtuelles ont ete ajoutees, mais je pense que le nombre de facettes reeles n'a pas change.
+  // Mise-a-jour des tableaux pour cette eventualite :
+  interfacial_temperature_.centre.resize(nb_facettes);
+  interfacial_phin_ai_.resize(nb_facettes);
+  ref_ijk_ft_->itfce().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_temperature_.centre);
+  ref_ijk_ft_->itfce().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_phin_ai_);
 
   int dimension_temp = interfacial_temperature_.centre.dimension(0);
   assert(interfacial_phin_ai_.dimension(0) == dimension_temp);

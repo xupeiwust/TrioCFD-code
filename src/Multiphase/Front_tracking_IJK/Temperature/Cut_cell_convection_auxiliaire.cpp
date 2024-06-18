@@ -107,6 +107,7 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
   else
     {
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk);
+      assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
           double total_velocity = cut_field_total_velocity.pure_[dir](i+di,j+dj,k+dk);
@@ -167,6 +168,7 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
   else
     {
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+      assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
           double total_velocity = cut_field_total_velocity.pure_[dir](i+di,j+dj,k+dk);
@@ -800,7 +802,7 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_int
                                     }
 
                                   int status = -2;
-                                  const int tolerate_not_within_tetrahedron = 2;
+                                  const int tolerate_not_within_tetrahedron = std::max(2, tolerate_not_within_tetrahedron_);
                                   double temperature_interpolate = ijk_interpolate_cut_cell_using_interface(false, phase, temperature_ft, cut_field_temperature, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, status);
 
                                   if (status == -1)

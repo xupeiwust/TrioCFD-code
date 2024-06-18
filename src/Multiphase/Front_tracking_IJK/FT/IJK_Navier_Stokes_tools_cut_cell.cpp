@@ -843,3 +843,380 @@ double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 0, 0., status);
   return interpolated_value;
 }
+
+void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const double delta_t = timestep;
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+              double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  double x = dv.pure_(i,j,k);
+                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double x_l = dv.diph_l_(n);
+                  double x_v = dv.diph_v_(n);
+
+                  double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t;
+                  double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t;
+                  v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                  v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                }
+            }
+        }
+    }
+}
+
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  const double facteurF = coeff_a[step];
+  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
+  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+                      double x_v = dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
+}
+
+void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const double delta_t = timestep;
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+              double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
+              double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+              double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  double x = dv.pure_(i,j,k);
+                  assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double x_l = dv.diph_l_(n);
+                  double x_v = dv.diph_v_(n);
+
+                  double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t;
+                  double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t;
+                  v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                  v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                }
+            }
+        }
+    }
+}
+
+void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  const double facteurF = coeff_a[step];
+  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
+  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
+                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = dv.pure_(i,j,k);
+                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+                      double x_v = dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+
+                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
+                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
+                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      F.pure_(i,j,k) = x;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                      F.diph_v_(n) = x_v;
+
+                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int k = 0; k < kmax; k++)
+        {
+          for (int j = 0; j < jmax; j++)
+            {
+              for (int i = 0; i < imax; i++)
+                {
+                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
+                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+
+                  int n = cut_cell_disc.get_n(i,j,k);
+                  if (n < 0)
+                    {
+                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
+                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                      v.pure_(i,j,k) = next_v_vol;
+                    }
+                  else
+                    {
+                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
+                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+
+                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+
+                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                    }
+                }
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
+}
+
+void cut_cell_switch_field_time(Cut_field_scalar& v)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
+  const int imax = v.pure_.ni();
+  const int jmax = v.pure_.nj();
+  const int kmax = v.pure_.nk();
+  for (int k = 0; k < kmax; k++)
+    {
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
+              double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
+              double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+              double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                  double next_v_vol = v.pure_(i,j,k);
+                  v.pure_(i,j,k) = next_v_vol;
+                }
+              else
+                {
+                  double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l;
+                  double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v;
+
+                  v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                  v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                }
+            }
+        }
+    }
+}
+

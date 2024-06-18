@@ -518,37 +518,37 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                           Process::exit();
                         }
 
-                      int devient_pure_left_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left_left, next_indicatrice_left_left) && ((int)(1 - next_indicatrice_left_left) == phase);
-                      int devient_pure_left = cut_cell_disc.get_interfaces().devient_pure(indicatrice_left, next_indicatrice_left) && ((int)(1 - next_indicatrice_left) == phase);
-                      int devient_pure_centre = cut_cell_disc.get_interfaces().devient_pure(indicatrice_centre, next_indicatrice_centre) && ((int)(1 - next_indicatrice_centre) == phase);
-                      int devient_pure_right = cut_cell_disc.get_interfaces().devient_pure(indicatrice_right, next_indicatrice_right) && ((int)(1 - next_indicatrice_right) == phase);
-                      int devient_diphasique_left_left = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left_left, next_indicatrice_left_left) && ((int)(1 - indicatrice_left_left) == phase);
-                      int devient_diphasique_left = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_left, next_indicatrice_left) && ((int)(1 - indicatrice_left) == phase);
-                      int devient_diphasique_centre = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_centre, next_indicatrice_centre) && ((int)(1 - indicatrice_centre) == phase);
-                      int devient_diphasique_right = cut_cell_disc.get_interfaces().devient_diphasique(indicatrice_right, next_indicatrice_right) && ((int)(1 - indicatrice_right) == phase);
+                      int phase_mourrante_left_left = cut_cell_disc.get_interfaces().phase_mourrante(phase, indicatrice_left_left, next_indicatrice_left_left);
+                      int phase_mourrante_left = cut_cell_disc.get_interfaces().phase_mourrante(phase, indicatrice_left, next_indicatrice_left);
+                      int phase_mourrante_centre = cut_cell_disc.get_interfaces().phase_mourrante(phase, indicatrice_centre, next_indicatrice_centre);
+                      int phase_mourrante_right = cut_cell_disc.get_interfaces().phase_mourrante(phase, indicatrice_right, next_indicatrice_right);
+                      int phase_naissante_left_left = cut_cell_disc.get_interfaces().phase_naissante(phase, indicatrice_left_left, next_indicatrice_left_left);
+                      int phase_naissante_left = cut_cell_disc.get_interfaces().phase_naissante(phase, indicatrice_left, next_indicatrice_left);
+                      int phase_naissante_centre = cut_cell_disc.get_interfaces().phase_naissante(phase, indicatrice_centre, next_indicatrice_centre);
+                      int phase_naissante_right = cut_cell_disc.get_interfaces().phase_naissante(phase, indicatrice_right, next_indicatrice_right);
                       //int petit_left_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left_left, next_indicatrice_left_left);
                       int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_left, next_indicatrice_left);
                       int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_centre, next_indicatrice_centre);
                       //int petit_right = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, indicatrice_right, next_indicatrice_right);
 
                       double flux_value;
-                      if (devient_diphasique_centre)
+                      if (phase_naissante_centre)
                         {
                           assert(std::abs(input_centre) < 1e-16);
                           //assert(input_centre == 0);
                           flux_value = flux_1l;
                         }
-                      else if (devient_diphasique_left)
+                      else if (phase_naissante_left)
                         {
                           assert(std::abs(input_left) < 1e-16);
                           //assert(input_left == 0);
                           flux_value = flux_1c;
                         }
-                      else if (*ignore_small_cells_ && (petit_centre || petit_left || devient_pure_centre || devient_pure_left))
+                      else if (*ignore_small_cells_ && (petit_centre || petit_left || phase_mourrante_centre || phase_mourrante_left))
                         {
                           flux_value = 0.;
                         }
-                      else if (devient_pure_left_left || devient_pure_right || devient_diphasique_left_left || devient_diphasique_right) //|| petit_left_left || petit_right)
+                      else if (phase_mourrante_left_left || phase_mourrante_right || phase_naissante_left_left || phase_naissante_right) //|| petit_left_left || petit_right)
                         {
                           assert(input_left != 0);
                           assert(input_centre != 0);

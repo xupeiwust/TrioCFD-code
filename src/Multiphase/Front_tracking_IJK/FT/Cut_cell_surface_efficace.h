@@ -78,6 +78,12 @@ public:
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
 
+  static void calcul_surface_face_efficace_initiale(
+    const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face_ns,
+    const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face_ns,
+    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_face,
+    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_face_initial);
+
   static void calcul_surface_face_efficace(
     int verbosite_surface_efficace_face,
     double timestep,
@@ -116,8 +122,16 @@ public:
   static void calcul_vitesse_remaillage(double timestep,
                                         const IJK_Field_double& indicatrice_avant_remaillage,
                                         const IJK_Field_double& indicatrice_apres_remaillage,
-                                        DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_intermediaire_efficace_face,
+                                        const IJK_Field_double& indicatrice_fin_pas_de_temps,
+                                        DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_remaillage_face,
                                         Cut_field_vector& remeshing_velocity);
+
+  static void calcul_delta_volume_theorique_bilan(int compo, const DoubleTab& bounding_box_bulles, double timestep,
+                                                  const IJK_Field_double& indicatrice_avant_deformation,
+                                                  const IJK_Field_double& indicatrice_apres_deformation,
+                                                  const FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_deformation_face,
+                                                  const Cut_field_vector& deformation_velocity,
+                                                  IJK_Field_double& delta_volume_theorique_bilan);
 };
 
 #endif /* Cut_cell_surface_efficace_included */

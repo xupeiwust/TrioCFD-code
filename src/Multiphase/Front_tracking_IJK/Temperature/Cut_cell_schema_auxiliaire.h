@@ -75,6 +75,8 @@ protected:
   METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
 
   bool no_static_update_; // Disable the correction if there is no velocity
+
+  int tolerate_not_within_tetrahedron_; // Parameter to disable crashes if no suitable tetrahedron is found in the cut-cell interpolation (for debug purpose normally)
 };
 
 #endif /* Cut_cell_schema_auxiliaire_included */

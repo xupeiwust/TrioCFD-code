@@ -443,9 +443,9 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_local_normal
                   assert(maillage.ref_splitting().valeur() == s);
                   const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
 
-                  double x_centre_cell = (i + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_I) + s.get_grid_geometry().get_origin(DIRECTION_I);
-                  double y_centre_cell = (j + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_J) + s.get_grid_geometry().get_origin(DIRECTION_J);
-                  double z_centre_cell = (k + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_K) + s.get_grid_geometry().get_origin(DIRECTION_K);
+                  double x_centre_cell = (i + s.get_offset_local(DIRECTION_I) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_I) + s.get_grid_geometry().get_origin(DIRECTION_I);
+                  double y_centre_cell = (j + s.get_offset_local(DIRECTION_J) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_J) + s.get_grid_geometry().get_origin(DIRECTION_J);
+                  double z_centre_cell = (k + s.get_offset_local(DIRECTION_K) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_K) + s.get_grid_geometry().get_origin(DIRECTION_K);
                   Vecteur3 coord_centre_cell = {x_centre_cell, y_centre_cell, z_centre_cell};
 
                   int index = index_elem[num_elem];
@@ -744,6 +744,7 @@ double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, 
   else
     {
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().I(i+di,j+dj,k+dk);
+      assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
           return -sign*surface_efficace*normal_to_face*sign_flux_interf;
@@ -795,6 +796,7 @@ double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int
   else
     {
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
+      assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
           return -sign*surface_efficace*normal_to_face*sign_flux_interf;

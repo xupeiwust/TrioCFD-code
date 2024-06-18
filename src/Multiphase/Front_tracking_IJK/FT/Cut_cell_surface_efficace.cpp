@@ -237,6 +237,45 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
     }
 }
 
+void Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
+  const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face_ns,
+  const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face_ns,
+  FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_face,
+  FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_face_initial)
+{
+  for (int dir = 0; dir < 3; dir++)
+    {
+      const int ni = indicatrice_surfacique_efficace_face[dir].ni();
+      const int nj = indicatrice_surfacique_efficace_face[dir].nj();
+      const int nk = indicatrice_surfacique_efficace_face[dir].nk();
+      const int ghost = indicatrice_surfacique_efficace_face[dir].ghost();
+
+      for (int k = -ghost; k < nk+ghost; k++)
+        {
+          for (int j = -ghost; j < nj+ghost; j++)
+            {
+              for (int i = -ghost; i < ni+ghost; i++)
+                {
+                  if (IJK_Interfaces::devient_pure(old_indicatrice_surfacique_face_ns[dir](i, j, k), next_indicatrice_surfacique_face_ns[dir](i, j, k)))
+                    {
+                      indicatrice_surfacique_efficace_face[dir](i, j, k) = (old_indicatrice_surfacique_face_ns[dir](i, j, k) + 3*next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.25;
+                    }
+                  else if (IJK_Interfaces::devient_diphasique(old_indicatrice_surfacique_face_ns[dir](i, j, k), next_indicatrice_surfacique_face_ns[dir](i, j, k)))
+                    {
+                      indicatrice_surfacique_efficace_face[dir](i, j, k) = (3*old_indicatrice_surfacique_face_ns[dir](i, j, k) + next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.25;
+                    }
+                  else
+                    {
+                      indicatrice_surfacique_efficace_face[dir](i, j, k) = (old_indicatrice_surfacique_face_ns[dir](i, j, k) + next_indicatrice_surfacique_face_ns[dir](i, j, k)) * 0.5;
+                    }
+                  indicatrice_surfacique_efficace_face_initial[dir](i, j, k) = indicatrice_surfacique_efficace_face[dir](i, j, k);
+                }
+            }
+        }
+    }
+}
+
+
 void Cut_cell_surface_efficace::calcul_surface_face_efficace(
   int verbosite_surface_efficace_face,
   double timestep,
@@ -302,6 +341,7 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace(
                 }
               else
                 {
+                  assert((next_indicatrice_ns(i+di,j+dj,k+dk) == 0) || (next_indicatrice_ns(i+di,j+dj,k+dk) == 1));
                   indicatrice_surfacique_efficace_face_correction(n, num_face) = next_indicatrice_ns(i+di,j+dj,k+dk);
                 }
             }
@@ -778,6 +818,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
             }
           else
             {
+              assert((next_indicatrice_ns(i+di,j+dj,k+dk) == 0) || (next_indicatrice_ns(i+di,j+dj,k+dk) == 1));
               delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
             }
 
@@ -860,7 +901,8 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
 void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                                                           const IJK_Field_double& indicatrice_avant_remaillage,
                                                           const IJK_Field_double& indicatrice_apres_remaillage,
-                                                          DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_intermediaire_efficace_face,
+                                                          const IJK_Field_double& indicatrice_fin_pas_de_temps,
+                                                          DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_remaillage_face,
                                                           Cut_field_vector& remeshing_velocity)
 {
   remeshing_velocity.pure_[0].data()=0;
@@ -878,10 +920,11 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int max_number_of_pass = 1000;
+  int max_number_of_pass = 10000;
   for (int pass = 0; pass < max_number_of_pass; pass++)
     {
       bool at_least_one_cell_has_changed = false;
+      double max_erreur_absolue = 0.;
 
       // large_phase = 0 : we consider the smaller phase of the cell
       // large_phase = 1 : we consider the larger phase of the cell
@@ -903,7 +946,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                 continue;
 
 
-              int phase = large_phase ? (indicatrice_apres_remaillage(i, j, k) >= .5) : (indicatrice_apres_remaillage(i, j, k) < .5);
+              int phase = large_phase ? (indicatrice_fin_pas_de_temps(i, j, k) >= .5) : (indicatrice_fin_pas_de_temps(i, j, k) < .5);
 
               const double volume = delta_x * delta_y * delta_z;
 
@@ -913,10 +956,10 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
 
               DoubleTabFT_cut_cell& remeshing_diph_velocity = (phase == 0) ? remeshing_velocity.diph_v_ : remeshing_velocity.diph_l_;
 
-              double indic_apres_remaillage = (phase == 0) ? 1 - indicatrice_apres_remaillage(i, j, k) : indicatrice_apres_remaillage(i, j, k);
-              double indic_avant_remaillage = (phase == 0) ? 1 - indicatrice_avant_remaillage(i, j, k) : indicatrice_avant_remaillage(i, j, k);
+              double indic_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i, j, k) : indicatrice_fin_pas_de_temps(i, j, k);
 
               double area_dt_free = 0;
+              double area_dt_total = 0;
               double delta_volume_total = 0;
               double delta_volume_free = 0;
               for (int num_face = 0; num_face < 6; num_face++)
@@ -932,7 +975,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                   int dj_decale = sign*(dir == 1);
                   int dk_decale = sign*(dir == 2);
 
-                  double indic_decale_apres_remaillage = (phase == 0) ? 1 - indicatrice_apres_remaillage(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_apres_remaillage(i+di_decale,j+dj_decale,k+dk_decale);
+                  double indic_decale_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale);
 
                   double f = select(dir, fx, fy, fz);
 
@@ -940,12 +983,13 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                   int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
                   if (n_face >= 0)
                     {
-                      double indic_face = (phase == 0) ? 1 - indicatrice_surfacique_intermediaire_efficace_face(n_face, dir) : indicatrice_surfacique_intermediaire_efficace_face(n_face, dir);
+                      double surface_efficace = (phase == 0) ? 1 - indicatrice_surfacique_efficace_remaillage_face(n_face, dir) : indicatrice_surfacique_efficace_remaillage_face(n_face, dir);
 
-                      int decale_smaller = (n_decale >= 0) && (indic_decale_apres_remaillage <= indic_apres_remaillage);
-                      area_dt_free += (decale_smaller) ? 0. : f*indic_face;
-                      delta_volume_total -= sign*f*indic_face*remeshing_diph_velocity(n_face, dir);
-                      delta_volume_free  -= (decale_smaller) ? 0. : sign*f*indic_face*remeshing_diph_velocity(n_face, dir);
+                      int decale_smaller = (n_decale >= 0) && (indic_decale_fin_pas_de_temps <= indic_fin_pas_de_temps);
+                      area_dt_free += (decale_smaller) ? 0. : f*surface_efficace;
+                      area_dt_total += f*surface_efficace;
+                      delta_volume_total -= sign*f*surface_efficace*remeshing_diph_velocity(n_face, dir);
+                      delta_volume_free  -= (decale_smaller) ? 0. : sign*f*surface_efficace*remeshing_diph_velocity(n_face, dir);
                       if (!decale_smaller)
                         {
                           assert((pass != 0.) || (remeshing_diph_velocity(n_face, dir) == 0.));
@@ -953,26 +997,41 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                     }
                   else
                     {
-                      double indic_face = (phase == 0) ? 1 - indicatrice_apres_remaillage(i+di,j+dj,k+dk) : indicatrice_apres_remaillage(i+di,j+dj,k+dk);
+                      double surface_efficace = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di,j+dj,k+dk) : indicatrice_fin_pas_de_temps(i+di,j+dj,k+dk);
+                      assert((surface_efficace == 0) || (surface_efficace == 1));
 
-                      area_dt_free += f*indic_face;
-                      delta_volume_total -= sign*f*indic_face*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
-                      delta_volume_free  -= sign*f*indic_face*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
-                      if (indic_face > 0)
+                      area_dt_free += f*surface_efficace;
+                      area_dt_total += f*surface_efficace;
+                      delta_volume_total -= sign*f*surface_efficace*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
+                      delta_volume_free  -= sign*f*surface_efficace*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
+                      if (surface_efficace > 0)
                         {
                           assert((pass != 0.) || (remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) == 0.));
                         }
                     }
                 }
 
+              double indic_apres_remaillage = (phase == 0) ? 1 - indicatrice_apres_remaillage(i, j, k) : indicatrice_apres_remaillage(i, j, k);
+              double indic_avant_remaillage = (phase == 0) ? 1 - indicatrice_avant_remaillage(i, j, k) : indicatrice_avant_remaillage(i, j, k);
               double delta_volume_cible = volume * (indic_apres_remaillage - indic_avant_remaillage);
 
               double erreur_absolue = std::abs((delta_volume_cible - delta_volume_total)/volume);
+              max_erreur_absolue = std::max(max_erreur_absolue, erreur_absolue);
+
               if (erreur_absolue > 1e-12)
                 {
                   at_least_one_cell_has_changed = true;
 
-                  double vel = (delta_volume_cible - delta_volume_total)/area_dt_free;
+                  double vel;
+                  if (area_dt_free == 0.)
+                    {
+                      Cerr << "Warning: in Cut_cell_surface_efficace::calcul_vitesse_remaillage, there is a cell without free surface to solve the problem. This is most probably due to the fact that all neighbouring cells are smaller. This proves the algorithm is not suitable. The error for this cell is " << erreur_absolue << finl;
+                      vel = (delta_volume_cible - delta_volume_total)/area_dt_total; // Dans ce cas, tant pis on utilise toute la surface.
+                    }
+                  else
+                    {
+                      vel = (delta_volume_cible - delta_volume_total)/area_dt_free;
+                    }
 
                   for (int num_face = 0; num_face < 6; num_face++)
                     {
@@ -987,16 +1046,16 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                       int dj_decale = sign*(dir == 1);
                       int dk_decale = sign*(dir == 2);
 
-                      double indic_decale_apres_remaillage = (phase == 0) ? 1 - indicatrice_apres_remaillage(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_apres_remaillage(i+di_decale,j+dj_decale,k+dk_decale);
+                      double indic_decale_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale);
 
                       int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
                       int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
-                      if ((n_decale < 0) || (indic_decale_apres_remaillage > indic_apres_remaillage))
+                      if ((area_dt_free == 0.) || (n_decale < 0) || (indic_decale_fin_pas_de_temps > indic_fin_pas_de_temps))
                         {
                           if (n_face >= 0)
                             {
-                              double indic_face = (phase == 0) ? 1 - indicatrice_surfacique_intermediaire_efficace_face(n_face, dir) : indicatrice_surfacique_intermediaire_efficace_face(n_face, dir);
-                              if (indic_face > 0)
+                              double surface_efficace = (phase == 0) ? 1 - indicatrice_surfacique_efficace_remaillage_face(n_face, dir) : indicatrice_surfacique_efficace_remaillage_face(n_face, dir);
+                              if (surface_efficace > 0)
                                 {
                                   assert((pass != 0.) || (remeshing_diph_velocity(n_face, dir) == 0.));
                                   remeshing_diph_velocity(n_face, dir) += -sign*vel;
@@ -1004,8 +1063,9 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                             }
                           else
                             {
-                              double indic_face = (phase == 0) ? 1 - indicatrice_apres_remaillage(i+di,j+dj,k+dk) : indicatrice_apres_remaillage(i+di,j+dj,k+dk);
-                              if (indic_face > 0)
+                              double surface_efficace = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di,j+dj,k+dk) : indicatrice_fin_pas_de_temps(i+di,j+dj,k+dk);
+                              assert((surface_efficace == 0) || (surface_efficace == 1));
+                              if (surface_efficace > 0)
                                 {
                                   assert((pass != 0.) || (remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) == 0.));
                                   remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) += -sign*vel;
@@ -1016,7 +1076,15 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                 }
             }
         }
-      if (at_least_one_cell_has_changed)
+
+
+      max_erreur_absolue = Process::mp_max(max_erreur_absolue);
+      if (pass >= 5)
+        {
+          Cerr << "  (Debug) on pass " << pass << " the max absolute error is " << max_erreur_absolue << finl;
+        }
+
+      if (::mp_max(at_least_one_cell_has_changed))
         {
           remeshing_velocity.echange_espace_virtuel(remeshing_velocity.pure_[0].ghost());
 
@@ -1032,4 +1100,108 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
           break;
         }
     }
+}
+
+void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, const DoubleTab& bounding_box_bulles, double timestep,
+                                                                    const IJK_Field_double& indicatrice_avant_deformation,
+                                                                    const IJK_Field_double& indicatrice_apres_deformation,
+                                                                    const FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_deformation_face,
+                                                                    const Cut_field_vector& deformation_velocity,
+                                                                    IJK_Field_double& delta_volume_theorique_bilan)
+{
+  const Cut_cell_FT_Disc& cut_cell_disc = deformation_velocity.get_cut_cell_disc();
+
+  const int ni = delta_volume_theorique_bilan.ni();
+  const int nj = delta_volume_theorique_bilan.nj();
+  const int nk = delta_volume_theorique_bilan.nk();
+
+  const IJK_Splitting& splitting = delta_volume_theorique_bilan.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  assert(geom.is_uniform(0));
+  assert(geom.is_uniform(1));
+  assert(geom.is_uniform(2));
+
+  const double delta_x = geom.get_constant_delta(DIRECTION_I);
+  const double delta_y = geom.get_constant_delta(DIRECTION_J);
+  const double delta_z = geom.get_constant_delta(DIRECTION_K);
+
+  double origin_x = geom.get_origin(DIRECTION_I);
+  double origin_y = geom.get_origin(DIRECTION_J);
+  double origin_z = geom.get_origin(DIRECTION_K);
+
+  const int offset_x = splitting.get_offset_local(DIRECTION_I);
+  const int offset_y = splitting.get_offset_local(DIRECTION_J);
+  const int offset_z = splitting.get_offset_local(DIRECTION_K);
+
+  int imin = std::max(0,  (int)((bounding_box_bulles(compo, 0, 0) - origin_x)/delta_x - offset_x - 2));
+  int imax = std::min(ni, (int)((bounding_box_bulles(compo, 0, 1) - origin_x)/delta_x - offset_x + 2));
+  int jmin = std::max(0,  (int)((bounding_box_bulles(compo, 1, 0) - origin_y)/delta_y - offset_y - 2));
+  int jmax = std::min(nj, (int)((bounding_box_bulles(compo, 1, 1) - origin_y)/delta_y - offset_y + 2));
+  int kmin = std::max(0,  (int)((bounding_box_bulles(compo, 2, 0) - origin_z)/delta_z - offset_z - 2));
+  int kmax = std::min(nk, (int)((bounding_box_bulles(compo, 2, 1) - origin_z)/delta_z - offset_z + 2));
+
+  for (int k = kmin; k < kmax; k++)
+    {
+      for (int j = jmin; j < jmax; j++)
+        {
+          for (int i = imin; i < imax; i++)
+            {
+              bool apres_deformation_pure = ((indicatrice_apres_deformation(i,j,k) == 0.) || (indicatrice_apres_deformation(i,j,k) == 1.));
+              if (apres_deformation_pure)
+                {
+                  assert(delta_volume_theorique_bilan(i,j,k) == 0.);
+                }
+              else
+                {
+                  const double fx = delta_y * delta_z * timestep;
+                  const double fy = delta_x * delta_z * timestep;
+                  const double fz = delta_x * delta_y * timestep;
+
+                  double delta_volume_total[2] = {0};
+
+                  for (int phase = 0 ; phase < 2 ; phase++)
+                    {
+                      const DoubleTabFT_cut_cell& deformation_diph_velocity = (phase == 0) ? deformation_velocity.diph_v_ : deformation_velocity.diph_l_;
+
+                      for (int num_face = 0; num_face < 6; num_face++)
+                        {
+                          int dir = num_face%3;
+                          int decalage = num_face/3;
+                          int sign = decalage*2 -1;
+
+                          int di = decalage*(dir == 0);
+                          int dj = decalage*(dir == 1);
+                          int dk = decalage*(dir == 2);
+
+                          double surface_efficace = (phase == 0) ? 1 - indicatrice_surfacique_efficace_deformation_face[dir](i+di,j+dj,k+dk) : indicatrice_surfacique_efficace_deformation_face[dir](i+di,j+dj,k+dk);
+
+                          double f = select(dir, fx, fy, fz);
+
+                          int n = cut_cell_disc.get_n(i, j, k);
+                          int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
+                          if (n_face >= 0)
+                            {
+                              assert(deformation_diph_velocity(n_face, dir) != 6.3e32);
+                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_diph_velocity(n_face, dir);
+                            }
+                          else
+                            {
+                              assert(deformation_velocity.pure_[dir](i+di,j+dj,k+dk) != 6.3e32);
+                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_velocity.pure_[dir](i+di,j+dj,k+dk);
+                            }
+                        }
+                    }
+
+
+                  // moyenne entre les deux phases de la prediction sur la variation de volume
+                  double delta_volume_cible = .5*(delta_volume_total[1] - delta_volume_total[0]); // la variation de la phase 0 est negative
+
+                  assert(delta_volume_theorique_bilan(i,j,k) == 0.);
+                  delta_volume_theorique_bilan(i,j,k) = -delta_volume_cible; // signe negatif car on souhaite la variation de la phase 0
+                }
+            }
+        }
+    }
+
+  delta_volume_theorique_bilan.echange_espace_virtuel(delta_volume_theorique_bilan.ghost());
 }

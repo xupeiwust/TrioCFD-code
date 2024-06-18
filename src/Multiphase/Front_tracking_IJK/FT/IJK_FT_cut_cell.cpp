@@ -457,6 +457,33 @@ void IJK_FT_cut_cell::run()
 
   thermals_.recompute_temperature_init();
 
+  // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
+  if (correction_semi_locale_volume_bulle_)
+    {
+      if (disable_solveur_poisson_ || (!projection_initiale_demandee_))
+        {
+          Cerr << "Erreur: avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point." << finl;
+          Cerr << "Pour securite, cette option n'est aussi autorisee qu'avec une projection initiale du champ de vitesse, garantissant cette propriete (et pas de disable_solveur_poisson)." << finl;
+          Cerr << "Veuillez ajouter l'option : projection_initiale au jeu de donnees." << finl;
+          Process::exit();
+        }
+    }
+  if (!disable_solveur_poisson_)
+    {
+      if (projection_initiale_demandee_)
+        {
+          Cerr << "*****************************************************************************\n"
+               << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
+               << "*****************************************************************************" << finl;
+
+          pressure_projection_with_rho(rho_field_, velocity_[0],
+                                       velocity_[1], velocity_[2], pressure_, 1.,
+                                       pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          pressure_.data() = 0.;
+          pressure_rhs_.data() = 0.;
+        }
+    }
+
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
     interfaces_.compute_vinterp();
@@ -566,6 +593,13 @@ void IJK_FT_cut_cell::run()
 
       compute_var_volume_par_bulle(var_volume_par_bulle);
 
+      // Au cas ou on soit dans un cas ou des duplicatas sont necessaires mais n'ont pas ete
+      // crees, on les cree :
+      if (!interfaces_.get_nb_bulles_ghost() && !disable_diphasique_)
+        {
+          interfaces_.creer_duplicata_bulles();
+        }
+
       // Choix de l'avancement en temps :
       // euler_explicite ou RK3.
       if (get_time_scheme() == EULER_EXPLICITE)
@@ -577,37 +611,11 @@ void IJK_FT_cut_cell::run()
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
               do
                 {
-                  thermals_.remplir_cellules_maintenant_pures();
-                  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
-                  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
-
                   first_step_interface_smoothing_ = first_step_interface_smoothing_ && (counter_first_iter_ == 2);
                   deplacer_interfaces(timestep_,
                                       -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
                                       var_volume_par_bulle,
                                       first_step_interface_smoothing_);
-
-                  // Mise a jour des structures cut-cell
-                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
-
-                  thermals_.remplir_cellules_devenant_diphasiques();
-                  cut_field_velocity_.remplir_cellules_diphasiques();
-                  thermals_.transfert_diphasique_vers_pures();
-
-                  if (!deactivate_remeshing_velocity_)
-                    {
-                      interfaces_.calcul_vitesse_remaillage(timestep_, cut_field_remeshing_velocity_);
-                    }
-                  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
-
-                  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, timestep_, cut_field_total_velocity_);
-                  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, timestep_, cut_field_velocity_);
-
-                  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
-                    {
-                      interfaces_.imprime_bilan_indicatrice();
-                    }
-
                   counter_first_iter_--;
                   if(first_step_interface_smoothing_)
                     {
@@ -640,6 +648,14 @@ void IJK_FT_cut_cell::run()
 
           if (!disable_diphasique_) // && !marker_advection_first_)
             {
+              // Les sous-pas de temps sont termines. Il n'est plus necessaire de gerer le tableau
+              // RK3_G_store_vi_. On peut donc transferer les bulles et re-creer les duplicatas :
+              interfaces_.supprimer_duplicata_bulles();
+              interfaces_.transferer_bulle_perio();
+              // On supprime les fragments de bulles.
+              //interfaces_.detecter_et_supprimer_rejeton(false);
+              interfaces_.creer_duplicata_bulles();
+
               // indicatrice (and rho, mu...) are updated from the new interface position.
               // GB 2019.01.01 It is important to keep that calculation, because without it, the interface status would be
               // set to "minimal" where it should be "parcouru".
@@ -706,12 +722,6 @@ void IJK_FT_cut_cell::run()
           // Evaluation de la variation de volume accumule au cours des sous pas de temps.
           // On la laisse croitre pendant les sous dt 0 et 1 puis on la corrige a la fin du 2eme :
 
-          // Au cas ou on soit dans un cas ou des duplicatas sont necessaires mais n'ont pas ete
-          // crees, on les cree :
-          if (!interfaces_.get_nb_bulles_ghost() && !disable_diphasique_)
-            {
-              interfaces_.creer_duplicata_bulles();
-            }
           for (rk_step_ = 0; rk_step_ < 3; rk_step_++)
             {
               const double fractionnal_timestep =
@@ -722,34 +732,8 @@ void IJK_FT_cut_cell::run()
               // Deplacement des interfaces par le champ de vitesse au sous pas de temps k :
               if (!disable_diphasique_)
                 {
-                  thermals_.remplir_cellules_maintenant_pures();
-                  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
-                  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
-
                   deplacer_interfaces_rk3(timestep_ /* total */, rk_step_,
                                           var_volume_par_bulle);
-
-                  // Mise a jour des structures cut-cell
-                  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
-
-                  thermals_.remplir_cellules_devenant_diphasiques();
-                  cut_field_velocity_.remplir_cellules_diphasiques();
-                  thermals_.transfert_diphasique_vers_pures();
-
-                  if (!deactivate_remeshing_velocity_)
-                    {
-                      interfaces_.calcul_vitesse_remaillage(fractionnal_timestep, cut_field_remeshing_velocity_);
-                    }
-                  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
-
-                  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_total_velocity_);
-                  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
-
-                  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
-                    {
-                      interfaces_.imprime_bilan_indicatrice();
-                    }
-
                   parcourir_maillage();
                 }
               // Cerr << "RK3 : step " << rk_step << finl;
@@ -1085,378 +1069,95 @@ void IJK_FT_cut_cell::run()
 
 }
 
-void IJK_FT_cut_cell::euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v) const
+void IJK_FT_cut_cell::update_indicator_field()
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const double delta_t = timestep;
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
-  for (int k = 0; k < kmax; k++)
+  // La suppression des cellules mortes est vraiment au tout dernier moment,
+  // pour laisser la possibilite d'utiliser ces cellules lors des bilans
+  // pour determiner l'indicatrice cible du remaillage.
+  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
+
+  IJK_FT_base::update_indicator_field();
+}
+
+void IJK_FT_cut_cell::update_twice_indicator_field()
+{
+  for(int i=0; i<2; i++)
     {
-      for (int j = 0; j < jmax; j++)
-        {
-          for (int i = 0; i < imax; i++)
-            {
-              double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-              double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-
-              int n = cut_cell_disc.get_n(i,j,k);
-              if (n < 0)
-                {
-                  double x = dv.pure_(i,j,k);
-                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
-                  v.pure_(i,j,k) = next_v_vol;
-                }
-              else
-                {
-                  double x_l = dv.diph_l_(n);
-                  double x_v = dv.diph_v_(n);
-
-                  double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t;
-                  double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t;
-                  v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                  v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
-                }
-            }
-        }
+      update_indicator_field();
+      update_old_intersections();
     }
 }
 
-void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
+                                          ArrOfDouble& var_volume_par_bulle,
+                                          const int first_step_interface_smoothing)
 {
-  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
-  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
-  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+  thermals_.remplir_cellules_maintenant_pures();
+  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  const double facteurF = coeff_a[step];
-  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
-  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
-  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  switch(step)
+  cut_field_velocity_.remplir_cellules_diphasiques();
+
+  IJK_FT_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
+
+  // Mise a jour des structures cut-cell
+  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+
+  thermals_.remplir_cellules_devenant_diphasiques();
+  cut_field_velocity_.remplir_cellules_diphasiques();
+  thermals_.transfert_diphasique_vers_pures();
+
+  interfaces_.calcul_surface_efficace_face_initial();
+  interfaces_.calcul_surface_efficace_interface_initial();
+
+  if (!deactivate_remeshing_velocity_)
     {
-    case 0:
-      // don't read initial value of F (no performance benefit because write to F causes the
-      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
+      interfaces_.calcul_vitesse_remaillage(timestep_, cut_field_remeshing_velocity_);
+    }
+  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
 
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = dv.pure_(i,j,k);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = dv.diph_l_(n);
-                      double x_v = dv.diph_v_(n);
+  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, timestep_, cut_field_total_velocity_);
+  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, timestep_, cut_field_velocity_);
 
-                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
-                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    case 1:
-      // general case, read and write F
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
-
-                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
-                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    case 2:
-      // do not write F
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double nonzero_indicatrice_l = next_time ? cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double nonzero_indicatrice_v = next_time ? cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k) : cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
-
-                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    default:
-      Cerr << "Error in runge_kutta_update: wrong step" << finl;
-      Process::exit();
-    };
-}
-
-void IJK_FT_cut_cell::euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v) const
-{
-  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const double delta_t = timestep;
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
-  for (int k = 0; k < kmax; k++)
+  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
     {
-      for (int j = 0; j < jmax; j++)
-        {
-          for (int i = 0; i < imax; i++)
-            {
-              double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-              double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
-              double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-              double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
-
-              int n = cut_cell_disc.get_n(i,j,k);
-              if (n < 0)
-                {
-                  double x = dv.pure_(i,j,k);
-                  assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                  double next_v_vol = v.pure_(i,j,k) + x * delta_t;
-                  v.pure_(i,j,k) = next_v_vol;
-                }
-              else
-                {
-                  double x_l = dv.diph_l_(n);
-                  double x_v = dv.diph_v_(n);
-
-                  double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t;
-                  double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t;
-                  v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                  v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
-                }
-            }
-        }
+      interfaces_.imprime_bilan_indicatrice();
     }
 }
 
-void IJK_FT_cut_cell::runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
+                                              ArrOfDouble& var_volume_par_bulle)
 {
-  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
-  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
-  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+  thermals_.remplir_cellules_maintenant_pures();
+  update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  const double facteurF = coeff_a[step];
-  const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
-  const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
-  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  switch(step)
+  cut_field_velocity_.remplir_cellules_diphasiques();
+
+  IJK_FT_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
+
+  // Mise a jour des structures cut-cell
+  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+
+  thermals_.remplir_cellules_devenant_diphasiques();
+  cut_field_velocity_.remplir_cellules_diphasiques();
+  thermals_.transfert_diphasique_vers_pures();
+
+  interfaces_.calcul_surface_efficace_face_initial();
+  interfaces_.calcul_surface_efficace_interface_initial();
+
+  const double fractionnal_timestep = compute_fractionnal_timestep_rk3(timestep, rk_step_);
+
+  if (!deactivate_remeshing_velocity_)
     {
-    case 0:
-      // don't read initial value of F (no performance benefit because write to F causes the
-      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
-                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
+      interfaces_.calcul_vitesse_remaillage(fractionnal_timestep, cut_field_remeshing_velocity_);
+    }
+  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
 
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = dv.pure_(i,j,k);
-                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = dv.diph_l_(n);
-                      double x_v = dv.diph_v_(n);
+  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_total_velocity_);
+  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);
 
-                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
-
-                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    case 1:
-      // general case, read and write F
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
-                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
-
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
-
-                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
-
-                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    case 2:
-      // do not write F
-      for (int k = 0; k < kmax; k++)
-        {
-          for (int j = 0; j < jmax; j++)
-            {
-              for (int i = 0; i < imax; i++)
-                {
-                  double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-                  double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
-                  double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-                  double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
-
-                  int n = cut_cell_disc.get_n(i,j,k);
-                  if (n < 0)
-                    {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      v.pure_(i,j,k) = next_v_vol;
-                    }
-                  else
-                    {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
-
-                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-
-                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
-                    }
-                }
-            }
-        }
-      break;
-    default:
-      Cerr << "Error in runge_kutta_update: wrong step" << finl;
-      Process::exit();
-    };
-}
-
-void IJK_FT_cut_cell::cut_cell_switch_field_time(Cut_field_scalar& v) const
-{
-  const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
-  for (int k = 0; k < kmax; k++)
+  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && tstep_ % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
     {
-      for (int j = 0; j < jmax; j++)
-        {
-          for (int i = 0; i < imax; i++)
-            {
-              double old_nonzero_indicatrice_l  = cut_cell_disc.get_interfaces().I_nonzero(1,i,j,k);
-              double next_nonzero_indicatrice_l = cut_cell_disc.get_interfaces().In_nonzero(1,i,j,k);
-              double old_nonzero_indicatrice_v  = cut_cell_disc.get_interfaces().I_nonzero(0,i,j,k);
-              double next_nonzero_indicatrice_v = cut_cell_disc.get_interfaces().In_nonzero(0,i,j,k);
-
-              int n = cut_cell_disc.get_n(i,j,k);
-              if (n < 0)
-                {
-                  assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                  double next_v_vol = v.pure_(i,j,k);
-                  v.pure_(i,j,k) = next_v_vol;
-                }
-              else
-                {
-                  double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l;
-                  double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v;
-
-                  v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                  v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
-                }
-            }
-        }
+      interfaces_.imprime_bilan_indicatrice();
     }
 }
+

@@ -280,6 +280,12 @@ public:
     maillage_interface().nettoyer_maillage();
   };
 
+  // On utilise des DERIV() pour ne pas avoir a inclure la definition
+  // de ces classes (pour reduire les dependances).
+  static void transfert_conservatif_eulerien_vers_lagrangien_sommets(const Maillage_FT_Disc& maillage,
+                                                                     const DoubleVect& valeurs_euler,
+                                                                     ArrOfDouble& valeurs_lagrange);
+
 protected:
 
   virtual void calculer_vmoy_composantes_connexes(const Maillage_FT_Disc& maillage,
@@ -337,12 +343,6 @@ protected:
   DoubleTab& tableaux_positions();
   IntVect& vecteur_elements();
   DoubleTab&    deplacement_som();
-
-  // On utilise des DERIV() pour ne pas avoir a inclure la definition
-  // de ces classes (pour reduire les dependances).
-  static void transfert_conservatif_eulerien_vers_lagrangien_sommets(const Maillage_FT_Disc& maillage,
-                                                                     const DoubleVect& valeurs_euler,
-                                                                     ArrOfDouble& valeurs_lagrange);
 
   Nom suppression_interfaces_sous_domaine_;
 

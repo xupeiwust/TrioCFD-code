@@ -331,9 +331,10 @@ public :
   void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                            IJK_Field_double& output_field);
   void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
-  void update_indicator_field();
-  void update_intermediary_indicator_field();
-  void update_twice_indicator_field();
+  virtual void update_indicator_field();
+  void update_pre_remeshing_indicator_field();
+  void update_post_remeshing_indicator_field();
+  virtual void update_twice_indicator_field();
 
   void update_old_intersections();
 
@@ -375,11 +376,11 @@ protected :
   void calculer_rho_mu_indicatrice(const bool parcourir = true);
   void maj_indicatrice_rho_mu(const bool parcourir = true);
   void ajout_dTrustine();
-  void deplacer_interfaces(const double timestep,
-                           const int rk_step,
-                           ArrOfDouble& var_volume_par_bulle,
-                           const int first_step_interface_smoothing);
-  void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
+  virtual void deplacer_interfaces(const double timestep,
+                                   const int rk_step,
+                                   ArrOfDouble& var_volume_par_bulle,
+                                   const int first_step_interface_smoothing);
+  virtual void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
   void calculer_gradient_indicatrice_et_repul_ns(const IJK_Field_double& indic);
 
   //ab-forcage-control-ecoulement-deb
@@ -667,6 +668,7 @@ protected :
   Redistribute_Field redistribute_to_splitting_ft_elem_;
   int disable_solveur_poisson_;
   int resolution_fluctuations_;
+  int projection_initiale_demandee_;
   int disable_diffusion_qdm_;
   int disable_convection_qdm_;
   int disable_source_interf_;
@@ -751,6 +753,11 @@ protected :
   TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_;
   TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_;
   int deactivate_remeshing_velocity_;
+
+  DoubleTab vitesses_translation_bulles_; // Vecteur de translation rigide pour chaque bulle
+  DoubleTab mean_bubble_rotation_vector_; // Vecteur de rotation rigide pour chaque bulle
+  DoubleTab centre_gravite_bulles_;       // Position du centre de gravite pour chaque bulle (associee a la rotation)
+  int correction_semi_locale_volume_bulle_;
 };
 
 #endif /* IJK_FT_base_included */

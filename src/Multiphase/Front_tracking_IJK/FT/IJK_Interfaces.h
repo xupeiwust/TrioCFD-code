@@ -78,13 +78,44 @@ public :
   void calculer_color(ArrOfInt& color) const;
   void postraiter_colors(Sortie& os, const double current_time) const;
 
-  void transporter_maillage_deplacement(const double dt_tot,
+  void calculer_var_volume_remaillage(double timestep,
+                                      const DoubleTab& vitesses_translation_bulles,
+                                      const DoubleTab& mean_bubble_rotation_vector,
+                                      const DoubleTab& centre_gravite,
+                                      ArrOfDouble& var_volume);
+  void calculer_vecteurs_de_deplacement_rigide(DoubleTab& vitesses_translation_bulles,
+                                               DoubleTab& mean_bubble_rotation_vector,
+                                               DoubleTab& centre_gravite,
+                                               const int first_step_interface_smoothing = 0);
+  void transporter_maillage_deformation(const int correction_semi_locale_volume_bulle,
+                                        const DoubleTab& vitesses_translation_bulles,
+                                        const DoubleTab& mean_bubble_rotation_vector,
+                                        const DoubleTab& centre_gravite,
+                                        const double dt_tot,
                                         ArrOfDouble& dvol,
                                         const int rk_step,
                                         const int first_step_interface_smoothing = 0);
-  void transporter_maillage_remaillage(ArrOfDouble& dvol,
+  void transporter_maillage_remaillage(int correction_semi_locale_volume_bulle,
+                                       const DoubleTab& vitesses_translation_bulles,
+                                       const DoubleTab& mean_bubble_rotation_vector,
+                                       const DoubleTab& centre_gravite,
+                                       double dt_tot,
+                                       ArrOfDouble& dvol,
                                        const int rk_step,
                                        const double temps);
+  void transporter_maillage_rigide(const double dt_tot,
+                                   const DoubleTab& vitesses_translation_bulles,
+                                   const DoubleTab& mean_bubble_rotation_vector,
+                                   const DoubleTab& centre_gravite,
+                                   const int rk_step,
+                                   const int first_step_interface_smoothing = 0);
+  void calculer_vitesse_de_deformation(int compo,
+                                       const DoubleTab& bounding_box_bulles,
+                                       const Cut_field_vector& cut_field_velocity,
+                                       const DoubleTab& vitesses_translation_bulles,
+                                       const DoubleTab& mean_bubble_rotation_vector,
+                                       const DoubleTab& positions_bulles);
+
   void calculer_bounding_box_bulles(DoubleTab& bounding_box, int option_shear = 0) const;
   void preparer_duplicata_bulles(const DoubleTab& bounding_box_of_bubbles,
                                  const DoubleTab& bounding_box_offsetp,
@@ -145,6 +176,8 @@ public :
   void calcul_vitesse_remaillage(double timestep, Cut_field_vector& remeshing_velocity);
   void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector& total_velocity);
   void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity);
+  void calcul_surface_efficace_face_initial();
+  void calcul_surface_efficace_interface_initial();
 
   // fin de methode pour bulles fixes
   const Domaine_dis& get_domaine_dis() const
@@ -257,12 +290,6 @@ public :
     return;
   };
 
-  void parcourir_maillage_intermediaire()
-  {
-    maillage_intermediaire_ft_ijk_.parcourir_maillage();
-    return;
-  };
-
   void RK3_G_store_vi_resize(int n, int n2)
   {
     RK3_G_store_vi_.resize(n, n2);
@@ -290,11 +317,6 @@ public :
   const Maillage_FT_IJK& maillage_ft_ijk() const
   {
     return maillage_ft_ijk_;
-  }
-
-  const Maillage_FT_IJK& maillage_intermediaire_ft_ijk() const
-  {
-    return maillage_intermediaire_ft_ijk_;
   }
 
   const Remaillage_FT_IJK& remaillage_ft_ijk() const
@@ -788,6 +810,12 @@ public :
   static inline int est_pure(double indicatrice) { return ((indicatrice == 0.) || (indicatrice == 1.)); }
   static inline int devient_pure(double old_indicatrice, double next_indicatrice) { return ((!est_pure(old_indicatrice)) && (est_pure(next_indicatrice))); }
   static inline int devient_diphasique(double old_indicatrice, double next_indicatrice) { return ((est_pure(old_indicatrice)) && (!est_pure(next_indicatrice))); }
+  static inline int phase_mourrante(int phase, double old_indicatrice, double next_indicatrice) { return devient_pure(old_indicatrice, next_indicatrice) && ((int)(1 - next_indicatrice) == phase); }
+  static inline int phase_naissante(int phase, double old_indicatrice, double next_indicatrice) { return devient_diphasique(old_indicatrice, next_indicatrice) && ((int)(1 - old_indicatrice) == phase); }
+  inline double devient_pure(const int i, const int j, const int k) const { return devient_pure(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double devient_diphasique(const int i, const int j, const int k) const { return devient_diphasique(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double phase_mourrante(const int phase, const int i, const int j, const int k) const { return phase_mourrante(phase, indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double phase_naissante(const int phase, const int i, const int j, const int k) const { return phase_naissante(phase, indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
 
   inline int est_reguliere(double old_indicatrice, double next_indicatrice) const { return ((old_indicatrice >= seuil_indicatrice_petite_) && (old_indicatrice <= 1-seuil_indicatrice_petite_) && (next_indicatrice >= seuil_indicatrice_petite_) && (next_indicatrice <= 1-seuil_indicatrice_petite_)); }
 
@@ -914,8 +942,32 @@ public :
     const bool parcourir = true
   );
   void calculer_indicatrice_intermediaire(
+    IJK_Field_double& indicatrice_intermediaire_ft_,
+    IJK_Field_double& indicatrice_intermediaire_ns_,
+    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ft_,
+    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ns_,
     const bool parcourir = true
   );
+  void calculer_indicatrice_avant_remaillage(const bool parcourir = true)
+  {
+    calculer_indicatrice_intermediaire(
+      indicatrice_avant_remaillage_ft_,
+      indicatrice_avant_remaillage_ns_,
+      indicatrice_surfacique_avant_remaillage_face_ft_,
+      indicatrice_surfacique_avant_remaillage_face_ns_,
+      parcourir
+    );
+  }
+  void calculer_indicatrice_apres_remaillage(const bool parcourir = true)
+  {
+    calculer_indicatrice_intermediaire(
+      indicatrice_apres_remaillage_ft_,
+      indicatrice_apres_remaillage_ns_,
+      indicatrice_surfacique_apres_remaillage_face_ft_,
+      indicatrice_surfacique_apres_remaillage_face_ns_,
+      parcourir
+    );
+  }
   void set_compute_surfaces_mouillees() { surface_vapeur_par_face_computation_.set_compute_surfaces_mouillees(); }
 
   const int& nb_compo_traversantes(const int i, const int j, const int k) const
@@ -1025,6 +1077,7 @@ protected:
 
   void calculer_surface_interface(IJK_Field_double& surf_interface, IJK_Field_double& indic);
   void calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic);
+  void calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
   void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
 
 
@@ -1033,14 +1086,24 @@ protected:
 
   // TODO: utiliser le allocate de allocate_velocity dans IJK_Navier_Stokes_tools.cpp utiliser le pslitting de NS, pas le FT
 
-  void calculer_vmoy_composantes_connexes(const Maillage_FT_IJK& maillage,
-                                          const ArrOfDouble& surface_facette,
-                                          const ArrOfDouble& surface_par_bulle,
-                                          const ArrOfInt& compo_connexes_facettes,
-                                          const int nbulles_reelles,
-                                          const int nbulles_ghost,
-                                          const DoubleTab& vitesse_sommets,
-                                          DoubleTab& vitesses) const;
+  void calculer_vmoy_translation_composantes_connexes(const Maillage_FT_IJK& maillage,
+                                                      const ArrOfDouble& surface_facette,
+                                                      const ArrOfDouble& surface_par_bulle,
+                                                      const ArrOfInt& compo_connexes_facettes,
+                                                      const int nbulles_reelles,
+                                                      const int nbulles_ghost,
+                                                      const DoubleTab& vitesse_sommets,
+                                                      DoubleTab& vitesses_translation_sommets) const;
+  void calculer_vmoy_rotation_composantes_connexes(const Maillage_FT_IJK& maillage,
+                                                   const ArrOfDouble& surface_facette,
+                                                   const ArrOfDouble& surface_par_bulle,
+                                                   const ArrOfInt& compo_connexes_facettes,
+                                                   const int nbulles_reelles,
+                                                   const int nbulles_ghost,
+                                                   const DoubleTab& centre_gravite,
+                                                   const DoubleTab& vitesse_sommets,
+                                                   const DoubleTab& vitesse_translation_sommets,
+                                                   DoubleTab& mean_bubble_rotation_vector) const;
   void recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tmp,
                                              int dir,
                                              const Maillage_FT_IJK& mesh,
@@ -1074,7 +1137,7 @@ protected:
   REF(Switch_FT_double) ref_ijk_ft_switch_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres
-  IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x)
+  IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x), cut_field_deformation_velocity_(deformation_velocity_)
   {
     Cerr << "Erreur IJK_Interfaces(const IJK_Interfaces&)" << finl;
     Process::exit();
@@ -1122,11 +1185,20 @@ protected:
   int parser_;
   // Stockage du maillage:
   Maillage_FT_IJK maillage_ft_ijk_;
-  Maillage_FT_IJK maillage_intermediaire_ft_ijk_;
 
   // Tableau intermediaire pour le deplacement des marqueurs en RK3 :
   DoubleTab RK3_G_store_vi_;
   DoubleTab vinterp_;
+
+  int disable_rigid_translation_; // Desactive la partie translation du mouvement rigide
+  int disable_rigid_rotation_;    // Desactive la partie rotation du mouvement rigide
+
+  ArrOfDouble var_volume_deformation_;  // Variation de volume observee sur chaque sommet lors de la deformation de la bulle
+  ArrOfDouble var_volume_remaillage_;   // Variation de volume cible pour l'operation de remaillage
+  ArrOfDouble var_volume_correction_globale_;  // Variation de volume cible pour la correction globale de volume
+
+  Cut_field_vector cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
+  FixedVector<IJK_Field_double, 3> deformation_velocity_;
 
   // Algorithmes de parcours de l'interface (intersections Eulerien/Lagrangien)
   Parcours_interface parcours_;
@@ -1219,9 +1291,16 @@ protected:
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
 
-  // Indicatrice apres le deplacement de l'interface mais avant le remaillage/lissage de l'interface
-  IJK_Field_double indicatrice_intermediaire_ns_;
-  IJK_Field_double indicatrice_intermediaire_ft_;
+  // Indicatrice apres la deformation de l'interface mais avant le remaillage/lissage de l'interface
+  IJK_Field_double indicatrice_avant_remaillage_ns_;
+  IJK_Field_double indicatrice_avant_remaillage_ft_;
+
+  // Indicatrice apres le remaillage/lissage de l'interface mais avant le deplacement rigide
+  IJK_Field_double indicatrice_apres_remaillage_ns_;
+  IJK_Field_double indicatrice_apres_remaillage_ft_;
+
+  // Indicatrice cible apres le remaillage. Le remaillage vise a atteindre cette indicatrice.
+  IJK_Field_double delta_volume_theorique_bilan_ns_;
 
   FixedVector<IJK_Field_double, 2> surface_interface_ns_;
   FixedVector<IJK_Field_double, 2> surface_interface_ft_;
@@ -1235,15 +1314,16 @@ protected:
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ns_;
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ft_;
 
-  // Indicatrice surfacique apres le deplacement de l'interface mais avant le remaillage/lissage de l'interface
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_intermediaire_face_ns_;
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_intermediaire_face_ft_;
+  // Indicatrice surfacique apres la deformation de l'interface mais avant le remaillage/lissage de l'interface
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_avant_remaillage_face_ns_;
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_avant_remaillage_face_ft_;
+
+  // Indicatrice surfacique apres le remaillage/lissage de l'interface mais avant le deplacement rigide (pas utilisee)
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_apres_remaillage_face_ns_;
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_apres_remaillage_face_ft_;
 
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ns_;
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ft_;
-
-  FixedVector<FixedVector<IJK_Field_double, 2>, 3> barycentre_phase1_intermediaire_face_ns_;
-  FixedVector<FixedVector<IJK_Field_double, 2>, 3> barycentre_phase1_intermediaire_face_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
@@ -1282,7 +1362,7 @@ protected:
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
   DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
   DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
-  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_intermediaire_efficace_face_;
+  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_efficace_deformation_face_; // ne peut etre sur la structure diphasique, car cree et utilisee avant
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_;
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_initial_;
   DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;
