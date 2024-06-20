@@ -34,13 +34,11 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   coord_.associer_persistant(*this);
 
   index_sorted_by_k_.associer_paresseux(*this);
-  k_value_index_.set_smart_resize(1);
   k_value_index_.resize(0, 1);
 
   index_sorted_by_indicatrice_.associer_paresseux(*this);
 
   index_sorted_by_statut_diphasique_.associer_paresseux(*this);
-  statut_diphasique_value_index_.set_smart_resize(1);
   statut_diphasique_value_index_.resize(0, 1);
 }
 

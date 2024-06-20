@@ -135,10 +135,7 @@ void Operateur_IJK_faces_diff_base_double::flux_loop_(IJK_Field_local_double& re
 
   const IJK_Field_local_double& dummy_field = vCOMPO;
 
-//  ConstIJK_double_ptr molecular_nu(is_tensorial_? get_molecular_nu_tensor(_VCOMPO_, _DIR_) : get_molecular_nu(), 0, 0, k_layer);
-//  ConstIJK_double_ptr molecular_nu(is_tensorial_? get_coeff_tensor(_VCOMPO_, _DIR_) : get_molecular_nu(), 0, 0, k_layer);
-  ConstIJK_double_ptr molecular_nu(is_tensorial_? get_coeff_tensor(_VCOMPO_, _DIR_) : get_nu(), 0, 0, k_layer);
-
+  ConstIJK_double_ptr molecular_nu(!is_structural_ ? (is_tensorial_? get_coeff_tensor(_VCOMPO_, _DIR_) : get_nu()) : dummy_field , 0, 0, k_layer);
 
   ConstIJK_double_ptr div_ptr(with_divergence_ ? get_divergence() : dummy_field, 0, 0, k_layer);
 
@@ -148,8 +145,12 @@ void Operateur_IJK_faces_diff_base_double::flux_loop_(IJK_Field_local_double& re
   //  ConstIJK_double_ptr structural_model(is_structural_ ? get_structural_model(_DIR_, _VCOMPO_) : dummy_field, 0, 0, k_layer);
   //  ConstIJK_double_ptr structural_model(is_structural_ ? get_coeff_tensor(_DIR_, _VCOMPO_) : dummy_field, 0, 0, k_layer);
 
-  ConstIJK_double_ptr turbulent_nu(is_turb_ ? get_nu() : *nu_, 0, 0, k_layer);
-  ConstIJK_double_ptr turbulent_k_energy(is_turb_ ? get_nu() : *nu_, 0, 0, k_layer );
+  /*
+   * Y.Z.: If the model is functional (i.e. not structural) then lambda takes the right value, and the "structural_model" variable points to dummy_field.
+   * Otherwise the model is structural then lambda points towards the dummy_field.
+   */
+  ConstIJK_double_ptr turbulent_nu      (is_turb_ ? get_nu() : dummy_field, 0, 0, k_layer);
+  ConstIJK_double_ptr turbulent_k_energy(is_turb_ ? get_nu() : dummy_field, 0, 0, k_layer );
   ConstIJK_double_ptr structural_model(is_structural_ ? get_coeff_tensor(_DIR_, _VCOMPO_) : *nu_, 0, 0, k_layer);
 
   // Result (fluxes in direction DIR for component COMPO of the convected field)
@@ -191,7 +192,8 @@ void Operateur_IJK_faces_diff_base_double::flux_loop_(IJK_Field_local_double& re
       vCOMPO_ptr.next_j();
       if(_DIR_ != _VCOMPO_)
         vDIR_ptr.next_j();
-      molecular_nu.next_j();
+      if(!is_structural_)
+        molecular_nu.next_j();
       if(is_turb_)
         {
           turbulent_nu.next_j();
@@ -294,6 +296,7 @@ void Operateur_IJK_faces_diff_base_double::flux_loop_different_dir_compo_(int i,
       molecular_nu.get_left_center_c1c2(_DIR_, _VCOMPO_, i, m_nu1, m_nu2, m_nu3, m_nu4);
       double mult_coeff = 0.25;
 
+//antoine_mu_harmonic
       // for wall boundary conditions
       if(bottom_wall && bc_type!=Boundary_Conditions::Mixte_shear)
         {
@@ -311,8 +314,16 @@ void Operateur_IJK_faces_diff_base_double::flux_loop_different_dir_compo_(int i,
           mult_coeff = 0.5;
         }
       // recoding of Eval_Dift_VDF_var_Face::flux_arete_interne
-      Simd_double m_nu = (m_nu1 + m_nu2 + m_nu3 + m_nu4) * mult_coeff;
+      Simd_double m_nu;
 
+      if (harmonic_nu_)
+        {
+          m_nu = 4./(1./m_nu1 + 1./m_nu2 + 1./m_nu3 + 1./m_nu4) ;
+        }
+      else
+        {
+          m_nu = (m_nu1 + m_nu2 + m_nu3 + m_nu4) * mult_coeff;
+        }
       // gradient in direction DIR of component COMPO
       Simd_double v3, v4;
       vCOMPO_ptr.get_left_center(_DIR_, i, v3, v4);

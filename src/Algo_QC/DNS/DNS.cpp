@@ -84,7 +84,7 @@ static inline void choix_filter_kernel(const int ghost_size,
   // Choose a filter_kernel to compute the filter.
   // Note: THE CALLER _MUdouble_ FREE THE MEMORY USING DELETE.
   // example of use :
-  //          Filter_kernel_base* filter_kernel = NULL;
+  //          Filter_kernel_base* filter_kernel = nullptr;
   //          choix_filter_kernel(ghost_size, filter_kernel_name, filter_kernel);
   //          /* do something with filter_kernel */
   //          delete filter_kernel;
@@ -196,7 +196,7 @@ static inline void choix_modele(const Nom& turbulent_viscosity_model,
   // Choose a model to compute the turbulent viscosity.
   // Note: THE CALLER _MUdouble_ FREE THE MEMORY USING DELETE.
   // example of use :
-  //          Turbulent_viscosity_base* model = NULL;
+  //          Turbulent_viscosity_base* model = nullptr;
   //          choix_modele(turbulent_viscosity_model, model);
   //          /* do something with model */
   //          delete model;
@@ -3433,7 +3433,7 @@ void calculer_turbulent_mu_scalar(const bool anisotropic,
                                   IJK_Field_double& turbulent_mu,
                                   const IJK_Splitting& splitting)
 {
-  Turbulent_viscosity_base* model = NULL;
+  Turbulent_viscosity_base* model = nullptr;
 
   choix_modele(turbulent_viscosity_model, model);
 
@@ -3448,8 +3448,8 @@ void calculer_turbulent_mu_scalar(const bool anisotropic,
   if (flag_turbulent_mu_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
-      ghost_size_scalar = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -3521,7 +3521,7 @@ void calculer_turbulent_mu_tensor(const bool anisotropic,
                                   FixedVector<IJK_Field_double, 6>& turbulent_mu_tensor,
                                   const IJK_Splitting& splitting)
 {
-  Turbulent_viscosity_base* model = NULL;
+  Turbulent_viscosity_base* model = nullptr;
 
   const double& coefficient_xx = turbulent_viscosity_tensor_coefficients[0];
   const double& coefficient_xy = turbulent_viscosity_tensor_coefficients[1];
@@ -3621,7 +3621,7 @@ void calculer_turbulent_mu_vector(const bool anisotropic,
                                   FixedVector<IJK_Field_double, 3>& turbulent_mu_vector,
                                   const IJK_Splitting& splitting)
 {
-  Turbulent_viscosity_base* model = NULL;
+  Turbulent_viscosity_base* model = nullptr;
 
   const double& coefficient_x = turbulent_diffusivity_vector_coefficients[0];
   const double& coefficient_y = turbulent_diffusivity_vector_coefficients[1];
@@ -5039,7 +5039,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                       structural_uu_tmp_tensor);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uu_tmp = max(2, ghost_size_filter);
+      ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
       structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5090,7 +5090,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                         structural_uu_tmp_tensor);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uu_tmp = max(2, ghost_size_filter);
+      ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
       structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5109,7 +5109,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5133,7 +5133,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity_comp") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5158,7 +5158,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity_streher") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5186,7 +5186,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   if (flag_structural_uu_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5218,7 +5218,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                           structural_uu_tmp_tensor);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uu_tmp = max(2, ghost_size_filter);
+          ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
           structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5264,7 +5264,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                             structural_uu_tmp_tensor);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uu_tmp = max(2, ghost_size_filter);
+          ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
           structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5766,7 +5766,7 @@ void calculer_structural_uscalar_similarity_comp(const double structural_uscalar
               Cerr << "-----------------------" << finl;
 
               const double c_is = (r_is)/rho_filtre - (rho_uf_i*rho_scalarf_i)/(rho_filtre*rho_filtre);
-              const double c_js = (r_js)/rho_filtre - (rho_vf_j*rho_scalarf_i)/(rho_filtre*rho_filtre);
+              const double c_js = (r_js)/rho_filtre - (rho_vf_j*rho_scalarf_j)/(rho_filtre*rho_filtre);
               const double c_ks = (r_ks)/rho_filtre - (rho_wf_k*rho_scalarf_k)/(rho_filtre*rho_filtre);
 
               structural_uscalar_x(i,j,k) = - coefficient_x * structural_uscalar_model_constant * c_is;
@@ -6151,7 +6151,7 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                            structural_uscalar_tmp_vector);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uscalar_tmp = max(2, ghost_size_filter);
+      ghost_size_structural_uscalar_tmp = max((int) 2, ghost_size_filter);
       structural_uscalar_tmp_vector[0].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector[1].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector[2].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
@@ -6164,8 +6164,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
-      ghost_size_scalar = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6193,8 +6193,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity_comp") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
-      ghost_size_scalar = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6223,8 +6223,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity_streher") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
-      ghost_size_scalar = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6256,8 +6256,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   if (flag_structural_uscalar_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max(2, ghost_size_filter);
-      ghost_size_scalar = max(2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6291,7 +6291,7 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                                structural_uscalar_tmp_vector);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uscalar_tmp = max(2, ghost_size_filter);
+          ghost_size_structural_uscalar_tmp = max((int) 2, ghost_size_filter);
           structural_uscalar_tmp_vector[0].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
           structural_uscalar_tmp_vector[1].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
           structural_uscalar_tmp_vector[2].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
@@ -6349,7 +6349,7 @@ void modification_modele_dynamic_uu_scalar(const bool anisotropic,
       if (turbulent_viscosity)
         {
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_turbulent_mu = max(2, ghost_size_filter);
+          ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
           turbulent_mu.echange_espace_virtuel(ghost_size_turbulent_mu);
           turbulent_mu_filtre.echange_espace_virtuel(2);
         }
@@ -6359,7 +6359,7 @@ void modification_modele_dynamic_uu_scalar(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max(2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uu_tensor[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6575,7 +6575,7 @@ void modification_modele_dynamic_uu_tensor(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_turbulent_mu = max(2, ghost_size_filter);
+              ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
               turbulent_mu_tensor[j].echange_espace_virtuel(ghost_size_turbulent_mu);
               turbulent_mu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6586,7 +6586,7 @@ void modification_modele_dynamic_uu_tensor(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max(2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uu_tensor[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6817,7 +6817,7 @@ void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
       if (turbulent_viscosity)
         {
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_turbulent_mu = max(2, ghost_size_filter);
+          ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
           turbulent_mu.echange_espace_virtuel(ghost_size_turbulent_mu);
           turbulent_mu_filtre.echange_espace_virtuel(2);
         }
@@ -6827,7 +6827,7 @@ void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max(2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uscalar_vector[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uscalar_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -7031,7 +7031,7 @@ void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_turbulent_mu = max(2, ghost_size_filter);
+              ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
               turbulent_mu_vector[j].echange_espace_virtuel(ghost_size_turbulent_mu);
               turbulent_mu_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -7042,7 +7042,7 @@ void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max(2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uscalar_vector[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uscalar_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -7244,13 +7244,16 @@ Entree& DNS_QC_double::interpreter(Entree& is)
   Param param(que_suis_je());
   Nom ijk_splitting_name;
   reprise_fourier_ = 0;
-  dt_post_ = 100;
+  dt_post_ = 2000000000; // jamais de post-traitement
   timestep_facsec_ = 1.;
   timestep_max_ = 1.;
   timestep_ = 1.e28;
   old_timestep_= 1.e28; // Evite la division par zero
   current_time_ = 0.;
   dt_sauvegarde_ = 2000000000; // jamais
+  dt_raw_data_   = 2000000000; // jamais
+  dt_stats_      = 2000000000; // jamais
+  dt_save_oscillating_cycle_raw_data_ = 0;
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
   nom_reprise_ = "??"; // pas de reprise
   compteur_post_instantanes_ = 0;
@@ -7424,6 +7427,10 @@ Entree& DNS_QC_double::interpreter(Entree& is)
   param.ajouter("champs_a_postraiter", &liste_post_instantanes_);
 
   param.ajouter("dt_sauvegarde", &dt_sauvegarde_);
+  param.ajouter("dt_raw_data",   &dt_raw_data_); /* Number of timesteps to save raw data */
+  param.ajouter("dt_stats",      &dt_stats_);    /* Number of timesteps to save statistics */
+  param.ajouter("dt_save_oscillating_cycle_raw_data", &dt_save_oscillating_cycle_raw_data_); /* Timestep at each to save the raw data  */
+
   param.ajouter_flag("postraiter_sous_pas_de_temps", &postraiter_sous_pas_de_temps_);
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_);
   param.ajouter("nom_reprise", &nom_reprise_);
@@ -7965,10 +7972,21 @@ Entree& DNS_QC_double::interpreter(Entree& is)
       flag_t_bulk_forced_ = true;
     }
 
-
+  if (dt_post_ == 2000000000 && dt_raw_data_ == 2000000000 && dt_stats_ == 2000000000 && dt_save_oscillating_cycle_raw_data_== 0)
+    dt_post_ = 100;
 
   if (nom_reprise_ != "??")
     reprendre_qc(nom_reprise_);
+
+  dt_save_cycle_ = 2000000000;
+  if (dt_save_oscillating_cycle_raw_data_ != 0)
+    {
+      flag_save_each_delta_t_ = true;
+      dt_save_cycle_ = 0;
+      while(dt_save_cycle_ <= current_time_)
+        dt_save_cycle_ += dt_save_oscillating_cycle_raw_data_;
+      Cerr << "Dt save cycle: " << dt_save_cycle_ << "dt_save_oscillating_cycle_raw_data_: " << dt_save_oscillating_cycle_raw_data_;
+    }
 
   run();
   return is;
@@ -8549,8 +8567,8 @@ void DNS_QC_double::ecrire_fichier_sauv(const char *fichier_sauvegarde, const ch
               << " p_thermo_init " << P_thermodynamique_ << "\n"
               << " fichier_reprise_vitesse " << lata_name << "\n";
       fichier << " fichier_reprise_rho " << lata_name << "\n"
-              << " timestep_reprise_vitesse " << 1 << "\n"
-              << " timestep_reprise_rho " << 1 << "\n";
+              << " timestep_reprise_vitesse " << (int) 1 << "\n"
+              << " timestep_reprise_rho " << (int) 1 << "\n";
       if (statistiques_.t_integration() > 0.)
         fichier << " statistiques " << statistiques_;
       fichier << "}\n";
@@ -9068,6 +9086,431 @@ void DNS_QC_double::posttraiter_champs_instantanes(const char *lata_name, double
     }
 }
 
+
+void DNS_QC_double::save_raw_data(const char *lata_name, double current_time)
+{
+  // DD,2016-28-01: statistiques a partir de fichiers lata uniquement
+  if (sauvegarde_post_instantanes_ )
+    {
+      Nom nom_fichier_sauvegarde(lata_name);
+      nom_fichier_sauvegarde += Nom(compteur_post_instantanes_);
+      nom_fichier_sauvegarde += Nom(".sauv");
+
+      Nom lata_name_lata(nom_fichier_sauvegarde);
+      lata_name_lata += ".lata";
+
+      ecrire_fichier_sauv(nom_fichier_sauvegarde, lata_name_lata);
+
+      dumplata_header(lata_name_lata, rho_ /* on passe un champ pour ecrire la geometrie */);
+      dumplata_newtime(lata_name_lata, current_time_);
+
+      if (liste_post_instantanes_.contient_("TOUS"))
+        {
+          liste_post_instantanes_.dimensionner_force(0);
+          liste_post_instantanes_.add("VELOCITY");
+          liste_post_instantanes_.add("VELOCITY_ELEM_X");
+          liste_post_instantanes_.add("VELOCITY_ELEM_Y");
+          liste_post_instantanes_.add("VELOCITY_ELEM_Z");
+          liste_post_instantanes_.add("D_VELOCITY");
+          liste_post_instantanes_.add("PRESSURE");
+          liste_post_instantanes_.add("TEMPERATURE");
+          liste_post_instantanes_.add("RHO");
+          liste_post_instantanes_.add("LAMBDA");
+          liste_post_instantanes_.add("MU");
+          liste_post_instantanes_.add("PRESSURE_RHS");
+          liste_post_instantanes_.add("DIV_LAMBDA_GRAD_T_VOLUME");
+          liste_post_instantanes_.add("U_DIV_RHO_U");
+          liste_post_instantanes_.add("DRHO_DT");
+          if (turbulent_viscosity_ && (!flag_nu_tensorial_)) liste_post_instantanes_.add("TURBULENT_MU");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_XX");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_XY");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_XZ");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_YY");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_YZ");
+          if (turbulent_viscosity_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_ZZ");
+          if (turbulent_diffusivity_ && (!flag_kappa_vectorial_)) liste_post_instantanes_.add("TURBULENT_KAPPA");
+          if (turbulent_diffusivity_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_X");
+          if (turbulent_diffusivity_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_Y");
+          if (turbulent_diffusivity_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_Z");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_XX");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_XY");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_XZ");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_YY");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_YZ");
+          if (structural_uu_) liste_post_instantanes_.add("sTRUCTURAL_UU_ZZ");
+          if (structural_uscalar_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_X");
+          if (structural_uscalar_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_Y");
+          if (structural_uscalar_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_Z");
+          if (flag_u_filtre_) liste_post_instantanes_.add("VELOCITY_FILTRE");
+          if (flag_rho_filtre_) liste_post_instantanes_.add("RHO_FILTRE");
+          if (flag_temperature_filtre_) liste_post_instantanes_.add("TEMPERATURE_FILTRE");
+          if (flag_turbulent_mu_filtre_ && (!flag_nu_tensorial_)) liste_post_instantanes_.add("TURBULENT_MU_FILTRE");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_XX");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_FILTRE_XY");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_FILTRE_XZ");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_FILTRE_YY");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_FILTRE_YZ");
+          if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_) liste_post_instantanes_.add("TURBULENT_MU_FILTRE_ZZ");
+          if (flag_turbulent_kappa_filtre_ && (!flag_kappa_vectorial_)) liste_post_instantanes_.add("TURBULENT_KAPPA_FILTRE");
+          if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_FILTRE_X");
+          if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_FILTRE_Y");
+          if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_) liste_post_instantanes_.add("TURBULENT_KAPPA_FILTRE_Z");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_XX");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_XY");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_XZ");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_YY");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_YZ");
+          if (flag_structural_uu_filtre_) liste_post_instantanes_.add("sTRUCTURAL_UU_FILTRE_ZZ");
+          if (flag_structural_uscalar_filtre_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_FILTRE_X");
+          if (flag_structural_uscalar_filtre_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_FILTRE_Y");
+          if (flag_structural_uscalar_filtre_) liste_post_instantanes_.add("sTRUCTURAL_USCALAR_FILTRE_Z");
+        }
+      int n = liste_post_instantanes_.size();
+      Cerr << " Martinn n= " << n << finl;
+
+      if (liste_post_instantanes_.contient_("VELOCITY"))
+        {
+          n=n-1;
+          dumplata_vector(lata_name_lata,"VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
+        }
+      if (liste_post_instantanes_.contient_("VELOCITY_ELEM_X"))
+        {
+          n=n-1;
+          calculer_velocity_elem();
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(velocity_elem_X_, velocity_elem_X_sauvegarde_);
+              velocity_elem_X_sauvegarde_.echange_espace_virtuel(velocity_elem_X_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "VELOCITY_ELEM_X", velocity_elem_X_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"VELOCITY_ELEM_X", velocity_elem_X_, 0);
+            }
+        }
+
+      if (liste_post_instantanes_.contient_("VELOCITY_ELEM_Y"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(velocity_elem_Y_, velocity_elem_Y_sauvegarde_);
+              velocity_elem_Y_sauvegarde_.echange_espace_virtuel(velocity_elem_Y_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "VELOCITY_ELEM_Y", velocity_elem_Y_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"VELOCITY_ELEM_Y", velocity_elem_Y_, 0);
+            }
+        }
+
+      if (liste_post_instantanes_.contient_("VELOCITY_ELEM_Z"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(velocity_elem_Z_, velocity_elem_Z_sauvegarde_);
+              velocity_elem_Z_sauvegarde_.echange_espace_virtuel(velocity_elem_Z_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "VELOCITY_ELEM_Z", velocity_elem_Z_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"VELOCITY_ELEM_Z", velocity_elem_Z_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("D_VELOCITY"))
+        n--, dumplata_vector(lata_name_lata,"D_VELOCITY", d_velocity_[0], d_velocity_[1], d_velocity_[2], 0);
+      if (liste_post_instantanes_.contient_("PRESSURE"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(pressure_, pressure_sauvegarde_);
+              pressure_sauvegarde_.echange_espace_virtuel(pressure_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "PRESSURE", pressure_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"PRESSURE", pressure_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("TEMPERATURE"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(temperature_, temperature_sauvegarde_);
+              temperature_sauvegarde_.echange_espace_virtuel(temperature_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "TEMPERATURE", temperature_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"TEMPERATURE", temperature_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("RHO"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(rho_, rho_sauvegarde_);
+              rho_sauvegarde_.echange_espace_virtuel(rho_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "RHO", rho_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"RHO", rho_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("LAMBDA"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(molecular_lambda_, molecular_lambda_sauvegarde_);
+              molecular_lambda_sauvegarde_.echange_espace_virtuel(molecular_lambda_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "LAMBDA", molecular_lambda_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"LAMBDA", molecular_lambda_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("MU"))
+        {
+          n=n-1;
+          if (sauvegarde_splitting_name_ != "??")
+            {
+              redistribute_to_sauvegarde_splitting_elem_.redistribute(molecular_mu_, molecular_mu_sauvegarde_);
+              molecular_mu_sauvegarde_.echange_espace_virtuel(molecular_mu_sauvegarde_.ghost());
+
+              int ni = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_I);
+              int nj = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_J);
+              int nk = sauvegarde_splitting_.get_nb_elem_local(DIRECTION_K);
+
+              if (ni > 0 || nj > 0 || nk > 0)
+                {
+                  dumplata_scalar_parallele_plan(lata_name_lata, "MU", molecular_mu_sauvegarde_, 0);
+                }
+            }
+          else
+            {
+              dumplata_scalar(lata_name_lata,"MU", molecular_mu_, 0);
+            }
+        }
+      if (liste_post_instantanes_.contient_("PRESSURE_RHS"))
+        n--,dumplata_scalar(lata_name_lata,"PRESSURE_RHS", pressure_rhs_, 0);
+      if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T_VOLUME"))
+        n--,dumplata_scalar(lata_name_lata,"DIV_LAMBDA_GRAD_T_VOLUME", div_lambda_grad_T_volume_, 0);
+      if (liste_post_instantanes_.contient_("U_DIV_RHO_U"))
+        n--,dumplata_scalar(lata_name_lata,"U_DIV_RHO_U", u_div_rho_u_, 0);
+      if (liste_post_instantanes_.contient_("DRHO_DT"))
+        n--,dumplata_scalar(lata_name_lata,"DRHO_DT", d_rho_, 0);
+      if (turbulent_viscosity_ && (!flag_nu_tensorial_) && liste_post_instantanes_.contient_("TURBULENT_MU"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU", turbulent_mu_, 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_XX"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_XX", turbulent_mu_tensor_[0], 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_XY"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_XY", turbulent_mu_tensor_[1], 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_XZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_XZ", turbulent_mu_tensor_[2], 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_YY"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_YY", turbulent_mu_tensor_[3], 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_YZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_YZ", turbulent_mu_tensor_[4], 0);
+      if (turbulent_viscosity_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_ZZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_ZZ", turbulent_mu_tensor_[5], 0);
+      if (turbulent_diffusivity_ && (!flag_kappa_vectorial_) && liste_post_instantanes_.contient_("TURBULENT_KAPPA"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA", turbulent_kappa_, 0);
+      if (turbulent_diffusivity_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_X"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_X", turbulent_kappa_vector_[0], 0);
+      if (turbulent_diffusivity_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_Y"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_Y", turbulent_kappa_vector_[1], 0);
+      if (turbulent_diffusivity_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_Z"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_Z", turbulent_kappa_vector_[2], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_XX"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_XX", structural_uu_tensor_[0], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_XY"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_XY", structural_uu_tensor_[1], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_XZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_XZ", structural_uu_tensor_[2], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_YY"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_YY", structural_uu_tensor_[3], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_YZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_YZ", structural_uu_tensor_[4], 0);
+      if (structural_uu_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_ZZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_ZZ", structural_uu_tensor_[5], 0);
+      if (structural_uscalar_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_X"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_X", structural_uscalar_vector_[0], 0);
+      if (structural_uscalar_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_Y"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_Y", structural_uscalar_vector_[1], 0);
+      if (structural_uscalar_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_Z"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_Z", structural_uscalar_vector_[2], 0);
+      if (flag_u_filtre_ && liste_post_instantanes_.contient_("VELOCITY_FILTRE"))
+        n--,dumplata_vector(lata_name_lata,"VELOCITY_FILTRE", velocity_filtre_[0], velocity_filtre_[1], velocity_filtre_[2], 0);
+      if (flag_rho_filtre_ && liste_post_instantanes_.contient_("RHO_FILTRE"))
+        n--,dumplata_scalar(lata_name_lata,"RHO_FILTRE", rho_filtre_, 0);
+      if (flag_temperature_filtre_ && liste_post_instantanes_.contient_("TEMPERATURE_FILTRE"))
+        n--,dumplata_scalar(lata_name_lata,"TEMPERATURE_FILTRE", temperature_filtre_, 0);
+      if (flag_turbulent_mu_filtre_ && (!flag_nu_tensorial_) && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE", turbulent_mu_filtre_, 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_XX"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_XX", turbulent_mu_filtre_tensor_[0], 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_XY"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_XY", turbulent_mu_filtre_tensor_[1], 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_XZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_XZ", turbulent_mu_filtre_tensor_[2], 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_YY"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_YY", turbulent_mu_filtre_tensor_[3], 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_YZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_YZ", turbulent_mu_filtre_tensor_[4], 0);
+      if (flag_turbulent_mu_filtre_ && flag_nu_tensorial_ && liste_post_instantanes_.contient_("TURBULENT_MU_FILTRE_ZZ"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_MU_FILTRE_ZZ", turbulent_mu_filtre_tensor_[5], 0);
+      if (flag_turbulent_kappa_filtre_ && (!flag_kappa_vectorial_) && liste_post_instantanes_.contient_("TURBULENT_KAPPA_FILTRE"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_FILTRE", turbulent_kappa_filtre_, 0);
+      if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_FILTRE_X"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_FILTRE_X", turbulent_kappa_filtre_vector_[0], 0);
+      if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_FILTRE_Y"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_FILTRE_Y", turbulent_kappa_filtre_vector_[1], 0);
+      if (flag_turbulent_kappa_filtre_ && flag_kappa_vectorial_ && liste_post_instantanes_.contient_("TURBULENT_KAPPA_FILTRE_Z"))
+        n--,dumplata_scalar(lata_name_lata,"TURBULENT_KAPPA_FILTRE_Z", turbulent_kappa_filtre_vector_[2], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_XX"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_XX", structural_uu_filtre_tensor_[0], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_XY"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_XY", structural_uu_filtre_tensor_[1], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_XZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_XZ", structural_uu_filtre_tensor_[2], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_YY"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_YY", structural_uu_filtre_tensor_[3], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_YZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_YZ", structural_uu_filtre_tensor_[4], 0);
+      if (flag_structural_uu_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_UU_FILTRE_ZZ"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_UU_FILTRE_ZZ", structural_uu_filtre_tensor_[5], 0);
+      if (flag_structural_uscalar_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_FILTRE_X"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_FILTRE_X", structural_uscalar_filtre_vector_[0], 0);
+      if (flag_structural_uscalar_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_FILTRE_Y"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_FILTRE_Y", structural_uscalar_filtre_vector_[1], 0);
+      if (flag_structural_uscalar_filtre_ && liste_post_instantanes_.contient_("sTRUCTURAL_USCALAR_FILTRE_Z"))
+        n--,dumplata_scalar(lata_name_lata,"sTRUCTURAL_USCALAR_FILTRE_Z", structural_uscalar_filtre_vector_[2], 0);
+      if (n>0)
+        {
+          Cerr << " Martinn n2= " << n << finl;
+          Cerr << "Il y a des noms de champs a postraiter inconnus ou dupliques dans la liste de champs a postraiter"
+               << finl << liste_post_instantanes_ << finl;
+          Process::exit();
+        }
+      compteur_post_instantanes_++;
+    }
+}
+
+
+void DNS_QC_double::save_stats(double current_time)
+{
+  if (Process::je_suis_maitre())
+    {
+      Nom nom_fichier("moyenne_spatiale_");
+      nom_fichier += Nom(current_time);
+      nom_fichier += Nom(".txt");
+      SFichier f(nom_fichier);
+      // F.A modification de la precision pour allez chercher les 4 ordres
+      f.setf(ios::scientific);
+      f.precision(15);
+      statistiques_.postraiter(f, 1 /* flag pour ecrire la moyenne instantanee */);
+      // modif AT 20/06/2013
+      if (statistiques_.check_converge())
+        {
+          Nom nom_fichier_ec("spatiale_ec_");
+          nom_fichier_ec += Nom(current_time);
+          nom_fichier_ec += Nom(".txt");
+          SFichier fk(nom_fichier_ec);
+          // F.A modification de la precision pour allez chercher les 4 ordres
+          fk.setf(ios::scientific);
+          fk.precision(15);
+          statistiques_.postraiter_k(fk,1 /* valeur spatiale */);
+        }
+    }
+
+  if (Process::je_suis_maitre() && statistiques_.t_integration() > 0.)
+    {
+      Nom nom_fichier("statistiques_");
+      nom_fichier += Nom(current_time);
+      nom_fichier += Nom(".txt");
+      SFichier fs(nom_fichier);
+      // F.A modification de la precision pour allez chercher les 4 ordres
+      fs.setf(ios::scientific);
+      fs.precision(15);
+      statistiques_.postraiter(fs,0 /* moyenne temporelle */);
+    }
+
+  if (Process::je_suis_maitre() && statistiques_.t_integration_k() > 0. )
+    {
+      Nom nom_fichier("stat_ec_");
+      nom_fichier += Nom(current_time);
+      nom_fichier += Nom(".txt");
+      SFichier fk(nom_fichier);
+      // F.A modification de la precision pour allez chercher les 4 ordres
+      fk.setf(ios::scientific);
+      fk.precision(15);
+      statistiques_.postraiter_k(fk,0 /* moyenne temporelle */);
+    }
+}
+
 void DNS_QC_double::run()
 {
   Cerr << "IJK_problem_double::run()" << finl;
@@ -9084,7 +9527,7 @@ void DNS_QC_double::run()
   if(diff_temp_negligeable_)
     Cerr << " Attention la diffusion thermique est negligee " << finl;
 
-  kernel_ = NULL;
+  kernel_ = nullptr;
   int ghost_size_filter = 0, ghost_size_d_velocity_tmp;
   if (flag_turbulent_mu_filtre_ || flag_turbulent_kappa_filtre_
       || flag_structural_uu_filtre_ || flag_structural_uscalar_filtre_
@@ -9100,10 +9543,10 @@ void DNS_QC_double::run()
       ghost_size_filter = 1 + kernel_->ghost_size();
     }
 
-  int ghost_size_velocity = flag_u_filtre_ ? max(2, ghost_size_filter) : 2;
-  int ghost_size_rho = flag_rho_filtre_ ? max(2, ghost_size_filter) : 2;
-  int ghost_size_temperature = flag_temperature_filtre_ ? max(2, ghost_size_filter) : 2;
-  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max(1, ghost_size_filter) : 1;
+  int ghost_size_velocity = flag_u_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_rho = flag_rho_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_temperature = flag_temperature_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max((int) 1, ghost_size_filter) : 1;
 
   /* allocation des tableaux */
   allocate_velocity(velocity_, splitting_, ghost_size_velocity);
@@ -9184,6 +9627,10 @@ void DNS_QC_double::run()
   divergence_.data() = 0.;
 
 
+  // bool save_next_timestep=false;
+  bool save_current_timestep=false;
+
+
   if (flag_turbulent_mu_filtre_ || flag_turbulent_kappa_filtre_
       || flag_structural_uu_filtre_ || flag_structural_uscalar_filtre_
       || flag_u_filtre_ || flag_rho_filtre_ || flag_temperature_filtre_
@@ -9234,7 +9681,7 @@ void DNS_QC_double::run()
   // DD,2017-04-27: diffusion modifie en vue de l'ajout de modeles
   if (turbulent_viscosity_)
     {
-      int ghost_size_turbulent_mu = flag_turbulent_mu_filtre_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_turbulent_mu = flag_turbulent_mu_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       if (flag_nu_tensorial_)
         {
@@ -9259,7 +9706,7 @@ void DNS_QC_double::run()
     }
   if (turbulent_diffusivity_)
     {
-      int ghost_size_turbulent_kappa = flag_turbulent_kappa_filtre_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_turbulent_kappa = flag_turbulent_kappa_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       if (flag_kappa_vectorial_)
         {
@@ -9286,7 +9733,7 @@ void DNS_QC_double::run()
     }
   if (structural_uu_)
     {
-      int ghost_size_structural_uu = flag_structural_uu_filtre_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_structural_uu = flag_structural_uu_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uu_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
       structural_uu_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
@@ -9314,7 +9761,7 @@ void DNS_QC_double::run()
     }
   if (structural_uscalar_)
     {
-      int ghost_size_structural_uscalar = flag_structural_uscalar_filtre_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_structural_uscalar = flag_structural_uscalar_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uscalar_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
       structural_uscalar_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
@@ -9392,7 +9839,7 @@ void DNS_QC_double::run()
 
   if (flag_structural_uu_tmp_)
     {
-      int ghost_size_structural_uu_tmp = flag_structural_uu_tmp_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_structural_uu_tmp = flag_structural_uu_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uu_tmp_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
@@ -9409,7 +9856,7 @@ void DNS_QC_double::run()
     }
   if (flag_structural_uscalar_tmp_)
     {
-      int ghost_size_structural_uscalar_tmp = flag_structural_uscalar_tmp_ ? max(2, ghost_size_filter) : 2;
+      int ghost_size_structural_uscalar_tmp = flag_structural_uscalar_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uscalar_tmp_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
@@ -9420,7 +9867,7 @@ void DNS_QC_double::run()
     }
   if (flag_d_velocity_tmp_)
     {
-      ghost_size_d_velocity_tmp = flag_d_velocity_tmp_ ? max(2, ghost_size_filter) : 2;
+      ghost_size_d_velocity_tmp = flag_d_velocity_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       allocate_velocity(d_velocity_tmp_, splitting_, ghost_size_d_velocity_tmp);
       d_velocity_tmp_[0].data() = 0.;
@@ -9703,17 +10150,16 @@ void DNS_QC_double::run()
                << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
                << "*****************************************************************************" << finl;
 
-          // pressure_projection_with_rho(rho_,velocity_[0], velocity_[1], velocity_[2],
-          //                              pressure_, 1.0 /* dt */, pressure_rhs_,
-          //                              1 /* check divergence */,
-          //                              poisson_solver_);
+          pressure_projection_with_rho(rho_,velocity_[0], velocity_[1], velocity_[2],
+                                       pressure_, 1.0 /* dt */, pressure_rhs_,
+                                       1 /* check divergence */,
+                                       poisson_solver_);
           pressure_.data() = 0.;
           pressure_rhs_.data() = 0.;
-          // // Echange espace virtuel inutiles car deja fait dans pressure_projection_with_rho
-          // velocity_[0].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_I*/
-          // velocity_[1].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_J*/
-          // velocity_[2].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_K*/
-          ///
+          // Echange espace virtuel inutiles car deja fait dans pressure_projection_with_rho
+          velocity_[0].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_I*/
+          velocity_[1].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_J*/
+          velocity_[2].echange_espace_virtuel(1); /*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_K*/
         }
     }
 
@@ -9906,9 +10352,20 @@ void DNS_QC_double::run()
             {
               timestep_ = dt_regule;
             }
-          else // sinon on garde
+          // We want to save each delta_t
+          if(flag_save_each_delta_t_)
             {
-              timestep_= timestep_;
+              // If the stability timestep makes us go beyond
+              // the desired next timestep
+              // change the timestep to match the next point
+              if (current_time_ + timestep_ > dt_save_cycle_)
+                {
+                  assert(timestep_ >= dt_save_cycle_ - current_time_ && "Something went wrong while trying to adapt the delta_t timestep");
+                  timestep_ = dt_save_cycle_ - current_time_;
+                  /* save_next_timestep = true; */
+                  save_current_timestep = true;
+                }
+              assert(timestep_ > 0 && "You can't have a null timestep");
             }
 
           Cout << "T= " << current_time_
@@ -9951,8 +10408,8 @@ void DNS_QC_double::run()
                 }
               else
                 {
-                  double ecart_debit =  (debit_cible_ - debit_actuel_ );
-                  double ecart_ancien = ( debit_actuel_ - debit_old );
+                  double ecart_debit =  (debit_cible_ - debit_actuel_);
+                  double ecart_ancien = (debit_actuel_ - debit_old);
                   acceleration_du_dt = ecart_debit - ecart_ancien;
                   acceleration_du_dt /= dump_factor_ * Ly_tot_ * Lz_tot_ * timestep_;
 
@@ -10057,7 +10514,6 @@ void DNS_QC_double::run()
         {
           current_time_ += timestep_;
         }
-
       // verification du fichier stop
       stop = 0;
       if (check_stop_file_ != "??")
@@ -10089,6 +10545,40 @@ void DNS_QC_double::run()
           statistiques().begin_count(postraitement_counter_);
           posttraiter_champs_instantanes(lata_name, current_time_);
           statistiques().end_count(postraitement_counter_);
+        }
+
+      if (save_current_timestep)
+        {
+          save_current_timestep=false;
+          // save_next_timestep=false;
+          Cerr << "Yanis: Raw data cycle " << finl;
+          dt_save_cycle_ += dt_save_oscillating_cycle_raw_data_;
+          statistiques().begin_count(postraitement_counter_);
+          save_raw_data(lata_name, current_time_);
+          statistiques().end_count(postraitement_counter_);
+        }
+
+      /*
+      if (current_time_ > dt_save_cycle_)
+        {
+          Cerr << "Yanis: Raw data cycle " << finl;
+          dt_save_cycle_ += dt_save_oscillating_cycle_raw_data_;
+          statistiques().begin_count(postraitement_counter_);
+          save_raw_data(lata_name, current_time_);
+          statistiques().end_count(postraitement_counter_);
+        }
+      */
+      if (tstep % dt_raw_data_ == dt_raw_data_-1)
+        {
+          Cerr << "Yanis: Raw data " << finl;
+          statistiques().begin_count(postraitement_counter_);
+          save_raw_data(lata_name, current_time_);
+          statistiques().end_count(postraitement_counter_);
+        }
+      if (tstep % dt_stats_ == dt_stats_-1)
+        {
+          Cerr << "Yanis: Stats " << finl;
+          save_stats(current_time_);
         }
       if ((tstep % dt_post_spectral_ == dt_post_-1 || stop) && (dt_post_spectral_ != -1))
         {
@@ -10376,7 +10866,7 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
           multiplier_champ_rho_face_k(false, u_div_rho_u, 1., 0., velocity[2], d_velocity_tmp[2]);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_d_velocity_tmp = max(2, ghost_size_filter);
+          ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
           d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -10433,7 +10923,7 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
             }
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_d_velocity_tmp = max(2, ghost_size_filter);
+          ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
           d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -10604,7 +11094,7 @@ void DNS_QC_double::calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_d
         }
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_d_velocity_tmp = max(2, ghost_size_filter);
+      ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
       d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -10759,7 +11249,7 @@ void DNS_QC_double::calculer_structural_diffusion_vitesse(FixedVector<IJK_Field_
                                                            d_velocity_tmp[0], d_velocity_tmp[1], d_velocity_tmp[2]);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_d_velocity_tmp = max(2, ghost_size_filter);
+      ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
       d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);

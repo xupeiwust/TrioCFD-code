@@ -225,42 +225,36 @@ protected:
 
 inline void Cut_cell_FT_Disc::add_to_persistent_double_data(DoubleTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   persistent_double_data_.add(field);
 }
 
 inline void Cut_cell_FT_Disc::add_to_transient_double_data(DoubleTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   transient_double_data_.add(field);
 }
 
 inline void Cut_cell_FT_Disc::add_to_lazy_double_data(DoubleTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   lazy_double_data_.add(field);
 }
 
 inline void Cut_cell_FT_Disc::add_to_persistent_int_data(IntTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   persistent_int_data_.add(field);
 }
 
 inline void Cut_cell_FT_Disc::add_to_transient_int_data(IntTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   transient_int_data_.add(field);
 }
 
 inline void Cut_cell_FT_Disc::add_to_lazy_int_data(IntTabFT_cut_cell& field, int dimension)
 {
-  field.set_smart_resize(1);
   field.resize(n_tot_, dimension);
   lazy_int_data_.add(field);
 }

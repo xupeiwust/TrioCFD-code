@@ -39,6 +39,7 @@ Operateur_IJK_elem_diff_base_double::Operateur_IJK_elem_diff_base_double()
 
   perio_k_ = false;
   is_hess_ = false;
+  is_flux_ = false;
 
   corrige_flux_ = nullptr;
   indicatrice_ = nullptr;

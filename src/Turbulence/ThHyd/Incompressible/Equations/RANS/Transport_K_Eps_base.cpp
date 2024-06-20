@@ -29,19 +29,8 @@
 #include <Param.h>
 #include <Debog.h>
 
-Implemente_base_sans_constructeur(Transport_K_Eps_base, "Transport_K_Eps_base", Transport_2eq_base);
+Implemente_base(Transport_K_Eps_base, "Transport_K_Eps_base", Transport_2eq_base);
 
-Transport_K_Eps_base::Transport_K_Eps_base()
-{
-  champs_compris_.ajoute_nom_compris("K_Eps_residu");
-  /*
-    Noms& nom=champs_compris_.liste_noms_compris();
-    nom.dimensionner(3);
-    nom[0]="k";
-    nom[1]="eps";
-    nom[2]="k_eps";
-  */
-}
 
 /*! @brief
  *
@@ -168,9 +157,9 @@ int Transport_K_Eps_base::controler_K_Eps()
      #endif
   */
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF,domaine_dis().valeur());
-  double LeEPS_MIN = modele_turbulence().get_LeEPS_MIN();
-  double LeEPS_MAX = modele_turbulence().get_LeEPS_MAX();
-  double LeK_MIN = modele_turbulence().get_LeK_MIN();
+  double LeEPS_MIN = modele_turbulence().get_EPS_MIN();
+  double LeEPS_MAX = modele_turbulence().get_EPS_MAX();
+  double LeK_MIN = modele_turbulence().get_K_MIN();
   const IntTab& face_voisins = domaine_vf.face_voisins();
   const IntTab& elem_faces = domaine_vf.elem_faces();
   // PL on ne fixe au seuil minimum que si negatifs

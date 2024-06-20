@@ -31,9 +31,9 @@
 #include <Debog.h>
 #include <TRUSTList.h>
 #include <EcrFicPartage.h>
-#include <Mod_turb_hyd_RANS_0_eq.h>
+#include <Modele_turbulence_hyd_Longueur_Melange_base.h>
 #include <Neumann_sortie_libre.h>
-#include <Mod_turb_hyd_combin.h>
+#include <Modele_turbulence_hyd_combinaison.h>
 #include <Param.h>
 #include <Paroi_rugueuse.h>
 #include <SFichier.h>
@@ -154,7 +154,7 @@ void remplir_face_keps_imposee_gen(int& flag_face_keps_imposee_,
 
       // Dimensionnement et initialisation de face_keps_imposee_
       if (!face_keps_imposee_.get_md_vector().non_nul())
-        domaine_VEF.creer_tableau_faces(face_keps_imposee_, Array_base::NOCOPY_NOINIT);
+        domaine_VEF.creer_tableau_faces(face_keps_imposee_, RESIZE_OPTIONS::NOCOPY_NOINIT);
       face_keps_imposee_=-2;
 
       // Remplissage de face_bords_diri donnant les faces
@@ -367,8 +367,8 @@ void remplir_face_keps_imposee_gen(int& flag_face_keps_imposee_,
                         DoubleTab coord_possible;
                         DoubleVect coord_ref;
                         int size_liste = possible.size();
-                        coord_possible.resize(size_liste,dimension,Array_base::NOCOPY_NOINIT);
-                        coord_ref.resize(dimension,Array_base::NOCOPY_NOINIT);
+                        coord_possible.resize(size_liste,dimension,RESIZE_OPTIONS::NOCOPY_NOINIT);
+                        coord_ref.resize(dimension,RESIZE_OPTIONS::NOCOPY_NOINIT);
                         coord_ref(0) = xv(ind_face,0);
                         coord_ref(1) = xv(ind_face,1);
                         if (dimension>2)
@@ -458,7 +458,7 @@ void remplir_face_keps_imposee(int& flag_face_keps_imposee_,int methode_calcul_f
     }
   if (flag_face_keps_imposee_==0)
     {
-      domaine_VEF.creer_tableau_faces(face_keps_imposee_, Array_base::NOCOPY_NOINIT);
+      domaine_VEF.creer_tableau_faces(face_keps_imposee_, RESIZE_OPTIONS::NOCOPY_NOINIT);
       face_keps_imposee_=-2;
     }
   if ((methode_calcul_face_keps_impose_==1) || (methode_calcul_face_keps_impose_==5))
@@ -1585,8 +1585,8 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
       coef_vit=nfac-1;
     }
 
-  bool LM   =(sub_type(Mod_turb_hyd_RANS_0_eq,mon_modele_turb_hyd.valeur()) ? 1 : 0); // Longueur de Melange
-  bool COMB =(sub_type(Mod_turb_hyd_combin,mon_modele_turb_hyd.valeur()) ? 1 : 0);  //Modele Combinaison (fonction analytique et (ou) dependance a des champs sources)
+  bool LM   =(sub_type(Modele_turbulence_hyd_Longueur_Melange_base,mon_modele_turb_hyd.valeur()) ? 1 : 0); // Longueur de Melange
+  bool COMB =(sub_type(Modele_turbulence_hyd_combinaison,mon_modele_turb_hyd.valeur()) ? 1 : 0);  //Modele Combinaison (fonction analytique et (ou) dependance a des champs sources)
 
   // Loop on boundaries
   int nb_bords=domaine_VEF.nb_front_Cl();
@@ -1674,7 +1674,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
               // La valeur de dist_corr n est valable que dans le cas particuler ou nu_t est fonction lineaire de y
               if (COMB)
                 {
-                  Mod_turb_hyd_combin& modele_turb = ref_cast(Mod_turb_hyd_combin,mon_modele_turb_hyd.valeur());
+                  Modele_turbulence_hyd_combinaison& modele_turb = ref_cast(Modele_turbulence_hyd_combinaison,mon_modele_turb_hyd.valeur());
                   if (modele_turb.nombre_sources()==0)
                     tab_nu_t(elem) *= dist_corr;
                 }
@@ -1772,7 +1772,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
               // La valeur de dist_corr n est valable que dans le cas particuler ou nu_t est fonction lineaire de y
               if (COMB)
                 {
-                  Mod_turb_hyd_combin& modele_turb = ref_cast(Mod_turb_hyd_combin,mon_modele_turb_hyd.valeur());
+                  Modele_turbulence_hyd_combinaison& modele_turb = ref_cast(Modele_turbulence_hyd_combinaison,mon_modele_turb_hyd.valeur());
                   if (modele_turb.nombre_sources()==0)
                     tab_nu_t(elem) *= dist_corr;
                 }

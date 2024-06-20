@@ -223,6 +223,7 @@ protected:
   bool is_uniform_;
   bool is_corrected_;
   bool is_hess_;
+  bool is_flux_;
 
 };
 

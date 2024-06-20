@@ -26,8 +26,6 @@
 #include <Operateur_IJK_faces_conv.h>
 #include <Operateur_IJK_faces_diff.h>
 #include <Operateur_IJK_elem_conv.h>
-//#include <OpDiffTurbIJK.h>
-//#include <OpConvIJKQuickSharp.h>
 #include <Multigrille_Adrien.h>
 #include <Interprete.h>
 #include <IJK_Lata_writer.h>

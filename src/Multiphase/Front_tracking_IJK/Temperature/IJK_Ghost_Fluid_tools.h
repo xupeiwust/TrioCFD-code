@@ -30,7 +30,8 @@
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
-
+#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
+#define selectxy(a,x,y) ((a==0)?(x):(y))
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -44,7 +45,17 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                                                              IJK_Field_double& distance,
                                                              FixedVector<IJK_Field_double, 3>& normal_vect,
                                                              FixedVector<IJK_Field_double, 3>& facets_barycentre,
-                                                             const int& n_iter);
+                                                             FixedVector<IJK_Field_double, 3>& tmp_old_vector_val,
+                                                             FixedVector<IJK_Field_double, 3>& tmp_new_vector_val,
+                                                             IJK_Field_double& tmp_old_val,
+                                                             IJK_Field_double& tmp_new_val,
+                                                             IJK_Field_int& tmp_interf_cells,
+                                                             IJK_Field_int& tmp_propagated_cells,
+                                                             FixedVector<ArrOfInt,3>& interf_cells_indices,
+                                                             FixedVector<ArrOfInt,3>& gfm_first_cells_indices_,
+                                                             FixedVector<ArrOfInt,3>& propagated_cells_indices,
+                                                             const int& n_iter,
+                                                             const int& avoid_gfm_parallel_calls=0);
 
 void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double& distance,
                                                           IJK_Field_double& curvature,
@@ -58,6 +69,8 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,
+                                                     IJK_Field_double& tmp_old_val,
+                                                     IJK_Field_double& tmp_new_val,
                                                      const int& n_iter,
                                                      int igroup);
 
@@ -67,19 +80,58 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                                                             const IJK_Field_double& curvature,
                                                             const	IJK_Field_double& temperature,
                                                             IJK_Field_double& grad_T_interface,
-                                                            const int& spherical_approx);
+                                                            const int& spherical_approx,
+                                                            const double& temperature_interf=0);
 
 void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfaces& interfaces,
                                                               const IJK_Field_double& distance,
                                                               IJK_Field_double& grad_T_interface,
-                                                              const int stencil_width,
-                                                              const int recompute_field_ini=1,
-                                                              const int zero_neighbour_value_mean=0,
-                                                              const int vapour_mixed_only=1);
+                                                              const int& stencil_width,
+                                                              const int& recompute_field_ini=1,
+                                                              const int& zero_neighbour_value_mean=0,
+                                                              const int& vapour_mixed_only=1,
+                                                              const int& smooth_factor=10);
 
 void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            const IJK_Field_double& distance,
                                            const IJK_Field_double& curvature,
                                            IJK_Field_double& grad_T_interface,
                                            IJK_Field_double& temperature,
-                                           const int& spherical_approx);
+                                           const int& spherical_approx,
+                                           const double& temperature_interf=0);
+
+void smooth_vector_field(FixedVector<IJK_Field_double, 3>& vector_field,
+                         FixedVector<IJK_Field_double, 3>& vector_field_init,
+                         const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                         const IJK_Interfaces& interfaces,
+                         const double (&direct_smoothing_factors) [7],
+                         const double (&gaussian_smoothing_factors) [3][3][3],
+                         const int& smooth_numbers=1,
+                         const int& remove_normal_compo=0,
+                         const int& direct_neighbours=0,
+                         const int& use_field_init=1,
+                         const int& use_unique_phase=1);
+
+void smooth_eulerian_field(IJK_Field_double& field,
+                           IJK_Field_double& field_init,
+                           const int& c,
+                           FixedVector<IJK_Field_double, 3>& vector_field_init,
+                           const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                           const IJK_Interfaces& interfaces,
+                           const double (&direct_smoothing_factors) [7],
+                           const double (&gaussian_smoothing_factors) [3][3][3],
+                           const int& smooth_numbers=1,
+                           const int& remove_normal_compo=0,
+                           const int& direct_neighbours=0,
+                           const int& use_field_init=1,
+                           const int& use_unique_phase=1);
+
+void fill_tangential_gradient(const FixedVector<IJK_Field_double, 3>& vector_field,
+                              const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                              FixedVector<IJK_Field_double, 3>& tangential_vector_field);
+
+void fill_tangential_gradient_compo(const FixedVector<IJK_Field_double, 3>& vector_field,
+                                    const FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed,
+                                    IJK_Field_double& tangential_field,
+                                    const int& dir);
+

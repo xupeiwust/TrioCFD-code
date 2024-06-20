@@ -46,4 +46,18 @@ protected :
   void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) override;
 };
 
+class OpGradFluxCentre2IJKScalar_double : public OpGradCentre2IJKScalar_double
+{
+  Declare_instanciable_sans_constructeur(OpGradFluxCentre2IJKScalar_double);
+public:
+  OpGradFluxCentre2IJKScalar_double() : OpGradCentre2IJKScalar_double() { is_flux_ = true; }
+  void calculer_grad_flux(const IJK_Field_double& field,
+                          const IJK_Field_double& vx,
+                          const IJK_Field_double& vy,
+                          const IJK_Field_double& vz,
+                          FixedVector<IJK_Field_double, 3>& result);
+  void fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir) override;
+  void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) override;
+};
+
 #endif /* OpGradCentre2IJKScalar_included */

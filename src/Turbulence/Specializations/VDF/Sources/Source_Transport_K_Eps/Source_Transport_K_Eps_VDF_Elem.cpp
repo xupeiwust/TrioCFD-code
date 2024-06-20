@@ -85,7 +85,7 @@ void Source_Transport_K_Eps_VDF_Elem::fill_resu(const DoubleVect& P, DoubleTab& 
 {
   const DoubleVect& volumes = le_dom_VDF->volumes(), &porosite_vol = le_dom_Cl_VDF->equation().milieu().porosite_elem();
   const DoubleTab& K_eps = mon_eq_transport_K_Eps->inconnue().valeurs();
-  const double LeK_MIN = mon_eq_transport_K_Eps->modele_turbulence().get_LeK_MIN();
+  const double LeK_MIN = mon_eq_transport_K_Eps->modele_turbulence().get_K_MIN();
   for (int elem = 0; elem < le_dom_VDF->nb_elem(); elem++)
     {
       resu(elem,0) += (P(elem)-K_eps(elem,1))*volumes(elem)*porosite_vol(elem);
@@ -100,7 +100,7 @@ void Source_Transport_K_Eps_VDF_Elem::ajouter_blocs(matrices_t matrices, DoubleT
   Source_Transport_VDF_Elem_base::ajouter_keps(secmem);
 
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
-  Matrice_Morse* mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : NULL;
+  Matrice_Morse* mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr;
   if(!mat) return;
 
   const DoubleTab& val=equation().inconnue().valeurs();

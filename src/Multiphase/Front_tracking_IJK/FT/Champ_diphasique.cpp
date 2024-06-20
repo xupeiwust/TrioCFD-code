@@ -365,10 +365,10 @@ Cut_field_scalar::Cut_field_scalar(IJK_Field_double& field) :
 {
 }
 
-void Cut_field_scalar::echange_espace_virtuel(int le_ghost, double jump_i)
+void Cut_field_scalar::echange_espace_virtuel(int le_ghost)
 {
   Cut_cell_scalar::echange_espace_virtuel();
-  pure_.echange_espace_virtuel(le_ghost, jump_i);
+  pure_.echange_espace_virtuel(le_ghost);
 }
 
 void Cut_field_scalar::remplir_cellules_diphasiques()
@@ -600,12 +600,12 @@ Cut_field_vector::Cut_field_vector(FixedVector<IJK_Field_double, 3>& field) :
 {
 }
 
-void Cut_field_vector::echange_espace_virtuel(int le_ghost, double jump_i)
+void Cut_field_vector::echange_espace_virtuel(int le_ghost)
 {
   Cut_cell_vector::echange_espace_virtuel();
-  pure_[0].echange_espace_virtuel(le_ghost, jump_i);
-  pure_[1].echange_espace_virtuel(le_ghost, jump_i);
-  pure_[2].echange_espace_virtuel(le_ghost, jump_i);
+  pure_[0].echange_espace_virtuel(le_ghost);
+  pure_[1].echange_espace_virtuel(le_ghost);
+  pure_[2].echange_espace_virtuel(le_ghost);
 }
 
 void Cut_field_vector::remplir_cellules_diphasiques()

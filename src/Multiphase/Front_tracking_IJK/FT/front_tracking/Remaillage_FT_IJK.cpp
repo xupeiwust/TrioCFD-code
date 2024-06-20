@@ -49,11 +49,11 @@ Sortie& Remaillage_FT_IJK::printOn(Sortie& os) const
      << "     pas_remaillage " << dt_remaillage_ << "\n"
      << "     nb_iter_barycentrage " << nb_iter_barycentrage_ << "\n"
      << "     relax_barycentrage " << relax_barycentrage_ << "\n";
-  os     << "     critere_arete " << critere_arete_ << "\n"
-         << "     seuil_dvolume_residuel " << seuil_dvolume_residuel_ << "\n";
-  os     << "     nb_iter_correction_volume " << nb_iter_bary_volume_seul_ << "\n"
-         << "     nb_iter_remaillage " << nb_iter_remaillage_ << "\n"
-         << "     facteur_longueur_ideale " << facteur_longueur_ideale_ << "\n";
+  os << "     critere_arete " << critere_arete_ << "\n"
+     << "     seuil_dvolume_residuel " << seuil_dvolume_residuel_ << "\n";
+  os << "     nb_iter_correction_volume " << nb_iter_bary_volume_seul_ << "\n"
+     << "     nb_iter_remaillage " << nb_iter_remaillage_ << "\n"
+     << "     facteur_longueur_ideale " << facteur_longueur_ideale_ << "\n";
   os << "     equilateral " << equilateral_ << "\n"
      << "     lissage_courbure_coeff " << lissage_courbure_coeff_ << "\n"
      << "     lissage_courbure_iterations_systematique " << lissage_courbure_iterations_systematique_ << "\n"
@@ -78,6 +78,7 @@ Entree& Remaillage_FT_IJK::readOn(Entree& is)
   p.ajouter("lissage_courbure_iterations_systematique", &lissage_courbure_iterations_systematique_); // XD_ADD_P entier not_set
   p.ajouter("lissage_courbure_iterations_si_remaillage", &lissage_courbure_iterations_si_remaillage_); // XD_ADD_P entier not_set
   p.lire_avec_accolades_depuis(is);
+
   Cout << "Remaillage_FT_IJK::readOn : Les options lues sont : " << finl;
   p.print(Cout);
 
@@ -94,7 +95,7 @@ Entree& Remaillage_FT_IJK::readOn(Entree& is)
 void Remaillage_FT_IJK::barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& maillage,
                                                             ArrOfDouble& var_volume)
 {
-  static Stat_Counter_Id barycentre_lissage_sys_counter_ = statistiques().new_counter(2, "remaillage interf: bary/lissage systematiques");
+  static Stat_Counter_Id barycentre_lissage_sys_counter_ = statistiques().new_counter(2, "Remaillage interf: bary/lissage systematiques");
   statistiques().begin_count(barycentre_lissage_sys_counter_);
   regulariser_maillage(maillage,
                        var_volume,
@@ -106,13 +107,11 @@ void Remaillage_FT_IJK::barycentrer_lisser_systematique_ijk(Maillage_FT_Disc& ma
                        seuil_dvolume_residuel_);
   supprimer_facettes_bord(maillage);
   statistiques().end_count(barycentre_lissage_sys_counter_);
-
-
 }
 
 void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& maillage, ArrOfDouble& var_volume)
 {
-  static Stat_Counter_Id barycentre_lissage_apres_counter_ = statistiques().new_counter(2, "remaillage local : bary/lissage apres remaillage");
+  static Stat_Counter_Id barycentre_lissage_apres_counter_ = statistiques().new_counter(2, "Remaillage local: bary/lissage apres remaillage");
   statistiques().begin_count(barycentre_lissage_apres_counter_);
   regulariser_maillage(maillage, var_volume,
                        relax_barycentrage_,
@@ -125,14 +124,13 @@ void Remaillage_FT_IJK::barycentrer_lisser_apres_remaillage(Maillage_FT_Disc& ma
   // Dans le doute, je laisse l'appel a nettoyer_maillage :
   nettoyer_maillage(maillage);
   statistiques().end_count(barycentre_lissage_apres_counter_);
-
 }
 
 // Surcharge de Remaillage_FT::diviser_grandes_aretes(Maillage_FT_Disc& maillage) const
 // A la creation des facettes, il faut leur attribuer un numero de compo connexe dans compo_connex_facettes_.
 int Remaillage_FT_IJK::diviser_grandes_aretes(Maillage_FT_IJK& maillage) const
 {
-  static Stat_Counter_Id sup_div_aretes_counter_ = statistiques().new_counter(2, "remaillage local : suppressions / divisions aretes");
+  static Stat_Counter_Id sup_div_aretes_counter_ = statistiques().new_counter(2, "Remaillage local: suppressions / divisions aretes");
   statistiques().begin_count(sup_div_aretes_counter_);
   static int compteur = 0;
   static int test_val = -1;
@@ -382,7 +380,7 @@ int Remaillage_FT_IJK::diviser_grandes_aretes(Maillage_FT_IJK& maillage) const
 
 void Remaillage_FT_IJK::remaillage_local_interface(double temps, Maillage_FT_IJK& maillage)
 {
-  static Stat_Counter_Id remaillage_loc_interf_counter_ = statistiques().new_counter(2, "remaillage interf: remaillage local");
+  static Stat_Counter_Id remaillage_loc_interf_counter_ = statistiques().new_counter(2, "Remaillage interf: remaillage local");
   statistiques().begin_count(remaillage_loc_interf_counter_);
   temps_dernier_remaillage_ = temps_dernier_lissage_ = temps_ = temps;
 
@@ -432,7 +430,6 @@ void Remaillage_FT_IJK::remaillage_local_interface(double temps, Maillage_FT_IJK
 
   nettoyer_maillage(maillage);
   statistiques().end_count(remaillage_loc_interf_counter_);
-
 }
 
 Vecteur3 Remaillage_FT_IJK::get_delta_euler(const Maillage_FT_IJK& maillage) const

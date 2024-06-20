@@ -35,7 +35,7 @@
 #include <Statistiques.h>
 #include <stat_counters.h>
 #include <Fluide_Incompressible.h>
-#include <Mod_turb_hyd_RANS_keps.h>
+#include <Modele_turbulence_hyd_RANS_K_Eps_base.h>
 #include <Pb_Hydraulique_Turbulent.h>
 #include <Champ_P1NC.h>
 #include <Postraitement.h>
@@ -107,7 +107,7 @@ Entree& Traitement_particulier_NS_CEG::lire(Entree& is)
   param.ajouter("dt_post",&dt_post_); // XD_ADD_P double periode refers to the printing period, this value is expressed in seconds
   param.ajouter("haspi",&haspi_,Param::REQUIRED); // XD_ADD_P double The suction height  required to calculate AREVA's criterion
   param.ajouter("debug",&debug_); // XD_ADD_P int not_set
-  Param& param_areva=param.ajouter_param("AREVA"); //XD_ADD_P ceg_areva AREVA's criterion
+  Param& param_areva=param.ajouter_param("AREVA"); // XD_ADD_P ceg_areva AREVA's criterion
   // 2XD ceg_areva objet_lecture nul -1 not_set
   param_areva.ajouter("C",&C_);  // 2XD_ADD_P double not_set
   Param& param_cea_jaea =param.ajouter_param("CEA_JAEA"); // XD_ADD_P ceg_cea_jaea CEA_JAEA's criterion
@@ -163,7 +163,7 @@ void Traitement_particulier_NS_CEG::preparer_calcul_particulier()
     }
   // KEps si critere AREVA
   if (calculer_critere_areva_)
-    if (!sub_type(Pb_Hydraulique_Turbulent,mon_equation->probleme()) || !sub_type(Mod_turb_hyd_RANS_keps,ref_cast(Navier_Stokes_Turbulent,ref_cast(Pb_Hydraulique_Turbulent,mon_equation->probleme()).equation(0)).modele_turbulence().valeur()))
+    if (!sub_type(Pb_Hydraulique_Turbulent,mon_equation->probleme()) || !sub_type(Modele_turbulence_hyd_RANS_K_Eps_base,ref_cast(Navier_Stokes_Turbulent,ref_cast(Pb_Hydraulique_Turbulent,mon_equation->probleme()).equation(0)).modele_turbulence().valeur()))
       error("AREVA criterion can only be calculated with a RANS K-eps simulation.");
 
   // Vorticite dans le jeu de donnees si AREVA
@@ -199,7 +199,7 @@ void Traitement_particulier_NS_CEG::critere_areva()
   const DoubleTab& vitesse = mon_equation->inconnue().valeurs();
   const DoubleTab& vorticite = mon_equation.valeur().get_champ("vorticite").valeurs();
   const Navier_Stokes_Turbulent& eqn = ref_cast(Navier_Stokes_Turbulent,ref_cast(Pb_Hydraulique_Turbulent,mon_equation->probleme()).equation(0));
-  const DoubleTab& KEps = ref_cast(Mod_turb_hyd_RANS_keps,eqn.modele_turbulence().valeur()).equation_k_eps(0).inconnue().valeurs();
+  const DoubleTab& KEps = ref_cast(Modele_turbulence_hyd_RANS_K_Eps_base,eqn.modele_turbulence().valeur()).equation_k_eps(0).inconnue().valeurs();
 
   double gz = mon_equation->milieu().gravite()(0,2);
   double K_max_local=0;

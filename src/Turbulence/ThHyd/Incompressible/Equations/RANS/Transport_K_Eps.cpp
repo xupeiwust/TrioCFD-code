@@ -139,7 +139,7 @@ int Transport_K_Eps::lire_motcle_non_standard(const Motcle& mot, Entree& is)
       is >> terme_convectif;
       return 1;
     }
-  else if ((mot=="ecrire_fichier_xyz_valeur") || (mot=="ecrire_fichier_xyz_valeur_bin"))
+  else if (mot=="ecrire_fichier_xyz_valeur")
     {
       Cerr << mot << " is not understood by " << que_suis_je() << finl;
       Cerr << "Use this keyword in the Navier Stokes equation, not in KEps equation, please." << finl;
@@ -154,7 +154,7 @@ int Transport_K_Eps::lire_motcle_non_standard(const Motcle& mot, Entree& is)
  *
  * @param (Modele_turbulence_hyd_K_Eps& modele) le modele de turbulence K-epsilon a asoocier a l'equation
  */
-void Transport_K_Eps::associer_modele_turbulence(const Mod_turb_hyd_RANS_keps& modele)
+void Transport_K_Eps::associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base& modele)
 {
   const Equation_base& eqn_hydr = modele.equation();
   associer(eqn_hydr);

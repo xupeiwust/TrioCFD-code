@@ -60,7 +60,13 @@ Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Obje
 IJK_Interfaces::IJK_Interfaces() :
   cut_field_deformation_velocity_(deformation_velocity_)
 {
-  old_en_premier_ = true;
+  lata_interfaces_meshname_ = nom_par_defaut_interfaces;
+
+  positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
+  mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
+
+  compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
+
   dt_impression_bilan_indicatrice_ = -1;
   verbosite_surface_efficace_face_ = 1;
   verbosite_surface_efficace_interface_ = 1;
@@ -70,11 +76,25 @@ IJK_Interfaces::IJK_Interfaces() :
   disable_rigid_rotation_ = 1;
 }
 
+static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr, DoubleTab& tab)
+{
+  int size_fixed_arr[3] = {0,0,0};
+  for (int c=0; c<3; c++)
+    size_fixed_arr[c] = fixed_arr[c].size_array();
+  assert(size_fixed_arr[0] == size_fixed_arr[1]);
+  assert(size_fixed_arr[0] == size_fixed_arr[2]);
+  tab.reset();
+  tab.resize(size_fixed_arr[0],3);
+  for (int c=0; c<3; c++)
+    for (int l=0; l<size_fixed_arr[0]; l++)
+      tab(l,c) = fixed_arr[c](l);
+}
+
 
 // Ajoute ceci dans le fichier lata maitre:
-//  GEOM meshname type_elem=TRIANGLE_3D
-//  CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
-//  CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
+// GEOM meshname type_elem=TRIANGLE_3D
+// CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
+// CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
 void dumplata_ft_mesh(const char *filename, const char *meshname,
                       const Maillage_FT_IJK& mesh, int step)
 {
@@ -206,7 +226,6 @@ void runge_kutta3_update(const DoubleTab& dvi, DoubleTab& G, DoubleTab& l, const
   const int nbsom = maillage.nb_sommets();
 
   // Resize du tableau
-  //  G.set_smart_resize(1) ?
   G.resize(nbsom, 3);
 
   switch (step)
@@ -311,13 +330,15 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
       os << "  bubble_groups " << compo_to_group_;
     }
   if (flag_positions_reference_)
-    {
-      os << "  positions_reference " << positions_reference_;
-    }
+    os << "  positions_reference " << positions_reference_;
+
   if (parcours_.get_correction_parcours_thomas())
-    {
-      os << "  parcours_interface { correction_parcours_thomas } " << "\n";
-    }
+    os << "  parcours_interface { correction_parcours_thomas } " << "\n";
+
+  if (use_barycentres_velocity_)
+    os << "use_barycentres_velocity" << "\n";
+  if (read_barycentres_velocity_)
+    os << "use_barycentres_velocity" << "\n";
 
   double max_force_compo = 0.;
   if (mean_force_.size_array() > 0)
@@ -337,58 +358,9 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 // XD interfaces interprete nul 1 not_set
 Entree& IJK_Interfaces::readOn(Entree& is)
 {
-  is_diphasique_ = true;
-  lata_interfaces_meshname_ = nom_par_defaut_interfaces;
-  reprise_ = 0;
-  timestep_reprise_interface_ = 1;
-  //timestep_sauvegarde_interface_ = 1;
-  fichier_sauvegarde_interface_ = "??";
-  portee_force_repulsion_ = 1e-8;
-  //delta_p_max_repulsion_ = 0.; // desactive par defaut
-  portee_wall_repulsion_ = 1e-8;
-  //delta_p_wall_max_repulsion_ = 0.; // desactive par defaut
-  //active_repulsion_paroi_ = 0;      // La repulsion paroi est desactive par defaut,
-  // meme si l'inter-bulles l'est
-  //follow_colors_ = 0;
-  RK3_G_store_vi_.set_smart_resize(1);
-  vinterp_.set_smart_resize(1);
-  var_volume_deformation_.set_smart_resize(1);
-  var_volume_remaillage_.set_smart_resize(1);
-  var_volume_correction_globale_.set_smart_resize(1);
-  distance_autres_interfaces_.set_smart_resize(1);
-  ghost_compo_converter_.set_smart_resize(1);
-  //nb_bulles_ghost_ = 0;
-  nb_bulles_ghost_before_ = 0;
-  //nb_bulles_reelles_ = 0;
-  compute_distance_autres_interfaces_ = 0;
-  recompute_indicator_ = 1; // doit-on calculer l'indicatrice avec une methode
-  // de debug (1) ou optimisee (0) ?
-  parser_ = 0;              // doit-on calculer le forcage avec une methode de parser (1,
-  // lente) ou optimisee basee sur le num_compo_ (0) ?
-  //             Dans le cas ou parser_ est a zero, il faut que
-  //             recompute_indicator_ soit a 1, car c'est cette methode qui
-  //             rempli num_compo_
-
-  // Pour calculer le terme source comme grad(potentiel*I) au lieu de
-  // potentiel_face*gradI
-  //correction_gradient_potentiel_ = 0;
-  terme_gravite_ = GRAVITE_GRAD_I; // Par defaut terme gravite ft sans courants parasites
-
-  // ncells_forbidden_ est le nombre de mailles au bord du domaine etendu ou on
-  // interdit a des bulles d'entrer (bulles detruites et remplacees par leur
-  // duplicata de l'autre cote)
-  ncells_forbidden_ = 3; // Valeur recommandee par defaut.
-  // Suppression des bulles sur le pourtour du domaine lors de la sauvegarde
-  // finale.
-  ncells_deleted_ = -1;           // Valeur recommandee par defaut. On ne veut pas supprimer de bulles.
-  //frozen_ = 0;                    // By default, we want the motion of the interfaces.
-  //flag_positions_reference_ = 0;  // Pas de position de reference imposee
-  positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
-  mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
-
   Param param(que_suis_je());
-  //nb_groups_ = 1;            // Par defaut toutes les bulles sont dans le meme group.
-  compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
+  lata_interfaces_meshname_ = nom_par_defaut_interfaces; // This line is necessary for reprendre_probleme in IJK_FT_base
+
   param.ajouter("bubble_groups", &compo_to_group_);
   param.ajouter("fichier_reprise_interface", &fichier_reprise_interface_, Param::REQUIRED); // XD_ADD_P  chaine not_set
   param.ajouter("timestep_reprise_interface", &timestep_reprise_interface_); // XD_ADD_P entier not_set
@@ -415,18 +387,24 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("verbosite_surface_efficace_interface", &verbosite_surface_efficace_interface_);
   param.ajouter("seuil_indicatrice_petite", &seuil_indicatrice_petite_);
 
+  param.ajouter_flag("use_barycentres_velocity", &use_barycentres_velocity_);
+  param.ajouter_flag("read_barycentres_velocity", &read_barycentres_velocity_);
+
   // param.ajouter_non_std("terme_gravite",(this));
   param.ajouter("terme_gravite", &terme_gravite_); // XD_ADD_P chaine(into=["rho_g","grad_i"]) not_set
   param.dictionnaire("rho_g", GRAVITE_RHO_G);
   param.dictionnaire("grad_i", GRAVITE_GRAD_I);
 
   param.lire_avec_accolades(is);
+
   Cout << "IJK_Interfaces::readOn : Option gravite : " << terme_gravite_
        << " { " << (int)GRAVITE_RHO_G << " : GRAVITE_RHO_G, "
        << (int)GRAVITE_GRAD_I << " : GRAVITE_GRAD_I} "
        << finl;
+
   //    Cout << "IJK_Interfaces::readOn : Les options lues sont : " << finl;
   //    param.print(Cout);
+
   if (compo_to_group_.size_array() != 0)
     {
       nb_groups_ = max_array(compo_to_group_) + 1;
@@ -721,7 +699,6 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   Cerr << "Entree dans IJK_Interfaces::initialize" << finl;
 
   int nalloc = 0;
-  // normale_par_compo_is_set_ = false;
   set_recompute_indicator(CLASSIC_METHOD);
 
   ref_splitting_ = splitting_FT;
@@ -745,6 +722,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   indicatrice_ns_[next()].data() = 1.;
   indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
+  nalloc += 4;
   indicatrice_avant_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
   indicatrice_avant_remaillage_ft_.data() = 1.;
   indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
@@ -760,7 +738,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   delta_volume_theorique_bilan_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
   delta_volume_theorique_bilan_ns_.data() = 0.;
   delta_volume_theorique_bilan_ns_.echange_espace_virtuel(delta_volume_theorique_bilan_ns_.ghost());
-  nalloc += 8;
+  nalloc += 5;
   allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
   allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
   nalloc += 6;
@@ -955,9 +933,19 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
           // laquelle on declanche la duplication des bulles (si une bulle depasse a
           // l'exterieur du domaine, on duplique) Cette domaine tient compte du stencil
           // des forces de tension superficielle et de repulsion
-          const double duplicate_stencil_width =
-            std::max(1 * delta,
-                     portee_force_repulsion_); // GB2020.12.20 : avant c'etait 2. Est-ce
+          //duCluz  : 2 cest mieux pour les echanges espaces virtuels pour la condition de shear-periodicite
+          double duplicate_stencil_width ;
+
+          if(IJK_Shear_Periodic_helpler::defilement_ == 1)
+            duplicate_stencil_width =
+              std::max(2 * delta,
+                       portee_force_repulsion_);
+          else
+            duplicate_stencil_width =
+              std::max(delta,
+                       portee_force_repulsion_);
+
+          // GB2020.12.20 : avant c'etait 2. Est-ce
           // que la precaution etait necessaire? Elle
           // conduit a de plus gros cas tests comme
           // interfacial_temperature_and_flux
@@ -1078,9 +1066,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   /*
    * TODO: Add nalloc
    */
+  read_bubbles_barycentres_old_new(fichier_reprise_interface_);
   intersection_ijk_cell_.initialize(splitting_NS, *this);
   intersection_ijk_face_.initialize(splitting_NS, *this);
-  nalloc += ijk_compo_connex_.initialize(splitting_NS, *this, is_switch);
+  nalloc += ijk_compo_connex_.initialize(*this, is_switch);
   return nalloc;
 }
 
@@ -1370,11 +1359,13 @@ void IJK_Interfaces::supprimer_certaines_bulles_reelles()
 
 // Attention a l'usage du mot cle 'ncells_deleted_' qui conduit a la suppression
 // de bulles (reelles) et pas uniquement des ghosts.
-void IJK_Interfaces::sauvegarder_interfaces(const char *lata_name) // const
+void IJK_Interfaces::sauvegarder_interfaces(const char *lata_name, const Nom& interf_name) // const
 {
   fichier_sauvegarde_interface_ = lata_name;
   timestep_sauvegarde_interface_ = 1;
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+
+  store_bubbles_barycentres(interf_name);
 
   // Suppression des bulles dans le domaine a eliminer pres des bords periodiques
   // lors de la sauvegarde.
@@ -1455,7 +1446,7 @@ void IJK_Interfaces::calculer_surface_bulles(ArrOfDouble& surfaces) const
   const int n = mesh.nb_facettes();
   const int nbulles_reelles = get_nb_bulles_reelles();
   const int nbulles_ghost = get_nb_bulles_ghost();
-  surfaces.resize_array(nbulles_reelles + nbulles_ghost, Array_base::NOCOPY_NOINIT);
+  surfaces.resize_array(nbulles_reelles + nbulles_ghost, RESIZE_OPTIONS::NOCOPY_NOINIT);
   surfaces = 0.;
   const ArrOfDouble& surfaces_facettes = mesh.get_update_surface_facettes();
   const ArrOfInt& compo_facettes = mesh.compo_connexe_facettes();
@@ -1524,16 +1515,313 @@ void IJK_Interfaces::update_surface_normale() const
   return;
 }
 
-void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite) const
+void IJK_Interfaces::reset_flags_and_counters()
+{
+  has_computed_bubble_barycentres_ = false;
+}
+
+void IJK_Interfaces::read_bubbles_barycentres_old_new(const Nom& interf_name)
+{
+  if (reprise_ && use_barycentres_velocity_)
+    read_barycentres_velocity_ = 1;
+  if (read_barycentres_velocity_)
+    {
+      has_readen_barycentres_prev_ = true;
+      bool tmp_readen_flag = false;
+      Nom suffix_tmp = ".old";
+      FixedVector<ArrOfDouble,3> bubbles_bary_old;
+      tmp_readen_flag = read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_old);
+      if (tmp_readen_flag)
+        FixedVector_to_DoubleTab(bubbles_bary_old, bubbles_bary_old_);
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
+
+      suffix_tmp = ".new";
+      FixedVector<ArrOfDouble,3> bubbles_bary_new;
+      tmp_readen_flag = read_bubbles_barycentres(interf_name, suffix_tmp, bubbles_bary_new);
+      if (tmp_readen_flag)
+        FixedVector_to_DoubleTab(bubbles_bary_new, bubbles_bary_new_);
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
+
+      FixedVector<ArrOfDouble,3> bubbles_rising_dir;
+      FixedVector<ArrOfDouble,3> bubbles_rising_vel;
+      tmp_readen_flag = read_bubbles_barycentres_vel(interf_name, bubbles_rising_dir, bubbles_rising_vel, bubbles_velocities_bary_magnitude_);
+      if (tmp_readen_flag)
+        {
+          FixedVector_to_DoubleTab(bubbles_rising_dir, bubbles_rising_vectors_bary_);
+          FixedVector_to_DoubleTab(bubbles_rising_vel, bubbles_velocities_bary_);
+        }
+      has_readen_barycentres_prev_ = has_readen_barycentres_prev_ && tmp_readen_flag;
+    }
+}
+
+bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
+                                                  FixedVector<ArrOfDouble,3>& bubbles_rising_dir,
+                                                  FixedVector<ArrOfDouble,3>& bubbles_rising_vel,
+                                                  ArrOfDouble& bubbles_rising_vel_mag)
+{
+  bool is_readen = false;
+  int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
+  bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
+  bubbles_rising_vel_mag.reset();
+  for (int c=0; c<3; c++)
+    {
+      bubbles_rising_dir[c].reset();
+      bubbles_rising_vel[c].reset();
+    }
+  int ibubble = 0;
+  if (bubbles_bary_computed)
+    {
+      int line_counter = 0;
+      int var_index = 0;
+      int dir = 0;
+      std::string line;
+      const Nom interf_dir = dirname(interf_name);
+      const Nom case_name = (Objet_U::nom_du_cas());
+      const Nom suffix_bary = ".sauv.barycentres";
+      const Nom file_folder = interf_dir + case_name + suffix_bary + ".vel";
+      // creating an ifstream object named file
+      ifstream read_tmp;
+      read_tmp.open(file_folder);
+      const bool read_file = read_tmp ? true : false;
+      read_tmp.close();
+      if (read_file)
+        {
+          EFichier fic_bary_vel(file_folder);
+          ifstream& ifstream_bary_vel = fic_bary_vel.get_ifstream();
+          const char delimiter = ' ';
+          Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
+          while (std::getline(ifstream_bary_vel, line))
+            {
+              std::stringstream ssline(line);
+              Cerr << "Line number: " << line_counter << finl;
+              while (std::getline(ssline, line, delimiter))
+                {
+                  if(line_counter)
+                    {
+                      Cerr << "Param: " << line << finl;
+                      switch(var_index)
+                        {
+                        case 0:
+                          break;
+                        case 1:
+                        case 2:
+                        case 3:
+                          dir = var_index - 1;
+                          bubbles_rising_vel[dir].append_array(std::stod(line));
+                          break;
+                        case 4:
+                        case 5:
+                        case 6:
+                          dir = var_index - 4;
+                          bubbles_rising_dir[dir].append_array(std::stod(line));
+                          break;
+                        case 7:
+                          bubbles_rising_vel_mag.append_array(std::stod(line));
+                          break;
+                        default:
+                          break;
+                        }
+                      var_index++;
+                    }
+                }
+              var_index = 0;
+              if(line_counter)
+                ibubble++;
+              line_counter++;
+            }
+          fic_bary_vel.close();
+          is_readen = true;
+        }
+    }
+  return is_readen;
+}
+
+bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary)
+{
+  bool is_readen = false;
+  int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
+  bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
+  for (int c=0; c<3; c++)
+    {
+      bubbles_bary[c].reset();
+    }
+  int ibubble = 0;
+  if (bubbles_bary_computed)
+    {
+      int line_counter = 0;
+      int var_index = 0;
+      int dir = 0;
+      std::string line;
+      const Nom interf_dir = dirname(interf_name);
+      const Nom case_name = (Objet_U::nom_du_cas());
+      const Nom suffix_bary = ".sauv.barycentres";
+      const Nom file_folder = interf_dir + case_name + suffix_bary + suffix;
+      ifstream read_tmp;
+      read_tmp.open(file_folder);
+      const bool read_file = read_tmp ? true : false;
+      read_tmp.close();
+      if (read_file)
+        {
+          EFichier fic_bary(file_folder);
+          ifstream& ifstream_bary_old = fic_bary.get_ifstream();
+          const char delimiter = ' ';
+          Cerr << "Read coordinates of bubbles barycentres from: " << file_folder << finl;
+          while (std::getline(ifstream_bary_old, line))
+            {
+              std::stringstream ssline(line);
+              Cerr << "Line number: " << line_counter << finl;
+              while (std::getline(ssline, line, delimiter))
+                {
+                  if(line_counter)
+                    {
+                      Cerr << "Param: " << line << finl;
+                      switch(var_index)
+                        {
+                        case 0:
+                          break;
+                        case 1:
+                        case 2:
+                        case 3:
+                          dir = var_index - 1;
+                          bubbles_bary[dir].append_array(std::stod(line));
+                          break;
+                        default:
+                          break;
+                        }
+                      var_index++;
+                    }
+                }
+              var_index = 0;
+              if(line_counter)
+                ibubble++;
+              line_counter++;
+            }
+          fic_bary.close();
+          is_readen = true;
+        }
+    }
+  return is_readen;
+}
+
+void IJK_Interfaces::store_bubbles_barycentres(const Nom& interf_name)
+{
+  const Nom end_space = " ";
+  const Nom escape = "\n";
+  int bubbles_bary_computed = ijk_compo_connex_.get_compute_compo_fields();
+  bubbles_bary_computed = bubbles_bary_computed || use_barycentres_velocity_;
+  if (Process::je_suis_maitre() && bubbles_bary_computed)
+    {
+      const Nom interf_dir = dirname(interf_name);
+      const Nom suffix = ".sauv.barycentres";
+      const int reset = 1;
+      const Nom bary_header_old = "ibubble bary_old_x bary_old_y bary_old_z";
+      const Nom bary_header_new = "ibubble bary_new_x bary_new_y bary_new_z";
+      const Nom bary_vel_header = "ibubble bary_vel_x bary_vel_y bary_vel_z bary_vect_x bary_vect_y bary_vect_z bary_vel_val";
+      const int nbulles_reelles = get_nb_bulles_reelles();
+      SFichier fic_bary_old = Open_file_folder(interf_dir, suffix + ".old", bary_header_old, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_old << ibubble << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 0) << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 1) << end_space;
+          fic_bary_old << bubbles_bary_old_(ibubble, 2) << escape;
+        }
+      fic_bary_old.close();
+      SFichier fic_bary_new = Open_file_folder(interf_dir, suffix + ".new", bary_header_new, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_new << ibubble << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 0) << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 1) << end_space;
+          fic_bary_new << bubbles_bary_new_(ibubble, 2) << escape;
+        }
+      fic_bary_new.close();
+      SFichier fic_bary_vel = Open_file_folder(interf_dir, suffix + ".vel", bary_vel_header, reset, 0);
+      for (int ibubble=0; ibubble<nbulles_reelles; ibubble++)
+        {
+          fic_bary_vel << ibubble << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 0) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 1) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_(ibubble, 2) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 0) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 1) << end_space;
+          fic_bary_vel << bubbles_rising_vectors_bary_(ibubble, 2) << end_space;
+          fic_bary_vel << bubbles_velocities_bary_magnitude_(ibubble) << escape;
+        }
+      fic_bary_vel.close();
+    }
+}
+
+void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
+                                                            DoubleTab& barycentres,
+                                                            const int& store_values)
+{
+  calculer_volume_bulles(volumes, barycentres);
+  const IJK_Splitting& splitting = I().get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  if (store_values && !has_computed_bubble_barycentres_)
+    {
+      if (ref_ijk_ft_->get_tstep() == 0)
+        {
+          if (!has_readen_barycentres_prev_)
+            bubbles_bary_old_ = barycentres;
+          else
+            bubbles_bary_old_ = bubbles_bary_new_;
+        }
+      else
+        bubbles_bary_old_ = bubbles_bary_new_;
+      bubbles_bary_new_ = barycentres;
+      const int nbulles_reelles = get_nb_bulles_reelles();
+      bubbles_velocities_bary_magnitude_.resize(nbulles_reelles);
+      bubbles_velocities_bary_ = bubbles_bary_old_;
+      for (int i = 0; i < nbulles_reelles; i++)
+        {
+          bubbles_velocities_bary_magnitude_(i) = 0.;
+          for (int dir=0; dir<3; dir++)
+            {
+              const double ldir = geom.get_domain_length(dir);
+              const double pos_old = bubbles_bary_old_(i, dir);
+              const double pos_new = bubbles_bary_new_(i, dir);
+              const int old_new_up_down = (pos_new - pos_old) < (-ldir / 2.);
+              const int old_new_down_up = (pos_new - pos_old) > (ldir / 2.);
+              if (old_new_up_down || old_new_down_up)
+                {
+                  if (old_new_up_down)
+                    bubbles_bary_old_(i, dir) += (-ldir);
+                  else
+                    bubbles_bary_old_(i, dir) += (ldir);
+                }
+              bubbles_velocities_bary_(i, dir) = bubbles_bary_old_(i, dir);
+              const double vel_old = bubbles_velocities_bary_(i, dir);
+              bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
+              bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
+              bubbles_velocities_bary_magnitude_(i) += pow(bubbles_velocities_bary_(i, dir), 2);
+            }
+          bubbles_velocities_bary_magnitude_(i) = sqrt(bubbles_velocities_bary_magnitude_(i));
+          bubbles_rising_vectors_bary_ = bubbles_velocities_bary_;
+          for (int dir=0; dir<3; dir++)
+            {
+              if (abs(bubbles_velocities_bary_magnitude_(i)) > DMINFLOAT)
+                bubbles_rising_vectors_bary_(i, dir) /= bubbles_velocities_bary_magnitude_(i);
+              else
+                bubbles_rising_vectors_bary_(i, dir) = 0.;
+            }
+        }
+      has_computed_bubble_barycentres_ = true;
+    }
+}
+
+void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes,
+                                            DoubleTab& centre_gravite) const
 {
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const int n = mesh.nb_facettes();
   const int nbulles_reelles = get_nb_bulles_reelles();
   const int nbulles_ghost = get_nb_bulles_ghost();
   const int nbulles_tot = nbulles_reelles + nbulles_ghost;
-  volumes.resize_array(nbulles_tot, Array_base::NOCOPY_NOINIT);
+  volumes.resize_array(nbulles_tot, RESIZE_OPTIONS::NOCOPY_NOINIT);
   volumes = 0.;
-  centre_gravite.resize(nbulles_tot, 3, Array_base::NOCOPY_NOINIT);
+  centre_gravite.resize(nbulles_tot, 3, RESIZE_OPTIONS::NOCOPY_NOINIT);
   centre_gravite = 0.;
   const ArrOfDouble& surfaces_facettes = mesh.get_update_surface_facettes();
   const DoubleTab& normales_facettes = mesh.get_update_normale_facettes();
@@ -1582,6 +1870,72 @@ void IJK_Interfaces::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& cen
     }
 }
 
+
+void IJK_Interfaces::calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const
+{
+  const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+  const int n = mesh.nb_facettes();
+  const int nbulles_reelles = get_nb_bulles_reelles();
+  const int nbulles_ghost = get_nb_bulles_ghost();
+  const int nbulles_tot = nbulles_reelles + nbulles_ghost;
+  const IntTab& facettes = mesh.facettes();
+  const DoubleTab& sommets = mesh.sommets();
+  const ArrOfInt& compo_facettes = mesh.compo_connexe_facettes();
+  aspect_ratio.resize_array(nbulles_tot);
+
+  ArrOfDouble volumes;
+  DoubleTab centre_gravite;
+  this->calculer_volume_bulles(volumes,centre_gravite);
+
+  DoubleTab d_max(nbulles_tot);
+  d_max = -1;
+  DoubleTab d_min(nbulles_tot);
+  d_min = 300;
+
+  double d_imax;
+  double d_imin;
+
+  for (int i = 0; i < n; i++)
+    {
+      if (mesh.facette_virtuelle(i))
+        continue;
+      int compo = compo_facettes[i];
+      // les bulles dupliquees a la fin :
+      if (compo < 0)
+        {
+          // L'index de la bulle ghost est (entre -1 et -nbulles_ghost):
+          const int idx_ghost = get_ghost_number_from_compo(compo);
+          // On la place en fin de tableau :
+          compo = nbulles_reelles - 1 - idx_ghost;
+        }
+      // Calcul des distances entre sommet_i et le centre de gravite
+      const int i0 = facettes(i, 0);
+      const int i1 = facettes(i, 1);
+      const int i2 = facettes(i, 2);
+      const double d_i_0 = sqrt( (sommets(i0, 0)-centre_gravite(compo,0))*(sommets(i0, 0)-centre_gravite(compo,0)) + (sommets(i0, 1)-centre_gravite(compo,1))*(sommets(i0, 1)-centre_gravite(compo,1)) + (sommets(i0, 2)-centre_gravite(compo,2))*(sommets(i0, 2)-centre_gravite(compo,2)) );
+      const double d_i_1 = sqrt( (sommets(i1, 0)-centre_gravite(compo,0))*(sommets(i1, 0)-centre_gravite(compo,0)) + (sommets(i1, 1)-centre_gravite(compo,1))*(sommets(i1, 1)-centre_gravite(compo,1)) + (sommets(i1, 2)-centre_gravite(compo,2))*(sommets(i1, 2)-centre_gravite(compo,2)) );
+      const double d_i_2 = sqrt( (sommets(i2, 0)-centre_gravite(compo,0))*(sommets(i2, 0)-centre_gravite(compo,0)) + (sommets(i2, 1)-centre_gravite(compo,1))*(sommets(i2, 1)-centre_gravite(compo,1)) + (sommets(i2, 2)-centre_gravite(compo,2))*(sommets(i2, 2)-centre_gravite(compo,2)) );
+
+      // On rÃ©cupÃ¨re la plus grande distance et la plus petite distance parmi les 3 calculÃ©es
+      d_imax = std::max(d_i_0,std::max(d_i_1,d_i_2));
+      d_imin = std::min(d_i_0,std::min(d_i_1,d_i_2));
+
+      // On met Ã  jour le grand axe et le petit axe
+      if (d_imax > d_max[compo])
+        d_max[compo] = d_imax;
+
+      if (d_imin < d_min[compo])
+        d_min[compo] = d_imin;
+    }
+
+  mp_min_for_each_item(d_min);
+  mp_max_for_each_item(d_max);
+  for (int i = 0; i < nbulles_tot; i++)
+    {
+      aspect_ratio[i] = d_max[i]/d_min[i];
+    }
+}
+
 void IJK_Interfaces::calculer_poussee_bulles(const ArrOfDouble& grav,
                                              DoubleTab& poussee) const
 {
@@ -1590,7 +1944,7 @@ void IJK_Interfaces::calculer_poussee_bulles(const ArrOfDouble& grav,
   const int nbulles_reelles = get_nb_bulles_reelles();
   const int nbulles_ghost = get_nb_bulles_ghost();
   const int nbulles_tot = nbulles_reelles + nbulles_ghost;
-  poussee.resize(nbulles_tot, 3, Array_base::NOCOPY_NOINIT);
+  poussee.resize(nbulles_tot, 3, RESIZE_OPTIONS::NOCOPY_NOINIT);
   poussee = 0.;
   const ArrOfDouble& surfaces_facettes = mesh.get_update_surface_facettes();
   const DoubleTab& normales_facettes = mesh.get_update_normale_facettes();
@@ -2276,7 +2630,11 @@ void IJK_Interfaces::calculer_vecteurs_de_deplacement_rigide(DoubleTab& vitesses
   vitesses_translation_bulles.resize(nbulles_tot, 3);
   mean_bubble_rotation_vector.resize(nbulles_tot, 3);
   centre_gravite.resize(nbulles_tot, 3);
-  calculer_volume_bulles(volume_par_bulle, centre_gravite);
+  if (use_barycentres_velocity_)
+    compute_bubbles_volume_and_barycentres(volume_par_bulle, centre_gravite, 1);
+  else
+    calculer_volume_bulles(volume_par_bulle, centre_gravite);
+
 
   // Calcul de la vitesse moyenne de chaque composante connexe :
   calculer_vmoy_translation_composantes_connexes(mesh,
@@ -2287,6 +2645,10 @@ void IJK_Interfaces::calculer_vecteurs_de_deplacement_rigide(DoubleTab& vitesses
                                                  nbulles_ghost,
                                                  vinterp_,
                                                  vitesses_translation_bulles);
+  bubbles_velocities_ = vitesses_translation_bulles;
+
+  if (use_barycentres_velocity_ && ref_ijk_ft_->get_tstep())
+    vitesses_translation_bulles = bubbles_velocities_bary_;
 
   // Calcul de la vitesse due a la rotation de chaque composante connexe :
   calculer_vmoy_rotation_composantes_connexes(mesh,
@@ -2957,10 +3319,10 @@ void IJK_Interfaces::calculer_bounding_box_bulles(DoubleTab& bounding_box, int o
 
   ArrOfDouble position_xmax_compo;
   ArrOfDouble position_xmin_compo;
-  if (option_shear != 0 && IJK_Splitting::defilement_ == 1)
+  if (option_shear != 0 && IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      position_xmax_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
-      position_xmin_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
+      position_xmax_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
+      position_xmin_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
       position_xmax_compo = -10000.;
       position_xmin_compo = 10000.;
 
@@ -2984,14 +3346,14 @@ void IJK_Interfaces::calculer_bounding_box_bulles(DoubleTab& bounding_box, int o
           double coord = sommets(i_sommet, direction);
           int iconnex = compo_connex_som[i_sommet];
 
-          if (direction==0 && option_shear != 0 && IJK_Splitting::defilement_ == 1)
+          if (direction==0 && option_shear != 0 && IJK_Shear_Periodic_helpler::defilement_ == 1)
             {
               // position du barycentre de la bulle de reference a laquelle appartient le sommet
               double pos_ref = position(iconnex,0);
               //const IJK_Splitting& split = ref_splitting_.valeur();
-              double Lx =  IJK_Splitting::Lx_for_shear_perio;
+              double Lx =  IJK_Shear_Periodic_helpler::Lx_for_shear_perio;
               //double Lx =  split.get_grid_geometry().get_domain_length(0) - (position_xmax_compo(iconnex)-pos_ref);
-              double offset = option_shear * IJK_Splitting::shear_x_time_;
+              double offset = option_shear * IJK_Shear_Periodic_helpler::shear_x_time_;
               // le barycentre de la bulle reelle (compo >0) est situe entre db et Lx + db (pas entre 0 et Lx)
               // vrai uniquement pour des bulles qui montent.
               // Ne fonctionnera pas pour des bulles descendantes...
@@ -3047,7 +3409,7 @@ void IJK_Interfaces::creer_duplicata_bulles()
   // masque_duplicata_pour_compo_ghost, un encodage du deplacement maximal pour toutes
   // les bulles duplique/decalle par le cisaillement qui sortent de NS: Le critere pour declancher la duplication des
   // bulles est le meme que pour les bulles reelles.
-  if (IJK_Splitting::defilement_ == 1)
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
       // Evaluation du cube contenant chaque bulle offset par le shear positif
       DoubleTab bounding_box_offsetp;
@@ -3118,10 +3480,10 @@ static void calculer_deplacement_from_code_compo_connexe(const Maillage_FT_IJK& 
 
   ArrOfDouble position_xmax_compo;
   ArrOfDouble position_xmin_compo;
-  if (IJK_Splitting::defilement_ == 1)
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      position_xmax_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
-      position_xmin_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
+      position_xmax_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
+      position_xmin_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
       position_xmax_compo = -10000.;
       position_xmin_compo = 10000.;
 
@@ -3163,10 +3525,10 @@ static void calculer_deplacement_from_code_compo_connexe(const Maillage_FT_IJK& 
           double pos = 0;
           double decallage_bulle_reel_ext_domaine_reel = 0.;
           // si seulement on a traverser une frontiere shear periodique
-          if (dir==2 && depl != 0. && IJK_Splitting::defilement_ == 1)
+          if (dir==2 && depl != 0. && IJK_Shear_Periodic_helpler::defilement_ == 1)
             {
-              double Lx =  IJK_Splitting::Lx_for_shear_perio;
-              double offset = decode * IJK_Splitting::shear_x_time_;
+              double Lx =  IJK_Shear_Periodic_helpler::Lx_for_shear_perio;
+              double offset = decode * IJK_Shear_Periodic_helpler::shear_x_time_;
               // position du barycentre de la bulle de reference a laquelle appartient le sommet
               pos_ref = position(compo_bulle_reel,0);
               // on veut le barycentre de la bulle decallee dans le domaine reel
@@ -3282,10 +3644,10 @@ static void calculer_deplacement_from_masque_in_array(const Maillage_FT_IJK& m,
 
   ArrOfDouble position_xmax_compo;
   ArrOfDouble position_xmin_compo;
-  if (IJK_Splitting::defilement_ == 1)
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      position_xmax_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
-      position_xmin_compo.resize_array(nbulles, Array_base::NOCOPY_NOINIT);
+      position_xmax_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
+      position_xmin_compo.resize_array(nbulles, RESIZE_OPTIONS::NOCOPY_NOINIT);
       position_xmax_compo = -10000.;
       position_xmin_compo = 10000.;
 
@@ -3323,10 +3685,10 @@ static void calculer_deplacement_from_masque_in_array(const Maillage_FT_IJK& m,
           double pos = 0;
           double decallage_bulle_reel_ext_domaine_reel = 0.;
           // si seulement on a traverser une frontiere shear periodique
-          if (dir==2 && depl != 0. && IJK_Splitting::defilement_ == 1)
+          if (dir==2 && depl != 0. && IJK_Shear_Periodic_helpler::defilement_ == 1)
             {
-              double Lx =  IJK_Splitting::Lx_for_shear_perio;
-              double offset = decode * IJK_Splitting::shear_x_time_;
+              double Lx =  IJK_Shear_Periodic_helpler::Lx_for_shear_perio;
+              double offset = decode * IJK_Shear_Periodic_helpler::shear_x_time_;
               // position du barycentre de la bulle de reference a laquelle appartient le sommet
               pos_ref = position(compo_bulle_reel,0);
               // on veut le barycentre de la bulle decallee dans le domaine reel
@@ -3390,7 +3752,6 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
   // Troisieme iteration:
   //  2 -> direction 011
   ArrOfInt liste_bulles_crees;
-  liste_bulles_crees.set_smart_resize(1);
   const int nbulles = get_nb_bulles_reelles();
   int nbulles_crees = 0;
   for (int mon_numero_iteration = 1; ; mon_numero_iteration++)
@@ -3402,7 +3763,6 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
       // On determine aussi les composantes connexe dont on a plus besoin
       // et on les supprime...
       ArrOfInt liste_facettes_pour_suppression;
-      liste_facettes_pour_suppression.set_smart_resize(1);
       int reste_a_faire = 0;
 
 
@@ -3412,7 +3772,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
           // Si on a epuise toutes les copies a faire pour cette composante,
           // index_copie restera a -1:
           index_copie[icompo] = -1;
-          if (IJK_Splitting::defilement_ != 1)
+          if (IJK_Shear_Periodic_helpler::defilement_ != 1)
             {
               int compteur = 0;
               const int masque = masque_duplicata_pour_compo[icompo] & 7; // masque sans les bits de signe
@@ -3606,7 +3966,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
           icompo = decoder_numero_bulle(compo_connexe_facettes[i_facette]);
           // Pour cette composante, quelle est la prochaine copie a faire ?
           index = index_copie[icompo];
-          if(IJK_Splitting::defilement_ == 1)
+          if(IJK_Shear_Periodic_helpler::defilement_ == 1)
             signe = index_signe[icompo];
 
           if (index > 0)
@@ -3629,7 +3989,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
               // | 3 |  2  | 11 |
               // |___|_____|____|
               // Calcul du deplacement a faire,
-              if(IJK_Splitting::defilement_ != 1)
+              if(IJK_Shear_Periodic_helpler::defilement_ != 1)
                 signe = masque_duplicata_pour_compo[icompo] & (7 << 3); // Recupere seulement le signe.
               const int code_deplacement = signe | index;                 // l'index donne les directions a deplacer lors de
               // cette iteration.
@@ -3826,7 +4186,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
                       masque_sortie_domaine_reel |= (1 << direction); // met le bit "direction" a 1 dans le masque
                       masque_sortie_domaine_reel |= (16 << direction); // met le bit de signe a 1 dans le masque
                       // il faudra deplacer la copie vers la droite
-                      if(direction==2 && IJK_Splitting::defilement_ == 1)
+                      if(direction==2 && IJK_Shear_Periodic_helpler::defilement_ == 1)
                         // on est sorti en z, est-ce que la bulle ghost depasse en x ? pour condition perio shear
                         // si sortie de la bulle en z, verifier la sortie en x de la bulle ghost
                         // ici, sortie par la gauche, donc shear positif dans bounding_box_offsetp
@@ -3851,7 +4211,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
                       masque_sortie_domaine_reel |= (1 << direction); // met le bit "direction" a 1 dans le masque
                       // le bit de signe reste a zero, qui signifie un deplacement vers
                       // les coord negatives.
-                      if(direction==2 && IJK_Splitting::defilement_ == 1)
+                      if(direction==2 && IJK_Shear_Periodic_helpler::defilement_ == 1)
                         // on est sorti en z, est-ce que la bulle ghost depasse en x ? pour condition perio shear
                         // si sortie de la bulle en z, verifier la sortie en x de la bulle ghost
                         // ici, sortie par la droite, donc shear negatif dans bounding_box_offsetm
@@ -3938,7 +4298,6 @@ void IJK_Interfaces::supprimer_duplicata_bulles()
   // On parcours toutes les facettes du maillage.
   // On marque celles dont la compo_connexe est negative:
   ArrOfInt liste_facettes_pour_suppression;
-  liste_facettes_pour_suppression.set_smart_resize(1);
   for (int iface = 0; iface < nbfacettes; iface++)
     {
       const int icompo = compo_connex[iface];
@@ -4261,7 +4620,7 @@ static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
 void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
@@ -4336,7 +4695,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
   }
 
   static Stat_Counter_Id search_connex_components_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice : recherche compo connexes");
+    statistiques().new_counter(2, "Calcul de l'indicatrice : recherche compo connexes");
   statistiques().begin_count(search_connex_components_counter_);
   num_compo_.echange_espace_virtuel();
   // Recherche des composantes connexes sur le maillage eulerien
@@ -4472,7 +4831,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
 void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -4530,7 +4889,7 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
 void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
@@ -4631,7 +4990,7 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
 
   ArrOfInt drapeau[max_authorized_nb_of_groups_];
   static Stat_Counter_Id search_connex_components_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice : recherche compo connexes");
+    statistiques().new_counter(2, "Calcul de l'indicatrice : recherche compo connexes");
   for (int i = 0; i < nb_groups_; i++)
     {
       statistiques().begin_count(search_connex_components_counter_);
@@ -4676,7 +5035,7 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
 void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul des indicatrices");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -4871,7 +5230,7 @@ int IJK_Interfaces::update_indicatrice(IJK_Field_double& indic)
 void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
 {
   static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice surface face");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice surface face");
   statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -5058,7 +5417,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
 void IJK_Interfaces::calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
 {
   static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de l'indicatrice surface face");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice surface face");
   statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -5190,7 +5549,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_
 void IJK_Interfaces::calculer_surface_interface(IJK_Field_double& surf_interface, IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_surface_interface_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul de la surface interfaciale");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de la surface interfaciale");
   statistiques().begin_count(calculer_surface_interface_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -5263,7 +5622,7 @@ void IJK_Interfaces::calculer_surface_interface(IJK_Field_double& surf_interface
 void IJK_Interfaces::calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_barycentre_counter_ =
-    statistiques().new_counter(2, "calcul rho mu indicatrice: calcul du barycentre");
+    statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul du barycentre");
   statistiques().begin_count(calculer_barycentre_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -5413,7 +5772,7 @@ void IJK_Interfaces::convert_to_IntVect(const ArrOfInt& in, IntVect& out) const
   assert(in.size_array() == out.size());
 
   // La copie veut un pointeur vers le md_vector non initialise.
-  //  out.copy(in, /*Array_base::Resize_Options opt*/ Array_base::COPY_INIT);
+  //  out.copy(in, /*RESIZE_OPTIONS opt*/ RESIZE_OPTIONS::COPY_INIT);
 
   // On utilise dont le inject_array
   // mais comment s'assurer qu'on a mis le tableau au bon endroit? et pas un peu
@@ -5751,7 +6110,6 @@ int IJK_Interfaces::compute_cell_phase_with_interface_normal(int num_elem, int d
                            split.get_grid_geometry().get_constant_delta(DIRECTION_K));
 
   ArrOfInt facettes_traversantes;
-  facettes_traversantes.set_smart_resize(1);
   intersections.get_liste_facettes_traversantes(num_elem, facettes_traversantes);
   const int N = facettes_traversantes.size_array();
 
@@ -5862,7 +6220,7 @@ void IJK_Interfaces::compute_drapeaux_vapeur_v4(const IntVect& vecteur_composant
                                                 ArrOfInt& drapeau_vapeur) const
 {
   static Stat_Counter_Id calculs_drapeaux_counter_ =
-    statistiques().new_counter(2, "calcul de l'indicatrice: calculs des drapeaux");
+    statistiques().new_counter(2, "Calcul de l'indicatrice: calculs des drapeaux");
   statistiques().begin_count(calculs_drapeaux_counter_);
 
   const IJK_Splitting& split = ref_splitting_.valeur();
@@ -6180,13 +6538,12 @@ void IJK_Interfaces::calculer_distance_autres_compo_connexe_octree(const DoubleT
                  ca n'a pas d'importance ici */);
 
   ArrOfInt liste_facettes;
-  liste_facettes.set_smart_resize(1);
   const ArrOfInt& compo_connexe_facettes = mesh.compo_connexe_facettes();
 
   const int nb_som = sommets_a_tester.dimension(0);
-  distance.resize_array(nb_som, Array_base::NOCOPY_NOINIT);
+  distance.resize_array(nb_som, RESIZE_OPTIONS::NOCOPY_NOINIT);
   distance = distmax;
-  vr_to_other.resize(nb_som, 3, Array_base::NOCOPY_NOINIT);
+  vr_to_other.resize(nb_som, 3, RESIZE_OPTIONS::NOCOPY_NOINIT);
   vr_to_other = -1e5; // Invalid value
   assert(vinterp_tmp.dimension(0) == nb_som);
   for (int i = 0; i < nb_som; i++)
@@ -6302,9 +6659,9 @@ void IJK_Interfaces::calculer_distance_autres_compo_connexe_ijk(const DoubleTab&
   for(int dir=0; dir<3; dir++)
     nb_elem_loc[dir] = splitting.get_nb_elem_local(dir);
 
-  distance.resize_array(nb_som, Array_base::NOCOPY_NOINIT);
+  distance.resize_array(nb_som, RESIZE_OPTIONS::NOCOPY_NOINIT);
   distance = distmax;
-  vr_to_other.resize(nb_som, 3, Array_base::NOCOPY_NOINIT);
+  vr_to_other.resize(nb_som, 3, RESIZE_OPTIONS::NOCOPY_NOINIT);
   vr_to_other = -1e5; // Invalid value
   assert(vinterp_tmp.dimension(0) == nb_som);
 
@@ -6407,10 +6764,6 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
                                                            DoubleTab& vr_to_other, double distmax)
 {
   const IJK_Splitting& splitting = ref_splitting_.valeur();
-  coord_sommets.set_smart_resize(1);
-  compo_sommet.set_smart_resize(1);
-  distance.set_smart_resize(1);
-  vinterp_tmp.set_smart_resize(1);
   if (dir == 3)
     {
       if(!no_octree_method_)
@@ -6425,7 +6778,6 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
       ArrOfInt pe_list;
       ArrOfInt flags(Process::nproc());
       flags = 0;
-      pe_list.set_smart_resize(1);
       double min_coord, max_coord;
       const int processor_at_left = splitting.get_neighbour_processor(0 /* previous */, dir);
       if (processor_at_left < 0)
@@ -6467,8 +6819,6 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
       schema.begin_comm();
       ArrOfInt index_sent_to_left;
       ArrOfInt index_sent_to_right;
-      index_sent_to_left.set_smart_resize(1);
-      index_sent_to_right.set_smart_resize(1);
       if (processor_at_left >= 0 || processor_at_right >= 0)
         {
           // Bypass in sequential or if no splitting in this direction
@@ -7039,7 +7389,6 @@ void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Fiel
   }
 #endif
   ArrOfInt list_continuous_phase;
-  list_continuous_phase.set_smart_resize(1);
   list_continuous_phase.resize_array(0);
   int phase_continue1=-1000;
   int phase_continue2=-1000;
@@ -7199,7 +7548,7 @@ void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Fiel
   mp_sum_for_each_item(integration_cells_per_bubble);
   // Individual_forces has been used. It can be updated with the true value (weighted by the true volume where the force is applied).
 // individual_forces=integrated_forces;
-//  individual_forces.copy(integrated_forces, Array_base::COPY_INIT); // Return the integrated value in individual_forces.
+//  individual_forces.copy(integrated_forces, RESIZE_OPTIONS::COPY_INIT); // Return the integrated value in individual_forces.
 //
   for (int idir=0; idir < 3; idir++)
     for (int ib = 0; ib < nb_bulles_reelles_; ib++)
@@ -7992,11 +8341,11 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
   potentiels_sommets *= dxi * dxj * dxk;
 
   // Au pire, on prend la plus grande largeur de maille eulerienne :
-  //double lg_euler = std::max(std::max(dxi, dxj), dxk);
-  //double lg_lagrange = mesh.minimum_longueur_arrete();
-  //const double sqrt_3 = 1.7320508075688772;
-  //bool ok = (lg_lagrange > lg_euler * sqrt_3);
-  //Cerr << "Test de la taille de maille eulerienne : lg_lagrange=" << lg_lagrange << " > (lg_euler=" << lg_euler
-  //     << ")*1.7320... ? " << (ok ? "ok" : "ko") << " (ratio : " << lg_lagrange / (lg_euler * sqrt_3)
-  //     << (ok ? " >" : " <") << "1 )" << finl;
+  double lg_euler = std::max(std::max(dxi, dxj), dxk);
+  double lg_lagrange = mesh.minimum_longueur_arrete();
+  const double sqrt_3 = 1.7320508075688772;
+  bool ok = (lg_lagrange > lg_euler * sqrt_3);
+  Cerr << "Test de la taille de maille eulerienne : lg_lagrange=" << lg_lagrange << " > (lg_euler=" << lg_euler
+       << ")*1.7320... ? " << (ok ? "ok" : "ko") << " (ratio : " << lg_lagrange / (lg_euler * sqrt_3)
+       << (ok ? " >" : " <") << "1 )" << finl;
 }

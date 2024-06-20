@@ -49,14 +49,17 @@ class IJK_Composantes_Connex : public Objet_U
   Declare_instanciable( IJK_Composantes_Connex ) ;
 
 public :
-  int initialize(const IJK_Splitting& splitting,
-                 const IJK_Interfaces& interfaces,
+  int initialize(IJK_Interfaces& interfaces,
                  const bool is_switch);
+  int allocate_fields(const IJK_Splitting& splitting,
+                      const int& compute_compo_fields);
   void associer(const IJK_FT_base& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities);
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
   void compute_rising_velocities();
@@ -125,6 +128,10 @@ public :
   {
     return rising_vectors_;
   }
+  const Vecteur3& get_rising_velocity_overall() const
+  {
+    return rising_velocity_overall_;
+  }
   const Vecteur3& get_liquid_velocity() const
   {
     return liquid_velocity_;
@@ -133,11 +140,22 @@ public :
   {
     return min_max_larger_box_;
   }
+  const int& get_compute_from_bounding_box() const
+  {
+    return compute_from_bounding_box_;
+  }
+  const int& get_compute_compo_fields() const
+  {
+    return compute_compo_fields_;
+  }
 
 protected :
   void fill_mixed_cell_compo();
   REF(IJK_FT_base) ref_ijk_ft_;
-  const IJK_Interfaces * interfaces_ = nullptr;
+  IJK_Interfaces * interfaces_ = nullptr;
+  bool is_switch_=false;
+  int compute_compo_fields_=0;
+  int compute_from_bounding_box_=0;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;
@@ -162,11 +180,15 @@ protected :
 
   IJK_Field_double eulerian_rising_velocities_;
   ArrOfDouble rising_velocities_;
+  Vecteur3 rising_velocity_overall_ = {0., 0., 0.};
   DoubleTab rising_vectors_;
-  Vecteur3 liquid_velocity_;
+  Vecteur3 liquid_velocity_ = {0., 0., 0.};
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
+
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 
   bool is_updated_ = false;
 };

@@ -51,7 +51,7 @@
 #include <TRUST_2_MED.h>
 
 Implemente_instanciable_sans_constructeur(Domaine_ALE,"Domaine_ALE",Domaine);
-//XD domaine_ale domaine domaine_ale -1 Domain with nodes at the interior of the domain which are displaced in an arbitrarily prescribed way thanks to ALE (Arbitrary Lagrangian-Eulerian) description. NL2 Keyword to specify that the domain is mobile following the displacement of some of its boundaries.
+// XD domaine_ale domaine domaine_ale -1 Domain with nodes at the interior of the domain which are displaced in an arbitrarily prescribed way thanks to ALE (Arbitrary Lagrangian-Eulerian) description. NL2 Keyword to specify that the domain is mobile following the displacement of some of its boundaries.
 
 Domaine_ALE::Domaine_ALE()
 {
@@ -144,7 +144,6 @@ void Domaine_ALE::mettre_a_jour (double temps, Domaine_dis& le_domaine_dis, Prob
       calculer_centres_gravite(le_dom_VF.xp());
 
       DoubleTab& xv=le_dom_VF.xv();
-      xv.set_smart_resize(1);
       xv.reset();
       Type_Face type_face=type_elem().type_face();
       IntTab& elem_faces=le_dom_VF.elem_faces();

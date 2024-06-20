@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2023, CEA
+* Copyright (c) 2024, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,10 +23,10 @@
 #include <Transport_K_Eps_base.h>
 #include <Modele_turbulence_hyd_K_Eps.h>
 #include <Modele_turbulence_hyd_K_Eps_Realisable.h>
-#include <Mod_turb_hyd_RANS_keps.h>
+#include <Modele_turbulence_hyd_RANS_K_Eps_base.h>
 #include <Transport_K_Omega_base.h>
 #include <Modele_turbulence_hyd_K_Omega.h>
-#include <Mod_turb_hyd_RANS_komega.h>
+#include <Modele_turbulence_hyd_RANS_K_Omega_base.h>
 
 Implemente_instanciable_sans_constructeur(Champ_Generique_Morceau_Equation,"Morceau_Equation",Champ_Gen_de_Champs_Gen);
 Add_synonym(Champ_Generique_Morceau_Equation,"Champ_Post_Morceau_Equation");
@@ -55,6 +55,7 @@ Entree& Champ_Generique_Morceau_Equation::readOn(Entree& s )
 //                   (cas operateur : 0 (diffusion) 1 (convection) 2 (gradient) 3 (divergence))
 //  option          : choix de la quantite a postraiter
 //                     (actuellement "stabilite" pour dt_stab "flux_bords" pour flux_bords_)
+//  unite          : pour imposer l'unite du champ
 //  compo            : numero de la composante a postraiter pour le cas des "flux_bords"
 //                     (si plusieurs composantes)
 void Champ_Generique_Morceau_Equation::set_param(Param& param)
@@ -62,11 +63,11 @@ void Champ_Generique_Morceau_Equation::set_param(Param& param)
   Champ_Gen_de_Champs_Gen::set_param(param);
   param.ajouter("type",&type_morceau_,Param::REQUIRED); // XD_ADD_P chaine can only be operateur for equation operators.
   param.ajouter("numero",&numero_morceau_); // XD_ADD_P entier numero will be 0 (diffusive operator) or 1 (convective operator) or  2 (gradient operator) or 3 (divergence operator).
+  param.ajouter("unite", &unite_); // XD_ADD_P chaine will specify the field unit
   param.ajouter("option",&option_,Param::REQUIRED); // XD_ADD_P chaine(into=["stabilite","flux_bords","flux_surfacique_bords"]) option is stability for time steps or flux_bords for boundary fluxes or flux_surfacique_bords for boundary surfacic fluxes
   param.ajouter("compo",&compo_); // XD_ADD_P entier compo will specify the number component of the boundary flux (for boundary fluxes, in this case compo permits to specify the number component of the boundary flux choosen).
 }
 
-//Description :
 //-Initialisation de ref_eq_
 //-Initialisation de localisation_
 //-Appel de la methode de la classe mere
@@ -105,7 +106,7 @@ void Champ_Generique_Morceau_Equation::completer(const Postraitement_base& post)
                     const RefObjU& modele_turbulence = eq_test.get_modele(TURBULENCE);
                     if (sub_type(Modele_turbulence_hyd_K_Eps, modele_turbulence.valeur()) || sub_type(Modele_turbulence_hyd_K_Eps_Realisable, modele_turbulence.valeur()) )
                       {
-                        const Mod_turb_hyd_RANS_keps& le_mod_RANS = ref_cast(Mod_turb_hyd_RANS_keps, eq_test.get_modele(TURBULENCE).valeur());
+                        const Modele_turbulence_hyd_RANS_K_Eps_base& le_mod_RANS = ref_cast(Modele_turbulence_hyd_RANS_K_Eps_base, eq_test.get_modele(TURBULENCE).valeur());
                         const Transport_K_Eps_base& transportkeps = ref_cast(Transport_K_Eps_base, le_mod_RANS.eqn_transp_K_Eps());
                         if ((transportkeps.inconnue().le_nom() == mon_champ_inc.le_nom()))
                           {
@@ -120,7 +121,7 @@ void Champ_Generique_Morceau_Equation::completer(const Postraitement_base& post)
                     const RefObjU& modele_turbulence = eq_test.get_modele(TURBULENCE);
                     if (sub_type(Modele_turbulence_hyd_K_Omega, modele_turbulence.valeur()))
                       {
-                        const Mod_turb_hyd_RANS_komega& le_mod_RANS = ref_cast(Mod_turb_hyd_RANS_komega, eq_test.get_modele(TURBULENCE).valeur());
+                        const Modele_turbulence_hyd_RANS_K_Omega_base& le_mod_RANS = ref_cast(Modele_turbulence_hyd_RANS_K_Omega_base, eq_test.get_modele(TURBULENCE).valeur());
                         const Transport_K_Omega_base& transportkomega = ref_cast(Transport_K_Omega_base, le_mod_RANS.eqn_transp_K_Omega());
                         if ((transportkomega.inconnue().le_nom() == mon_champ_inc.le_nom()))
                           {
@@ -146,13 +147,13 @@ void Champ_Generique_Morceau_Equation::completer(const Postraitement_base& post)
     ref_eq_=Pb.equation(numero_eq_);
   else if (iskeps)
     {
-      const Mod_turb_hyd_RANS_keps& le_mod_RANS = ref_cast(Mod_turb_hyd_RANS_keps, Pb.equation(numero_eq_).get_modele(TURBULENCE).valeur());
+      const Modele_turbulence_hyd_RANS_K_Eps_base& le_mod_RANS = ref_cast(Modele_turbulence_hyd_RANS_K_Eps_base, Pb.equation(numero_eq_).get_modele(TURBULENCE).valeur());
       const Transport_K_Eps_base& eqn = ref_cast(Transport_K_Eps_base, le_mod_RANS.eqn_transp_K_Eps());
       ref_eq_ = ref_cast(Equation_base, eqn);
     }
   else if (iskomega)
     {
-      const Mod_turb_hyd_RANS_komega& le_mod_RANS = ref_cast(Mod_turb_hyd_RANS_komega, Pb.equation(numero_eq_).get_modele(TURBULENCE).valeur());
+      const Modele_turbulence_hyd_RANS_K_Omega_base& le_mod_RANS = ref_cast(Modele_turbulence_hyd_RANS_K_Omega_base, Pb.equation(numero_eq_).get_modele(TURBULENCE).valeur());
       const Transport_K_Omega_base& eqn = ref_cast(Transport_K_Omega_base, le_mod_RANS.eqn_transp_K_Omega());
       ref_eq_ = ref_cast(Equation_base, eqn);
     }
@@ -268,12 +269,16 @@ const Noms Champ_Generique_Morceau_Equation::get_property(const Motcle& query) c
     case 1:
       {
         Noms unites(1);
+        if (unite_ != "??")
+          {
+            unites[0] = unite_;
+            return unites;
+          }
         if (Motcle(option_)=="stabilite")
           unites[0] = "s";
         else if (Motcle(option_).debute_par("FLUX_"))
           {
             // Tres incomplet mais bon...:
-            unites[0] = "??";
             if (ref_eq_->inconnue().le_nom()=="vitesse")
               {
                 if (numero_morceau_<2) unites[0]="N";

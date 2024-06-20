@@ -27,123 +27,10 @@
 #include <IJK_Thermal_Subresolution.h>
 #include <IJK_One_Dimensional_Subproblems.h>
 
+#define selectxy(a,x,y) ((a==0)?(x):(y))
 
-Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblem, "IJK_One_Dimensional_Subproblem", Objet_U ) ;
+Implemente_instanciable( IJK_One_Dimensional_Subproblem, "IJK_One_Dimensional_Subproblem", Objet_U ) ;
 
-IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem()
-{
-  init_ = 1;
-  debug_ = 0;
-
-  disable_probe_because_collision_ = 0;
-  disable_find_cell_centre_probe_tip_ = 0;
-  enable_probe_collision_detection_=0;
-  enable_resize_probe_collision_ = 0;
-  debug_probe_collision_ = 0;
-  resize_probe_collision_ = 0;
-  resize_probe_collision_index_ = 0;
-  modified_probe_length_from_collision_ = 0.;
-
-  disable_probe_weak_gradient_=0;
-  disable_probe_weak_gradient_gfm_=0;
-  disable_probe_weak_gradient_local_=0;
-
-  reconstruct_previous_probe_field_ = 0;
-  implicit_solver_from_previous_probe_field_ = 0;
-
-  subproblem_to_ijk_indices_previous_ = nullptr;
-  temperature_probes_previous_ = nullptr;
-  indicator_probes_previous_ = nullptr;
-  velocities_probes_previous_ = nullptr;
-  normal_vector_compo_probes_previous_ = nullptr;
-
-  points_per_thermal_subproblem_ = nullptr;
-  points_per_thermal_subproblem_base_ = nullptr;
-  alpha_ = nullptr;
-  lambda_ = nullptr;
-  prandtl_number_ = nullptr;
-  coeff_distance_diagonal_ = nullptr;
-  cell_diagonal_ = nullptr;
-
-  interfaces_ = nullptr;
-  eulerian_distance_ = nullptr;
-  eulerian_curvature_ = nullptr;
-  eulerian_interfacial_area_ = nullptr;
-  eulerian_normal_vect_ = nullptr;
-  eulerian_facets_barycentre_ = nullptr;
-
-  temperature_ = nullptr;
-  temperature_ft_ = nullptr;
-  temperature_before_extrapolation_ = nullptr;
-  velocity_ = nullptr;
-  velocity_ft_ = nullptr;
-  pressure_ = nullptr;
-  eulerian_grad_T_interface_ns_=nullptr;
-  probe_collision_debug_field_= nullptr;
-
-  grad_T_elem_ = nullptr;
-  hess_diag_T_elem_ = nullptr;
-  hess_cross_T_elem_ = nullptr;
-
-  radial_coordinates_ = nullptr;
-  radial_coordinates_base_ = nullptr;
-
-  radial_first_order_operator_raw_base_ = nullptr;
-  radial_second_order_operator_raw_base_ = nullptr;
-  radial_first_order_operator_base_ = nullptr;
-  radial_second_order_operator_base_ = nullptr;
-  radial_diffusion_matrix_base_ = nullptr;
-  radial_convection_matrix_base_ = nullptr;
-  radial_velocity_convection_matrix_base_=nullptr;
-
-  radial_first_order_operator_=nullptr;
-  radial_second_order_operator_=nullptr;
-  finite_difference_assembler_=nullptr;
-  thermal_subproblems_matrix_assembly_=nullptr;
-  thermal_subproblems_rhs_assembly_=nullptr;
-  thermal_subproblems_temperature_solution_=nullptr;
-  thermal_subproblems_temperature_solution_ini_=nullptr;
-
-  interfacial_boundary_condition_value_ = 0.;
-  end_boundary_condition_value_ = 0.;
-  start_index_ = 0;
-  end_index_ = 0;
-
-  correct_radial_velocity_ = 1;
-  correct_tangential_temperature_gradient_ = 0;
-  correct_tangential_temperature_hessian_ = 0;
-
-  first_tangential_vector_compo_solver_=nullptr;
-  second_tangential_vector_compo_solver_=nullptr;
-
-  first_tangential_velocity_solver_ = nullptr;
-  second_tangential_velocity_solver_ = nullptr;
-
-  tangential_temperature_gradient_first_solver_ = nullptr;
-  tangential_temperature_gradient_second_solver_ = nullptr;
-
-  max_u_ = 0.9 * INVALID_VELOCITY_CFL;
-  identity_matrix_explicit_implicit_base_ = nullptr;
-  identity_matrix_explicit_implicit_ = nullptr;
-  identity_matrix_subproblems_ = nullptr;
-
-  first_time_step_temporal_ = nullptr;
-
-  first_indices_sparse_matrix_ = nullptr;
-
-  bubbles_volume_ = nullptr;
-  bubbles_surface_ = nullptr;
-  radius_from_surfaces_per_bubble_ = nullptr;
-  radius_from_volumes_per_bubble_ = nullptr;
-  delta_temperature_ = nullptr;
-  mean_liquid_temperature_ = nullptr;
-  bubbles_rising_vectors_per_bubble_ = nullptr;
-
-  latastep_reprise_ = nullptr;
-
-  has_computed_cell_centre_distance_ = false;
-  has_computed_cell_faces_distance_ = false;
-}
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const IJK_FT_base& ijk_ft) : IJK_One_Dimensional_Subproblem()
 {
@@ -160,6 +47,11 @@ Entree& IJK_One_Dimensional_Subproblem::readOn( Entree& is )
 {
   Objet_U::readOn( is );
   return is;
+}
+
+static int compute_periodic_index(const int index, const int n)
+{
+  return (n + index % n) % n;
 }
 
 void IJK_One_Dimensional_Subproblem::get_ijk_indices(int& i, int& j, int& k) const
@@ -230,11 +122,15 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            velocity_ft,
                                            pressure,
                                            ref_thermal_subresolution.grad_T_elem_,
+                                           ref_thermal_subresolution.grad_T_elem_smooth_,
                                            ref_thermal_subresolution.hess_diag_T_elem_,
                                            ref_thermal_subresolution.hess_cross_T_elem_,
                                            ref_thermal_subresolution.eulerian_grad_T_interface_ns_,
-                                           ref_thermal_subresolution.probe_collision_debug_field_);
+                                           ref_thermal_subresolution.probe_collision_debug_field_,
+                                           ref_thermal_subresolution.zero_liquid_neighbours_,
+                                           ref_thermal_subresolution.smooth_grad_T_elem_);
       associate_probe_parameters(ref_thermal_subresolution.points_per_thermal_subproblem_,
+                                 ref_thermal_subresolution.cp_liquid_,
                                  ref_thermal_subresolution.uniform_alpha_,
                                  ref_thermal_subresolution.uniform_lambda_,
                                  ref_thermal_subresolution.prandtl_number_,
@@ -278,7 +174,14 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
       associate_flux_correction_parameters((ref_thermal_subresolution.convective_flux_correction_
                                             || ref_thermal_subresolution.diffusive_flux_correction_),
                                            ref_thermal_subresolution.distance_cell_faces_from_lrs_,
-                                           ref_thermal_subresolution.interp_eulerian_);
+                                           ref_thermal_subresolution.interp_eulerian_,
+                                           ref_thermal_subresolution.use_corrected_velocity_convection_,
+                                           ref_thermal_subresolution.use_velocity_cartesian_grid_,
+                                           ref_thermal_subresolution.compute_radial_displacement_,
+                                           ref_thermal_subresolution.fluxes_correction_conservations_,
+                                           ref_thermal_subresolution.conserve_max_interfacial_fluxes_,
+                                           ref_thermal_subresolution.fluxes_corrections_weighting_,
+                                           ref_thermal_subresolution.use_normal_gradient_for_flux_corr_);
       associate_varying_probes_params(ref_thermal_subresolution.readjust_probe_length_from_vertices_,
                                       ref_thermal_subresolution.first_time_step_varying_probes_,
                                       ref_thermal_subresolution.probe_variations_priority_,
@@ -310,6 +213,7 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                             ref_thermal_subresolution.local_cfl_,
                                             ref_thermal_subresolution.min_delta_xyz_,
                                             ref_thermal_subresolution.max_u_radial_);
+      disable_relative_velocity_energy_balance_ = ref_thermal_subresolution.disable_relative_velocity_energy_balance_;
     }
 
   /*
@@ -339,6 +243,21 @@ void IJK_One_Dimensional_Subproblem::clear_vectors()
   pure_neighbours_last_faces_to_correct_.clear();
   pure_neighbours_last_faces_corrected_distance_.clear();
   pure_neighbours_last_faces_corrected_colinearity_.clear();
+  for (int l=0; l<6; l++)
+    {
+      convective_flux_op_lrs_[l] = 0.;
+      diffusive_flux_op_lrs_[l] = 0.;
+      corrective_flux_current_[l] = 0.;
+      corrective_flux_to_neighbours_[l] = 0.;
+      corrective_flux_from_neighbours_[l] = 0.;
+      temperature_interp_conv_flux_[l] = 0.;
+    }
+  sum_convective_flux_op_lrs_ = 0.;
+  sum_convective_flux_op_leaving_lrs_ = 0.;
+  sum_convective_flux_op_entering_lrs_ = 0.;
+  sum_diffusive_flux_op_lrs_ = 0.;
+  sum_diffusive_flux_op_leaving_lrs_ = 0.;
+  sum_diffusive_flux_op_entering_lrs_ = 0.;
 }
 
 void IJK_One_Dimensional_Subproblem::reset_counters()
@@ -350,6 +269,8 @@ void IJK_One_Dimensional_Subproblem::reset_flags()
 {
   has_computed_cell_centre_distance_ = false;
   has_computed_cell_faces_distance_ = false;
+  has_computed_liquid_neighbours_ = false;
+  has_computed_lrs_flux_frame_of_ref_terms_ = false;
   disable_probe_because_collision_ = 0;
   disable_probe_weak_gradient_local_= 0;
 }
@@ -391,10 +312,13 @@ void IJK_One_Dimensional_Subproblem::associate_eulerian_fields_references(const 
                                                                           const FixedVector<IJK_Field_double, 3>& velocity_ft,
                                                                           const IJK_Field_double& pressure,
                                                                           const FixedVector<IJK_Field_double, 3>& grad_T_elem,
+                                                                          const FixedVector<IJK_Field_double, 3>& grad_T_elem_smooth,
                                                                           const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
                                                                           const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
                                                                           const IJK_Field_double& eulerian_grad_T_interface_ns,
-                                                                          IJK_Field_double& probe_collision_debug_field)
+                                                                          IJK_Field_double& probe_collision_debug_field,
+                                                                          IJK_Field_int& zero_liquid_neighbours,
+                                                                          const int& smooth_grad_T_elem)
 {
   interfaces_ = &interfaces;
   eulerian_distance_ = eulerian_distance;
@@ -409,10 +333,17 @@ void IJK_One_Dimensional_Subproblem::associate_eulerian_fields_references(const 
   velocity_ft_ = &velocity_ft;
   pressure_ = &pressure;
   grad_T_elem_ = &grad_T_elem;
+  grad_T_elem_smooth_ = &grad_T_elem_smooth;
+  smooth_grad_T_elem_ = smooth_grad_T_elem;
+  if (smooth_grad_T_elem_)
+    grad_T_elem_solver_ = &grad_T_elem_smooth;
+  else
+    grad_T_elem_solver_ = &grad_T_elem;
   hess_diag_T_elem_ = &hess_diag_T_elem;
   hess_cross_T_elem_ = &hess_cross_T_elem;
   eulerian_grad_T_interface_ns_ = &eulerian_grad_T_interface_ns;
   probe_collision_debug_field_ = &probe_collision_debug_field;
+  zero_liquid_neighbours_ = &zero_liquid_neighbours;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_tweaked_parameters(const int& disable_probe_weak_gradient,
@@ -464,11 +395,25 @@ void IJK_One_Dimensional_Subproblem::associate_varying_probes_params(const int& 
 
 void IJK_One_Dimensional_Subproblem::associate_flux_correction_parameters(const int& correct_fluxes,
                                                                           const int& distance_cell_faces_from_lrs,
-                                                                          const int& interp_eulerian)
+                                                                          const int& interp_eulerian,
+                                                                          const int& use_corrected_velocity_convection,
+                                                                          const int& use_velocity_cartesian_grid,
+                                                                          const int& compute_radial_displacement,
+                                                                          const int& fluxes_correction_conservations,
+                                                                          const int& conserve_max_interfacial_fluxes,
+                                                                          const int& fluxes_corrections_weighting,
+                                                                          const int& use_normal_gradient_for_flux_corr)
 {
   correct_fluxes_ = correct_fluxes;
   distance_cell_faces_from_lrs_ = distance_cell_faces_from_lrs;
   interp_eulerian_ = interp_eulerian;
+  use_corrected_velocity_convection_ = use_corrected_velocity_convection;
+  use_velocity_cartesian_grid_ = use_velocity_cartesian_grid;
+  compute_radial_displacement_ = compute_radial_displacement;
+  fluxes_correction_conservations_ = fluxes_correction_conservations;
+  conserve_max_interfacial_fluxes_ = conserve_max_interfacial_fluxes;
+  fluxes_corrections_weighting_ = fluxes_corrections_weighting;
+  use_normal_gradient_for_flux_corr_ = use_normal_gradient_for_flux_corr;
 }
 
 void IJK_One_Dimensional_Subproblem::associate_source_terms_parameters(const int& source_terms_type,
@@ -551,6 +496,7 @@ void IJK_One_Dimensional_Subproblem::associate_flags_neighbours_correction(const
 }
 
 void IJK_One_Dimensional_Subproblem::associate_probe_parameters(const int& points_per_thermal_subproblem,
+                                                                const double& cp_liquid,
                                                                 const double& alpha,
                                                                 const double& lambda,
                                                                 const double& prandtl_number,
@@ -564,6 +510,7 @@ void IJK_One_Dimensional_Subproblem::associate_probe_parameters(const int& point
    */
   points_per_thermal_subproblem_base_ = &points_per_thermal_subproblem;
   coeff_distance_diagonal_ = &coeff_distance_diagonal;
+  cp_liquid_ = &cp_liquid;
   alpha_ = &alpha;
   lambda_ = &lambda;
   prandtl_number_ = &prandtl_number;
@@ -641,6 +588,9 @@ void IJK_One_Dimensional_Subproblem::associate_finite_difference_operators(const
 
 void IJK_One_Dimensional_Subproblem::initialise_thermal_probe()
 {
+  // static Stat_Counter_Id cnt_lrs_ini_cell_dist = statistiques().new_counter(4, "Thermal Subresolution LRS - Initialisation - Cell dist");
+  // static Stat_Counter_Id cnt_lrs_ini_face_dist = statistiques().new_counter(4, "Thermal Subresolution LRS - Initialisation - Face dist");
+
   if (debug_)
     Cerr << "Compute interface basis vectors" << finl;
   compute_interface_basis_vectors();
@@ -679,14 +629,18 @@ void IJK_One_Dimensional_Subproblem::initialise_thermal_probe()
   if (!reference_gfm_on_probes_)
     if (distance_cell_faces_from_lrs_)
       {
+        // statistiques().begin_count(cnt_lrs_ini_cell_dist);
         compute_distance_cell_centre();
+        // statistiques().end_count(cnt_lrs_ini_cell_dist);
         if (debug_)
           Cerr << "Compute cell and faces distance to the interface" << finl;
         if (correct_fluxes_ || correct_temperature_cell_neighbours_
             || find_cell_neighbours_for_fluxes_spherical_correction_
             || compute_reachable_fluxes_)
           {
+            // statistiques().begin_count(cnt_lrs_ini_face_dist);
             compute_distance_faces_centres();
+            // statistiques().end_count(cnt_lrs_ini_face_dist);
             if (!readjust_probe_length_from_vertices_ || !enable_resize_probe_collision_)
               {
                 if (debug_)
@@ -700,6 +654,12 @@ void IJK_One_Dimensional_Subproblem::initialise_thermal_probe()
               }
           }
       }
+
+  if (fluxes_correction_conservations_)
+    {
+      compute_pure_liquid_neighbours();
+      locate_pure_mixed_neighbours_without_pure_liquid_faces();
+    }
 
   surface_ = (*eulerian_interfacial_area_)(index_i_, index_j_, index_k_);
   // Resize won't change the values if size is not changing...
@@ -801,6 +761,8 @@ void IJK_One_Dimensional_Subproblem::compute_interface_basis_vectors()
     {
       first_tangential_vector_compo_solver_ = &first_tangential_vector_compo_from_rising_dir_;
       second_tangential_vector_compo_solver_ = &azymuthal_vector_compo_;
+      first_tangential_velocity_not_corrected_ = &first_tangential_velocity_from_rising_dir_;
+      second_tangential_velocity_not_corrected_ = &azymuthal_velocity_;
       first_tangential_velocity_solver_ = &first_tangential_velocity_from_rising_dir_corrected_;
       second_tangential_velocity_solver_ = &azymuthal_velocity_corrected_;
       tangential_temperature_gradient_first_solver_ = &tangential_temperature_gradient_first_from_rising_dir_;
@@ -811,6 +773,8 @@ void IJK_One_Dimensional_Subproblem::compute_interface_basis_vectors()
       // By default
       first_tangential_vector_compo_solver_= &first_tangential_vector_compo_;
       second_tangential_vector_compo_solver_ = &second_tangential_vector_compo_;
+      first_tangential_velocity_not_corrected_ = &first_tangential_velocity_;
+      second_tangential_velocity_not_corrected_ = &second_tangential_velocity_;
       first_tangential_velocity_solver_ = &first_tangential_velocity_corrected_;
       second_tangential_velocity_solver_ = &second_tangential_velocity_corrected_;
       tangential_temperature_gradient_first_solver_ = &tangential_temperature_gradient_first_;
@@ -1296,7 +1260,15 @@ void IJK_One_Dimensional_Subproblem::compute_distance_cell_centre()
       Vecteur3 facet_to_cell_centre = facet_barycentre_;
       facet_to_cell_centre *= -1;
       facet_to_cell_centre += centre;
+
+      Vecteur3 facet_to_osculating_cell_centre = normal_vector_compo_;
+      facet_to_osculating_cell_centre *= - (- osculating_radius_);
+      facet_to_osculating_cell_centre += facet_to_cell_centre;
+
       cell_centre_distance_ = Vecteur3::produit_scalaire(facet_to_cell_centre, normal_vector_compo_);
+      cell_centre_radius_difference_ = facet_to_cell_centre.length() - cell_centre_distance_;
+      cell_centre_osculating_radius_difference_ = (facet_to_osculating_cell_centre.length()
+                                                   - osculating_radius_ - cell_centre_distance_);
 
       Vecteur3 normal_contrib = normal_vector_compo_;
       normal_contrib *= cell_centre_distance_;
@@ -1320,13 +1292,13 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
       Vecteur3 bary_face {0., 0., .0};
       Vecteur3 vector_relative {0., 0., 0.};
       Vecteur3 bary_vertex {0., 0., 0.};
-      int neighbours_i[6] = NEIGHBOURS_I;
-      int neighbours_j[6] = NEIGHBOURS_J;
-      int neighbours_k[6] = NEIGHBOURS_K;
-      int neighbours_faces_i[6] = NEIGHBOURS_FACES_I;
-      int neighbours_faces_j[6] = NEIGHBOURS_FACES_J;
-      int neighbours_faces_k[6] = NEIGHBOURS_FACES_K;
-      int face_dir[6] = FACES_DIR;
+      const int neighbours_i[6] = NEIGHBOURS_I;
+      const int neighbours_j[6] = NEIGHBOURS_J;
+      const int neighbours_k[6] = NEIGHBOURS_K;
+      const int neighbours_faces_i[6] = NEIGHBOURS_FACES_I;
+      const int neighbours_faces_j[6] = NEIGHBOURS_FACES_J;
+      const int neighbours_faces_k[6] = NEIGHBOURS_FACES_K;
+      const int face_dir[6] = FACES_DIR;
       int m;
       for (int l=0; l<6; l++)
         {
@@ -1339,6 +1311,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
               const int ii_f = neighbours_faces_i[l];
               const int jj_f = neighbours_faces_j[l];
               const int kk_f = neighbours_faces_k[l];
+              pure_vapour_neighbours_[l] = 0;
               pure_liquid_neighbours_[l] = 1;
               if (ii)
                 bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_I);
@@ -1353,6 +1326,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
               vector_relative += bary_face;
               {
                 const double distance_face_centre = Vecteur3::produit_scalaire(vector_relative, normal_vector_compo_);
+                face_centres_radius_difference_[l] = vector_relative.length() - distance_face_centre;
                 face_centres_distance_[l] = distance_face_centre;
                 // Tangential distance
                 Vecteur3 normal_contrib = normal_vector_compo_;
@@ -1385,6 +1359,10 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
             }
           else
             {
+              if (fabs(indic_neighbour) < VAPOUR_INDICATOR_TEST)
+                pure_vapour_neighbours_[l] = 1;
+              else
+                pure_vapour_neighbours_[l] = 0;
               pure_liquid_neighbours_[l] = 0;
               face_centres_distance_[l] = 0.;
               face_centres_tangential_distance_[l] = 0.;
@@ -1397,6 +1375,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
                 }
             }
         }
+      has_computed_liquid_neighbours_ = true;
       has_computed_cell_faces_distance_ = true;
     }
   else if (debug_)
@@ -2112,6 +2091,27 @@ void IJK_One_Dimensional_Subproblem::correct_velocities()
       first_tangential_velocity_from_rising_dir_corrected_ = first_tangential_velocity_from_rising_dir_static_frame_;
       azymuthal_velocity_corrected_ = azymuthal_velocity_static_frame_;
     }
+
+  if (compute_radial_displacement_)
+    {
+      radial_displacement_over_time_step_ = 0.5 * global_time_step_ * radial_velocity_[0]; // or * 0.5 ? Like crank nicholson ?
+      if (distance_cell_faces_from_lrs_)
+        {
+          cell_centre_distance_corrected_ = cell_centre_distance_ - radial_displacement_over_time_step_;
+          cell_centre_distance_corrected_ = cell_centre_distance_corrected_ < 0 ? cell_centre_distance_: cell_centre_distance_corrected_;
+          if (correct_fluxes_ || correct_temperature_cell_neighbours_
+              || find_cell_neighbours_for_fluxes_spherical_correction_
+              || compute_reachable_fluxes_)
+            {
+              face_centres_distance_corrected_ = face_centres_distance_;
+              for (int l=0; l<6; l++)
+                {
+                  face_centres_distance_corrected_[l] += (- radial_displacement_over_time_step_);
+                  face_centres_distance_corrected_[l] = face_centres_distance_corrected_[l] < 0 ? face_centres_distance_[l] : face_centres_distance_corrected_[l];
+                }
+            }
+        }
+    }
 }
 
 void IJK_One_Dimensional_Subproblem::correct_velocity(const DoubleVect& velocity, DoubleVect& velocity_corrected)
@@ -2222,9 +2222,9 @@ void IJK_One_Dimensional_Subproblem::retrieve_previous_temperature_on_probe()
             }
           else
             {
-              int neighbours_i[6] = NEIGHBOURS_I;
-              int neighbours_j[6] = NEIGHBOURS_J;
-              int neighbours_k[6] = NEIGHBOURS_K;
+              const int neighbours_i[6] = NEIGHBOURS_I;
+              const int neighbours_j[6] = NEIGHBOURS_J;
+              const int neighbours_k[6] = NEIGHBOURS_K;
               int counter_mixed_neighbours = 0;
               //              double indicator_mixed_neighbours = 0;
               //              double colinearity_mixed_neighbours = 0;
@@ -2361,7 +2361,7 @@ void IJK_One_Dimensional_Subproblem::interpolate_temperature_gradient_on_probe()
   for (int dir = 0; dir < 3; dir++)
     {
       grad_T_elem_interp_[dir].resize(*points_per_thermal_subproblem_);
-      ijk_interpolate_skip_unknown_points((*grad_T_elem_)[dir], coordinates_cartesian_compo_, grad_T_elem_interp_[dir], INVALID_INTERP);
+      ijk_interpolate_skip_unknown_points((*grad_T_elem_solver_)[dir], coordinates_cartesian_compo_, grad_T_elem_interp_[dir], INVALID_INTERP);
     }
 }
 
@@ -2725,9 +2725,15 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                                                                                      const double& end_boundary_condition_value,
                                                                                      const int& impose_user_boundary_condition_end_value)
 {
+  // static Stat_Counter_Id cnt_lrs_source_terms_prep_bc = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Prepare B.C");
+  // static Stat_Counter_Id cnt_lrs_source_terms_compute = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Compute");
+  // static Stat_Counter_Id cnt_lrs_source_terms_impose_bc = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Impose B.C");
+  // static Stat_Counter_Id cnt_lrs_source_terms_add = statistiques().new_counter(4, "Thermal Subresolution LRS - Source terms - Add B.C");
+
   int boundary_condition_interface_local = boundary_condition_interface;
   int boundary_condition_end_local = boundary_condition_end;
 
+  // statistiques().begin_count(cnt_lrs_source_terms_prep_bc);
   prepare_boundary_conditions(thermal_subproblems_rhs_assembly_,
                               thermal_subproblems_temperature_solution_ini_,
                               boundary_condition_interface_local,
@@ -2736,9 +2742,13 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                               boundary_condition_end_local,
                               end_boundary_condition_value,
                               impose_user_boundary_condition_end_value);
+  // statistiques().end_count(cnt_lrs_source_terms_prep_bc);
 
+  // statistiques().begin_count(cnt_lrs_source_terms_compute);
   compute_source_terms();
+  // statistiques().end_count(cnt_lrs_source_terms_compute);
 
+  //   statistiques().begin_count(cnt_lrs_source_terms_impose_bc);
   (*finite_difference_assembler_).impose_boundary_conditions_subproblem(thermal_subproblems_matrix_assembly_,
                                                                         thermal_subproblems_rhs_assembly_,
                                                                         rhs_assembly_,
@@ -2754,11 +2764,12 @@ void IJK_One_Dimensional_Subproblem::compute_source_terms_impose_boundary_condit
                                                                         start_index_,
                                                                         first_indices_sparse_matrix_,
                                                                         use_sparse_matrix_);
+  // statistiques().end_count(cnt_lrs_source_terms_impose_bc);
 
+  // statistiques().begin_count(cnt_lrs_source_terms_add);
   add_source_terms(boundary_condition_interface_local, boundary_condition_end_local);
-
   add_source_terms_temporal_tests(boundary_condition_interface_local, boundary_condition_end_local);
-
+  // statistiques().end_count(cnt_lrs_source_terms_add);
 }
 
 void IJK_One_Dimensional_Subproblem::compute_source_terms()
@@ -3129,15 +3140,31 @@ void IJK_One_Dimensional_Subproblem::retrieve_variables_solution_gfm_on_probes()
 
 void IJK_One_Dimensional_Subproblem::copy_interpolations_on_solution_variables_for_post_processing()
 {
+  const double flux_coeff = ((*lambda_) * surface_);
   temperature_solution_ = temperature_interp_;
   normal_temperature_gradient_solution_ = normal_temperature_gradient_interp_;
   temperature_x_gradient_solution_ = grad_T_elem_interp_[0];
   temperature_y_gradient_solution_ = grad_T_elem_interp_[1];
   temperature_z_gradient_solution_ = grad_T_elem_interp_[2];
   thermal_flux_ = normal_temperature_gradient_solution_;
-  thermal_flux_[0] = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
-  thermal_flux_*= ((*lambda_) * surface_);
+  const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
+  normal_temperature_gradient_solution_[0] = grad_T_elem_gfm;
+  thermal_flux_[0] = grad_T_elem_gfm;
+  thermal_flux_*= flux_coeff;
+  thermal_flux_interp_gfm_ = thermal_flux_;
   radial_temperature_diffusion_solution_ = radial_temperature_diffusion_;
+  const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+  thermal_flux_total_ = thermal_flux_[0];
+  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
+
+  thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
+  thermal_flux_raw_ = normal_temperature_gradient_interp_[0] * flux_coeff;
+  thermal_flux_lrs_ = normal_temperature_gradient_solution_[0] * flux_coeff;
+
+  const double sign_flux = signbit(thermal_flux_raw_) ? -1. : 1.;
+  thermal_flux_max_raw_ = sign_flux * std::max(abs(thermal_flux_raw_), abs(thermal_flux_lrs_));
+  thermal_flux_max_gfm_ = sign_flux * std::max(abs(thermal_flux_gfm_), abs(thermal_flux_lrs_));
+  thermal_flux_max_ = sign_flux * std::max(std::max(abs(thermal_flux_gfm_), abs(thermal_flux_raw_)), abs(thermal_flux_lrs_));
 }
 
 void IJK_One_Dimensional_Subproblem::retrieve_temperature_solution()
@@ -3149,6 +3176,8 @@ void IJK_One_Dimensional_Subproblem::retrieve_temperature_solution()
 
 void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution()
 {
+  // static Stat_Counter_Id cnt_lrs_solv_retrieve_temp = statistiques().new_counter(5, "Thermal Subresolution LRS - Solver - Local gradient solution");
+
   //	for (int dir=0; dir<3; dir++)
   //		temperature_gradient_solution_[dir].resize(temperature_solution_.size());
   normal_temperature_gradient_solution_.resize(temperature_solution_.size());
@@ -3160,10 +3189,10 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   reinit_variable(temperature_x_gradient_solution_);
   reinit_variable(temperature_y_gradient_solution_);
   reinit_variable(temperature_z_gradient_solution_);
-  if ((source_terms_type_ == linear_diffusion
-       || source_terms_type_ == spherical_diffusion
-       || source_terms_type_ == spherical_diffusion_approx)
-      && !compute_tangential_variables_)
+  if (((source_terms_type_ == linear_diffusion
+        || source_terms_type_ == spherical_diffusion
+        || source_terms_type_ == spherical_diffusion_approx)
+       && !compute_tangential_variables_) || use_normal_gradient_for_flux_corr_)
     {
       DoubleVect dummy_tangential_deriv;
       dummy_tangential_deriv.resize(*points_per_thermal_subproblem_);
@@ -3230,14 +3259,39 @@ void IJK_One_Dimensional_Subproblem::compute_local_temperature_gradient_solution
   else
     thermal_flux_ = normal_temperature_gradient_solution_;
 
+  thermal_flux_[0] = (abs(thermal_flux_[0]) > MAX_FLUX_TEST) ? 0.: thermal_flux_[0];
+
+  const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
   if (reference_gfm_on_probes_)
     {
-      const double grad_T_elem_gfm = (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_);
       normal_temperature_gradient_solution_[0] = grad_T_elem_gfm;
       thermal_flux_[0] = grad_T_elem_gfm;
     }
-  thermal_flux_*= ((*lambda_) * surface_);
+  thermal_flux_interp_gfm_ = normal_temperature_gradient_interp_;
+  thermal_flux_interp_gfm_[0] = grad_T_elem_gfm;
 
+  const double flux_coeff = ((*lambda_) * surface_);
+  thermal_flux_*= flux_coeff;
+  thermal_flux_interp_gfm_ *= flux_coeff;
+  const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+
+  thermal_flux_gfm_ = grad_T_elem_gfm * flux_coeff;
+  thermal_flux_raw_ = normal_temperature_gradient_interp_[0] * flux_coeff;
+  thermal_flux_lrs_ = normal_temperature_gradient_solution_[0] * flux_coeff;
+
+  const double sign_flux = signbit(thermal_flux_raw_) ? -1. : 1.;
+  thermal_flux_max_raw_ = sign_flux * std::max(abs(thermal_flux_raw_), abs(thermal_flux_lrs_));
+  thermal_flux_max_gfm_ = sign_flux * std::max(abs(thermal_flux_gfm_), abs(thermal_flux_lrs_));
+  thermal_flux_max_ = sign_flux * std::max(std::max(abs(thermal_flux_gfm_), abs(thermal_flux_raw_)), abs(thermal_flux_lrs_));
+
+  if (conserve_max_interfacial_fluxes_)
+    {
+      thermal_flux_total_ = thermal_flux_max_gfm_;
+      thermal_flux_ = thermal_flux_total_;
+    }
+  else
+    thermal_flux_total_ = thermal_flux_[0];
+  thermal_flux_abs_ = thermal_flux_total_ * sign_temp;
 }
 
 void IJK_One_Dimensional_Subproblem::compute_radial_convection_scale_factor_solution()
@@ -3579,24 +3633,104 @@ double IJK_One_Dimensional_Subproblem::get_temperature_profile_at_point(const do
   // return get_field_profile_at_point(dist, temperature_solution_, 1);
 }
 
-double IJK_One_Dimensional_Subproblem::get_velocity_component_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_velocity_component_at_point(const double& dist,
+                                                                       const int& dir,
+                                                                       const int& index_i,
+                                                                       const int& index_j,
+                                                                       const int& index_k) const
 {
   double velocity = 0;
-  switch(dir)
+  if (use_velocity_cartesian_grid_)
+    velocity = get_velocity_cartesian_grid_value(dist,
+                                                 dir,
+                                                 signbit(normal_vector_compo_[dir]),
+                                                 index_i,
+                                                 index_j,
+                                                 index_k);
+  else
     {
-    case 0:
-      velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
-      break;
-    case 1:
-      velocity = get_field_profile_at_point(dist, y_velocity_, y_velocity_, (*velocity_)[1] , 0, 0, interp_eulerian_);
-      break;
-    case 2:
-      velocity = get_field_profile_at_point(dist, z_velocity_, z_velocity_, (*velocity_)[2] , 0, 0, interp_eulerian_);
-      break;
-    default:
-      velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
-      break;
+      switch(dir)
+        {
+        case 0:
+          velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
+          break;
+        case 1:
+          velocity = get_field_profile_at_point(dist, y_velocity_, y_velocity_, (*velocity_)[1] , 0, 0, interp_eulerian_);
+          break;
+        case 2:
+          velocity = get_field_profile_at_point(dist, z_velocity_, z_velocity_, (*velocity_)[2] , 0, 0, interp_eulerian_);
+          break;
+        default:
+          velocity = get_field_profile_at_point(dist, x_velocity_, x_velocity_, (*velocity_)[0] , 0, 0, interp_eulerian_);
+          break;
+        }
     }
+  return velocity;
+}
+
+double IJK_One_Dimensional_Subproblem::get_velocity_cartesian_grid_value(const double& dist,
+                                                                         const int& dir,
+                                                                         const int& sign_dir,
+                                                                         const int& index_i,
+                                                                         const int& index_j,
+                                                                         const int& index_k) const
+{
+  /*
+   * Access directly the value ?
+   */
+  double velocity = 0.;
+  const int test_index_i = index_i != INVALID_INDEX;
+  const int test_index_j = index_j != INVALID_INDEX;
+  const int test_index_k = index_k != INVALID_INDEX;
+  int i = test_index_i ? index_i: index_i_;
+  int j = test_index_j ? index_j: index_j_;
+  int k = test_index_k ? index_k: index_k_;
+  // const double delta = (dist - cell_centre_distance_) * normal_vector_compo_[dir];
+  //  double incr_dir;
+  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  double ddir = geom.get_constant_delta(dir);
+  //  incr_dir = (int) delta / ddir;
+  if (!(test_index_i && test_index_j && test_index_k))
+    {
+      switch(dir)
+        {
+        case 0:
+          if (!sign_dir)
+            i += 1;
+          break;
+        case 1:
+          if (!sign_dir)
+            j += 1;
+          break;
+        case 2:
+          if (!sign_dir)
+            k += 1;
+          break;
+        default:
+          if (!sign_dir)
+            i += 1;
+          break;
+        }
+    }
+  velocity = (*velocity_)[dir](i,j,k);
+
+  /*
+   * Use inteporlations
+   */
+  //  DoubleTab coordinates_point;
+  //	DoubleVect field_interp(1);
+  //	coordinates_point.resize(1,3);
+  //  Vecteur3 bary_cell = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  double ddir = geom.get_constant_delta(dir) / 2.;
+  //	Vecteur3 compo_xyz = bary_cell;
+  //	ddir = sign_dir ? - ddir: ddir;
+  //	compo_xyz[dir] += bary_cell[dir] + ddir;
+  //	for (int c=0; c<3; c++)
+  //		coordinates_point(0,c) = compo_xyz[c];
+  //	ijk_interpolate_skip_unknown_points((*velocity_)[dir], coordinates_point, field_interp, INVALID_INTERP);
+  //	velocity = field_interp(0);
+
   return velocity;
 }
 
@@ -3641,18 +3775,51 @@ double IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_at_point
   return temperature_gradient;
 }
 
-double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_at_point(const double& dist,
+                                                                                       const int& dir,
+                                                                                       bool& valid_val,
+                                                                                       const int& l,
+                                                                                       const int& index_i,
+                                                                                       const int& index_j,
+                                                                                       const int& index_k,
+                                                                                       const int& temperature)
 {
   double temperature_interp = get_field_profile_at_point(dist, temperature_solution_, temperature_interp_, *temperature_,
                                                          1, 1, interp_eulerian_);
-  double velocity_interp = get_velocity_component_at_point(dist, dir);
+  if (abs(temperature_interp) > INVALID_INTERP_TEST)
+    {
+      temperature_interp = 0.;
+      valid_val = false;
+    }
+  if (temperature)
+    return temperature_interp;
+  double velocity_interp = get_velocity_component_at_point(dist, dir, index_i, index_j, index_k);
+
+  if (use_corrected_velocity_convection_)
+    {
+      const double radial_corr_ = radial_velocity_[0] - radial_velocity_corrected_[0];
+      const double first_tangential_corr = (*first_tangential_velocity_not_corrected_)[0] - (*first_tangential_velocity_solver_)[0];
+      const double second_tangential_corr = (*second_tangential_velocity_not_corrected_)[0] - (*second_tangential_velocity_solver_)[0];
+      velocity_interp -= (radial_corr_ * normal_vector_compo_[dir]);
+      velocity_interp -= (first_tangential_corr * (*first_tangential_vector_compo_solver_)[dir]);
+      velocity_interp -= (second_tangential_corr * (*second_tangential_vector_compo_solver_)[dir]);
+    }
+  const double temperature_interp_conv = temperature_interp_conv_flux_[dir];
+  // temperature_interp_conv_flux_[dir] = (temperature_interp_conv + temperature_interp);
+  if (l != -1)
+    temperature_interp_conv_flux_[l] = (temperature_interp_conv + temperature_interp);
   return temperature_interp * velocity_interp;
 }
 
-double IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir) const
+double IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir, bool& valid_val) const
 {
   double diffusive_flux = 0;
   diffusive_flux = get_temperature_gradient_profile_at_point(dist, dir);
+  if (abs(diffusive_flux) > INVALID_INTERP_TEST)
+    {
+      diffusive_flux = 0.;
+      valid_val = false;
+    }
   diffusive_flux *= (*lambda_);
   return diffusive_flux;
 }
@@ -3665,7 +3832,8 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_velocity_
                                                                                                    const IJK_Field_double& eulerian_field,
                                                                                                    const int temp_bool,
                                                                                                    const int weak_gradient_variable,
-                                                                                                   const int vel) const
+                                                                                                   const int vel,
+                                                                                                   const int& l)
 {
   const int nb_values = (int) pow(4., (double) levels);
   DoubleVect discrete_values(nb_values);
@@ -3689,6 +3857,11 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_velocity_
                                          temp_bool, weak_gradient_variable,
                                          dl1_ini, dl2_ini,
                                          point_coords_ini, discrete_values, value_counter);
+    }
+  if (l != -1 && !disable_relative_velocity_energy_balance_)
+    {
+      for (int c=0; c<discrete_values.size(); c++)
+        temperature_interp_conv_flux_[l] += discrete_values[c];
     }
   return discrete_values;
 }
@@ -3763,7 +3936,7 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_discrete_integral_at_point(
                                                                                 const DoubleVect& field_weak_gradient,
                                                                                 const IJK_Field_double& eulerian_field,
                                                                                 const int temp_bool,
-                                                                                const int weak_gradient_variable) const
+                                                                                const int weak_gradient_variable)
 {
   return get_field_discrete_integral_velocity_weighting_at_point(dist, levels, dir,
                                                                  field, field_weak_gradient,
@@ -3776,30 +3949,32 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_field_times_velocity_discrete_int
                                                                                                const int& dir,
                                                                                                const DoubleVect& field,
                                                                                                const DoubleVect& field_weak_gradient,
-                                                                                               const IJK_Field_double& eulerian_field) const
+                                                                                               const IJK_Field_double& eulerian_field,
+                                                                                               const int& l)
 {
   return get_field_discrete_integral_velocity_weighting_at_point(dist, levels, dir,
                                                                  field, field_weak_gradient, eulerian_field,
-                                                                 1, 1, 1);
+                                                                 1, 1, 1, l);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_profile_discrete_integral_at_point(const double& dist,
                                                                                               const int& levels,
-                                                                                              const int& dir) const
+                                                                                              const int& dir)
 {
   return get_field_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_, 1, 1);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist,
                                                                                                              const int& levels,
-                                                                                                             const int& dir) const
+                                                                                                             const int& dir,
+                                                                                                             const int& l)
 {
-  return get_field_times_velocity_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_);
+  return get_field_times_velocity_discrete_integral_at_point(dist, levels, dir, temperature_solution_, temperature_interp_, *temperature_, l);
 }
 
 DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_discrete_integral_at_point(const double& dist,
                                                                                                        const int& levels,
-                                                                                                       const int& dir) const
+                                                                                                       const int& dir)
 {
   DoubleVect temperature_gradient;
   switch(dir)
@@ -3828,7 +4003,7 @@ DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_profile_disc
   return temperature_gradient;
 }
 
-DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const
+DoubleVect IJK_One_Dimensional_Subproblem::get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir)
 {
   DoubleVect diffusive_flux = get_temperature_gradient_profile_discrete_integral_at_point(dist, levels, dir);
   diffusive_flux *= (*lambda_);
@@ -3960,9 +4135,13 @@ void IJK_One_Dimensional_Subproblem::compute_bubble_related_quantities()
 }
 
 
-void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs(SFichier& fic, const int rank, const Nom& local_quantities_thermal_probes_time_index_folder)
+void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs(SFichier& fic,
+                                                                   SFichier& fic_shell,
+                                                                   const int rank,
+                                                                   const Nom& local_quantities_thermal_probes_time_index_folder)
 {
-  post_process_interfacial_quantities(fic, rank);
+  post_process_interfacial_quantities(fic, rank, 0);
+  post_process_interfacial_quantities(fic_shell, rank, (*points_per_thermal_subproblem_) - 1);
   post_process_radial_quantities(rank, local_quantities_thermal_probes_time_index_folder);
 }
 
@@ -3971,12 +4150,26 @@ void IJK_One_Dimensional_Subproblem::thermal_subresolution_outputs_parallel(cons
   post_process_radial_quantities(rank, local_quantities_thermal_probes_time_index_folder);
 }
 
+void IJK_One_Dimensional_Subproblem::retrieve_shell_quantities(const int rank,
+                                                               const int& itr,
+                                                               std::vector<std::string> key_results_int,
+                                                               std::vector<std::string> key_results_double,
+                                                               std::map<std::string, ArrOfInt>& results_probes_int,
+                                                               std::map<std::string, ArrOfDouble>& results_probes_double)
+{
+  retrieve_interfacial_quantities(rank, itr,
+                                  key_results_int, key_results_double,
+                                  results_probes_int, results_probes_double,
+                                  (*points_per_thermal_subproblem_) - 1);
+}
+
 void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int rank,
                                                                      const int& itr,
                                                                      std::vector<std::string> key_results_int,
                                                                      std::vector<std::string> key_results_double,
                                                                      std::map<std::string, ArrOfInt>& results_probes_int,
-                                                                     std::map<std::string, ArrOfDouble>& results_probes_double)
+                                                                     std::map<std::string, ArrOfDouble>& results_probes_double,
+                                                                     const int& coord)
 {
   const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
   const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
@@ -3988,54 +4181,63 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
   std::vector<double> results_double =
   {
     last_time,
+    (*radial_coordinates_)[coord],
     normal_vector_compo_[0], normal_vector_compo_[1], normal_vector_compo_[2],
     first_tangential_vector_compo_[0], first_tangential_vector_compo_[1], first_tangential_vector_compo_[2],
     second_tangential_vector_compo_[0], second_tangential_vector_compo_[1], second_tangential_vector_compo_[2],
     first_tangential_vector_compo_from_rising_dir_[0], first_tangential_vector_compo_from_rising_dir_[1], first_tangential_vector_compo_from_rising_dir_[2],
     azymuthal_vector_compo_[0], azymuthal_vector_compo_[1], azymuthal_vector_compo_[2],
     r_sph_, theta_sph_, phi_sph_,
-    temperature_interp_[0], temperature_solution_[0], temperature_previous_[0],
-    normal_temperature_gradient_interp_[0], normal_temperature_gradient_solution_[0],
-    hess_diag_T_elem_spherical_[0][0], normal_temperature_double_derivative_solution_[0],
-    tangential_temperature_gradient_first_[0],
-    tangential_temperature_gradient_second_[0],
-    tangential_temperature_gradient_first_from_rising_dir_[0],
-    azymuthal_temperature_gradient_[0],
-    temperature_diffusion_hessian_cartesian_trace_[0],
-    temperature_diffusion_hessian_trace_[0],
-    radial_temperature_diffusion_[0],
-    radial_temperature_diffusion_solution_[0],
-    tangential_temperature_diffusion_[0],
-    radial_scale_factor_interp_[0], radial_scale_factor_solution_[0],
-    radial_convection_interp_[0], 	radial_convection_solution_[0],
-    tangential_convection_source_terms_first_[0], tangential_convection_source_terms_second_[0],
-    surface_, thermal_flux_[0], (*lambda_), (*alpha_), (*prandtl_number_),
-    nusselt_number_[0], nusselt_number_liquid_temperature_[0],
-    nusselt_number_integrand_[0], nusselt_number_liquid_temperature_integrand_[0],
+    temperature_interp_[coord], temperature_solution_[coord], temperature_previous_[coord],
+    normal_temperature_gradient_interp_[coord], normal_temperature_gradient_solution_[coord],
+    (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_),
+    hess_diag_T_elem_spherical_[0][coord], normal_temperature_double_derivative_solution_[coord],
+    tangential_temperature_gradient_first_[coord],
+    tangential_temperature_gradient_second_[coord],
+    tangential_temperature_gradient_first_from_rising_dir_[coord],
+    azymuthal_temperature_gradient_[coord],
+    temperature_diffusion_hessian_cartesian_trace_[coord],
+    temperature_diffusion_hessian_trace_[coord],
+    radial_temperature_diffusion_[coord],
+    radial_temperature_diffusion_solution_[coord],
+    tangential_temperature_diffusion_[coord],
+    radial_scale_factor_interp_[coord], radial_scale_factor_solution_[coord],
+    radial_convection_interp_[coord], 	radial_convection_solution_[coord],
+    tangential_convection_source_terms_first_[coord], tangential_convection_source_terms_second_[coord],
+    surface_, thermal_flux_[coord],
+    thermal_flux_gfm_, thermal_flux_raw_,
+    thermal_flux_lrs_, thermal_flux_max_,
+    (*lambda_), (*alpha_), (*prandtl_number_),
+    nusselt_number_[coord], nusselt_number_liquid_temperature_[coord],
+    nusselt_number_integrand_[coord], nusselt_number_liquid_temperature_integrand_[coord],
     velocity_shear_force_, velocity_shear_stress_,
-    pressure_interp_[0],
-    x_velocity_[0], y_velocity_[0], z_velocity_[0],
-    radial_velocity_[0], radial_velocity_corrected_[0],
-    radial_velocity_static_frame_[0], radial_velocity_advected_frame_[0],
-    first_tangential_velocity_[0], first_tangential_velocity_corrected_[0],
-    first_tangential_velocity_static_frame_[0], first_tangential_velocity_advected_frame_[0],
-    second_tangential_velocity_[0], second_tangential_velocity_corrected_[0],
-    second_tangential_velocity_static_frame_[0], second_tangential_velocity_advected_frame_[0],
-    first_tangential_velocity_from_rising_dir_[0], first_tangential_velocity_from_rising_dir_corrected_[0],
-    first_tangential_velocity_from_rising_dir_static_frame_[0], first_tangential_velocity_from_rising_dir_advected_frame_[0],
-    azymuthal_velocity_[0], azymuthal_velocity_corrected_[0],
-    azymuthal_velocity_static_frame_[0], azymuthal_velocity_advected_frame_[0],
-    normal_velocity_normal_gradient_[0],
-    first_tangential_velocity_normal_gradient_[0],
-    second_tangential_velocity_normal_gradient_[0],
-    first_tangential_velocity_normal_gradient_from_rising_dir_[0],
-    azymuthal_velocity_normal_gradient_[0],
+    pressure_interp_[coord],
+    x_velocity_[coord], y_velocity_[coord], z_velocity_[coord],
+    radial_velocity_[coord], radial_velocity_corrected_[coord],
+    radial_velocity_static_frame_[coord], radial_velocity_advected_frame_[coord],
+    first_tangential_velocity_[coord], first_tangential_velocity_corrected_[coord],
+    first_tangential_velocity_static_frame_[coord], first_tangential_velocity_advected_frame_[coord],
+    second_tangential_velocity_[coord], second_tangential_velocity_corrected_[coord],
+    second_tangential_velocity_static_frame_[coord], second_tangential_velocity_advected_frame_[coord],
+    first_tangential_velocity_from_rising_dir_[coord], first_tangential_velocity_from_rising_dir_corrected_[coord],
+    first_tangential_velocity_from_rising_dir_static_frame_[coord], first_tangential_velocity_from_rising_dir_advected_frame_[coord],
+    azymuthal_velocity_[coord], azymuthal_velocity_corrected_[coord],
+    azymuthal_velocity_static_frame_[coord], azymuthal_velocity_advected_frame_[coord],
+    normal_velocity_normal_gradient_[coord],
+    first_tangential_velocity_normal_gradient_[coord],
+    second_tangential_velocity_normal_gradient_[coord],
+    first_tangential_velocity_normal_gradient_from_rising_dir_[coord],
+    azymuthal_velocity_normal_gradient_[coord],
     (*bubbles_surface_)(compo_connex_), (*bubbles_volume_)(compo_connex_),
     (*radius_from_surfaces_per_bubble_)(compo_connex_), (*radius_from_volumes_per_bubble_)(compo_connex_),
     (*delta_temperature_), (*mean_liquid_temperature_),
     (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0),
     (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1),
-    (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2)
+    (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2),
+    bubble_rising_velocity_compo_[0],
+    bubble_rising_velocity_compo_[1],
+    bubble_rising_velocity_compo_[2],
+    bubble_rising_velocity_
   };
   int i;
   assert(key_results_int.size() == results_int.size());
@@ -4049,7 +4251,8 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
 
 }
 
-void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichier& fic, const int rank) //SFichier& fic)
+
+void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichier& fic, const int rank, const int& coord) //SFichier& fic)
 {
   // if (Process::je_suis_maitre())
   {
@@ -4060,54 +4263,63 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
         fic << last_time_index << " ";
         fic << rank << " " << index_post_processing_ << " " << global_subproblem_index_ << " " << sub_problem_index_ << " ";
         fic << last_time << " ";
+        fic << (*radial_coordinates_)[coord] << " ";
         fic << normal_vector_compo_[0] << " " << normal_vector_compo_[1] << " " << normal_vector_compo_[2] << " ";
         fic << first_tangential_vector_compo_[0] << " " << first_tangential_vector_compo_[1] << " " << first_tangential_vector_compo_[2] << " ";
         fic << second_tangential_vector_compo_[0] << " " << second_tangential_vector_compo_[1] << " " << second_tangential_vector_compo_[2] << " ";
         fic << first_tangential_vector_compo_from_rising_dir_[0] << " " << first_tangential_vector_compo_from_rising_dir_[1] << " " << first_tangential_vector_compo_from_rising_dir_[2] << " ";
         fic << azymuthal_vector_compo_[0] << " " << azymuthal_vector_compo_[1] << " " << azymuthal_vector_compo_[2] << " ";
         fic << r_sph_ << " " << theta_sph_ << " " << phi_sph_ << " ";
-        fic << temperature_interp_[0] << " " << temperature_solution_[0] << " " << temperature_previous_[0] << " ";
-        fic << normal_temperature_gradient_interp_[0] << " " << normal_temperature_gradient_solution_[0] << " ";
-        fic << hess_diag_T_elem_spherical_[0][0] << " " << normal_temperature_double_derivative_solution_[0] << " ";
-        fic << tangential_temperature_gradient_first_[0] << " ";
-        fic << tangential_temperature_gradient_second_[0] << " ";
-        fic << tangential_temperature_gradient_first_from_rising_dir_[0] << " ";
-        fic << azymuthal_temperature_gradient_[0] << " ";
-        fic << temperature_diffusion_hessian_cartesian_trace_[0] << " ";
-        fic << temperature_diffusion_hessian_trace_[0] << " ";
-        fic << radial_temperature_diffusion_[0] << " ";
-        fic << radial_temperature_diffusion_solution_[0] << " ";
-        fic << tangential_temperature_diffusion_[0] << " ";
-        fic << radial_scale_factor_interp_[0] << " " << radial_scale_factor_solution_[0] << " ";
-        fic << radial_convection_interp_[0] << " " << radial_convection_solution_[0] << " ";
-        fic << tangential_convection_source_terms_first_[0] << " " << tangential_convection_source_terms_second_[0] << " ";
-        fic << surface_ << " " << thermal_flux_[0] << " " << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
-        fic << nusselt_number_[0] << " " << nusselt_number_liquid_temperature_[0] << " ";
-        fic << nusselt_number_integrand_[0] << " " << nusselt_number_liquid_temperature_integrand_[0] << " ";
+        fic << temperature_interp_[coord] << " " << temperature_solution_[coord] << " " << temperature_previous_[coord] << " ";
+        fic << normal_temperature_gradient_interp_[coord] << " " << normal_temperature_gradient_solution_[coord] << " ";
+        fic << (*eulerian_grad_T_interface_ns_)(index_i_, index_j_, index_k_) << " ";
+        fic << hess_diag_T_elem_spherical_[0][coord] << " " << normal_temperature_double_derivative_solution_[coord] << " ";
+        fic << tangential_temperature_gradient_first_[coord] << " ";
+        fic << tangential_temperature_gradient_second_[coord] << " ";
+        fic << tangential_temperature_gradient_first_from_rising_dir_[coord] << " ";
+        fic << azymuthal_temperature_gradient_[coord] << " ";
+        fic << temperature_diffusion_hessian_cartesian_trace_[coord] << " ";
+        fic << temperature_diffusion_hessian_trace_[coord] << " ";
+        fic << radial_temperature_diffusion_[coord] << " ";
+        fic << radial_temperature_diffusion_solution_[coord] << " ";
+        fic << tangential_temperature_diffusion_[coord] << " ";
+        fic << radial_scale_factor_interp_[coord] << " " << radial_scale_factor_solution_[coord] << " ";
+        fic << radial_convection_interp_[coord] << " " << radial_convection_solution_[coord] << " ";
+        fic << tangential_convection_source_terms_first_[coord] << " " << tangential_convection_source_terms_second_[coord] << " ";
+        fic << surface_ << " " << thermal_flux_[coord] << " ";
+        fic << thermal_flux_gfm_ << " " << thermal_flux_raw_ << " ";
+        fic << thermal_flux_lrs_ << " " << thermal_flux_max_ << " ";
+        fic << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
+        fic << nusselt_number_[coord] << " " << nusselt_number_liquid_temperature_[coord] << " ";
+        fic << nusselt_number_integrand_[coord] << " " << nusselt_number_liquid_temperature_integrand_[coord] << " ";
         fic << velocity_shear_force_ << " " << velocity_shear_stress_ << " ";
-        fic << pressure_interp_[0] << " ";
-        fic << x_velocity_[0] << " " << y_velocity_[0] << " " << z_velocity_[0] << " ";
-        fic << radial_velocity_[0] << " " << radial_velocity_corrected_[0] << " ";
-        fic << radial_velocity_static_frame_[0] << " " << radial_velocity_advected_frame_[0] << " ";
-        fic << first_tangential_velocity_[0] << " " << first_tangential_velocity_corrected_[0] << " ";
-        fic << first_tangential_velocity_static_frame_[0] << " " << first_tangential_velocity_advected_frame_[0] << " ";
-        fic << second_tangential_velocity_[0] << " " << second_tangential_velocity_corrected_[0] << " ";
-        fic << second_tangential_velocity_static_frame_[0] << " " << second_tangential_velocity_advected_frame_[0] << " ";
-        fic << first_tangential_velocity_from_rising_dir_[0] << " " << first_tangential_velocity_from_rising_dir_corrected_[0] << " ";
-        fic << first_tangential_velocity_from_rising_dir_static_frame_[0] << " " << first_tangential_velocity_from_rising_dir_advected_frame_[0] << " ";
-        fic << azymuthal_velocity_[0] << " " << azymuthal_velocity_corrected_[0] << " ";
-        fic << azymuthal_velocity_static_frame_[0] << " " << azymuthal_velocity_advected_frame_[0] << " ";
-        fic << normal_velocity_normal_gradient_[0] << " ";
-        fic << first_tangential_velocity_normal_gradient_[0] << " ";
-        fic << second_tangential_velocity_normal_gradient_[0] << " ";
-        fic << first_tangential_velocity_normal_gradient_from_rising_dir_[0] << " ";
-        fic << azymuthal_velocity_normal_gradient_[0] << " ";
+        fic << pressure_interp_[coord] << " ";
+        fic << x_velocity_[coord] << " " << y_velocity_[coord] << " " << z_velocity_[coord] << " ";
+        fic << radial_velocity_[coord] << " " << radial_velocity_corrected_[coord] << " ";
+        fic << radial_velocity_static_frame_[coord] << " " << radial_velocity_advected_frame_[coord] << " ";
+        fic << first_tangential_velocity_[coord] << " " << first_tangential_velocity_corrected_[coord] << " ";
+        fic << first_tangential_velocity_static_frame_[coord] << " " << first_tangential_velocity_advected_frame_[coord] << " ";
+        fic << second_tangential_velocity_[coord] << " " << second_tangential_velocity_corrected_[coord] << " ";
+        fic << second_tangential_velocity_static_frame_[coord] << " " << second_tangential_velocity_advected_frame_[coord] << " ";
+        fic << first_tangential_velocity_from_rising_dir_[coord] << " " << first_tangential_velocity_from_rising_dir_corrected_[coord] << " ";
+        fic << first_tangential_velocity_from_rising_dir_static_frame_[coord] << " " << first_tangential_velocity_from_rising_dir_advected_frame_[coord] << " ";
+        fic << azymuthal_velocity_[coord] << " " << azymuthal_velocity_corrected_[coord] << " ";
+        fic << azymuthal_velocity_static_frame_[coord] << " " << azymuthal_velocity_advected_frame_[coord] << " ";
+        fic << normal_velocity_normal_gradient_[coord] << " ";
+        fic << first_tangential_velocity_normal_gradient_[coord] << " ";
+        fic << second_tangential_velocity_normal_gradient_[coord] << " ";
+        fic << first_tangential_velocity_normal_gradient_from_rising_dir_[coord] << " ";
+        fic << azymuthal_velocity_normal_gradient_[coord] << " ";
         fic << (*bubbles_surface_)(compo_connex_) << " " << (*bubbles_volume_)(compo_connex_) << " ";
         fic << (*radius_from_surfaces_per_bubble_)(compo_connex_) << " " << (*radius_from_volumes_per_bubble_)(compo_connex_) << " ";
         fic << (*delta_temperature_) << " " << (*mean_liquid_temperature_) << " ";
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0) << " ";
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1) << " ";
         fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2) << " ";
+        fic << bubble_rising_velocity_compo_[0] << " ";
+        fic << bubble_rising_velocity_compo_[1] << " ";
+        fic << bubble_rising_velocity_compo_[2] << " ";
+        fic << bubble_rising_velocity_ << " ";
         fic << finl;
       }
   }
@@ -4153,7 +4365,8 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
                                "\tradial_scale_factor_interp\tradial_scale_factor_sol"
                                "\tradial_convection_interp\tradial_convection_sol"
                                "\ttangential_convection_first\ttangential_convection_second"
-                               "\tsurface\tthermal_flux\tlambda_liq\talpha_liq\tprandtl_liq"
+                               "\tsurface\tthermal_flux"
+                               "\tlambda_liq\talpha_liq\tprandtl_liq"
                                "\tnusselt_number\tnusselt_number_liquid_temperature"
                                "\tnusselt_number_integrand\tnusselt_number_liquid_temperature_integrand"
                                "\tshear\tforce"
@@ -4167,7 +4380,9 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
                                "\tdu_r_dr\tdu_theta_dr\tdu_theta2_dr\tdu_theta_rise_dr\tdu_phi_dr"
                                "\ttotal_surface\ttotal_volume\tradius_from_surface\tradius_from_volume"
                                "\tdelta_temperature\tmean_liquid_temperature"
-                               "\trising_dir_x\trising_dir_y\trising_dir_z");
+                               "\trising_dir_x\trising_dir_y\trising_dir_z"
+                               "\trising_vel_x\trising_vel_y\trising_vel_z"
+                               "\trising_vel");
         SFichier fic = Open_file_folder(local_quantities_thermal_probes_time_index_folder, probe_name, probe_header, reset);
         const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
         for (int i=0; i<(*points_per_thermal_subproblem_); i++)
@@ -4197,7 +4412,10 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
             fic << radial_scale_factor_interp_[i] << " " << radial_scale_factor_solution_[i] << " ";
             fic << radial_convection_interp_[i] << " " << radial_convection_solution_[i] << " ";
             fic << tangential_convection_source_terms_first_[i] << " " << tangential_convection_source_terms_second_[i] << " ";
-            fic << surface_ << " " << thermal_flux_[i] << " " << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
+            fic << surface_ << " " << thermal_flux_[i] << " ";
+            // fic <<  << " " <<  << " ";
+            // fic <<  << " " <<  << " ";
+            fic << *lambda_ << " " << *alpha_ << " " << *prandtl_number_ << " ";
             fic << nusselt_number_[i] << " " << nusselt_number_liquid_temperature_[i] << " ";
             fic << nusselt_number_integrand_[i] << " " << nusselt_number_liquid_temperature_integrand_[i] << " ";
             fic << shear_stress_[i] << " " << (shear_stress_[i] * surface_) << " ";
@@ -4224,6 +4442,10 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 0) << " ";
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 1) << " ";
             fic << (*bubbles_rising_vectors_per_bubble_)(compo_connex_, 2) << " ";
+            fic << bubble_rising_velocity_compo_[0] << " ";
+            fic << bubble_rising_velocity_compo_[1] << " ";
+            fic << bubble_rising_velocity_compo_[2] << " ";
+            fic << bubble_rising_velocity_ << " ";
             fic << finl;
           }
         fic.close();
@@ -4257,4 +4479,620 @@ double IJK_One_Dimensional_Subproblem::get_max_temperature_domain_ends() const
 {
   double max_temperature_value = std::max(temperature_solution_[0], temperature_solution_[temperature_solution_.size()-1]);
   return max_temperature_value;
+}
+
+void IJK_One_Dimensional_Subproblem::complete_frame_of_reference_lrs_fluxes_eval()
+{
+  if (!disable_relative_velocity_energy_balance_ && !has_computed_lrs_flux_frame_of_ref_terms_)
+    {
+      const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+      const int face_dir[6] = FACES_DIR;
+      const int flux_out[6] = FLUXES_OUT;
+      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      FixedVector<double, 6> convective_term_frame_of_ref = temperature_interp_conv_flux_;
+      for (int l=0; l<6; l++)
+        convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[face_dir[l]];
+      convective_term_frame_of_ref *= (-1) * rho_cp;
+      double surf_face;
+      for (int l=0; l<6; l++)
+        {
+          surf_face = 1.;
+          if (pure_liquid_neighbours_[l])
+            {
+              for (int c = 0; c < 3; c++)
+                if (c!=face_dir[l])
+                  surf_face *= geom.get_constant_delta(c);
+              double flux_val = convective_term_frame_of_ref[face_dir[l]] * flux_out[l] * surf_face;
+              const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
+              flux_val *= sign_temp;
+              sum_convective_flux_op_lrs_ += flux_val;
+              if (sign_temp * flux_val >= 0)
+                sum_convective_flux_op_leaving_lrs_ += flux_val;
+              else
+                sum_convective_flux_op_entering_lrs_ += flux_val;
+            }
+        }
+      has_computed_lrs_flux_frame_of_ref_terms_ = true;
+    }
+}
+
+//const double& IJK_One_Dimensional_Subproblem::get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
+
+void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type)
+{
+  /*
+   * Positive contributions for flux outward
+   */
+  const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
+  if (flux_type==0)
+    {
+      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      const double rho_cp_flux = rho_cp * flux_face * sign_temp;
+      convective_flux_op_lrs_[l] = rho_cp_flux;
+      sum_convective_flux_op_lrs_ += rho_cp_flux;
+      if (rho_cp_flux >= 0)
+        sum_convective_flux_op_leaving_lrs_ += rho_cp_flux;
+      else
+        sum_convective_flux_op_entering_lrs_ += rho_cp_flux;
+    }
+  else
+    {
+      const double flux_face_sign = sign_temp * flux_face;
+      diffusive_flux_op_lrs_[l] = flux_face_sign;
+      sum_diffusive_flux_op_lrs_ += flux_face_sign;
+      if (flux_face_sign >= 0)
+        sum_diffusive_flux_op_leaving_lrs_ += flux_face_sign;
+      else
+        sum_diffusive_flux_op_entering_lrs_ += flux_face_sign;
+    }
+}
+
+void IJK_One_Dimensional_Subproblem::compute_error_flux_interface()
+{
+  const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
+
+  double total_flux_error = 0.;
+  total_flux_error = (- thermal_flux_abs_);
+  total_flux_error += (- sum_convective_flux_op_lrs_);
+  total_flux_error += sum_diffusive_flux_op_lrs_;
+
+  double weight_tot = 0.;
+  const int face_dir[6] = FACES_DIR;
+  const int flux_out[6] = FLUXES_OUT;
+
+  const int neighbours_i[6] = NEIGHBOURS_I;
+  const int neighbours_j[6] = NEIGHBOURS_J;
+  const int neighbours_k[6] = NEIGHBOURS_K;
+
+  int counter_assert = 0;
+  double weight = 0.;
+  std::vector<int> mixed_neighbours;
+  for (int l=0; l<6; l++)
+    if (!pure_liquid_neighbours_[l] && !pure_vapour_neighbours_[l])
+      {
+        double normal_compo = normal_vector_compo_[face_dir[l]];
+        if (signbit(flux_out[l]) == signbit(normal_compo))
+          {
+            const int ii = neighbours_i[l];
+            const int jj = neighbours_j[l];
+            const int kk = neighbours_k[l];
+            const int isolated_mixed_neighbours = (*zero_liquid_neighbours_)(index_i_ + ii, index_j_ + jj, index_k_ + kk);
+            if (!isolated_mixed_neighbours)
+              {
+                compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+                weight_tot += abs(weight);
+                mixed_neighbours.push_back(l);
+                counter_assert++;
+              }
+            else
+              {
+                if (debug_)
+                  Cerr << "The neighbour is isolated" << finl;
+              }
+          }
+      }
+
+  for (int l=0; l<6; l++)
+    if (pure_liquid_neighbours_[l])
+      {
+        double normal_compo = normal_vector_compo_[face_dir[l]];
+        if (signbit(flux_out[l]) == signbit(normal_compo))
+          {
+            compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+            corrective_flux_current_[l] = (total_flux_error * abs(weight) * flux_out[l] * sign_temp);
+            weight_tot += abs(weight);
+            counter_assert++;
+          }
+      }
+
+  if (debug_)
+    Cerr << "counter_assert: " << counter_assert << finl;
+  assert(counter_assert <= 3);
+  if (counter_assert)
+    {
+      corrective_flux_current_ *= (1 / weight_tot);
+      for (int m=0; m<(int) mixed_neighbours.size(); m++)
+        {
+          const int mixed_neighbour = mixed_neighbours[m];
+          // const double normal_compo = abs(normal_vector_compo_[face_dir[mixed_neighbour]]);
+          compute_weighting_coefficient(mixed_neighbour, weight, fluxes_corrections_weighting_);
+          corrective_flux_to_neighbours_[mixed_neighbour] = (total_flux_error * abs(weight)) / weight_tot;
+          // * flux_out[mixed_neighbour]
+        }
+    }
+  else
+    {
+      Cerr << "Some fluxes contributions are not relocated !" << finl;
+    }
+
+  for (int l=0; l<6; l++)
+    diffusive_flux_op_lrs_[l] = 0.;
+  sum_diffusive_flux_op_lrs_ = 0.;
+  sum_diffusive_flux_op_leaving_lrs_ = 0.;
+  sum_diffusive_flux_op_entering_lrs_ = 0.;
+}
+
+void IJK_One_Dimensional_Subproblem::compute_weighting_coefficient(const int& l, double& weight, const int& weight_type)
+{
+  weight = 0.;
+  const int face_dir[6] = FACES_DIR;
+  const int dir = face_dir[l];
+  if (weight_type == 0)
+    weight = normal_vector_compo_[dir];
+  else
+    {
+      const int flux_out[6] = FLUXES_OUT;
+      const double kinematic_viscosity = ref_ijk_ft_->get_mu_liquid() / ref_ijk_ft_->get_rho_l();
+      const double velocity = (*first_tangential_velocity_solver_)[0] * (*first_tangential_vector_compo_solver_)[dir]
+                              + (*second_tangential_velocity_solver_)[0] * (*second_tangential_vector_compo_solver_)[dir];
+      Vecteur3 first_vel = (*first_tangential_vector_compo_solver_);
+      first_vel *= (*first_tangential_velocity_solver_)[0];
+      Vecteur3 second_vel = (*second_tangential_vector_compo_solver_);
+      second_vel *= (*second_tangential_velocity_solver_)[0];
+      Vecteur3 vel_vect = first_vel;
+      vel_vect += second_vel;
+      const double vel_vect_norm = vel_vect.length();
+      if (vel_vect_norm > 1e-12)
+        vel_vect *= (1 / vel_vect_norm);
+      const int vel_sign = signbit(velocity);
+      const int vel_effect = (vel_sign == signbit(flux_out[l])) ? 1. : 0.;
+      if (weight_type == 1)
+        weight = kinematic_viscosity * vel_effect * vel_vect[dir];
+      else
+        weight = (*alpha_) * normal_vector_compo_[dir] + kinematic_viscosity * vel_effect * vel_vect[dir];
+    }
+}
+
+void IJK_One_Dimensional_Subproblem::compare_flux_interface(std::vector<double>& radial_flux_error)
+{
+  const int flux_out[6] = FLUXES_OUT;
+  sum_convective_diffusive_flux_op_lrs_ = sum_diffusive_flux_op_lrs_ - sum_convective_flux_op_lrs_;
+  radial_flux_error_lrs_ = sum_convective_diffusive_flux_op_lrs_ - thermal_flux_abs_;
+  double weight_tot = 0.;
+  for (int l=0; l<3; l++)
+    weight_tot += abs(normal_vector_compo_[l]);
+  const int face_dir[6] = FACES_DIR;
+  std::vector<double> thermal_flux_neighbour;
+  for (int l=0; l<6; l++)
+    {
+      // FIXME: There are more than 3 faces sometimes !!!!!
+      if (pure_liquid_neighbours_[l])
+        {
+          const double weight = abs(normal_vector_compo_[face_dir[l]]);
+          //          const double flux_sum = convective_flux_op_lrs_[l] + diffusive_flux_op_lrs_[l];
+          //          const double weight = abs(flux_sum);
+          //          weight_tot += weight;
+          const double radial_flux_contrib = (weight * radial_flux_error_lrs_ ) * flux_out[l];
+          thermal_flux_neighbour.push_back(- thermal_flux_dir_[face_dir[l]] * flux_out[l]);
+          radial_flux_error.push_back(radial_flux_contrib);
+        }
+    }
+  for (int l=0; l<(int) radial_flux_error.size(); l++)
+    {
+      radial_flux_error[l] /= weight_tot;
+      radial_flux_error[l] += thermal_flux_neighbour[l];
+    }
+  // sum_convective_diffusive_flux_op_lrs_ = thermal_flux_[0];
+  // TODO: TMP for post-processing
+  //  sum_convective_flux_op_lrs_ = 0.;
+  //  sum_diffusive_flux_op_lrs_ = sum_convective_diffusive_flux_op_lrs_;
+}
+
+void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                               FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                                               ArrOfDouble& thermal_flux_out,
+                                                                               FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
+{
+  if (!has_computed_liquid_neighbours_)
+    compute_pure_liquid_neighbours();
+
+  const int ni = ref_ijk_ft_->itfce().I().ni();
+  const int nj = ref_ijk_ft_->itfce().I().nj();
+  const int nk = ref_ijk_ft_->itfce().I().nk();
+
+  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
+  const int offset_i = splitting_ns.get_offset_local(0);
+  const int offset_j = splitting_ns.get_offset_local(1);
+  const int offset_k = splitting_ns.get_offset_local(2);
+
+  const IJK_Grid_Geometry& geometry = splitting_ns.get_grid_geometry();
+  const int ni_tot = geometry.get_nb_elem_tot(0);
+  const int nj_tot = geometry.get_nb_elem_tot(1);
+  const int nk_tot = geometry.get_nb_elem_tot(2);
+
+  const int neighbours_i[6] = NEIGHBOURS_I;
+  const int neighbours_j[6] = NEIGHBOURS_J;
+  const int neighbours_k[6] = NEIGHBOURS_K;
+
+  const int face_dir[6] = FACES_DIR;
+  // const int flux_out[6] = FLUXES_OUT;
+
+  int index_i_neighbour_global, index_j_neighbour_global, index_k_neighbour_global;
+  int index_i_procs, index_j_procs, index_k_procs;
+  for (int l=0; l<6; l++)
+    {
+      interfacial_heat_flux_current[face_dir[l]](index_i_,index_j_,index_k_) += corrective_flux_current_[l];
+      const double flux_corr = corrective_flux_to_neighbours_[l];
+      if (abs(flux_corr) > 1e-16)
+        {
+          const int ii = neighbours_i[l];
+          const int jj = neighbours_j[l];
+          const int kk = neighbours_k[l];
+          const int i = index_i_ + ii;
+          const int j = index_j_ + jj;
+          const int k = index_k_ + kk;
+          index_i_neighbour_global = compute_periodic_index((i + offset_i), ni_tot);
+          index_j_neighbour_global = compute_periodic_index((j + offset_j), nj_tot);
+          index_k_neighbour_global = compute_periodic_index((k + offset_k), nk_tot);
+          index_i_procs = compute_periodic_index(i, ni);
+          index_j_procs = compute_periodic_index(j, nj);
+          index_k_procs = compute_periodic_index(k, nk);
+          if (index_i_procs == i
+              && index_j_procs == j
+              && index_k_procs == k)
+            {
+              interfacial_heat_flux_dispatched[face_dir[l]](i,j,k) += flux_corr;
+            }
+          else
+            {
+              ijk_indices_out[0].append_array(index_i_neighbour_global);
+              ijk_indices_out[1].append_array(index_j_neighbour_global);
+              ijk_indices_out[2].append_array(index_k_neighbour_global);
+              ijk_indices_out[3].append_array(face_dir[l]);
+              thermal_flux_out.append_array(flux_corr);
+            }
+        }
+    }
+}
+
+void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                    FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                                                    FixedVector<ArrOfDouble, 3>& thermal_flux_out)
+{
+  if (!has_computed_liquid_neighbours_)
+    compute_pure_liquid_neighbours();
+
+  const int ni = ref_ijk_ft_->itfce().I().ni();
+  const int nj = ref_ijk_ft_->itfce().I().nj();
+  const int nk = ref_ijk_ft_->itfce().I().nk();
+
+  const int neighbours_i[6] = NEIGHBOURS_I;
+  const int neighbours_j[6] = NEIGHBOURS_J;
+  const int neighbours_k[6] = NEIGHBOURS_K;
+  bool is_all_mix = true;
+  double weight_tot = 0.;
+  for (int l=0; l<3; l++)
+    weight_tot += abs(normal_vector_compo_[l]);
+  const int face_dir[6] = FACES_DIR;
+  const int flux_out[6] = FLUXES_OUT;
+  std::vector<int> mixed_neighbours;
+  for (int l=0; l<6; l++)
+    {
+      if (pure_liquid_neighbours_[l])
+        is_all_mix = false;
+      else if (!pure_vapour_neighbours_[l])
+        {
+          if (signbit(flux_out[l]) == signbit(normal_vector_compo_[face_dir[l]]))
+            mixed_neighbours.push_back(l);
+          // weight_tot += normal_vector_compo_[face_dir[l]];
+        }
+    }
+  if (is_all_mix)
+    for (int l=0; l<(int) mixed_neighbours.size(); l++)
+      for (int m=0; m<(int) mixed_neighbours.size(); m++)
+        if (m!=l)
+          {
+            const int mixed_neighbour = mixed_neighbours[l];
+            const int neighbour_dir = mixed_neighbours[m];
+            const int ii = neighbours_i[mixed_neighbour];
+            const int jj = neighbours_j[mixed_neighbour];
+            const int kk = neighbours_k[mixed_neighbour];
+            const int i = index_i_ + ii;
+            const int j = index_j_ + jj;
+            const int k = index_k_ + kk;
+            const double weight = abs(normal_vector_compo_[face_dir[mixed_neighbour]]) * abs(normal_vector_compo_[face_dir[neighbour_dir]]);
+            const double heat_flux_dispatch = thermal_flux_total_ * weight / (weight_tot * weight_tot);
+            if ((i==ni || i==-1) || (j==nj || j==-1) || (k==nk || k==-1))
+              {
+                ijk_indices_out[0].append_array(i);
+                ijk_indices_out[1].append_array(j);
+                ijk_indices_out[2].append_array(k);
+                thermal_flux_out[face_dir[neighbour_dir]].append_array(heat_flux_dispatch);
+                for (int n=0; n<(int) mixed_neighbours.size(); n++)
+                  if (n != m)
+                    {
+                      const int neighbour_dir_tmp = mixed_neighbours[n];
+                      thermal_flux_out[face_dir[neighbour_dir_tmp]].append_array(0.);
+                    }
+              }
+            else
+              interfacial_heat_flux_dispatched[face_dir[neighbour_dir]](i, j, k) += heat_flux_dispatch;
+          }
+}
+
+void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                                                     FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
+{
+  const int isolated_mixed_cell = (*zero_liquid_neighbours_)(index_i_, index_j_, index_k_);
+  if (!isolated_mixed_cell)
+    {
+      const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
+      const int flux_out[6] = FLUXES_OUT;
+
+      Vecteur3 flux_error = {0.,0.,0.};
+      for (int c=0; c<3; c++)
+        flux_error[c] = interfacial_heat_flux_dispatched[c](index_i_, index_j_, index_k_);
+
+      const int face_dir[6] = FACES_DIR;
+      double weight_dir_tot;
+      double weight = 0.;
+      std::vector<int> pure_faces;
+      std::vector<double> weight_dir;
+      for (int c=0; c<3; c++)
+        {
+          weight_dir_tot = 0.;
+          pure_faces.clear();
+          weight_dir.clear();
+          for (int l=0; l<6; l++)
+            {
+              double normal_compo = normal_vector_compo_[face_dir[l]];
+              compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+              if (signbit(flux_out[l]) == signbit(normal_compo))
+                if (pure_liquid_neighbours_[l] && face_dir[l] != c)
+                  {
+                    // normal_compo = abs(normal_compo);
+                    weight = abs(weight);
+                    pure_faces.push_back(l);
+                    weight_dir.push_back(weight);
+                    weight_dir_tot += weight;
+                  }
+            }
+          if (weight_dir.size() == 0)
+            for (int l=0; l<6; l++)
+              {
+                double normal_compo = normal_vector_compo_[face_dir[l]];
+                compute_weighting_coefficient(l, weight, fluxes_corrections_weighting_);
+                if (signbit(flux_out[l]) == signbit(normal_compo))
+                  if (pure_liquid_neighbours_[l])
+                    {
+                      // normal_compo = abs(normal_compo);
+                      weight = abs(weight);
+                      pure_faces.push_back(l);
+                      weight_dir.push_back(weight);
+                      weight_dir_tot += weight;
+                    }
+              }
+          if (weight_dir.size() == 0)
+            if (debug_)
+              for (int l=0; l<6; l++)
+                {
+                  Cerr << "Neighbour face index l: " << l << finl;
+                  Cerr << "Pure liquid neighbour:" << (int) pure_liquid_neighbours_[l] << finl;
+                  Cerr << "Normal vector compo:" << normal_vector_compo_[face_dir[l]] << finl;
+                  Cerr << "Flux value:" << flux_error[c] << finl;
+                }
+          assert(weight_dir.size() != 0);
+          for (int m=0; m<(int) pure_faces.size(); m++)
+            {
+              const int pure_face = pure_faces[m];
+              corrective_flux_from_neighbours_[pure_face] += ((sign_temp * flux_out[pure_face] * flux_error[c])
+                                                              * (weight_dir[m] / weight_dir_tot));
+            }
+        }
+      for (int l=0; l<6; l++)
+        interfacial_heat_flux_current[face_dir[l]](index_i_,index_j_,index_k_) += corrective_flux_from_neighbours_[l];
+    }
+}
+
+void IJK_One_Dimensional_Subproblem::add_interfacial_heat_flux_neighbours(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+{
+  for (int c=0; c<3; c++)
+    thermal_flux_dir_[c] = interfacial_heat_flux_dispatched[c](index_i_, index_j_, index_k_);
+}
+
+void IJK_One_Dimensional_Subproblem::compute_pure_liquid_neighbours()
+{
+  if (!has_computed_liquid_neighbours_)
+    {
+      const int neighbours_i[6] = NEIGHBOURS_I;
+      const int neighbours_j[6] = NEIGHBOURS_J;
+      const int neighbours_k[6] = NEIGHBOURS_K;
+      for (int l=0; l<6; l++)
+        {
+          const int ii = neighbours_i[l];
+          const int jj = neighbours_j[l];
+          const int kk = neighbours_k[l];
+          const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_+ii, index_j_+jj, index_k_+kk);
+          if (fabs(indic_neighbour) > LIQUID_INDICATOR_TEST)
+            {
+              pure_liquid_neighbours_[l] = 1;
+              pure_vapour_neighbours_[l] = 0;
+            }
+          else
+            {
+              pure_liquid_neighbours_[l] = 0;
+              if (fabs(indic_neighbour) < VAPOUR_INDICATOR_TEST)
+                pure_vapour_neighbours_[l] = 1;
+              else
+                pure_vapour_neighbours_[l] = 0;
+            }
+        }
+      has_computed_liquid_neighbours_ = true;
+    }
+}
+
+void IJK_One_Dimensional_Subproblem::locate_pure_mixed_neighbours_without_pure_liquid_faces()
+{
+  int liquid_faces = 0;
+  for (int l=0; l<6; l++)
+    if (pure_liquid_neighbours_[l])
+      liquid_faces++;
+  if (!liquid_faces)
+    (*zero_liquid_neighbours_)(index_i_, index_j_, index_k_) = 1;
+}
+
+void IJK_One_Dimensional_Subproblem::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+                                                                        const int flux_type,
+                                                                        const int inv_sign)
+{
+
+  FixedVector<double, 6>& convective_diffusive_flux_op_value = selectxy(flux_type, convective_flux_op_value_, diffusive_flux_op_value_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_vap = selectxy(flux_type, convective_flux_op_value_vap_, diffusive_flux_op_value_vap_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_mixed = selectxy(flux_type, convective_flux_op_value_mixed_, diffusive_flux_op_value_mixed_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_normal_contrib = selectxy(flux_type, convective_flux_op_value_normal_contrib_, diffusive_flux_op_value_normal_contrib_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_leaving = selectxy(flux_type, convective_flux_op_leaving_value_, diffusive_flux_op_leaving_value_);
+  FixedVector<double, 6>& convective_diffusive_flux_op_value_entering = selectxy(flux_type, convective_flux_op_entering_value_, diffusive_flux_op_entering_value_);
+
+  double& sum_convective_diffusive_flux_op_value = selectxy(flux_type, sum_convective_flux_op_value_, sum_diffusive_flux_op_value_);
+  double& sum_convective_diffusive_flux_op_value_vap = selectxy(flux_type, sum_convective_flux_op_value_vap_, sum_diffusive_flux_op_value_vap_);
+  double& sum_convective_diffusive_flux_op_value_mixed = selectxy(flux_type, sum_convective_flux_op_value_mixed_, sum_diffusive_flux_op_value_mixed_);
+  double& sum_convective_diffusive_flux_op_value_normal_contrib = selectxy(flux_type, sum_convective_flux_op_value_normal_contrib_, sum_diffusive_flux_op_value_normal_contrib_);
+  double& sum_convective_diffusive_flux_op_value_leaving = selectxy(flux_type, sum_convective_flux_op_leaving_value_, sum_diffusive_flux_op_leaving_value_);
+  double& sum_convective_diffusive_flux_op_value_entering = selectxy(flux_type, sum_convective_flux_op_entering_value_, sum_diffusive_flux_op_entering_value_);
+
+  sum_convective_diffusive_flux_op_value = 0.;
+  sum_convective_diffusive_flux_op_value_vap = 0.;
+  sum_convective_diffusive_flux_op_value_mixed = 0.;
+  sum_convective_diffusive_flux_op_value_normal_contrib = 0.;
+  sum_convective_diffusive_flux_op_value_leaving = 0.;
+  sum_convective_diffusive_flux_op_value_entering = 0.;
+
+  if (!has_computed_liquid_neighbours_)
+    compute_pure_liquid_neighbours();
+
+  const int flux_out[6] = FLUXES_OUT;
+  // const int neighbours_ijk_sign[6] = NEIGHBOURS_SIGN;
+  const int neighbours_faces_i[6] = NEIGHBOURS_FACES_I;
+  const int neighbours_faces_j[6] = NEIGHBOURS_FACES_J;
+  const int neighbours_faces_k[6] = NEIGHBOURS_FACES_K;
+  const int face_dir[6] = FACES_DIR;
+  for (int l=0; l<6; l++)
+    {
+      convective_diffusive_flux_op_value[l] = 0.;
+      convective_diffusive_flux_op_value_vap[l] = 0.;
+      convective_diffusive_flux_op_value_mixed[l] = 0.;
+      convective_diffusive_flux_op_value_normal_contrib[l] = 0.;
+      convective_diffusive_flux_op_value_leaving[l] = 0.;
+      convective_diffusive_flux_op_value_entering[l] = 0.;
+
+      const int ii_f = neighbours_faces_i[l];
+      const int jj_f = neighbours_faces_j[l];
+      const int kk_f = neighbours_faces_k[l];
+
+      double flux_val = convective_diffusive_fluxes_raw[face_dir[l]](index_i_ + ii_f,
+                                                                     index_j_ + jj_f,
+                                                                     index_k_ + kk_f);
+      if (inv_sign)
+        flux_val = -flux_val;
+      flux_val *= flux_out[l];
+
+      // flux_val = neighbours_ijk_sign[l] ? -flux_val: flux_val;
+
+      // Keep normals out
+      // const double sign_conv = flux_type ? 1.: -1.;
+      // flux_val *= sign_conv;
+
+      const double sign_temp = signbit(*delta_temperature_) ? -1 : 1;
+      flux_val *= sign_temp;
+
+      /*
+       * TODO: Count only positive contributions !
+       */
+      if (pure_liquid_neighbours_[l])
+        {
+          // const bool sign_check_bool = (signbit(normal_vector_compo_[face_dir[l]]) == signbit(flux_out[l]));
+          // const int sign_check = sign_check_bool ? 1: -1;
+          // flux_val *= sign_check;
+
+          // if (!sign_check_bool && flux_type && debug_)
+          //   {
+          //     Cerr << "The diffusive flux is negative" << finl;
+          //      Cerr << "normal_vector_compo: " << normal_vector_compo_[0] << "; ";
+          //      Cerr << normal_vector_compo_[1] << "; " << normal_vector_compo_[2] << "; ";
+          //      Cerr << "l: " << l << finl;
+          //      Cerr << "flux_val: " << flux_val << finl;
+          //  }
+
+          convective_diffusive_flux_op_value[l] = flux_val;
+          sum_convective_diffusive_flux_op_value += flux_val;
+
+          if (flux_val >= 0)
+            {
+              convective_diffusive_flux_op_value_leaving[l] = flux_val;
+              sum_convective_diffusive_flux_op_value_leaving += flux_val;
+            }
+          else
+            {
+              /*
+               * Some cases where there are more than 4 faces to correct !!!
+               */
+              convective_diffusive_flux_op_value_entering[l] = flux_val;
+              sum_convective_diffusive_flux_op_value_entering += flux_val;
+            }
+
+          convective_diffusive_flux_op_value_normal_contrib[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          sum_convective_diffusive_flux_op_value_normal_contrib += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+        }
+      else if (pure_vapour_neighbours_[l])
+        {
+          convective_diffusive_flux_op_value_normal_contrib[l] = flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+          sum_convective_diffusive_flux_op_value_normal_contrib += flux_val * normal_vector_compo_[face_dir[l]] * flux_out[l];
+        }
+      else
+        {
+          convective_diffusive_flux_op_value_mixed[l] = flux_val;
+          sum_convective_diffusive_flux_op_value_mixed += flux_val;
+        }
+    }
+}
+
+double IJK_One_Dimensional_Subproblem::get_value_from_index(const int& index_val)
+{
+  switch (index_val)
+    {
+    case 0:
+      return normal_temperature_gradient_solution_[0] * (*lambda_);
+      // return thermal_flux_total_;
+      break;
+    case 1:
+      return velocity_magnitude_[0];
+      break;
+    case 2:
+      return temperature_solution_[0];
+      break;
+    case 3:
+      return normal_temperature_gradient_solution_[0];
+      break;
+    case 4:
+      return temperature_interp_[0];
+      break;
+    case 5:
+      return normal_temperature_gradient_interp_[0];
+      break;
+    case 6:
+      return normal_temperature_gradient_interp_[0] * (*lambda_);
+      // return thermal_flux_total_;
+      break;
+    }
+  return 0.;
 }

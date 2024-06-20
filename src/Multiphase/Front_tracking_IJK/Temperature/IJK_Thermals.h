@@ -96,7 +96,9 @@ public :
   int get_disable_post_processing_probes_out_files() const;
   double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
-                                        int& fill_rising_velocities);
+                                        int& fill_rising_velocities,
+                                        int& use_bubbles_velocities_from_interface,
+                                        int& use_bubbles_velocities_from_barycentres);
   void create_folders_for_probes();
   void create_folders(Nom folder_name_base);
   void set_first_step_thermals_post(int& first_step_thermals_post);
@@ -112,6 +114,7 @@ public :
                                  IntTab Indice_j,
                                  DoubleTab& coeff_k,
                                  IntTab Indice_k);
+  void copy_previous_interface_state();
 
 protected :
   REF(IJK_FT_base) ref_ijk_ft_;
@@ -128,8 +131,13 @@ protected :
   LIST(Nom) thermal_rank_folder_;
   Nom overall_bubbles_quantities_folder_;
   Nom interfacial_quantities_thermal_probes_folder_;
+  Nom shell_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_time_index_folder_;
+  Nom local_quantities_thermal_slices_folder_;
+  Nom local_quantities_thermal_slices_time_index_folder_;
+  Nom local_quantities_thermal_lines_folder_;
+  Nom local_quantities_thermal_lines_time_index_folder_;
   int ini_folder_out_files_ = 0;
 
   bool is_diphasique_=false;

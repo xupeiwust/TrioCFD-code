@@ -33,72 +33,19 @@ Implemente_instanciable_sans_constructeur( IJK_Thermal_Subresolution, "IJK_Therm
 
 IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
 {
-
-  reference_gfm_on_probes_ = 0;
-  compute_normal_derivatives_on_reference_probes_ = 0;
-
-  disable_probe_weak_gradient_ = 0;
-  disable_probe_weak_gradient_gfm_=0;
-
-  reconstruct_previous_probe_field_=0;
-  implicit_solver_from_previous_probe_field_=0;
-
-  enable_probe_collision_detection_=0;
-  enable_resize_probe_collision_=0;
-  debug_probe_collision_=0;
-
-  disable_spherical_diffusion_start_ = 0;
-  probes_end_value_start_ = -1;
-  probes_end_value_coeff_ = 0.05;
-  single_centred_bubble_ = 1;
-  computed_centred_bubble_start_ = 1.;
-  single_centred_bubble_radius_ini_ = 1.e-3;
-  temperature_ini_type_ = 1;
-  time_ini_user_ = 0.;
-  nusselt_spherical_diffusion_ = 2.;
-  nusselt_spherical_diffusion_liquid_ = 2.;
-  heat_flux_spherical_ = 0.;
-  mean_liquid_temperature_ = -1;
-
-  disable_mixed_cells_increment_=0;
-  enable_mixed_cells_increment_=1;
-  allow_temperature_correction_for_visu_=0;
-  subproblem_temperature_extension_=0;
-  disable_subresolution_=0;
-  convective_flux_correction_ = 0;
-  diffusive_flux_correction_ = 0;
-  impose_fo_flux_correction_ = 1;
-  disable_fo_flux_correction_=0;
-  override_vapour_mixed_values_ = 0;
-  compute_eulerian_compo_ = 1;
-
-  error_temperature_ana_total_ = 0.;
-  error_temperature_ana_squared_total_ = 0.;
-  error_temperature_ana_rel_total_ = 0.;
-
-  points_per_thermal_subproblem_ = 32;
-  dr_ = 0.;
-  probe_length_=0.;
-
   boundary_condition_interface_dict_ = Motcles(3);
   {
     boundary_condition_interface_dict_[0] = "dirichlet";
     boundary_condition_interface_dict_[1] = "neumann";
     boundary_condition_interface_dict_[2] = "flux_jump";
   }
-  boundary_condition_interface_ = -1;
-  interfacial_boundary_condition_value_ = 0.;
-  impose_boundary_condition_interface_from_simulation_=0;
-  boundary_condition_end_ = 0;
+
   boundary_condition_end_dict_ = Motcles(2);
   {
     boundary_condition_end_dict_[0] = "dirichlet";
     boundary_condition_end_dict_[1] = "neumann";
   }
-  end_boundary_condition_value_ = -1;
-  impose_user_boundary_condition_end_value_=0;
 
-  source_terms_type_=2;
   source_terms_type_dict_ = Motcles(7);
   {
     source_terms_type_dict_[0] = "linear_diffusion";
@@ -109,8 +56,6 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
     source_terms_type_dict_[5] = "tangential_conv_2D_tangential_diffusion_3D";
     source_terms_type_dict_[6] = "tangential_conv_3D_tangentual_diffusion_3D";
   }
-  source_terms_correction_=0;
-
 
   fd_solver_type_ = "Solv_Gen";
   fd_solvers_ = Motcles(4);
@@ -127,83 +72,8 @@ IJK_Thermal_Subresolution::IJK_Thermal_Subresolution()
     fd_solvers_jdd_[2] = "thermal_fd_solver_3";
     fd_solvers_jdd_[3] = "thermal_fd_solver_4";
   }
-  fd_solver_rank_ = 0;
   // one_dimensional_advection_diffusion_thermal_solver_.nommer("finite_difference_solver");
   // one_dimensional_advection_diffusion_thermal_solver_.typer("Solv_GCP");
-  compute_tangential_variables_ = 0;
-
-  discrete_integral_ = 0;
-  quadtree_levels_ = 1;
-  advected_frame_of_reference_=0;
-  neglect_frame_of_reference_radial_advection_=0;
-  approximate_temperature_increment_=0;
-
-  is_first_time_step_ = false;
-  first_time_step_temporal_ = 0;
-  first_time_step_implicit_ = 0;
-  first_time_step_explicit_ = 1;
-  local_fourier_ = 1.;
-  local_cfl_ = 1.;
-
-  distance_cell_faces_from_lrs_=1;
-  disable_distance_cell_faces_from_lrs_=0;
-
-  pre_initialise_thermal_subproblems_list_ = 0;
-  pre_factor_subproblems_number_ = 3.;
-  remove_append_subproblems_ = 0;
-
-  correct_temperature_cell_neighbours_first_iter_ = 0;
-  correct_first_iter_deactivate_cell_neighbours_ = 0;
-  find_temperature_cell_neighbours_ = 0;
-  correct_neighbours_using_probe_length_ = 0;
-  neighbours_corrected_rank_ = 1;
-  use_temperature_cell_neighbours_ = 0;
-  neighbours_weighting_ = 0.;
-  neighbours_colinearity_weighting_ = 0.;
-  neighbours_distance_weighting_ = 0;
-  neighbours_colinearity_distance_weighting_ = 0;
-  smooth_temperature_field_=0;
-  readjust_probe_length_from_vertices_=0;
-
-  clip_temperature_values_ = 0;
-  disable_post_processing_probes_out_files_ = 0;
-  enforce_periodic_boundary_value_ = 0;
-  stencil_periodic_boundary_value_ = 2;
-
-  store_cell_faces_corrected_ = 0;
-
-  find_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  use_cell_neighbours_for_fluxes_spherical_correction_ = 0;
-  find_reachable_fluxes_ = 0;
-  use_reachable_fluxes_ = 0;
-  keep_first_reachable_fluxes_ = 0;
-
-  modified_time_init_ = 0.;
-  spherical_diffusion_ = 1;
-
-  post_process_all_probes_ = 0;
-  nb_theta_post_pro_ = 10;
-  nb_phi_post_pro_ = 4;
-  nb_probes_post_pro_ = 40;
-
-  interp_eulerian_ = 0;
-  first_step_thermals_post_=1;
-  disable_first_step_thermals_post_=0;
-
-  neighbours_last_faces_weighting_ = 0;
-  neighbours_last_faces_colinearity_weighting_ = 0;
-  neighbours_last_faces_colinearity_face_weighting_ = 0;
-  neighbours_last_faces_distance_weighting_ = 0;
-  neighbours_last_faces_distance_colinearity_weighting_ = 0;
-  neighbours_last_faces_distance_colinearity_face_weighting_ = 0;
-
-  copy_fluxes_on_every_procs_ = 1;
-  copy_temperature_on_every_procs_ = 1;
-
-  initialise_sparse_indices_ = 0;
-  use_sparse_matrix_ = 0;
-
-  thermal_subproblems_matrix_assembly_for_solver_ref_ = nullptr;
 }
 
 Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
@@ -346,6 +216,28 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
     os << front_space << "neighbours_last_faces_distance_weighting" << escape;
   if (neighbours_last_faces_distance_colinearity_face_weighting_)
     os << front_space << "neighbours_last_faces_distance_colinearity_face_weighting" << escape;
+  if (post_process_thermal_slices_)
+    os << front_space << "post_process_thermal_slices" << escape;
+  if (disable_slice_to_nearest_plane_)
+    os << front_space << "disable_slice_to_nearest_plane" << escape;
+  if (thermal_slices_regions_)
+    os << front_space << "thermal_slices_regions" << escape;
+  if (post_process_thermal_lines_)
+    os << front_space << "post_process_thermal_lines" << escape;
+  if (use_corrected_velocity_convection_)
+    os << front_space << "use_corrected_velocity_convection" << escape;
+  if (use_velocity_cartesian_grid_)
+    os << front_space << "use_velocity_cartesian_grid" << escape;
+  if (compute_radial_displacement_)
+    os << front_space << "compute_radial_displacement" << escape;
+  if (fluxes_correction_conservations_)
+    os << front_space << "fluxes_correction_conservations" << escape;
+  if (conserve_max_interfacial_fluxes_)
+    os << front_space << "conserve_max_interfacial_fluxes" << escape;
+  if (keep_max_flux_correction_)
+    os << front_space << "keep_max_flux_correction" << escape;
+  if (use_normal_gradient_for_flux_corr_)
+    os << front_space << "use_normal_gradient_for_flux_corr" << escape;
 
   /*
    * Values
@@ -379,7 +271,14 @@ Sortie& IJK_Thermal_Subresolution::printOn( Sortie& os ) const
   os << front_space << "nb_phi_post_pro" << end_space << nb_phi_post_pro_ << escape;
   os << front_space << "nb_probes_post_pro" << end_space << nb_probes_post_pro_ << escape;
   os << front_space << "modified_time_init" << end_space << modified_time_init_ << escape;
-
+  os << front_space << "nb_slices" << end_space << nb_slices_ << escape;
+  os << front_space << "nb_diam_slice" << end_space << nb_diam_slice_ << escape;
+  os << front_space << "upstream_dir_slice" << end_space << upstream_dir_slice_ << escape;
+  os << front_space << "upstream_dir_line" << end_space << upstream_dir_line_ << escape;
+  os << front_space << "nb_thermal_lines" << end_space << nb_thermal_lines_ << escape;
+  os << front_space << "nb_thermal_concentric_circles" << end_space << nb_thermal_concentric_circles_ << escape;
+  os << front_space << "nb_thermal_line_points" << end_space << nb_thermal_line_points_ << escape;
+  os << front_space << "fluxes_corrections_weighting" << end_space << fluxes_corrections_weighting_ << escape;
   os << "}" << escape;
   return os;
 }
@@ -430,6 +329,10 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("disable_subresolution", &disable_subresolution_);
   param.ajouter_flag("convective_flux_correction", &convective_flux_correction_);
   param.ajouter_flag("diffusive_flux_correction", &diffusive_flux_correction_);
+  param.ajouter_flag("fluxes_correction_conservations", &fluxes_correction_conservations_);
+  param.ajouter_flag("conserve_max_interfacial_fluxes", &conserve_max_interfacial_fluxes_);
+  param.ajouter("fluxes_corrections_weighting", &fluxes_corrections_weighting_);
+
   param.ajouter_flag("disable_fo_flux_correction", &disable_fo_flux_correction_);
   param.ajouter_flag("override_vapour_mixed_values", &override_vapour_mixed_values_);
   param.ajouter("points_per_thermal_subproblem", &points_per_thermal_subproblem_);
@@ -534,6 +437,28 @@ void IJK_Thermal_Subresolution::set_param( Param& param )
   param.ajouter_flag("neighbours_last_faces_distance_colinearity_weighting", &neighbours_last_faces_distance_colinearity_weighting_);
   param.ajouter_flag("neighbours_last_faces_distance_colinearity_face_weighting", &neighbours_last_faces_distance_colinearity_face_weighting_);
 
+
+  param.ajouter_flag("post_process_thermal_slices", &post_process_thermal_slices_);
+  param.ajouter_flag("disable_slice_to_nearest_plane", &disable_slice_to_nearest_plane_);
+  param.ajouter("nb_slices", &nb_slices_);
+  param.ajouter("nb_diam_slice", &nb_diam_slice_);
+  param.ajouter("upstream_dir_slice", &upstream_dir_slice_);
+  param.ajouter_flag("thermal_slices_regions", &thermal_slices_regions_);
+
+  param.ajouter_flag("post_process_thermal_lines", &post_process_thermal_lines_);
+  param.ajouter("nb_diam_thermal_line_length", &nb_diam_thermal_line_length_);
+  param.ajouter("upstream_dir_line", &upstream_dir_line_);
+  param.ajouter("nb_thermal_concentric_circles", &nb_thermal_concentric_circles_);
+  param.ajouter("nb_thermal_lines", &nb_thermal_lines_);
+  param.ajouter("nb_thermal_line_points", &nb_thermal_line_points_);
+
+  param.ajouter_flag("use_corrected_velocity_convection", &use_corrected_velocity_convection_);
+  param.ajouter_flag("use_velocity_cartesian_grid", &use_velocity_cartesian_grid_);
+  param.ajouter_flag("compute_radial_displacement", &compute_radial_displacement_);
+  param.ajouter_flag("use_normal_gradient_for_flux_corr", &use_normal_gradient_for_flux_corr_);
+
+  param.ajouter_flag("keep_max_flux_correction", &keep_max_flux_correction_);
+
 //  param.ajouter_flag("copy_fluxes_on_every_procs", &copy_fluxes_on_every_procs_);
 //  param.ajouter_flag("copy_temperature_on_every_procs", &copy_temperature_on_every_procs_);
 
@@ -604,7 +529,23 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       compute_curvature_ = 1;
       compute_distance_= 1;
     }
+  compute_eulerian_compo_ = 1;
   compute_rising_velocities_ = 1;
+
+  if (disable_subresolution_ && !reference_gfm_on_probes_)
+    {
+      compute_hess_diag_T_elem_ = 0;
+      compute_hess_cross_T_elem_ = 0;
+      compute_hess_T_elem_ = 0;
+      compute_grad_T_elem_ = 0;
+    }
+  else
+    {
+      compute_hess_diag_T_elem_ = 1;
+      compute_hess_cross_T_elem_ = 1;
+      compute_hess_T_elem_ = 1;
+      compute_grad_T_elem_ = 1;
+    }
 
   distance_cell_faces_from_lrs_ = !disable_distance_cell_faces_from_lrs_;
   first_step_thermals_post_ = !disable_first_step_thermals_post_;
@@ -654,13 +595,17 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   use_cell_neighbours_for_fluxes_spherical_correction_ = use_cell_neighbours_for_fluxes_spherical_correction_ && distance_cell_faces_from_lrs_;
   if (use_cell_neighbours_for_fluxes_spherical_correction_)
     find_cell_neighbours_for_fluxes_spherical_correction_ = use_cell_neighbours_for_fluxes_spherical_correction_;
+
   corrige_flux_.set_correction_cell_faces_neighbours(find_cell_neighbours_for_fluxes_spherical_correction_,
                                                      use_cell_neighbours_for_fluxes_spherical_correction_,
                                                      find_reachable_fluxes_,
                                                      use_reachable_fluxes_,
-                                                     keep_first_reachable_fluxes_);
+                                                     keep_first_reachable_fluxes_,
+                                                     store_flux_operators_for_energy_balance_);
 
   temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
+  temperature_hess_flux_op_centre_.set_uniform_lambda(uniform_lambda_);
+
   if (debug_)
     Cerr << "Uniform lambda: " << temperature_diffusion_op_.get_uniform_lambda() << finl;
 
@@ -688,6 +633,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   corrige_flux_.set_distance_cell_faces_from_lrs(distance_cell_faces_from_lrs_);
   corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
                                                neighbours_weighting_,
+                                               keep_max_flux_correction_,
                                                smooth_temperature_field_);
   corrige_flux_.set_eulerian_normal_vectors_ns_normed(eulerian_normal_vectors_ns_normed_);
   corrige_flux_.set_temperature_fluxes_periodic_sharing_strategy_on_processors(copy_fluxes_on_every_procs_,
@@ -698,6 +644,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
     {
       // Use an operator that override compute_set() with corrige_flux;
       temperature_diffusion_op_.typer("OpDiffUniformIJKScalarCorrection_double");
+      temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
       temperature_diffusion_op_.initialize(splitting);
       temperature_diffusion_op_.set_corrige_flux(corrige_flux_);
     }
@@ -846,6 +793,20 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
           for (int c=0; c<3; c++)
             cell_faces_neighbours_corrected_convective_[c].data() = 0.;
           cell_faces_neighbours_corrected_convective_.echange_espace_virtuel();
+          if (store_flux_operators_for_energy_balance_)
+            {
+              allocate_cell_vector(cell_faces_neighbours_corrected_velocity_temperature_, splitting, 1);
+              nalloc += 3;
+              for (int c=0; c<3; c++)
+                cell_faces_neighbours_corrected_velocity_temperature_[c].data() = 0.;
+              cell_faces_neighbours_corrected_velocity_temperature_.echange_espace_virtuel();
+
+              allocate_cell_vector(cell_faces_neighbours_corrected_convective_frame_of_reference_, splitting, 1);
+              nalloc += 3;
+              for (int c=0; c<3; c++)
+                cell_faces_neighbours_corrected_convective_frame_of_reference_[c].data() = 0.;
+              cell_faces_neighbours_corrected_convective_frame_of_reference_.echange_espace_virtuel();
+            }
         }
       if (diffusive_flux_correction_)
         {
@@ -871,8 +832,31 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       probe_collision_debug_field_.data() = 0.;
     }
 
+  if (fluxes_correction_conservations_)
+    {
+      zero_liquid_neighbours_.allocate(splitting, IJK_Splitting::ELEM, 1); // , 1);
+      nalloc += 1;
+      zero_liquid_neighbours_.data() = 0.;
+      allocate_cell_vector(interfacial_heat_flux_dispatched_, splitting, 1);
+      nalloc += 3;
+      for (int c=0; c<3; c++)
+        interfacial_heat_flux_dispatched_[c].data() = 0.;
+      interfacial_heat_flux_dispatched_.echange_espace_virtuel();
+
+      allocate_cell_vector(interfacial_heat_flux_contrib_, splitting, 1);
+      allocate_cell_vector(interfacial_heat_flux_current_, splitting, 1);
+      for (int c=0; c<3; c++)
+        {
+          interfacial_heat_flux_contrib_[c].data() = 0.;
+          interfacial_heat_flux_current_[c].data() = 0.;
+        }
+      nalloc += 6;
+    }
+
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
     fo_ = 0.95 * pow((sqrt(2) / 2), 2); // squared or not?
+
+  nalloc += set_subproblems_interfaces_fields(splitting);
 
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
   return nalloc;
@@ -897,97 +881,106 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
   /*
    * Theses Thiam et Euzenat
    */
-  if (!disable_spherical_diffusion_start_)
+  if (!ref_ijk_ft_->get_reprise() || ref_ijk_ft_->get_current_time() > 0.)
     {
-      if (single_centred_bubble_)
+      if (!disable_spherical_diffusion_start_)
         {
-          double time_ini = 0.;
-          const double rho_l = ref_ijk_ft_->get_rho_l();
-          const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
-          switch(temperature_ini_type_)
+          if (single_centred_bubble_)
             {
-            case local_criteria:
-              {
-                const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
-                const double erf_val = 1 - probes_end_value_coeff_ * abs(delta_T_subcooled_overheated_) * R / single_centred_bubble_radius_ini_;
-                double erf_inv_val = 1.;
-                approx_erf_inverse(erf_val, erf_inv_val);
-                const double time_local = pow((R-single_centred_bubble_radius_ini_),2) / (pow(erf_inv_val,2) * 4. * alpha_liq) ;
-                time_ini = time_local;
-              }
-              break;
-            case integral_criteria:
-              {
-                const int max_attempt = 50;
-                int attempt_counter = 0;
-                double temperature_end_prev = delta_T_subcooled_overheated_;
-                double time_integral = 0.;
-                double temperature_end_next = 2 * temperature_end_prev;
-                while (abs(temperature_end_next - temperature_end_prev) > 0.01 && (attempt_counter < max_attempt))
-                  {
-                    const double temperature_integral = compute_spherical_steady_dirichlet_left_right_integral(temperature_end_prev);
-                    time_integral = find_time_dichotomy_integral(temperature_integral, temperature_end_next);
-                    temperature_end_prev = 0.5 * (temperature_end_prev + temperature_end_next);
-                    attempt_counter++;
-                  }
-                time_ini = time_integral;
-              }
-              break;
-            case derivative_criteria:
-              {
-                double time_derivative=0.;
-                const int max_attempt = 100;
-                int attempt_counter = 0;
-                const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
-                double error = 1.;
-                double temperature_end_min = 0.;
-                get_time_inflection_derivative(temperature_end_min);
-                double temperature_limit_left = temperature_end_min;
-                double temperature_limit_right = temperature_end_min + 0.25 * abs(temperature_end_min);
-                double temperature_middle = 0.5 * (temperature_limit_left + temperature_limit_right);
-                while (error > 1e-2 && (attempt_counter < max_attempt))
-                  {
-                    const double temperature_derivative = compute_spherical_steady_dirichlet_left_right_derivative_value(R, temperature_middle);
-                    time_derivative = find_time_dichotomy_derivative(temperature_derivative, temperature_limit_left, temperature_limit_right);
-                    error = abs(temperature_limit_right - temperature_limit_left);
-                    if (debug_)
-                      Cerr << "error: " << error << finl;
-                    temperature_middle = 0.5 * (temperature_limit_right + temperature_limit_right);
-                    attempt_counter++;
-                  }
-                time_ini = time_derivative;
-              }
-              break;
-            case time_criteria:
-              {
-                time_ini = time_ini_user_;
-              }
-              break;
-            default:
-              break;
-            }
-          if (debug_)
-            Cerr << "Time ini: " << time_ini << finl;
-          const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
-          const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
-          for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
-            {
-              int index_bubble_real = index_bubble;
-              if (index_bubble>=nb_bubbles_real)
+              double time_ini = 0.;
+              const double rho_l = ref_ijk_ft_->get_rho_l();
+              const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
+              switch(temperature_ini_type_)
                 {
-                  const int ighost = ref_ijk_ft_->itfce().ghost_compo_converter(index_bubble-nb_bubbles_real);
-                  index_bubble_real = decoder_numero_bulle(-ighost);
+                case local_criteria:
+                  {
+                    const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
+                    const double erf_val = 1 - probes_end_value_coeff_ * abs(delta_T_subcooled_overheated_) * R / single_centred_bubble_radius_ini_;
+                    double erf_inv_val = 1.;
+                    approx_erf_inverse(erf_val, erf_inv_val);
+                    const double time_local = pow((R-single_centred_bubble_radius_ini_),2) / (pow(erf_inv_val,2) * 4. * alpha_liq) ;
+                    time_ini = time_local;
+                  }
+                  break;
+                case integral_criteria:
+                  {
+                    const int max_attempt = 50;
+                    int attempt_counter = 0;
+                    double temperature_end_prev = delta_T_subcooled_overheated_;
+                    double time_integral = 0.;
+                    double temperature_end_next = 2 * temperature_end_prev;
+                    while (abs(temperature_end_next - temperature_end_prev) > 0.01 && (attempt_counter < max_attempt))
+                      {
+                        const double temperature_integral = compute_spherical_steady_dirichlet_left_right_integral(temperature_end_prev);
+                        time_integral = find_time_dichotomy_integral(temperature_integral, temperature_end_next);
+                        temperature_end_prev = 0.5 * (temperature_end_prev + temperature_end_next);
+                        attempt_counter++;
+                      }
+                    time_ini = time_integral;
+                  }
+                  break;
+                case derivative_criteria:
+                  {
+                    double time_derivative=0.;
+                    const int max_attempt = 100;
+                    int attempt_counter = 0;
+                    const double R = get_probes_length() +  single_centred_bubble_radius_ini_;
+                    double error = 1.;
+                    double temperature_end_min = 0.;
+                    get_time_inflection_derivative(temperature_end_min);
+                    double temperature_limit_left = temperature_end_min;
+                    double temperature_limit_right = temperature_end_min + 0.25 * abs(temperature_end_min);
+                    double temperature_middle = 0.5 * (temperature_limit_left + temperature_limit_right);
+                    while (error > 1e-2 && (attempt_counter < max_attempt))
+                      {
+                        const double temperature_derivative = compute_spherical_steady_dirichlet_left_right_derivative_value(R, temperature_middle);
+                        time_derivative = find_time_dichotomy_derivative(temperature_derivative, temperature_limit_left, temperature_limit_right);
+                        error = abs(temperature_limit_right - temperature_limit_left);
+                        if (debug_)
+                          Cerr << "error: " << error << finl;
+                        temperature_middle = 0.5 * (temperature_limit_right + temperature_limit_right);
+                        attempt_counter++;
+                      }
+                    time_ini = time_derivative;
+                  }
+                  break;
+                case time_criteria:
+                  {
+                    time_ini = time_ini_user_;
+                  }
+                  break;
+                default:
+                  break;
                 }
-              Nom expression_T_ini = compute_quasi_static_spherical_diffusion_expression(time_ini, index_bubble, index_bubble_real);
-              set_field_data(temperature_for_ini_per_bubble_, expression_T_ini);
-              set_field_temperature_per_bubble(index_bubble);
+              if (debug_)
+                Cerr << "Time ini: " << time_ini << finl;
+              const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
+              const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+              for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
+                {
+                  int index_bubble_real = index_bubble;
+                  if (index_bubble>=nb_bubbles_real)
+                    {
+                      const int ighost = ref_ijk_ft_->itfce().ghost_compo_converter(index_bubble-nb_bubbles_real);
+                      index_bubble_real = decoder_numero_bulle(-ighost);
+                    }
+                  Nom expression_T_ini = compute_quasi_static_spherical_diffusion_expression(time_ini, index_bubble, index_bubble_real);
+                  set_field_data(temperature_for_ini_per_bubble_, expression_T_ini);
+                  set_field_temperature_per_bubble(index_bubble);
+                }
+              correct_temperature_for_visu();
+              modified_time_init_ = time_ini;
             }
-          correct_temperature_for_visu();
-          modified_time_init_ = time_ini;
         }
+      else
+        IJK_Thermal_base::compute_temperature_init();
     }
-  else
-    IJK_Thermal_base::compute_temperature_init();
+}
+
+
+void IJK_Thermal_Subresolution::recompute_temperature_init()
+{
+  compute_temperature_init();
 }
 
 Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expression(const double& time_scope,
@@ -1366,20 +1359,21 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
    * d_temperature_ += div_lambda_grad_T_volume_;
    * It depends on the nature of the properties (one-fluid or single-fluid)
    */
+  const int post_pro_div_lambda_grad_T = liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T");
   const int ni = div_coeff_grad_T_volume_.ni();
   const int nj = div_coeff_grad_T_volume_.nj();
   const int nk = div_coeff_grad_T_volume_.nk();
   const double rhocp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  const double rhocpVol = rhocp_l * vol_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double rhocpVol = rhocp_l * vol_;
           const double ope = div_coeff_grad_T_volume_(i,j,k);
           const double resu = ope / rhocpVol;
           div_coeff_grad_T_volume_(i,j,k) = ope / rhocp_l;
           d_temperature_(i,j,k) += resu;
-          if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T"))
+          if (post_pro_div_lambda_grad_T)
             div_coeff_grad_T_(i,j,k) = resu;
         }
   if (debug_)
@@ -1554,10 +1548,16 @@ void IJK_Thermal_Subresolution::correct_temperature_for_visu()
     correct_any_temperature_field_for_visu(div_coeff_grad_T_volume_);
 }
 
-void IJK_Thermal_Subresolution::clip_temperature_values()
+void IJK_Thermal_Subresolution::clip_min_temperature_values()
 {
+  //  const int delta_pos = (delta_T_subcooled_overheated_ > 0) ? 1: 0;
+  //  const int mean_temp_pos = (mean_liquid_temperature_ > 0) ? 1: 0;
+  // min_liquid_temperature_;
+  // max_liquid_temperature_;
+  // mean_liquid_temperature_;
   if (clip_temperature_values_)
     {
+      const double clip_threshold = 0.98;
       const int ni = temperature_.ni();
       const int nj = temperature_.nj();
       const int nk = temperature_.nk();
@@ -1567,7 +1567,7 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
             {
               const double temperature = temperature_(i,j,k);
               if (temperature < delta_T_subcooled_overheated_)
-                temperature_(i,j,k) = delta_T_subcooled_overheated_;
+                temperature_(i,j,k) = delta_T_subcooled_overheated_ * clip_threshold;
             }
       temperature_.echange_espace_virtuel(temperature_.ghost());
     }
@@ -1575,6 +1575,12 @@ void IJK_Thermal_Subresolution::clip_temperature_values()
 
 void IJK_Thermal_Subresolution::clip_max_temperature_values()
 {
+  //  const int delta_pos = (delta_T_subcooled_overheated_ > 0) ? 1: 0;
+  //  const int mean_temp_pos = (mean_liquid_temperature_ > 0) ? 1: 0;
+  // min_liquid_temperature_;
+  // max_liquid_temperature_;
+  // mean_liquid_temperature_;
+  const double clip_threshold = 1.e-5;
   if (clip_temperature_values_)
     {
       const int ni = temperature_.ni();
@@ -1586,7 +1592,8 @@ void IJK_Thermal_Subresolution::clip_max_temperature_values()
             {
               const double temperature = temperature_(i,j,k);
               const double indic = ref_ijk_ft_->itfce().I(i,j,k);
-              if (temperature > 0 && indic > LIQUID_INDICATOR_TEST)
+              // Work only with bubble at zero, temperature liquid negative
+              if ((temperature + clip_threshold) > 0 && indic > LIQUID_INDICATOR_TEST)
                 temperature_(i,j,k) = 0;
             }
       temperature_.echange_espace_virtuel(temperature_.ghost());
@@ -1618,6 +1625,15 @@ void IJK_Thermal_Subresolution::compute_mean_liquid_temperature()
 
 void IJK_Thermal_Subresolution::compute_thermal_subproblems()
 {
+  static Stat_Counter_Id cnt_lrs_ini = statistiques().new_counter(3, "Thermal Subresolution LRS - Initialisation");
+  static Stat_Counter_Id cnt_readjust = statistiques().new_counter(3, "Thermal Subresolution LRS - Readjustement");
+  static Stat_Counter_Id cnt_lrs_matrix_op = statistiques().new_counter(3, "Thermal Subresolution LRS - Matrix computation");
+  static Stat_Counter_Id cnt_lrs_temporal_scheme = statistiques().new_counter(3, "Thermal Subresolution LRS - Temporal scheme");
+  static Stat_Counter_Id cnt_lrs_source_terms = statistiques().new_counter(3, "Thermal Subresolution LRS - Source terms");
+  static Stat_Counter_Id cnt_lrs_solver = statistiques().new_counter(3, "Thermal Subresolution LRS - Solver");
+  static Stat_Counter_Id cnt_lrs_post = statistiques().new_counter(3, "Thermal Subresolution LRS - Miscellaneous post");
+  static Stat_Counter_Id cnt_lrs_prepare_corr = statistiques().new_counter(3, "Thermal Subresolution LRS - Prepare temp-flux correction");
+
   is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep()==0);
   first_step_thermals_post_ = (first_step_thermals_post_ && !ref_ijk_ft_->get_tstep());
   if (is_first_time_step_)
@@ -1631,8 +1647,12 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
 
   if (debug_)
     Cerr << "Initialise thermal subproblems" << finl;
-  initialise_thermal_subproblems();
 
+  statistiques().begin_count(cnt_lrs_ini);
+  initialise_thermal_subproblems();
+  statistiques().end_count(cnt_lrs_ini);
+
+  statistiques().begin_count(cnt_readjust);
   detect_probe_collision();
 
   int varying_probes_length = 1;
@@ -1656,7 +1676,9 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     if(varying_probes && !first_time_step_varying_probes_)
       Cerr << "Probes length is now fixed" << finl;
+  statistiques().end_count(cnt_readjust);
 
+  statistiques().begin_count(cnt_lrs_matrix_op);
   pre_initialise_thermal_subproblems_any_matrices();
 
   reset_subresolution_distributed_vectors();
@@ -1664,21 +1686,29 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     Cerr << "Compute radial subresolution convection and diffusion operators" << finl;
   compute_radial_subresolution_convection_diffusion_operators();
+  statistiques().end_count(cnt_lrs_matrix_op);
 
+  statistiques().begin_count(cnt_lrs_temporal_scheme);
   if (debug_)
     Cerr << "Compute local substep for the first iter" << finl;
   compute_local_substep();
   prepare_temporal_schemes();
+  statistiques().end_count(cnt_lrs_temporal_scheme);
 
+  statistiques().begin_count(cnt_lrs_source_terms);
   if (debug_)
     Cerr << "Prepare boundary conditions, compute source terms and impose boundary conditions" << finl;
   temperature_.echange_espace_virtuel(temperature_.ghost());
   compute_source_terms_impose_subresolution_boundary_conditions();
+  statistiques().end_count(cnt_lrs_source_terms);
 
+  statistiques().begin_count(cnt_lrs_solver);
   if (debug_)
     Cerr << "Solve thermal subproblems" << finl;
   solve_thermal_subproblems();
+  statistiques().end_count(cnt_lrs_solver);
 
+  statistiques().begin_count(cnt_lrs_post);
   if (debug_)
     Cerr << "Compute material derivative (modelling)" << finl;
   approximate_temperature_increment_material_derivative();
@@ -1686,11 +1716,14 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   if (debug_)
     Cerr << "Store probe temperature" << finl;
   store_previous_temperature_indicator_velocities();
+  statistiques().end_count(cnt_lrs_post);
 
+  statistiques().begin_count(cnt_lrs_prepare_corr);
   if (debug_)
     Cerr << "Prepare thermal flux correction" << finl;
   update_intersections();
   prepare_thermal_flux_correction();
+  statistiques().end_count(cnt_lrs_prepare_corr);
 }
 
 void IJK_Thermal_Subresolution::compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init)
@@ -1815,6 +1848,8 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
 {
   if (!disable_subresolution_ || reference_gfm_on_probes_)
     {
+      if (fluxes_correction_conservations_)
+        zero_liquid_neighbours_.data() = 0.;
       const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
       const int ni = temperature_.ni();
       const int nj = temperature_.nj();
@@ -1846,6 +1881,9 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
       thermal_local_subproblems_.compute_global_indices();
       if (!counter)
         thermal_local_subproblems_.associate_variables_for_post_processing((*this));
+
+      if (fluxes_correction_conservations_)
+        zero_liquid_neighbours_.echange_espace_virtuel(zero_liquid_neighbours_.ghost());
     }
 }
 
@@ -1907,14 +1945,6 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
 
 void IJK_Thermal_Subresolution::reset_subresolution_distributed_vectors()
 {
-  if (ref_ijk_ft_->get_tstep()==0)
-    {
-      thermal_subproblems_rhs_assembly_.set_smart_resize(1);
-      thermal_subproblems_temperature_solution_.set_smart_resize(1);
-      if (first_time_step_temporal_ && first_time_step_explicit_)
-        thermal_subproblems_temperature_solution_ini_.set_smart_resize(1);
-    }
-
   thermal_subproblems_rhs_assembly_.reset();
   thermal_subproblems_temperature_solution_.detach_vect();
   if (first_time_step_temporal_ && first_time_step_explicit_)
@@ -1937,7 +1967,7 @@ void IJK_Thermal_Subresolution::interpolate_indicator_on_probes()
 
 void IJK_Thermal_Subresolution::clear_sort_problems_colliding_bubbles()
 {
-  if (!disable_subresolution_) // || reference_gfm_on_probes_)
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
     thermal_local_subproblems_.clear_sort_problems_colliding_bubbles();
 }
 
@@ -2198,6 +2228,8 @@ void IJK_Thermal_Subresolution::approximate_temperature_increment_material_deriv
 
 void IJK_Thermal_Subresolution::solve_thermal_subproblems()
 {
+  static Stat_Counter_Id cnt_lrs_solv_lin = statistiques().new_counter(4, "Thermal Subresolution LRS - Solver - Linear");
+  static Stat_Counter_Id cnt_lrs_solv_retrieve_temp = statistiques().new_counter(4, "Thermal Subresolution LRS - Solver - Retrieve temperature");
   if (!disable_subresolution_)
     {
       check_wrong_values_rhs();
@@ -2231,15 +2263,19 @@ void IJK_Thermal_Subresolution::solve_thermal_subproblems()
             }
           else
             {
+              statistiques().begin_count(cnt_lrs_solv_lin);
               Cerr << "Finite-difference thermal sub-resolution has started !" << finl;
               one_dimensional_advection_diffusion_thermal_solver_.resoudre_systeme((*thermal_subproblems_matrix_assembly_for_solver_ref_).valeur(),
                                                                                    thermal_subproblems_rhs_assembly_,
                                                                                    thermal_subproblems_temperature_solution_);
               Cerr << "Finite-difference thermal sub-resolution has finished !" << finl;
+              statistiques().end_count(cnt_lrs_solv_lin);
             }
         }
     }
+  statistiques().begin_count(cnt_lrs_solv_retrieve_temp);
   retrieve_temperature_solution();
+  statistiques().end_count(cnt_lrs_solv_retrieve_temp);
 }
 
 void IJK_Thermal_Subresolution::convert_into_sparse_matrix()
@@ -2291,8 +2327,8 @@ void IJK_Thermal_Subresolution::compute_md_vector()
                                        pe_voisins_dummy, items_to_send_dummy,
                                        items_to_recv_dummy, blocs_to_recv_dummy);
   md_.copy(md_std);
-  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_rhs_assembly_); //, Array_base::NOCOPY_NOINIT);
-  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_temperature_solution_); //, Array_base::NOCOPY_NOINIT);
+  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_rhs_assembly_); //, RESIZE_OPTIONS::NOCOPY_NOINIT);
+  MD_Vector_tools::creer_tableau_distribue(md_, thermal_subproblems_temperature_solution_); //, RESIZE_OPTIONS::NOCOPY_NOINIT);
 }
 
 void IJK_Thermal_Subresolution::retrieve_temperature_solution()
@@ -2338,33 +2374,68 @@ void IJK_Thermal_Subresolution::prepare_thermal_flux_correction()
 
 void IJK_Thermal_Subresolution::compute_convective_diffusive_fluxes_face_centre()
 {
+  // if (fluxes_correction_conservations_)
+  //   thermal_local_subproblems_.dispatch_interfacial_heat_flux(interfacial_heat_flux_dispatched_,
+  //                                                             ijk_indices_flux_out_,
+  //                                                             thermal_flux_out_);
+  static Stat_Counter_Id cnt_lrs_conv_flux_corr = statistiques().new_counter(3, "Compute convective flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_diff_flux_corr = statistiques().new_counter(3, "Compute diffusive flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_dispatch_flux_corr = statistiques().new_counter(3, "Dispatch flux correction from LRS");
+  static Stat_Counter_Id cnt_lrs_complete_flux_cons = statistiques().new_counter(3, "Complete flux conservation from LRS");
+  static Stat_Counter_Id cnt_lrs_min_max_flux = statistiques().new_counter(3, "Compute far fluxes correction from LRS");
 
+  statistiques().begin_count(cnt_lrs_conv_flux_corr);
   if (!conv_temperature_negligible_)
     compute_convective_fluxes_face_centre();
+  statistiques().end_count(cnt_lrs_conv_flux_corr);
+
+  statistiques().begin_count(cnt_lrs_diff_flux_corr);
   if (!diff_temperature_negligible_)
     compute_diffusive_fluxes_face_centre();
+  statistiques().end_count(cnt_lrs_diff_flux_corr);
+
+  statistiques().begin_count(cnt_lrs_dispatch_flux_corr);
+  if (fluxes_correction_conservations_)
+    thermal_local_subproblems_.dispatch_interfacial_heat_flux_correction(interfacial_heat_flux_contrib_,
+                                                                         ijk_indices_flux_contrib_,
+                                                                         thermal_flux_out_contrib_,
+                                                                         interfacial_heat_flux_current_);
+  statistiques().end_count(cnt_lrs_dispatch_flux_corr);
+
+  statistiques().begin_count(cnt_lrs_complete_flux_cons);
+  complete_thermal_fluxes_face_centre(fluxes_correction_conservations_);
+  statistiques().end_count(cnt_lrs_complete_flux_cons);
 
   corrige_flux_->initialise_cell_neighbours_indices_to_correct();
   corrige_flux_->compute_cell_neighbours_faces_indices_for_spherical_correction(n_iter_distance_);
 
+  statistiques().begin_count(cnt_lrs_min_max_flux);
   compute_min_max_reachable_fluxes();
+  statistiques().end_count(cnt_lrs_min_max_flux);
 }
 
 void IJK_Thermal_Subresolution::compute_convective_fluxes_face_centre()
 {
   if (!disable_subresolution_ && convective_flux_correction_ && !use_reachable_fluxes_)
-    corrige_flux_->compute_thermal_convective_fluxes();
+    corrige_flux_->compute_thermal_convective_fluxes(!diffusive_flux_correction_ && fluxes_correction_conservations_);
 }
 
 void IJK_Thermal_Subresolution::compute_diffusive_fluxes_face_centre()
 {
   if (!disable_subresolution_ && diffusive_flux_correction_ && !use_reachable_fluxes_)
-    corrige_flux_->compute_thermal_diffusive_fluxes();
+    corrige_flux_->compute_thermal_diffusive_fluxes(diffusive_flux_correction_ && fluxes_correction_conservations_);
+}
+
+void IJK_Thermal_Subresolution::complete_thermal_fluxes_face_centre(const int& fluxes_correction_conservations)
+{
+  if (!disable_subresolution_ && (convective_flux_correction_ || diffusive_flux_correction_) && !use_reachable_fluxes_)
+    corrige_flux_->complete_thermal_fluxes_face_centre(fluxes_correction_conservations_);
 }
 
 void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()
 {
   corrige_flux_->compute_cell_neighbours_faces_indices_to_correct(cell_faces_neighbours_corrected_all_bool_,
+                                                                  cell_faces_neighbours_corrected_velocity_temperature_,
                                                                   cell_faces_neighbours_corrected_convective_,
                                                                   cell_faces_neighbours_corrected_diffusive_,
                                                                   neighbours_faces_weighting_colinearity_);
@@ -2382,11 +2453,45 @@ void IJK_Thermal_Subresolution::compute_min_max_reachable_fluxes()
                                                           remove_external_neighbour_values,
                                                           neighbours_temperature_to_correct_trimmed_);
   corrige_flux_->replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool_,
+                                                                                   cell_faces_neighbours_corrected_all_bool_,
                                                                                    cell_faces_neighbours_corrected_convective_,
                                                                                    0);
   corrige_flux_->replace_cell_neighbours_thermal_convective_diffusive_fluxes_faces(cell_faces_neighbours_corrected_min_max_bool_,
+                                                                                   cell_faces_neighbours_corrected_all_bool_,
                                                                                    cell_faces_neighbours_corrected_diffusive_,
                                                                                    1);
+  complete_convective_flux_frame_of_reference();
+}
+
+void IJK_Thermal_Subresolution::complete_convective_flux_frame_of_reference()
+{
+  if (convective_flux_correction_ && use_reachable_fluxes_ && keep_first_reachable_fluxes_)
+    {
+      if (store_flux_operators_for_energy_balance_)
+        {
+          const int ni = cell_faces_neighbours_corrected_velocity_temperature_[0].ni();
+          const int nj = cell_faces_neighbours_corrected_velocity_temperature_[0].nj();
+          const int nk = cell_faces_neighbours_corrected_velocity_temperature_[0].nk();
+          const double rho_cp = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+          for (int c=0; c<3; c++)
+            {
+              const int ni_max = (c==0) ? ni + 1: ni;
+              const int nj_max = (c==1) ? nj + 1: nj;
+              const int nk_max = (c==2) ? nk + 1: nk;
+              for (int k = 0; k < nk_max; k++)
+                for (int j = 0; j < nj_max; j++)
+                  for (int i = 0; i < ni_max; i++)
+                    {
+                      double u_T = cell_faces_neighbours_corrected_velocity_temperature_[c](i,j,k);
+                      u_T *= (*rising_velocity_overall_)[c];
+                      const double rho_cp_u_T = u_T * rho_cp;
+                      cell_faces_neighbours_corrected_velocity_temperature_[c](i,j,k) = u_T;
+                      cell_faces_neighbours_corrected_convective_frame_of_reference_[c](i,j,k) =
+                        cell_faces_neighbours_corrected_convective_[c](i,j,k) - rho_cp_u_T;
+                    }
+            }
+        }
+    }
 }
 
 void IJK_Thermal_Subresolution::compute_temperature_cell_centres(const int first_corr)
@@ -2412,7 +2517,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 1
-                            && !ref_ijk_ft_->get_reprise() != 0);
+                            && ref_ijk_ft_->get_reprise() == 0);
   if (debug_)
     Cerr << "Set correction cell neighbours" << finl;
   if (correct_first_iter_deactivate_cell_neighbours_ && correct_first_iter)
@@ -2422,6 +2527,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
       use_temperature_cell_neighbours_ = 0;
       corrige_flux_.set_correction_cell_neighbours(find_temperature_cell_neighbours_,
                                                    neighbours_weighting_,
+                                                   keep_max_flux_correction_,
                                                    smooth_temperature_field_);
     }
 
@@ -2463,7 +2569,7 @@ void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(cons
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
                             && ref_ijk_ft_->get_tstep() == 0
-                            && !ref_ijk_ft_->get_reprise() != 0);
+                            && ref_ijk_ft_->get_reprise() == 0);
   if (use_temperature_cell_neighbours_)
     {
       if (keep_first_reachable_fluxes_)
@@ -2594,13 +2700,18 @@ void IJK_Thermal_Subresolution::correct_operators_for_visu()
 
 void IJK_Thermal_Subresolution::prepare_ij_fluxes_k_layers()
 {
-  if ((!disable_subresolution_) && (convective_flux_correction_ || diffusive_flux_correction_) && (!use_reachable_fluxes_))
+  if ((!disable_subresolution_) && (convective_flux_correction_ || diffusive_flux_correction_))
     {
-      corrige_flux_->compute_ijk_pure_faces_indices();
-      corrige_flux_->sort_ijk_intersections_subproblems_indices_by_k_layers();
+      if (!use_reachable_fluxes_)
+        {
+          corrige_flux_->compute_ijk_pure_faces_indices();
+          corrige_flux_->sort_ijk_intersections_subproblems_indices_by_k_layers();
+        }
       if (store_cell_faces_corrected_)
         {
-          corrige_flux_->store_cell_faces_corrected(cell_faces_corrected_bool_, cell_faces_corrected_convective_, cell_faces_corrected_diffusive_);
+          corrige_flux_->store_cell_faces_corrected(cell_faces_corrected_bool_,
+                                                    cell_faces_corrected_convective_,
+                                                    cell_faces_corrected_diffusive_);
         }
     }
 }
@@ -2634,6 +2745,7 @@ void IJK_Thermal_Subresolution::clean_ijk_intersections()
 }
 
 void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
+                                                                  const Nom& shell_quantities_thermal_probes,
                                                                   const Nom& overall_bubbles_quantities,
                                                                   const Nom& local_quantities_thermal_probes_time_index_folder)
 {
@@ -2646,15 +2758,1472 @@ void IJK_Thermal_Subresolution::set_thermal_subresolution_outputs(const Nom& int
         Cerr << "Sort spherical coords" << finl;
       thermal_local_subproblems_.sort_limited_probes_spherical_coords_post_processing(post_process_all_probes_,
                                                                                       nb_theta_post_pro_, nb_phi_post_pro_,
-                                                                                      1, 1);
+                                                                                      (int) 1, (int) 1);
       if (debug_)
         Cerr << "Write post-processings" << finl;
       thermal_local_subproblems_.thermal_subresolution_outputs_parallel(rang_,
                                                                         interfacial_quantities_thermal_probes,
+                                                                        shell_quantities_thermal_probes,
                                                                         overall_bubbles_quantities,
                                                                         local_quantities_thermal_probes_time_index_folder);
     }
 }
 
+void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
+{
+  if (store_flux_operators_for_energy_balance_)
+    if (!disable_subresolution_ || reference_gfm_on_probes_)
+      {
+        if (!conv_temperature_negligible_)
+          {
+            if (use_reachable_fluxes_ && keep_first_reachable_fluxes_)
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(cell_faces_neighbours_corrected_convective_frame_of_reference_,
+                                                                            (int) 0);
+            else
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(rho_cp_u_T_convective_raw_,
+                                                                            (int) 0);
+          }
+        if (!diff_temperature_negligible_)
+          {
+            if (use_reachable_fluxes_ && keep_first_reachable_fluxes_)
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(cell_faces_neighbours_corrected_diffusive_,
+                                                                            (int) 0,
+                                                                            (int) 1);
+            else
+              thermal_local_subproblems_.compare_fluxes_thermal_subproblems(div_coeff_grad_T_raw_,
+                                                                            (int) 1);
+          }
+      }
+}
+
+void IJK_Thermal_Subresolution::post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder)
+{
+  const int nb_real_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+  if (post_process_thermal_lines_ && nb_real_bubbles==1)
+    {
+      int line_dir = ref_ijk_ft_->get_direction_gravite();
+      if (upstream_dir_line_ > 0)
+        line_dir = upstream_dir_line_;
+
+      int nb_thermal_lines = nb_thermal_lines_;
+      if (nb_thermal_lines_ != 1)
+        nb_thermal_lines += (nb_thermal_lines % 2);
+
+      int nb_thermal_circles = nb_thermal_concentric_circles_;
 
 
+      /*
+       * Do something for oscillating bubble ?
+       */
+      // (*rising_vectors_(0, line_dir));
+      ArrOfDouble linear_coord;
+      FixedVector<ArrOfDouble,3> coordinates_line;
+      std::vector<std::vector<FixedVector<ArrOfInt,3>>> indices_ijk;
+      linear_coord.resize(nb_thermal_line_points_);
+      for (int c=0; c<3; c++)
+        {
+          coordinates_line[c].resize(nb_thermal_line_points_);
+        }
+      double diameter_approx = 0.;
+      std::vector<std::vector<FixedVector<ArrOfDouble,2>>> coordinates_sides;
+      std::vector<std::vector<ArrOfInt>> is_point_on_proc;
+      //      std::vector<std::vector<ArrOfDouble>> temperature_line;
+      //      std::vector<std::vector<ArrOfDouble>> velocity_line;
+      //      std::vector<std::vector<ArrOfDouble>> convective_flux_line;
+      //      std::vector<std::vector<ArrOfDouble>> diffusive_flux_line;
+      //      std::vector<std::vector<ArrOfDouble>> temperature_increment_line;
+      initialise_thermal_dowstreamlines_tabs(indices_ijk,
+                                             nb_thermal_circles,
+                                             nb_thermal_lines);
+      initialise_thermal_dowstreamlines_tabs(is_point_on_proc,
+                                             nb_thermal_circles,
+                                             nb_thermal_lines);
+      //      initialise_thermal_dowstreamlines_tabs(temperature_line,
+      //                                             nb_thermal_circles,
+      //                                             nb_thermal_lines);
+      //      initialise_thermal_dowstreamlines_tabs(velocity_line,
+      //                                             nb_thermal_circles,
+      //                                             nb_thermal_lines);
+      //      initialise_thermal_dowstreamlines_tabs(convective_flux_line,
+      //                                             nb_thermal_circles,
+      //                                             nb_thermal_lines);
+      //      initialise_thermal_dowstreamlines_tabs(diffusive_flux_line,
+      //                                             nb_thermal_circles,
+      //                                             nb_thermal_lines);
+      //      initialise_thermal_dowstreamlines_tabs(temperature_increment_line,
+      //                                             nb_thermal_circles,
+      //                                             nb_thermal_lines);
+      initialise_thermal_line_points(line_dir,
+                                     linear_coord,
+                                     coordinates_line,
+                                     diameter_approx);
+      find_cocentric_line_coordinates(nb_thermal_circles,
+                                      nb_thermal_lines,
+                                      diameter_approx,
+                                      coordinates_sides);
+      find_points_on_proc(is_point_on_proc,
+                          indices_ijk,
+                          coordinates_line,
+                          coordinates_sides,
+                          line_dir);
+
+      int linear_circle_line_index = 0;
+      for (int circle=0; circle<nb_thermal_circles; circle++)
+        {
+          for (int line=0; line<(int) nb_thermal_lines; line++)
+            {
+              DoubleVect temperature_line(nb_thermal_line_points_);
+              interpolate_temperature_on_downstream_line(line_dir,
+                                                         nb_thermal_circles,
+                                                         circle,
+                                                         line,
+                                                         is_point_on_proc,
+                                                         coordinates_line,
+                                                         coordinates_sides,
+                                                         temperature_line);
+
+
+              DoubleVect velocity_line(nb_thermal_line_points_);
+              interpolate_velocity_on_downstream_line(line_dir,
+                                                      nb_thermal_circles,
+                                                      circle,
+                                                      line,
+                                                      is_point_on_proc,
+                                                      coordinates_line,
+                                                      coordinates_sides,
+                                                      velocity_line);
+
+              DoubleVect convective_term_line(nb_thermal_line_points_);
+              interpolate_convective_term_on_downstream_line(line_dir,
+                                                             nb_thermal_circles,
+                                                             circle,
+                                                             line,
+                                                             is_point_on_proc,
+                                                             coordinates_line,
+                                                             coordinates_sides,
+                                                             convective_term_line);
+              DoubleVect diffusive_term_line(nb_thermal_line_points_);
+              interpolate_diffusive_term_on_downstream_line(line_dir,
+                                                            nb_thermal_circles,
+                                                            circle,
+                                                            line,
+                                                            is_point_on_proc,
+                                                            coordinates_line,
+                                                            coordinates_sides,
+                                                            diffusive_term_line);
+
+              DoubleVect temperature_incr_line(nb_thermal_line_points_);
+              interpolate_temperature_increment_on_downstream_line(line_dir,
+                                                                   nb_thermal_circles,
+                                                                   circle,
+                                                                   line,
+                                                                   is_point_on_proc,
+                                                                   coordinates_line,
+                                                                   coordinates_sides,
+                                                                   temperature_incr_line);
+
+              post_processed_fields_on_downstream_line(local_quantities_thermal_lines_time_index_folder,
+                                                       line_dir,
+                                                       linear_circle_line_index,
+                                                       circle,
+                                                       line,
+                                                       diameter_approx,
+                                                       is_point_on_proc,
+                                                       indices_ijk,
+                                                       linear_coord,
+                                                       coordinates_line,
+                                                       coordinates_sides,
+                                                       temperature_line,
+                                                       velocity_line,
+                                                       convective_term_line,
+                                                       diffusive_term_line,
+                                                       temperature_incr_line);
+              linear_circle_line_index++;
+              if (circle == 0)
+                break;
+            }
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<FixedVector<ArrOfInt,3>>>& parameters,
+                                                                       const int& nb_thermal_circles,
+                                                                       const int& nb_thermal_lines)
+{
+  parameters.resize(nb_thermal_circles);
+  for (int circle=0; circle<nb_thermal_circles; circle++)
+    {
+      if (circle == 0)
+        parameters[circle].resize(1);
+      else
+        parameters[circle].resize(nb_thermal_lines);
+      for (int line=0; line< (int) parameters[circle].size(); line++)
+        {
+          for (int c=0; c<3; c++)
+            {
+              parameters[circle][line][c].resize(nb_thermal_line_points_);
+            }
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& parameters,
+                                                                       const int& nb_thermal_circles,
+                                                                       const int& nb_thermal_lines)
+{
+  parameters.resize(nb_thermal_circles);
+  for (int circle=0; circle<nb_thermal_circles; circle++)
+    {
+      if (circle == 0)
+        parameters[circle].resize(1);
+      else
+        parameters[circle].resize(nb_thermal_lines);
+      for (int line=0; line< (int) parameters[circle].size(); line++)
+        {
+          for (int c=0; c<2; c++)
+            {
+              parameters[circle][line][c].resize(nb_thermal_line_points_);
+            }
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<ArrOfInt>>& parameters,
+                                                                       const int& nb_thermal_circles,
+                                                                       const int& nb_thermal_lines)
+{
+  parameters.resize(nb_thermal_circles);
+  for (int circle=0; circle<nb_thermal_circles; circle++)
+    {
+      if (circle == 0)
+        parameters[circle].resize(1);
+      else
+        parameters[circle].resize(nb_thermal_lines);
+      for (int line=0; line< (int) parameters[circle].size(); line++)
+        {
+          parameters[circle][line].resize(nb_thermal_line_points_);
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::initialise_thermal_dowstreamlines_tabs(std::vector<std::vector<ArrOfDouble>>& parameters,
+                                                                       const int& nb_thermal_circles,
+                                                                       const int& nb_thermal_lines)
+{
+  parameters.resize(nb_thermal_circles);
+  for (int circle=0; circle<nb_thermal_circles; circle++)
+    {
+      if (circle == 0)
+        parameters[circle].resize(1);
+      else
+        parameters[circle].resize(nb_thermal_lines);
+      for (int line=0; line< (int) parameters[circle].size(); line++)
+        {
+          parameters[circle][line].resize(nb_thermal_line_points_);
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::initialise_thermal_line_points(const int& line_dir,
+                                                               ArrOfDouble& linear_coord,
+                                                               FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                               double& diameter)
+{
+  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  bool perio =  geom.get_periodic_flag(line_dir);
+  assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
+
+  DoubleTab bounding_box;
+  bounding_box = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bounding_box();
+  const double Dbdir = bounding_box(0, line_dir, 1) - bounding_box(0, line_dir, 0);
+  const double dirb  = (*bubbles_barycentre_)(0, line_dir);
+  const double ldir = geom.get_domain_length(line_dir);
+
+  const double origin_dir = geom.get_origin(line_dir) ;
+
+  double maximum_probe_length = 0.;
+  if (perio)
+    maximum_probe_length = ldir - Dbdir;
+  else
+    maximum_probe_length = dirb - origin_dir - Dbdir/2;
+
+  double usr_probe_length = abs(Dbdir * nb_diam_thermal_line_length_);
+  if (usr_probe_length > maximum_probe_length)
+    {
+      usr_probe_length = int(maximum_probe_length / Dbdir) * Dbdir;
+      usr_probe_length = signbit(nb_diam_thermal_line_length_) ? -usr_probe_length : usr_probe_length;
+    }
+
+  const double dx = abs(usr_probe_length / (nb_thermal_line_points_ - 1));
+  const double Dbdir_sign = signbit(nb_diam_thermal_line_length_) ? -abs(Dbdir) : abs(Dbdir);
+  for (int point = 0; point<nb_thermal_line_points_; point++)
+    {
+      linear_coord[point] = dx * point;
+      for (int c=0; c<3; c++)
+        {
+          if (c!=line_dir)
+            coordinates_line[c][point] = (*bubbles_barycentre_)(0, c);
+          else
+            coordinates_line[c][point] = dirb + Dbdir_sign / 2.;
+        }
+    }
+  ArrOfDouble linear_coord_tmp = linear_coord;
+  if (signbit(nb_diam_thermal_line_length_))
+    linear_coord_tmp *= (-1);
+  coordinates_line[line_dir] += linear_coord_tmp;
+
+  for (int point = 0; point<nb_thermal_line_points_; point++)
+    {
+      if (coordinates_line[line_dir][point] < origin_dir)
+        coordinates_line[line_dir][point] += ldir;
+      if (coordinates_line[line_dir][point] > origin_dir + ldir)
+        coordinates_line[line_dir][point] -= ldir;
+    }
+
+  diameter = 0.;
+  for (int c=0; c<3; c++)
+    if (c!=line_dir)
+      diameter += (bounding_box(0, c, 1) - bounding_box(0, c, 0));
+  diameter *= 0.5;
+}
+
+void IJK_Thermal_Subresolution::find_cocentric_line_coordinates(const int& nb_thermal_circles,
+                                                                const int& nb_thermal_lines,
+                                                                const double& diameter_approx,
+                                                                std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides)
+{
+  if (nb_thermal_circles == 1)
+    return;
+}
+
+void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                    std::vector<std::vector<FixedVector<ArrOfInt,3>>>& ijk_indices,
+                                                    const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                    const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                    const int& line_dir)
+{
+  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+
+  double min_dir_x, max_dir_x;
+  min_max_ldir(0, geom, min_dir_x, max_dir_x);
+  double min_dir_y, max_dir_y;
+  min_max_ldir(1, geom, min_dir_y, max_dir_y);
+  double min_dir_z, max_dir_z;
+  min_max_ldir(2, geom, min_dir_z, max_dir_z);
+
+  const int offset_i = splitting.get_offset_local(0);
+  const int offset_j = splitting.get_offset_local(1);
+  const int offset_k = splitting.get_offset_local(2);
+
+  const int nb_i = temperature_.ni();
+  const int nb_j = temperature_.nj();
+  const int nb_k = temperature_.nk();
+  const int nb_i_max = offset_i + nb_i;
+  const int nb_j_max = offset_j + nb_j;
+  const int nb_k_max = offset_k + nb_k;
+
+  const double lx = geom.get_domain_length(0);
+  const double ly = geom.get_domain_length(1);
+  const double lz = geom.get_domain_length(2);
+
+  const double dx = geom.get_constant_delta(0);
+  const double dy = geom.get_constant_delta(1);
+  const double dz = geom.get_constant_delta(2);
+
+  const int nb_thermal_circles = (int) is_point_on_proc.size();
+  for (int circle=0; circle<nb_thermal_circles; circle++)
+    {
+      const int nb_thermal_lines = (int) is_point_on_proc[circle].size();
+      for (int line=0; line<(int) nb_thermal_lines; line++)
+        {
+          Cerr << "nb_thermal_lines:" << nb_thermal_lines << finl;
+          const int nb_points = (int) is_point_on_proc[circle][0].size_array();
+          assert(nb_points == coordinates_line[0].size_array());
+          Cerr << "nb_points:" << nb_points << finl;
+          for (int point=0; point<nb_points; point++)
+            {
+              double x = coordinates_line[0][point];
+              double y = coordinates_line[1][point];
+              double z = coordinates_line[2][point];
+              if (x > max_dir_x)
+                x -= lx;
+              if (x < min_dir_x)
+                x += lx;
+              if (y > max_dir_y)
+                y -= ly;
+              if (y < min_dir_y)
+                y += ly;
+              if (z > max_dir_z)
+                z -= lz;
+              if (z < min_dir_z)
+                z += lz;
+              const int ndx = (int) ((x - min_dir_x) / dx);
+              const int ndy = (int) ((y - min_dir_y) / dy);
+              const int ndz = (int) ((z - min_dir_z) / dz);
+              //              const int ndx_round = (int) round((x - min_dir_x) / dx);
+              //              const int ndy_round = (int) round((y - min_dir_y) / dy);
+              //              const int ndz_round = (int) round((z - min_dir_z) / dz);
+              const int ndx_ceil = (int) ceil((x - min_dir_x) / dx);
+              const int ndy_ceil = (int) ceil((y - min_dir_y) / dy);
+              const int ndz_ceil = (int) ceil((z - min_dir_z) / dz);
+              //              const int in_x = (ndx >= offset_i && ndx_ceil >= offset_i
+              //              									&& ndx <= nb_i_max && ndx_round <= nb_i_max);
+              //              const int in_y = (ndy >= offset_j && ndy_ceil >= offset_j
+              //              							    && ndy <= nb_j_max && ndy_round <= nb_j_max);
+              //              const int in_z = (ndz >= offset_k && ndz_ceil >= offset_k
+              //              									&& ndz <= nb_k_max && ndz_round <= nb_k_max);
+              const int in_x = (ndx_ceil > offset_i && ndx < nb_i_max);
+              const int in_y = (ndy_ceil > offset_j && ndy < nb_j_max);
+              const int in_z = (ndz_ceil > offset_k && ndz < nb_k_max);
+              if (in_x && in_y && in_z)
+                {
+                  is_point_on_proc[circle][0][point] = 1;
+                  ijk_indices[circle][line][0][point] = ndx - offset_i;
+                  ijk_indices[circle][line][1][point] = ndy - offset_j;
+                  ijk_indices[circle][line][2][point] =	ndz - offset_k;
+                }
+            }
+          ArrOfInt i_indices = ijk_indices[circle][line][0];
+          ArrOfInt j_indices = ijk_indices[circle][line][1];
+          ArrOfInt k_indices = ijk_indices[circle][line][2];
+          mp_sum_for_each_item(ijk_indices[circle][line][0]);
+          mp_sum_for_each_item(ijk_indices[circle][line][1]);
+          mp_sum_for_each_item(ijk_indices[circle][line][2]);
+          for (int l=0; l<nb_points; l++)
+            if (is_point_on_proc[circle][line][l])
+              {
+                ijk_indices[circle][line][0][l] = i_indices[l];
+                ijk_indices[circle][line][1][l] = j_indices[l];
+                ijk_indices[circle][line][2][l] = k_indices[l];
+              }
+
+        }
+    }
+}
+
+void IJK_Thermal_Subresolution::min_max_ldir(const int& dir,
+                                             const IJK_Grid_Geometry& geom,
+                                             double& min_dir,
+                                             double& max_dir)
+{
+  // const double ddir = geom.get_constant_delta(dir);
+  const double ldir = geom.get_domain_length(dir);
+  const double origin_dir = geom.get_origin(dir);
+  min_dir = origin_dir;
+  max_dir = origin_dir + ldir;
+}
+
+void IJK_Thermal_Subresolution::interpolate_fields_on_downstream_line(const int& dir,
+                                                                      const int& nb_thermal_circles,
+                                                                      const int& index_circle,
+                                                                      const int& index_line,
+                                                                      const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                      const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                      const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                      const IJK_Field_double& field,
+                                                                      const FixedVector<IJK_Field_double,3>& field_gradient,
+                                                                      const FixedVector<IJK_Field_double,3>& velocity,
+                                                                      DoubleVect& values,
+                                                                      const int field_type)
+{
+  const int nb_points = coordinates_line[0].size_array();
+  DoubleTab ijk_coords_interp(nb_points, 3);
+  DoubleVect field_interp(nb_points);
+  for (int l=0; l<nb_points; l++)
+    for (int c=0; c<3; c++)
+      ijk_coords_interp(l, c) = coordinates_line[c][l];
+
+  if (index_circle > 0)
+    {
+      switch(dir)
+        {
+        case 0:
+          for (int l=0; l<nb_points; l++)
+            {
+              ijk_coords_interp(l, 1) = coordinates_sides[index_circle-1][index_line][0][l];
+              ijk_coords_interp(l, 2) = coordinates_sides[index_circle-1][index_line][1][l];
+            }
+          break;
+        case 1:
+          for (int l=0; l<nb_points; l++)
+            {
+              ijk_coords_interp(l, 0) = coordinates_sides[index_circle-1][index_line][0][l];
+              ijk_coords_interp(l, 2) = coordinates_sides[index_circle-1][index_line][1][l];
+            }
+          break;
+        case 2:
+          for (int l=0; l<nb_points; l++)
+            {
+              ijk_coords_interp(l, 0) = coordinates_sides[index_circle-1][index_line][0][l];
+              ijk_coords_interp(l, 1) = coordinates_sides[index_circle-1][index_line][1][l];
+            }
+          break;
+        default:
+          break;
+        }
+    }
+
+  switch(field_type)
+    {
+    case 0:
+      ijk_interpolate_skip_unknown_points(field, ijk_coords_interp, field_interp, INVALID_INTERP);
+      break;
+    case 1:
+      ijk_interpolate_skip_unknown_points(field_gradient[dir], ijk_coords_interp, field_interp, INVALID_INTERP);
+      break;
+    case 2:
+      ijk_interpolate_skip_unknown_points(velocity[dir], ijk_coords_interp, field_interp, INVALID_INTERP);
+      break;
+    default:
+      break;
+    }
+
+  values = field_interp;
+  for (int l=0; l<nb_points; l++)
+    if (!is_point_on_proc[index_circle][index_line][l])
+      values[l] = 0.;
+  mp_sum_for_each_item(values);
+}
+
+void IJK_Thermal_Subresolution::interpolate_temperature_on_downstream_line(const int& dir,
+                                                                           const int& nb_thermal_circles,
+                                                                           const int& index_circle,
+                                                                           const int& index_line,
+                                                                           const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                           const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                           const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                           DoubleVect& values)
+{
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        values,
+                                        0);
+}
+
+void IJK_Thermal_Subresolution::interpolate_velocity_on_downstream_line(const int& dir,
+                                                                        const int& nb_thermal_circles,
+                                                                        const int& index_circle,
+                                                                        const int& index_line,
+                                                                        const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                        const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                        const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                        DoubleVect& values)
+{
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        values,
+                                        2);
+}
+
+void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(const int& dir,
+                                                                               const int& nb_thermal_circles,
+                                                                               const int& index_circle,
+                                                                               const int& index_line,
+                                                                               const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                               const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                               const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                               DoubleVect& values)
+{
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        values,
+                                        0);
+
+  if (delta_T_subcooled_overheated_ < 0)
+    values += (-delta_T_subcooled_overheated_);
+
+  DoubleTab velocity_line(values.size_array());
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        velocity_line,
+                                        2);
+  DoubleTab velocity_line_frame_of_ref = velocity_line;
+  // Be careful with Leibniz rules !!!!!!!!!!
+  // if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
+  //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
+  // else
+  velocity_line_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  if (debug_)
+    {
+      Cerr << "Rising velocity on lines" << (*rising_velocity_overall_)[dir] << finl;
+      Cerr << "Rising velocity magnitude" << (*rising_velocities_)(0) << finl;
+      Cerr << "Rising vector sign" << (*rising_vectors_)(0, dir) << finl;
+    }
+  values *= velocity_line_frame_of_ref;
+  values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+}
+
+void IJK_Thermal_Subresolution::interpolate_diffusive_term_on_downstream_line(const int& dir,
+                                                                              const int& nb_thermal_circles,
+                                                                              const int& index_circle,
+                                                                              const int& index_line,
+                                                                              const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                              const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                              const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                              DoubleVect& values)
+{
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        values,
+                                        1);
+  values *= uniform_lambda_;
+}
+
+void IJK_Thermal_Subresolution::interpolate_temperature_increment_on_downstream_line(const int& dir,
+                                                                                     const int& nb_thermal_circles,
+                                                                                     const int& index_circle,
+                                                                                     const int& index_line,
+                                                                                     const std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                                     const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                                     const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                                     DoubleVect& values)
+{
+  interpolate_fields_on_downstream_line(dir,
+                                        nb_thermal_circles,
+                                        index_circle,
+                                        index_line,
+                                        is_point_on_proc,
+                                        coordinates_line,
+                                        coordinates_sides,
+                                        d_temperature_,
+                                        grad_T_elem_,
+                                        ref_ijk_ft_->get_velocity(),
+                                        values,
+                                        0);
+  // values *= ref_ijk_ft_->get_timestep();
+}
+
+void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const Nom& local_quantities_thermal_lines_time_index_folder,
+                                                                         const int& line_dir,
+                                                                         const int& linear_circle_line_index,
+                                                                         const int& index_circle,
+                                                                         const int& index_line,
+                                                                         const double& diameter_approx,
+                                                                         std::vector<std::vector<ArrOfInt>>& is_point_on_proc,
+                                                                         const std::vector<std::vector<FixedVector<ArrOfInt,3>>>& indices_ijk,
+                                                                         const ArrOfDouble& linear_coord,
+                                                                         const FixedVector<ArrOfDouble,3>& coordinates_line,
+                                                                         const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
+                                                                         const DoubleVect& temperature_line,
+                                                                         const DoubleVect& velocity_line,
+                                                                         const DoubleVect& convective_term_line,
+                                                                         const DoubleVect& diffusive_term_line,
+                                                                         const DoubleVect& temperature_incr_line)
+{
+  is_point_on_proc[index_circle][index_line] *= (int) Process::me() + 1;
+  ArrOfInt& is_on_proc_tmp = is_point_on_proc[index_circle][index_line];
+  mp_sum_for_each_item(is_on_proc_tmp);
+  is_on_proc_tmp -= 1;
+  if (Process::je_suis_maitre())
+    {
+      Cerr << "Post-processing on the lines - INI" << finl;
+      const int reset = 1;
+      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
+      const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
+      const int max_digit = 3;
+      const int max_digit_time = 8;
+      const int max_rank_digit = rang_ < 1 ? 1 : (int) (log10(rang_) + 1);
+      const int nb_digit_tstep = last_time_index < 1 ? 1 : (int) (log10(last_time_index) + 1);
+      const int nb_digit_index_slice = linear_circle_line_index < 1 ? 1 : (int) (log10(linear_circle_line_index) + 1);
+      Nom line_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rang_) +
+                      Nom("_line_index_") + Nom(std::string(max_digit - nb_digit_index_slice, '0')) + Nom(linear_circle_line_index)
+                      + Nom("_local_quantities_thermal_lines_time_index_")
+                      + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+      Nom line_header = Nom("tstep\tthermal_rank\tpost_pro_index\tlinear_index"
+                            "\ttime\tcharacteristic_time\ttime_dimensionless"
+                            "\tproc_index"
+                            "\tindex_i\tindex_j\tindex_k"
+                            "\tlinear_coord"
+                            "\tx_coord\ty_coord\tz_coord"
+                            "\ttemperature\tvelocity"
+                            "\tconvective_term\tdiffusive_term"
+                            "\ttemperature_incr");
+      SFichier fic = Open_file_folder(local_quantities_thermal_lines_time_index_folder, line_name, line_header, reset);
+      const int nb_points = temperature_line.size_array();
+      const double gravite_norm = ref_ijk_ft_->get_gravite_norm();
+      const double characteristic_time = (gravite_norm > 1e-6) ? last_time / sqrt(diameter_approx * gravite_norm) : last_time;
+      const double rho_l = ref_ijk_ft_->get_rho_l();
+      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double archimedes_time = sqrt(gravite_norm * (rho_l - rho_v)  / (diameter_approx * rho_l));
+      const double dimensionless_time = (archimedes_time > 1e-6) ? last_time  / archimedes_time  : last_time;
+      for (int l=0; l<nb_points; l++)
+        {
+          double x_coord = coordinates_line[0][l];
+          double y_coord = coordinates_line[1][l];
+          double z_coord = coordinates_line[2][l];
+          if (index_circle > 0)
+            {
+              switch(line_dir)
+                {
+                case 0:
+                  y_coord = coordinates_sides[index_circle-1][index_line][0][l];
+                  z_coord = coordinates_sides[index_circle-1][index_line][1][l];
+                  break;
+                case 1:
+                  x_coord = coordinates_sides[index_circle-1][index_line][0][l];
+                  z_coord = coordinates_sides[index_circle-1][index_line][1][l];
+                  break;
+                case 2:
+                  x_coord = coordinates_sides[index_circle-1][index_line][0][l];
+                  y_coord = coordinates_sides[index_circle-1][index_line][1][l];
+                  break;
+                default:
+                  break;
+                }
+            }
+          fic << last_time_index << " ";
+          fic << rang_ << " " << linear_circle_line_index << " " << l << " ";
+          fic << last_time << " ";
+          fic << characteristic_time << " ";
+          fic << dimensionless_time << " ";
+          fic << is_on_proc_tmp[l] << " ";
+          fic << indices_ijk[index_circle][index_line][0][l] << " ";
+          fic << indices_ijk[index_circle][index_line][1][l] << " ";
+          fic << indices_ijk[index_circle][index_line][2][l] << " ";
+          fic << linear_coord[l] << " ";
+          fic << x_coord << " ";
+          fic << y_coord << " ";
+          fic << z_coord << " ";
+          fic << temperature_line[l] << " ";
+          fic << velocity_line[l] << " ";
+          fic << convective_term_line[l] << " ";
+          fic << diffusive_term_line[l] << " ";
+          fic << temperature_incr_line[l] << " ";
+          fic << finl;
+        }
+      fic.close();
+      Cerr << "Post-processing on the lines - END" << finl;
+    }
+}
+
+void IJK_Thermal_Subresolution::post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  const int nb_real_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+  if (post_process_thermal_slices_ && nb_real_bubbles==1)
+    {
+      ArrOfDouble nb_diam_slices;
+      nb_diam_slices.append_array(nb_diam_slice_);
+      double diam_incr = nb_diam_slice_ / nb_slices_;
+      double diam_incr_int, diam_incr_ext;
+      int nb_slices_ext = abs ((int) nb_diam_slice_);
+      int nb_slices_int = nb_slices_ - nb_slices_ext;
+      if (nb_slices_int > 0 && thermal_slices_regions_)
+        {
+          diam_incr_int = 1. / (double) (nb_slices_ - nb_slices_ext + 1);
+          diam_incr_int = signbit(nb_diam_slice_) ? -diam_incr_int : diam_incr_int;
+          diam_incr_ext = nb_diam_slice_ / nb_slices_ext;
+          for (int slice = nb_slices_ext - 2; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr_ext);
+          for (int slice = nb_slices_int - 1; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr_int);
+        }
+      else
+        {
+          for (int slice = nb_slices_ - 2; slice >= 0; slice--)
+            nb_diam_slices.append_array((slice + 1) * diam_incr);
+        }
+      for (int slice = 0; slice < nb_slices_; slice++)
+        post_process_thermal_wake_slice(slice,
+                                        nb_diam_slices[slice],
+                                        local_quantities_thermal_slices_time_index_folder);
+    }
+}
+
+void IJK_Thermal_Subresolution::post_process_thermal_wake_slice(const int& slice,
+                                                                const double& nb_diam_slice,
+                                                                const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  int index_dir_local = -1;
+  int index_dir_global = -1;
+  int dir;
+  int n_cross_section_1, n_cross_section_2;
+  double diameter_approx = 0.;
+  const double slice_pos = post_process_thermal_wake_slice_index_dir(index_dir_local,
+                                                                     index_dir_global,
+                                                                     n_cross_section_1,
+                                                                     n_cross_section_2,
+                                                                     dir,
+                                                                     nb_diam_slice,
+                                                                     upstream_dir_slice_,
+                                                                     ref_ijk_ft_->get_direction_gravite(),
+                                                                     diameter_approx);
+  DoubleTab slice_values(n_cross_section_1, n_cross_section_2);
+  DoubleTab slice_velocity_values(n_cross_section_1, n_cross_section_2);
+  FixedVector<IntTab, 2> ij_indices;
+  for (int l=0; l<2; l++)
+    ij_indices[l] = IntTab(n_cross_section_1, n_cross_section_2);
+  FixedVector<DoubleTab, 3> ij_coords;
+  for (int c=0; c<3; c++)
+    ij_coords[c] = DoubleTab(n_cross_section_1, n_cross_section_2);
+
+  complete_field_thermal_wake_slice_ij_indices_coords(slice,
+                                                      index_dir_local,
+                                                      dir,
+                                                      slice_pos,
+                                                      ij_indices,
+                                                      ij_coords,
+                                                      slice_values,
+                                                      local_quantities_thermal_slices_time_index_folder);
+  complete_field_thermal_wake_slice_ij_temperature(slice,
+                                                   index_dir_local,
+                                                   dir,
+                                                   slice_pos,
+                                                   ij_indices,
+                                                   ij_coords,
+                                                   slice_values,
+                                                   local_quantities_thermal_slices_time_index_folder);
+  DoubleTab temperature_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_velocity(slice,
+                                                index_dir_local,
+                                                dir,
+                                                slice_pos,
+                                                ij_indices,
+                                                ij_coords,
+                                                slice_values,
+                                                local_quantities_thermal_slices_time_index_folder);
+  DoubleTab velocity_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_convection(slice,
+                                                  index_dir_local,
+                                                  dir,
+                                                  slice_pos,
+                                                  ij_indices,
+                                                  ij_coords,
+                                                  slice_values,
+                                                  slice_velocity_values,
+                                                  local_quantities_thermal_slices_time_index_folder);
+  DoubleTab convection_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_diffusion(slice,
+                                                 index_dir_local,
+                                                 dir,
+                                                 slice_pos,
+                                                 ij_indices,
+                                                 ij_coords,
+                                                 slice_values,
+                                                 local_quantities_thermal_slices_time_index_folder);
+  DoubleTab diffusion_slice = slice_values;
+
+  complete_field_thermal_wake_slice_ij_temperature_incr(slice,
+                                                        index_dir_local,
+                                                        dir,
+                                                        slice_pos,
+                                                        ij_indices,
+                                                        ij_coords,
+                                                        slice_values,
+                                                        local_quantities_thermal_slices_time_index_folder);
+  DoubleTab temperature_incr_slice = slice_values;
+
+  post_processed_field_thermal_wake_slice_ij(slice,
+                                             local_quantities_thermal_slices_time_index_folder,
+                                             diameter_approx,
+                                             nb_diam_slice,
+                                             n_cross_section_1,
+                                             n_cross_section_2,
+                                             ij_indices,
+                                             ij_coords,
+                                             temperature_slice,
+                                             velocity_slice,
+                                             convection_slice,
+                                             diffusion_slice,
+                                             temperature_incr_slice);
+}
+
+double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int& index_dir_local,
+                                                                            int& index_dir_global,
+                                                                            int& n_cross_section_1,
+                                                                            int& n_cross_section_2,
+                                                                            int& dir,
+                                                                            const double& nb_diam,
+                                                                            int upstream_dir,
+                                                                            int gravity_dir,
+                                                                            double& diameter)
+{
+  if (upstream_dir == -1)
+    {
+      dir = gravity_dir;
+      if (dir == -1)
+        dir=0;
+    }
+  else
+    dir = upstream_dir;
+  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+
+  const int nb_i_layer_tot = geom.get_nb_elem_tot(0);
+  const int nb_j_layer_tot = geom.get_nb_elem_tot(1);
+  const int nb_k_layer_tot = geom.get_nb_elem_tot(2);
+
+  int ndir;
+  switch(dir)
+    {
+    case 0:
+      n_cross_section_1 = nb_j_layer_tot;
+      n_cross_section_2 = nb_k_layer_tot;
+      ndir = temperature_.ni();
+      break;
+    case 1:
+      n_cross_section_1 = nb_k_layer_tot;
+      n_cross_section_2 = nb_i_layer_tot;
+      ndir = temperature_.nj();
+      break;
+    case 2:
+      n_cross_section_1 = nb_i_layer_tot;
+      n_cross_section_2 = nb_j_layer_tot;
+      ndir = temperature_.nk();
+      break;
+    default:
+      n_cross_section_1 = nb_i_layer_tot;
+      n_cross_section_2 = nb_j_layer_tot;
+      ndir = temperature_.nk();
+      break;
+    }
+  // thermal_slice.allocate(n_cross_section_1, n_cross_section_2, 1, 0);
+
+  bool perio =  geom.get_periodic_flag(dir);
+  assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
+  DoubleTab bounding_box;
+  bounding_box = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bounding_box();
+  const double Dbdir = bounding_box(0, dir, 1) - bounding_box(0, dir, 0);
+  const double dirb  = (*bubbles_barycentre_)(0, dir);
+  const double ldir = geom.get_domain_length(dir) ;
+  double nb_diam_tmp = nb_diam;
+  if (nb_diam_tmp == 0.)
+    nb_diam_tmp = (ldir / Dbdir) / 2;
+  else
+    nb_diam_tmp = signbit(nb_diam_tmp) ? nb_diam_tmp - 0.5: nb_diam_tmp + 0.5;
+  double dirobj = dirb + nb_diam_tmp * Dbdir;
+
+  const double ddir = geom.get_constant_delta(dir);
+  const double origin_dir = geom.get_origin(dir) ;
+  const int offset_dir = splitting.get_offset_local(dir);
+
+  if (perio)
+    {
+      while (dirobj < origin_dir)
+        dirobj += ldir;
+      while (dirobj > origin_dir + ldir)
+        dirobj -= ldir;
+    }
+  assert(((dirobj >= origin_dir) && (dirobj <= origin_dir + ldir)));
+
+  const double x2 = (dirobj - origin_dir) / ddir;
+  int index_dir = (int) (floor(x2)) - offset_dir;
+  if ((index_dir >= 0) && (index_dir < ndir))
+    {
+      index_dir_local = index_dir;
+      index_dir_global = index_dir + offset_dir;
+    }
+
+  diameter = 0.;
+  for (int c=0; c<3; c++)
+    diameter += bounding_box(0, c, 1) - bounding_box(0, c, 0);
+  diameter *= (1. / 3.);
+
+  return dirobj;
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int& index_dir_local,
+                                                                            const int& dir,
+                                                                            const double& slice_pos,
+                                                                            FixedVector<IntTab, 2>& ij_indices,
+                                                                            FixedVector<DoubleTab, 3>& ij_coords,
+                                                                            const IJK_Field_double& field,
+                                                                            const FixedVector<IJK_Field_double,3>& field_gradient,
+                                                                            const FixedVector<IJK_Field_double,3>& velocity,
+                                                                            DoubleTab& values,
+                                                                            const int field_type,
+                                                                            const int slice_to_nearest_plane,
+                                                                            const int compute_indices)
+{
+  values *= 0.;
+  if (index_dir_local != -1)
+    {
+      const IJK_Splitting& splitting = field.get_splitting();
+      int offset_cross_dir_1, offset_cross_dir_2;
+      int n_local_cross_section_1, n_local_cross_section_2;
+      int * index_i = nullptr;
+      int * index_j = nullptr;
+      int * index_k = nullptr;
+      int incr_i = 0;
+      int incr_j = 0;
+      int incr_k = 0;
+      int i, j;
+      switch(dir)
+        {
+        case 0:
+          n_local_cross_section_1 = field.nj();
+          n_local_cross_section_2 = field.nk();
+          offset_cross_dir_1 = splitting.get_offset_local(1);
+          offset_cross_dir_2 = splitting.get_offset_local(2);
+          index_i = &index_dir_local;
+          index_j = &i;
+          index_k = &j;
+          incr_i = 1;
+          incr_j = 0;
+          incr_k = 0;
+          break;
+        case 1:
+          n_local_cross_section_1 = field.nk();
+          n_local_cross_section_2 = field.ni();
+          offset_cross_dir_1 = splitting.get_offset_local(2);
+          offset_cross_dir_2 = splitting.get_offset_local(0);
+          index_i = &j;
+          index_j = &index_dir_local;
+          index_k = &i;
+          incr_i = 0;
+          incr_j = 1;
+          incr_k = 0;
+          break;
+        case 2:
+          n_local_cross_section_1 = field.ni();
+          n_local_cross_section_2 = field.nj();
+          offset_cross_dir_1 = splitting.get_offset_local(0);
+          offset_cross_dir_2 = splitting.get_offset_local(1);
+          index_i = &i;
+          index_j = &j;
+          index_k = &index_dir_local;
+          incr_i = 0;
+          incr_j = 0;
+          incr_k = 1;
+          break;
+        default:
+          n_local_cross_section_1 = field.ni();
+          n_local_cross_section_2 = field.nj();
+          offset_cross_dir_1 = splitting.get_offset_local(0);
+          offset_cross_dir_2 = splitting.get_offset_local(1);
+          index_i = &i;
+          index_j = &j;
+          index_k = &index_dir_local;
+          incr_i = 0;
+          incr_j = 0;
+          incr_k = 1;
+          break;
+        }
+
+      if (compute_indices)
+        {
+          for (i=0; i<n_local_cross_section_1; i++)
+            for (j=0; j<n_local_cross_section_2; j++)
+              {
+                Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                ij_indices[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = i+offset_cross_dir_1;
+                ij_indices[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = j+offset_cross_dir_2;
+                switch(dir)
+                  {
+                  case 0:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[1];
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[2];
+                    break;
+                  case 1:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[0];
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[2];
+                    break;
+                  case 2:
+                    ij_coords[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[0];
+                    ij_coords[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = ij_coord[1];
+                    ij_coords[2](i+offset_cross_dir_1, j+offset_cross_dir_2) = slice_pos;
+                    break;
+                  default:
+                    break;
+                  }
+              }
+        }
+      else
+        {
+          if (slice_to_nearest_plane)
+            {
+              switch(field_type)
+                {
+                case 0:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      values(i+offset_cross_dir_1, j+offset_cross_dir_2) = field(*index_i, *index_j, *index_k);
+                  break;
+                case 1:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      values(i+offset_cross_dir_1, j+offset_cross_dir_2) = field_gradient[dir](*index_i, *index_j, *index_k);
+                  break;
+                case 2:
+                  for (i=0; i<n_local_cross_section_1; i++)
+                    for (j=0; j<n_local_cross_section_2; j++)
+                      {
+                        /*
+                         * Works only for constant geom discretisation
+                         */
+                        values(i + offset_cross_dir_1, j + offset_cross_dir_2) = (velocity[dir](*index_i, *index_j, *index_k) +
+                                                                                  velocity[dir](*index_i+incr_i, *index_j+incr_j, *index_k+incr_k)) * 0.5;
+                      }
+                  break;
+                default:
+                  break;
+                }
+            }
+          else
+            {
+              const int nb_val = (int) n_local_cross_section_1 * n_local_cross_section_2;
+              DoubleTab ij_coords_interp = values;
+              DoubleVect field_interp(nb_val);
+              ij_coords_interp.resize(nb_val,3);
+              int counter = 0;
+              for (i=0; i<n_local_cross_section_1; i++)
+                for (j=0; j<n_local_cross_section_2; j++)
+                  {
+                    Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                    switch(dir)
+                      {
+                      case 0:
+                        ij_coords_interp(counter, 0) = slice_pos;
+                        ij_coords_interp(counter, 1) = ij_coord[1];
+                        ij_coords_interp(counter, 2) = ij_coord[2];
+                        break;
+                      case 1:
+                        ij_coords_interp(counter, 0) = ij_coord[0];
+                        ij_coords_interp(counter, 1) = slice_pos;
+                        ij_coords_interp(counter, 2) = ij_coord[2];
+                        break;
+                      case 2:
+                        ij_coords_interp(counter, 0) = ij_coord[0];
+                        ij_coords_interp(counter, 1) = ij_coord[1];
+                        ij_coords_interp(counter, 2) = slice_pos;
+                        break;
+                      default:
+                        break;
+                      }
+                    counter++;
+                  }
+              switch(field_type)
+                {
+                case 0:
+                  ijk_interpolate_skip_unknown_points(field, ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                case 1:
+                  ijk_interpolate_skip_unknown_points(field_gradient[dir], ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                case 2:
+                  ijk_interpolate_skip_unknown_points(velocity[dir], ij_coords_interp, field_interp, INVALID_INTERP);
+                  break;
+                default:
+                  break;
+                }
+              counter = 0;
+              for (i=0; i<n_local_cross_section_1; i++)
+                for (j=0; j<n_local_cross_section_2; j++)
+                  {
+                    values(i + offset_cross_dir_1, j + offset_cross_dir_2) = field_interp(counter);
+                    counter++;
+                  }
+            }
+        }
+    }
+  if (!compute_indices)
+    mp_sum_for_each_item(values);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coords(const int& slice,
+                                                                                    int& index_dir_local,
+                                                                                    const int& dir,
+                                                                                    const double& slice_pos,
+                                                                                    FixedVector<IntTab, 2>& ij_indices,
+                                                                                    FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                    DoubleTab& values,
+                                                                                    const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  for (int l=0; l<2; l++)
+    ij_indices[l] *= 0;
+  for (int c=0; c<3; c++)
+    ij_coords[0] *= 0.;
+  if (index_dir_local != -1)
+    {
+      complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                                  dir,
+                                                  slice_pos,
+                                                  ij_indices,
+                                                  ij_coords,
+                                                  temperature_,
+                                                  grad_T_elem_,
+                                                  ref_ijk_ft_->get_velocity(),
+                                                  values,
+                                                  -1,
+                                                  !disable_slice_to_nearest_plane_,
+                                                  1);
+    }
+  for (int l=0; l<2; l++)
+    mp_sum_for_each_item(ij_indices[l]);
+  for (int c=0; c<3; c++)
+    mp_sum_for_each_item(ij_coords[c]);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature(const int& slice,
+                                                                                 int& index_dir_local,
+                                                                                 const int& dir,
+                                                                                 const double& slice_pos,
+                                                                                 FixedVector<IntTab, 2>& ij_indices,
+                                                                                 FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                 DoubleTab& values,
+                                                                                 const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_velocity(const int& slice,
+                                                                              int& index_dir_local,
+                                                                              const int& dir,
+                                                                              const double& slice_pos,
+                                                                              FixedVector<IntTab, 2>& ij_indices,
+                                                                              FixedVector<DoubleTab, 3>& ij_coords,
+                                                                              DoubleTab& velocity_values,
+                                                                              const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              velocity_values,
+                                              2,
+                                              !disable_slice_to_nearest_plane_);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(const int& slice,
+                                                                                int& index_dir_local,
+                                                                                const int& dir,
+                                                                                const double& slice_pos,
+                                                                                FixedVector<IntTab, 2>& ij_indices,
+                                                                                FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                DoubleTab& values,
+                                                                                DoubleTab& velocity_values,
+                                                                                const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+  if (delta_T_subcooled_overheated_ < 0)
+    values += (-delta_T_subcooled_overheated_);
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              velocity_values,
+                                              2,
+                                              !disable_slice_to_nearest_plane_);
+  DoubleTab velocity_values_frame_of_ref = velocity_values;
+  // Be careful with Leibniz rules !!!!!!!!!!
+  // if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
+  //  velocity_values_frame_of_ref += (*rising_velocity_overall_)[dir];
+  // else
+  if (debug_)
+    {
+      Cerr << "Rising velocity on slices" << (*rising_velocity_overall_)[dir] << finl;
+      Cerr << "Rising velocity magnitude" << (*rising_velocities_)(0) << finl;
+      Cerr << "Rising vector sign" << (*rising_vectors_)(0, dir) << finl;
+    }
+  velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
+  values *= velocity_values_frame_of_ref;
+  values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_diffusion(const int& slice,
+                                                                               int& index_dir_local,
+                                                                               const int& dir,
+                                                                               const double& slice_pos,
+                                                                               FixedVector<IntTab, 2>& ij_indices,
+                                                                               FixedVector<DoubleTab, 3>& ij_coords,
+                                                                               DoubleTab& values,
+                                                                               const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              1,
+                                              !disable_slice_to_nearest_plane_);
+  // values *= uniform_alpha_;
+  values *= uniform_lambda_;
+}
+
+void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature_incr(const int& slice,
+                                                                                      int& index_dir_local,
+                                                                                      const int& dir,
+                                                                                      const double& slice_pos,
+                                                                                      FixedVector<IntTab, 2>& ij_indices,
+                                                                                      FixedVector<DoubleTab, 3>& ij_coords,
+                                                                                      DoubleTab& values,
+                                                                                      const Nom& local_quantities_thermal_slices_time_index_folder)
+{
+  complete_field_thermal_wake_slice_ij_values(index_dir_local,
+                                              dir,
+                                              slice_pos,
+                                              ij_indices,
+                                              ij_coords,
+                                              d_temperature_,
+                                              grad_T_elem_,
+                                              ref_ijk_ft_->get_velocity(),
+                                              values,
+                                              0,
+                                              !disable_slice_to_nearest_plane_);
+  // values *= (1 / ref_ijk_ft_->get_timestep());
+  // values *= ref_ijk_ft_->get_timestep();
+}
+
+void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const int& slice,
+                                                                           const Nom& local_quantities_thermal_slices_time_index_folder,
+                                                                           const double& diameter_approx,
+                                                                           const double& nb_diam_slice,
+                                                                           const int& n_cross_section_1,
+                                                                           const int& n_cross_section_2,
+                                                                           const FixedVector<IntTab, 2> ij_indices,
+                                                                           const FixedVector<DoubleTab, 3>& ij_coords,
+                                                                           const DoubleTab& temperature_slice,
+                                                                           const DoubleTab& velocity_slice,
+                                                                           const DoubleTab& convection_slice,
+                                                                           const DoubleTab& diffusion_slice,
+                                                                           const DoubleTab& temperature_incr_slice)
+{
+  if (Process::je_suis_maitre())
+    {
+      Cerr << "Post-processing on the slices - INI" << finl;
+      const int reset = 1;
+      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
+      const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
+      const int max_digit = 3;
+      const int max_digit_time = 8;
+      const int max_rank_digit = rang_ < 1 ? 1 : (int) (log10(rang_) + 1);
+      const int nb_digit_tstep = last_time_index < 1 ? 1 : (int) (log10(last_time_index) + 1);
+      const int nb_digit_index_slice = slice < 1 ? 1 : (int) (log10(slice) + 1);
+      Nom slice_name = Nom("_thermal_rank_") +  Nom(std::string(max_digit - max_rank_digit, '0'))  + Nom(rang_) +
+                       Nom("_slice_index_") + Nom(std::string(max_digit - nb_digit_index_slice, '0')) + Nom(slice)
+                       + Nom("_local_quantities_thermal_slices_time_index_")
+                       + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time_index) + Nom(".out");
+      Nom slice_header = Nom("tstep\tthermal_rank\tpost_pro_index\tlinear_index"
+                             "\ttime\tcharacteristic_time\ttime_dimensionless"
+                             "\tnb_diam_slice\tindex_i\tindex_j\tx_coord\ty_coord\tz_coord"
+                             "\ttemperature\tvelocity"
+                             "\tconvective_term\tdiffusive_term"
+                             "\ttemperature_incr");
+      SFichier fic = Open_file_folder(local_quantities_thermal_slices_time_index_folder, slice_name, slice_header, reset);
+      const int nb_elem = n_cross_section_1 * n_cross_section_2;
+      if (debug_)
+        Cerr << "Number of elements per slice" << nb_elem << finl;
+      const double gravite_norm = ref_ijk_ft_->get_gravite_norm();
+      const double characteristic_time = (gravite_norm > 1e-6) ? last_time / sqrt(diameter_approx * gravite_norm) : last_time;
+      const double rho_l = ref_ijk_ft_->get_rho_l();
+      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double archimedes_time = sqrt(gravite_norm * (rho_l - rho_v)  / (diameter_approx * rho_l));
+      const double dimensionless_time = (archimedes_time > 1e-6) ? last_time  / archimedes_time  : last_time;
+      int counter = 0;
+      for (int i=0; i<n_cross_section_1; i++)
+        for (int j=0; j<n_cross_section_2; j++)
+          {
+            fic << last_time_index << " ";
+            fic << rang_ << " " << slice << " " << counter << " ";
+            fic << last_time << " ";
+            fic << characteristic_time << " ";
+            fic << dimensionless_time << " ";
+            fic << nb_diam_slice << " ";
+            fic << ij_indices[0](i,j) << " ";
+            fic << ij_indices[1](i,j) << " ";
+            fic << ij_coords[0](i,j) << " ";
+            fic << ij_coords[1](i,j) << " ";
+            fic << ij_coords[2](i,j) << " ";
+            fic << temperature_slice(i,j) << " ";
+            fic << velocity_slice(i,j) << " ";
+            fic << convection_slice(i,j) << " ";
+            fic << diffusion_slice(i,j) << " ";
+            fic << temperature_incr_slice(i,j) << " ";
+            fic << finl;
+            counter++;
+          }
+      assert(counter == nb_elem);
+      fic.close();
+      Cerr << "Post-processing on the slices - END" << finl;
+    }
+}
+
+int IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const IJK_Splitting& splitting)
+{
+  if (!disable_subresolution_ || reference_gfm_on_probes_)
+    thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(2);
+  else
+    thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(1);
+  int nalloc = thermal_local_subproblems_interfaces_fields_.initialise(splitting,
+                                                                       thermal_local_subproblems_,
+                                                                       debug_);
+  return nalloc;
+}

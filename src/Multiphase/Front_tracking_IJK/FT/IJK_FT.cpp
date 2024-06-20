@@ -54,7 +54,32 @@ void IJK_FT::run()
   thermal_probes_ghost_cells_ = 4;
   thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
-  allocate_velocity(velocity_, splitting_, thermal_probes_ghost_cells_);
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
+    {
+      allocate_velocity(velocity_, splitting_, 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+    }
+  else
+    {
+      allocate_velocity(velocity_, splitting_, thermal_probes_ghost_cells_);
+    }
+
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
+    {
+      if (splitting_.get_nb_elem_local(2) < 4 )
+        {
+          std::cout << "Nb of cells / proc in z-direction must be >=4 for shear periodic run" << std::endl;
+          std::cout << "Nb of cells / proc in z-direction must be >=8 for shear periodic run if only one proc on z-direction" << std::endl;
+          std::cout << "Or find an other way to stock indic_ghost_zmin and zmax than IJK_Field" << std::endl;
+          Process::exit();
+        }
+      if (splitting_.get_offset_local(0)!=0.)
+        {
+          std::cout << " Shear_periodic conditions works only without splitting in i-direction " << std::endl;
+          std::cout << "if splitting in i-direction --> get_neighbour_processor has to be changed" << std::endl;
+          Process::exit();
+        }
+    }
+
   allocate_velocity(d_velocity_, splitting_, 1);
   nalloc += 6;
   // GAB, qdm
@@ -80,14 +105,13 @@ void IJK_FT::run()
   pressure_ghost_cells_.echange_espace_virtuel(pressure_ghost_cells_.ghost());
   nalloc += 1;
 
-  if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide())
+  // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
+  if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide()==1)
     {
-      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_vapeur_, rho_liquide_);
+      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_vapeur_, rho_liquide_, use_inv_rho_in_poisson_solver_);
     }
   else
-    {
-      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3);
-    }
+    pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3);
   nalloc += 1;
 
   if (include_pressure_gradient_in_ustar_)
@@ -108,21 +132,28 @@ void IJK_FT::run()
 
   pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
   nalloc += 1;
-
-
-  if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide())
+  I_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  kappa_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  if (!disable_diphasique_ && (boundary_conditions_.get_correction_interp_monofluide()==1 || boundary_conditions_.get_correction_interp_monofluide()==2))
     {
       molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, mu_vapeur_, mu_liquide_);
       rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, rho_vapeur_, rho_liquide_);
       nalloc += 2;
+      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_vapeur_;
+      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_liquide_;
       if (use_inv_rho_)
         {
           inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_vapeur_, 1./rho_liquide_);
+          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_vapeur_;
+          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_liquide_;
           nalloc += 1;
         }
     }
   else
     {
+
+      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_vapeur_;
+      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_liquide_;
       molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       nalloc += 2;
@@ -130,6 +161,8 @@ void IJK_FT::run()
         {
           inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
           nalloc += 1;
+          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_vapeur_;
+          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_liquide_;
         }
     }
 
@@ -207,14 +240,15 @@ void IJK_FT::run()
   //  allocate_velocity(velocity_ft_, splitting_ft_, 4);
   nalloc += 3;
 
-  // pour les conditions de shear-periodicite --> interpolation de la pression monofluide
   kappa_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 2);
-  kappa_ft_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+
   if (!disable_diphasique_)
     {
       allocate_velocity(terme_source_interfaces_ft_, splitting_ft_, 2);
+      allocate_velocity(backup_terme_source_interfaces_ft_, splitting_, 2);
       // Seulement pour le calcul du bilan de forces :
       allocate_velocity(terme_source_interfaces_ns_, splitting_, 1);
+      allocate_velocity(backup_terme_source_interfaces_ns_, splitting_, 1);
       // Seulement pour le calcul des statistiques :
       allocate_velocity(terme_repulsion_interfaces_ns_, splitting_, 1);
       allocate_velocity(terme_repulsion_interfaces_ft_, splitting_ft_, 1);
@@ -233,19 +267,17 @@ void IJK_FT::run()
       Cout << "Schema temps de type : RK3_FT" << finl;
     }
   else
-    {
-      Cout << "Schema temps de type : euler_explicite" << finl;
-    }
+    Cout << "Schema temps de type : euler_explicite" << finl;
 
-  velocity_diffusion_op_.initialize(splitting_);
+
+  velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
   velocity_diffusion_op_.set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
 
   // Economise la memoire si pas besoin
   if (!disable_solveur_poisson_)
-    {
-      poisson_solver_.initialize(splitting_);
-    }
+    poisson_solver_.initialize(splitting_);
+
 
   // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();
@@ -356,25 +388,30 @@ void IJK_FT::run()
 
               if (use_inv_rho_in_poisson_solver_)
                 {
-                  //inv_rho_field_.echange_espace_virtuel(inv_rho_field_.ghost());
                   pressure_projection_with_inv_rho(inv_rho_field_,
                                                    velocity_[0], velocity_[1], velocity_[2], pressure_,
                                                    1., pressure_rhs_, check_divergence_,
-                                                   poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                                   poisson_solver_);
+
                 }
               else
                 {
+
+
+
                   pressure_projection_with_rho(rho_field_, velocity_[0],
                                                velocity_[1], velocity_[2], pressure_, 1.,
-                                               pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                               pressure_rhs_, check_divergence_, poisson_solver_);
+
                 }
 
             }
           else
             {
+
               pressure_projection(velocity_[0], velocity_[1], velocity_[2],
                                   pressure_, 1., pressure_rhs_, check_divergence_,
-                                  poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                  poisson_solver_);
             }
           copy_field_values(pressure_ghost_cells_, pressure_);
         }
@@ -432,7 +469,6 @@ void IJK_FT::run()
         }
     }
 
-
   // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
   if (!disable_solveur_poisson_)
     {
@@ -444,16 +480,18 @@ void IJK_FT::run()
 
           pressure_projection_with_rho(rho_field_, velocity_[0],
                                        velocity_[1], velocity_[2], pressure_, 1.,
-                                       pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                       pressure_rhs_, check_divergence_, poisson_solver_);
           pressure_.data() = 0.;
           pressure_rhs_.data() = 0.;
         }
     }
 
+
   if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")
                                  || post_.get_liste_post_instantanes().contient_("TOUS")))
     interfaces_.compute_vinterp();
-// Preparer le fichier de postraitement et postraiter la condition initiale:
+
+  // Preparer le fichier de postraitement et postraiter la condition initiale:
   Nom lata_name = nom_du_cas();
   if (fichier_post_ != "??")
     {
@@ -475,7 +513,7 @@ void IJK_FT::run()
 //post_.compute_phase_pressures_based_on_poisson(1);
 
   modified_time_ini_ = thermals_.get_modified_time();
-  if (!reprise_)
+  if (!reprise_ && current_time_ == 0.)
     current_time_ = modified_time_ini_;
 
   if (!first_step_interface_smoothing_)
@@ -533,7 +571,6 @@ void IJK_FT::run()
 
 // Variation de volume de chaque bulle integree au cours du pas de temps :
   ArrOfDouble var_volume_par_bulle;
-  var_volume_par_bulle.set_smart_resize(1);
   for (tstep_ = 0; tstep_ < nb_timesteps_ && stop == 0; tstep_++)
     {
       statistiques().begin_count(timestep_counter_);
@@ -552,7 +589,7 @@ void IJK_FT::run()
       // Si on veut le mettre en optionel, il faut faire attention a faire vivre la taille de ce tableau avec les
       // creations et destructions de ghosts :
       const int nbulles_tot = interfaces_.get_nb_bulles_reelles()
-                              + interfaces_.get_nb_bulles_ghost(0/*print=0*/);
+                              + interfaces_.get_nb_bulles_ghost(1/*print=1*/);
       var_volume_par_bulle.resize_array(nbulles_tot);
       var_volume_par_bulle = 0.; // Je ne suis pas sur que ce soit un bon choix. Si on ne le remet pas a zero
       //                          a chaque dt, on corrigera la petite erreur qui pouvait rester d'avant...
@@ -575,14 +612,15 @@ void IJK_FT::run()
             {
               // TODO: aym pour GAB, si tu veux gagner en memoire et virer le doublon n/np1 il faut
               // inserer une methode ici style "mettre_a_jour_valeur_interface_temps_n()"
+              int counter_first_iter = 1;
               do
                 {
-                  first_step_interface_smoothing_ = first_step_interface_smoothing_ && (counter_first_iter_ == 2);
+                  first_step_interface_smoothing_ = first_step_interface_smoothing_ && counter_first_iter;
                   deplacer_interfaces(timestep_,
                                       -1 /* le numero du sous pas de temps est -1 si on n'est pas en rk3 */,
                                       var_volume_par_bulle,
                                       first_step_interface_smoothing_);
-                  counter_first_iter_--;
+                  counter_first_iter--;
                   if(first_step_interface_smoothing_)
                     {
                       thermals_.set_temperature_ini();
@@ -594,7 +632,6 @@ void IJK_FT::run()
                     }
                 }
               while (first_step_interface_smoothing_);
-              first_step_interface_smoothing_ = 0;
               parcourir_maillage();
             }
           // Mise a jour de la vitesse (utilise les positions des marqueurs, rho, mu et indic a l'instant n)
@@ -672,13 +709,6 @@ void IJK_FT::run()
                     }
                 }
             }
-          if (!disable_diphasique_ && !(qdm_corrections_.is_type_none()))
-            {
-              set_time_for_corrections();
-              compute_and_add_qdm_corrections();
-              //compute_and_add_source_qdm_gr(0.6,0.2, 0.6, 0.1);
-            }
-
         }
       else if (get_time_scheme() == RK3_FT)
         {
@@ -742,12 +772,8 @@ void IJK_FT::run()
                 }
               // Calcul du terme source force acceleration :
               // GAB, rotation
-              // calculer_terme_source_acceleration(velocity_[0],
-              // /!\ On laisse ce calcul du temre_source_aceleration car il ecrit aussi le fichier acceleration.out qui nous est chere
-              Cout << "BF : calculer_terme_source_acceleration" <<finl;
               calculer_terme_source_acceleration(velocity_[direction_gravite_],
                                                  current_time_at_rk3_step, timestep_ /*total*/, rk_step_);
-              Cout << "AF : calculer_terme_source_acceleration" <<finl;
 
 
               current_time_at_rk3_step += fractionnal_timestep;
@@ -793,11 +819,6 @@ void IJK_FT::run()
                   u_euler_ap_rho_mu_ind_[dir] = calculer_v_moyen(velocity_[dir]);
                 }
             }
-          if (!disable_diphasique_ && !(qdm_corrections_.is_type_none()) )
-            {
-              set_time_for_corrections();
-              compute_and_add_qdm_corrections();
-            }
         }
       else
         {
@@ -805,6 +826,28 @@ void IJK_FT::run()
                << " inconnu!" << finl;
           Process::exit();
         }
+      // ------------------------------------------------------------------
+      // CORRECTION DE QUANTITE DE MOUVEMENT
+      // ------------------------------------------------------------------
+      // Correction de QdM : permet de controler la QdM globale, dans chaque direction
+      if (!(qdm_corrections_.is_type_none()) )
+        {
+          set_time_for_corrections();
+          if (disable_diphasique_)
+            compute_and_add_qdm_corrections_monophasic();
+          else
+            compute_and_add_qdm_corrections();
+        }
+      else
+        {
+          Cout << "qdm_corrections_.is_type_none() : " << qdm_corrections_.is_type_none() << finl;
+          Cout << "terme_source_acceleration_" << terme_source_acceleration_ << finl;
+        }
+      if (qdm_corrections_.write_me())
+        {write_qdm_corrections_information();}
+      else
+        {;}
+      // ------------------------------------------------------------------
 
       //ab-forcage-control-ecoulement-deb
       // Quel que soit le schema en temps, on corrige le bilan de qdm par le residu integre :
@@ -814,106 +857,36 @@ void IJK_FT::run()
       // Attention, en entree du solveur mass, il faut qqch homogene a rho*u*volume_cell...
       // On rempli donc psi_velocity avec vol * integrated_residu_
 
-      static Stat_Counter_Id bilanQdM_counter_ = statistiques().new_counter(2, "Bilan QdM & Corrections");
-      statistiques().begin_count(bilanQdM_counter_);
-      if ((correction_bilan_qdm_ == 3) || (correction_bilan_qdm_ == 4))
-        {
-
-#ifndef VARIABLE_DZ
-          double volume = 1.;
-          for (int i = 0; i < 3; i++)
-            volume *= splitting_.get_grid_geometry().get_constant_delta(i);
-#endif
-
-          for (int dir = 0; dir < 3; dir++)
-            {
-              if ((dir == 2) && (correction_bilan_qdm_ == 4))
-                {
-                  // passe, on ne traite pas z...
-                }
-              else
-                {
-#ifndef VARIABLE_DZ
-                  const double x = volume * integrated_residu_[dir];
-                  psi_velocity_[dir].data() = x;
-#endif
-                  const int kmax = psi_velocity_[dir].nk();
-                  for (int k = 0; k < kmax; k++)
-                    {
-#ifdef VARIABLE_DZ
-                      const double volume = get_channel_control_volume(psi_velocity_[dir], k, delta_z_local_);
-                      const double x = volume*integrated_residu_[dir];
-                      psi_velocity_[dir].data() = x;
-#endif
-                      if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
-                        {
-                          Cerr
-                              << "Verifier que inv_rho_field soit valide et a jour ici ... "
-                              << finl;
-                          Process::exit();
-                          mass_solver_with_inv_rho(psi_velocity_[dir],
-                                                   inv_rho_field_, delta_z_local_, k);
-                        }
-                      else
-                        {
-                          mass_solver_with_rho(psi_velocity_[dir], rho_field_,
-                                               delta_z_local_, k);
-                        }
-                      const int imax = velocity_[dir].ni();
-                      const int jmax = velocity_[dir].nj();
-                      for (int j = 0; j < jmax; j++)
-                        {
-                          for (int i = 0; i < imax; i++)
-                            {
-                              velocity_[dir](i, j, k) -= psi_velocity_[dir](i,
-                                                                            j, k);
-                            }
-                        }
-                    }
-                  if (dir==0)
-                    {
-                      velocity_[dir].echange_espace_virtuel(
-                        velocity_[dir].ghost(), boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-                      //	  psi_velocity_[dir].echange_espace_virtuel(psi_velocity_[dir].ghost());
-                    }
-                  else
-                    {
-                      velocity_[dir].echange_espace_virtuel(
-                        velocity_[dir].ghost());
-                      //	  psi_velocity_[dir].echange_espace_virtuel(psi_velocity_[dir].ghost());
-                    }
-
-
-                }
-            }
-          // Ces operations ont modifie le store_rhov_moy_ qu'il faut donc updater :
-          for (int dir = 0; dir < 3; dir++)
-            {
-              store_rhov_moy_[dir] -= integrated_residu_[dir];
-            }
-
-          // Remise a zero du residu integre puisqu'il a ete corrige :
-          integrated_residu_ = 0.;
-
-        }
-      statistiques().end_count(bilanQdM_counter_);
+      // static Stat_Counter_Id bilanQdM_counter_ = statistiques().new_counter(2, "Bilan QdM & Corrections");
+      // statistiques().begin_count(bilanQdM_counter_);
+      // statistiques().end_count(bilanQdM_counter_);
 
       //ab-forcage-control-ecoulement-fin
       current_time_ += timestep_;
       // stock dans le spliting le decallage periodique total avec condition de shear (current_time_) et celui du pas de temps (timestep_)
-      IJK_Splitting::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
-      IJK_Splitting::shear_x_DT_ = boundary_conditions_.get_dU_perio()*timestep_;
+      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
 
       if (current_time_ >= post_.t_debut_statistiques())
         {
-          // FA AT 16/07/2013 pensent que necessaire pour le calcul des derivees dans statistiques_.update_stat_k(...)
-          // Je ne sais pas si c'est utile, mais j'assure...
-          velocity_[0].echange_espace_virtuel(
-            2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_I*/, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-          velocity_[1].echange_espace_virtuel(
-            2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_J*/);
-          velocity_[2].echange_espace_virtuel(
-            2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_K*/);
+          if (boundary_conditions_.get_correction_conserv_qdm()==2)
+            {
+              update_rho_v();
+              rho_field_.echange_espace_virtuel(rho_field_.ghost());
+              update_v_ghost_from_rho_v();
+            }
+          else
+            {
+              // FA AT 16/07/2013 pensent que necessaire pour le calcul des derivees dans statistiques_.update_stat_k(...)
+              // Je ne sais pas si c'est utile, mais j'assure...
+              velocity_[0].echange_espace_virtuel(
+                2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_I*/);
+              velocity_[1].echange_espace_virtuel(
+                2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_J*/);
+              velocity_[2].echange_espace_virtuel(
+                2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_K*/);
+            }
+
+
           pressure_.echange_espace_virtuel(1);
 
           // C'est update_stat_ft qui gere s'il y a plusieurs groupes
@@ -950,7 +923,8 @@ void IJK_FT::run()
       if (current_time_ >= max_simu_time_)
         stop = 1;
 
-      if (tstep_ % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop)
+      tstep_sauv_ = tstep_ + tstep_init_;
+      if (tstep_sauv_ % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop)
         {
           // Choix : On supprime les duplicatas pour la sauvegarde.
           // On pourrait tres bien tout garder. ca serait plus leger en CPU, plus lourd en espace disque.
@@ -992,7 +966,7 @@ void IJK_FT::run()
       // interfaces_.parcourir_maillage();
       if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")))
         interfaces_.compute_vinterp();
-      post_.postraiter_fin(stop, tstep_, current_time_, timestep_, lata_name,
+      post_.postraiter_fin(stop, tstep_, tstep_init_, current_time_, timestep_, lata_name,
                            gravite_, nom_du_cas());
       statistiques().end_count(timestep_counter_);
 
@@ -1000,14 +974,11 @@ void IJK_FT::run()
         {
           //demarrage des compteurs CPU
           if(tstep_ == 2)
-            {
-              statistiques().set_three_first_steps_elapsed(true);
-            }
+            statistiques().set_three_first_steps_elapsed(true);
         }
       else
-        {
-          statistiques().compute_avg_min_max_var_per_step(tstep_);
-        }
+        statistiques().compute_avg_min_max_var_per_step(tstep_);
+
 
     }
   if (Process::je_suis_maitre())

@@ -82,7 +82,7 @@ void Op_Diff_K_Omega_VDF_base::associer_diffusivite_turbulente()
     {
       const Transport_K_Omega_base& eqn_transport = ref_cast(Transport_K_Omega_base,mon_equation.valeur());
       {
-        const Mod_turb_hyd_RANS_komega& mod_turb = ref_cast(Mod_turb_hyd_RANS_komega,eqn_transport.modele_turbulence());
+        const Modele_turbulence_hyd_RANS_K_Omega_base& mod_turb = ref_cast(Modele_turbulence_hyd_RANS_K_Omega_base,eqn_transport.modele_turbulence());
         const Champ_Fonc& diff_turb = mod_turb.viscosite_turbulente();
         Eval_Diff_K_Omega_VDF& eval_diff = dynamic_cast<Eval_Diff_K_Omega_VDF&> (iter->evaluateur());
         eval_diff.associer_diff_turb(diff_turb);
@@ -174,7 +174,7 @@ void Op_Diff_K_Omega_VDF_base::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTa
 void Op_Diff_K_Omega_VDF_base::dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl) const
 {
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
-  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : NULL, mat2;
+  Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr, mat2;
   Op_VDF_Elem::dimensionner(iter->domaine(), iter->domaine_Cl(), mat2);
   mat->nb_colonnes() ? *mat += mat2 : *mat = mat2;
 }
@@ -184,7 +184,7 @@ void Op_Diff_K_Omega_VDF_base::ajouter_blocs(matrices_t matrices, DoubleTab& sec
 {
   statistiques().begin_count(diffusion_counter_);
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
-  Matrice_Morse* mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : NULL;
+  Matrice_Morse* mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr;
   const DoubleTab& inco = semi_impl.count(nom_inco) ? semi_impl.at(nom_inco) : equation().inconnue().valeur().valeurs();
 
   if(mat) iter->ajouter_contribution(inco, *mat);

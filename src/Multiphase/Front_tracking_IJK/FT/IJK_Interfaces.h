@@ -58,10 +58,9 @@ class Domaine_dis;
 class IJK_Interfaces : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur(IJK_Interfaces);
-
+  Declare_instanciable(IJK_Interfaces);
+  friend class IJK_Composantes_Connex;
 public :
-  IJK_Interfaces();
   int initialize(const IJK_Splitting& splitting_FT,
                  const IJK_Splitting& splitting_NS,
                  const Domaine_dis& domaine_dis,
@@ -74,7 +73,7 @@ public :
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
                                      const char *lata_name,
                                      const int lata_step) const;
-  void sauvegarder_interfaces(const char *lata_name); // const;
+  void sauvegarder_interfaces(const char *lata_name, const Nom& interf_name="??"); // const;
   void calculer_color(ArrOfInt& color) const;
   void postraiter_colors(Sortie& os, const double current_time) const;
 
@@ -372,7 +371,20 @@ public :
 
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
   void compute_surface_average_per_bubble(const ArrOfDouble& surfaces, const ArrOfDouble& in, ArrOfDouble& out) const;
-  void calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite) const;
+  void read_bubbles_barycentres_old_new(const Nom& interf_name);
+  bool read_bubbles_barycentres_vel(const Nom& interf_name,
+                                    FixedVector<ArrOfDouble,3>& bubbles_rising_dir,
+                                    FixedVector<ArrOfDouble,3>& bubbles_rising_vel,
+                                    ArrOfDouble& bubbles_rising_vel_mag);
+  bool read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary);
+  void store_bubbles_barycentres(const Nom& interf_name);
+  void compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
+                                              DoubleTab& barycentres,
+                                              const int& store_values);
+  void calculer_volume_bulles(ArrOfDouble& volumes,
+                              DoubleTab& centre_gravite) const;
+
+  void calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const;
   void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
@@ -1017,15 +1029,26 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
+  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& allocate_compo_fields)
+  {
+    if (!is_diphasique_)
+      return 0;
+    return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
+  }
+
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities)
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres)
   {
     if (!is_diphasique_)
       return 0;
     return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
                                                                     compute_rising_velocities,
-                                                                    fill_rising_velocities);
+                                                                    fill_rising_velocities,
+                                                                    use_bubbles_velocities_from_interface,
+                                                                    use_bubbles_velocities_from_barycentres);
   }
 
   void compute_rising_velocities_from_compo()
@@ -1034,6 +1057,36 @@ public :
       return;
     ijk_compo_connex_.compute_rising_velocities();
   }
+
+  const DoubleTab& get_bubble_barycentres_old_new(const int& get_new) const
+  {
+    if (get_new)
+      return bubbles_bary_new_;
+    else
+      return bubbles_bary_old_;
+  }
+
+  const DoubleTab& get_bubble_velocities_from_interface() const
+  {
+    return bubbles_velocities_;
+  }
+
+  const DoubleTab& get_bubble_velocities_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
+  const DoubleTab& get_bubble_rising_vectors_from_barycentres() const
+  {
+    return bubbles_rising_vectors_bary_;
+  }
+
+  const ArrOfDouble& get_bubbles_velocities_magnitude_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
+  void reset_flags_and_counters();
 
 protected:
   // Met a jour les valeurs de surface_vapeur_par_face_ et barycentre_vapeur_par_face_
@@ -1152,7 +1205,7 @@ protected:
   // On peut reprendre un fichier lata ou sauv.lata :
 
   IntVect num_compo_;
-  int nb_compo_in_num_compo_;
+  int nb_compo_in_num_compo_ = 0;
   // variales pour calcul a bulles fixes
   DoubleTab mean_force_;
   DoubleTab force_time_n_;
@@ -1160,11 +1213,11 @@ protected:
   int flag_positions_reference_ = 0; // Pas de position de reference imposee
 
   Nom fichier_reprise_interface_;
-  int timestep_reprise_interface_;
+  int timestep_reprise_interface_ = 1;
   Nom lata_interfaces_meshname_;
 
   // Pour ecrire dans le fichier sauv :
-  Nom fichier_sauvegarde_interface_;
+  Nom fichier_sauvegarde_interface_ = "??";
   int timestep_sauvegarde_interface_ = 1;
 
   // Activation du suivi des couleurs des bulles
@@ -1172,17 +1225,30 @@ protected:
 
   // Activer la repulsion aux parois :
   int active_repulsion_paroi_ = 0;
+  // La repulsion paroi est desactive par defaut,
+  // meme si l'inter-bulles l'est
 
+  // Pour calculer le terme source comme grad(potentiel*I) au lieu de
+  // potentiel_face*gradI
   // Modification de l'evaluation du potentiel :
   int correction_gradient_potentiel_ = 0;
 
-  int compute_distance_autres_interfaces_;
+  int compute_distance_autres_interfaces_ = 0;
+  //  recompute_indicator_ = 1; // doit-on calculer l'indicatrice avec une methode
+  //  de debug (1) ou optimisee (0) ?
+
   // Nombres de bulles reeles :
   int nb_bulles_reelles_ = 0;
   int nb_bulles_ghost_ = 0;
-  int nb_bulles_ghost_before_;
-  int recompute_indicator_;
-  int parser_;
+  int nb_bulles_ghost_before_ = 0;
+  int recompute_indicator_ = 1;
+  int parser_ = 0;
+  // doit-on calculer le forcage avec une methode de parser (1,
+  // lente) ou optimisee basee sur le num_compo_ (0) ?
+  //             Dans le cas ou parser_ est a zero, il faut que
+  //             recompute_indicator_ soit a 1, car c'est cette methode qui
+  //             rempli num_compo_
+
   // Stockage du maillage:
   Maillage_FT_IJK maillage_ft_ijk_;
 
@@ -1215,9 +1281,14 @@ protected:
   // Domaine autorise pour les bulles :
   // c'est le geom du splitting_FT reduit de ncells_forbidden_
   // dans toutes les direction ou le domaine NS est perio.
-  int ncells_forbidden_;
-  int ncells_deleted_;
-  int frozen_ = 0; // flag to disable the interfaces motion.
+  // ncells_forbidden_ est le nombre de mailles au bord du domaine etendu ou on
+  // interdit a des bulles d'entrer (bulles detruites et remplacees par leur
+  // duplicata de l'autre cote)
+  int ncells_forbidden_ = 3; // Valeur recommandee par defaut.
+  // Suppression des bulles sur le pourtour du domaine lors de la sauvegarde
+  // finale.
+  int ncells_deleted_ = -1; // Valeur recommandee par defaut. On ne veut pas supprimer de bulles.
+  int frozen_ = 0; // flag to disable the interfaces motion. By default, we want the motion of the interfaces.
   DoubleTab bounding_box_forbidden_criteria_;
   DoubleTab bounding_box_delete_criteria_;
 
@@ -1226,13 +1297,13 @@ protected:
 
   // Distance max en metres a laquelle agit la force de repulsion entre les
   // bulles
-  double portee_force_repulsion_;
+  double portee_force_repulsion_ = 1.e-8;
   // delta de pression maxi cree par la force de repulsion
   // (pour l'instant lineaire, valeur max quand la distance est nulle)
   double delta_p_max_repulsion_ = 0.; // desactive par defaut
 
   // Si souhaite, une valeur differente pour les parois :
-  double portee_wall_repulsion_;
+  double portee_wall_repulsion_ = 1.e-8;
   double delta_p_wall_max_repulsion_ = 0.; // desactive par defaut
   int no_octree_method_ = 0;    // to use the IJK-discretization to search for closest faces of vertices instead of the octree method (disabled by default)
 
@@ -1245,11 +1316,11 @@ protected:
 
   ArrOfInt ghost_compo_converter_;
 
-  int reprise_; // Flag indiquant si on fait une reprise
+  int reprise_ = 0; // Flag indiquant si on fait une reprise
 
   enum Terme_Gravite { GRAVITE_RHO_G, GRAVITE_GRAD_I };
   // Terme_Gravite terme_gravite_;
-  int terme_gravite_ = 0;
+  int terme_gravite_ = GRAVITE_GRAD_I; // Par defaut terme gravite ft sans courants parasites
 
   int nb_groups_ = 1;           // Nombre de groupes/classes de bulles. Par defaut toutes les bulles sont dans le meme group.
   ArrOfInt compo_to_group_; // Tableau de conversion: numero_de_groupe =
@@ -1259,12 +1330,12 @@ protected:
   // Tableau des valeurs aux faces mouillees (calcules avec med) //
   /////////////////////////////////////////////////////////////////
 
-  bool compute_surf_mouillees_; // active seulement dans le cas
+  bool compute_surf_mouillees_ = false; // active seulement dans le cas
   // ou il y a des champs thermique ou d energie.
   // attention, ca desactive seulement le calcul, pas l'allocation.
   FixedVector<int,2> n_faces_mouilles_;
 
-  bool is_diphasique_;
+  bool is_diphasique_ = true;
 
   // Surfaces vapeur des faces du maillage IJK
   FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_;
@@ -1285,7 +1356,7 @@ protected:
   // indicatrice et var moy par cell //
   /////////////////////////////////////
 
-  int n_cell_diph_;
+  int n_cell_diph_ = 0;
   bool old_en_premier_ = true;
 
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
@@ -1350,6 +1421,16 @@ protected:
   Intersection_Interface_ijk_face intersection_ijk_face_;
 
   IJK_Composantes_Connex ijk_compo_connex_;
+  DoubleTab bubbles_velocities_;
+  DoubleTab bubbles_velocities_bary_;
+  DoubleTab bubbles_rising_vectors_bary_;
+  ArrOfDouble bubbles_velocities_bary_magnitude_;
+  DoubleTab bubbles_bary_old_;
+  DoubleTab bubbles_bary_new_;
+  int read_barycentres_velocity_ = 0;
+  int use_barycentres_velocity_ = 0;
+  bool has_computed_bubble_barycentres_ = false;
+  bool has_readen_barycentres_prev_ = false;
 
   int dt_impression_bilan_indicatrice_;
   int verbosite_surface_efficace_face_;

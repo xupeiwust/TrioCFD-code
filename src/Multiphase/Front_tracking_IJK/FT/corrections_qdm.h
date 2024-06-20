@@ -42,10 +42,9 @@
 class consigne_initiale : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur( consigne_initiale ) ;
+  Declare_instanciable( consigne_initiale ) ;
 
 public :
-  consigne_initiale();
   void initialise();
   void set_time(int time_iteration) {time_iteration_ = time_iteration;};
   double get_qdm_cible() {return qdm_cible_;};
@@ -54,8 +53,8 @@ public :
   int get_need_for_vl_vv() {return 0;};
   int get_need_for_rho_l() {return 0;};
 protected :
-  int time_iteration_;
-  double qdm_cible_;
+  int time_iteration_ = 0;
+  double qdm_cible_ = 0;
 };
 
 #endif /* consigne_initiale_included */
@@ -376,8 +375,11 @@ public :
   int is_type_gb() const;
   int is_type_gr() const;
   int is_type_none() const;
+
+  int write_me() const;
 protected :
   int type_;
+  int write_me_;
   correction_one_direction correction_x_;
   correction_one_direction correction_y_;
   correction_one_direction correction_z_;

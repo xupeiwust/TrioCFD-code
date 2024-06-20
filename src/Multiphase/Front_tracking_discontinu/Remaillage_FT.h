@@ -139,43 +139,48 @@ protected:
 
   REF(Domaine_VF) refdomaine_VF_;
 
-  double temps_;
-  double temps_dernier_remaillage_;
-  double temps_dernier_lissage_;
+  // Values initialized:
+  double temps_ = 0;
+  double temps_dernier_remaillage_ = -1.e40;
+  double temps_dernier_lissage_ = -1.e40;
 
-  double dt_remaillage_;
-  double dt_lissage_;
-
-  int nb_iter_remaillage_;
-  int nb_iter_barycentrage_;
-  int nb_iter_bary_volume_seul_;
-  double seuil_dvolume_residuel_;
-  double relax_barycentrage_;
+  // Values initialized but which can be set in the data file:
+  double dt_remaillage_ = -1.;
+  double dt_lissage_ = -1.;
+  int nb_iter_remaillage_ = 1;
+  int nb_iter_barycentrage_ = 1;
+  int nb_iter_bary_volume_seul_ = 3;
+  double seuil_dvolume_residuel_ = 0.;
+  double relax_barycentrage_ = 1.;
 
   // Criteres de longueur ideale des aretes
-  double critere_arete_;
-  int impr_;
+  double critere_arete_ = 0.35;
+  int impr_ = -1;
   // L'un de ces deux vaut -1, l'autre doit etre positif:
-  double valeur_longueur_fixe_;
-  double facteur_longueur_ideale_;
-  int equilateral_;
+  double valeur_longueur_fixe_ = -1.;
+  double facteur_longueur_ideale_ = -1.;
+  int equilateral_ = 0;
+  // L'orientation de la facette pour ajuster sa taille a l'element eulerien.
+  // alors que equilateral=1 utilise la diagonal de l'element comme longueur de reference.
+  // Avec equilateral_ = 0, les facettes sont etirees comme le maillage et facteur_longueur vaut
+  // 1. si l'arete traverse tout l'element dans la direction donnee par l'arrete.
 
-  double variation_volume_;
-  double surface_interface_;
+  double variation_volume_ = 0.;
+  double surface_interface_ = 0.;
 
 
   // Coefficient de "diffusion" (en quelque sorte la CFL du schema
   // de lissage).
-  double lissage_courbure_coeff_;
+  double lissage_courbure_coeff_ = -0.05; // valeur typique pour stabilite
   // Nombre d'iterations de lissage a faire lors des operations de lissage (dt_lissage_)
-  int lissage_courbure_iterations_systematique_;
+  int lissage_courbure_iterations_systematique_ = 0;
   // Nombre d'iterations de lissage a faire en cas de remaillage local ou global
   //  (declanche uniquement si le maillage est effectivement modifie)
-  int lissage_courbure_iterations_si_remaillage_;
+  int lissage_courbure_iterations_si_remaillage_ = 0;
   // Ancien parametre de lissage (voir readOn)
-  int lissage_courbure_iterations_old_;
+  int lissage_courbure_iterations_old_ = -1;
   // Critere local de declenchement du lissage:
-  double lissage_critere_;
+  double lissage_critere_ = 0.; // Default value to 0, when lissage is applied, it is for the whole mesh
 };
 
 

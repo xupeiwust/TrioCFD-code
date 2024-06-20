@@ -40,7 +40,7 @@
  * Intersection_Interface_ijk
  */
 
-Implemente_base_sans_constructeur(Intersection_Interface_ijk, "Intersection_Interface_ijk", Objet_U);
+Implemente_base(Intersection_Interface_ijk, "Intersection_Interface_ijk", Objet_U);
 
 Sortie& Intersection_Interface_ijk::printOn(Sortie& os) const
 {
@@ -368,7 +368,6 @@ void Intersection_Interface_ijk_cell::calcul_projection_centre_sur_interface_moy
   const int nj = indicatrice.nj();
   const int nk = indicatrice.nk();
   // ArrOfInt liste_composantes_connexes_dans_element;
-  // liste_composantes_connexes_dans_element.set_smart_resize(1);
   // const auto &mesh = interfaces_->maillage_ft_ijk();
   Vecteur3 centre {0., 0., .0};
   Vecteur3 bary_interf {0., 0., .0};

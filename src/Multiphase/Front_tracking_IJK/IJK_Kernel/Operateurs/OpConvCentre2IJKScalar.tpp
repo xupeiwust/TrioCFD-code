@@ -21,7 +21,7 @@ template <DIRECTION _DIR_>
 void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, const int k_layer)
 {
   Simd_double velocity(1.);
-  if (is_grad_)
+  if (is_grad_ && !is_flux_)
     {
       /*
        * TODO: Associate pointers to create a dummy field
@@ -38,7 +38,7 @@ void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, 
   const int nx = _DIR_==DIRECTION::X ? input_field_->ni() + 1 : input_field_->ni();
   const int ny = _DIR_==DIRECTION::Y ? input_field_->nj() + 1 : input_field_->nj();
   double surface = 1.;
-  if (!is_grad_)
+  if (!is_grad_ || is_flux_)
     surface = channel_data_.get_surface(k_layer, 1, (int) _DIR_);
   else
     {
@@ -76,6 +76,8 @@ void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, 
         }
     }
 
+  const double velocity_frame = velocity_frame_of_reference_[(int) _DIR_];
+
   const int imax = nx;
   const int jmax = ny;
   const int vsize = Simd_double::size();
@@ -83,12 +85,12 @@ void OpConvCentre2IJKScalar_double::compute_flux_(IJK_Field_local_double& resu, 
     {
       for (int i = 0; i < imax; i += vsize)
         {
-          if (!is_grad_)
+          if (!is_grad_ || is_flux_)
             velocity_dir.get_center(i, velocity);
           Simd_double T0, T1; // scalar value at left and at right of the computed flux
           input_field.get_left_center(_DIR_, i, T0, T1);
           Simd_double flux = (T0 + T1) * 0.5;
-          flux = flux * velocity * surface;
+          flux = flux * (velocity - velocity_frame) * surface;
           resu_ptr.put_val(i, flux);
         }
       // do not execute end_iloop at last iteration (because of assert on valid j+1)

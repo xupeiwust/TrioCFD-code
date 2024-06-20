@@ -79,9 +79,10 @@ protected :
   //void compute_inital_velocity_spectral(FixedVector<IJK_Field_double, 3>);
 private:
 
-  double k_max,k_min;
-  int nk;
-  int nk_tot;
+  double k_max = 0.;
+  double k_min= 0.;
+  int nk = 0;
+  int nk_tot = 0;
   // std::vector<double> kx(), ky(),kz();
   ArrOfDouble kx, ky,kz;
   // std::vector<double> fx(),fy(),fz();

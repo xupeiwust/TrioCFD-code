@@ -44,53 +44,10 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell() :
   new_treatment_(0)
 {
   single_phase_=0;
-  type_temperature_convection_form_ = 0;  // Default value: 0 : non conservative
   conserv_energy_global_=0; // Note : doit etre zero sinon la rustine est appliquee
-  E0_=0;
-  computed_centred_bubble_start_ = 1.;
-  single_centred_bubble_radius_ini_ = 1.e-3;
-  allow_temperature_correction_for_visu_=0;
-  override_vapour_mixed_values_ = 0;
-
-  error_temperature_ana_total_ = 0.;
-  error_temperature_ana_squared_total_ = 0.;
-  error_temperature_ana_rel_total_ = 0.;
-
-  source_terms_type_=2;
-  source_terms_type_dict_ = Motcles(7);
-  {
-    source_terms_type_dict_[0] = "linear_diffusion";
-    source_terms_type_dict_[1] = "spherical_diffusion";
-    source_terms_type_dict_[2] = "spherical_diffusion_approx";
-    source_terms_type_dict_[3] = "tangential_conv_2D";
-    source_terms_type_dict_[4] = "tangential_conv_3D";
-    source_terms_type_dict_[5] = "tangential_conv_2D_tangential_diffusion_3D";
-    source_terms_type_dict_[6] = "tangential_conv_3D_tangentual_diffusion_3D";
-  }
-  source_terms_correction_=0;
-  spherical_diffusion_ = 1;
-
-  postraiter_champs_intermediaires_ = 0;
-
-  deactivate_diffusion_interface_ = 0;
-  etalement_diffusion_ = ETALEMENT_DIFFUSION::AUCUN_ETALEMENT;
 
   cut_cell_conv_scheme_.scheme = CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_CENTRE2_STENCIL;
   cut_cell_conv_scheme_.face_interp = CUT_CELL_CONV_FACE_INTERPOLATION::AUCUNE;
-
-  coord_facettes_.centre.set_smart_resize(1);
-  coord_facettes_.liqu_1.set_smart_resize(1);
-  coord_facettes_.vap_1.set_smart_resize(1);
-  coord_facettes_.liqu_2.set_smart_resize(1);
-  coord_facettes_.vap_2.set_smart_resize(1);
-  interfacial_temperature_.centre.set_smart_resize(1);
-  interfacial_temperature_.liqu_1.set_smart_resize(1);
-  interfacial_temperature_.vap_1.set_smart_resize(1);
-  interfacial_temperature_.liqu_2.set_smart_resize(1);
-  interfacial_temperature_.vap_2.set_smart_resize(1);
-  interfacial_phin_ai_.set_smart_resize(1);
-
-  verbosite_ = 2;
 }
 
 Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
@@ -110,21 +67,12 @@ Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
     os<< "    conserv_energy_global \n";
 
   os<< "  \n}";
-  if (override_vapour_mixed_values_)
-    os << front_space << "override_vapour_mixed_values" << escape;
-  if (allow_temperature_correction_for_visu_)
-    os << front_space << "allow_temperature_correction_for_visu" << escape;
-  if (source_terms_type_!= -1)
-    os << front_space << "source_terms_type" << end_space << source_terms_type_dict_[source_terms_type_] << escape;
-  os << front_space << "delta_T_subcooled_overheated" << end_space << delta_T_subcooled_overheated_ << escape;
   return os;
 }
 
 Entree& IJK_Thermal_cut_cell::readOn( Entree& is )
 {
   IJK_Thermal_base::readOn( is );
-  if (ghost_fluid_)
-    override_vapour_mixed_values_ = 1;
   return is;
 }
 
@@ -135,20 +83,6 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.dictionnaire("non conservative",0);
   param.dictionnaire("conservative",1);
   param.ajouter("conserv_energy_global", &conserv_energy_global_);
-  param.ajouter_flag("override_vapour_mixed_values", &override_vapour_mixed_values_);
-  param.ajouter_flag("allow_temperature_correction_for_visu", &allow_temperature_correction_for_visu_);
-  param.ajouter("source_terms_type", &source_terms_type_);
-  param.dictionnaire("linear_diffusion", 0);
-  param.dictionnaire("spherical_diffusion",1);
-  param.dictionnaire("spherical_diffusion_approx",2);
-  param.dictionnaire("tangential_conv_2D", 3);
-  param.dictionnaire("tangential_conv_3D", 4);
-  param.dictionnaire("tangential_conv_2D_tangential_diffusion_3D", 5);
-  param.dictionnaire("tangential_conv_3D_tangentual_diffusion_3D", 6);
-  param.ajouter_flag("source_terms_correction", &source_terms_correction_);
-
-  param.ajouter("delta_T_subcooled_overheated", &delta_T_subcooled_overheated_);
-
   param.ajouter_flag("postraiter_champs_intermediaires", &postraiter_champs_intermediaires_);
 
   param.ajouter_flag("deactivate_diffusion_interface", &deactivate_diffusion_interface_);
@@ -314,35 +248,6 @@ void IJK_Thermal_cut_cell::update_thermal_properties()
 
   lambda_.echange_espace_virtuel(lambda_.ghost());
   rho_cp_.echange_espace_virtuel(rho_cp_.ghost());
-}
-
-Nom IJK_Thermal_cut_cell::compute_quasi_static_spherical_diffusion_expression(const double& time_scope,
-                                                                              const int index_bubble,
-                                                                              const int index_bubble_real)
-{
-
-  if (computed_centred_bubble_start_)
-    {
-      const DoubleTab& bubbles_centres = ref_ijk_ft_cut_cell_->itfce().get_ijk_compo_connex().get_bubbles_barycentre();
-      double x,y,z;
-      x = bubbles_centres(index_bubble,0);
-      y = bubbles_centres(index_bubble,1);
-      z = bubbles_centres(index_bubble,2);
-      if (index_bubble != index_bubble_real)
-        {
-          const double x_real = bubbles_centres(index_bubble_real,0);
-          const double y_real = bubbles_centres(index_bubble_real,1);
-          const double z_real = bubbles_centres(index_bubble_real,2);
-          const double lx = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
-          const double ly = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
-          const double lz = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
-          x = (abs(x - x_real)< (lx / 2.)) ? x_real : ((x_real < (lx / 2.)) ? x_real + lx : x_real - lx);
-          y = (abs(y - y_real)< (ly / 2.)) ? y_real : ((y_real < (ly / 2.)) ? y_real + ly : y_real - ly);
-          z = (abs(z - z_real)< (lz / 2.)) ? z_real : ((z_real < (lz / 2.)) ? z_real + lz : z_real - lz);
-        }
-      return generate_expression_temperature_ini(time_scope, x, y, z);
-    }
-  return generate_expression_temperature_ini(time_scope, 0., 0., 0.);
 }
 
 void IJK_Thermal_cut_cell::compute_temperature_init()
@@ -720,45 +625,6 @@ void cut_cell_reinit_streamObj(std::ostringstream& streamObj, const double& para
 }
 
 
-Nom IJK_Thermal_cut_cell::generate_expression_temperature_ini(const double& time_scope, const double x, const double y, const double z)
-{
-  const double rho_l = ref_ijk_ft_cut_cell_->get_rho_l();
-  const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
-  std::ostringstream streamObj;
-  Nom expression_T = "(";
-  streamObj << delta_T_subcooled_overheated_;
-  expression_T += streamObj.str().c_str();
-  expression_T += ")-(";
-  expression_T += streamObj.str().c_str();
-  expression_T += ")*(";
-  cut_cell_reinit_streamObj(streamObj, single_centred_bubble_radius_ini_);
-  expression_T += streamObj.str().c_str();
-  Nom expression_tmp = "sqrt((x-(";
-  cut_cell_reinit_streamObj(streamObj, (signbit(x) ? x-1e-16 : x+1e-16));
-  expression_tmp += streamObj.str().c_str();
-  expression_tmp += "))^2+(y-(";
-  cut_cell_reinit_streamObj(streamObj, (signbit(y) ? y-1e-16 : y+1e-16));
-  expression_tmp += streamObj.str().c_str();
-  expression_tmp += "))^2+(z-(";
-  cut_cell_reinit_streamObj(streamObj, (signbit(z) ? z-1e-16 : z+1e-16));
-  expression_tmp += streamObj.str().c_str();
-  expression_tmp += "))^2)";
-  expression_T += "/";
-  expression_T += expression_tmp;
-  expression_T += "*(1-erf((";
-  expression_T += expression_tmp;
-  expression_T += "-";
-  cut_cell_reinit_streamObj(streamObj, single_centred_bubble_radius_ini_);
-  expression_T += streamObj.str().c_str();
-  expression_T += ")/(2.*sqrt(";
-  streamObj.str("");
-  streamObj.clear();
-  cut_cell_reinit_streamObj(streamObj, ((alpha_liq * time_scope) + 1e-16));
-  expression_T += streamObj.str().c_str();
-  expression_T += ")))))";
-  return expression_T;
-}
-
 void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const Cut_field_vector& cut_field_total_velocity)
 {
   // Note : Cette fonction regroupe tous les elements de calculer_dT qui ne sont pas utilisees en cut cell
@@ -774,7 +640,6 @@ void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const Cut_field_vector& cut_fiel
   if (debug_)
     Cerr << "Store temperature before extrapolation" << finl;
   store_temperature_before_extrapolation();
-  correct_temperature_for_eulerian_fluxes();
 
   /*
    * Correct the temperature field using either the ghost-fluid
@@ -1562,128 +1427,3 @@ void IJK_Thermal_cut_cell::compute_interfacial_temperature2(ArrOfDouble& interfa
     }
 }
 
-double IJK_Thermal_cut_cell::compute_rho_cp_u_mean(const IJK_Field_double& vx)
-{
-  double rho_cp_u_mean = 0.;
-  rho_cp_u_mean = calculer_rho_cp_u_moyen(vx, rho_cp_, vx, 0., 1);
-  return rho_cp_u_mean;
-}
-
-double IJK_Thermal_cut_cell::get_rho_cp_ijk(int i, int j, int k) const
-{
-  double rho_cp = 0.;
-  rho_cp = rho_cp_(i,j,k);
-  return rho_cp;
-}
-
-double IJK_Thermal_cut_cell::get_rho_cp_u_ijk(const IJK_Field_double& vx, int i, int j, int k) const
-{
-  return get_rho_cp_ijk(i,j,k) * vx(i,j,k);
-}
-
-double IJK_Thermal_cut_cell::get_div_lambda_ijk(int i, int j, int k) const
-{
-  return (lambda_(i+1,j,k)-lambda_(i-1,j,k));
-}
-
-double IJK_Thermal_cut_cell::compute_temperature_dimensionless_theta_mean(const IJK_Field_double& vx)
-{
-  double theta_adim_moy = 0.;
-  theta_adim_moy = calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, rho_cp_, vx, 0., 1);
-  return theta_adim_moy;
-}
-
-void IJK_Thermal_cut_cell::correct_any_temperature_fields_for_eulerian_fluxes(IJK_Field_double& temperature)
-{
-  const int ni = temperature.ni();
-  const int nj = temperature.nj();
-  const int nk = temperature.nk();
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          const double indic = ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
-          if (fabs(indic) < LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-            temperature(i,j,k) = 0.;
-        }
-  temperature.echange_espace_virtuel(temperature.ghost());
-}
-
-
-void IJK_Thermal_cut_cell::compare_temperature_fields(const IJK_Field_double& temperature,
-                                                      const IJK_Field_double& temperature_ana,
-                                                      IJK_Field_double& error_temperature_ana,
-                                                      IJK_Field_double& error_temperature_ana_rel)
-{
-  const int ni = temperature.ni();
-  const int nj = temperature.nj();
-  const int nk = temperature.nk();
-  error_temperature_ana.data() = 0.;
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          error_temperature_ana(i,j,k) = (temperature(i,j,k) - temperature_ana(i,j,k));
-          error_temperature_ana_rel(i,j,k) = error_temperature_ana(i,j,k) / (temperature_ana(i,j,k) + 1.e-16) * 100.;
-        }
-}
-
-void IJK_Thermal_cut_cell::evaluate_total_liquid_absolute_parameter(const IJK_Field_double& field,
-                                                                    double& total_parameter)
-{
-  const int ni = field.ni();
-  const int nj = field.nj();
-  const int nk = field.nk();
-  total_parameter = 0;
-  double liquid_volume = 0.;
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          const double indic = ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
-          liquid_volume += (vol_ * indic);
-          total_parameter += abs(field(i,j,k)) * (vol_ * indic);
-        }
-  total_parameter = mp_sum(total_parameter);
-  liquid_volume = mp_sum(liquid_volume);
-  total_parameter = total_parameter / liquid_volume;
-}
-
-void IJK_Thermal_cut_cell::evaluate_total_liquid_parameter_squared(const IJK_Field_double& field,
-                                                                   double& total_parameter)
-{
-  const int ni = field.ni();
-  const int nj = field.nj();
-  const int nk = field.nk();
-  total_parameter = 0;
-  double liquid_volume = 0.;
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          const double indic = ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
-          liquid_volume += (vol_ * indic);
-          total_parameter += pow(field(i,j,k) * (vol_ * indic), 2);
-        }
-  total_parameter = mp_sum(total_parameter);
-  liquid_volume = mp_sum(liquid_volume);
-  total_parameter = total_parameter / pow(liquid_volume, 2);
-}
-
-void IJK_Thermal_cut_cell::correct_any_temperature_field_for_visu(IJK_Field_double& temperature)
-{
-  const int ni = temperature.ni();
-  const int nj = temperature.nj();
-  const int nk = temperature.nk();
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          // const double temperature = temperature_(i,j,k);
-          const double indic = ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
-          // if (temperature > 0)
-          if (indic < VAPOUR_INDICATOR_TEST)
-            temperature(i,j,k) = 0;
-        }
-  temperature.echange_espace_virtuel(temperature.ghost());
-}

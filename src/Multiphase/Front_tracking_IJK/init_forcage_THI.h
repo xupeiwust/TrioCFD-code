@@ -39,11 +39,10 @@
 class init_forcage_THI : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur( init_forcage_THI ) ;
+  Declare_instanciable( init_forcage_THI ) ;
 
 public :
 
-  init_forcage_THI();
   void compute_initial_chouippe(int nproc_tot,
                                 const IJK_Grid_Geometry& my_geom,
                                 int my_ni, int my_nj, int my_nk,
@@ -70,24 +69,24 @@ public :
   void update_advection_length(double dt);
 
 protected :
-  int type_forcage;
-  int facteur_forcage_;
-  int forced_advection_;
+  int type_forcage = 0;
+  int facteur_forcage_ = 0;
+  int forced_advection_ = 0;
   // GAB : sarebbe più logico in vector3 ma non so come dare un vector3 in un jdd...
   ArrOfDouble advection_velocity_;
   ArrOfDouble advection_length_;
-  double time_to_be_del_;
-  int forcage_ts_stop;
-  double forcage_t_stop;
-  int mode_min;
-  int mode_max;
-  double amplitude;
-  double eps_etoile;
-  double tL;
+  double time_to_be_del_ = 0.;
+  int forcage_ts_stop = -1;
+  double forcage_t_stop = -1;
+  int mode_min = 0;
+  int mode_max = 0;
+  double amplitude = 1.;
+  double eps_etoile = 0.1;
+  double tL = 0.02;
 
-  int i_offset;
-  int j_offset;
-  int k_offset;
+  int i_offset = 0;
+  int j_offset = 0;
+  int k_offset = 0;
 
 //  int random_fixed_;
   Force_sp f_sp_THI;

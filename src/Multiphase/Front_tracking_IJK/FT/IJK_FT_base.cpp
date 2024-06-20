@@ -24,7 +24,6 @@
 #include <Interprete_bloc.h>
 #include <EFichier.h>
 #include <SFichier.h>
-#include <stat_counters.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <communications.h>
@@ -49,7 +48,6 @@
 // #define PROJECTION_DE_LINCREMENT_DV
 // #define SMOOTHING_RHO
 // static Stat_Counter_Id cnt_SourceInterf;
-
 //#define SMOOTHING_RHO
 
 Implemente_base_sans_constructeur(IJK_FT_base, "IJK_FT_base", Interprete);
@@ -58,93 +56,20 @@ IJK_FT_base::IJK_FT_base():
   post_(IJK_FT_Post(*this)),
   thermals_(IJK_Thermals(*this))
 {
-  p_seuil_min_ = 0.;
-  p_seuil_max_ = 0;
+  // GAB, qdm
+  gravite_.resize_array(3);
+  gravite_ = 0.;
 
-  vitesse_entree_ = 0.;
-  vitesse_upstream_ = 0.;
-  expression_vitesse_upstream_ = "??";
-  upstream_dir_ = 0;
-  upstream_stencil_ = 0;
-  nb_diam_upstream_ = 0.;
+  terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
+  terme_source_correction_ = 0.;
+  correction_force_.resize_array(3); // Par defaut, les flags d'activations sont a zero (ie inactif).
+  correction_force_ = 0;
 
-  rho_liquide_ = 0.;
-  rho_vapeur_ = 0.;
-  rho_moyen_ = 0.;
-  mu_liquide_ = 0.;
-  mu_vapeur_ = 0.;
-  sigma_ = 0.;
+  vol_bulles_.resize_array(0); // Initialement a zero, puis sera calcule a chaque iter.
+  vol_bulles_ = 0.;
 
-  projection_initiale_demandee_ = 0;
-  disable_solveur_poisson_ = 0;
-  disable_diffusion_qdm_ = 0;
-  disable_convection_qdm_ = 0;
-  disable_source_interf_ = 0;
-  disable_diphasique_ = 0;
-  frozen_velocity_ = 0;
-  resolution_fluctuations_ = 0;
-  velocity_reset_ = 0;
-
-  improved_initial_pressure_guess_ = 0;
-  include_pressure_gradient_in_ustar_ = 0;
-
-  use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
-  use_inv_rho_in_poisson_solver_ = 0;
-  use_inv_rho_ = 0;
-
-  correction_bilan_qdm_ = 0;
-  refuse_patch_conservation_QdM_RK3_source_interf_ = 0;
-  test_etapes_et_bilan_ = 0;
-  add_initial_field_ = 0;
-
-  diffusion_alternative_ = 0;
-  suppression_rejetons_ = 0;
-
-  time_scheme_ = 0;
-  store_RK3_source_acc_ = 0.;
-  store_RK3_fac_sv_ = 0.;
-  rk_step_ = 0;
-
-  modified_time_ini_ = 0.;
-  current_time_ = 0.;
-  current_time_at_rk3_step_ = 0.;
-  tstep_ = 0;
-  timestep_ = 0.;
-  max_simu_time_ = (int) 1e6;
-  dt_sauvegarde_ = 0;
-  nb_timesteps_ = 0;
-  timestep_reprise_vitesse_ = 0;
-
-  timestep_facsec_ = 0.;
-  cfl_ = 0.;
-  fo_ = 0.;
-  oh_ = 0.;
-  enable_dt_oh_ideal_length_factor_ = 0;
-
-  ijk_splitting_ft_extension_ = 0;
-  thermal_probes_ghost_cells_ = 2;
-
-  pression_ap_proj_ = 0.;
-  check_divergence_ = 0;
-  coef_force_time_n_ = 0;
-  facteur_variable_source_ = 0;
-  coef_ammortissement_ = 0;
-  coef_rayon_force_rappel_ = 0;
-  terme_source_acceleration_ = 0;
-  coef_mean_force_ = 0;
-  coef_immobilisation_ = 0;
-
-  vol_bulle_monodisperse_ = 0;
-
-  compute_force_init_ = 0;
-  direction_gravite_ = 0;
-
-  sauvegarder_xyz_ = 0;
-  reprise_ = 0;
-
-  vitesses_translation_bulles_.set_smart_resize(1);
-  mean_bubble_rotation_vector_.set_smart_resize(1);
-  centre_gravite_bulles_.set_smart_resize(1);
+  expression_variable_source_.dimensionner_force(3);
+  expression_vitesse_initiale_.dimensionner_force(3);
 }
 
 IJK_FT_base::IJK_FT_base(const IJK_FT_base& x):
@@ -365,126 +290,13 @@ IJK_FT_base::TimeScheme IJK_FT_base::get_time_scheme() const
 // XD IJK_FT_base interprete IJK_FT_base 1 not_set
 Entree& IJK_FT_base::interpreter(Entree& is)
 {
-  tstep_ = 0;
-
   // On force l'attribut dimension a 3 pour ne pas avoir besoin de le mettre dans le jeu de donnees.
   // Cet attribut est utilise dans les routines front-tracking issues de triou
   Objet_U::dimension=3;
-
-  check_divergence_ = 0;
-  rk_step_ = -1; // default value
-
-  expression_pression_initiale_ = "??"; // par defaut, invalide
-  fichier_reprise_vitesse_ = "??"; // par defaut, invalide
   Param param(que_suis_je());
   Nom ijk_splitting_name;
-
-  dt_sauvegarde_ = 2000000000; // jamais
-  current_time_ = 0.;
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
-  gravite_.resize_array(3);
-  gravite_ = 0.;
 
-  // GAB, rotation
-  direction_gravite_ = 0;
-  //
-  // GAB, qdm
-  // terme_diffusion.resize_array(3);
-  // terme_convection.resize_array(3);
-  // terme_pression.resize_array(3);
-  // rho_u_euler_av_prediction.resize_array(3);
-  // rho_u_euler_av_projection.resize_array(3);
-  // rho_u_euler_ap_prediction.resize_array(3);
-  // rho_u_euler_ap_projection.resize_array(3);
-  rho_u_euler_av_prediction_ = 0.;
-  rho_du_euler_ap_prediction_ = 0.;
-  rho_u_euler_ap_projection_ = 0.;
-  rho_du_euler_ap_projection_ = 0.;
-  rho_u_euler_av_rho_mu_ind_ = 0.;
-  rho_u_euler_ap_rho_mu_ind_ = 0.; //7.;
-  u_euler_ap_rho_mu_ind_ = 0.;
-  terme_diffusion_ = 0.;
-  terme_convection_ = 0.;
-  terme_pression_ = 0.;
-  terme_pression_bis_ = 0.;
-  terme_pression_ter_ = 0.;
-  terme_interfaces_ = 0.;
-  terme_interfaces_bf_mass_solver_ = 0.;
-  terme_interfaces_bf_mass_solver_bis_ = 0.;
-  terme_interfaces_af_mass_solver_ = 0.;
-  terme_interfaces_conv_diff_mass_solver_ = 0.;
-  pression_ap_proj_ = 0.;
-  terme_moyen_convection_mass_solver_ = 0.;
-  terme_moyen_diffusion_mass_solver_ = 0.;
-  //
-  vitesse_entree_ = -1.1e20;
-  vitesse_upstream_ = -1.1e20;
-  expression_vitesse_upstream_ = "??";
-  nb_diam_upstream_ = 0.;
-  upstream_dir_=-1;
-  upstream_stencil_=3;
-  projection_initiale_demandee_ = 0;
-  disable_solveur_poisson_ = 0;
-  resolution_fluctuations_ = 0;
-  disable_diffusion_qdm_ = 0;
-  disable_convection_qdm_ = 0;
-  disable_source_interf_ = 0;
-  frozen_velocity_ = 0;
-  velocity_reset_ = 0;
-  disable_diphasique_ = 0;
-  improved_initial_pressure_guess_ = 0;
-  include_pressure_gradient_in_ustar_ = 0;
-  use_inv_rho_ = 0;
-  use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
-  use_inv_rho_in_poisson_solver_ = 0;
-  correction_bilan_qdm_ = 0;
-  diffusion_alternative_ = 0;
-  suppression_rejetons_ = 0; // By defaults, break-ups are not fixed on restart. (no deletion of smaller fractions)
-  refuse_patch_conservation_QdM_RK3_source_interf_ = 0; // Par defaut, on utilise le patch!
-  // GAB, qdm
-  test_etapes_et_bilan_ = 0;
-  //
-  time_scheme_ = EULER_EXPLICITE;
-  sauvegarder_xyz_ = 0;
-
-  reprise_ = 0; // Indique si on fait une reprise ou pas.
-
-  timestep_facsec_ = 1.;
-  cfl_ = 1.;
-  fo_ = 1.;
-  oh_ = 1.;
-
-  rho_vapeur_ = -1.;
-  mu_vapeur_ = -1.;
-  sigma_     = 0.;
-
-  //ab-forcage-control-ecoulement-deb
-  expression_derivee_acceleration_ = "0"; // par defaut pas de terme d'acceleration
-  terme_source_acceleration_ = 0.; // par defaut, zero
-  integrated_residu_ = 0.;
-  //ab-forcage-control-ecoulement-fin
-
-  expression_potential_phi_ = "??";
-  fichier_post_ = "??";
-
-  terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
-  terme_source_correction_ = 0.;
-  //facteur_variable_source_.resize_array(3); // Initialement a 1, puis sera calcule a chaque iter si expression est donnee.
-  facteur_variable_source_= 1.;
-  expression_derivee_facteur_variable_source_ = "0";
-  correction_force_.resize_array(3); // Par defaut, les flags d'activations sont a zero (ie inactif).
-  correction_force_ = 0;
-
-  gravite_.resize_array(3);
-  // GAB, rotation
-  direction_gravite_ = 0;
-  //
-  gravite_ = 0.;
-  vol_bulle_monodisperse_ = -1.; // Le volume des bulles n'est pas impose par defaut.
-  vol_bulles_.resize_array(0); // Initialement a zero, puis sera calcule a chaque iter.
-  vol_bulles_ = 0.;
-  store_RK3_source_acc_ = 0.;
-  store_RK3_fac_sv_ = 1.;
 #ifdef SMOOTHING_RHO
   smooth_density_ = 0;
   ratio_density_max_ = 15;
@@ -498,18 +310,6 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   correction_semi_locale_volume_bulle_ = 0;
 
-  vitesses_translation_bulles_.set_smart_resize(1);
-  mean_bubble_rotation_vector_.set_smart_resize(1);
-  centre_gravite_bulles_.set_smart_resize(1);
-
-  // valeurs par default des parametres de bulles fixes
-  coef_immobilisation_ = 0.;
-  coef_ammortissement_ = 0.;
-  coef_mean_force_=0.;
-  coef_force_time_n_=0.;
-  coef_rayon_force_rappel_ = 0.;
-  p_seuil_max_ = 10000000 ;
-  p_seuil_min_ = -10000000 ;
   param.ajouter("p_seuil_max", &p_seuil_max_); // XD_ADD_P floattant not_set, default 10000000
   param.ajouter("p_seuil_min", &p_seuil_min_); // XD_ADD_P floattant not_set, default -10000000
   param.ajouter("coef_ammortissement", &coef_ammortissement_); // XD_ADD_P floattant not_set
@@ -517,8 +317,11 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("coef_mean_force", &coef_mean_force_); // XD_ADD_P floattant not_set
   param.ajouter("coef_force_time_n", &coef_force_time_n_); // XD_ADD_P floattant not_set
   param.ajouter("coef_rayon_force_rappel", &coef_rayon_force_rappel_); // XD_ADD_P floattant not_set
-  param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
+
   param.ajouter("ijk_splitting", &ijk_splitting_name, Param::REQUIRED); // XD_ADD_P chaine(into=["grid_splitting"]) Definition of domain decomposition for parallel computations
+  param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
+
+  param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
   param.ajouter("timestep", &timestep_, Param::REQUIRED); // XD_ADD_P floattant Upper limit of the timestep
   param.ajouter("timestep_facsec", &timestep_facsec_); // XD_ADD_P floattant Security factor on timestep
   param.ajouter("cfl", &cfl_); // XD_ADD_P floattant  To provide a value of the limiting CFL number used for setting the timestep
@@ -527,23 +330,39 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
   param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED); // XD_ADD_P entier maximum limit for the number of timesteps
   param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P double maximum limit for the simulation time
+  param.ajouter("tstep_init", &tstep_init_); // XD_ADD_P entier index first interation for recovery
+  param.ajouter("use_tstep_init", &use_tstep_init_); // XD_ADD_P entier use tstep init for constant post-processing step
+
+
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
   param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
-  param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
+
+  param.ajouter("vitesse_entree_dir", &vitesse_entree_dir_);
+  param.ajouter("vitesse_entree_compo_to_force", &vitesse_entree_compo_to_force_);
+  param.ajouter("stencil_vitesse_entree", &stencil_vitesse_entree_);
   param.ajouter("vitesse_entree", &vitesse_entree_); // XD_ADD_P floattant Velocity to prescribe at inlet
   param.ajouter("vitesse_upstream", &vitesse_upstream_); // XD_ADD_P floattant Velocity to prescribe at 'nb_diam_upstream_' before bubble 0.
   param.ajouter("upstream_dir", &upstream_dir_); // XD_ADD_P entier Direction to prescribe the velocity
   param.ajouter("expression_vitesse_upstream", &expression_vitesse_upstream_); // XD_ADD_P chaine Analytical expression to set the upstream velocity
   param.ajouter("upstream_stencil", &upstream_stencil_); // XD_ADD_P int Width on which the velocity is set
   param.ajouter("nb_diam_upstream", &nb_diam_upstream_); // XD_ADD_P floattant Number of bubble diameters upstream of bubble 0 to prescribe the velocity.
+  param.ajouter("nb_diam_ortho_shear_perio", &nb_diam_ortho_shear_perio_); // XD_ADD_P chaine not_set
+  param.ajouter_flag("upstream_velocity_measured", &upstream_velocity_measured_);
+  param.ajouter("upstream_velocity_bubble_factor", &upstream_velocity_bubble_factor_);
+  param.ajouter("upstream_velocity_bubble_factor_deriv", &upstream_velocity_bubble_factor_deriv_);
+  param.ajouter("upstream_velocity_bubble_factor_integral", &upstream_velocity_bubble_factor_integral_);
+  param.ajouter("velocity_bubble_scope", &velocity_bubble_scope_);
+
   param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
+  param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
+
   param.ajouter("check_stop_file", &check_stop_file_); // XD_ADD_P chaine stop file to check (if 1 inside this file, stop computation)
   param.ajouter("dt_sauvegarde", &dt_sauvegarde_); // XD_ADD_P entier saving frequency (writing files for computation restart)
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
   param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
+
   param.ajouter("gravite", &gravite_); // XD_ADD_P list gravity vector [gx, gy, gz]
-  expression_vitesse_initiale_.dimensionner_force(3);
   param.ajouter("expression_vx_init", &expression_vitesse_initiale_[0]); // XD_ADD_P chaine initial field for x-velocity component (parser of x,y,z)
   param.ajouter("expression_vy_init", &expression_vitesse_initiale_[1]); // XD_ADD_P chaine initial field for y-velocity component (parser of x,y,z)
   param.ajouter("expression_vz_init", &expression_vitesse_initiale_[2]); // XD_ADD_P chaine initial field for z-velocity component (parser of x,y,z)
@@ -551,14 +370,16 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter_flag("compute_force_init", &compute_force_init_); // XD_ADD_P chaine not_set
   param.ajouter("terme_force_init", &terme_source_acceleration_); // XD_ADD_P chaine not_set
   param.ajouter("correction_force", &correction_force_); // XD_ADD_P chaine not_set
+
   param.ajouter("vol_bulle_monodisperse", &vol_bulle_monodisperse_); // XD_ADD_P chaine not_set
+  param.ajouter("diam_bulle_monodisperse", &diam_bulle_monodisperse_); // XD_ADD_P chaine not_set
   param.ajouter("vol_bulles", &vol_bulles_); // XD_ADD_P chaine not_set
+
   param.ajouter("time_scheme", &time_scheme_); // XD_ADD_P chaine(into=["euler_explicit","RK3_FT"]) Type of time scheme
   param.dictionnaire("euler_explicit", EULER_EXPLICITE);
   param.dictionnaire("RK3_FT", RK3_FT);
 
   // GAB question : pourquoi expression_variable_source_ est de type nom et pas de type Vecteur3 ??
-  expression_variable_source_.dimensionner_force(3);
   param.ajouter("expression_variable_source_x", &expression_variable_source_[0]); // XD_ADD_P chaine not_set
   param.ajouter("expression_variable_source_y", &expression_variable_source_[1]); // XD_ADD_P chaine not_set
   param.ajouter("expression_variable_source_z", &expression_variable_source_[2]); // XD_ADD_P chaine not_set
@@ -570,9 +391,15 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("expression_potential_phi", &expression_potential_phi_); // XD_ADD_P chaine parser to define phi and make a momentum source Nabla phi.
 
   param.ajouter("velocity_diffusion_op", &velocity_diffusion_op_);
-  param.ajouter("velocity_convection_op", &velocity_convection_op_);
+  param.ajouter("velocity_convection_op", &velocity_convection_op_); // XD_ADD_P chaine Type of velocity convection scheme
+
+  param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
+  param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
+  param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
 
   param.ajouter("interfaces", &interfaces_); // XD_ADD_P interfaces not_set
+  param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
+
   // GAB, THI
   param.ajouter("forcage", &forcage_);  // XD_ADD_P chaine not_set
   param.ajouter("corrections_qdm", &qdm_corrections_); // XD_ADD_P chaine not_set
@@ -585,9 +412,6 @@ Entree& IJK_FT_base::interpreter(Entree& is)
    */
   param.ajouter("thermique", &thermique_); // XD_ADD_P thermique not_set
   param.ajouter("energie", &energie_); // XD_ADD_P chaine not_set
-
-
-  param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
 
   param.ajouter("fichier_post", &fichier_post_); // XD_ADD_P chaine name of the post-processing file (lata file)
   // ATTENTION les fichiers reprises sont des fichiers .lata ou sauv.lata
@@ -607,28 +431,34 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter_flag("velocity_reset", &velocity_reset_); // XD_ADD_P chaine not_set
   param.ajouter_flag("improved_initial_pressure_guess", &improved_initial_pressure_guess_); // XD_ADD_P chaine not_set
   param.ajouter_flag("include_pressure_gradient_in_ustar", &include_pressure_gradient_in_ustar_); // XD_ADD_P chaine not_set
-  //  param.ajouter_flag("use_inv_rho", &use_inv_rho_);
+
+  param.ajouter_flag("use_harmonic_viscosity", &use_harmonic_viscosity_);
+  // param.ajouter_flag("use_inv_rho", &use_inv_rho_);
   param.ajouter_flag("use_inv_rho_for_mass_solver_and_calculer_rho_v", &use_inv_rho_for_mass_solver_and_calculer_rho_v_); // XD_ADD_P chaine not_set
   param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P chaine not_set
   param.ajouter_flag("diffusion_alternative", &diffusion_alternative_); // XD_ADD_P chaine not_set
   param.ajouter_flag("suppression_rejetons", &suppression_rejetons_); // XD_ADD_P chaine not_set
-  param.ajouter("correction_bilan_qdm", &correction_bilan_qdm_); // XD_ADD_P chaine not_set
+  // param.ajouter("correction_bilan_qdm", &correction_bilan_qdm_); // XD_ADD_P chaine not_set
   param.ajouter_flag("refuse_patch_conservation_QdM_RK3_source_interf", &refuse_patch_conservation_QdM_RK3_source_interf_); // XD_ADD_P rien experimental Keyword, not for use
+
   // GAB; qdm
   param.ajouter_flag("test_etapes_et_bilan", &test_etapes_et_bilan_); // XD_ADD_P chaine not_set
   // GAB, champ de reprise + champ initial
   param.ajouter_flag("ajout_init_a_reprise", &add_initial_field_); // XD_ADD_P chaine not_set
 
+  param.ajouter_flag("harmonic_nu_in_diff_operator", &harmonic_nu_in_diff_operator_); // XD_ADD_P rien Disable pressure poisson solver
+  param.ajouter_flag("harmonic_nu_in_calc_with_indicatrice", &harmonic_nu_in_calc_with_indicatrice_); // XD_ADD_P rien Disable pressure poisson solver
 
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_); // XD_ADD_P chaine not_set
   param.ajouter("reprise_liq_velocity_tmoy", &liq_velocity_tmoy_); // XD_ADD_P chaine not_set
   vap_velocity_tmoy_ = reprise_vap_velocity_tmoy_;
   liq_velocity_tmoy_ = reprise_liq_velocity_tmoy_;
 
-
-  param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
-  param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
-  param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
+  // Correcteur PID
+  param.ajouter("Kp", &Kp_);
+  param.ajouter("Kd", &Kd_);
+  param.ajouter("Ki", &Ki_);
+  param.ajouter("epaisseur_maille",&epaisseur_maille_);
 
   param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
@@ -642,56 +472,55 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   param.ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
 
-  param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
   post_.complete_interpreter(param, is);
 
-// XD attr check_stats rien check_stats 1 Flag to compute additional (xy)-plane averaged statistics
-// XD attr dt_post entier dt_post 1 Post-processing frequency (for lata output)
-// XD attr dt_post_stats_plans entier dt_post_stats_plans 1 Post-processing frequency for averaged statistical files (txt files containing averaged information on (xy) planes for each z-center) both instantaneous, or cumulated time-integration (see file header for variables list)
-// XD attr dt_post_stats_bulles entier dt_post_stats_bulles 1 Post-processing frequency for bubble information (for out files as bubble area, centroid position, etc...)
-// XD attr champs_a_postraiter listchaine champs_a_postraiter 1 List of variables to post-process in lata files.
-// XD attr expression_vx_ana chaine expression_vx_ana 1 Analytical Vx (parser of x,y,z, t) used for post-processing only
-// XD attr expression_vy_ana chaine expression_vy_ana 1 Analytical Vy (parser of x,y,z, t) used for post-processing only
-// XD attr expression_vz_ana chaine expression_vz_ana 1 Analytical Vz (parser of x,y,z, t) used for post-processing only
-// XD attr expression_p_ana chaine expression_p_ana 1 analytical pressure solution (parser of x,y,z, t) used for post-processing only
-// XD attr expression_dPdx_ana chaine expression_dPdx_ana 1 analytical expression dP/dx=f(x,y,z,t), for post-processing only
-// XD attr expression_dPdy_ana chaine expression_dPdy_ana 1 analytical expression dP/dy=f(x,y,z,t), for post-processing only
-// XD attr expression_dPdz_ana chaine expression_dPdz_ana 1 analytical expression dP/dz=f(x,y,z,t), for post-processing only
-// XD attr expression_dUdx_ana chaine expression_dUdx_ana 1 analytical expression dU/dx=f(x,y,z,t), for post-processing only
-// XD attr expression_dUdy_ana chaine expression_dUdy_ana 1 analytical expression dU/dy=f(x,y,z,t), for post-processing only
-// XD attr expression_dUdz_ana chaine expression_dUdz_ana 1 analytical expression dU/dz=f(x,y,z,t), for post-processing only
-// XD attr expression_dVdx_ana chaine expression_dVdx_ana 1 analytical expression dV/dx=f(x,y,z,t), for post-processing only
-// XD attr expression_dVdy_ana chaine expression_dVdy_ana 1 analytical expression dV/dy=f(x,y,z,t), for post-processing only
-// XD attr expression_dVdz_ana chaine expression_dVdz_ana 1 analytical expression dV/dz=f(x,y,z,t), for post-processing only
-// XD attr expression_dWdx_ana chaine expression_dWdx_ana 1 analytical expression dW/dx=f(x,y,z,t), for post-processing only
-// XD attr expression_dWdy_ana chaine expression_dWdy_ana 1 analytical expression dW/dy=f(x,y,z,t), for post-processing only
-// XD attr expression_dWdz_ana chaine expression_dWdz_ana 1 analytical expression dW/dz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdxdx_ana chaine expression_ddPdxdx_ana 1 analytical expression d2P/dx2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdydy_ana chaine expression_ddPdydy_ana 1 analytical expression d2P/dy2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdzdz_ana chaine expression_ddPdzdz_ana 1 analytical expression d2P/dz2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdxdy_ana chaine expression_ddPdxdy_ana 1 analytical expression d2P/dxdy=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdxdz_ana chaine expression_ddPdxdz_ana 1 analytical expression d2P/dxdz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddPdydz_ana chaine expression_ddPdydz_ana 1 analytical expression d2P/dydz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdxdx_ana chaine expression_ddUdxdx_ana 1 analytical expression d2U/dx2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdydy_ana chaine expression_ddUdydy_ana 1 analytical expression d2U/dy2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdzdz_ana chaine expression_ddUdzdz_ana 1 analytical expression d2U/dz2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdxdy_ana chaine expression_ddUdxdy_ana 1 analytical expression d2U/dxdy=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdxdz_ana chaine expression_ddUdxdz_ana 1 analytical expression d2U/dxdz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddUdydz_ana chaine expression_ddUdydz_ana 1 analytical expression d2U/dydz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdxdx_ana chaine expression_ddVdxdx_ana 1 analytical expression d2V/dx2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdydy_ana chaine expression_ddVdydy_ana 1 analytical expression d2V/dy2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdzdz_ana chaine expression_ddVdzdz_ana 1 analytical expression d2V/dz2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdxdy_ana chaine expression_ddVdxdy_ana 1 analytical expression d2V/dxdy=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdxdz_ana chaine expression_ddVdxdz_ana 1 analytical expression d2V/dxdz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddVdydz_ana chaine expression_ddVdydz_ana 1 analytical expression d2V/dydz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdxdx_ana chaine expression_ddWdxdx_ana 1 analytical expression d2W/dx2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdydy_ana chaine expression_ddWdydy_ana 1 analytical expression d2W/dy2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdzdz_ana chaine expression_ddWdzdz_ana 1 analytical expression d2W/dz2=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdxdy_ana chaine expression_ddWdxdy_ana 1 analytical expression d2W/dxdy=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdxdz_ana chaine expression_ddWdxdz_ana 1 analytical expression d2W/dxdz=f(x,y,z,t), for post-processing only
-// XD attr expression_ddWdydz_ana chaine expression_ddWdydz_ana 1 analytical expression d2W/dydz=f(x,y,z,t), for post-processing only
-// XD attr t_debut_statistiques floattant t_debut_statistiques 1 Initial time for computation, printing and accumulating time-integration
-// XD attr sondes bloc_lecture sondes 1 probes
+  // XD attr check_stats rien check_stats 1 Flag to compute additional (xy)-plane averaged statistics
+  // XD attr dt_post entier dt_post 1 Post-processing frequency (for lata output)
+  // XD attr dt_post_stats_plans entier dt_post_stats_plans 1 Post-processing frequency for averaged statistical files (txt files containing averaged information on (xy) planes for each z-center) both instantaneous, or cumulated time-integration (see file header for variables list)
+  // XD attr dt_post_stats_bulles entier dt_post_stats_bulles 1 Post-processing frequency for bubble information (for out files as bubble area, centroid position, etc...)
+  // XD attr champs_a_postraiter listchaine champs_a_postraiter 1 List of variables to post-process in lata files.
+  // XD attr expression_vx_ana chaine expression_vx_ana 1 Analytical Vx (parser of x,y,z, t) used for post-processing only
+  // XD attr expression_vy_ana chaine expression_vy_ana 1 Analytical Vy (parser of x,y,z, t) used for post-processing only
+  // XD attr expression_vz_ana chaine expression_vz_ana 1 Analytical Vz (parser of x,y,z, t) used for post-processing only
+  // XD attr expression_p_ana chaine expression_p_ana 1 analytical pressure solution (parser of x,y,z, t) used for post-processing only
+  // XD attr expression_dPdx_ana chaine expression_dPdx_ana 1 analytical expression dP/dx=f(x,y,z,t), for post-processing only
+  // XD attr expression_dPdy_ana chaine expression_dPdy_ana 1 analytical expression dP/dy=f(x,y,z,t), for post-processing only
+  // XD attr expression_dPdz_ana chaine expression_dPdz_ana 1 analytical expression dP/dz=f(x,y,z,t), for post-processing only
+  // XD attr expression_dUdx_ana chaine expression_dUdx_ana 1 analytical expression dU/dx=f(x,y,z,t), for post-processing only
+  // XD attr expression_dUdy_ana chaine expression_dUdy_ana 1 analytical expression dU/dy=f(x,y,z,t), for post-processing only
+  // XD attr expression_dUdz_ana chaine expression_dUdz_ana 1 analytical expression dU/dz=f(x,y,z,t), for post-processing only
+  // XD attr expression_dVdx_ana chaine expression_dVdx_ana 1 analytical expression dV/dx=f(x,y,z,t), for post-processing only
+  // XD attr expression_dVdy_ana chaine expression_dVdy_ana 1 analytical expression dV/dy=f(x,y,z,t), for post-processing only
+  // XD attr expression_dVdz_ana chaine expression_dVdz_ana 1 analytical expression dV/dz=f(x,y,z,t), for post-processing only
+  // XD attr expression_dWdx_ana chaine expression_dWdx_ana 1 analytical expression dW/dx=f(x,y,z,t), for post-processing only
+  // XD attr expression_dWdy_ana chaine expression_dWdy_ana 1 analytical expression dW/dy=f(x,y,z,t), for post-processing only
+  // XD attr expression_dWdz_ana chaine expression_dWdz_ana 1 analytical expression dW/dz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdxdx_ana chaine expression_ddPdxdx_ana 1 analytical expression d2P/dx2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdydy_ana chaine expression_ddPdydy_ana 1 analytical expression d2P/dy2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdzdz_ana chaine expression_ddPdzdz_ana 1 analytical expression d2P/dz2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdxdy_ana chaine expression_ddPdxdy_ana 1 analytical expression d2P/dxdy=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdxdz_ana chaine expression_ddPdxdz_ana 1 analytical expression d2P/dxdz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddPdydz_ana chaine expression_ddPdydz_ana 1 analytical expression d2P/dydz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdxdx_ana chaine expression_ddUdxdx_ana 1 analytical expression d2U/dx2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdydy_ana chaine expression_ddUdydy_ana 1 analytical expression d2U/dy2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdzdz_ana chaine expression_ddUdzdz_ana 1 analytical expression d2U/dz2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdxdy_ana chaine expression_ddUdxdy_ana 1 analytical expression d2U/dxdy=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdxdz_ana chaine expression_ddUdxdz_ana 1 analytical expression d2U/dxdz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddUdydz_ana chaine expression_ddUdydz_ana 1 analytical expression d2U/dydz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdxdx_ana chaine expression_ddVdxdx_ana 1 analytical expression d2V/dx2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdydy_ana chaine expression_ddVdydy_ana 1 analytical expression d2V/dy2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdzdz_ana chaine expression_ddVdzdz_ana 1 analytical expression d2V/dz2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdxdy_ana chaine expression_ddVdxdy_ana 1 analytical expression d2V/dxdy=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdxdz_ana chaine expression_ddVdxdz_ana 1 analytical expression d2V/dxdz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddVdydz_ana chaine expression_ddVdydz_ana 1 analytical expression d2V/dydz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdxdx_ana chaine expression_ddWdxdx_ana 1 analytical expression d2W/dx2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdydy_ana chaine expression_ddWdydy_ana 1 analytical expression d2W/dy2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdzdz_ana chaine expression_ddWdzdz_ana 1 analytical expression d2W/dz2=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdxdy_ana chaine expression_ddWdxdy_ana 1 analytical expression d2W/dxdy=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdxdz_ana chaine expression_ddWdxdz_ana 1 analytical expression d2W/dxdz=f(x,y,z,t), for post-processing only
+  // XD attr expression_ddWdydz_ana chaine expression_ddWdydz_ana 1 analytical expression d2W/dydz=f(x,y,z,t), for post-processing only
+  // XD attr t_debut_statistiques floattant t_debut_statistiques 1 Initial time for computation, printing and accumulating time-integration
+  // XD attr sondes bloc_lecture sondes 1 probes
 
   param.lire_avec_accolades(is);
 
@@ -725,14 +554,14 @@ Entree& IJK_FT_base::interpreter(Entree& is)
       Process::exit();
     }
 
-  if ((correction_bilan_qdm_<0) || (correction_bilan_qdm_>4))
-    {
-      Cerr << "Invalid value of correction_bilan_qdm : " << correction_bilan_qdm_  << ". " << finl;
-      Cerr << "Please use 0, 1, or 2 for no_correction, geometric_mean or arithmetic_mean respectively" << finl;
-      Cerr << "Or 3 to anhilate the residual deviation... " << finl;
-      Cerr << "Or 4 to anhilate the residual deviation (except along z)... " << finl;
-      Process::exit();
-    }
+//  if ((correction_bilan_qdm_<0) || (correction_bilan_qdm_>4))
+//    {
+//      Cerr << "Invalid value of correction_bilan_qdm : " << correction_bilan_qdm_  << ". " << finl;
+//      Cerr << "Please use 0, 1, or 2 for no_correction, geometric_mean or arithmetic_mean respectively" << finl;
+//      Cerr << "Or 3 to anhilate the residual deviation... " << finl;
+//      Cerr << "Or 4 to anhilate the residual deviation (except along z)... " << finl;
+//      Process::exit();
+//    }
 
   // Si on utilise un seul groupe et qu'on impose un volume unique a toutes les bulles,
   if (vol_bulle_monodisperse_>=0.)
@@ -767,7 +596,25 @@ Entree& IJK_FT_base::interpreter(Entree& is)
       exit();
     }
 
+
+
   splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
+
+  const IJK_Grid_Geometry& geom = splitting_.get_grid_geometry();
+  if (vol_bulle_monodisperse_ != -1 || diam_bulle_monodisperse_ != -1)
+    {
+      if (vol_bulle_monodisperse_ != -1)
+        diam_bulle_monodisperse_ = pow(6. * vol_bulle_monodisperse_ / (M_PI), 1./3.);
+      else
+        vol_bulle_monodisperse_ = M_PI * pow(diam_bulle_monodisperse_, 3) / 6.;
+      int ijk_splitting_ft_extension_from_diameter = 0;
+      for (int c=0; c<3; c++)
+        {
+          const double delta = geom.get_constant_delta(c);
+          ijk_splitting_ft_extension_from_diameter = std::max(ijk_splitting_ft_extension_from_diameter, (int) ceil(diam_bulle_monodisperse_/delta));
+        }
+      ijk_splitting_ft_extension_ = (ijk_splitting_ft_extension_from_diameter > ijk_splitting_ft_extension_) ? ijk_splitting_ft_extension_from_diameter : ijk_splitting_ft_extension_;
+    }
 
   Cerr << "Construction du domaine VDF NS pour les sondes..." << finl;
   refprobleme_ns_ = creer_domaine_vdf(splitting_, "DOM_NS_VDF");
@@ -889,6 +736,55 @@ Entree& IJK_FT_base::interpreter(Entree& is)
             }
         }
       redistribute_from_splitting_ft_elem_.initialize(splitting_ft_, splitting_, loc, map);
+
+      for (int dir2 = 0; dir2 < 3; dir2++)
+        {
+          const int ghost_a_redistribute = 2 ;
+          const int n = splitting_.get_nb_items_global(loc, dir2);
+          if(dir2==2)
+            {
+              // on ne redistribue les ghost que sur z pour le shear perio
+              map[dir2].resize(1,3);
+              // envoyer les rangees -2, -1, 0, 1 dans 0, 1, 2, 3
+              map[dir2](0,0) = n_ext-ghost_a_redistribute;  // source index
+              map[dir2](0,1) = 0; // dest index
+              map[dir2](0,2) = ghost_a_redistribute*2; // size
+            }
+          else
+            {
+              map[dir2].resize(1,3);
+              map[dir2](0,0) = n_ext;  // source index
+              map[dir2](0,1) = 0; // dest index
+              map[dir2](0,2) = n; // size
+            }
+
+        }
+      redistribute_from_splitting_ft_elem_ghostz_min_.initialize(splitting_ft_, splitting_, loc, map);
+
+      for (int dir2 = 0; dir2 < 3; dir2++)
+        {
+          const int ghost_a_redistribute = 2 ;
+          const int n = splitting_.get_nb_items_global(loc, dir2);
+          const int n_ft = splitting_ft_.get_nb_items_global(loc, dir2);
+          if(dir2==2)
+            {
+              // on ne redistribue les ghost que sur z pour le shear perio
+              map[dir2].resize(1,3);
+              // envoyer les rangees n-2, n-1, n, n+1 dans 4, 5, 6, 7
+              map[dir2](0,0) = n_ft - n_ext - ghost_a_redistribute;  // source index
+              map[dir2](0,1) = n - 2*ghost_a_redistribute; // dest index
+              map[dir2](0,2) = ghost_a_redistribute*2; // size
+            }
+          else
+            {
+              map[dir2].resize(1,3);
+              map[dir2](0,0) = n_ext;  // source index
+              map[dir2](0,1) = 0; // dest index
+              map[dir2](0,2) = n; // size
+            }
+
+        }
+      redistribute_from_splitting_ft_elem_ghostz_max_.initialize(splitting_ft_, splitting_, loc, map);
     }
   }
 
@@ -932,7 +828,10 @@ Entree& IJK_FT_base::interpreter(Entree& is)
     itr.associer(*this);
 
   thermals_.associer(*this);
-  first_step_interface_smoothing_ = (first_step_interface_smoothing_ && !(*this).reprise_);
+  first_step_interface_smoothing_ = (first_step_interface_smoothing_ &&
+                                     (!(*this).reprise_ && current_time_ == 0.));
+  if (tstep_init_)
+    use_tstep_init_ = 1;
 
   return is;
 }
@@ -994,36 +893,267 @@ const IJK_Field_double& IJK_FT_base::get_IJK_field(const Nom& nom) const
   return post_.get_IJK_field(nom);
 }
 
-void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed)
+void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx,
+                                       IJK_Field_double& vy,
+                                       IJK_Field_double& vz,
+                                       double v_imposed,
+                                       const int& dir,
+                                       const int& compo,
+                                       const int& stencil)
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const int offset_i = splitting.get_offset_local(DIRECTION_I);
-  if (offset_i > 0)
+  const IJK_Splitting& splitting = select(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
+  const int offset_ijk = splitting.get_offset_local(dir);
+  if (offset_ijk > 0)
     return;
   {
-    double imposed[3] = {0., 0., 0.};
-    imposed[0] = v_imposed;
+    double imposed[3] = {v_imposed, v_imposed, v_imposed};
+    const int direction_min = (compo == -1) ? 0 : dir;
+    const int direction_max = (compo == -1) ? 3 : dir + 1;
+    for (int direction = direction_min; direction < direction_max; direction++)
+      {
+        IJK_Field_double& velocity = select(direction, vx, vy, vz);
+        const int imin = select(direction, 0, 0, 0);
+        const int jmin = select(direction, 0, 0, 0);
+        const int kmin = select(direction, 0, 0, 0);
+        const int imax = select(direction, stencil, velocity.ni(), velocity.ni());
+        const int jmax = select(direction, velocity.nj(), stencil, velocity.nj());
+        const int kmax = select(direction, velocity.nk(), velocity.nk(), stencil);
+        for (int k = kmin; k < kmax; k++)
+          for (int j = jmin; j < jmax; j++)
+            for (int i = imin; i < imax; i++)
+              velocity(i,j,k) = imposed[direction];
+      }
+  }
+}
+
+
+void IJK_FT_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+                                                      double v_imposed,
+                                                      const IJK_Interfaces& interfaces,
+                                                      double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,
+                                                      double Ux0,double Uy0,double Uz0,int epaisseur_maille)
+{
+  assert(interfaces.get_nb_bulles_reelles() == 1);
+  DoubleTab bounding_box;
+  Cerr << "Upstream Velocity - Compute Bounding box" << finl;
+  interfaces.calculer_bounding_box_bulles(bounding_box);
+
+  // Calcule la hauteur en x et z de la bulle et la position de son cdg :
+  const double Dbx = bounding_box(0, 0, 1) - bounding_box(0, 0, 0);
+  const double Dbz = bounding_box(0, 2, 1) - bounding_box(0, 2, 0);
+  const double xb  = ( bounding_box(0, 0, 1) + bounding_box(0, 0, 0) ) / 2.;
+  const double zb  = ( bounding_box(0, 2, 1) + bounding_box(0, 2, 0) ) / 2.;
+
+  const IJK_Splitting& splitting = vx.get_splitting();
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  double origin_x = geom.get_origin(DIRECTION_I) ;
+  double lx = geom.get_domain_length(DIRECTION_I) ;
+  double origin_z = geom.get_origin(DIRECTION_K) ;
+  double lz = geom.get_domain_length(DIRECTION_K) ;
+  double z_min = zb - (Dbz * nb_diam_ortho_shear_perio) / 2. ;
+  double z_max = zb + (Dbz * nb_diam_ortho_shear_perio) / 2. ;
+  double z_min_modulo = z_min ;
+  double z_max_modulo = z_max ;
+
+  bool perio =  geom.get_periodic_flag(DIRECTION_K);
+  if (perio)
+    {
+      z_min_modulo=std::fmod(std::fmod(z_min-origin_z,lz)+lz,lz)+origin_z;
+      z_max_modulo=std::fmod(std::fmod(z_max-origin_z,lz)+lz,lz)+origin_z;
+    }
+  // Calcule la hauteur du plan ou sera impose la vitesse par rapport a la bulle reelle
+  double xobj = xb + nb_diam*Dbx;
+  // Calcule la hauteur du plan ou sera impose la vitesse par rapport a la bulle shear periodique par le shear positif
+  double xb_offsetp  = xb +  std::fmod(std::fmod(IJK_Shear_Periodic_helpler::shear_x_time_, lx)+lx,lx) ;
+  double xobj_offsetp = xb_offsetp + nb_diam*Dbx;
+  // Calcule la hauteur du plan ou sera impose la vitesse par rapport a la bulle shear periodique par le shear negatif
+  double xb_offsetm  = xb -  std::fmod(std::fmod(IJK_Shear_Periodic_helpler::shear_x_time_, lx)+lx,lx) ;
+  double xobj_offsetm = xb_offsetm + nb_diam*Dbx;
+
+  perio =  geom.get_periodic_flag(DIRECTION_I);
+  // on s'assure que la position des plans en x reste dans le domaine physique
+  if (perio)
+    {
+      xobj=std::fmod(std::fmod(xobj-origin_x,lx)+lx,lx)+origin_x;
+      xobj_offsetp=std::fmod(std::fmod(xobj_offsetp-origin_x,lx)+lx,lx)+origin_x;
+      xobj_offsetm=std::fmod(std::fmod(xobj_offsetm-origin_x,lx)+lx,lx)+origin_x;
+    }
+
+  double dx = geom.get_constant_delta(DIRECTION_I);
+  double dz = geom.get_constant_delta(DIRECTION_K);
+  int offset_i = splitting.get_offset_local(DIRECTION_I);
+  int offset_k = splitting.get_offset_local(DIRECTION_K);
+
+  // position des plans : conversion en indice du tableau NS
+  // en shear perio, pas de decoupage sur x. les index_i sont compris entre 0 et ni_tot
+  int ni = vy.ni();
+  int index_i_offsetp = (int)(round((xobj_offsetp-origin_x)/ dx)) - offset_i;
+  int index_i_offsetm = (int)(round((xobj_offsetm-origin_x)/ dx)) - offset_i;
+  int index_i =         (int)(round((xobj        -origin_x)/ dx)) - offset_i;
+  // decoupage en z autorise. ATTENTION, indices locaux potentiellement negatifs
+  int index_k_min = (int)(round((z_min_modulo-origin_z)/ dz)) - offset_k;
+  int index_k_max = (int)(((z_max_modulo-origin_z)/ dz)) - offset_k;
+
+  {
     for (int direction = 0; direction < 3; direction++)
       {
         IJK_Field_double& velocity = select(direction, vx, vy, vz);
-        const int imin = 0;
-        const int jmin = 0;
-        const int kmin = 0;
-        const int imax = 3;
-        const int jmax = velocity.nj();
-        const int kmax = velocity.nk();
-        for (int k = kmin; k < kmax; k++)
+        for (int k = 0; k < velocity.nk(); k++)
           {
-            for (int j = jmin; j < jmax; j++)
+            for (int j = 0; j < velocity.nj(); j++)
               {
-                for (int i = imin; i < imax; i++)
+                for (int i = 0; i < velocity.ni(); i++)
                   {
-                    velocity(i,j,k) = imposed[direction];
+                    bool go_i = false;
+                    bool go_k = false;
+                    int index_i_real = index_i;
+
+                    // coord Z
+                    if (z_min_modulo>z_max_modulo)
+                      {
+                        // la plan est a cheval sur la frontiere z
+                        // Il y donc deux plans distincts ou imposer la vitesse
+                        // un pour la bulle "de droite" (k=nk), un pour la bulle "de gauche" (k=0).
+                        if(z_min<origin_z)
+                          {
+                            // la bulle reelle est en 0
+                            // la bulle fantome est soumise a un shear positif
+                            if (k>index_k_min and index_k_min<velocity.nk())
+                              {
+                                // indice i du plan pour la bulle fantome
+                                index_i_real = index_i_offsetp ;
+                                go_k = true ;
+
+                              }
+                            else if (k<index_k_max and index_k_max>=0)
+                              {
+                                // indice i du plan pour la bulle reelle
+                                index_i_real = index_i;
+                                go_k = true ;
+
+                              }
+                          }
+                        else if(z_max>lz+origin_z)
+                          {
+                            // la bulle reelle est en nk
+                            // la bulle fantome est soumise a un shear negatif
+                            if (k>index_k_min and index_k_min<velocity.nk())
+                              {
+                                // indice i du plan pour la bulle reelle
+                                index_i_real =  index_i;
+                                go_k = true ;
+                              }
+                            else if (k<index_k_max and index_k_max>=0)
+                              {
+                                // indice i du plan pour la bulle fantome
+                                index_i_real = index_i_offsetm ;
+                                go_k = true ;
+                              }
+                          }
+                      }
+                    else
+                      {
+                        // le plan ne traverse pas la frontiere z
+                        // un seul plan defini pour la bulle entiere
+                        if (z_max_modulo!=z_max and z_min_modulo!=z_min)
+                          {
+                            // le plan est entierement contenu dans le domaine etendu
+                            // pas a cheval sur la frontiere dz
+                            // lechange de compo n a pas encore ete fait
+                            if (z_min<origin_z)
+                              {
+                                if ((index_k_min<velocity.nk() and k>index_k_min) and (k<index_k_max and index_k_max>=0))
+                                  {
+                                    index_i_real = index_i_offsetp;
+                                    go_k = true ;
+                                  }
+                              }
+                            else if (z_max>lz+origin_z)
+                              {
+                                if ((index_k_min<velocity.nk() and k>index_k_min) and (k<index_k_max and index_k_max>=0))
+                                  {
+                                    index_i_real = index_i_offsetm;
+                                    go_k = true ;
+                                  }
+                              }
+
+
+                          }
+                        else
+                          {
+                            // la bulle reelle est entierement dans le domaine NS
+                            if ((index_k_min<velocity.nk() and k>index_k_min) and (k<index_k_max and index_k_max>=0))
+                              {
+                                index_i_real = index_i;
+                                go_k = true ;
+                              }
+                          }
+
+
+
+                      }
+
+                    // coord X
+                    if (i == index_i_real%ni)
+                      {
+                        // On est sur la ligne du plan ou imposer la vitesse
+                        go_i = true;
+                      }
+
+                    if(go_i && go_k)
+                      {
+                        // on impose la vitesse sur une couche de 3 mailles
+                        // U(z) = DU_perio * z / Lz
+                        // V = W = 0
+                        // ATTENTION : doit etre utilisee avec corrections_qdm pour eviter toute deviation
+                        // ATTENTION : s assurer que la condition de corrections_qdm est compatible avec ce profil de vitesse
+                        if(direction==0)
+                          {
+
+                            double z=dz/2.+(k+offset_k)*dz;
+                            /*
+                            velocity(i%ni,j,k)=Ux0+bc.get_dU_perio(bc.get_resolution_u_prime_())*z/lz;
+                            velocity((i+1)%ni,j,k)=Ux0+bc.get_dU_perio(bc.get_resolution_u_prime_())*z/lz;
+                            velocity((i+2)%ni,j,k)=Ux0+bc.get_dU_perio(bc.get_resolution_u_prime_())*z/lz;
+                            */
+                            for (int m=0; m<epaisseur_maille; m++)
+                              {
+                                velocity((i+m)%ni,j,k)=Ux0+bc.get_dU_perio(bc.get_resolution_u_prime_())*z/lz;
+                              }
+                          }
+                        else if(direction==2)
+                          {
+                            /*
+                            velocity(i%ni,j,k)=0.;
+                            velocity((i+1)%ni,j,k)=0.;
+                            velocity((i+2)%ni,j,k)=0.;
+                            */
+                            for (int m=0; m<epaisseur_maille; m++)
+                              {
+                                velocity((i+m)%ni,j,k)=Uz0;
+                              }
+                          }
+                        else
+                          {
+                            /*
+                            velocity(i%ni,j,k)=0.;
+                            velocity((i+1)%ni,j,k)=0.;
+                            velocity((i+2)%ni,j,k)=0.;
+                            */
+                            for (int m=0; m<epaisseur_maille; m++)
+                              {
+                                velocity((i+m)%ni,j,k)=Uy0;
+                              }
+
+                          }
+                      }
+
                   }
               }
           }
       }
   }
+  Cerr << "Upstream Velocity has been forced" << finl;
 }
 
 void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
@@ -1041,6 +1171,7 @@ void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double
       if (dir == -1)
         dir=0;
     }
+
   const IJK_Splitting& splitting = vx.get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
 
@@ -1155,15 +1286,9 @@ void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double
             break;
           }
         for (int k = kmin; k < kmax; k++)
-          {
-            for (int j = jmin; j < jmax; j++)
-              {
-                for (int i = imin; i < imax; i++)
-                  {
-                    velocity(i,j,k) = imposed[direction];
-                  }
-              }
-          }
+          for (int j = jmin; j < jmax; j++)
+            for (int i = imin; i < imax; i++)
+              velocity(i,j,k) = imposed[direction];
       }
   }
   Cerr << "Upstream Velocity has been forced" << finl;
@@ -1185,7 +1310,7 @@ void IJK_FT_base::ecrire_donnees(const FixedVector<IJK_Field_double, 3>& f3compo
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          //        le_fichier << coord_i[i] << Separateur::SPACE << coord_j[j] << Separateur::SPACE << coord_k[k] << f(i,j,k) << Separateur::SPACE;
+          // le_fichier << coord_i[i] << Separateur::SPACE << coord_j[j] << Separateur::SPACE << coord_k[k] << f(i,j,k) << Separateur::SPACE;
           le_fichier << coord_i[i] << coord_j[j] << coord_k[k] << f(i,j,k);
           cnt++;
         }
@@ -1274,10 +1399,11 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
   statistiques().begin_count(sauvegarde_counter_);
 
   Nom lata_name(fichier_sauvegarde);
+  Nom interf_name = lata_name + ".interfaces";
   lata_name += ".lata";
   dumplata_header(lata_name, velocity_[0] /* on passe un champ pour ecrire la geometrie */);
-  dumplata_newtime(lata_name,current_time_);
-  dumplata_vector(lata_name,"VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
+  dumplata_newtime(lata_name, current_time_);
+  dumplata_vector(lata_name, "VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
 
   post_.sauvegarder_post(lata_name);
 
@@ -1287,10 +1413,10 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       xyz_name += ".xyz";
       // Nom xyz_name_ascii = xyz_name + "_ascii";
       dumpxyz_vector(velocity_, xyz_name, true);
-      //  dumpxyz_vector(velocity_, xyz_name_ascii, false);
+      // dumpxyz_vector(velocity_, xyz_name_ascii, false);
     }
   if (!disable_diphasique_)
-    interfaces_.sauvegarder_interfaces(lata_name);
+    interfaces_.sauvegarder_interfaces(lata_name, interf_name);
 
   // thermique_->sauvegarder_temperature(lata_name);
   int idx =0;
@@ -1338,8 +1464,10 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       // (en ecrivant directement le vecteur d'objets)
       param.print(fichier);
 #else
-      fichier << "{\n"
-              << " tinit " << current_time_ << "\n"
+      fichier << "{\n";
+      if (use_tstep_init_)
+        fichier << " tstep_init " << (tstep_ + tstep_init_ + 1) << "\n";
+      fichier << " tinit " << current_time_ << "\n"
               << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
               // GAB : qdm_source. Les valeurs des attributs utiles pour le calcul de source_qdm_gr sont
               //       ecrits dans la reprise. Ils sont ecrits avec des mots-clefs qui n'ont pas vocation a
@@ -1347,10 +1475,13 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
               << " reprise_vap_velocity_tmoy " << vap_velocity_tmoy_ << "\n"
               << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
               << " fichier_reprise_vitesse " << basename(lata_name) << "\n";
-      fichier << " timestep_reprise_vitesse 1\n"
-              << " interfaces " << interfaces_  ;
-      fichier << " forcage " << forcage_
+      fichier << " timestep_reprise_vitesse 1" << "\n"
+              << " interfaces " << interfaces_  << "\n";
+      fichier << " forcage " << forcage_ << "\n"
               << " corrections_qdm " << qdm_corrections_;
+
+      fichier << "velocity_bubble_old " << velocity_bubble_old_ << "\n";
+      fichier << "vitesse_upstream_reprise " << vitesse_upstream_reprise_ << "\n";
 
       /*
        * TODO: Change this block with DERIV CLASS IJK_Thermal
@@ -1395,17 +1526,16 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
         }
       if (flag_list_not_empty_en)
         fichier << " } \n" ;
+
       /*
        * Thermals problems
        */
       thermals_.sauvegarder_thermals(fichier);
-      /*
-       *
-       */
+
       post_.sauvegarder_post_maitre(lata_name, fichier);
       fichier << "}\n" ;
 #endif
-      Cerr << "T= " << current_time_ << " Checkpointing dans le fichier l.1168	 " << fichier_sauvegarde << finl;
+      Cerr << "T= " << current_time_ << " Checkpointing dans le fichier l.1168 " << fichier_sauvegarde << finl;
     }
   statistiques().end_count(sauvegarde_counter_);
 
@@ -1417,11 +1547,14 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
   LecFicDiffuse_JDD fichier(fichier_reprise);
   Param param(que_suis_je());
   param.ajouter("tinit", &current_time_);
-
+  param.ajouter("tstep_init", &tstep_init_);
   param.ajouter("terme_acceleration_init", &terme_source_acceleration_);
   param.ajouter("fichier_reprise_vitesse", &fichier_reprise_vitesse_);
   param.ajouter("timestep_reprise_vitesse", &timestep_reprise_vitesse_);
   param.ajouter("interfaces", & interfaces_);
+
+  param.ajouter("vitesse_upstream_reprise", &vitesse_upstream_reprise_);
+  param.ajouter("velocity_bubble_old", &velocity_bubble_old_);
   // param.ajouter("force_init", &force_init_);
 
   /*
@@ -1452,13 +1585,13 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
 
   // Appeler ensuite initialize() pour lire les fichiers lata etc...
   Cerr << "Reprise des donnees a t=" << current_time_ << "\n" << finl;
+  IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
   reprise_ = 1;
   interfaces_.set_reprise(1);
   Nom prefix = dirname(fichier_reprise);
   interfaces_.set_fichier_reprise(prefix + interfaces_.get_fichier_reprise());
-  if (!thermals_.est_vide())
-    thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
-  fichier_reprise_vitesse_=prefix+fichier_reprise_vitesse_;
+  thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
+  fichier_reprise_vitesse_= prefix + fichier_reprise_vitesse_;
 }
 
 // Methode de calcul du pas de temps max base sur CFL, Oh et Fo
@@ -1487,15 +1620,9 @@ double IJK_FT_base::find_timestep(const double max_timestep,
       const int nj = v.nj();
       const int nk = v.nk();
       for (int k = 0; k < nk; k++)
-        {
-          for (int j = 0; j < nj; j++)
-            {
-              for (int i = 0; i < ni; i++)
-                {
-                  max_v = std::max(max_v, fabs(v(i,j,k)));
-                }
-            }
-        }
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            max_v = std::max(max_v, fabs(v(i,j,k)));
       max_v = Process::mp_max(max_v);
       const IJK_Grid_Geometry& geom = v.get_splitting().get_grid_geometry();
 #ifndef VARIABLE_DZ
@@ -1515,8 +1642,8 @@ double IJK_FT_base::find_timestep(const double max_timestep,
   dt_cfl_liq_ = dt_cfl_;
   dt_cfl_vap_ = dt_cfl_;
 
-  //  const double nu_max = std::max(mu_liquide_/rho_liquide_, mu_vapeur_/rho_vapeur_);
-  //  dt_fo_  = dxmin*dxmin/(nu_max + 1.e-20) * fo * 0.125;
+  // const double nu_max = std::max(mu_liquide_/rho_liquide_, mu_vapeur_/rho_vapeur_);
+  // dt_fo_  = dxmin*dxmin/(nu_max + 1.e-20) * fo * 0.125;
   dt_fo_liq_ = dxmin*dxmin/((mu_liquide_/rho_liquide_) + 1.e-20) * fo * 0.125;
   dt_fo_vap_ =dxmin*dxmin/((mu_vapeur_/rho_vapeur_) + 1.e-20) * fo * 0.125;
   dt_fo_ = std::min(dt_fo_liq_, dt_fo_vap_);
@@ -1571,7 +1698,7 @@ double IJK_FT_base::find_timestep(const double max_timestep,
     {
       int reset = (!reprise_) && (tstep_==0);
       SFichier fic = Ouvrir_fichier(".dt_ev","tstep\ttime\ttimestep\tdt_cfl\tdt_fo\tdt_oh\tdt_diff_th",reset);
-      fic <<  tstep_ << " " <<  current_time_ << " " << dt;
+      fic << tstep_ << " " << current_time_ << " " << dt;
       fic << " " << dt_cfl_ << " " << dt_fo_ << " " << dt_oh_;
       fic << " " << dt_thermique; // If no thermal equation, value will be large.
       fic << " " << dt_energie; // If no thermal equation, value will be large.
@@ -1635,13 +1762,6 @@ int IJK_FT_base::initialise()
               // Cette methode parcours ni(), nj() et nk() et donc pas les ghost...
               set_field_data(velocity_[i], expression_vitesse_initiale_[i]);
             }
-          // duCluzeau
-          // advecter le champ de vitesse initiale par le champ de vitesse moyen cisaille
-          // si on commence le calcul a t !=0 avec un decallage
-
-          velocity_[0].change_to_sheared_reference_frame(1, 1);
-          velocity_[1].change_to_sheared_reference_frame(1, 2);
-          velocity_[2].change_to_sheared_reference_frame(1, 3);
 
           velocity_[0].echange_espace_virtuel(2);
           velocity_[1].echange_espace_virtuel(2);
@@ -1690,7 +1810,9 @@ int IJK_FT_base::initialise()
 //          velocity_[2].data() += expression_vitesse_initiale_;
         }
 
-      velocity_.echange_espace_virtuel();
+      velocity_[0].echange_espace_virtuel(2);
+      velocity_[1].echange_espace_virtuel(2);
+      velocity_[2].echange_espace_virtuel(2);
 #ifdef CONVERT_AT_READING_FROM_NURESAFE_TO_ADIM_TRYGGVASON_FOR_LIQUID_VELOCITY
       const double coef = 14.353432757182377;
       for (int dir=0; dir< 3; dir++)
@@ -1765,22 +1887,30 @@ int IJK_FT_base::initialise()
   // On la met a jour 2 fois, une fois next et une fois old
   IJK_FT_base::update_twice_indicator_field();
 
-  if (!disable_diphasique_)
+  // Maj des grandeurs shear perio
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      interfaces_.calculer_kappa_ft(kappa_ft_);
-      if(boundary_conditions_.get_correction_interp_monofluide())
-        {
-          calculer_I_kappa_sigma(kappa_ft_, interfaces_.I_ft(), sigma_);
-          pressure_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-          pressure_.relever_I_sigma_kappa_ns(kappa_ft_ns_);
-        }
-
-      rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
+      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+      redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
+      redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, rho_field_.nk()-4);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, molecular_mu_.nk()-4);
       if (use_inv_rho_)
-        inv_rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
+        {
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, inv_rho_field_.nk()-4);
+        }
+      if(boundary_conditions_.get_correction_interp_monofluide()==1)
+        {
+          interfaces_.calculer_kappa_ft(kappa_ft_);
+          redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
+          redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+        }
     }
-  else
-    kappa_ft_.data() =0.;
   maj_indicatrice_rho_mu();
 
   static Stat_Counter_Id calculer_thermique_prop_counter_= statistiques().new_counter(2, "Calcul des prop thermiques");
@@ -1807,23 +1937,28 @@ int IJK_FT_base::initialise()
       idx2++;
     }
 
+  statistiques().end_count(calculer_thermique_prop_counter_);
+  Cout << "End of IJK_FT_base::initialise()" << finl;
+
   /*
    * Thermal problems
    */
   interfaces_.initialise_ijk_compo_connex_bubbles_params();
 
-  if (!thermals_.est_vide())
-    {
-      thermals_.initialize(splitting_, nalloc);
-      thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
-                                                 fill_rising_velocities_);
-    }
-  nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
-                                                               compute_rising_velocities_,
-                                                               fill_rising_velocities_);
+  thermals_.initialize(splitting_, nalloc);
+  thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
+                                             fill_rising_velocities_,
+                                             use_bubbles_velocities_from_interface_,
+                                             use_bubbles_velocities_from_barycentres_);
 
-  statistiques().end_count(calculer_thermique_prop_counter_);
-  Cout << "End of IJK_FT_base::initialise()" << finl;
+  nalloc += interfaces_.allocate_ijk_compo_connex_fields(splitting_, thermals_.ghost_fluid_flag() || upstream_velocity_measured_);
+  nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
+                                                               compute_rising_velocities_ || upstream_velocity_measured_,
+                                                               fill_rising_velocities_,
+                                                               use_bubbles_velocities_from_interface_,
+                                                               use_bubbles_velocities_from_barycentres_);
+
+
 
   /*
    * TODO: Change this block with DERIV CLASS IJK_Thermal
@@ -1841,22 +1976,29 @@ int IJK_FT_base::initialise()
       IJK_FT_base::update_twice_indicator_field();
     }
 
-  if (!disable_diphasique_)
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      interfaces_.calculer_kappa_ft(kappa_ft_);
-      if(boundary_conditions_.get_correction_interp_monofluide())
-        {
-          calculer_I_kappa_sigma(kappa_ft_, interfaces_.I_ft(), sigma_);
-          pressure_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-          pressure_.relever_I_sigma_kappa_ns(kappa_ft_ns_);
-        }
-
-      rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
+      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+      redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
+      redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, rho_field_.nk()-4);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, molecular_mu_.nk()-4);
       if (use_inv_rho_)
-        inv_rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
+        {
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, inv_rho_field_.nk()-4);
+        }
+      if(boundary_conditions_.get_correction_interp_monofluide()==1)
+        {
+          interfaces_.calculer_kappa_ft(kappa_ft_);
+          redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
+          redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+        }
     }
-  else
-    kappa_ft_.data() = 0.;
   return nalloc;
 }
 /*
@@ -2014,6 +2156,162 @@ static void runge_kutta3_update_for_float(const double dx, double& store, double
     };
 }
 
+void IJK_FT_base::calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
+{
+  /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
+  /* Ne fonctionne que pour des maillages uniformes */
+  const IJK_Splitting& splitting = vx.get_splitting();
+  const int ni = vx.ni();
+  const int nj = vx.nj();
+  const int nk = vx.nk();
+  //const int nk = vx.nk();
+  //double dz = splitting.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  int z_index = splitting.get_local_slice_index(2);
+  int z_index_max = splitting.get_nprocessor_per_direction(2) - 1;
+  vx_moy = 0.;
+  vy_moy = 0.;
+  vz_moy = 0.;
+  double alpha_l_moy = 0.;
+
+  if(z_index==z_index_max)
+    {
+      for (int i = 0; i < ni; i++)
+        {
+          for (int j = 0; j < nj; j++)
+            {
+              vx_moy += vx(i,j,nk-1)*interfaces_.I(i,j,nk-1);
+              vy_moy += vy(i,j,nk-1)*interfaces_.I(i,j,nk-1);
+              vz_moy += vz(i,j,nk-1)*interfaces_.I(i,j,nk-1);
+              alpha_l_moy += interfaces_.I(i,j,nk-1);
+            }
+        }
+    }
+  vx_moy=Process::mp_sum(vx_moy);
+  vy_moy=Process::mp_sum(vy_moy);
+  vz_moy=Process::mp_sum(vz_moy);
+  alpha_l_moy=Process::mp_sum(alpha_l_moy);
+
+  vx_moy = vx_moy/alpha_l_moy;
+  vy_moy = vy_moy/alpha_l_moy;
+  vz_moy = vz_moy/alpha_l_moy;
+
+  return;
+}
+
+void IJK_FT_base::calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
+{
+  /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
+  /* Ne fonctionne que pour des maillages uniformes */
+  const IJK_Splitting& splitting = vx.get_splitting();
+  const int ni = vx.ni();
+  const int nj = vx.nj();
+  //const int nk = vx.nk();
+  //double dz = splitting.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  int z_index = splitting.get_local_slice_index(2);
+  int z_index_min = 0;
+  vx_moy = 0.;
+  vy_moy = 0.;
+  vz_moy = 0.;
+  double alpha_l_moy = 0.;
+
+  if (z_index == z_index_min)
+    {
+      for (int i = 0; i < ni; i++)
+        {
+          for (int j = 0; j < nj; j++)
+            {
+              vx_moy += vx(i,j,0)*interfaces_.I(i,j,0);
+              vy_moy += vy(i,j,0)*interfaces_.I(i,j,0);
+              vz_moy += vz(i,j,0)*interfaces_.I(i,j,0);
+              alpha_l_moy += interfaces_.I(i,j,0);
+            }
+        }
+    }
+
+  vx_moy=Process::mp_sum(vx_moy);
+  vy_moy=Process::mp_sum(vy_moy);
+  vz_moy=Process::mp_sum(vz_moy);
+  alpha_l_moy=Process::mp_sum(alpha_l_moy);
+
+  vx_moy = vx_moy/alpha_l_moy;
+  vy_moy = vy_moy/alpha_l_moy;
+  vz_moy = vz_moy/alpha_l_moy;
+  return;
+}
+
+void IJK_FT_base::calculer_terme_asservissement(double& ax, double& ay, double& az)
+{
+  // On trouve la vitesse moyenne de la phase vapeur pour la partie derivee du correcteur
+
+  update_rho_v();
+  double v_moyx = calculer_v_moyen(velocity_[0]);
+  double v_moyy = calculer_v_moyen(velocity_[1]);
+  double v_moyz = calculer_v_moyen(velocity_[2]);
+
+  double rhov_moyx = calculer_v_moyen(rho_v_[DIRECTION_I]);
+  double rhov_moyy = calculer_v_moyen(rho_v_[DIRECTION_J]);
+  double rhov_moyz = calculer_v_moyen(rho_v_[DIRECTION_K]);
+
+  const IJK_Grid_Geometry& geom = velocity_[direction_gravite_].get_splitting().get_grid_geometry();
+  double Lz =  geom.get_domain_length(DIRECTION_K);
+  double Lx =  geom.get_domain_length(DIRECTION_I);
+  double Ly =  geom.get_domain_length(DIRECTION_J);
+
+  double vol_dom = Lz*Lx*Ly;
+  double alv = 0.;
+  if (vol_bulle_monodisperse_>=0.)
+    alv = interfaces_.get_nb_bulles_reelles()*vol_bulle_monodisperse_/vol_dom;
+  else
+    alv = 1.-calculer_v_moyen(interfaces_.I());
+
+  double drho = rho_liquide_-rho_vapeur_;
+  double facv = 0.;
+  if (std::fabs(alv*drho)>DMINFLOAT)
+    {
+      facv=1./(alv*drho);
+    }
+  double uvx = facv*(rho_liquide_*v_moyx-rhov_moyx);
+  double uvy = facv*(rho_liquide_*v_moyy-rhov_moyy);
+  double uvz = facv*(rho_liquide_*v_moyz-rhov_moyz);
+
+  // On evalue la position de chaque bulles pour trouver le barycentre de la phase vapeur
+
+  ArrOfDouble volumes;
+  DoubleTab centre_gravite;
+
+  const int nbulles_reelles = interfaces_.get_nb_bulles_reelles();
+  const int nbulles_ghost = interfaces_.get_nb_bulles_ghost();
+  const int nbulles_tot = nbulles_reelles + nbulles_ghost;
+
+  volumes.resize_array(nbulles_tot);
+  volumes = 0.;
+  centre_gravite.resize(nbulles_tot, 3);
+  centre_gravite = 0.;
+
+  double centre_moyx = 0;
+  double centre_moyy = 0;
+  double centre_moyz = 0;
+
+  interfaces_.calculer_volume_bulles(volumes,centre_gravite);
+
+  for (int i = 0; i < nbulles_tot; i++)
+    {
+      centre_moyx += 1.0*centre_gravite(i,0)/nbulles_tot;
+      centre_moyy += 1.0*centre_gravite(i,1)/nbulles_tot;
+      centre_moyz += 1.0*centre_gravite(i,2)/nbulles_tot;
+    }
+
+  // On met a jour l'integrale du deplacement du barycentre
+
+  int_x_ += (centre_moyx-Lx/2)*timestep_;
+  int_y_ += (centre_moyy-Ly/2)*timestep_;
+  int_z_ += (centre_moyz-Lz/2)*timestep_;
+
+  ax = -Kp_*(centre_moyx-Lx/2)-Ki_*int_x_-Kd_*uvx;
+  ay = -Kp_*(centre_moyy-Ly/2)-Ki_*int_y_-Kd_*uvy;
+  az = -Kp_*(centre_moyz-Lz/2)-Ki_*int_z_-Kd_*uvz;
+}
+
 void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
                                                      const int rk_step)
 {
@@ -2025,11 +2323,8 @@ void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const
    *  o Si le parametre source_qdm_gr vaut 0, la source est determinee par :
    *          temre_force_init         --> temre_source_acceleration et par
    *          expression_derivee_force --> expression_derivee_acceleration
-   * REMARQUE : la correction pour source_qdm_gr = 1 suit le meme esprit que la correction orthogonale a g
-   *            appliquee pour patch_qdm_gr=1.
    * REMARQUE II : On peut envisager de faire une correction qui n'a pas besoin qu'on lui donne vx_terminale en
-   *               entree. C'est ce qui a ete legerment explore, mais qui n'a pas aboutit. La valeur a mettre est 8
-   *               desormais.
+   *               entree. C'est ce qui a ete explore, mais qui n'a pas aboutit.
    *  */
   statistiques().begin_count(source_counter_);
   double new_time = time;
@@ -2111,12 +2406,15 @@ void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const
 
       if (qdm_corrections_.is_type_gb())
         {
-          // Cout << "get_time_scheme" << get_time_scheme() << finl;
+          // calcul de terme_source_acceleration_ et de terme_source_acceleration_
+
           // ON NE VEUT PAS METTRE A JOUR TERME_SOURCE_ACCELERATION_ AVEC CETTE METHODE
           if ( get_time_scheme() == EULER_EXPLICITE)
             {
               terme_source_acceleration_ += derivee_acceleration * timestep;
+              //terme_source_acceleration_ += 0;//derivee_acceleration * timestep;
               facteur_variable_source_ += derivee_facteur_sv * timestep;
+              //facteur_variable_source_ += 0;//derivee_facteur_sv * timestep;
               new_time += timestep;
             }
           else if ( get_time_scheme() == RK3_FT )
@@ -2124,9 +2422,12 @@ void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const
               const double intermediate_dt = compute_fractionnal_timestep_rk3( timestep, rk_step);
               runge_kutta3_update_for_float(derivee_acceleration, store_RK3_source_acc_,
                                             terme_source_acceleration_, rk_step, timestep);
-
+              Cout << "terme_source_acceleration_" << terme_source_acceleration_ << finl;
+              //terme_source_acceleration_ += 0;
               runge_kutta3_update_for_float(derivee_facteur_sv, store_RK3_fac_sv_,
                                             facteur_variable_source_, rk_step, timestep);
+              Cout << "facteur_variable_source_" << facteur_variable_source_ << finl;
+              //facteur_variable_source_ += 0;
               new_time += intermediate_dt;
             }
         }
@@ -2143,14 +2444,48 @@ void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const
     }
   envoyer_broadcast(terme_source_acceleration_, 0);
 
+  // -----------------------------------------------------------
+  // Force interface (:"force sigma") seloon x,y,z et u.Force_interface
+  double fs0(0),fs1(0),fs2(0),psn(0);
+  if (!disable_diphasique_)
+    {
+      // FORCE INTERFACIALE : on veut un terme homogene a [rho.g]=[N.m^{-3}]
+      // terme_source_interfaces_ns_       est homogene a [du/dt]=[m.s^{-2}]
+      //   -> in calculer_dv : "~ velocity_ += force_interf * dt ~"
+      //   --> force_interf a bien eu un mass_solver_with_rho plus haut
+      fs0=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[0],0));
+      fs1=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[1],1));
+      fs2=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[2],2));
+      psn=calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,terme_source_interfaces_ns_)));
+    }
+  // energie cinetique (monophasique) et diphasique
+  double uu(calculer_v_moyen(scalar_product(velocity_,velocity_)));
+  double uru(calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,velocity_))));
+  // Force exterieur (:"force thi") selon x,y,z et acceleration_thi.acceleration_thi, force_thi.foce_thi, u.Force_THI
+  double ft0(0),ft1(0),ft2(0),atat(0),ftft(0),ptn(0);
+  if (forcage_.get_type_forcage() > 0)
+    {
+      // FORCE IMPOSEE : on veut un terme homogene a [rho.g]=[N.m^{-3}]
+      // forcage_.get_force_ph2()     est homogene a [du/dt]=[m.s^{-2}]
+      //   -> in compute_add_THI_force_sur_d_velocity : "~ d_velocity += forcage_.get_force_ph2() ~"
+      ft0 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[0],0));
+      ft1 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[1],1));
+      ft2 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[2],2));
+      atat = calculer_v_moyen(scalar_product(forcage_.get_force_ph2(),forcage_.get_force_ph2()));
+      ftft = calculer_v_moyen(scalar_product(scalar_times_vector(rho_field_,forcage_.get_force_ph2()),scalar_times_vector(rho_field_,forcage_.get_force_ph2())));
+      ptn = calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,forcage_.get_force_ph2())));
+    }
+  // -----------------------------------------------------------
+
   // Impression dans le fichier _acceleration.out
   if (Process::je_suis_maitre())
     {
       // GR : 07.01.22 : ce serai pas mal de mettre une condition if (tstep % dt_post_stats_acc_ == dt_post_stats_acc_ - 1 || stop)
       //      pour alleger le dossier OUT. Voir avec GB et AB.
+      // double ff=0.;
       int reset = (!reprise_) && (tstep_==0);
       SFichier fic=Ouvrir_fichier("_acceleration.out",
-                                  "tstep\ttime\tVx\trhoVx\ttauw\tda/dt\tNewT\tacceleration\tfac_var_source\tqdm_source\tvap_velocity_tmoy_\tliq_velocity_tmoy_\tqdm_patch_correction_[0]\tqdm_patch_correction_[1]\tqdm_patch_correction_[2]",
+                                  "1.tstep\t2.time\t3.Vx\t4.rhoVx\t5.tauw\t6.da/dt\t7.NewT\t8.acceleration\t9.fac_var_source\t10.qdm_source\t11.vap_velocity_tmoy_\t12.liq_velocity_tmoy_\t13.qdm_patch_correction_[0]\t14.qdm_patch_correction_[1]\t15.qdm_patch_correction_[2]\t16.F_sigma_moyen[0]\t17.F_sigma_moyen[1]\t18.F_sigma_moyen[2]\t19.y.F_sigma\t20.u.u\t21.F_THI[0]\t22.F_THI[1]\t23.F_THI[2]\t24.A_THI.A_THI\t25.F_THI.F_THI\t26.u.F_THI\t27.u.rho.u",
                                   reset);
       // la derivee_acceleration n'est connue que sur le maitre
       fic<< tstep_<<" "<< time<<" "<<v_moy<<" "<<rhov_moy <<" "<<tauw ;
@@ -2166,18 +2501,41 @@ void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const
       for (int dir = 0; dir < 3; dir++)
         fic <<" "<< 0.; //qdm_patch_correction_[dir];
 
+      // Force interfaciale et puissance du travail des forces interfaciales
+      // rho*terme_source_interfaces_ns_
+      fic <<" "<< fs0; // F_sigma_moyen[0]
+      fic <<" "<< fs1; // F_sigma_moyen[1]
+      fic <<" "<< fs2; // F_sigma_moyen[2]
+      // u.rho*terme_source_interfaces_ns_
+      fic <<" "<< psn; // velocity.F_sigma
+
+      // Energie cinetique (double)
+      // u.u (qui est aussi accessible par les .txt)
+      fic <<" "<< uu;
+
+      // Force imposee et puissance du traveil de la force imposee
+      // rho*F_THI
+      fic <<" "<< ft0; // F_THI[0]
+      fic <<" "<< ft1; // F_THI[1]
+      fic <<" "<< ft2; // F_THI[2]
+      fic <<" "<< atat; // A_THI.A_THI
+      fic <<" "<< ftft; // F_THI.F_THI
+      // u.rho*F_THI
+      fic <<" "<< ptn; // velocity.F_THI
+      // Energie cinetique en diphasiqeu (double)
+      // u.rho.u (qui est aussi accessible par les .txt)
+      fic <<" "<< uru;
+
       fic<<finl;
       fic.close();
-      //    Cout << "T= " << time
-      //	 << " Vx_moyen= " << v_moy
-      //	 << " rhoVx_moyen= " << rhov_moy
-      //	 << " tauw= " << tauw;
-      //    Cout << " da/dt= " << derivee_acceleration
-      //	 << " NewT= " << new_time
-      //	 << " acceleration= " << terme_source_acceleration_
-      //	 << finl;
     }
   statistiques().end_count(source_counter_);
+}
+
+static int decoder_numero_bulle(const int code)
+{
+  const int num_bulle = code >>6;
+  return num_bulle;
 }
 
 // force_tot est homogene a une force volumique (comparable a la source S), comme tout
@@ -2306,7 +2664,7 @@ void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
     {
       int reset = (!reprise_) && (tstep_==0);
       SFichier fic=Ouvrir_fichier("_bilan_qdm.out",
-                                  "tstep\ttime\tFs_theo\tFtot\trhov\ttauw\tS\tacceleration\tres\tcumul_res\tCorrFs\n# Forces have 3 components.",
+                                  "tstep\ttime\tFs_theo\tFtot\trhov\ttauw\tS\tacceleration\tres\tcumul_res\tCorrFs\nConvection\tDiffusion\tPression\n# Forces have 3 components.",
                                   reset, 20/*prec*/);
 
       fic << tstep_<<" "<< current_time_<<" "
@@ -2387,6 +2745,8 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
   //   si je ne les re-initialise pas alors je n'aurai pas leur valeur pour chaque avancement (apres je pourrai me passer de ce niveau de detail)
   //   ==> Ce qui est certain c'est que je ne dois pas re initialiser ICI mes rho_u_... puisqu'ils sont
   //       evalues EN DEHORS des boucles de RK3.
+
+
   if (rk_step<=0)
     {
       terme_convection_ = 0.;
@@ -2408,9 +2768,10 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
     for (int dir=0; dir<3; dir++)
       velocity_[dir].data() = 0.; //Velocity reset for test
 
-  static Stat_Counter_Id calcul_dv_counter_ = statistiques().new_counter(2, "maj vitesse : calcul derivee vitesse");
-  statistiques().begin_count(calcul_dv_counter_);
+  static Stat_Counter_Id calcul_dv_counter = statistiques().new_counter(2, "maj vitesse : calcul derivee vitesse");
+  statistiques().begin_count(calcul_dv_counter);
   // Calcul d_velocity = convection
+
   if (!disable_convection_qdm_)
     {
       if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_simple)
@@ -2437,7 +2798,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
         {
           update_rho_v();
 
-          rho_v_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          rho_v_[0].echange_espace_virtuel(2);
           rho_v_[1].echange_espace_virtuel(2);
           rho_v_[2].echange_espace_virtuel(2);
 
@@ -2458,7 +2819,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
         {
           update_rho_v();
 
-          rho_v_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+          rho_v_[0].echange_espace_virtuel(2);
           rho_v_[1].echange_espace_virtuel(2);
           rho_v_[2].echange_espace_virtuel(2);
 
@@ -2506,7 +2867,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
             }
           // else
           // terme_convection[dir] += calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme;
-        }
+        }          //
     }
   else
     {
@@ -2607,6 +2968,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
     }
 
   // Calcul du terme source aux interfaces pour l'ajouter a dv :
+  // ATTENZIONE : Questa è una bugia. I termini di interfaccia vengono aggiunti direttamente a velocity_!
   if (!disable_diphasique_)
     {
       for (int dir = 0; dir < 3; dir++)
@@ -2638,86 +3000,140 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
                 }
             }
 
-          {
-            for (int dir = 0; dir < 3; dir++)
-              {
-                redistribute_from_splitting_ft_faces_[dir].redistribute(terme_source_interfaces_ft_[dir],
-                                                                        terme_source_interfaces_ns_[dir]);
-                // GAB, qdm : les forces d'interface sont directement ajoutees a velocity... aucun effet sur d_velocity normalement
-                //            Donc terme_interfaces_bf_mass_solver_bis est nul. C'EST A VERIFIER !!
-//                if (rk_step==-1 || rk_step==0) // euler ou premier pdt de rk3
-                if (test_etapes_et_bilan_)
-                  {
-                    terme_interfaces_bf_mass_solver_[dir] = calculer_v_moyen(terme_source_interfaces_ns_[dir]);
-                    terme_interfaces_bf_mass_solver_bis_[dir] = calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme - terme_convection_[dir] - terme_diffusion_[dir];
-                  }
-//                else
-//                  {
-//                    terme_interfaces_bf_mass_solver[dir] += calculer_v_moyen(terme_source_interfaces_ns_[dir]);
-//                    terme_interfaces_bf_mass_solver_bis[dir] += calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme - terme_convection[dir] - terme_diffusion[dir];
-//                  }
-              }
-            //statistiques().end_count(cnt_SourceInterf);
-            // Computing force_tot (Attention, il faut le faire avant d'appliquer le solver mass a terme_source_interfaces_ns_) :
-            compute_correction_for_momentum_balance(rk_step);
-            for (int dir = 0; dir < 3; dir++)
-              {
-                if ((!refuse_patch_conservation_QdM_RK3_source_interf_) && (rk_step>=0) )
-                  {
-                    // On est en RK3 et on utilise le patch de conservation de la QdM (comportement par defaut du RK3)
-                    // Utilisation directe du terme source interf pour l'ajouter a velocity_.
-                    // On ne le met plus dans d_velocity_ car ce n'est pas conservatif globalement... (test quand sigm et drho)
-                    const int kmax = terme_source_interfaces_ns_[dir].nk();
-                    for (int k = 0; k < kmax; k++)
-                      {
-                        // division par le produit (volume * rho_face)
-                        if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
-                          {
-                            Cerr << "Je ne sais pas si inv_rho_field_ est a jour ici. A Verifier avant de l'activer." << finl;
-                            Process::exit();
-                            // mass_solver_with_inv_rho(terme_source_interfaces_ns_[di], inv_rho_field_, delta_z_local_, k);
-                          }
-                        else
-                          {
-                            mass_solver_with_rho(terme_source_interfaces_ns_[dir], rho_field_, delta_z_local_, k);
-                          }
-                        // puis
-                        // comme euler_explicit_update mais avec un pas de temps partiel :
-                        const double delta_t = compute_fractionnal_timestep_rk3(timestep_ /* total*/, rk_step);
-                        const int imax = terme_source_interfaces_ns_[dir].ni();
-                        const int jmax = terme_source_interfaces_ns_[dir].nj();
-                        for (int j = 0; j < jmax; j++)
-                          {
-                            for (int i = 0; i < imax; i++)
-                              {
-                                double x = terme_source_interfaces_ns_[dir](i,j,k);
-                                velocity_[dir](i,j,k) += x * delta_t;
-                              }
-                          }
-                      }
-                    // On est dans une boucle sur les directions la, c ok
-                    // GAB, qdm  ATTENTION on ne va ici que si on est en rk3
-                    if (test_etapes_et_bilan_)
-                      {
-                        // Cout << "BF terme_interfaces_af_mass_solver" << finl;
-                        terme_interfaces_af_mass_solver_[dir] = calculer_v_moyen(terme_source_interfaces_ns_[dir]);
-                        // Cout << "AF terme_interfaces_af_mass_solver" << finl;
-                      }
-                  }
-              }
-          }
+          for (int dir = 0; dir < 3; dir++)
+            {
+              redistribute_from_splitting_ft_faces_[dir].redistribute(terme_source_interfaces_ft_[dir],
+                                                                      terme_source_interfaces_ns_[dir]);
+              // GAB, qdm : les forces d'interface sont directement ajoutees a velocity... aucun effet sur d_velocity normalement
+              //            Donc terme_interfaces_bf_mass_solver_bis est nul. C'EST A VERIFIER !!
+              if (test_etapes_et_bilan_)
+                {
+                  terme_interfaces_bf_mass_solver_[dir] = calculer_v_moyen(terme_source_interfaces_ns_[dir]);
+                  terme_interfaces_bf_mass_solver_bis_[dir] = calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme - terme_convection_[dir] - terme_diffusion_[dir];
+                }
+            }
+          post_.fill_surface_force(terme_source_interfaces_ns_);
+          // Computing force_tot (Attention, il faut le faire avant d'appliquer le solver mass a terme_source_interfaces_ns_) :
+          compute_correction_for_momentum_balance(rk_step);
+          for (int dir = 0; dir < 3; dir++)
+            {
+              // On est en RK3 et on utilise le patch de conservation de la QdM (comportement par defaut du RK3)
+              // Utilisation directe du terme source interf pour l'ajouter a velocity_.
+              // On ne le met plus dans d_velocity_ car ce n'est pas conservatif globalement... (test quand sigm et drho)
+              if (post_.get_liste_post_instantanes().contient_("REPULSION_FT") ||
+                  post_.get_liste_post_instantanes().contient_("CELL_REPULSION_FT")    )
+                {
+                  redistribute_from_splitting_ft_faces_[dir].redistribute(
+                    terme_repulsion_interfaces_ft_[dir],
+                    terme_repulsion_interfaces_ns_[dir]);
+                }
+              const int kmax = terme_source_interfaces_ns_[dir].nk();
+              for (int k = 0; k < kmax; k++)
+                {
+                  // division par le produit (volume * rho_face)
+                  if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
+                    {
+                      Cerr << "Je ne sais pas si inv_rho_field_ est a jour ici. A Verifier avant de l'activer." << finl;
+                      //calculer_rho_harmonic_v(rho_field_, d_velocity_, d_velocity_);
+                      mass_solver_with_inv_rho(terme_source_interfaces_ns_[dir], inv_rho_field_, delta_z_local_, k);
+                    }
+                  else
+                    {
+                      // Division de terme_source_interfaces_ns_ par rho_field et par volume cellule
+                      //cout << " code Delta : "<<terme_repulsion_interfaces_ns_[0](6,9,10);
+                      //cout << " code Delta : "<<backup_terme_source_interfaces_ns_[0](6,9,10);
+                      //cout << " code Delta : "<<post_.get_rho_Ssigma()[2](6,11,11);
+                      //cout << endl;
+                      mass_solver_with_rho(terme_source_interfaces_ns_[dir], rho_field_, delta_z_local_, k);
+                      //cout << " code Nabla : "<<terme_repulsion_interfaces_ns_[0](6,9,10);
+                      //cout << " code Nabla : "<<backup_terme_source_interfaces_ns_[0](6,9,10);
+                      //cout << " code Nabla : "<<post_.get_rho_Ssigma()[2](6,11,11);
+                      //cout << endl;
+                      //if (k==10)
+                      //  {
+                      //    cout << "code 2211 " << rho_field_(5,9,10) << " & " << rho_field_(6,9,10) << " & " << rho_field_(7,9,10)<<endl;
+                      //    cout << "code Z,611 " << post_.get_rho_Ssigma()[2](6,11,11);
+                      //    cout << ", code Z,611 " << backup_terme_source_interfaces_ns_[2](6,11,11);
+                      //    cout << ", code Z,611 " << terme_source_interfaces_ns_[2](6,11,11)<<endl;
+                      //    cout << "code X,6910 " << post_.get_rho_Ssigma()[0](6,9,10);
+                      //    cout << ", code X,6910 " << backup_terme_source_interfaces_ns_[0](6,9,10);
+                      //    cout << ", code X,6910 " << terme_source_interfaces_ns_[0](6,9,10)<<endl;
+                      //  }
+                      if (post_.get_liste_post_instantanes().contient_("REPULSION_FT") ||
+                          post_.get_liste_post_instantanes().contient_("CELL_REPULSION_FT")    )
+                        {
+                          // Division de terme_repulsion_interfaces_ns_ par rho_field_ et par volume cellule
+                          mass_solver_with_rho(terme_repulsion_interfaces_ns_[dir], rho_field_, delta_z_local_, k);
+                          //terme_repulsion_interfaces_ns_[0](6,9,10)=50;
+                        }
+                      // Egalite aux dimensions :
+                      // [terme_source_interfaces_ns_]=[terme_repulsion_interfaces_ns_]=[du/dt / Vcell] = m/s^2/m^3
+                    }
+                  if ((!refuse_patch_conservation_QdM_RK3_source_interf_) && (rk_step>=0) )
+                    {
+                      // puis
+                      // comme euler_explicit_update mais avec un pas de temps partiel :
+                      const double delta_t = compute_fractionnal_timestep_rk3(timestep_ /* total*/, rk_step);
+                      const int imax = terme_source_interfaces_ns_[dir].ni();
+                      const int jmax = terme_source_interfaces_ns_[dir].nj();
+                      for (int j = 0; j < jmax; j++)
+                        {
+                          for (int i = 0; i < imax; i++)
+                            {
+                              double x = terme_source_interfaces_ns_[dir](i,j,k);
+                              velocity_[dir](i,j,k) += x * delta_t;
+                            }
+                        }
+                    }
+                  // On est dans une boucle sur les directions la, c ok
+                  // GAB, qdm  ATTENTION on ne va ici que si on est en rk3
+                  if (test_etapes_et_bilan_)
+                    {
+                      terme_interfaces_af_mass_solver_[dir] = calculer_v_moyen(terme_source_interfaces_ns_[dir]);
+                    }
+                }
+
+              //const int kmax = terme_source_interfaces_ns_[0].nk();
+              //for (int ii = 0; ii < kmax; ++ii)
+              //  {
+              //    for (int jj = 0; jj < kmax; ++jj)
+              //      {
+              //        for (int kk = 0; kk < kmax; ++kk)
+              //          {
+              //            if (backup_terme_source_interfaces_ns_[dir](ii,jj,kk) != terme_source_interfaces_ns_[dir](ii,jj,kk) )
+              //              {
+              //                cout << "change after mass solver for : dir,i,j,k = "<<dir<<", "<<ii<<", "<<jj<<", "<<kk<<endl;
+              //              }
+              //          }
+              //      }
+              //  }
+            }
         }
     }
 
   // On laisse l'ecriture de ce fichier de sortie A L'INTERIEUR de calculer_dv car on souhaite relever
   // la valeur des differents termes A CHAQUE sous-pas de temps du schema RK3. On peut en revanche,
-  // deplacer cette ecriture A LA FIN de calculer_dv.
-  Cout << "G bilan qdm " << finl;
-  if (test_etapes_et_bilan_)
-    write_check_etapes_et_termes(rk_step);
-  //
 
   fill_variable_source_and_potential_phi(time);
+
+  // Correcteur PID
+
+  ArrOfDouble acc_rmf;
+  acc_rmf.resize_array(3);
+  acc_rmf = 0.;
+
+  if (Kp_ != 0. || Kd_ != 0. || Ki_ != 0.)
+    {
+      double ax_PID;
+      double ay_PID;
+      double az_PID;
+
+      calculer_terme_asservissement(ax_PID,ay_PID,az_PID);
+
+      acc_rmf[0] = ax_PID;
+      acc_rmf[1] = ay_PID;
+      acc_rmf[2] = az_PID;
+    }
 
 
   for (int dir = 0; dir < 3; dir++)
@@ -2751,9 +3167,9 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
       // dans d_velocity_moyen on a la contrib de interfaces, forces ajoutees
       terme_interfaces_conv_diff_mass_solver_[dir] = calculer_v_moyen(d_velocity_[dir]);
 
-      //Cerr << "disable_diffusion_qdm_ : "<< disable_diffusion_qdm_ << finl;
-      //Cerr << "diffusion_alternative_ : "<< diffusion_alternative_ << finl;
-      //Cerr << "type_velocity_diffusion_form : "<< velocity_diffusion_op_.get_diffusion_op_option() << finl;
+      Cerr << "disable_diffusion_qdm_ : "<< disable_diffusion_qdm_ << finl;
+      Cerr << "diffusion_alternative_ : "<< diffusion_alternative_ << finl;
+      Cerr << "type_velocity_diffusion_form : "<< velocity_diffusion_op_.get_diffusion_op_option() << finl;
       for (int k = 0; k < kmax; k++)
         {
           // #else
@@ -2769,9 +3185,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
             {
               for (int j = 0; j < nj; j++)
                 for (int i = 0; i < ni; i++)
-                  {
-                    dv(i,j,k) += facteur_variable_source_*variable_source_[dir](i,j,k) * volume + f;
-                  }
+                  dv(i,j,k) += facteur_variable_source_*variable_source_[dir](i,j,k) * volume + f;
             }
           else
             {
@@ -2781,12 +3195,15 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
             }
 
           if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
-            {
-              mass_solver_with_inv_rho(d_velocity_[dir], inv_rho_field_, delta_z_local_, k);
-            }
+            mass_solver_with_inv_rho(d_velocity_[dir], inv_rho_field_, delta_z_local_, k);
           else
+            mass_solver_with_rho(d_velocity_[dir], rho_field_, delta_z_local_, k);
+
+          if (Kp_ != 0. || Kd_ != 0.|| Ki_ != 0.)
             {
-              mass_solver_with_rho(d_velocity_[dir], rho_field_, delta_z_local_, k);
+              for (int j = 0; j < nj; j++)
+                for (int i = 0; i < ni; i++)
+                  d_velocity_[dir](i,j,k) += acc_rmf[dir];
             }
 
           // Terme source gravitaire en version simple "rho_g":
@@ -2854,11 +3271,9 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
   if (forcage_.get_type_forcage() > 0)// && (rk_step==-1 || rk_step==0))
     {
       if (rk_step==-1)
-        {
-          compute_add_THI_force_sur_d_velocity(velocity_, tstep_, timestep_, time,
-                                               d_velocity_.get_splitting(),
-                                               forcage_.get_facteur_forcage());//, rk_step);
-        }
+        compute_add_THI_force_sur_d_velocity(velocity_, tstep_, timestep_, time,
+                                             d_velocity_.get_splitting(),
+                                             forcage_.get_facteur_forcage());//, rk_step);
       else
         {
           const double intermediate_dt = compute_fractionnal_timestep_rk3(timestep_, rk_step);
@@ -2869,13 +3284,18 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
     }
   // verifier si mon terme de thi est bon en integrale
   ///////////////////////////////////////////////////////
+  Cout << "G bilan qdm " << finl;
+  if (test_etapes_et_bilan_)
+    write_check_etapes_et_termes(rk_step);
+
+  //
 
 
   // Il est important de s'assurer a la fin que la derivee de la vitesse soit a zero sur les parois:
   if (!splitting_.get_grid_geometry().get_periodic_flag(DIRECTION_K))
     force_zero_on_walls(d_velocity_[2]);
 
-  statistiques().end_count(calcul_dv_counter_);
+  statistiques().end_count(calcul_dv_counter);
 }
 
 void IJK_FT_base::compute_add_external_forces(const int dir)
@@ -2915,10 +3335,11 @@ void IJK_FT_base::compute_add_external_forces(const int dir)
   return;
 }
 
-// GAB, THI /!\ REMPLACER PAR compute_add_THI_force_sur_d_velocity
+// -----------------------------------------------------------------------------------
+//  FORCAGE EXTERIEUR, DEFINI DANS L'ESPACE SPECTRAL
 void IJK_FT_base::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>& vitesse,
                                         const int time_iteration,
-                                        const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparan sa valeur avec celle du dt_ev, je vois que c'est faux
+                                        const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                         const double current_time,
                                         const IJK_Splitting& my_splitting
                                         // const int rk_step
@@ -2945,6 +3366,7 @@ void IJK_FT_base::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>& 
   statistiques().end_count(m2_counter_);
 
   statistiques().begin_count(m3_counter_);
+
   const FixedVector<IJK_Field_double, 3>& force = forcage_.get_force_ph2();
   for(int dir=0; dir<3; dir++)
     {
@@ -2968,7 +3390,6 @@ void IJK_FT_base::compute_add_THI_force(const FixedVector<IJK_Field_double, 3>& 
   statistiques().end_count(m3_counter_);
 }
 
-// GAB, THI
 void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_Field_double, 3>& vitesse,
                                                        const int time_iteration,
                                                        const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
@@ -3002,6 +3423,7 @@ void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_Fie
   statistiques().end_count(m2_counter_);
 
   statistiques().begin_count(m3_counter_);
+
   const FixedVector<IJK_Field_double, 3>& force = forcage_.get_force_ph2();
 
   for(int dir=0; dir<3; dir++)
@@ -3055,6 +3477,7 @@ void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_Fie
   statistiques().end_count(m3_counter_);
   Cout << "end of from_spect_to_phys_opti2_advection" << finl;
 }
+// -----------------------------------------------------------------------------------
 
 void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 {
@@ -3062,11 +3485,22 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
   statistiques().begin_count(euler_rk3_counter_);
   if (thermals_.size())
     {
-      // Protection to make sure that even without the activation of the flag check_divergence_, the EV of velocity is correctly field.
-      // This protection MAY be necessary if convection uses ghost velocity (but I'm not sure it actually does)
-      velocity_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-      velocity_[1].echange_espace_virtuel(2);
-      velocity_[2].echange_espace_virtuel(2);
+      if (boundary_conditions_.get_correction_conserv_qdm()==2)
+        {
+          update_rho_v();
+          rho_field_.echange_espace_virtuel(rho_field_.ghost());
+          update_v_ghost_from_rho_v();
+        }
+      else
+        {
+          // Protection to make sure that even without the activation of the flag check_divergence_, the EV of velocity is correctly field.
+          // This protection MAY be necessary if convection uses ghost velocity (but I'm not sure it actually does)
+          velocity_[0].echange_espace_virtuel(2);
+          velocity_[1].echange_espace_virtuel(2);
+          velocity_[2].echange_espace_virtuel(2);
+        }
+
+
     }
 
   /*
@@ -3082,9 +3516,19 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
   if (!frozen_velocity_)
     {
-      velocity_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-      velocity_[1].echange_espace_virtuel(2);
-      velocity_[2].echange_espace_virtuel(2);
+      if (boundary_conditions_.get_correction_conserv_qdm()==2)
+        {
+          update_rho_v();
+          rho_field_.echange_espace_virtuel(rho_field_.ghost());
+          update_v_ghost_from_rho_v();
+        }
+      else
+        {
+          velocity_[0].echange_espace_virtuel(2);
+          velocity_[1].echange_espace_virtuel(2);
+          velocity_[2].echange_espace_virtuel(2);
+        }
+
       // GAB, qdm
       if (test_etapes_et_bilan_)
         {
@@ -3092,7 +3536,7 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
           for (int dir = 0; dir<3; dir++)
             rho_u_euler_av_prediction_[dir] = calculer_v_moyen(rho_u_euler_av_prediction_champ_[dir]);
         }
-      // GAB, remarque : calculer dv calcul dv, MAIS NE L'APPLIQUE PAS au champ de vitesse !!!
+      // GAB, remarque : calculer dv calcule dv, MAIS NE L'APPLIQUE PAS au champ de vitesse !!!
       //                 l'increment de vitesse est ajoute au champ de vitesse avec euler_explicit_update
       calculer_dv(timestep_, current_time_, -1 /*rk_step = -1 pour sch euler... */);
       // GAB, qdm calculer_dv ne fait que l'etape de prediction)
@@ -3109,13 +3553,13 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
           if (!include_pressure_gradient_in_ustar_)
             {
               pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio());
+                                           pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_);
               // GAB --> C'est plutot ici que l(on ajoute le terme_pression !!)
             }
           else
             {
               pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           d_pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio());
+                                           d_pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_);
 
               // Then update the pressure field :
               const int kmax = pressure_.nk();
@@ -3155,26 +3599,92 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_);
+        force_entry_velocity(velocity_[0],
+                             velocity_[1],
+                             velocity_[2],
+                             vitesse_entree_,
+                             vitesse_entree_dir_,
+                             vitesse_entree_compo_to_force_,
+                             stencil_vitesse_entree_);
 
       // Forcage de la vitesse en amont de la bulle :
       if (vitesse_upstream_ > -1e20)
         {
-          if (expression_vitesse_upstream_ != "??")
+          if (!upstream_velocity_measured_)
             {
-              std::string expr(expression_vitesse_upstream_);
-              Parser parser;
-              parser.setString(expr);
-              parser.setNbVar((int) 1);
-              parser.addVar("t");
-              parser.parseString();
-              parser.setVar((int) 0, (*this).current_time_ - modified_time_ini_);
-              vitesse_upstream_ = parser.eval();
+              if (expression_vitesse_upstream_ != "??")
+                {
+                  std::string expr(expression_vitesse_upstream_);
+                  Parser parser;
+                  parser.setString(expr);
+                  parser.setNbVar((int) 1);
+                  parser.addVar("t");
+                  parser.parseString();
+                  parser.setVar((int) 0, (*this).current_time_ - modified_time_ini_);
+                  vitesse_upstream_ = parser.eval();
+                }
             }
+          else
+            {
+              int dir = 0;
+              if (upstream_dir_ == -1)
+                {
+                  dir = get_direction_gravite();
+                  if (dir == -1)
+                    dir=0;
+                }
+              const DoubleTab& rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
+              const double velocity_magnitude = interfaces_.get_ijk_compo_connex().get_rising_velocities()[0];
+              const Vecteur3& velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
+              velocity_bubble_new_ = velocity_vector[dir]; //  * rising_vector[dir];
+              if (tstep_ == 0)
+                {
+                  if (velocity_bubble_old_ < -1e20)
+                    velocity_bubble_old_ = 0.;
+                  else
+                    velocity_bubble_new_ = velocity_bubble_old_;
+                  if (vitesse_upstream_reprise_ < -1e20)
+                    vitesse_upstream_ = - velocity_bubble_scope_;
+                  else
+                    vitesse_upstream_ = vitesse_upstream_reprise_;
+                }
+              const double delta_velocity = velocity_bubble_scope_ + velocity_bubble_new_;
+              const double ddelta_velocity = (velocity_bubble_new_ - velocity_bubble_old_) / timestep_;
+              if (tstep_ % 100)
+                velocity_bubble_integral_err_ = 0.;
+              velocity_bubble_integral_err_ += delta_velocity * timestep_;
+              vitesse_upstream_ -= delta_velocity * upstream_velocity_bubble_factor_;
+              vitesse_upstream_ -= ddelta_velocity * upstream_velocity_bubble_factor_deriv_;
+              vitesse_upstream_ -= velocity_bubble_integral_err_ * upstream_velocity_bubble_factor_integral_;
+              Cerr << "Velocity bubble (old): " << velocity_bubble_old_ << finl;
+              velocity_bubble_old_ = velocity_bubble_new_;
+              Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;
+              Cerr << "Velocity bubble (new): " << velocity_bubble_new_ << finl;
+              Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
+              Cerr << "Velocity dir upstream: " << rising_vector(0, dir) << finl;
+            }
+          vitesse_upstream_reprise_ = vitesse_upstream_;
           Cerr << "Force upstream velocity" << finl;
-          force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
-                                  vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                  upstream_dir_, get_direction_gravite(), upstream_stencil_);
+
+          if (IJK_Shear_Periodic_helpler::defilement_ == 1)
+            {
+              double vx;
+              double vy;
+              double vz;
+
+              calculer_vitesse_gauche(velocity_[0],velocity_[1],velocity_[2],vx,vy,vz);
+
+              force_upstream_velocity_shear_perio(velocity_[0], velocity_[1], velocity_[2],
+                                                  vitesse_upstream_, interfaces_, nb_diam_upstream_, boundary_conditions_, nb_diam_ortho_shear_perio_,
+                                                  vx,vy,vz,epaisseur_maille_);
+            }
+          else
+            {
+              force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
+                                      vitesse_upstream_, interfaces_, nb_diam_upstream_,
+                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
+            }
+
         }
     } // end of if ! frozen_velocity
 // static Stat_Counter_Id projection_counter_ = statistiques().new_counter(0, "projection");
@@ -3205,24 +3715,21 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
           if (use_inv_rho_in_poisson_solver_)
             {
-              pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2],
-                                               d_pressure_, timestep_,
-                                               pressure_rhs_,
-                                               check_divergence_, poisson_solver_,
-                                               boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+
+              pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, timestep_,
+                                               pressure_rhs_, check_divergence_, poisson_solver_);
+
             }
           else
             {
 #ifdef PROJECTION_DE_LINCREMENT_DV
               // On l'a fait avant pour etre sur qu'elle soit bien dans la derivee stockee...
 #else
-              pressure_projection_with_rho(rho_field_,
-                                           velocity_[0], velocity_[1],  velocity_[2],
-                                           d_pressure_, timestep_,
-                                           pressure_rhs_,
-                                           check_divergence_, poisson_solver_,
-                                           boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+
+              pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, timestep_,
+                                           pressure_rhs_, check_divergence_, poisson_solver_);
 #endif
+
             }
 
           // Mise a jour de la pression :
@@ -3230,9 +3737,7 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
             {
               const int kmax = pressure_.nk();
               for (int k = 0; k < kmax; k++)
-                {
-                  euler_explicit_update(d_pressure_, pressure_, k);
-                }
+                euler_explicit_update(d_pressure_, pressure_, k);
             }
 
           Cerr << " Un exit pour voir avec gdb... " << finl;
@@ -3243,23 +3748,19 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
         {
           if (use_inv_rho_in_poisson_solver_)
             {
-              pressure_projection_with_inv_rho(inv_rho_field_,
-                                               velocity_[0], velocity_[1],  velocity_[2],
-                                               pressure_, timestep_,
-                                               pressure_rhs_,
-                                               check_divergence_, poisson_solver_,
-                                               boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+
+              pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, timestep_,
+                                               pressure_rhs_, check_divergence_, poisson_solver_);
+
             }
           else
             {
 #ifdef PROJECTION_DE_LINCREMENT_DV
 #else
-              pressure_projection_with_rho(rho_field_,
-                                           velocity_[0], velocity_[1],  velocity_[2],
-                                           pressure_, timestep_,
-                                           pressure_rhs_,
-                                           check_divergence_, poisson_solver_,
-                                           boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+
+              pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, timestep_,
+                                           pressure_rhs_, check_divergence_, poisson_solver_);
+
 #endif
             }
         }
@@ -3276,7 +3777,7 @@ void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
       //statistiques().end_count(projection_counter_);
     }
 
-  //Cerr << "Copy pressure on extended field for probes" << finl;
+  Cerr << "Copy pressure on extended field for probes" << finl;
   copy_field_values(pressure_ghost_cells_, pressure_);
 
   if (Process::je_suis_maitre())
@@ -3318,9 +3819,18 @@ void IJK_FT_base::rk3_sub_step(const int rk_step, const double total_timestep,
 
   if (!frozen_velocity_)
     {
-      velocity_[0].echange_espace_virtuel(2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-      velocity_[1].echange_espace_virtuel(2);
-      velocity_[2].echange_espace_virtuel(2);
+      if (boundary_conditions_.get_correction_conserv_qdm()==2)
+        {
+          update_rho_v();
+          rho_field_.echange_espace_virtuel(rho_field_.ghost());
+          update_v_ghost_from_rho_v();
+        }
+      else
+        {
+          velocity_[0].echange_espace_virtuel(2);
+          velocity_[1].echange_espace_virtuel(2);
+          velocity_[2].echange_espace_virtuel(2);
+        }
       // GAB TODO : voir dans euler_explicite ce qu'on a dit qu'on ferai pour voir
       // si le calculer_dv s'est bien passe
       Cout << "rk3ss: rk_step " << rk_step << finl;
@@ -3333,12 +3843,12 @@ void IJK_FT_base::rk3_sub_step(const int rk_step, const double total_timestep,
           if (include_pressure_gradient_in_ustar_)
             {
               pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           d_pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                           d_pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_);
             }
           else
             {
               pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                           pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_);
             }
         }
 #else
@@ -3372,16 +3882,37 @@ void IJK_FT_base::rk3_sub_step(const int rk_step, const double total_timestep,
 
       // Conditions en entree
       if (vitesse_entree_ > -1e20)
-        {
-          force_entry_velocity(velocity_[0], velocity_[1], velocity_[2], vitesse_entree_);
-        }
+        force_entry_velocity(velocity_[0],
+                             velocity_[1],
+                             velocity_[2],
+                             vitesse_entree_,
+                             vitesse_entree_dir_,
+                             vitesse_entree_compo_to_force_,
+                             stencil_vitesse_entree_);
+
 
       // Forcage de la vitesse en amont de la bulle :
       if (vitesse_upstream_ > -1e20)
         {
-          force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
-                                  vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                  upstream_dir_, get_direction_gravite(), upstream_stencil_);
+          if (IJK_Shear_Periodic_helpler::defilement_ == 1)
+            {
+
+              double vx;
+              double vy;
+              double vz;
+
+              calculer_vitesse_gauche(velocity_[0],velocity_[1],velocity_[2],vx,vy,vz);
+
+              force_upstream_velocity_shear_perio(velocity_[0], velocity_[1], velocity_[2],
+                                                  vitesse_upstream_, interfaces_, nb_diam_upstream_, boundary_conditions_, nb_diam_ortho_shear_perio_,
+                                                  vx,vy,vz,epaisseur_maille_);
+            }
+          else
+            {
+              force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
+                                      vitesse_upstream_, interfaces_, nb_diam_upstream_,
+                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
+            }
         }
 
     } // end of if ! frozen_velocity
@@ -3411,18 +3942,23 @@ void IJK_FT_base::rk3_sub_step(const int rk_step, const double total_timestep,
         {
           // Cerr << "Methode basee sur inv rho pour le grad(P) en RK3" << finl;
           // Cerr << " Option a tester si besoin. " << finl;
+
           pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
                                            fractionnal_timestep,
-                                           pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                           pressure_rhs_, check_divergence_, poisson_solver_);
+
         }
       else
         {
 #ifdef PROJECTION_DE_LINCREMENT_DV
           // On l'a fait avant pour etre sur qu'elle soit bien dans la derivee stockee...
 #else
+
+
           pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
                                        fractionnal_timestep,
-                                       pressure_rhs_, check_divergence_, poisson_solver_, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+                                       pressure_rhs_, check_divergence_, poisson_solver_);
+
           // GAB TODO : cest a peu pres ici qu'il faudra travailler pour recuperer le
           // terme de pression
 #endif
@@ -3457,12 +3993,10 @@ void IJK_FT_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int di
   const int imax = dv.ni();
   const int jmax = dv.nj();
   for (int j = 0; j < jmax; j++)
-    {
-      for (int i = 0; i < imax; i++)
-        {
-          dv(i, j, k_index) += constant;
-        }
-    }
+    for (int i = 0; i < imax; i++)
+      {
+        dv(i, j, k_index) += constant;
+      }
 }
 
 void IJK_FT_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
@@ -3472,13 +4006,11 @@ void IJK_FT_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_do
   const int imax = v.ni();
   const int jmax = v.nj();
   for (int j = 0; j < jmax; j++)
-    {
-      for (int i = 0; i < imax; i++)
-        {
-          double x = dv(i,j,k_layer);
-          v(i,j,k_layer) += x * delta_t;
-        }
-    }
+    for (int i = 0; i < imax; i++)
+      {
+        double x = dv(i,j,k_layer);
+        v(i,j,k_layer) += x * delta_t;
+      }
 }
 
 // Deplacement des interfaces par le champ de vitesse :
@@ -3505,43 +4037,40 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
 
     // Il faut ajouter le cisaillement moyen au champ de vitesse_ft avant de convecter les marqueurs
 
-    if (IJK_Splitting::defilement_ == 1)
+    redistribute_to_splitting_ft_faces_[2].redistribute(velocity_[2], velocity_ft_[2]);
+    redistribute_to_splitting_ft_faces_[1].redistribute(velocity_[1], velocity_ft_[1]);
+    redistribute_to_splitting_ft_faces_[0].redistribute(velocity_[0], velocity_ft_[0]);
+
+    if (IJK_Shear_Periodic_helpler::defilement_ == 1)
       {
-        redistribute_with_shear_domain_ft(velocity_[0], velocity_ft_[0],
-                                          boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), 0);
-        redistribute_with_shear_domain_ft(velocity_[1], velocity_ft_[1], 0., 1);
-        redistribute_with_shear_domain_ft(velocity_[2], velocity_ft_[2], 0., 2);
+        // after redistribute, velocity in ft domain must be shifted by the shear
+        velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), ijk_splitting_ft_extension_);
+        velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., ijk_splitting_ft_extension_);
+        velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., ijk_splitting_ft_extension_ );
       }
-    else
-      for (int dir = 0; dir < 3; dir++)
-        redistribute_to_splitting_ft_faces_[dir].redistribute(velocity_[dir], velocity_ft_[dir]);
 
     for (int dir = 0; dir < 3; dir++)
-      {
-        if (dir==DIRECTION_I)
-          {
-            velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost(), boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-          }
-        else
-          {
-            velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost());
-          }
-      }
+      velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost());
+
   }
 
   /*
    * Calculation of intersections on interface at time (n)
    */
-  //Cerr << "Compute Eulerian distance and curvature fields" << finl;
+  Cerr << "Compute Eulerian distance and curvature fields" << finl;
   //thermals_.compute_eulerian_distance_curvature(); /* :integration(Dorian) Ligne mise en commentaire la fonction est tres couteuse en temps de calcul ; brise certainement des fonctionalites */
-  //Cerr << "Clean IJK intersections" << finl;
+  Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
+  Cerr << "Copy interface state for post-processing on surface" << finl;
+  thermals_.copy_previous_interface_state();
   // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
-  //Cerr << "Compute compo_connex from bounding box" << finl;
+  Cerr << "Reset bubble rising velocity calculations" << finl;
+  interfaces_.reset_flags_and_counters();
+  Cerr << "Compute compo_connex from bounding box" << finl;
   interfaces_.compute_compo_connex_from_bounding_box();
-  //Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;
+  Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;
   interfaces_.compute_compo_connex_from_interface();
-  //Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
+  Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
   interfaces_.compute_rising_velocities_from_compo();
 
   /*
@@ -3598,23 +4127,34 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
   // On met a jour l'indicatrice du pas de temps d'apres.
   // On met aussi a jour le surf et bary des faces mouillees,
   // les valeurs moyennes en ijk, les val moy en ijkf, etc
+
   update_indicator_field();
 
-  if (counter_first_iter_ && first_step_interface_smoothing_)
-    thermals_.recompute_temperature_init();
   // mise a jour de l'indicatrice pour les variables monofluides
-  interfaces_.calculer_kappa_ft(kappa_ft_);
 
-  if(boundary_conditions_.get_correction_interp_monofluide())
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      calculer_I_kappa_sigma(kappa_ft_, interfaces_.I_ft(), sigma_);
-      pressure_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-      pressure_.relever_I_sigma_kappa_ns(kappa_ft_ns_);
+      // mise a jour de l'indicatrice pour les variables monofluides
+      redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
+      redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, rho_field_.nk()-4);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, molecular_mu_.nk()-4);
+      if (use_inv_rho_)
+        {
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, inv_rho_field_.nk()-4);
+        }
+      if(boundary_conditions_.get_correction_interp_monofluide()==1)
+        {
+          interfaces_.calculer_kappa_ft(kappa_ft_);
+          redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
+          redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+        }
     }
-
-  rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-  if (use_inv_rho_)
-    inv_rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
 
   statistiques().end_count(deplacement_interf_counter_);
 }
@@ -3629,22 +4169,25 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
   static Stat_Counter_Id deplacement_interf_counter_ = statistiques().new_counter(1, "Deplacement de l'interface");
   statistiques().begin_count(deplacement_interf_counter_);
 
-  if (IJK_Splitting::defilement_ == 1)
-    {
-      redistribute_with_shear_domain_ft(velocity_[0], velocity_ft_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), 0);
-      redistribute_with_shear_domain_ft(velocity_[1], velocity_ft_[1], 0., 1);
-      redistribute_with_shear_domain_ft(velocity_[2], velocity_ft_[2], 0., 2);
-    }
   for (int dir = 0; dir < 3; dir++)
     redistribute_to_splitting_ft_faces_[dir].redistribute(velocity_[dir], velocity_ft_[dir]);
 
-  for (int dir=0; dir<3; dir++)
+  redistribute_to_splitting_ft_faces_[2].redistribute(velocity_[2], velocity_ft_[2]);
+  redistribute_to_splitting_ft_faces_[1].redistribute(velocity_[1], velocity_ft_[1]);
+  redistribute_to_splitting_ft_faces_[0].redistribute(velocity_[0], velocity_ft_[0]);
+
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      if (dir==DIRECTION_I)
-        velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost(), boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-      else
-        velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost());
+      // after redistribute, velocity in ft domain must be shifted by the shear
+      velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), ijk_splitting_ft_extension_);
+      velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., ijk_splitting_ft_extension_);
+      velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., ijk_splitting_ft_extension_);
     }
+
+  for (int dir = 0; dir < 3; dir++)
+    velocity_ft_[dir].echange_espace_virtuel(velocity_ft_[dir].ghost());
+
+
   // On conserve les duplicatas que l'on transporte comme le reste.
 
   // Normalement, transporter_maillage gere aussi les duplicatas...
@@ -3682,18 +4225,30 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
   // vient de deplacer.
 
   update_indicator_field();
-  interfaces_.calculer_kappa_ft(kappa_ft_);
 
-  if(boundary_conditions_.get_correction_interp_monofluide())
+  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      calculer_I_kappa_sigma(kappa_ft_, interfaces_.I_ft(), sigma_);
-      pressure_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-      pressure_.relever_I_sigma_kappa_ns(kappa_ft_ns_);
+      redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
+      redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, rho_field_.nk()-4);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+      molecular_mu_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, molecular_mu_.nk()-4);
+      if (use_inv_rho_)
+        {
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
+          inv_rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmax_(I_ns_, inv_rho_field_.nk()-4);
+        }
+      if(boundary_conditions_.get_correction_interp_monofluide()==1)
+        {
+          interfaces_.calculer_kappa_ft(kappa_ft_);
+          redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
+          redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+        }
     }
 
-  rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
-  if (use_inv_rho_)
-    inv_rho_field_.update_I_sigma_kappa(interfaces_.I_ft(), kappa_ft_, ijk_splitting_ft_extension_, sigma_);
 }
 
 //  Parcourir_maillage cree des noeuds et facettes virtuelles.
@@ -3705,22 +4260,20 @@ void IJK_FT_base::parcourir_maillage()
   //const int nbsom_before = interfaces_.maillage_ft_ijk().nb_sommets();
   interfaces_.parcourir_maillage();
 
-  {
-    const int nbsom = interfaces_.maillage_ft_ijk().nb_sommets();
-    // const int size_store = interfaces_.RK3_G_store_vi().dimension(0);
-    // if (!((nbsom >= nbsom_before) &&
-    //       ((nbsom_before == size_store) || (0 == size_store) )))
-    //   {
-    //     Cerr << "Une des tailles de tableau n'est pas bonne... "
-    //          << " size_store = " << size_store
-    //          << " nbsom_before = " << nbsom_before
-    //          << " nbsom = " << nbsom
-    //          << finl;
-    //     Process::exit();
-    //   }
-    interfaces_.RK3_G_store_vi_resize(nbsom, 3);
-    interfaces_.RK3_G_store_vi_echange_esp_vect();
-  }
+  const int nbsom = interfaces_.maillage_ft_ijk().nb_sommets();
+  // const int size_store = interfaces_.RK3_G_store_vi().dimension(0);
+  // if (!((nbsom >= nbsom_before) &&
+  //       ((nbsom_before == size_store) || (0 == size_store) )))
+  //   {
+  //     Cerr << "Une des tailles de tableau n'est pas bonne... "
+  //          << " size_store = " << size_store
+  //          << " nbsom_before = " << nbsom_before
+  //          << " nbsom = " << nbsom
+  //          << finl;
+  //     Process::exit();
+  //   }
+  interfaces_.RK3_G_store_vi_resize(nbsom, 3);
+  interfaces_.RK3_G_store_vi_echange_esp_vect();
 }
 
 // Maj indicatrice rho mu met indicatrice a indicatrice next
@@ -3729,9 +4282,7 @@ void IJK_FT_base::maj_indicatrice_rho_mu(const bool parcourir)
 {
   // En monophasique, les champs sont a jours donc on zap :
   if (disable_diphasique_)
-    {
-      return;
-    }
+    return;
 
   static Stat_Counter_Id calculer_rho_mu_indicatrice_counter_= statistiques().new_counter(2, "Calcul Rho Mu Indicatrice");
   statistiques().begin_count(calculer_rho_mu_indicatrice_counter_);
@@ -3761,6 +4312,21 @@ void IJK_FT_base::maj_indicatrice_rho_mu(const bool parcourir)
   const int nx = interfaces_.I().ni();
   const int ny = interfaces_.I().nj();
   const int nz = interfaces_.I().nk();
+  for (int k=0; k < nz; k++)
+    for (int j=0; j < ny; j++)
+      for (int i=0; i < nx; i++)
+        {
+          double chi_l = interfaces_.I(i,j,k);
+          rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+          if(harmonic_nu_in_calc_with_indicatrice_==1 and chi_l!=0. and chi_l!=1.)
+            {
+              molecular_mu_(i,j,k) = 1. /  ( mu_liquide_/ chi_l + mu_vapeur_/(1.- chi_l) ) ;
+            }
+          else
+            {
+              molecular_mu_(i,j,k) = mu_liquide_ * chi_l + (1.- chi_l) * mu_vapeur_ ;
+            }
+        }
 
   if (use_inv_rho_)
     {
@@ -3769,22 +4335,29 @@ void IJK_FT_base::maj_indicatrice_rho_mu(const bool parcourir)
           for (int i=0; i < nx; i++)
             {
               double chi_l = interfaces_.I(i,j,k);
-              rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
               inv_rho_field_(i,j,k) = 1./rho_liquide_ * chi_l + (1.- chi_l) * 1./rho_vapeur_;
-              molecular_mu_(i,j,k) = mu_liquide_  * chi_l + (1.- chi_l) * mu_vapeur_ ;
             }
     }
-  else
-    {
-      for (int k=0; k < nz; k++)
-        for (int j=0; j < ny; j++)
-          for (int i=0; i < nx; i++)
-            {
-              double chi_l = interfaces_.I(i,j,k);
-              rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
-              molecular_mu_(i,j,k) = mu_liquide_  * chi_l + (1.- chi_l) * mu_vapeur_ ;
-            }
-    }
+
+
+//  if (use_harmonic_viscosity_)
+//    for (int k=0; k < nz; k++)
+//      for (int j=0; j < ny; j++)
+//        for (int i=0; i < nx; i++)
+//          {
+//            double chi_l = interfaces_.I(i,j,k);
+//            rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+//            molecular_mu_(i,j,k) = (mu_liquide_ * mu_vapeur_) / (chi_l * mu_vapeur_ + (1.- chi_l) * mu_liquide_);
+//          }
+//  else
+//    for (int k=0; k < nz; k++)
+//      for (int j=0; j < ny; j++)
+//        for (int i=0; i < nx; i++)
+//          {
+//            double chi_l = interfaces_.I(i,j,k);
+//            rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+//            molecular_mu_(i,j,k) = mu_liquide_ * chi_l + (1.- chi_l) * mu_vapeur_ ;
+//          }
 
   //Mise a jour des espaces virtuels des champs :
   rho_field_.echange_espace_virtuel(rho_field_.ghost());
@@ -3817,7 +4390,75 @@ void IJK_FT_base::update_rho_v()
     {
       calculer_rho_v(rho_field_, velocity_, rho_v_);
     }
+  rho_v_[0].echange_espace_virtuel(rho_v_[0].ghost());
+  rho_v_[1].echange_espace_virtuel(rho_v_[1].ghost());
+  rho_v_[2].echange_espace_virtuel(rho_v_[2].ghost());
 }
+
+void IJK_FT_base::update_v_ghost_from_rho_v()
+{
+  for (int dir = 0 ; dir < 3 ; dir++)
+    {
+      const int imax = velocity_[dir].ni();
+      const int jmax = velocity_[dir].nj();
+      const int kmax = velocity_[dir].nk();
+      const int ghost = velocity_[dir].ghost();
+      int last_global_k = splitting_.get_nb_items_global(IJK_Splitting::ELEM, 2);
+      for (int j = 0; j < jmax; j++)
+        {
+          for (int i = 0; i < imax; i++)
+            {
+              if(splitting_.get_offset_local(2)==0)
+                {
+                  for (int k = -ghost; k < 0; k++)
+                    {
+                      double rho = 0.;
+                      double DU = 0.;
+                      if (dir==0)
+                        {
+                          rho = 0.5*(rho_field_(i, j, k) + rho_field_(i-1, j, k));
+                          DU = boundary_conditions_.get_dU_perio();
+                        }
+                      else if (dir==1)
+                        {
+                          rho = 0.5*(rho_field_(i, j, k) + rho_field_(i, j-1, k));
+                        }
+                      else if (dir==2)
+                        {
+                          rho= 0.5*(rho_field_(i, j, k) + rho_field_(i, j, k-1));
+                        }
+
+                      velocity_[dir](i, j, k) = rho_v_[dir](i, j, k)/rho - DU;
+                    }
+                }
+              if(splitting_.get_offset_local(2)+kmax==last_global_k)
+                {
+                  for (int k = kmax; k < kmax + ghost; k++)
+                    {
+                      double rho = 0.;
+                      double DU = 0.;
+                      if (dir==0)
+                        {
+                          rho = 0.5*(rho_field_(i, j, k) + rho_field_(i-1, j, k));
+                          DU = boundary_conditions_.get_dU_perio();
+                        }
+                      else if (dir==1)
+                        {
+                          rho = 0.5*(rho_field_(i, j, k) + rho_field_(i, j-1, k));
+                        }
+                      else if (dir==2)
+                        {
+                          rho= 0.5*(rho_field_(i, j, k) + rho_field_(i, j, k-1));
+                        }
+
+                      velocity_[dir](i, j, k) = rho_v_[dir](i, j, k)/rho + DU;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 // Transfert du maillage ft vers ns de champs aux faces :
 void IJK_FT_base::transfer_ft_to_ns()
@@ -3840,9 +4481,7 @@ void IJK_FT_base::fill_variable_source_and_potential_phi(const double time)
     {
       // Si on est en presence d'une source analytique variable spatialement:
       if (expression_variable_source_[dir] != "??")
-        {
-          set_field_data(variable_source_[dir], expression_variable_source_[dir], interfaces_.I(), grad_I_ns[dir], time);
-        }
+        set_field_data(variable_source_[dir], expression_variable_source_[dir], interfaces_.I(), grad_I_ns[dir], time);
       else if (expression_potential_phi_ != "??")
         {
           // Pour Remettre a zero la source:
@@ -3897,21 +4536,11 @@ Vecteur3 IJK_FT_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,
     }
   // calculer_rho_v(inv_rho, champ, inv_rho_champ);
   for (int dir=0; dir<3; dir++)
-    {
-      resu[dir] = calculer_v_moyen(champ[dir]);
-    }
+    resu[dir] = calculer_v_moyen(champ[dir]);
 
   return resu;
 }
 
-
-void IJK_FT_base::calculer_I_kappa_sigma(IJK_Field_double& kappa_ft,const IJK_Field_double& indic, double sigma)
-{
-  for (int k = -2; k < kappa_ft.nk()+2; k++)
-    for (int j = -2; j < kappa_ft.nj()+2; j++)
-      for (int i = -2; i < kappa_ft.ni()+2; i++)
-        kappa_ft(i,j,k) *= indic(i,j,k)*sigma;
-}
 
 Vecteur3 IJK_FT_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
 {
@@ -3933,9 +4562,7 @@ Vecteur3 IJK_FT_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
       champ[dir].echange_espace_virtuel(1);
     }
   for (int dir=0; dir<3; dir++)
-    {
-      resu[dir] = calculer_v_moyen(champ[dir]);
-    }
+    resu[dir] = calculer_v_moyen(champ[dir]);
 
   return resu;
 }
@@ -3963,9 +4590,7 @@ Vecteur3 IJK_FT_base::calculer_grad_p_over_rho_moyen(const IJK_Field_double& pre
       champ[dir].echange_espace_virtuel(1);
     }
   for (int dir=0; dir<3; dir++)
-    {
-      resu[dir] = calculer_v_moyen(champ[dir]);
-    }
+    resu[dir] = calculer_v_moyen(champ[dir]);
 
   return resu;
 }
@@ -4075,6 +4700,8 @@ void IJK_FT_base::write_check_etapes_et_termes(int rk_step)
     }
 }
 
+// -----------------------------------------------------------------------------------
+//  CORRECTION DE QdM
 double IJK_FT_base::calculer_true_moyenne_de_phase_liq(const IJK_Field_double& vx)
 {
   /* Au 04.11.21 : Renvoi vx_liq */
@@ -4093,17 +4720,13 @@ double IJK_FT_base::calculer_moyenne_de_phase_liq(const IJK_Field_double& vx)
   const int nj = vx.nj();
   const int nk = vx.nk();
   double v_moy = 0.;
+
 #ifndef VARIABLE_DZ
   for (int k = 0; k < nk; k++)
-    {
-      for (int j = 0; j < nj; j++)
-        {
-          for (int i = 0; i < ni; i++)
-            {
-              v_moy += vx(i,j,k)*interfaces_.I(i,j,k);
-            }
-        }
-    }
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        v_moy += vx(i,j,k)*interfaces_.I(i,j,k);
+
   // somme sur tous les processeurs.
   v_moy = Process::mp_sum(v_moy);
   // Maillage uniforme, il suffit donc de diviser par le nombre total de mailles:
@@ -4117,12 +4740,8 @@ double IJK_FT_base::calculer_moyenne_de_phase_liq(const IJK_Field_double& vx)
     {
       const double dz = tab_dz[k+offset];
       for (int j = 0; j < nj; j++)
-        {
-          for (int i = 0; i < ni; i++)
-            {
-              v_moy += vx(i,j,k)*dz;
-            }
-        }
+        for (int i = 0; i < ni; i++)
+          v_moy += vx(i,j,k)*dz;
     }
   // somme sur tous les processeurs.
   v_moy = Process::mp_sum(v_moy);
@@ -4152,17 +4771,13 @@ double IJK_FT_base::calculer_moyenne_de_phase_vap(const IJK_Field_double& vx)
   const int nj = vx.nj();
   const int nk = vx.nk();
   double v_moy = 0.;
+
 #ifndef VARIABLE_DZ
   for (int k = 0; k < nk; k++)
-    {
-      for (int j = 0; j < nj; j++)
-        {
-          for (int i = 0; i < ni; i++)
-            {
-              v_moy += vx(i,j,k)*(1-interfaces_.I(i,j,k));
-            }
-        }
-    }
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        v_moy += vx(i,j,k)*(1-interfaces_.I(i,j,k));
+
   // somme sur tous les processeurs.
   v_moy = Process::mp_sum(v_moy);
   // Maillage uniforme, il suffit donc de diviser par le nombre total de mailles:
@@ -4176,12 +4791,8 @@ double IJK_FT_base::calculer_moyenne_de_phase_vap(const IJK_Field_double& vx)
     {
       const double dz = tab_dz[k+offset];
       for (int j = 0; j < nj; j++)
-        {
-          for (int i = 0; i < ni; i++)
-            {
-              v_moy += vx(i,j,k)*dz;
-            }
-        }
+        for (int i = 0; i < ni; i++)
+          v_moy += vx(i,j,k)*dz;
     }
   // somme sur tous les processeurs.
   v_moy = Process::mp_sum(v_moy);
@@ -4227,8 +4838,48 @@ void IJK_FT_base::compute_and_add_qdm_corrections()
        * plus de 10 doubles, sur un maillage a 40^3 mailles, une seule bulle... */
       if (qdm_corrections_.get_need_to_compute_correction_value_one_direction(dir))
         qdm_corrections_.compute_correction_value_one_direction(dir);
-      //TODO : coder le get_correction_value_one_direction(dir);
-      //double correction_value_one_direction = qdm_corrections_.get_correction_value_one_direction(dir);
+      for (int k=0; k<vel.nk(); ++k)
+        for (int j=0; j<vel.nj(); ++j)
+          for (int i=0; i<vel.ni(); ++i)
+            {
+              qdm_corrections_.compute_correct_velocity_one_direction(dir, vel(i,j,k));
+              velocity_[dir](i,j,k) = qdm_corrections_.get_correct_velocitiy_one_direction(dir);
+            }
+    }
+
+  Cout << "AF : compute_and_add_qdm_corrections" << finl;
+}
+
+void IJK_FT_base::compute_and_add_qdm_corrections_monophasic()
+{
+  /* For monophasic corrections only */
+  /*
+   * Corrections to comply with the momentum budget
+   * u_corrected = u - u_correction
+   * u_corrected and u_corrrection are computed in the qdm_corrections_ object.
+   * */
+  double alpha_l = 1.; // calculer_v_moyen(interfaces_.I())
+  double rho_moyen = rho_liquide_; // calculer_v_moyen(rho_field_)
+  qdm_corrections_.set_rho_moyen_alpha_l(rho_moyen,alpha_l);
+  qdm_corrections_.set_rho_liquide(rho_liquide_);
+  for (int dir=0; dir<3; dir++)
+    {
+      IJK_Field_double& vel = velocity_[dir];
+      double rho_vel_moyen = calculer_v_moyen(rho_v_[dir]);
+      qdm_corrections_.set_rho_vel_moyen(dir,rho_vel_moyen);
+      Cout << "qdm_corrections_.get_need_for_vitesse_relative("<<dir<<")" << qdm_corrections_.get_need_for_vitesse_relative(dir)<< finl;
+      if (qdm_corrections_.get_need_for_vitesse_relative(dir))
+        {
+          double vel_rel = calculer_true_moyenne_de_phase_liq(vel); // - calculer_true_moyenne_de_phase_vap(vel);
+          qdm_corrections_.set_vitesse_relative(dir, vel_rel);
+        }
+      // TODO : Demander de l'aide a Guillaume :
+      /* Pour moyenne glissante, je fais appel a des ArrOfDouble. En utilisation sequentielle, j'en
+       * suis satisfait disons. En utilisation parallele, je ne sais pas vraiment comment sont gerees
+       * mes listes. Sont-t-elles dupliquees ? Decoupees ? En tout cas la simu plante pour une liste
+       * plus de 10 doubles, sur un maillage a 40^3 mailles, une seule bulle... */
+      if (qdm_corrections_.get_need_to_compute_correction_value_one_direction(dir))
+        qdm_corrections_.compute_correction_value_one_direction(dir);
       for (int k=0; k<vel.nk(); k++)
         for (int j=0; j<vel.nj(); j++)
           for (int i=0; i<vel.ni(); i++)
@@ -4237,13 +4888,7 @@ void IJK_FT_base::compute_and_add_qdm_corrections()
               velocity_[dir](i,j,k) = qdm_corrections_.get_correct_velocitiy_one_direction(dir);
             }
     }
-  Cout << "AF : compute_and_add_qdm_corrections" << finl;
-}
-
-int IJK_FT_base::decoder_numero_bulle(const int code)
-{
-  const int num_bulle = code >>6;
-  return num_bulle;
+  Cout << "AF : compute_and_add_qdm_corrections_monophasic" << finl;
 }
 
 void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle)
@@ -4371,3 +5016,128 @@ void IJK_FT_base::update_old_intersections()
   interfaces_.update_old_intersections();
 }
 
+void IJK_FT_base::write_qdm_corrections_information()
+{
+  // Impression dans le fichier qdm_correction.out
+  if (get_time_scheme() == RK3_FT) // && (rk3_sub_step!=0)
+    Cout << "in write_qdm_corrections_information, rk_step_ = "<<rk_step_<<finl;
+  Vecteur3 qdm_cible = qdm_corrections_.get_correction_values();
+  Vecteur3 velocity_correction = qdm_corrections_.get_velocity_corrections();
+  Vecteur3 rho_vel;
+  for (int dir=0; dir<3; ++dir) rho_vel[dir] =  calculer_v_moyen(scalar_fields_product(rho_field_,velocity_[dir],dir));
+
+  if (Process::je_suis_maitre())
+    {
+      int reset = (!reprise_) && (tstep_==0);
+      SFichier fic=Ouvrir_fichier("_qdm_correction.out",
+                                  "1.iteration\t2.time\t3.qdm_cible[0]\t4.qdm_cible[1]\t5.qdm_cible[2]\t6.velocity_correction[0]\t7.velocity_correction[1]\t8.velocity_correction[2]\t9.qdm[0]\t10.qdm[1]\t11.qdm[2]",
+                                  reset);
+      // temps
+      fic << tstep_ << " ";
+      fic << current_time_ << " ";
+      // CIBLE CONSTANE : qdm_cible = al.rl.u_cible
+      fic << qdm_cible[0] << " ";
+      fic << qdm_cible[1] << " ";
+      fic << qdm_cible[2] << " ";
+      // velocity_correction = (<r.u> - qdm_cible) / <r>
+      fic << velocity_correction[0] << " ";
+      fic << velocity_correction[1] << " ";
+      fic << velocity_correction[2] << " ";
+      // <r.u>
+      fic << rho_vel[0] << " ";
+      fic << rho_vel[1] << " ";
+      fic << rho_vel[2] << " ";
+      fic<<finl;
+      fic.close();
+      //	 << finl;
+    }
+}
+
+
+// -----------------------------------------------------------------------------------
+//  PRODUITS DE CHAMPS
+IJK_Field_double IJK_FT_base::scalar_product(const FixedVector<IJK_Field_double, 3>& V1, const FixedVector<IJK_Field_double, 3>& V2)
+{
+  /*
+   * * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
+   */
+  IJK_Field_double resu;
+  resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
+  int nk = V1[0].nk();
+  if (nk != V2[0].nk()) {Cerr << "scalar product of fields with different dimensions (nk)"<< finl;}
+  int nj = V1[0].nj();
+  if (nj != V2[0].nj()) {Cerr << "scalar product of fields with different dimensions (nj)"<< finl;}
+  int ni = V1[0].ni();
+  if (ni != V2[0].ni()) {Cerr << "scalar product of fields with different dimensions (ni)"<< finl;}
+
+  for (int k=0; k<nk; ++k)
+    for (int j=0; j<nj; ++j)
+      for (int i=0; i<ni; ++i)
+        {
+          resu(i,j,k) = 0.25*(
+                          (V1[0](i,j,k)+V1[0](i+1,j,k))*(V2[0](i,j,k)+V2[0](i+1,j,k))
+                          +(V1[1](i,j,k)+V1[1](i,j+1,k))*(V2[1](i,j,k)+V2[1](i,j+1,k))
+                          +(V1[2](i,j,k)+V1[2](i,j,k+1))*(V2[2](i,j,k)+V2[2](i,j,k+1))
+                        );
+        }
+  // Communication avec tous les process ?
+  return resu;
+}
+
+FixedVector<IJK_Field_double, 3> IJK_FT_base::scalar_times_vector(const IJK_Field_double& Sca, const FixedVector<IJK_Field_double, 3>& Vec)
+{
+  /*
+   * Produit d'un champ scalaire (Sca) par un champ de vecteur (Vec).
+   * Le champ scalaire est aux centre des elements, le champ de vecteur est aux faces
+   * Le resultat reste localise au meme endroit que le champ de vecteur passe en entree.
+   * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
+   */
+
+  FixedVector<IJK_Field_double, 3> resu;
+  allocate_velocity(resu,splitting_,3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
+  int nk = Vec[0].nk();
+  if (nk != Sca.nk()) {Cerr << "scalar fields has different dimension from vector field  (nk)"<< finl;}
+  int nj = Vec[0].nj();
+  if (nj != Sca.nj()) {Cerr << "scalar fields has different dimension from vector field  (nj)"<< finl;}
+  int ni = Vec[0].ni();
+  if (ni != Sca.nk()) {Cerr << "scalar fields has different dimension from vector field  (ni)"<< finl;}
+
+  for (int k=0; k<nk; ++k)
+    for (int j=0; j<nj; ++j)
+      for (int i=0; i<ni; ++i)
+        {
+          resu[0](i,j,k) = 0.5*(Sca(i-1,j,k)+Sca(i,j,k))*Vec[0](i,j,k);
+          resu[1](i,j,k) = 0.5*(Sca(i,j-1,k)+Sca(i,j,k))*Vec[1](i,j,k);
+          resu[2](i,j,k) = 0.5*(Sca(i,j,k-1)+Sca(i,j,k))*Vec[2](i,j,k);
+        }
+  // Communication avec tous les process ?
+  return resu;
+}
+
+IJK_Field_double IJK_FT_base::scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir)
+{
+  /*
+   * Produit d'un champ scalaire aux centres (S1) par une des composantes d'un champ de vecteur (S2).
+   * Le resultat est localise au meme endroit que le champ de vecteur dont est issu S2.
+   * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
+   */
+  IJK_Field_double resu;
+  resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
+  int nk = S1.nk();
+  if (nk != S2.nk()) {Cerr << "scalar fields have different dimensions for the product (nk)"<< finl;}
+  int nj = S1.nj();
+  if (nj != S2.nj()) {Cerr << "scalar fields have different dimensions for the product (nj)"<< finl;}
+  int ni = S1.ni();
+  if (ni != S2.ni()) {Cerr << "scalar fields have different dimensions for the product (ni)"<< finl;}
+
+  for (int k=0; k<nk; ++k)
+    for (int j=0; j<nj; ++j)
+      for (int i=0; i<ni; ++i)
+        {
+          if (dir==0) {resu(i,j,k) = 0.5*(S1(i-1,j,k)+S1(i,j,k))*S2(i,j,k);}
+          if (dir==1) {resu(i,j,k) = 0.5*(S1(i,j-1,k)+S1(i,j,k))*S2(i,j,k);}
+          if (dir==2) {resu(i,j,k) = 0.5*(S1(i,j,k-1)+S1(i,j,k))*S2(i,j,k);}
+        }
+  // Communication avec tous les process ?
+  return resu;
+}

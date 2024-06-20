@@ -38,12 +38,9 @@
 class Force_ph : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur_ni_destructeur( Force_ph ) ;
+  Declare_instanciable( Force_ph ) ;
 
 public:
-
-  Force_ph();
-  ~Force_ph();
 
   // void initialise(int nproc_tot, int ni, int nj, int nk, int nl,int nm,int nn,
   // 		double Lx, double Ly, double Lz, double Ox,double Oy,double Oz, int momin, int momax, double kmin, double kmax,
@@ -72,22 +69,36 @@ public:
   void gbz_gather(FixedVector<IJK_Field_double, 3> force_);
 
 private:
-  int nproc_tot;
+  int nproc_tot = 0;
 
-  int ni,nj,nk,n_ijk;
-  int nl,nm,nn,n_lmn;
-  double Lx, Ly, Lz;
-  double Ox, Oy, Oz;
-  double kmin,kmax;
-  int momin,momax;
+  int ni = 0;
+  int nj = 0;
+  int nk = 0;
+  int n_ijk = 0;
+  int nl = 0;
+  int nm = 0;
+  int nn = 0;
+  int n_lmn = 0;
+  double Lx = 0.;
+  double Ly = 0.;
+  double Lz = 0.;
+  double Ox = 0.;
+  double Oy = 0.;
+  double Oz = 0.;
+  double kmin = 0.;
+  double kmax = 0.;
+  int momin = 0;
+  int momax = 0;
   FixedVector<IJK_Field_double, 3> force_;
   std::vector<std::vector< std:: vector < double > > > force;
-  double energie;
+  double energie = 0.;
 
-  int nproc_i,nproc_j,nproc_k;
-  int i_offset;
-  int j_offset;
-  int k_offset;
+  int nproc_i = 0;
+  int nproc_j = 0;
+  int nproc_k = 0;
+  int i_offset = 0;
+  int j_offset = 0;
+  int k_offset = 0;
 
 
 };

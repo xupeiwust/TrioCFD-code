@@ -54,10 +54,27 @@ void compute_bounding_box_fill_compo(const IJK_Interfaces& interfaces,
 
 void compute_interfacial_compo_fill_compo(const IJK_Interfaces& interfaces, IJK_Field_double& eulerian_compo_connex);
 
-void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity, const IJK_Interfaces& interfaces,
-                             const IJK_Field_int& eulerian_compo_connex_ns, const int& gravity_dir,
-                             ArrOfDouble& rising_velocities, DoubleTab& rising_vectors,
-                             Vecteur3& liquid_velocity);
+void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
+                                     const DoubleTab& rising_vectors,
+                                     const ArrOfDouble& rising_velocities,
+                                     const ArrOfDouble& bubbles_volume,
+                                     Vecteur3& rising_velocities_overall,
+                                     const DoubleTab& bubbles_velocities_from_interface,
+                                     const int& use_bubbles_velocities_from_interface,
+                                     const DoubleTab& bubbles_velocities_from_barycentres,
+                                     const int& use_bubbles_velocities_from_barycentres);
+
+void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
+                             const IJK_Interfaces& interfaces,
+                             const IJK_Field_int& eulerian_compo_connex_ns,
+                             const int& gravity_dir,
+                             ArrOfDouble& rising_velocities,
+                             DoubleTab& rising_vectors,
+                             Vecteur3& liquid_velocity,
+                             const DoubleTab& bubbles_velocities_from_interface,
+                             const int& use_bubbles_velocities_from_interface,
+                             const DoubleTab& bubbles_velocities_from_barycentres,
+                             const int& use_bubbles_velocities_from_barycentres);
 
 void fill_rising_velocity_double(const IJK_Field_double * eulerian_compo_connex_ns, const ArrOfDouble& rising_velocities,
                                  IJK_Field_double& eulerian_rising_velocity);

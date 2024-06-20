@@ -61,6 +61,8 @@ public:
   void posttraiter_champs_instantanes(const char * lata_name, double time, int time_iteration);
   void posttraiter_statistiques_plans(double time);
   void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const ArrOfDouble& gravite, const double current_time) const;
+  void ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const;
+  void ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const;
   void update_stat_ft(const double dt);
   void get_update_lambda2();
   void get_update_lambda2_and_rot_and_curl();
@@ -93,8 +95,10 @@ public:
     double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
     double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
     double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
-    double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
     double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
+    double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
+    double max_post_stats_cisaillement_timestep     = ((std::floor(current_time/time_interval_post_stats_cisaillement_) + 1)*time_interval_post_stats_cisaillement_ - current_time)*(1+1e-12);
+    double max_post_stats_rmf_timestep     = ((std::floor(current_time/time_interval_post_stats_rmf_) + 1)*time_interval_post_stats_rmf_ - current_time)*(1+1e-12);
     if (max_post_timestep == 0)
       {
         max_post_timestep = max_simu_timestep;
@@ -103,20 +107,32 @@ public:
       {
         max_post_thermals_probes_timestep = max_simu_timestep;
       }
-    if (max_post_stats_plans_timestep == 0)
-      {
-        max_post_stats_plans_timestep = max_simu_timestep;
-      }
     if (max_post_stats_bulles_timestep == 0)
       {
         max_post_stats_bulles_timestep = max_simu_timestep;
       }
+    if (max_post_stats_plans_timestep == 0)
+      {
+        max_post_stats_plans_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_cisaillement_timestep == 0)
+      {
+        max_post_stats_cisaillement_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_rmf_timestep == 0)
+      {
+        max_post_stats_rmf_timestep = max_simu_timestep;
+      }
 
-    return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, max_post_stats_bulles_timestep))));
+    return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, std::min(max_post_stats_bulles_timestep, std::min(max_post_stats_cisaillement_timestep, max_post_stats_rmf_timestep))))));
   }
   int dt_post() const
   {
     return dt_post_;
+  }
+  int post_par_paires() const
+  {
+    return post_par_paires_;
   }
   double t_debut_statistiques() const
   {
@@ -142,6 +158,10 @@ public:
   void reprendre_post(Param& param);
 
   void fill_op_conv();
+  void fill_surface_force(FixedVector<IJK_Field_double, 3>& the_field_you_know);//const Nom lata_name, double instant, int iteration);
+  void fill_surface_force_bis(const char * lata_name, double time, int time_iteration);
+  FixedVector<IJK_Field_double, 3> get_rho_Ssigma();
+
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
   // Part of the run() method in IJK_FT_base:
@@ -151,7 +171,7 @@ public:
   void postraiter_sondes();
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
-  void postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name,
+  void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
                       const ArrOfDouble& gravite, const Nom& nom_cas);
   //void ijk_interpolate_implementation_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
   //                                        int skip_unknown_points, double value_for_bad_points,const IJK_Field_double& indic);
@@ -176,7 +196,7 @@ public:
   int posttraiter_champs_instantanes_energie(const Motcles& liste_post_instantanes,
                                              const char *lata_name,
                                              const int lata_step, const double current_time,
-                                             IJK_Energie& itr, const int idx);
+                                             IJK_Energie& itr,  const int idx);
   /*
    * TODO:
    */
@@ -200,29 +220,35 @@ protected:
   Statistiques_dns_ijk_FT statistiques_FT_;
 
   // Post-traitement selon un nombre de pas de temps
-  int dt_post_;
-  int dt_post_thermals_probes_;
-  int dt_post_stats_plans_; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
-  int dt_post_stats_bulles_; // intervalle de posttraitement des donnees par bulles
+  int dt_post_ = 100;
+  int dt_post_thermals_probes_ = 100;
+  int dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
+  int dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
+  int dt_post_stats_cisaillement_ = 100; // intervalle de posttraitement des données liés au cisaillement
+  int dt_post_stats_rmf_ = 100; // intervalle de posttraitement des données liés au au rmf
 
   // Post-traitement selon un intervale de temps (en secondes)
-  double time_interval_post_;
-  double time_interval_post_thermals_probes_;
-  double time_interval_post_stats_plans_;
-  double time_interval_post_stats_bulles_;
+  double time_interval_post_ = DMAXFLOAT;
+  double time_interval_post_thermals_probes_ = DMAXFLOAT;
+  double time_interval_post_stats_bulles_ = DMAXFLOAT;
+  double time_interval_post_stats_plans_ = DMAXFLOAT;
+  double time_interval_post_stats_cisaillement_ = DMAXFLOAT;
+  double time_interval_post_stats_rmf_ = DMAXFLOAT;
 
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   // Pour numeroter les fichiers .lata il faut compter combien on en a ecrit:
-  int compteur_post_instantanes_;
-  int postraiter_sous_pas_de_temps_; // drapeau 0 ou 1
+  int compteur_post_instantanes_ = 0;
+  int postraiter_sous_pas_de_temps_ = 0; // drapeau 0 ou 1
+  // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
+  int post_par_paires_ = 0; // drapeau 0 ou 1
 
   // Pour des fiches de validation, on post-traite le champ analytique attendu dans le lata pour calcul de l'erreur:
   Noms expression_vitesse_analytique_; // on attend trois expressions
-  Nom expression_pression_analytique_; // on attend une expression
+  Nom expression_pression_analytique_ = "??"; // par defaut, invalide, on attend une expression
   Noms expression_dvitesse_analytique_; // on attend trois expressions
 
   // Pour check_stats (and_grads)
-  int check_stats_;
+  int check_stats_ = 0;
   Noms expression_gradP_analytique_; // on attend trois expressions
   Noms expression_gradU_analytique_; // on attend trois expressions
   Noms expression_gradV_analytique_; // on attend trois expressions
@@ -243,7 +269,7 @@ protected:
   // 2020.03.12. CHOIX : Meme en disable_diphasique, on fait appel a la classe fille stats FT.
   // La classe de stats monophasique n'est plus maintenue. Suppression du membre.
   // Statistiques_dns_ijk_monophasique statistiques_;
-  double t_debut_statistiques_;
+  double t_debut_statistiques_ = 1.e20;
   // -------------------------------------------------
 
   // Pour les cas a bulles fixes
@@ -252,16 +278,20 @@ protected:
   IJK_Field_double indicatrice_non_perturbe_;
   IJK_Field_double integrated_timescale_;
   // Pour la reprise bulles fixes, parametres de lecture de champ de condition initiale pour variables de post-tt:
-  Nom fichier_reprise_integrated_velocity_;
-  Nom fichier_reprise_integrated_pressure_;
-  Nom fichier_reprise_indicatrice_non_perturbe_;
-  Nom fichier_reprise_integrated_timescale_;
+  Nom fichier_reprise_integrated_velocity_ = "??";
+  Nom fichier_reprise_integrated_pressure_ = "??";
+  Nom fichier_reprise_indicatrice_non_perturbe_ = "??";
+  Nom fichier_reprise_integrated_timescale_ = "??";
 
   // Temporary storage for the coords (for postprocessing) :
   FixedVector<IJK_Field_double, 3> coords_;
   FixedVector<IJK_Field_double, 3> velocity_ana_;
   FixedVector<IJK_Field_double, 3> ecart_ana_;
   FixedVector<IJK_Field_double, 3> op_conv_;
+  FixedVector<IJK_Field_double, 3> cell_op_conv_;
+  FixedVector<IJK_Field_double, 3> rho_Ssigma_;
+  FixedVector<IJK_Field_double, 3> cell_rho_Ssigma_;
+
   FixedVector<IJK_Field_double, 3> d_velocity_ana_;
   IJK_Field_double pressure_ana_,ecart_p_ana_;
 
@@ -272,7 +302,7 @@ protected:
   IJK_Field_double rebuilt_indic_;
   IJK_Field_double potentiel_;
   IJK_Field_double ai_ft_;
-  int extended_pressure_computed_;
+  int extended_pressure_computed_ = 0;
   IJK_Field_double pressure_ft_;
   IJK_Field_double extended_pl_ft_;
   IJK_Field_double extended_pv_ft_;
@@ -338,12 +368,16 @@ protected:
   IJK_Field_double lambda2_, dudy_, dvdx_, dwdy_;
   FixedVector<IJK_Field_double, 3> cell_velocity_;
   FixedVector<IJK_Field_double, 3> cell_source_spectrale_;
+  FixedVector<IJK_Field_double, 3> cell_bk_tsi_ns_;
   //  FixedVector<IJK_Field_double, 3> cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
   FixedVector<IJK_Field_double, 3> cell_grad_p_;
+  FixedVector<IJK_Field_double, 3> cell_source_interface_; // toujours en _ns_
+  FixedVector<IJK_Field_double, 3> cell_backup_source_interface_; // toujours en _ns_
+  FixedVector<IJK_Field_double, 3> cell_repulsion_interface_; // toujours en _ns_
 
 
-  int sondes_demande_;
-  Sondes_IJK les_sondes_; // Sondes a traiter
+  int sondes_demande_ = 0;
+  Sondes_IJK les_sondes_;  // Sondes a traiter
 
   /*
    * References to various members of IJK_FT_base that are heavily used in the post:
@@ -352,11 +386,13 @@ protected:
 
   const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;
-  IJK_Field_double& kappa_ft_;
   IJK_Field_double& pressure_;                   // non-const because some echange_espace_virtuel()
   FixedVector<IJK_Field_double, 3>& velocity_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> source_spectrale_;   // non-const because some echange_espace_virtuel()
-  // FixedVector<IJK_Field_double, 3> source_interface_totale_;   // non-const because some echange_espace_virtuel()
+  FixedVector<IJK_Field_double, 3>& source_spectrale_;   // non-const because some echange_espace_virtuel()
+  FixedVector<IJK_Field_double, 3>& bk_tsi_ns_;
+  FixedVector<IJK_Field_double, 3> source_interface_ft_;   // non-const because some echange_espace_virtuel()
+  FixedVector<IJK_Field_double, 3> source_interface_ns_;   // non-const because some echange_espace_virtuel()
+  FixedVector<IJK_Field_double, 3> repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
   const FixedVector<IJK_Field_double, 3>& d_velocity_;
 
   IJK_Splitting& splitting_;

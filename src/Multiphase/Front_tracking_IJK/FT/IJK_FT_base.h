@@ -169,6 +169,11 @@ public :
   {
     return direction_gravite_;
   }
+  double get_gravite_norm() const
+  {
+    Vecteur3 gravite = {gravite_[0], gravite_[1], gravite_[2]};
+    return gravite.length();
+  }
   const IJK_Interfaces& get_interface() const
   {
     return interfaces_;
@@ -269,10 +274,12 @@ public :
   //void compute_and_add_source_qdm_gr(const double threshold_0, const double threshold_1, const double threshold_2, const double threshold_3);
   void set_time_for_corrections();
   void compute_and_add_qdm_corrections();
+  void compute_and_add_qdm_corrections_monophasic();
   void compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle);
-
-  static int decoder_numero_bulle(const int code);
-
+  void write_qdm_corrections_information();
+  IJK_Field_double scalar_product(const FixedVector<IJK_Field_double, 3>& V1, const FixedVector<IJK_Field_double, 3>& V2);
+  FixedVector<IJK_Field_double, 3> scalar_times_vector(const IJK_Field_double& Sca, const FixedVector<IJK_Field_double, 3>& Vec);
+  IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
   // SURCHARGE DES OPERATEURS : dans FixedVector, on ajoute le produit_scalaire
   //  mais il faut que les operateur * et += soient definis pour IJK_FT_base
   //  /!\ operator* est une fonction, pas une methode de la classe
@@ -351,6 +358,7 @@ protected :
 
   const IJK_FT_base& operator=(const IJK_FT_base&);
   void update_rho_v();
+  void update_v_ghost_from_rho_v();
   void update_pressure_phase();
   int initialise();
   void terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const;
@@ -367,10 +375,21 @@ protected :
   //ab-sauv/repr-fin
 
   // These methods are static in order to make it clear that all data used and modified by the method are explicitely passed as arguments:
-  static void force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed);
+  static void force_entry_velocity(IJK_Field_double& vx,
+                                   IJK_Field_double& vy,
+                                   IJK_Field_double& vz,
+                                   double v_imposed,
+                                   const int& dir,
+                                   const int& compo,
+                                   const int& stencil);
   static void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
                                       double v_imposed,const IJK_Interfaces& interfaces, double nb_diam,
                                       int upstream_dir, int gravity_dir, int upstream_stencil);
+  static void force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+                                                  double v_imposed,
+                                                  const IJK_Interfaces& interfaces,
+                                                  double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,double Ux0,double Uy0,double Uz0,
+                                                  int epaisseur_maille);
   double find_timestep(const double max_timestep, const double cfl, const double fo, const double oh);
   void parcourir_maillage();
   void calculer_rho_mu_indicatrice(const bool parcourir = true);
@@ -386,6 +405,11 @@ protected :
   //ab-forcage-control-ecoulement-deb
   void calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
                                           const int rk_step);
+  // Correcteur PID
+  void calculer_terme_asservissement(double& ax, double& ay, double& az);
+  void calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
+  void calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
+
   void compute_correction_for_momentum_balance(const int rk_step);
   void transfer_ft_to_ns();
   void compute_add_external_forces(const int dir);
@@ -411,7 +435,6 @@ protected :
 
   // GAB, qdm
   Vecteur3 calculer_inv_rho_grad_p_moyen(const IJK_Field_double& inv_rho, const IJK_Field_double& pression);
-  void calculer_I_kappa_sigma(IJK_Field_double& kappa_ft,const IJK_Field_double& indic, double sigma);
   Vecteur3 calculer_grad_p_moyen(const IJK_Field_double& pression);
   Vecteur3 calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression);
   FixedVector<IJK_Field_double, 3> terme_convection_mass_solver_;
@@ -426,33 +449,29 @@ protected :
   FixedVector<IJK_Field_double, 3> terme_pression_local_;
   FixedVector<IJK_Field_double, 3> terme_pression_in_ustar_local_;
   FixedVector<IJK_Field_double, 3> d_v_diff_et_conv_;
-  Vecteur3 rho_u_euler_av_prediction_;
-  Vecteur3 rho_du_euler_ap_prediction_;
-  Vecteur3 rho_u_euler_ap_projection_;
-  Vecteur3 rho_du_euler_ap_projection_;
-  Vecteur3 rho_u_euler_av_rho_mu_ind_;
-  Vecteur3 rho_u_euler_ap_rho_mu_ind_;
-  Vecteur3 u_euler_ap_rho_mu_ind_;
-  Vecteur3 terme_diffusion_;
-  Vecteur3 terme_convection_;
-  Vecteur3 terme_pression_;
-  Vecteur3 terme_pression_bis_;
-  Vecteur3 terme_pression_ter_;
+  Vecteur3 rho_u_euler_av_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_av_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 terme_diffusion_ = {0.,0.,0.};
+  Vecteur3 terme_convection_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ = {0.,0.,0.};
+  Vecteur3 terme_pression_bis_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ter_ = {0.,0.,0.};
   Vecteur3 terme_interfaces_;
-  Vecteur3 terme_pression_in_ustar_;
-  Vecteur3 terme_interfaces_bf_mass_solver_;
-  Vecteur3 terme_interfaces_bf_mass_solver_bis_;
-  Vecteur3 terme_interfaces_af_mass_solver_;
-  Vecteur3 terme_interfaces_conv_diff_mass_solver_;
-  Vecteur3 terme_moyen_convection_mass_solver_;
-  Vecteur3 terme_moyen_diffusion_mass_solver_;
-  double pression_ap_proj_;
-  //
+  Vecteur3 terme_pression_in_ustar_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_bf_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_bf_mass_solver_bis_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_af_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_conv_diff_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_convection_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_diffusion_mass_solver_ = {0.,0.,0.};
+  double pression_ap_proj_ = 0.;
+
   // GAB qdm patch a posteriori
-  //TODO :  enum corrections_qdm::type_dict_ { GB, GR };
-  //int patch_qdm_gr_;  // flag
-  //ArrOfDouble qdm_patch_correction_ = 0.; // correction value
-  //ArrOfDouble qdm_patch_correction_deux_;
   // GAB source qdm a posteriori
   /*
   int source_qdm_gr_;
@@ -480,16 +499,16 @@ protected :
   double reprise_v_target_ = 0.;
   double reprise_qdm_source_ = 0.;
   */
-  //
-  Nom expression_derivee_acceleration_;
+
+  Nom expression_derivee_acceleration_ = "0"; // par defaut pas de terme d'acceleration
   Parser parser_derivee_acceleration_;
   Noms expression_variable_source_; // on attend trois expressions
-  Nom expression_potential_phi_; // source variable formulee en gradient
+  Nom expression_potential_phi_ = "??"; // source variable formulee en gradient
   Vecteur3 store_rhov_moy_;
-  Vecteur3 integrated_residu_;
+  Vecteur3 integrated_residu_ = {0.,0.,0.};
   // terme source qdm pour pousser le fluide dans le canal (en m/s/s)
-  double terme_source_acceleration_;
-  int compute_force_init_;
+  double terme_source_acceleration_ = 0.; // par defaut, zero
+  int compute_force_init_ = 0;
 
   // Vecteurs de taille 3 a lire dans le jeu de donnees :
   ArrOfDouble terme_source_correction_; // Valeur de la force de correction moyenne a appliquer
@@ -501,9 +520,9 @@ protected :
   //ab-forcage-control-ecoulement-fin
 
   FixedVector<IJK_Field_double, 3> variable_source_;
-  Nom expression_derivee_facteur_variable_source_;
+  Nom expression_derivee_facteur_variable_source_ = "0";
   Parser parser_derivee_facteur_variable_source_;
-  double facteur_variable_source_; // ArrOfDouble? vecteur de taille 3 a lire dans le jeu de donnees
+  double facteur_variable_source_ = 1.; // ArrOfDouble? vecteur de taille 3 a lire dans le jeu de donnees
 
   IJK_Field_double potential_phi_;
 
@@ -513,25 +532,25 @@ protected :
   friend class IJK_FT_Post;
   IJK_FT_Post post_;
 
-  int check_divergence_;
-  int rk_step_;
+  int check_divergence_ = 0;
+  int rk_step_ = -1; // default value
 
   Nom check_stop_file_; // Nom du fichier stop
 
   //ab-sauv/repr-deb
 
-  Nom fichier_post_; // Nom du fichier post
-  int dt_sauvegarde_;
-  int sauvegarder_xyz_; // drapeau 0 ou 1
+  Nom fichier_post_ = "??"; // Nom du fichier post
+  int dt_sauvegarde_ = 2000000000;
+  int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
   Nom nom_sauvegarde_;
   Nom nom_reprise_;
-  int reprise_;// flag pour indiquer si on fait une reprise
+  int reprise_ = 0;// flag pour indiquer si on fait une reprise
   // Le jeu de donnees doit fournir soit des fichiers de reprise: ..
-  Nom fichier_reprise_vitesse_;
-  int timestep_reprise_vitesse_;
+  Nom fichier_reprise_vitesse_ = "??"; // par defaut, invalide
+  int timestep_reprise_vitesse_ = 1;
   // ... soit des expressions f(x,y,z)
   Noms expression_vitesse_initiale_; // on attend trois expressions
-  Nom expression_pression_initiale_; // useless, unless post-pro OR pressure_increment.
+  Nom expression_pression_initiale_ = "??"; // useless, unless post-pro OR pressure_increment.
   //ab-sauv/repr-fin
 
   IJK_Splitting splitting_;
@@ -553,17 +572,19 @@ protected :
   IJK_Field_double inv_rho_field_;
 
   // Pour les cas a bulles fixes
-  double coef_immobilisation_;
-  double coef_ammortissement_;
-  double coef_mean_force_;
-  double coef_force_time_n_;
-  double coef_rayon_force_rappel_;
-  double p_seuil_max_;
-  double p_seuil_min_;
+  // valeurs par default des parametres de bulles fixes
+  double coef_immobilisation_ = 0.;
+  double coef_ammortissement_ = 0.;
+  double coef_mean_force_ = 0.;
+  double coef_force_time_n_ = 0.;
+  double coef_rayon_force_rappel_ = 0.;
+  double p_seuil_max_ = 10000000;
+  double p_seuil_min_ = -10000000;
   FixedVector<IJK_Field_double, 3> force_rappel_;
   FixedVector<IJK_Field_double, 3> force_rappel_ft_;
 
-  double vol_bulle_monodisperse_; // Pour imposer le volume des bulles
+  double vol_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
+  double diam_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
   ArrOfDouble vol_bulles_;   // Le volume impose individuellement a chaque bulle.
 
   // Field only needed for the option type_velocity_convection_form_== Nom("non_conservative_rhou")
@@ -585,7 +606,9 @@ protected :
   FixedVector<IJK_Field_double, 3> terme_abs_repulsion_interfaces_ft_;
 
   // Celui la est discretise sur le maillage ns:
-  FixedVector<IJK_Field_double, 3> terme_source_interfaces_ns_;
+  FixedVector<IJK_Field_double, 3> terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
+  FixedVector<IJK_Field_double, 3> backup_terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
+  FixedVector<IJK_Field_double, 3> backup_terme_source_interfaces_ft_; // [ dt (rho u )/dt = N/m^3 ]
   FixedVector<IJK_Field_double, 3> terme_repulsion_interfaces_ns_;
   FixedVector<IJK_Field_double, 3> terme_abs_repulsion_interfaces_ns_;
 
@@ -607,8 +630,10 @@ protected :
   // Pressure field
   IJK_Field_double pressure_;
   IJK_Field_double pressure_ghost_cells_;
+
   IJK_Field_double kappa_ft_;
-  IJK_Field_double kappa_ft_ns_;
+  IJK_Field_double kappa_ns_;
+
   IJK_Field_double I_ns_;
   // Molecular diffusivity (see diffusion operator)
   IJK_Field_double molecular_mu_;
@@ -623,6 +648,7 @@ protected :
    * full_adaptative    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
    *     mu : switch from arithmetic to geometric mean depending on the direction (Not available yet)
    */
+  int use_harmonic_viscosity_ = 0;
   Operateur_IJK_faces_diff velocity_diffusion_op_;
   enum velocity_diffusion_options_ { simple_arithmetic, full_arithmetic, full_adaptative};
 
@@ -637,28 +663,59 @@ protected :
 
   Multigrille_Adrien poisson_solver_;
   // Simulation parameters
-  int nb_timesteps_;
-  double max_simu_time_;
-  double timestep_;
-  double timestep_facsec_;
-  double cfl_, fo_, oh_;
+  int nb_timesteps_ = 0;
+  double max_simu_time_ = 1e6;
+  int tstep_init_ = 0;
+  int use_tstep_init_ = 0;
+  double timestep_ = 0.;
+  double timestep_facsec_ = 1.;
+  double cfl_ = 1.;
+  double fo_ = 1.;
+  double oh_ = 1.;
 
-  double vitesse_entree_;
-  double vitesse_upstream_;
-  Nom expression_vitesse_upstream_;
-  int upstream_dir_; // static
-  int upstream_stencil_;
-  double nb_diam_upstream_;
-  double rho_liquide_;
-  double rho_vapeur_;
+  int vitesse_entree_dir_ = DIRECTION_I;
+  int vitesse_entree_compo_to_force_ = -1;
+  double vitesse_entree_ = -1.1e20;
+  int stencil_vitesse_entree_ = 3;
+  double vitesse_upstream_ = -1.1e20;
+  double vitesse_upstream_reprise_ = -1.1e20;
+  double velocity_bubble_new_ = 0.;
+  double velocity_bubble_old_ = -1.1e20;
+  double velocity_bubble_integral_err_ = 0.;
+  double velocity_bubble_scope_ = 0.;
+  double upstream_velocity_bubble_factor_ = 1.;
+  double upstream_velocity_bubble_factor_deriv_ = 0.;
+  double upstream_velocity_bubble_factor_integral_ = 0.;
+  Nom expression_vitesse_upstream_ = "??";
+  int upstream_dir_ = -1; // static
+  int upstream_stencil_ = 3;
+  int upstream_velocity_measured_ = 0;
+  double nb_diam_upstream_ = 0.;
+  double nb_diam_ortho_shear_perio_= -1.1e20;
+
+  int harmonic_nu_in_diff_operator_ = 0;
+  int harmonic_nu_in_calc_with_indicatrice_ = 0;
+  double rho_liquide_ = 0.;
+  double rho_vapeur_ = -1.;
+
   // GAB, pour THI (23.08.21)
-  double rho_moyen_;
+  double rho_moyen_ = 0.;
   //
-  double mu_liquide_;
-  double mu_vapeur_;
-  double sigma_;
+  double mu_liquide_ = 0.;
+  double mu_vapeur_ = -1.;
+  double sigma_ = 0.;
+
+  // Correcteur PID
+  double Kp_ = 0.;
+  double Kd_ = 0.;
+  double Ki_ = 0.;
+  double int_x_ = 0.;
+  double int_y_ = 0.;
+  double int_z_ = 0.;
+  int epaisseur_maille_ = 8;
+
   ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
-  int direction_gravite_;
+  int direction_gravite_ = 0;
 #ifdef SMOOTHING_RHO
   int smooth_density_;
   double ratio_density_max_;
@@ -666,63 +723,68 @@ protected :
   IJK_Field_double rho_field_ft_;
 #endif
   Redistribute_Field redistribute_to_splitting_ft_elem_;
-  int disable_solveur_poisson_;
-  int resolution_fluctuations_;
-  int projection_initiale_demandee_;
-  int disable_diffusion_qdm_;
-  int disable_convection_qdm_;
-  int disable_source_interf_;
-  int frozen_velocity_;
-  int velocity_reset_;
+  int disable_solveur_poisson_ = 0;
+  int resolution_fluctuations_ = 0;
+  int projection_initiale_demandee_ = 0;
+  int disable_diffusion_qdm_ = 0;
+  int disable_convection_qdm_ = 0;
+  int disable_source_interf_ = 0;
+  int frozen_velocity_ = 0;
+  int velocity_reset_ = 0;
 
   // Pour la premiere projection, on initialise la pression au champ de pression a l'equilibre diphasique :
-  int improved_initial_pressure_guess_;
+  int improved_initial_pressure_guess_ = 0;
   // travail en increment de pression pour aider le solveur :
-  int include_pressure_gradient_in_ustar_;
+  int include_pressure_gradient_in_ustar_ = 0;
   // Discretisation du champ (1/rho) et utilisation dans le calcul de rho*v*v, dans le mass_solver
   // et dans pressure_projection_with_inv_rho :
-  int use_inv_rho_for_mass_solver_and_calculer_rho_v_;
-  int use_inv_rho_in_poisson_solver_;
-  int use_inv_rho_;
+  int use_inv_rho_for_mass_solver_and_calculer_rho_v_ = 0;
+  int use_inv_rho_in_poisson_solver_ = 0;
+  int use_inv_rho_ = 0;
 
-  int correction_bilan_qdm_;
+  int correction_bilan_qdm_ = 0;
 
-  int refuse_patch_conservation_QdM_RK3_source_interf_;
+  int refuse_patch_conservation_QdM_RK3_source_interf_ = 0; // Par defaut, on utilise le patch!
   // GAB, qdm
-  int test_etapes_et_bilan_;
+  int test_etapes_et_bilan_ = 0;
   //
   // GAB, champ de reprise + champ initial
-  int add_initial_field_;
+  int add_initial_field_ = 0;
   //
-  int diffusion_alternative_;
-  int suppression_rejetons_;
+  int diffusion_alternative_ = 0;
+  int suppression_rejetons_ = 0;  // By defaults, break-ups are not fixed on restart. (no deletion of smaller fractions)
   // Supprime l'appel a quelques fonctions qui n'ont pas de sens en monophasique :
   // comme par exemple : deplacer_interfaces,
   // calculer_rho_mu_indicatrice, ecrire_statistiques_bulles
-  int disable_diphasique_;
+  int disable_diphasique_ = 0;
 
-  int time_scheme_;
-  double store_RK3_source_acc_;
-  double store_RK3_fac_sv_;
-  double modified_time_ini_;
-  double current_time_;
-  double current_time_at_rk3_step_;
-  int tstep_; // The iteration number
+  int time_scheme_ = EULER_EXPLICITE;
+  double store_RK3_source_acc_ = 0.;
+  double store_RK3_fac_sv_ = 1.;
+  double modified_time_ini_ = 0.;
+  double current_time_ = 0.;
+  double current_time_at_rk3_step_ = 0;
+  int tstep_ = 0; // The iteration number
+  int tstep_sauv_ = 0;
 
   // GAB
   init_forcage_THI forcage_;
   corrections_qdm qdm_corrections_;
   // Le maillage des interfaces:
   IJK_Interfaces interfaces_;
+
   // Maillage etendu pour les interfaces
   // Nombre de mailles etendues dans les directions periodiques
-  int ijk_splitting_ft_extension_;
+  int ijk_splitting_ft_extension_ = 0;
   IJK_Splitting splitting_ft_;
   // Classe outil pour passer entre splitting_ et splitting_ft_
   // Une instance par direction des faces:
   FixedVector<Redistribute_Field, 3> redistribute_to_splitting_ft_faces_;
   FixedVector<Redistribute_Field, 3> redistribute_from_splitting_ft_faces_;
   Redistribute_Field redistribute_from_splitting_ft_elem_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_min_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_max_;
 
   // Champs volumiques sur le maillage FT (pour convection des interfaces, etc)
   FixedVector<IJK_Field_double, 3> velocity_ft_;
@@ -731,7 +793,7 @@ protected :
   LIST(IJK_Thermique) thermique_;
   LIST(IJK_Energie) energie_;
   IJK_Thermals thermals_;
-  int thermal_probes_ghost_cells_;
+  int thermal_probes_ghost_cells_ = 2;
 
   double dt_cfl_ = 1.e20;
   double dt_fo_ = 1.e20;
@@ -741,13 +803,14 @@ protected :
   double dt_cfl_liq_ = 1.e20;
   double dt_cfl_vap_ = 1.e20;
 
-  int enable_dt_oh_ideal_length_factor_;
+  int enable_dt_oh_ideal_length_factor_ = 0;
 
-  int counter_first_iter_ = 2;
   int first_step_interface_smoothing_ = 0;
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 
   // Options for the cut-cell computation of effective surfaces
   TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_;

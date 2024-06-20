@@ -291,7 +291,7 @@ public :
 
   IJK_Field_double& pure_;
 
-  void echange_espace_virtuel(int ghost, double Shear_DU=0.);
+  void echange_espace_virtuel(int ghost);
   void remplir_cellules_diphasiques();
   void remplir_cellules_devenant_diphasiques();
   void remplir_cellules_maintenant_pures();
@@ -318,7 +318,7 @@ public :
 
   FixedVector<IJK_Field_double, 3>& pure_;
 
-  void echange_espace_virtuel(int ghost, double Shear_DU=0.);
+  void echange_espace_virtuel(int ghost);
   void remplir_cellules_diphasiques();
   void remplir_cellules_devenant_diphasiques();
   void remplir_cellules_maintenant_pures();

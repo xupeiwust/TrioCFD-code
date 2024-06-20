@@ -45,7 +45,7 @@ public :
   /*
    * Getters
    */
-  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance);
+  void retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance, int& avoid_gfm_parallel_calls);
   void get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax);
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise() const { return valeur().get_fichier_reprise(); };
@@ -54,6 +54,7 @@ public :
   inline Motcles& get_thermal_words() { return thermal_words_; };
   inline Motcles& get_thermal_suffix() { return lata_suffix_; };
   inline const IJK_Field_double& get_temperature() const { return valeur().get_temperature(); };
+  inline const IJK_Field_double& get_temperature_elem_smooth() const { return valeur().get_temperature_elem_smooth(); };
   inline const IJK_Field_double& get_temperature_before_extrapolation() const { return valeur().get_temperature_before_extrapolation(); }
   inline const IJK_Field_double& get_temperature_cell_neighbours() const { return valeur().get_temperature_cell_neighbours(); }
   inline const IJK_Field_double& get_temperature_cell_neighbours_debug() const { return valeur().get_temperature_cell_neighbours_debug(); }
@@ -89,6 +90,8 @@ public :
   inline const IJK_Field_double& get_eulerian_rising_velocities() const {return valeur().get_eulerian_rising_velocities(); }
   inline const FixedVector<IJK_Field_double, 3>& get_bary() const { return valeur().get_bary(); }
   inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem() { return valeur().get_gradient_temperature_elem(); }
+  inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem_smooth() { return valeur().get_gradient_temperature_elem_smooth(); }
+  inline const FixedVector<IJK_Field_double, 3>& get_tangential_gradient_temperature_elem_smooth() { return valeur().get_tangential_gradient_temperature_elem_smooth(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const { return valeur().get_normal_vector_ns(); }
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns_normed() const { return valeur().get_normal_vector_ns_normed();}
   inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ft() const { return valeur().get_normal_vector_ft(); }
@@ -100,11 +103,18 @@ public :
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_bool() const { return valeur().get_cell_faces_neighbours_corrected_diag_bool(); }
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_all_bool() const { return valeur().get_cell_faces_neighbours_corrected_all_bool(); }
   inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_min_max_bool() const { return valeur().get_cell_faces_neighbours_corrected_min_max_bool(); }
+  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_velocity_temperature() const { return valeur().get_cell_faces_neighbours_corrected_velocity_temperature(); };
   inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective() const { return valeur().get_cell_faces_neighbours_corrected_convective(); }
+  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_convective_frame_of_ref() const { return valeur().get_cell_faces_neighbours_corrected_convective_frame_of_ref(); };
   inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const { return valeur().get_cell_faces_neighbours_corrected_diffusive(); }
   inline const FixedVector<IJK_Field_double,3>& get_neighbours_faces_weighting_colinearity() const { return valeur().get_neighbours_faces_weighting_colinearity(); }
   inline const IJK_Field_int& get_cell_neighbours_corrected_trimmed() const { return valeur().get_cell_neighbours_corrected_trimmed(); }
   inline const IJK_Field_double& get_probe_collision_debug_field() const { return valeur().get_probe_collision_debug_field(); };
+  inline const FixedVector<IJK_Field_double,3>& get_rho_cp_u_T_convective_fluxes() const { return valeur().get_rho_cp_u_T_convective_fluxes(); }
+  inline const FixedVector<IJK_Field_double,3>& get_div_coeff_grad_T_diffusive_fluxes() const { return valeur().get_div_coeff_grad_T_diffusive_fluxes(); }
+  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_dispatched() const { return valeur().get_interfacial_heat_flux_dispatched(); }
+  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_contrib() const { return valeur().get_interfacial_heat_flux_contrib(); }
+  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_current() const { return valeur().get_interfacial_heat_flux_current(); }
 
   inline const double& get_E0() const { return valeur().get_E0(); };
 
@@ -160,10 +170,25 @@ public :
   inline void compute_eulerian_curvature();
   inline void compute_eulerian_curvature_from_interface();
   inline double get_modified_time();
-  inline void get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities);
+  inline void get_rising_velocities_parameters(int& compute_rising_velocities,
+                                               int& fill_rising_velocities,
+                                               int& use_bubbles_velocities_from_interface,
+                                               int& use_bubbles_velocities_from_barycentres);
 
   void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface, const int idx);
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
+  void post_process_std_thermal_field(const Motcles& liste_post_instantanes,
+                                      const char * lata_name,
+                                      const int latastep,
+                                      const double current_time,
+                                      const int idx,
+                                      const Motcles& tested_names,
+                                      const Nom& name_field,
+                                      const Motcle& lata_suffix,
+                                      const IJK_Field_double& field,
+                                      std::ostringstream& oss,
+                                      int& counter,
+                                      const int& first_thermal_rank = 0);
   int posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                              const char * lata_name,
                                              const int latastep,
@@ -181,17 +206,22 @@ public :
                                                            const int idx);
   Entree& typer_thermal( Entree& is );
   void thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
+                                     const Nom& shell_quantities_thermal_probes,
                                      const Nom& overall_bubbles_quantities,
-                                     const Nom& local_quantities_thermal_probes_time_index_folder);
+                                     const Nom& local_quantities_thermal_probes_time_index_folder,
+                                     const Nom& local_quantities_thermal_slices_time_index_folder,
+                                     const Nom& local_quantities_thermal_lines_time_index_folder);
   int get_first_step_thermals_post() { return valeur().get_first_step_thermals_post(); };
   inline void compute_temperature_init();
+  inline void copy_previous_interface_state();
 
 protected:
-  int thermal_rank_;
-  Nom thermal_problem_type_;
-  Nom prefix_;
+  int thermal_rank_ = 0;
+  Nom thermal_problem_type_ = "subresolution";
+  Nom prefix_ = "IJK_Thermal_";
   Motcles thermal_words_;
   Motcles lata_suffix_;
+  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE};
 
   REF(IJK_FT_base) ref_ijk_ft_;
   REF(IJK_FT_Post) ref_ijk_ft_post_;
@@ -246,16 +276,26 @@ inline double IJK_Thermal::get_modified_time()
   return valeur().get_modified_time();
 }
 
-inline void IJK_Thermal::get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities)
+inline void IJK_Thermal::get_rising_velocities_parameters(int& compute_rising_velocities,
+                                                          int& fill_rising_velocities,
+                                                          int& use_bubbles_velocities_from_interface,
+                                                          int& use_bubbles_velocities_from_barycentres)
 {
-  valeur().get_rising_velocities_parameters(compute_rising_velocities, fill_rising_velocities);
+  valeur().get_rising_velocities_parameters(compute_rising_velocities,
+                                            fill_rising_velocities,
+                                            use_bubbles_velocities_from_interface,
+                                            use_bubbles_velocities_from_barycentres);
 }
 
-inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance, int& compute_curvature, int& n_iter_distance)
+inline void IJK_Thermal::retrieve_ghost_fluid_params(int& compute_distance,
+                                                     int& compute_curvature,
+                                                     int& n_iter_distance,
+                                                     int& avoid_gfm_parallel_calls)
 {
   valeur().retrieve_ghost_fluid_params(compute_distance,
                                        compute_curvature,
-                                       n_iter_distance);
+                                       n_iter_distance,
+                                       avoid_gfm_parallel_calls);
 }
 
 inline void IJK_Thermal::get_boundary_fluxes(IJK_Field_local_double& boundary_flux_kmin, IJK_Field_local_double& boundary_flux_kmax)
@@ -356,6 +396,11 @@ inline void IJK_Thermal::compute_eulerian_curvature_from_interface()
 inline void IJK_Thermal::compute_temperature_init()
 {
   valeur().compute_temperature_init();
+}
+
+inline void IJK_Thermal::copy_previous_interface_state()
+{
+  valeur().copy_previous_interface_state();
 }
 
 #endif /* IJK_Thermal_included */

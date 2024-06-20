@@ -54,8 +54,13 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
    * Gives lambda field as a dummy field (Avoid the creation of a IJK_Field_local_double
    * field in the current scope)
    */
-  ConstIJK_double_ptr lambda(is_vectorial_? get_model(_DIR_) : *lambda_, 0, 0, k_layer);
-  ConstIJK_double_ptr structural_model(is_structural_ ? get_model(_DIR_) : *lambda_, 0, 0, k_layer);
+  /*
+   * Y.Z.: If the model is functional (i.e. not structural) then lambda takes the right value, and the "structural_model" variable points to dummy_field.
+   * Otherwise the model is structural then lambda points towards the dummy_field.
+   */
+  const IJK_Field_local_double& dummy_field = *input_field_;
+  ConstIJK_double_ptr lambda(!is_structural_ ? (is_vectorial_? get_model(_DIR_) : *lambda_) : dummy_field, 0, 0, k_layer);
+  ConstIJK_double_ptr structural_model(is_structural_ ? get_model(_DIR_) : dummy_field, 0, 0, k_layer);
 
   IJK_double_ptr resu_ptr(resu, 0, 0, 0);
 
@@ -96,7 +101,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
   switch(_DIR_)
     {
     case DIRECTION::X:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_x() * 0.5;
           d1 = d0;
@@ -106,7 +111,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_x() * channel_data_.get_delta_x());
       break;
     case DIRECTION::Y:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_y() * 0.5;
           d1 = d0;
@@ -116,7 +121,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_y() * channel_data_.get_delta_y());
       break;
     case DIRECTION::Z:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_z()[k_layer-1] * 0.5;
           d1 = channel_data_.get_delta_z()[k_layer] * 0.5;
@@ -149,7 +154,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
               Simd_double oneVec = 1.;
               Simd_double minVec = DMINFLOAT;
               Simd_double d = 1.;
-              if (!is_hess_)
+              if (!is_hess_ || is_flux_)
                 {
                   // Fetch conductivity on neighbour cells:
                   if (!is_uniform_)
@@ -172,8 +177,8 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
       if (j+1==jmax)
         break;
       input_field.next_j();
-      if (!is_uniform_)
-        { lambda.next_j(); }
+      if (!is_uniform_ && !is_structural_)
+        lambda.next_j();
       if(is_structural_)
         structural_model.next_j();
       resu_ptr.next_j();

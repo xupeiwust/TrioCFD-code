@@ -103,57 +103,21 @@ public :
 protected :
   friend class IJK_FT_Post;
 
-  void correct_any_temperature_fields_for_eulerian_fluxes(IJK_Field_double& temperature);
-  void compare_temperature_fields(const IJK_Field_double& temperature,
-                                  const IJK_Field_double& temperature_ana,
-                                  IJK_Field_double& error_temperature_ana,
-                                  IJK_Field_double& error_temperature_ana_rel);
-  void evaluate_total_liquid_absolute_parameter(const IJK_Field_double& field,
-                                                double& total_parameter);
-  void evaluate_total_liquid_parameter_squared(const IJK_Field_double& field,
-                                               double& total_parameter);
-  void correct_any_temperature_field_for_visu(IJK_Field_double& temperature);
-
-  Nom compute_quasi_static_spherical_diffusion_expression(const double& time_scope, const int index_bubble, const int index_bubble_real);
-  Nom generate_expression_temperature_ini(const double& time_scope, const double x, const double y, const double z);
-  void calculer_ecart_T_ana() override { ; };
-
-  int computed_centred_bubble_start_;
-  double single_centred_bubble_radius_ini_;
-  int spherical_diffusion_;
-  int allow_temperature_correction_for_visu_;
-  int override_vapour_mixed_values_; // For debug purposes
-  int source_terms_type_;
-  Motcles source_terms_type_dict_;
-  int source_terms_correction_;
-  double delta_T_subcooled_overheated_=-1.;
-
-  double error_temperature_ana_total_;
-  double error_temperature_ana_squared_total_;
-  double error_temperature_ana_rel_total_;
-
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 
   void calculer_dT_cut_cell(const Cut_field_vector& cut_field_total_velocity);
   void compute_temperature_convection_cut_cell(const Cut_field_vector& cut_field_total_velocity);
   void add_temperature_diffusion() override;
   void compute_diffusion_increment() override;
-  /* correct_temperature_for_eulerian_fluxes() May be clearly overridden later */
   void correct_temperature_for_eulerian_fluxes() override { ; };
-  double get_rho_cp_ijk(int i, int j, int k) const;
-  double get_rho_cp_u_ijk(const IJK_Field_double& vx, int i, int j, int k) const override;
-  double compute_rho_cp_u_mean(const IJK_Field_double& vx) override;
-  double get_div_lambda_ijk(int i, int j, int k) const override;
-  double compute_temperature_dimensionless_theta_mean(const IJK_Field_double& vx) override;
-  double get_flux_interfacial_moyen() const { return flux_interfacial_moyen_ ; }
   double get_temperature_interfaciale_moyenne() const { return temperature_interfaciale_moyenne_ ; }
 
   //Rustine
-  double E0_;//volumique
+  double E0_ = 0;//volumique
   IJK_Field_double T_rust_;
   void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
 
-  int type_temperature_convection_form_;
+  int type_temperature_convection_form_ = 0;
 
   REF(IJK_FT_cut_cell) ref_ijk_ft_cut_cell_;
 
@@ -186,7 +150,7 @@ protected :
   IJK_Field_int cellule_rk_restreint_;
 
   // Temporary fields, to inspect each step of the time advance
-  int postraiter_champs_intermediaires_;
+  int postraiter_champs_intermediaires_ = 0;
   IJK_Field_double temperature_post_dying_;
   IJK_Field_double temperature_post_regular_;
   IJK_Field_double temperature_post_convection_;
@@ -199,8 +163,8 @@ protected :
   Cut_cell_convection_auxiliaire convective_correction_;
   Cut_cell_diffusion_auxiliaire diffusive_correction_;
 
-  int deactivate_diffusion_interface_;
-  ETALEMENT_DIFFUSION etalement_diffusion_;
+  int deactivate_diffusion_interface_ = 0;
+  ETALEMENT_DIFFUSION etalement_diffusion_ = ETALEMENT_DIFFUSION::AUCUN_ETALEMENT;
 
   // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
   // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
@@ -209,7 +173,7 @@ protected :
   // Compteur du dernier traitement effectue dans treatment_count_
   int new_treatment_;
 
-  int verbosite_;
+  int verbosite_ = 2;
 };
 
 #endif /* IJK_Thermal_cut_cell_included */
