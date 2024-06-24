@@ -51,21 +51,21 @@ public:
   void initialise(Cut_cell_FT_Disc& cut_cell_disc);
   void set_param(Param& param);
 
-  virtual double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) = 0;
-  virtual double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) = 0;
+  virtual double dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) = 0;
+  virtual double small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) = 0;
 
-  void compute_flux_dying_cells(const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
+  void compute_flux_dying_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
 
-  void compute_flux_small_nascent_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
+  void compute_flux_small_nascent_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
 
-  void calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
+  void calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
   void calcule_temperature_remplissage_copie_directe(const Cut_field_scalar& cut_field_temperature);
-  void calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
+  void calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature);
   void calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_scalar& cut_field_temperature);
   void calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_scalar& cut_field_temperature);
 
-  void add_dying_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
-  void add_small_nascent_cells(const Cut_field_vector& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
+  void add_dying_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
+  void add_small_nascent_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature);
 
 protected:
   CORRECTION_PETITES_CELLULES correction_petites_cellules_;

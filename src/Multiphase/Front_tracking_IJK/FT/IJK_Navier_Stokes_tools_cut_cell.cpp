@@ -185,20 +185,20 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
 {
   const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
 
-  //const int ghost = field.pure_.ghost();
+  //const int ghost = field.ghost();
   const int ghost = cut_cell_disc.get_ghost_size();
   const int reduced_ghost = ghost - 1;
-  assert(field.pure_.ghost() >= ghost);
+  assert(field.ghost() >= ghost);
 
   const double x = coordinates[0];
   const double y = coordinates[1];
   const double z = coordinates[2];
 
-  const int ni = field.pure_.ni();
-  const int nj = field.pure_.nj();
-  const int nk = field.pure_.nk();
+  const int ni = field.ni();
+  const int nj = field.nj();
+  const int nk = field.nk();
 
-  const IJK_Splitting& splitting = field.pure_.get_splitting();
+  const IJK_Splitting& splitting = field.get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
@@ -431,9 +431,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   const ArrOfDouble& surface_facettes = next_time ? mesh.get_update_surface_facettes() : mesh.get_surface_facettes_old();
   const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
 
-  //const int ghost = field.pure_.ghost();
+  //const int ghost = field.ghost();
   const int ghost = cut_cell_disc.get_ghost_size();
-  assert(field.pure_.ghost() >= ghost);
+  assert(field.ghost() >= ghost);
 
   const double x = coordinates[0];
   const double y = coordinates[1];
@@ -461,11 +461,11 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   const int index_j_ft = (int)(std::floor(y2_ft)) - splitting_ft.get_offset_local(DIRECTION_J);
   const int index_k_ft = (int)(std::floor(z2_ft)) - splitting_ft.get_offset_local(DIRECTION_K);
 
-  const int ni = field.pure_.ni();
-  const int nj = field.pure_.nj();
-  const int nk = field.pure_.nk();
+  const int ni = field.ni();
+  const int nj = field.nj();
+  const int nk = field.nk();
 
-  const IJK_Splitting& splitting = field.pure_.get_splitting();
+  const IJK_Splitting& splitting = field.get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
@@ -848,9 +848,9 @@ void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time,
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   const double delta_t = timestep;
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  const int kmax = v.nk();
   for (int k = 0; k < kmax; k++)
     {
       for (int j = 0; j < jmax; j++)
@@ -891,9 +891,9 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_sc
   const double facteurF = coeff_a[step];
   const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
   const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  const int kmax = v.nk();
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   switch(step)
     {
@@ -1010,9 +1010,9 @@ void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_s
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   const double delta_t = timestep;
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  const int kmax = v.nk();
   for (int k = 0; k < kmax; k++)
     {
       for (int j = 0; j < jmax; j++)
@@ -1056,9 +1056,9 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_fiel
   const double facteurF = coeff_a[step];
   const double intermediate_dt = compute_fractionnal_timestep_rk3(dt_tot, step);
   const double delta_t_divided_by_Fk = intermediate_dt / coeff_Fk[step];
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  const int kmax = v.nk();
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   switch(step)
     {
@@ -1186,9 +1186,9 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_fiel
 void cut_cell_switch_field_time(Cut_field_scalar& v)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
-  const int imax = v.pure_.ni();
-  const int jmax = v.pure_.nj();
-  const int kmax = v.pure_.nk();
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  const int kmax = v.nk();
   for (int k = 0; k < kmax; k++)
     {
       for (int j = 0; j < jmax; j++)

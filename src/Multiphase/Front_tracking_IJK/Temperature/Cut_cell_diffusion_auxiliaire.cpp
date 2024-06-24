@@ -596,8 +596,7 @@ void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_fiel
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_div_coeff_grad_T_volume.get_cut_cell_disc();
   const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
 
-  cut_field_div_coeff_grad_T_volume_temp.pure_.data()=0;
-  cut_field_div_coeff_grad_T_volume_temp.set_valeur_cellules_diphasiques(0);
+  cut_field_div_coeff_grad_T_volume_temp.set_to_uniform_value(0);
 
   for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
     {
@@ -703,7 +702,7 @@ void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_fiel
   cut_field_div_coeff_grad_T_volume.add_from(cut_field_div_coeff_grad_T_volume_temp);
 }
 
-double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -756,7 +755,7 @@ double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, 
     }
 }
 
-double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 

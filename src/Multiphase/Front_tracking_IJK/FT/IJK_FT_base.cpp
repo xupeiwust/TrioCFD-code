@@ -304,12 +304,6 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("ratio_density_max", &ratio_density_max_);
 #endif
 
-  type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
-  type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
-  deactivate_remeshing_velocity_ = 0;
-
-  correction_semi_locale_volume_bulle_ = 0;
-
   param.ajouter("p_seuil_max", &p_seuil_max_); // XD_ADD_P floattant not_set, default 10000000
   param.ajouter("p_seuil_min", &p_seuil_min_); // XD_ADD_P floattant not_set, default -10000000
   param.ajouter("coef_ammortissement", &coef_ammortissement_); // XD_ADD_P floattant not_set

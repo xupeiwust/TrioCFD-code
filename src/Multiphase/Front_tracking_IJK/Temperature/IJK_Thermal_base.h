@@ -86,7 +86,7 @@ public:
   double compute_global_energy(const IJK_Field_double& temperature);
   virtual double compute_global_energy()
   {
-    return compute_global_energy(temperature_); // changes the attribute global_energy [J/m3]
+    return compute_global_energy(*temperature_); // changes the attribute global_energy [J/m3]
   }
   int calculer_k_pour_bord(const IJK_Field_double& temperature, const bool bord_kmax);
   int calculer_flux_thermique_bord(const IJK_Field_double& temperature,
@@ -119,7 +119,7 @@ public:
   const int& get_rank() const { return rang_; };
   const IJK_Field_double& get_temperature() const
   {
-    return temperature_ ;
+    return *temperature_ ;
   }
   const IJK_Field_double& get_temperature_before_extrapolation() const
   {
@@ -135,7 +135,7 @@ public:
   }
   IJK_Field_double& set_temperature()
   {
-    return temperature_ ;
+    return *temperature_ ;
   }
   const IJK_Field_double& get_temperature_ana() const
   {
@@ -155,7 +155,7 @@ public:
   }
   const IJK_Field_double& get_div_lambda_grad_T_volume() const
   {
-    return div_coeff_grad_T_volume_ ;
+    return *div_coeff_grad_T_volume_ ;
   }
   const IJK_Field_double& get_u_T_convective() const
   {
@@ -649,7 +649,7 @@ protected:
   Operateur_IJK_elem_conv temperature_convection_op_;
   Operateur_IJK_elem_diff temperature_diffusion_op_;
   FixedVector<IJK_Field_double, 3> div_coeff_grad_T_raw_;
-  IJK_Field_double div_coeff_grad_T_volume_;
+  std::shared_ptr<IJK_Field_double> div_coeff_grad_T_volume_;
   IJK_Field_double div_coeff_grad_T_;
   FixedVector<IJK_Field_double, 3> rho_cp_u_T_convective_raw_;
   IJK_Field_double u_T_convective_volume_;
@@ -669,11 +669,11 @@ protected:
   int ghost_cells_ = 4;
   IJK_Field_double rho_cp_;
   IJK_Field_double rho_cp_T_;
-  IJK_Field_double temperature_;
+  std::shared_ptr<IJK_Field_double> temperature_;
   IJK_Field_double temperature_for_ini_per_bubble_;
   IJK_Field_double temperature_before_extrapolation_;
-  IJK_Field_double d_temperature_; // Temperature increment.
-  IJK_Field_double RK3_F_temperature_; // Temporary storage for substeps in the RK3 algorithm.
+  std::shared_ptr<IJK_Field_double> d_temperature_; // Temperature increment.
+  std::shared_ptr<IJK_Field_double> RK3_F_temperature_; // Temporary storage for substeps in the RK3 algorithm.
   FixedVector<IJK_Field_double, 3> storage_; // Temporary storage for fluxes calculation.
   int calculate_local_energy_ = 0;
   int conserv_energy_global_ = 0;

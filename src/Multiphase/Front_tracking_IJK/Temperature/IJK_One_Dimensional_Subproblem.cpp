@@ -115,7 +115,7 @@ void IJK_One_Dimensional_Subproblem::associate_sub_problem_to_inputs(IJK_Thermal
                                            ref_thermal_subresolution.eulerian_interfacial_area_ns_,
                                            ref_thermal_subresolution.eulerian_normal_vectors_ns_,
                                            ref_thermal_subresolution.eulerian_facets_barycentre_ns_,
-                                           ref_thermal_subresolution.temperature_,
+                                           *ref_thermal_subresolution.temperature_,
                                            ref_thermal_subresolution.temperature_ft_,
                                            ref_thermal_subresolution.temperature_before_extrapolation_,
                                            velocity,

@@ -323,59 +323,22 @@ void Cut_cell_scalar::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
   Cut_cell_data::associer_paresseux(cut_cell_disc, 1);
 }
 
-void Cut_cell_scalar::set_valeur_cellules_diphasiques(double valeur)
-{
-  for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
-    {
-      diph_l_(n) = valeur;
-      diph_v_(n) = valeur;
-    }
-}
-
-
-void Cut_cell_vector::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
-{
-  Cut_cell_data::associer_persistant(cut_cell_disc, 3);
-}
-
-void Cut_cell_vector::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
-{
-  Cut_cell_data::associer_ephemere(cut_cell_disc, 3);
-}
-
-void Cut_cell_vector::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
-{
-  Cut_cell_data::associer_paresseux(cut_cell_disc, 3);
-}
-
-void Cut_cell_vector::set_valeur_cellules_diphasiques(double valeur)
-{
-  for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
-    {
-      for (int dir = 0; dir < 3; dir++)
-        {
-          diph_l_(n,dir) = valeur;
-          diph_v_(n,dir) = valeur;
-        }
-    }
-}
-
-Cut_field_scalar::Cut_field_scalar(IJK_Field_double& field) :
-  pure_(field)
+Cut_field_scalar::Cut_field_scalar()
 {
 }
 
 void Cut_field_scalar::echange_espace_virtuel(int le_ghost)
 {
-  Cut_cell_scalar::echange_espace_virtuel();
-  pure_.echange_espace_virtuel(le_ghost);
+  IJK_Field_double::echange_espace_virtuel(le_ghost);
+  diph_l_.echange_espace_virtuel();
+  diph_v_.echange_espace_virtuel();
 }
 
 void Cut_field_scalar::remplir_cellules_diphasiques()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), true);
+      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -396,7 +359,7 @@ void Cut_field_scalar::remplir_cellules_devenant_diphasiques()
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
 
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), false);
+      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -426,7 +389,7 @@ void Cut_field_scalar::remplir_cellules_maintenant_pures()
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
 
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), false);
+      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -450,7 +413,7 @@ void Cut_field_scalar::transfert_diphasique_vers_pures()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), true);
+      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -459,17 +422,17 @@ void Cut_field_scalar::transfert_diphasique_vers_pures()
 
       pure_(i,j,k) = indicatrice*diph_l_(n) + (1 - indicatrice)*diph_v_(n);
     }
-  pure_.echange_espace_virtuel(pure_.ghost());
+  IJK_Field_double::echange_espace_virtuel(IJK_Field_double::ghost());
 }
 
 void Cut_field_scalar::set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time)
 {
   ArrOfDouble coord_i, coord_j, coord_k;
-  build_local_coords(pure_, coord_i, coord_j, coord_k);
+  build_local_coords(*this, coord_i, coord_j, coord_k);
 
-  const int ni = pure_.ni();
-  const int nj = pure_.nj();
-  const int nk = pure_.nk();
+  const int ni = IJK_Field_double::ni();
+  const int nj = IJK_Field_double::nj();
+  const int nk = IJK_Field_double::nk();
 
   std::string expr(parser_expression_of_x_y_z_and_t);
   Parser parser;
@@ -538,19 +501,51 @@ void Cut_field_scalar::set_field_data(const Nom& parser_expression_of_x_y_z_and_
             }
         }
     }
-  pure_.echange_espace_virtuel(pure_.ghost());
+  IJK_Field_double::echange_espace_virtuel(IJK_Field_double::ghost());
+}
+
+void Cut_field_scalar::set_to_uniform_value(double valeur)
+{
+  Cut_field_scalar::data() = valeur;
+  for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
+    {
+      diph_l_(n) = valeur;
+      diph_v_(n) = valeur;
+    }
+}
+
+
+void Cut_field_scalar::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
+{
+  cut_cell_disc_ = cut_cell_disc;
+  diph_l_.associer_persistant(cut_cell_disc_, 1);
+  diph_v_.associer_persistant(cut_cell_disc_, 1);
+}
+
+void Cut_field_scalar::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
+{
+  cut_cell_disc_ = cut_cell_disc;
+  diph_l_.associer_ephemere(cut_cell_disc_, 1);
+  diph_v_.associer_ephemere(cut_cell_disc_, 1);
+}
+
+void Cut_field_scalar::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
+{
+  cut_cell_disc_ = cut_cell_disc;
+  diph_l_.associer_paresseux(cut_cell_disc_, 1);
+  diph_v_.associer_paresseux(cut_cell_disc_, 1);
 }
 
 void Cut_field_scalar::copy_from(Cut_field_scalar& data)
 {
-  const int ni = pure_.ni();
-  const int nj = pure_.nj();
-  const int nk = pure_.nk();
-  const int ghost = pure_.ghost();
-  assert(ni == data.pure_.ni());
-  assert(nj == data.pure_.nj());
-  assert(nk == data.pure_.nk());
-  assert(data.pure_.ghost() >= ghost);
+  const int ni = IJK_Field_double::ni();
+  const int nj = IJK_Field_double::nj();
+  const int nk = IJK_Field_double::nk();
+  const int ghost = IJK_Field_double::ghost();
+  assert(ni == data.ni());
+  assert(nj == data.nj());
+  assert(nk == data.nk());
+  assert(data.ghost() >= ghost);
   for (int k = -ghost; k < nk+ghost; k++)
     {
       for (int j = -ghost; j < nj+ghost; j++)
@@ -570,14 +565,14 @@ void Cut_field_scalar::copy_from(Cut_field_scalar& data)
 
 void Cut_field_scalar::add_from(Cut_field_scalar& data)
 {
-  const int ni = data.pure_.ni();
-  const int nj = data.pure_.nj();
-  const int nk = data.pure_.nk();
-  const int ghost = data.pure_.ghost();
-  assert(ni == pure_.ni());
-  assert(nj == pure_.nj());
-  assert(nk == pure_.nk());
-  assert(ghost == pure_.ghost());
+  const int ni = data.ni();
+  const int nj = data.nj();
+  const int nk = data.nk();
+  const int ghost = data.ghost();
+  assert(ni == IJK_Field_double::ni());
+  assert(nj == IJK_Field_double::nj());
+  assert(nk == IJK_Field_double::nk());
+  assert(ghost == IJK_Field_double::ghost());
   for (int k = -ghost; k < nk+ghost; k++)
     {
       for (int j = -ghost; j < nj+ghost; j++)
@@ -595,166 +590,35 @@ void Cut_field_scalar::add_from(Cut_field_scalar& data)
     }
 }
 
-Cut_field_vector::Cut_field_vector(FixedVector<IJK_Field_double, 3>& field) :
-  pure_(field)
+void Cut_field_scalar::set_to_sum(const Cut_field_scalar& data_1, const Cut_field_scalar& data_2)
 {
-}
-
-void Cut_field_vector::echange_espace_virtuel(int le_ghost)
-{
-  Cut_cell_vector::echange_espace_virtuel();
-  pure_[0].echange_espace_virtuel(le_ghost);
-  pure_[1].echange_espace_virtuel(le_ghost);
-  pure_[2].echange_espace_virtuel(le_ghost);
-}
-
-void Cut_field_vector::remplir_cellules_diphasiques()
-{
-  for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
+  const int ni = data_1.ni();
+  const int nj = data_1.nj();
+  const int nk = data_1.nk();
+  const int ghost = data_1.ghost();
+  assert(ni == data_2.ni());
+  assert(nj == data_2.nj());
+  assert(nk == data_2.nk());
+  assert(ghost == data_2.ghost());
+  assert(ni == IJK_Field_double::ni());
+  assert(nj == IJK_Field_double::nj());
+  assert(nk == IJK_Field_double::nk());
+  assert(ghost == IJK_Field_double::ghost());
+  for (int k = -ghost; k < nk+ghost; k++)
     {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), true);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
-
-      for (int dir = 0; dir < 3; dir++)
+      for (int j = -ghost; j < nj+ghost; j++)
         {
-          diph_l_(n, dir) = pure_[dir](i,j,k);
-          diph_v_(n, dir) = pure_[dir](i,j,k);
-        }
-    }
-  diph_l_.echange_espace_virtuel();
-  diph_v_.echange_espace_virtuel();
-}
-
-void Cut_field_vector::remplir_cellules_devenant_diphasiques()
-{
-  int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::NAISSANT);
-  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
-  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique+1);
-  for (int index = index_min; index < index_max; index++)
-    {
-      int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
-
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), false);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
-
-      double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().devient_diphasique(i,j,k));
-      // On garde les donnees de l'ancienne phase pour la nouvelle cellule_diphasique
-      int ancienne_phase = (int)old_indicatrice;
-      if (ancienne_phase == 1)
-        {
-          for (int dir = 0; dir < 3; dir++)
+          for (int i = -ghost; i < ni+ghost; i++)
             {
-              diph_l_(n, dir) = pure_[dir](i,j,k);
-            }
-        }
-      else if (ancienne_phase == 0)
-        {
-          for (int dir = 0; dir < 3; dir++)
-            {
-              diph_v_(n, dir) = pure_[dir](i,j,k);
-            }
-        }
-    }
-}
-
-void Cut_field_vector::remplir_cellules_maintenant_pures()
-{
-  int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MOURRANT);
-  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
-  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique+1);
-  for (int index = index_min; index < index_max; index++)
-    {
-      int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
-
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), false);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
-
-      double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().est_pure(indicatrice));
-      // On garde les donnees de la cellule diphasique pour la nouvelle cellule_pure
-      int phase_pure = (int)indicatrice;
-      if (phase_pure == 1)
-        {
-          for (int dir = 0; dir < 3; dir++)
-            {
-              pure_[dir](i,j,k) = diph_l_(n, dir);
-            }
-        }
-      else if (phase_pure == 0)
-        {
-          for (int dir = 0; dir < 3; dir++)
-            {
-              pure_[dir](i,j,k) = diph_v_(n, dir);
-            }
-        }
-    }
-}
-
-void Cut_field_vector::transfert_diphasique_vers_pures()
-{
-  for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
-    {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), pure_.get_splitting(), true);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
-
-      double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-
-      for (int dir = 0; dir < 3; dir++)
-        {
-          pure_[dir](i,j,k) = indicatrice*diph_l_(n, dir) + (1 - indicatrice)*diph_v_(n, dir);
-        }
-    }
-  pure_[0].echange_espace_virtuel(pure_[0].ghost());
-  pure_[1].echange_espace_virtuel(pure_[1].ghost());
-  pure_[2].echange_espace_virtuel(pure_[2].ghost());
-}
-
-void Cut_field_vector::set_to_sum(const Cut_field_vector& data_1, const Cut_field_vector& data_2)
-{
-  for (int dir = 0; dir < 3; dir++)
-    {
-      const int ni = data_1.pure_[dir].ni();
-      const int nj = data_1.pure_[dir].nj();
-      const int nk = data_1.pure_[dir].nk();
-      const int ghost = data_1.pure_[dir].ghost();
-      assert(ni == data_2.pure_[dir].ni());
-      assert(nj == data_2.pure_[dir].nj());
-      assert(nk == data_2.pure_[dir].nk());
-      assert(ghost == data_2.pure_[dir].ghost());
-      assert(ni == pure_[dir].ni());
-      assert(nj == pure_[dir].nj());
-      assert(nk == pure_[dir].nk());
-      assert(ghost == pure_[dir].ghost());
-      for (int k = -ghost; k < nk+ghost; k++)
-        {
-          for (int j = -ghost; j < nj+ghost; j++)
-            {
-              for (int i = -ghost; i < ni+ghost; i++)
-                {
-                  pure_[dir](i,j,k) = data_1.pure_[dir](i,j,k) + data_2.pure_[dir](i,j,k);
-                }
+              pure_(i,j,k) = data_1.pure_(i,j,k) + data_2.pure_(i,j,k);
             }
         }
     }
   for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
     {
-      for (int dir = 0; dir < 3; dir++)
-        {
-          diph_l_(n, dir) = data_1.diph_l_(n, dir) + data_2.diph_l_(n, dir);
-          diph_v_(n, dir) = data_1.diph_v_(n, dir) + data_2.diph_v_(n, dir);
-        }
+      diph_l_(n) = data_1.diph_l_(n) + data_2.diph_l_(n);
+      diph_v_(n) = data_1.diph_v_(n) + data_2.diph_v_(n);
     }
 }
-
-
 
 #endif

@@ -603,7 +603,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
                                                      keep_first_reachable_fluxes_,
                                                      store_flux_operators_for_energy_balance_);
 
-  temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
+  temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, *temperature_, *temperature_, *temperature_, *temperature_);
   temperature_hess_flux_op_centre_.set_uniform_lambda(uniform_lambda_);
 
   if (debug_)
@@ -644,7 +644,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
     {
       // Use an operator that override compute_set() with corrige_flux;
       temperature_diffusion_op_.typer("OpDiffUniformIJKScalarCorrection_double");
-      temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, temperature_, temperature_, temperature_, temperature_);
+      temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, *temperature_, *temperature_, *temperature_, *temperature_);
       temperature_diffusion_op_.initialize(splitting);
       temperature_diffusion_op_.set_corrige_flux(corrige_flux_);
     }
@@ -713,7 +713,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
                                         lambda_vapour_);
   corrige_flux_.initialize_with_subproblems(
     ref_ijk_ft_->get_splitting_ns(),
-    temperature_,
+    *temperature_,
     ref_ijk_ft_->itfce(),
     ref_ijk_ft_,
     ref_ijk_ft_->get_set_interface().get_set_intersection_ijk_face(),
@@ -1000,9 +1000,9 @@ Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expressi
           const double x_real = bubbles_centres(index_bubble_real,0);
           const double y_real = bubbles_centres(index_bubble_real,1);
           const double z_real = bubbles_centres(index_bubble_real,2);
-          const double lx = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
-          const double ly = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
-          const double lz = temperature_.get_splitting().get_grid_geometry().get_domain_length(0);
+          const double lx = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
+          const double ly = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
+          const double lz = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
           x = (abs(x - x_real)< (lx / 2.)) ? x_real : ((x_real < (lx / 2.)) ? x_real + lx : x_real - lx);
           y = (abs(y - y_real)< (ly / 2.)) ? y_real : ((y_real < (ly / 2.)) ? y_real + ly : y_real - ly);
           z = (abs(z - z_real)< (lz / 2.)) ? z_real : ((z_real < (lz / 2.)) ? z_real + lz : z_real - lz);
@@ -1015,11 +1015,14 @@ Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expressi
 void IJK_Thermal_Subresolution::set_field_temperature_per_bubble(const int index_bubble)
 {
   if (!index_bubble)
-    temperature_.data() = delta_T_subcooled_overheated_;
+    temperature_->data() = delta_T_subcooled_overheated_;
+
+  IJK_Field_double& temperature = *temperature_;
+
   const int sign_delta = signbit(delta_T_subcooled_overheated_);
-  const int ni = temperature_.ni();
-  const int nj = temperature_.nj();
-  const int nk = temperature_.nk();
+  const int ni = temperature_->ni();
+  const int nj = temperature_->nj();
+  const int nk = temperature_->nk();
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -1027,21 +1030,20 @@ void IJK_Thermal_Subresolution::set_field_temperature_per_bubble(const int index
           const double indic = ref_ijk_ft_->itfce().I()(i,j,k);
           if (indic > VAPOUR_INDICATOR_TEST)
             {
-              const double temperature = temperature_(i,j,k);
               if (sign_delta)
                 {
-                  if (temperature <= (1 - probes_end_value_coeff_) * delta_T_subcooled_overheated_)
+                  if (temperature(i,j,k) <= (1 - probes_end_value_coeff_) * delta_T_subcooled_overheated_)
                     {
                       const double temperature_per_bubble = temperature_for_ini_per_bubble_(i,j,k);
-                      temperature_(i,j,k) = temperature_per_bubble;
+                      temperature(i,j,k) = temperature_per_bubble;
                     }
                 }
               else
                 {
-                  if (temperature >= (1 - probes_end_value_coeff_) * delta_T_subcooled_overheated_)
+                  if (temperature(i,j,k) >= (1 - probes_end_value_coeff_) * delta_T_subcooled_overheated_)
                     {
                       const double temperature_per_bubble = temperature_for_ini_per_bubble_(i,j,k);
-                      temperature_(i,j,k) = temperature_per_bubble;
+                      temperature(i,j,k) = temperature_per_bubble;
                     }
                 }
             }
@@ -1323,7 +1325,7 @@ void IJK_Thermal_Subresolution::set_field_T_ana()
           set_field_data(temperature_ana_, expression_T_ana);
           correct_any_temperature_field_for_visu(temperature_ana_);
           if (liste_post_instantanes_.contient_("ECART_T_ANA"))
-            compare_temperature_fields(temperature_, temperature_ana_, ecart_t_ana_, ecart_t_ana_rel_);
+            compare_temperature_fields(*temperature_, temperature_ana_, ecart_t_ana_, ecart_t_ana_rel_);
           correct_any_temperature_fields_for_eulerian_fluxes(ecart_t_ana_);
           correct_any_temperature_fields_for_eulerian_fluxes(ecart_t_ana_rel_);
           evaluate_total_liquid_absolute_parameter(ecart_t_ana_, error_temperature_ana_total_);
@@ -1359,20 +1361,23 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
    * d_temperature_ += div_lambda_grad_T_volume_;
    * It depends on the nature of the properties (one-fluid or single-fluid)
    */
+  IJK_Field_double& div_coeff_grad_T_volume = *div_coeff_grad_T_volume_;
+  IJK_Field_double& d_temperature           = *d_temperature_;
+
   const int post_pro_div_lambda_grad_T = liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T");
-  const int ni = div_coeff_grad_T_volume_.ni();
-  const int nj = div_coeff_grad_T_volume_.nj();
-  const int nk = div_coeff_grad_T_volume_.nk();
+  const int ni = div_coeff_grad_T_volume.ni();
+  const int nj = div_coeff_grad_T_volume.nj();
+  const int nk = div_coeff_grad_T_volume.nk();
   const double rhocp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
   const double rhocpVol = rhocp_l * vol_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double ope = div_coeff_grad_T_volume_(i,j,k);
+          const double ope = div_coeff_grad_T_volume(i,j,k);
           const double resu = ope / rhocpVol;
-          div_coeff_grad_T_volume_(i,j,k) = ope / rhocp_l;
-          d_temperature_(i,j,k) += resu;
+          div_coeff_grad_T_volume(i,j,k) = ope / rhocp_l;
+          d_temperature(i,j,k) += resu;
           if (post_pro_div_lambda_grad_T)
             div_coeff_grad_T_(i,j,k) = resu;
         }
@@ -1399,16 +1404,18 @@ void IJK_Thermal_Subresolution::correct_any_temperature_fields_for_eulerian_flux
 void IJK_Thermal_Subresolution::correct_temperature_for_eulerian_fluxes()
 {
   if (override_vapour_mixed_values_)
-    correct_any_temperature_fields_for_eulerian_fluxes(temperature_);
+    correct_any_temperature_fields_for_eulerian_fluxes(*temperature_);
 }
 
 void IJK_Thermal_Subresolution::store_temperature_before_extrapolation()
 {
+  const IJK_Field_double& temperature = *temperature_;
+
   temperature_before_extrapolation_.data() = 0.;
   temperature_before_extrapolation_.echange_espace_virtuel(temperature_before_extrapolation_.ghost());
-  const int ni = temperature_.ni();
-  const int nj = temperature_.nj();
-  const int nk = temperature_.nk();
+  const int ni = temperature.ni();
+  const int nj = temperature.nj();
+  const int nk = temperature.nk();
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -1420,8 +1427,7 @@ void IJK_Thermal_Subresolution::store_temperature_before_extrapolation()
                 temperature_before_extrapolation_(i,j,k) = delta_T_subcooled_overheated_;
               else
                 {
-                  const double temperature = temperature_(i,j,k);
-                  temperature_before_extrapolation_(i,j,k) = temperature;
+                  temperature_before_extrapolation_(i,j,k) = temperature(i,j,k);
                 }
             }
           else
@@ -1435,9 +1441,11 @@ void IJK_Thermal_Subresolution::correct_temperature_increment_for_interface_leav
   /*
    * Correct only if we have not extended the temperature field across the interface (no fluxes calculation)
    */
-  const int ni = d_temperature_.ni();
-  const int nj = d_temperature_.nj();
-  const int nk = d_temperature_.nk();
+  IJK_Field_double& d_temperature = *d_temperature_;
+
+  const int ni = d_temperature.ni();
+  const int nj = d_temperature.nj();
+  const int nk = d_temperature.nk();
   if (disable_mixed_cells_increment_ && disable_subresolution_ && ghost_fluid_)
     {
       for (int k = 0; k < nk; k++)
@@ -1446,7 +1454,7 @@ void IJK_Thermal_Subresolution::correct_temperature_increment_for_interface_leav
             {
               const double indic = ref_ijk_ft_->itfce().I(i,j,k);
               if (fabs(indic)<LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-                { d_temperature_(i,j,k) = 0; }
+                { d_temperature(i,j,k) = 0; }
             }
     }
 }
@@ -1520,7 +1528,6 @@ void IJK_Thermal_Subresolution::correct_any_temperature_field_for_visu(IJK_Field
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          // const double temperature = temperature_(i,j,k);
           const double indic = ref_ijk_ft_->itfce().I(i,j,k);
           // if (temperature > 0)
           if (indic < VAPOUR_INDICATOR_TEST)
@@ -1537,7 +1544,7 @@ void IJK_Thermal_Subresolution::correct_temperature_for_visu()
    * using the ghost temperature !
    */
   if (liste_post_instantanes_.contient_("GRAD_T_ELEM") && allow_temperature_correction_for_visu_)
-    correct_any_temperature_field_for_visu(temperature_);
+    correct_any_temperature_field_for_visu(*temperature_);
   if (liste_post_instantanes_.contient_("U_T_CONVECTIVE") && allow_temperature_correction_for_visu_)
     correct_any_temperature_field_for_visu(u_T_convective_);
   if (liste_post_instantanes_.contient_("U_T_CONVECTIVE_VOLUME") && allow_temperature_correction_for_visu_)
@@ -1545,7 +1552,7 @@ void IJK_Thermal_Subresolution::correct_temperature_for_visu()
   if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T") && allow_temperature_correction_for_visu_)
     correct_any_temperature_field_for_visu(div_coeff_grad_T_);
   if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T_VOLUME") && allow_temperature_correction_for_visu_)
-    correct_any_temperature_field_for_visu(div_coeff_grad_T_volume_);
+    correct_any_temperature_field_for_visu(*div_coeff_grad_T_volume_);
 }
 
 void IJK_Thermal_Subresolution::clip_min_temperature_values()
@@ -1557,19 +1564,20 @@ void IJK_Thermal_Subresolution::clip_min_temperature_values()
   // mean_liquid_temperature_;
   if (clip_temperature_values_)
     {
+      IJK_Field_double& temperature = *temperature_;
+
       const double clip_threshold = 0.98;
-      const int ni = temperature_.ni();
-      const int nj = temperature_.nj();
-      const int nk = temperature_.nk();
+      const int ni = temperature.ni();
+      const int nj = temperature.nj();
+      const int nk = temperature.nk();
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double temperature = temperature_(i,j,k);
-              if (temperature < delta_T_subcooled_overheated_)
-                temperature_(i,j,k) = delta_T_subcooled_overheated_ * clip_threshold;
+              if (temperature(i,j,k) < delta_T_subcooled_overheated_)
+                temperature(i,j,k) = delta_T_subcooled_overheated_ * clip_threshold;
             }
-      temperature_.echange_espace_virtuel(temperature_.ghost());
+      temperature.echange_espace_virtuel(temperature.ghost());
     }
 }
 
@@ -1583,30 +1591,33 @@ void IJK_Thermal_Subresolution::clip_max_temperature_values()
   const double clip_threshold = 1.e-5;
   if (clip_temperature_values_)
     {
-      const int ni = temperature_.ni();
-      const int nj = temperature_.nj();
-      const int nk = temperature_.nk();
+      IJK_Field_double& temperature = *temperature_;
+
+      const int ni = temperature.ni();
+      const int nj = temperature.nj();
+      const int nk = temperature.nk();
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double temperature = temperature_(i,j,k);
               const double indic = ref_ijk_ft_->itfce().I(i,j,k);
               // Work only with bubble at zero, temperature liquid negative
-              if ((temperature + clip_threshold) > 0 && indic > LIQUID_INDICATOR_TEST)
-                temperature_(i,j,k) = 0;
+              if ((temperature(i,j,k) + clip_threshold) > 0 && indic > LIQUID_INDICATOR_TEST)
+                temperature(i,j,k) = 0;
             }
-      temperature_.echange_espace_virtuel(temperature_.ghost());
+      temperature.echange_espace_virtuel(temperature.ghost());
     }
 }
 
 void IJK_Thermal_Subresolution::compute_mean_liquid_temperature()
 {
+  const IJK_Field_double& temperature = *temperature_;
+
   double vol_liq = 0.;
   mean_liquid_temperature_ = 0.;
-  const int ni = temperature_.ni();
-  const int nj = temperature_.nj();
-  const int nk = temperature_.nk();
+  const int ni = temperature.ni();
+  const int nj = temperature.nj();
+  const int nk = temperature.nk();
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -1615,7 +1626,7 @@ void IJK_Thermal_Subresolution::compute_mean_liquid_temperature()
           if (indic > VAPOUR_INDICATOR_TEST)
             {
               vol_liq += (indic * vol_);
-              mean_liquid_temperature_ += (temperature_(i,j,k) * indic * vol_);
+              mean_liquid_temperature_ += (temperature(i,j,k) * indic * vol_);
             }
         }
   vol_liq = Process::mp_sum(vol_liq);
@@ -1698,7 +1709,7 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   statistiques().begin_count(cnt_lrs_source_terms);
   if (debug_)
     Cerr << "Prepare boundary conditions, compute source terms and impose boundary conditions" << finl;
-  temperature_.echange_espace_virtuel(temperature_.ghost());
+  temperature_->echange_espace_virtuel(temperature_->ghost());
   compute_source_terms_impose_subresolution_boundary_conditions();
   statistiques().end_count(cnt_lrs_source_terms);
 
@@ -1851,9 +1862,9 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
       if (fluxes_correction_conservations_)
         zero_liquid_neighbours_.data() = 0.;
       const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
-      const int ni = temperature_.ni();
-      const int nj = temperature_.nj();
-      const int nk = temperature_.nk();
+      const int ni = temperature_->ni();
+      const int nj = temperature_->nj();
+      const int nk = temperature_->nk();
       int counter = 0;
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
@@ -2534,7 +2545,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correctio
 
   if (debug_)
     Cerr << "Compute temperature cell centre" << finl;
-  corrige_flux_->compute_temperature_cell_centre(temperature_);
+  corrige_flux_->compute_temperature_cell_centre(*temperature_);
 
   if (debug_)
     Cerr << "Compute temperature cell centre neighbours" << finl;
@@ -2576,36 +2587,36 @@ void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(cons
         {
           if (correct_first_iter)
             {
-              corrige_flux_->replace_temperature_cell_centre_neighbours(temperature_,
+              corrige_flux_->replace_temperature_cell_centre_neighbours(*temperature_,
                                                                         temperature_cell_neighbours_,
                                                                         neighbours_temperature_to_correct_,
                                                                         neighbours_temperature_colinearity_weighting_);
             }
           else
-            corrige_flux_->compute_temperature_cell_centre(temperature_);
+            corrige_flux_->compute_temperature_cell_centre(*temperature_);
         }
       else
         {
           if (correct_temperature_cell_neighbours_first_iter_ == correct_first_iter)
             {
               if (use_neighbours_temperature_to_correct_trimmed)
-                corrige_flux_->replace_temperature_cell_centre_neighbours(temperature_,
+                corrige_flux_->replace_temperature_cell_centre_neighbours(*temperature_,
                                                                           temperature_cell_neighbours_,
                                                                           neighbours_temperature_to_correct_trimmed_,
                                                                           neighbours_temperature_colinearity_weighting_);
 
               else
-                corrige_flux_->replace_temperature_cell_centre_neighbours(temperature_,
+                corrige_flux_->replace_temperature_cell_centre_neighbours(*temperature_,
                                                                           temperature_cell_neighbours_,
                                                                           neighbours_temperature_to_correct_,
                                                                           neighbours_temperature_colinearity_weighting_);
             }
           else
-            corrige_flux_->compute_temperature_cell_centre(temperature_);
+            corrige_flux_->compute_temperature_cell_centre(*temperature_);
         }
     }
   else
-    corrige_flux_->compute_temperature_cell_centre(temperature_);
+    corrige_flux_->compute_temperature_cell_centre(*temperature_);
 }
 
 
@@ -2613,15 +2624,17 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
 {
   if (!disable_subresolution_ && enforce_periodic_boundary_value_)
     {
-      const int ni = temperature_.ni();
-      const int nj = temperature_.nj();
-      const int nk = temperature_.nk();
-      const int offset_i = temperature_.get_splitting().get_offset_local(0);
-      const int offset_j = temperature_.get_splitting().get_offset_local(1);
-      const int offset_k = temperature_.get_splitting().get_offset_local(2);
-      const int ni_tot = temperature_.get_splitting().get_grid_geometry().get_nb_elem_tot(0);
-      const int nj_tot = temperature_.get_splitting().get_grid_geometry().get_nb_elem_tot(1);
-      const int nk_tot = temperature_.get_splitting().get_grid_geometry().get_nb_elem_tot(2);
+      IJK_Field_double& temperature = *temperature_;
+
+      const int ni = temperature.ni();
+      const int nj = temperature.nj();
+      const int nk = temperature.nk();
+      const int offset_i = temperature.get_splitting().get_offset_local(0);
+      const int offset_j = temperature.get_splitting().get_offset_local(1);
+      const int offset_k = temperature.get_splitting().get_offset_local(2);
+      const int ni_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(0);
+      const int nj_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(1);
+      const int nk_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(2);
       std::vector<double> indices_i_to_correct;
       std::vector<double> indices_j_to_correct;
       std::vector<double> indices_k_to_correct;
@@ -2643,7 +2656,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
               {
                 const double indic = ref_ijk_ft_->itfce().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-                  { temperature_(i,j,k) = delta_T_subcooled_overheated_; }
+                  { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
       for (j = 0; j < nj; j++)
         if (std::find(indices_j_to_correct.begin(), indices_j_to_correct.end(), j+offset_j) != indices_j_to_correct.end())
@@ -2652,7 +2665,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
               {
                 const double indic = ref_ijk_ft_->itfce().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-                  { temperature_(i,j,k) = delta_T_subcooled_overheated_; }
+                  { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
       for (i = 0; i < ni; i++)
         if (std::find(indices_i_to_correct.begin(), indices_i_to_correct.end(), i+offset_i) != indices_i_to_correct.end())
@@ -2661,7 +2674,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
               {
                 const double indic = ref_ijk_ft_->itfce().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-                  { temperature_(i,j,k) = delta_T_subcooled_overheated_; }
+                  { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
     }
 }
@@ -2670,16 +2683,18 @@ void IJK_Thermal_Subresolution::correct_operators_for_visu()
 {
   if (!diff_temperature_negligible_)
     {
-      const int ni = div_coeff_grad_T_volume_.ni();
-      const int nj = div_coeff_grad_T_volume_.nj();
-      const int nk = div_coeff_grad_T_volume_.nk();
+      IJK_Field_double& div_coeff_grad_T_volume = *div_coeff_grad_T_volume_;
+
+      const int ni = div_coeff_grad_T_volume_->ni();
+      const int nj = div_coeff_grad_T_volume_->nj();
+      const int nk = div_coeff_grad_T_volume_->nk();
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
               const double indic = ref_ijk_ft_->itfce().I(i,j,k);
               if (fabs(indic)<LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
-                { div_coeff_grad_T_volume_(i,j,k) = 0; }
+                { div_coeff_grad_T_volume(i,j,k) = 0; }
             }
     }
   if (!conv_temperature_negligible_)
@@ -2721,7 +2736,7 @@ void IJK_Thermal_Subresolution::set_zero_temperature_increment()
   if (!disable_subresolution_)
     {
       if (disable_mixed_cells_increment_)
-        corrige_flux_->set_zero_temperature_increment(d_temperature_);
+        corrige_flux_->set_zero_temperature_increment(*d_temperature_);
     }
   else
     correct_temperature_increment_for_interface_leaving_cell();
@@ -3029,7 +3044,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_line_points(const int& line_d
                                                                FixedVector<ArrOfDouble,3>& coordinates_line,
                                                                double& diameter)
 {
-  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Splitting& splitting = temperature_->get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   bool perio =  geom.get_periodic_flag(line_dir);
   assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
@@ -3103,7 +3118,7 @@ void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrO
                                                     const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
                                                     const int& line_dir)
 {
-  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Splitting& splitting = temperature_->get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
 
   double min_dir_x, max_dir_x;
@@ -3117,9 +3132,9 @@ void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrO
   const int offset_j = splitting.get_offset_local(1);
   const int offset_k = splitting.get_offset_local(2);
 
-  const int nb_i = temperature_.ni();
-  const int nb_j = temperature_.nj();
-  const int nb_k = temperature_.nk();
+  const int nb_i = temperature_->ni();
+  const int nb_j = temperature_->nj();
+  const int nb_k = temperature_->nk();
   const int nb_i_max = offset_i + nb_i;
   const int nb_j_max = offset_j + nb_j;
   const int nb_k_max = offset_k + nb_k;
@@ -3303,7 +3318,7 @@ void IJK_Thermal_Subresolution::interpolate_temperature_on_downstream_line(const
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        temperature_,
+                                        *temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         values,
@@ -3326,7 +3341,7 @@ void IJK_Thermal_Subresolution::interpolate_velocity_on_downstream_line(const in
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        temperature_,
+                                        *temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         values,
@@ -3349,7 +3364,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        temperature_,
+                                        *temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         values,
@@ -3366,7 +3381,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        temperature_,
+                                        *temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         velocity_line,
@@ -3403,7 +3418,7 @@ void IJK_Thermal_Subresolution::interpolate_diffusive_term_on_downstream_line(co
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        temperature_,
+                                        *temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         values,
@@ -3427,7 +3442,7 @@ void IJK_Thermal_Subresolution::interpolate_temperature_increment_on_downstream_
                                         is_point_on_proc,
                                         coordinates_line,
                                         coordinates_sides,
-                                        d_temperature_,
+                                        *d_temperature_,
                                         grad_T_elem_,
                                         ref_ijk_ft_->get_velocity(),
                                         values,
@@ -3690,7 +3705,7 @@ double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int&
     }
   else
     dir = upstream_dir;
-  const IJK_Splitting& splitting = temperature_.get_splitting();
+  const IJK_Splitting& splitting = temperature_->get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
 
   const int nb_i_layer_tot = geom.get_nb_elem_tot(0);
@@ -3703,22 +3718,22 @@ double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int&
     case 0:
       n_cross_section_1 = nb_j_layer_tot;
       n_cross_section_2 = nb_k_layer_tot;
-      ndir = temperature_.ni();
+      ndir = temperature_->ni();
       break;
     case 1:
       n_cross_section_1 = nb_k_layer_tot;
       n_cross_section_2 = nb_i_layer_tot;
-      ndir = temperature_.nj();
+      ndir = temperature_->nj();
       break;
     case 2:
       n_cross_section_1 = nb_i_layer_tot;
       n_cross_section_2 = nb_j_layer_tot;
-      ndir = temperature_.nk();
+      ndir = temperature_->nk();
       break;
     default:
       n_cross_section_1 = nb_i_layer_tot;
       n_cross_section_2 = nb_j_layer_tot;
-      ndir = temperature_.nk();
+      ndir = temperature_->nk();
       break;
     }
   // thermal_slice.allocate(n_cross_section_1, n_cross_section_2, 1, 0);
@@ -3986,7 +4001,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coo
                                                   slice_pos,
                                                   ij_indices,
                                                   ij_coords,
-                                                  temperature_,
+                                                  *temperature_,
                                                   grad_T_elem_,
                                                   ref_ijk_ft_->get_velocity(),
                                                   values,
@@ -4014,7 +4029,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              temperature_,
+                                              *temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               values,
@@ -4036,7 +4051,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_velocity(co
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              temperature_,
+                                              *temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               velocity_values,
@@ -4059,7 +4074,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              temperature_,
+                                              *temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               values,
@@ -4072,7 +4087,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              temperature_,
+                                              *temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               velocity_values,
@@ -4108,7 +4123,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_diffusion(c
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              temperature_,
+                                              *temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               values,
@@ -4132,7 +4147,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               slice_pos,
                                               ij_indices,
                                               ij_coords,
-                                              d_temperature_,
+                                              *d_temperature_,
                                               grad_T_elem_,
                                               ref_ijk_ft_->get_velocity(),
                                               values,

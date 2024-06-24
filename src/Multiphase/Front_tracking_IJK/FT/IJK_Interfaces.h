@@ -110,7 +110,7 @@ public :
                                    const int first_step_interface_smoothing = 0);
   void calculer_vitesse_de_deformation(int compo,
                                        const DoubleTab& bounding_box_bulles,
-                                       const Cut_field_vector& cut_field_velocity,
+                                       const FixedVector<Cut_field_scalar, 3>& cut_field_velocity,
                                        const DoubleTab& vitesses_translation_bulles,
                                        const DoubleTab& mean_bubble_rotation_vector,
                                        const DoubleTab& positions_bulles);
@@ -172,9 +172,9 @@ public :
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
 
-  void calcul_vitesse_remaillage(double timestep, Cut_field_vector& remeshing_velocity);
-  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector& total_velocity);
-  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity);
+  void calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_scalar, 3>& remeshing_velocity);
+  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_scalar, 3>& total_velocity);
+  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_scalar, 3>& velocity);
   void calcul_surface_efficace_face_initial();
   void calcul_surface_efficace_interface_initial();
 
@@ -1190,7 +1190,7 @@ protected:
   REF(Switch_FT_double) ref_ijk_ft_switch_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres
-  IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x), cut_field_deformation_velocity_(deformation_velocity_)
+  IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x)
   {
     Cerr << "Erreur IJK_Interfaces(const IJK_Interfaces&)" << finl;
     Process::exit();
@@ -1256,14 +1256,14 @@ protected:
   DoubleTab RK3_G_store_vi_;
   DoubleTab vinterp_;
 
-  int disable_rigid_translation_; // Desactive la partie translation du mouvement rigide
-  int disable_rigid_rotation_;    // Desactive la partie rotation du mouvement rigide
+  int disable_rigid_translation_ = 0; // Desactive la partie translation du mouvement rigide
+  int disable_rigid_rotation_ = 1;    // Desactive la partie rotation du mouvement rigide
 
   ArrOfDouble var_volume_deformation_;  // Variation de volume observee sur chaque sommet lors de la deformation de la bulle
   ArrOfDouble var_volume_remaillage_;   // Variation de volume cible pour l'operation de remaillage
   ArrOfDouble var_volume_correction_globale_;  // Variation de volume cible pour la correction globale de volume
 
-  Cut_field_vector cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
+  FixedVector<Cut_field_scalar, 3> cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
   FixedVector<IJK_Field_double, 3> deformation_velocity_;
 
   // Algorithmes de parcours de l'interface (intersections Eulerien/Lagrangien)
@@ -1432,10 +1432,10 @@ protected:
   bool has_computed_bubble_barycentres_ = false;
   bool has_readen_barycentres_prev_ = false;
 
-  int dt_impression_bilan_indicatrice_;
-  int verbosite_surface_efficace_face_;
-  int verbosite_surface_efficace_interface_;
-  double seuil_indicatrice_petite_;
+  int dt_impression_bilan_indicatrice_ = -1;
+  int verbosite_surface_efficace_face_ = 1;
+  int verbosite_surface_efficace_interface_ = 1;
+  double seuil_indicatrice_petite_ = 0.025; // 0.01 would often work but not always be stable
 
   // Pour le calcul des champs cut-cell
   int cut_cell_activated_;

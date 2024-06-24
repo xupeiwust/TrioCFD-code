@@ -30,14 +30,17 @@
 
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
 IJK_FT_cut_cell::IJK_FT_cut_cell():
-  cut_cell_disc_(interfaces_, splitting_),
-  cut_field_velocity_(velocity_),
-  cut_field_remeshing_velocity_(remeshing_velocity_),
-  cut_field_total_velocity_(total_velocity_)
+  cut_cell_disc_(interfaces_, splitting_)
 {
-  cut_field_velocity_.associer_persistant(cut_cell_disc_);
-  cut_field_remeshing_velocity_.associer_ephemere(cut_cell_disc_);
-  cut_field_total_velocity_.associer_ephemere(cut_cell_disc_);
+  cut_field_velocity_[0].associer_persistant(cut_cell_disc_);
+  cut_field_velocity_[1].associer_persistant(cut_cell_disc_);
+  cut_field_velocity_[2].associer_persistant(cut_cell_disc_);
+  cut_field_remeshing_velocity_[0].associer_ephemere(cut_cell_disc_);
+  cut_field_remeshing_velocity_[1].associer_ephemere(cut_cell_disc_);
+  cut_field_remeshing_velocity_[2].associer_ephemere(cut_cell_disc_);
+  cut_field_total_velocity_[0].associer_ephemere(cut_cell_disc_);
+  cut_field_total_velocity_[1].associer_ephemere(cut_cell_disc_);
+  cut_field_total_velocity_[2].associer_ephemere(cut_cell_disc_);
 }
 
 Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
@@ -80,6 +83,17 @@ void IJK_FT_cut_cell::run()
     }
   allocate_velocity(remeshing_velocity_, splitting_, thermal_probes_ghost_cells_);
   allocate_velocity(total_velocity_, splitting_, thermal_probes_ghost_cells_);
+
+  cut_field_velocity_[0].set_ijk_field(velocity_[0]);
+  cut_field_velocity_[1].set_ijk_field(velocity_[1]);
+  cut_field_velocity_[2].set_ijk_field(velocity_[2]);
+  cut_field_remeshing_velocity_[0].set_ijk_field(remeshing_velocity_[0]);
+  cut_field_remeshing_velocity_[1].set_ijk_field(remeshing_velocity_[1]);
+  cut_field_remeshing_velocity_[2].set_ijk_field(remeshing_velocity_[2]);
+  cut_field_total_velocity_[0].set_ijk_field(total_velocity_[0]);
+  cut_field_total_velocity_[1].set_ijk_field(total_velocity_[1]);
+  cut_field_total_velocity_[2].set_ijk_field(total_velocity_[2]);
+
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
@@ -490,7 +504,9 @@ void IJK_FT_cut_cell::run()
   // Initialisation des structures cut-cell
   cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In());
 
-  cut_field_velocity_.remplir_cellules_diphasiques();
+  cut_field_velocity_[0].remplir_cellules_diphasiques();
+  cut_field_velocity_[1].remplir_cellules_diphasiques();
+  cut_field_velocity_[2].remplir_cellules_diphasiques();
   thermals_.remplir_cellules_diphasiques();
 
   thermals_.recompute_temperature_init();
@@ -498,12 +514,21 @@ void IJK_FT_cut_cell::run()
   // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
   if (correction_semi_locale_volume_bulle_)
     {
-      if (disable_solveur_poisson_ || (!projection_initiale_demandee_))
+      if (disable_solveur_poisson_)
         {
-          Cerr << "Erreur: avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point." << finl;
-          Cerr << "Pour securite, cette option n'est aussi autorisee qu'avec une projection initiale du champ de vitesse, garantissant cette propriete (et pas de disable_solveur_poisson)." << finl;
-          Cerr << "Veuillez ajouter l'option : projection_initiale au jeu de donnees." << finl;
-          Process::exit();
+          Cerr << " Warning: Possible incoherence des mots-cles\n"
+               << " ===========================================\n"
+               << "\n"
+               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
+               << "Il est suspect d'utiliser cette option avec disable_solveur_poisson.\n" << finl;
+        }
+      if (!projection_initiale_demandee_)
+        {
+          Cerr << " Warning: Possible incoherence des mots-cles\n"
+               << " ===========================================\n"
+               << "\n"
+               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
+               << "Pour securite, il est recommande d'utiliser avec cette option une projection initiale du champ de vitesse, garantissant cette propriete [mot-cle : projection_initiale].\n" << finl;
         }
     }
   if (!disable_solveur_poisson_)
@@ -1068,7 +1093,9 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   thermals_.remplir_cellules_maintenant_pures();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  cut_field_velocity_.remplir_cellules_diphasiques();
+  cut_field_velocity_[0].remplir_cellules_diphasiques();
+  cut_field_velocity_[1].remplir_cellules_diphasiques();
+  cut_field_velocity_[2].remplir_cellules_diphasiques();
 
   IJK_FT_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
 
@@ -1076,7 +1103,9 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
   thermals_.remplir_cellules_devenant_diphasiques();
-  cut_field_velocity_.remplir_cellules_diphasiques();
+  cut_field_velocity_[0].remplir_cellules_diphasiques();
+  cut_field_velocity_[1].remplir_cellules_diphasiques();
+  cut_field_velocity_[2].remplir_cellules_diphasiques();
   thermals_.transfert_diphasique_vers_pures();
 
   interfaces_.calcul_surface_efficace_face_initial();
@@ -1086,7 +1115,9 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
     {
       interfaces_.calcul_vitesse_remaillage(timestep_, cut_field_remeshing_velocity_);
     }
-  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
+  cut_field_total_velocity_[0].set_to_sum(cut_field_velocity_[0], cut_field_remeshing_velocity_[0]);
+  cut_field_total_velocity_[1].set_to_sum(cut_field_velocity_[1], cut_field_remeshing_velocity_[1]);
+  cut_field_total_velocity_[2].set_to_sum(cut_field_velocity_[2], cut_field_remeshing_velocity_[2]);
 
   interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, timestep_, cut_field_total_velocity_);
   interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, timestep_, cut_field_velocity_);
@@ -1103,7 +1134,9 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   thermals_.remplir_cellules_maintenant_pures();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  cut_field_velocity_.remplir_cellules_diphasiques();
+  cut_field_velocity_[0].remplir_cellules_diphasiques();
+  cut_field_velocity_[1].remplir_cellules_diphasiques();
+  cut_field_velocity_[2].remplir_cellules_diphasiques();
 
   IJK_FT_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
 
@@ -1111,7 +1144,9 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
   thermals_.remplir_cellules_devenant_diphasiques();
-  cut_field_velocity_.remplir_cellules_diphasiques();
+  cut_field_velocity_[0].remplir_cellules_diphasiques();
+  cut_field_velocity_[1].remplir_cellules_diphasiques();
+  cut_field_velocity_[2].remplir_cellules_diphasiques();
   thermals_.transfert_diphasique_vers_pures();
 
   interfaces_.calcul_surface_efficace_face_initial();
@@ -1123,7 +1158,9 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
     {
       interfaces_.calcul_vitesse_remaillage(fractionnal_timestep, cut_field_remeshing_velocity_);
     }
-  cut_field_total_velocity_.set_to_sum(cut_field_velocity_, cut_field_remeshing_velocity_);
+  cut_field_total_velocity_[0].set_to_sum(cut_field_velocity_[0], cut_field_remeshing_velocity_[0]);
+  cut_field_total_velocity_[1].set_to_sum(cut_field_velocity_[1], cut_field_remeshing_velocity_[1]);
+  cut_field_total_velocity_[2].set_to_sum(cut_field_velocity_[2], cut_field_remeshing_velocity_[2]);
 
   interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_total_velocity_);
   interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity_);

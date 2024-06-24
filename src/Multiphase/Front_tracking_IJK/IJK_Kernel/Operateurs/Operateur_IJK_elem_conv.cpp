@@ -165,28 +165,3 @@ void Operateur_IJK_elem_conv::ajouter(const IJK_Field_double& field,
   valeur().ajouter(field, vx, vy, vz, result);
 }
 
-void Operateur_IJK_elem_conv::calculer_cut_cell(bool ignore_small_cells,
-                                                Cut_cell_conv_scheme cut_cell_conv_scheme,
-                                                const Cut_field_scalar& field,
-                                                const Cut_field_vector& v,
-                                                const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
-                                                Cut_cell_vector& cut_cell_flux,
-                                                IJK_Field_int& treatment_count,
-                                                int& new_treatment,
-                                                Cut_field_scalar& result)
-{
-  valeur().calculer_cut_cell(ignore_small_cells, cut_cell_conv_scheme, field, v, temperature_face, cut_cell_flux, treatment_count, new_treatment, result);
-}
-
-void Operateur_IJK_elem_conv::ajouter_cut_cell(bool ignore_small_cells,
-                                               Cut_cell_conv_scheme cut_cell_conv_scheme,
-                                               const Cut_field_scalar& field,
-                                               const Cut_field_vector& v,
-                                               const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
-                                               Cut_cell_vector& cut_cell_flux,
-                                               IJK_Field_int& treatment_count,
-                                               int& new_treatment,
-                                               Cut_field_scalar& result)
-{
-  valeur().ajouter_cut_cell(ignore_small_cells, cut_cell_conv_scheme, field, v, temperature_face, cut_cell_flux, treatment_count, new_treatment, result);
-}

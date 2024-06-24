@@ -57,8 +57,7 @@
 static const char *nom_par_defaut_interfaces = "INTERFACES";
 Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Objet_U);
 
-IJK_Interfaces::IJK_Interfaces() :
-  cut_field_deformation_velocity_(deformation_velocity_)
+IJK_Interfaces::IJK_Interfaces()
 {
   lata_interfaces_meshname_ = nom_par_defaut_interfaces;
 
@@ -66,14 +65,6 @@ IJK_Interfaces::IJK_Interfaces() :
   mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
 
   compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
-
-  dt_impression_bilan_indicatrice_ = -1;
-  verbosite_surface_efficace_face_ = 1;
-  verbosite_surface_efficace_interface_ = 1;
-  seuil_indicatrice_petite_ = 0.025; // 0.01 would often work but not always be stable
-
-  disable_rigid_translation_ = 0;
-  disable_rigid_rotation_ = 1;
 }
 
 static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr, DoubleTab& tab)
@@ -454,7 +445,9 @@ void IJK_Interfaces::activate_cut_cell()
   vitesse_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   normale_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
 
-  cut_field_deformation_velocity_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+  cut_field_deformation_velocity_[0].associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+  cut_field_deformation_velocity_[1].associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+  cut_field_deformation_velocity_[2].associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
 }
 
 void IJK_Interfaces::imprime_bilan_indicatrice()
@@ -548,7 +541,7 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
   Cerr << "     total    " << count_total  << finl;
 }
 
-void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, Cut_field_vector& remeshing_velocity)
+void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_scalar, 3>& remeshing_velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_face_initial())
@@ -561,7 +554,7 @@ void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, Cut_field_vector
                                                        remeshing_velocity);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector& total_velocity)
+void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_scalar, 3>& total_velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_face_initial())
@@ -596,7 +589,7 @@ void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE typ
     indicatrice_surfacique_efficace_face_initial_);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector& velocity)
+void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_scalar, 3>& velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_interface_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_interface_initial())
@@ -889,6 +882,9 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
     }
 
   allocate_velocity(deformation_velocity_, splitting_NS, 2);
+  cut_field_deformation_velocity_[0].set_ijk_field(deformation_velocity_[0]);
+  cut_field_deformation_velocity_[1].set_ijk_field(deformation_velocity_[1]);
+  cut_field_deformation_velocity_[2].set_ijk_field(deformation_velocity_[2]);
   nalloc += 3;
 
   allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, splitting_NS, nb_ghost_cells);
@@ -2536,9 +2532,8 @@ void IJK_Interfaces::calculer_var_volume_remaillage(double timestep,
 
   for (int dir = 0 ; dir < 3 ; dir++)
     {
-      cut_field_deformation_velocity_.pure_[dir].data() = 6.3e32; // Valeur absurde pour assurer que la valeur par defaut n'est jamais utilisee
+      cut_field_deformation_velocity_[dir].set_to_uniform_value(6.3e32); // Valeur absurde pour assurer que la valeur par defaut n'est jamais utilisee
     }
-  cut_field_deformation_velocity_.set_valeur_cellules_diphasiques(6.3e32);
 
   DoubleTab bounding_box;
   calculer_bounding_box_bulles(bounding_box);
@@ -3195,19 +3190,21 @@ void IJK_Interfaces::remailler_interface(const double temps,
 void IJK_Interfaces::calculer_vitesse_de_deformation(
   int compo,
   const DoubleTab& bounding_box_bulles,
-  const Cut_field_vector& cut_field_velocity,
+  const FixedVector<Cut_field_scalar, 3>& cut_field_velocity,
   const DoubleTab& vitesses_translation_bulles,
   const DoubleTab& mean_bubble_rotation_vector,
   const DoubleTab& positions_bulles)
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_deformation_velocity_.get_cut_cell_disc();
+  assert(&cut_field_deformation_velocity_[0].get_cut_cell_disc() == &cut_field_deformation_velocity_[1].get_cut_cell_disc());
+  assert(&cut_field_deformation_velocity_[0].get_cut_cell_disc() == &cut_field_deformation_velocity_[2].get_cut_cell_disc());
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_deformation_velocity_[0].get_cut_cell_disc();
 
-  const int ni = cut_field_deformation_velocity_.pure_[0].ni();
-  const int nj = cut_field_deformation_velocity_.pure_[0].nj();
-  const int nk = cut_field_deformation_velocity_.pure_[0].nk();
-  const int ghost = cut_field_deformation_velocity_.pure_[0].ghost();
+  const int ni = cut_field_deformation_velocity_[0].ni();
+  const int nj = cut_field_deformation_velocity_[0].nj();
+  const int nk = cut_field_deformation_velocity_[0].nk();
+  const int ghost = cut_field_deformation_velocity_[0].ghost();
 
-  const IJK_Splitting& splitting = cut_field_deformation_velocity_.pure_[0].get_splitting();
+  const IJK_Splitting& splitting = cut_field_deformation_velocity_[0].get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   assert(geom.is_uniform(0));
   assert(geom.is_uniform(1));
@@ -3264,11 +3261,11 @@ void IJK_Interfaces::calculer_vitesse_de_deformation(
                       Vecteur3 tangential_velocity;
                       Vecteur3::produit_vectoriel(rot, radial_position, tangential_velocity);
 
-                      const DoubleTabFT_cut_cell& diph_velocity = (phase == 0) ? cut_field_velocity.diph_v_ : cut_field_velocity.diph_l_;
-                      DoubleTabFT_cut_cell& deformation_diph_velocity = (phase == 0) ? cut_field_deformation_velocity_.diph_v_ : cut_field_deformation_velocity_.diph_l_;
                       for (int direction = 0; direction < 3; direction++)
                         {
-                          deformation_diph_velocity(n, direction) = diph_velocity(n, direction) - vitesses_translation_bulles(compo, direction) - tangential_velocity[direction];
+                          const DoubleTabFT_cut_cell& diph_velocity = (phase == 0) ? cut_field_velocity[direction].diph_v_ : cut_field_velocity[direction].diph_l_;
+                          DoubleTabFT_cut_cell& deformation_diph_velocity = (phase == 0) ? cut_field_deformation_velocity_[direction].diph_v_ : cut_field_deformation_velocity_[direction].diph_l_;
+                          deformation_diph_velocity(n) = diph_velocity(n) - vitesses_translation_bulles(compo, direction) - tangential_velocity[direction];
                         }
                     }
                 }
@@ -3285,7 +3282,7 @@ void IJK_Interfaces::calculer_vitesse_de_deformation(
 
                   for (int direction = 0; direction < 3; direction++)
                     {
-                      cut_field_deformation_velocity_.pure_[direction](i,j,k) = cut_field_velocity.pure_[direction](i,j,k) - vitesses_translation_bulles(compo, direction) - tangential_velocity[direction];
+                      cut_field_deformation_velocity_[direction].pure_(i,j,k) = cut_field_velocity[direction].pure_(i,j,k) - vitesses_translation_bulles(compo, direction) - tangential_velocity[direction];
                     }
                 }
             }

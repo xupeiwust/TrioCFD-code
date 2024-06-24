@@ -813,14 +813,14 @@ protected :
   int use_bubbles_velocities_from_barycentres_ = 0;
 
   // Options for the cut-cell computation of effective surfaces
-  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_;
-  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_;
-  int deactivate_remeshing_velocity_;
+  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
+  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
+  int deactivate_remeshing_velocity_ = 0;
 
   DoubleTab vitesses_translation_bulles_; // Vecteur de translation rigide pour chaque bulle
   DoubleTab mean_bubble_rotation_vector_; // Vecteur de rotation rigide pour chaque bulle
   DoubleTab centre_gravite_bulles_;       // Position du centre de gravite pour chaque bulle (associee a la rotation)
-  int correction_semi_locale_volume_bulle_;
+  int correction_semi_locale_volume_bulle_ = 0;
 };
 
 #endif /* IJK_FT_base_included */

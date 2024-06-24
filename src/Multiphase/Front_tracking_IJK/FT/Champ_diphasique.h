@@ -254,25 +254,6 @@ public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
-  void set_valeur_cellules_diphasiques(double valeur);
-
-protected :
-};
-
-/*! @brief : class Cut_cell_vector
- *
- *  <Description of class Cut_cell_vector>
- *
- *
- *
- */
-class Cut_cell_vector : public Cut_cell_data
-{
-public :
-  void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
-  void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
-  void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
-  void set_valeur_cellules_diphasiques(double valeur);
 
 protected :
 };
@@ -284,12 +265,13 @@ protected :
  *
  *
  */
-class Cut_field_scalar : public Cut_cell_scalar
+class Cut_field_scalar : public IJK_Field_double
 {
 public :
-  Cut_field_scalar(IJK_Field_double& IJK_Field);
+  Cut_field_scalar();
 
-  IJK_Field_double& pure_;
+  DoubleTabFT_cut_cell diph_l_;
+  DoubleTabFT_cut_cell diph_v_;
 
   void echange_espace_virtuel(int ghost);
   void remplir_cellules_diphasiques();
@@ -297,36 +279,81 @@ public :
   void remplir_cellules_maintenant_pures();
   void transfert_diphasique_vers_pures();
   void set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time);
+  void set_to_uniform_value(double valeur);
+  void set_to_sum(const Cut_field_scalar& data_1, const Cut_field_scalar& data_2);
+
+  void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
+  void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
+  void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
 
   void copy_from(Cut_field_scalar& data);
   void add_from(Cut_field_scalar& data);
 
+  const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
+
+  // :integration(Dorian) De maniere temporaire avant la modification du type des champs
+  // vectoriels IJK, on ajoute des routines a la classe Cut_field_scalar,
+  // qui permettent a l'objet de referer aux donnees d'un objet IJK_Field_double existant.
+  // Ces fonctionnalites sont temporaires et devront etre supprimees.
+  void set_ijk_field(IJK_Field_double& field)
+  {
+    data_.ref_array(field.data());
+    //data_ = field.data();
+    ni_ = field.ni();
+    nj_ = field.nj();
+    nk_ = field.nk();
+    nb_compo_ = field.nb_compo();
+    j_stride_ = field.j_stride();
+    compo_stride_ = field.compo_stride();
+    ghost_size_ = field.ghost();
+    k_layer_shift_ = field.k_shift();
+    additional_k_layers_ = field.k_shift_max();
+    allocated_size_ = field.get_allocated_size();
+    offset_ = (int)(((long int)field.k_layer(0) - (long int)field.data().addr())/8);
+    splitting_ref_ = field.get_splitting();
+    localisation_ = field.get_localisation();
+  }
+
+  double& pure_(int i, int j, int k)
+  {
+    return IJK_Field_double::operator()(i,j,k);
+  }
+
+  const double& pure_(int i, int j, int k) const
+  {
+    return IJK_Field_double::operator()(i,j,k);
+  }
+
+  double& operator()(int i, int j, int k)
+  {
+    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Process::exit();
+    return IJK_Field_double::operator()(i,j,k);
+  }
+
+  const double& operator()(int i, int j, int k) const
+  {
+    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Process::exit();
+    return IJK_Field_double::operator()(i,j,k);
+  }
+
+  double& operator()(int i, int j, int k, int compo)
+  {
+    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Process::exit();
+    return IJK_Field_double::operator()(i,j,k,compo);
+  }
+
+  const double& operator()(int i, int j, int k, int compo) const
+  {
+    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Process::exit();
+    return IJK_Field_double::operator()(i,j,k,compo);
+  }
+
 protected :
-};
-
-/*! @brief : class Cut_field_vector
- *
- *  <Description of class Cut_field_vector>
- *
- *
- *
- */
-class Cut_field_vector : public Cut_cell_vector
-{
-public :
-  Cut_field_vector(FixedVector<IJK_Field_double, 3>& IJK_Field);
-
-  FixedVector<IJK_Field_double, 3>& pure_;
-
-  void echange_espace_virtuel(int ghost);
-  void remplir_cellules_diphasiques();
-  void remplir_cellules_devenant_diphasiques();
-  void remplir_cellules_maintenant_pures();
-  void transfert_diphasique_vers_pures();
-
-  void set_to_sum(const Cut_field_vector& data_1, const Cut_field_vector& data_2);
-
-protected :
+  REF(Cut_cell_FT_Disc) cut_cell_disc_;
 };
 
 #endif /* Champ_diphasique_included */

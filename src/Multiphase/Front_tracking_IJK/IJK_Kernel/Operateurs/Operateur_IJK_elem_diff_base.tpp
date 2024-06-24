@@ -366,13 +366,15 @@ Vecteur3 Operateur_IJK_elem_diff_base_double::compute_surface_d0_d1_(int k)
 }
 
 template <DIRECTION _DIR_>
-void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *const flux, int k_layer)
+void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *const flux, int k_layer)
 {
   int dir = static_cast<int>(_DIR_);
 
-  const IJK_Field_local_double& input_field = *input_field_;
+  const Cut_field_scalar& input_cut_field = static_cast<const Cut_field_scalar&>(*input_field_);
   const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
-  const Cut_cell_FT_Disc& cut_cell_disc = cut_cell_flux_->get_cut_cell_disc();
+  assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
+  assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[2].get_cut_cell_disc());
+  const Cut_cell_FT_Disc& cut_cell_disc = (*cut_cell_flux_)[0].get_cut_cell_disc();
 
   IJK_Field_int& treatment_count = *treatment_count_;
   int& new_treatment = *new_treatment_;
@@ -457,8 +459,8 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
 
                   for (int phase = phase_min ; phase <= phase_max ; phase++)
                     {
-                      const DoubleTabFT_cut_cell& diph_input = (phase == 0) ? input_cut_field_->diph_v_ : input_cut_field_->diph_l_;
-                      DoubleTabFT_cut_cell& diph_flux = (phase == 0) ? cut_cell_flux_->diph_v_ : cut_cell_flux_->diph_l_;
+                      const DoubleTabFT_cut_cell& diph_input = (phase == 0) ? input_cut_field.diph_v_ : input_cut_field.diph_l_;
+                      DoubleTabFT_cut_cell& diph_flux = (phase == 0) ? (*cut_cell_flux_)[dir].diph_v_ : (*cut_cell_flux_)[dir].diph_l_;
 
                       const int dir_i = (_DIR_ == DIRECTION::X);
                       const int dir_j = (_DIR_ == DIRECTION::Y);
@@ -490,8 +492,8 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                       int phase_left = (n_left < 0) ? (int)indicatrice_left : phase;
                       assert((phase_left == phase) || (indicatrice_surface == 0.));
 
-                      double input_left = (n_left < 0) ? input_field(i-dir_i,j-dir_j,k-dir_k) : diph_input(n_left);
-                      double input_centre = (n_centre < 0) ? input_field(i,j,k) : diph_input(n_centre);
+                      double input_left = (n_left < 0) ? input_cut_field.pure_(i-dir_i,j-dir_j,k-dir_k) : diph_input(n_left);
+                      double input_centre = (n_centre < 0) ? input_cut_field.pure_(i,j,k) : diph_input(n_centre);
 
                       double lambda_value = (phase == 0) ? *uniform_lambda_vapour_ : *uniform_lambda_liquid_;
 
@@ -509,7 +511,7 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                         {
                           flux_value = 0.;
                         }
-                      else if (*ignore_small_cells_ && (petit_centre || petit_left || phase_naissante_centre || phase_naissante_left))
+                      else if (ignore_small_cells_ && (petit_centre || petit_left || phase_naissante_centre || phase_naissante_left))
                         {
                           flux_value = 0.;
                         }
@@ -533,7 +535,7 @@ void Operateur_IJK_elem_diff_base_double::correct_flux_(IJK_Field_local_double *
                         }
                       else
                         {
-                          diph_flux(n_centre, dir) = flux_value;
+                          diph_flux(n_centre) = flux_value;
                           if ((n_left < 0) && (phase == phase_left))
                             {
                               int index_ijk_per = 0;

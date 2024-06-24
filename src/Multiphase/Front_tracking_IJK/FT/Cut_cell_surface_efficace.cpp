@@ -80,7 +80,7 @@ void Cut_cell_surface_efficace::calcul_surface_interface_efficace_initiale(
 }
 
 void Cut_cell_surface_efficace::calcul_vitesse_interface(
-  const Cut_field_vector& velocity,
+  const FixedVector<Cut_field_scalar, 3>& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const FixedVector<IJK_Field_double, 3>& barycentre_phase1_ns_old,
@@ -141,7 +141,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
   ArrOfDouble vinterp_component(cut_cell_disc.get_n_loc());
   for (int dir = 0; dir < 3; dir++)
     {
-      ijk_interpolate_skip_unknown_points(velocity.pure_[dir], coord_deplacement_interface, vinterp_component, 1.e5 /* value for unknown points */);
+      ijk_interpolate_skip_unknown_points(velocity[dir], coord_deplacement_interface, vinterp_component, 1.e5 /* value for unknown points */);
       for (int i = 0; i < cut_cell_disc.get_n_loc(); i++)
         {
           vitesse_deplacement_interface(i, dir) = vinterp_component[i];
@@ -152,7 +152,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
 
 void Cut_cell_surface_efficace::calcul_surface_interface_efficace(
   double timestep,
-  const Cut_field_vector& velocity,
+  const FixedVector<Cut_field_scalar, 3>& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface,
@@ -279,7 +279,7 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
 void Cut_cell_surface_efficace::calcul_surface_face_efficace(
   int verbosite_surface_efficace_face,
   double timestep,
-  const Cut_field_vector& velocity,
+  const FixedVector<Cut_field_scalar, 3>& velocity,
   int& iteration_solver_surface_efficace_face,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
@@ -395,19 +395,19 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace(
                   surface_max[num_face] = std::max(surface_old, surface_next);
                   surface_min[num_face] = std::min(surface_old, surface_next);
                   surface_efficace[num_face] = indicatrice_surfacique_efficace_face(n_face, dir);
-                  flux_diphasique[num_face] = (indicatrice_surfacique_efficace_face(n_face, dir) == 1.) ? 0. : sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity.diph_l_(n_face, dir);
+                  flux_diphasique[num_face] = (indicatrice_surfacique_efficace_face(n_face, dir) == 1.) ? 0. : sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity[dir].diph_l_(n_face);
                   if (surface_efficace[num_face] == 0.)
                     {
                       assert(surface_max[num_face] == 0.);
                     }
 
-                  delta_volume_total -= sign*f*surface_efficace[num_face]*velocity.diph_l_(n_face, dir);
+                  delta_volume_total -= sign*f*surface_efficace[num_face]*velocity[dir].diph_l_(n_face);
                   delta_volume_diphasique -= flux_diphasique[num_face];
 
                 }
               else
                 {
-                  delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+                  delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity[dir].pure_(i+di,j+dj,k+dk);
                 }
 
             }
@@ -553,7 +553,7 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace(
 void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface(
   int verbosite_surface_efficace_interface,
   double timestep,
-  const Cut_field_vector& velocity,
+  const FixedVector<Cut_field_scalar, 3>& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
@@ -716,7 +716,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
   int verbosite_surface_efficace_face,
   int iteration_solver_surface_efficace_face,
   double timestep,
-  const Cut_field_vector& velocity,
+  const FixedVector<Cut_field_scalar, 3>& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
@@ -782,7 +782,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
           int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
           if (n_face >= 0)
             {
-              delta_volume_total -= sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity.diph_l_(n_face, dir);
+              delta_volume_total -= sign*f*indicatrice_surfacique_efficace_face(n_face, dir)*velocity[dir].diph_l_(n_face);
 
               {
                 double erreur_relative;
@@ -819,7 +819,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
           else
             {
               assert((next_indicatrice_ns(i+di,j+dj,k+dk) == 0) || (next_indicatrice_ns(i+di,j+dj,k+dk) == 1));
-              delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity.pure_[dir](i+di,j+dj,k+dk);
+              delta_volume_total -= sign*f*next_indicatrice_ns(i+di,j+dj,k+dk)*velocity[dir].pure_(i+di,j+dj,k+dk);
             }
 
         }
@@ -903,14 +903,15 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                                                           const IJK_Field_double& indicatrice_apres_remaillage,
                                                           const IJK_Field_double& indicatrice_fin_pas_de_temps,
                                                           DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_remaillage_face,
-                                                          Cut_field_vector& remeshing_velocity)
+                                                          FixedVector<Cut_field_scalar, 3>& remeshing_velocity)
 {
-  remeshing_velocity.pure_[0].data()=0;
-  remeshing_velocity.pure_[1].data()=0;
-  remeshing_velocity.pure_[2].data()=0;
-  remeshing_velocity.set_valeur_cellules_diphasiques(0);
+  remeshing_velocity[0].set_to_uniform_value(0);
+  remeshing_velocity[1].set_to_uniform_value(0);
+  remeshing_velocity[2].set_to_uniform_value(0);
 
-  const Cut_cell_FT_Disc& cut_cell_disc = remeshing_velocity.get_cut_cell_disc();
+  assert(&remeshing_velocity[0].get_cut_cell_disc() == &remeshing_velocity[1].get_cut_cell_disc());
+  assert(&remeshing_velocity[0].get_cut_cell_disc() == &remeshing_velocity[2].get_cut_cell_disc());
+  const Cut_cell_FT_Disc& cut_cell_disc = remeshing_velocity[0].get_cut_cell_disc();
   const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
 
   const double delta_x = geom.get_constant_delta(0);
@@ -954,8 +955,6 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
               const double fy = delta_x * delta_z * timestep;
               const double fz = delta_x * delta_y * timestep;
 
-              DoubleTabFT_cut_cell& remeshing_diph_velocity = (phase == 0) ? remeshing_velocity.diph_v_ : remeshing_velocity.diph_l_;
-
               double indic_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i, j, k) : indicatrice_fin_pas_de_temps(i, j, k);
 
               double area_dt_free = 0;
@@ -975,6 +974,8 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                   int dj_decale = sign*(dir == 1);
                   int dk_decale = sign*(dir == 2);
 
+                  DoubleTabFT_cut_cell& remeshing_diph_velocity = (phase == 0) ? remeshing_velocity[dir].diph_v_ : remeshing_velocity[dir].diph_l_;
+
                   double indic_decale_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale);
 
                   double f = select(dir, fx, fy, fz);
@@ -988,11 +989,11 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                       int decale_smaller = (n_decale >= 0) && (indic_decale_fin_pas_de_temps <= indic_fin_pas_de_temps);
                       area_dt_free += (decale_smaller) ? 0. : f*surface_efficace;
                       area_dt_total += f*surface_efficace;
-                      delta_volume_total -= sign*f*surface_efficace*remeshing_diph_velocity(n_face, dir);
-                      delta_volume_free  -= (decale_smaller) ? 0. : sign*f*surface_efficace*remeshing_diph_velocity(n_face, dir);
+                      delta_volume_total -= sign*f*surface_efficace*remeshing_diph_velocity(n_face);
+                      delta_volume_free  -= (decale_smaller) ? 0. : sign*f*surface_efficace*remeshing_diph_velocity(n_face);
                       if (!decale_smaller)
                         {
-                          assert((pass != 0.) || (remeshing_diph_velocity(n_face, dir) == 0.));
+                          assert((pass != 0.) || (remeshing_diph_velocity(n_face) == 0.));
                         }
                     }
                   else
@@ -1002,11 +1003,11 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
 
                       area_dt_free += f*surface_efficace;
                       area_dt_total += f*surface_efficace;
-                      delta_volume_total -= sign*f*surface_efficace*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
-                      delta_volume_free  -= sign*f*surface_efficace*remeshing_velocity.pure_[dir](i+di,j+dj,k+dk);
+                      delta_volume_total -= sign*f*surface_efficace*remeshing_velocity[dir].pure_(i+di,j+dj,k+dk);
+                      delta_volume_free  -= sign*f*surface_efficace*remeshing_velocity[dir].pure_(i+di,j+dj,k+dk);
                       if (surface_efficace > 0)
                         {
-                          assert((pass != 0.) || (remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) == 0.));
+                          assert((pass != 0.) || (remeshing_velocity[dir].pure_(i+di,j+dj,k+dk) == 0.));
                         }
                     }
                 }
@@ -1046,6 +1047,8 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                       int dj_decale = sign*(dir == 1);
                       int dk_decale = sign*(dir == 2);
 
+                      DoubleTabFT_cut_cell& remeshing_diph_velocity = (phase == 0) ? remeshing_velocity[dir].diph_v_ : remeshing_velocity[dir].diph_l_;
+
                       double indic_decale_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale);
 
                       int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
@@ -1057,8 +1060,8 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                               double surface_efficace = (phase == 0) ? 1 - indicatrice_surfacique_efficace_remaillage_face(n_face, dir) : indicatrice_surfacique_efficace_remaillage_face(n_face, dir);
                               if (surface_efficace > 0)
                                 {
-                                  assert((pass != 0.) || (remeshing_diph_velocity(n_face, dir) == 0.));
-                                  remeshing_diph_velocity(n_face, dir) += -sign*vel;
+                                  assert((pass != 0.) || (remeshing_diph_velocity(n_face) == 0.));
+                                  remeshing_diph_velocity(n_face) += -sign*vel;
                                 }
                             }
                           else
@@ -1067,8 +1070,8 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                               assert((surface_efficace == 0) || (surface_efficace == 1));
                               if (surface_efficace > 0)
                                 {
-                                  assert((pass != 0.) || (remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) == 0.));
-                                  remeshing_velocity.pure_[dir](i+di,j+dj,k+dk) += -sign*vel;
+                                  assert((pass != 0.) || (remeshing_velocity[dir].pure_(i+di,j+dj,k+dk) == 0.));
+                                  remeshing_velocity[dir].pure_(i+di,j+dj,k+dk) += -sign*vel;
                                 }
                             }
                         }
@@ -1086,7 +1089,9 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
 
       if (::mp_max(at_least_one_cell_has_changed))
         {
-          remeshing_velocity.echange_espace_virtuel(remeshing_velocity.pure_[0].ghost());
+          remeshing_velocity[0].echange_espace_virtuel(remeshing_velocity[0].ghost());
+          remeshing_velocity[1].echange_espace_virtuel(remeshing_velocity[1].ghost());
+          remeshing_velocity[2].echange_espace_virtuel(remeshing_velocity[2].ghost());
 
           if (pass >= max_number_of_pass-1)
             {
@@ -1106,10 +1111,12 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
                                                                     const IJK_Field_double& indicatrice_avant_deformation,
                                                                     const IJK_Field_double& indicatrice_apres_deformation,
                                                                     const FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_efficace_deformation_face,
-                                                                    const Cut_field_vector& deformation_velocity,
+                                                                    const FixedVector<Cut_field_scalar, 3>& deformation_velocity,
                                                                     IJK_Field_double& delta_volume_theorique_bilan)
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = deformation_velocity.get_cut_cell_disc();
+  assert(&deformation_velocity[0].get_cut_cell_disc() == &deformation_velocity[1].get_cut_cell_disc());
+  assert(&deformation_velocity[0].get_cut_cell_disc() == &deformation_velocity[2].get_cut_cell_disc());
+  const Cut_cell_FT_Disc& cut_cell_disc = deformation_velocity[0].get_cut_cell_disc();
 
   const int ni = delta_volume_theorique_bilan.ni();
   const int nj = delta_volume_theorique_bilan.nj();
@@ -1161,8 +1168,6 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
 
                   for (int phase = 0 ; phase < 2 ; phase++)
                     {
-                      const DoubleTabFT_cut_cell& deformation_diph_velocity = (phase == 0) ? deformation_velocity.diph_v_ : deformation_velocity.diph_l_;
-
                       for (int num_face = 0; num_face < 6; num_face++)
                         {
                           int dir = num_face%3;
@@ -1181,13 +1186,15 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
                           int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
                           if (n_face >= 0)
                             {
-                              assert(deformation_diph_velocity(n_face, dir) != 6.3e32);
-                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_diph_velocity(n_face, dir);
+                              const DoubleTabFT_cut_cell& deformation_diph_velocity = (phase == 0) ? deformation_velocity[dir].diph_v_ : deformation_velocity[dir].diph_l_;
+
+                              assert(deformation_diph_velocity(n_face) != 6.3e32);
+                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_diph_velocity(n_face);
                             }
                           else
                             {
-                              assert(deformation_velocity.pure_[dir](i+di,j+dj,k+dk) != 6.3e32);
-                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_velocity.pure_[dir](i+di,j+dj,k+dk);
+                              assert(deformation_velocity[dir].pure_(i+di,j+dj,k+dk) != 6.3e32);
+                              delta_volume_total[phase] -= sign*f*surface_efficace*deformation_velocity[dir].pure_(i+di,j+dj,k+dk);
                             }
                         }
                     }
