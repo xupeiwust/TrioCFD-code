@@ -70,8 +70,8 @@ public:
 public:
   void set_param(Param& param);
 
-  double dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
-  double small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
+  double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
+  double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
 
   void calculer_flux_interface(bool next_time,
                                double lambda_liquid,

@@ -24,7 +24,7 @@
 
 #include <Objet_U.h>
 #include <IJK_Field.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <TRUSTTabFT.h>
 
 class Cut_cell_FT_Disc;
@@ -291,27 +291,22 @@ public :
 
   const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
 
-  // :integration(Dorian) De maniere temporaire avant la modification du type des champs
-  // vectoriels IJK, on ajoute des routines a la classe Cut_field_double,
-  // qui permettent a l'objet de referer aux donnees d'un objet IJK_Field_double existant.
-  // Ces fonctionnalites sont temporaires et devront etre supprimees.
-  void set_ijk_field(IJK_Field_double& field)
+  void allocate_persistant(Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting, IJK_Splitting::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
   {
-    data_.ref_array(field.data());
-    //data_ = field.data();
-    ni_ = field.ni();
-    nj_ = field.nj();
-    nk_ = field.nk();
-    nb_compo_ = field.nb_compo();
-    j_stride_ = field.j_stride();
-    compo_stride_ = field.compo_stride();
-    ghost_size_ = field.ghost();
-    k_layer_shift_ = field.k_shift();
-    additional_k_layers_ = field.k_shift_max();
-    allocated_size_ = field.get_allocated_size();
-    offset_ = (int)(((long int)field.k_layer(0) - (long int)field.data().addr())/8);
-    splitting_ref_ = field.get_splitting();
-    localisation_ = field.get_localisation();
+    IJK_Field_double::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    associer_persistant(cut_cell_disc);
+  }
+
+  void allocate_ephemere(Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting, IJK_Splitting::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
+  {
+    IJK_Field_double::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    associer_ephemere(cut_cell_disc);
+  }
+
+  void allocate_paresseux(Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting, IJK_Splitting::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
+  {
+    IJK_Field_double::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    associer_paresseux(cut_cell_disc);
   }
 
   double& pure_(int i, int j, int k)
@@ -354,6 +349,34 @@ public :
 
 protected :
   REF(Cut_cell_FT_Disc) cut_cell_disc_;
+};
+
+/*! @brief : class Cut_field_vector3_double
+ *
+ *  <Description of class Cut_field_vector3_double>
+ *
+ *
+ *
+ */
+class Cut_field_vector3_double : public IJK_Field_vector3_double
+{
+public :
+  Cut_field_vector3_double();
+
+  Cut_field_double& operator[](int i)
+  {
+    assert(i>=0 && i<3);
+    IJK_Field_double& field = IJK_Field_vector3_double::operator[](i);
+    return static_cast<Cut_field_double&>(field);
+  }
+  const Cut_field_double& operator[](int i) const
+  {
+    assert(i>=0 && i<3);
+    const IJK_Field_double& field = IJK_Field_vector3_double::operator[](i);
+    return static_cast<const Cut_field_double&>(field);
+  }
+
+protected :
 };
 
 #endif /* Champ_diphasique_included */

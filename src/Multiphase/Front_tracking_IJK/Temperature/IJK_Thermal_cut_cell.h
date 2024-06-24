@@ -110,8 +110,8 @@ protected :
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 
-  void calculer_dT_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity);
-  void compute_temperature_convection_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity);
+  void calculer_dT_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity);
+  void compute_temperature_convection_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity);
   void add_temperature_diffusion() override;
   void compute_diffusion_increment() override;
   void correct_temperature_for_eulerian_fluxes() override { ; };

@@ -18,6 +18,7 @@
 
 #include <IJK_Field.h>
 #include <IJK_Field_vector.h>
+#include <Champ_diphasique.h>
 #include <TRUSTTab.h>
 #include <Multigrille_Adrien.h>
 #include <Probleme_base.h>
@@ -90,6 +91,11 @@ void allocate_velocity(IJK_Field_vector<T, N>& v, const IJK_Splitting& s, int gh
   v[1].get_shear_BC_helpler().set_dU_(0.);
   v[2].get_shear_BC_helpler().set_dU_(0.);
 }
+
+void allocate_velocity(Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_persistant(Cut_cell_FT_Disc& cut_cell_disc, Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_ephemere(Cut_cell_FT_Disc& cut_cell_disc,   Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_paresseux(Cut_cell_FT_Disc& cut_cell_disc,  Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
 
 template<class T, int N>
 void allocate_cell_vector(IJK_Field_vector<T, N>& v, const IJK_Splitting& s, int ghost)

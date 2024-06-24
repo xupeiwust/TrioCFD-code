@@ -110,7 +110,7 @@ public :
                                    const int first_step_interface_smoothing = 0);
   void calculer_vitesse_de_deformation(int compo,
                                        const DoubleTab& bounding_box_bulles,
-                                       const FixedVector<Cut_field_double, 3>& cut_field_velocity,
+                                       const Cut_field_vector3_double& cut_field_velocity,
                                        const DoubleTab& vitesses_translation_bulles,
                                        const DoubleTab& mean_bubble_rotation_vector,
                                        const DoubleTab& positions_bulles);
@@ -172,9 +172,9 @@ public :
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
 
-  void calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_double, 3>& remeshing_velocity);
-  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_double, 3>& total_velocity);
-  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_double, 3>& velocity);
+  void calcul_vitesse_remaillage(double timestep, Cut_field_vector3_double& remeshing_velocity);
+  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity);
+  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector3_double& velocity);
   void calcul_surface_efficace_face_initial();
   void calcul_surface_efficace_interface_initial();
 
@@ -1263,7 +1263,6 @@ protected:
   ArrOfDouble var_volume_remaillage_;   // Variation de volume cible pour l'operation de remaillage
   ArrOfDouble var_volume_correction_globale_;  // Variation de volume cible pour la correction globale de volume
 
-  FixedVector<Cut_field_double, 3> cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
   IJK_Field_vector3_double deformation_velocity_;
 
   // Algorithmes de parcours de l'interface (intersections Eulerien/Lagrangien)

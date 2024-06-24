@@ -55,7 +55,7 @@ public:
     DoubleTabFT_cut_cell_scalar& surface_efficace_interface_initial);
 
   static void calcul_vitesse_interface(
-    const FixedVector<Cut_field_double, 3>& velocity,
+    const Cut_field_vector3_double& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const IJK_Field_vector3_double& barycentre_phase1_ns_old,
@@ -65,7 +65,7 @@ public:
 
   static void calcul_surface_interface_efficace(
     double timestep,
-    const FixedVector<Cut_field_double, 3>& velocity,
+    const Cut_field_vector3_double& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface,
@@ -87,7 +87,7 @@ public:
   static void calcul_surface_face_efficace(
     int verbosite_surface_efficace_face,
     double timestep,
-    const FixedVector<Cut_field_double, 3>& velocity,
+    const Cut_field_vector3_double& velocity,
     int& iteration_solver_surface_efficace_face,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
@@ -101,7 +101,7 @@ public:
   static void imprimer_informations_surface_efficace_interface(
     int verbosite_surface_efficace_interface,
     double timestep,
-    const FixedVector<Cut_field_double, 3>& velocity,
+    const Cut_field_vector3_double& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const DoubleTabFT_cut_cell_scalar& surface_efficace_interface,
@@ -113,7 +113,7 @@ public:
     int verbosite_surface_efficace_face,
     int iteration_solver_surface_efficace_face,
     double timestep,
-    const FixedVector<Cut_field_double, 3>& velocity,
+    const Cut_field_vector3_double& velocity,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
@@ -124,13 +124,13 @@ public:
                                         const IJK_Field_double& indicatrice_apres_remaillage,
                                         const IJK_Field_double& indicatrice_fin_pas_de_temps,
                                         DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_remaillage_face,
-                                        FixedVector<Cut_field_double, 3>& remeshing_velocity);
+                                        Cut_field_vector3_double& remeshing_velocity);
 
   static void calcul_delta_volume_theorique_bilan(int compo, const DoubleTab& bounding_box_bulles, double timestep,
                                                   const IJK_Field_double& indicatrice_avant_deformation,
                                                   const IJK_Field_double& indicatrice_apres_deformation,
                                                   const IJK_Field_vector3_double& indicatrice_surfacique_efficace_deformation_face,
-                                                  const FixedVector<Cut_field_double, 3>& deformation_velocity,
+                                                  const Cut_field_vector3_double& deformation_velocity,
                                                   IJK_Field_double& delta_volume_theorique_bilan);
 };
 

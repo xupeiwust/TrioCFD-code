@@ -490,7 +490,7 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
     {
       if (expression_T_init_ != "??")
         {
-          compute_temperature_init();
+          IJK_Thermal_base::compute_temperature_init();
         }
       else
         {

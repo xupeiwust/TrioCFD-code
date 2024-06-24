@@ -59,7 +59,7 @@ void Cut_cell_convection_auxiliaire::set_param(Param& param)
   Cut_cell_schema_auxiliaire::set_param(param);
 }
 
-double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -122,7 +122,7 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
     }
 }
 
-double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -421,7 +421,7 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(dou
     }
 }
 
-void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
+void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns, const Cut_field_vector3_double& cut_field_total_velocity)
 {
   const bool next_time = false;
 

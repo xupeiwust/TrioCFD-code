@@ -62,17 +62,20 @@ public :
   {
     return &cut_cell_disc_;
   }
-  const FixedVector<Cut_field_double, 3>& get_cut_field_velocity() const
+  const Cut_field_vector3_double& get_cut_field_velocity() const
   {
-    return cut_field_velocity_;
+    const Cut_field_vector3_double& cut_field_velocity = static_cast<const Cut_field_vector3_double&>(velocity_);
+    return cut_field_velocity;
   }
-  const FixedVector<Cut_field_double, 3>& get_cut_field_remeshing_velocity() const
+  const Cut_field_vector3_double& get_cut_field_remeshing_velocity() const
   {
-    return cut_field_remeshing_velocity_;
+    const Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<const Cut_field_vector3_double&>(remeshing_velocity_);
+    return cut_field_remeshing_velocity;
   }
-  const FixedVector<Cut_field_double, 3>& get_cut_field_total_velocity() const
+  const Cut_field_vector3_double& get_cut_field_total_velocity() const
   {
-    return cut_field_total_velocity_;
+    const Cut_field_vector3_double& cut_field_total_velocity = static_cast<const Cut_field_vector3_double&>(total_velocity_);
+    return cut_field_total_velocity;
   }
 
 protected :
@@ -82,9 +85,6 @@ protected :
   IJK_Field_vector3_double remeshing_velocity_;
   IJK_Field_vector3_double total_velocity_;
 
-  FixedVector<Cut_field_double, 3> cut_field_velocity_;
-  FixedVector<Cut_field_double, 3> cut_field_remeshing_velocity_;
-  FixedVector<Cut_field_double, 3> cut_field_total_velocity_;
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 };
 

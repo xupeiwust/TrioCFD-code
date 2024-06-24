@@ -132,19 +132,20 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   // Cut-cell variables
   ref_ijk_ft_cut_cell_ = ref_cast(IJK_FT_cut_cell, ref_ijk_ft_.valeur());
 
-  int nalloc = 0;
+  int nalloc = IJK_Thermal_base::initialize(splitting, idx);
+  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
+  nalloc += 2;
 
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
-  cut_field_temperature.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
 
   Cut_field_double& cut_field_RK3_F_temperature          = static_cast<Cut_field_double&>(*RK3_F_temperature_);
-  cut_field_RK3_F_temperature.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_field_RK3_F_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 0); // Overrides the allocate in IJK_Thermal_base::initialize
 
   cellule_rk_restreint_.allocate(splitting, IJK_Splitting::ELEM, 2);
 
   Cut_field_double& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_double&>(*temperature_debut_sous_pas_);
-  temperature_debut_sous_pas_->allocate(splitting, IJK_Splitting::ELEM, 2);
-  cut_field_temperature_debut_sous_pas.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_field_temperature_debut_sous_pas.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
 
   if (postraiter_champs_intermediaires_)
     {
@@ -153,14 +154,10 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
       Cut_field_double& cut_field_temperature_post_convection   = static_cast<Cut_field_double&>(*temperature_post_convection_);
       Cut_field_double& cut_field_temperature_post_diff_regular = static_cast<Cut_field_double&>(*temperature_post_diff_regular_);
 
-      temperature_post_dying_->allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_regular_->allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_convection_->allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_diff_regular_->allocate(splitting, IJK_Splitting::ELEM, 2);
-      cut_field_temperature_post_dying.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
-      cut_field_temperature_post_regular.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
-      cut_field_temperature_post_convection.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
-      cut_field_temperature_post_diff_regular.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+      cut_field_temperature_post_dying.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_convection.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_diff_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
     }
 
   cut_cell_flux_diffusion_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
@@ -195,22 +192,17 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   diffusive_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
   Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
-  cut_field_div_coeff_grad_T_volume.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
   Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
-  cut_field_d_temperature.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
   if (etalement_diffusion_ == ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT || etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE)
     {
       Cut_field_double& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_temp_);
-      div_coeff_grad_T_volume_temp_->allocate(splitting, IJK_Splitting::ELEM, 2);
-      cut_field_div_coeff_grad_T_volume_temp.associer_paresseux(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+      cut_field_div_coeff_grad_T_volume_temp.allocate_paresseux(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
       nalloc += 1;
     }
-
-  nalloc = IJK_Thermal_base::initialize(splitting, idx);
-  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
-  nalloc += 2;
 
   temperature_diffusion_op_.typer("OpDiffIJKScalar_cut_cell_double");
   temperature_diffusion_op_.initialize(splitting);
@@ -220,6 +212,11 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
 
   temperature_convection_op_.typer("OpConvQuickIJKScalar_cut_cell_double");
   temperature_convection_op_.initialize(splitting);
+
+  if (expression_T_init_ != "??")
+    {
+      compute_temperature_init();
+    }
 
   // Already allocated if rho_cp_post
   if (!rho_cp_post_)
@@ -330,7 +327,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   update_thermal_properties();
 
-  const FixedVector<Cut_field_double, 3>& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
+  const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
   //calculer_dT_cut_cell(cut_field_total_velocity); // Note : ne fait rien
 
   const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
@@ -666,7 +663,7 @@ void cut_cell_reinit_streamObj(std::ostringstream& streamObj, const double& para
 }
 
 
-void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
+void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity)
 {
   // Note : Cette fonction regroupe tous les elements de calculer_dT qui ne sont pas utilisees en cut cell
 
@@ -751,7 +748,7 @@ void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const FixedVector<Cut_field_doub
   return;
 }
 
-void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
+void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity)
 {
   const Cut_field_double& cut_field_temperature = static_cast<const Cut_field_double&>(*temperature_);
   Cut_field_double& cut_field_d_temperature     = static_cast<Cut_field_double&>(*d_temperature_);

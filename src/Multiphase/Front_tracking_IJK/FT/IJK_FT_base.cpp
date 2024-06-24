@@ -2885,10 +2885,10 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
         {
           // if (rk_step==-1 || rk_step==0) // revient a rk_step>0 // euler ou premier pdt de rk3
           terme_diffusion_[dir] = calculer_v_moyen(d_velocity_[dir])/volume_cell_uniforme - terme_convection_[dir];
-          terme_diffusion_mass_solver_[dir] = d_velocity_[dir];
-          // terme_diffusion_mass_solver_ contient la diffusion et la convection
           if (test_etapes_et_bilan_)
             {
+              terme_diffusion_mass_solver_[dir] = d_velocity_[dir];
+              // terme_diffusion_mass_solver_ contient la diffusion et la convection
               if (!disable_diphasique_)
                 {
                   for (int k=0; k<terme_diffusion_mass_solver_[dir].nk(); k++)

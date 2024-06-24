@@ -621,4 +621,8 @@ void Cut_field_double::set_to_sum(const Cut_field_double& data_1, const Cut_fiel
     }
 }
 
+Cut_field_vector3_double::Cut_field_vector3_double()
+{
+}
+
 #endif
