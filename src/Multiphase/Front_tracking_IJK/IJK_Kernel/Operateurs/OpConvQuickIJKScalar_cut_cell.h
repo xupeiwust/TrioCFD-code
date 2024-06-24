@@ -26,9 +26,9 @@ public:
   OpConvQuickIJKScalar_cut_cell_double() : Operateur_IJK_elem_conv_base_double() { };
 
   void initialise_cut_cell(Cut_cell_conv_scheme cut_cell_conv_scheme,
-                           const FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face,
+                           const FixedVector<IJK_Field_vector3_double, 2>& temperature_face,
                            bool ignore_small_cells,
-                           FixedVector<Cut_cell_scalar, 3>& cut_cell_flux,
+                           FixedVector<Cut_cell_double, 3>& cut_cell_flux,
                            IJK_Field_int& treatment_count,
                            int& new_treatment)
   {
@@ -40,16 +40,6 @@ public:
     new_treatment_ = &new_treatment;
   }
 
-  void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
-                        const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
-                        IJK_Field_double& resu, int k_layer, bool add) override
-  {
-    Operateur_IJK_elem_base_double::Operator_IJK_div(flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
-
-    FixedVector<Cut_cell_scalar, 3>& cut_cell_flux = *get_cut_cell_flux();
-    compute_cut_cell_divergence(cut_cell_flux, flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
-  }
-
   const Cut_cell_FT_Disc* get_cut_cell_disc()
   {
     assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
@@ -57,79 +47,26 @@ public:
     return &(*cut_cell_flux_)[0].get_cut_cell_disc();
   }
 
-  FixedVector<Cut_cell_scalar, 3>* get_cut_cell_flux()
+  FixedVector<Cut_cell_double, 3>* get_cut_cell_flux()
   {
     return cut_cell_flux_;
   }
 
-  inline void compute_cut_cell_divergence(const FixedVector<Cut_cell_scalar, 3>& cut_cell_flux,
-                                          const IJK_Field_local_double& flux_x,
-                                          const IJK_Field_local_double& flux_y,
-                                          const IJK_Field_local_double& flux_zmin,
-                                          const IJK_Field_local_double& flux_zmax,
-                                          IJK_Field_double& resu, int k_layer, bool add)
+  void compute_cut_cell_divergence(const FixedVector<Cut_cell_double, 3>& cut_cell_flux,
+                                   const IJK_Field_local_double& flux_x,
+                                   const IJK_Field_local_double& flux_y,
+                                   const IJK_Field_local_double& flux_zmin,
+                                   const IJK_Field_local_double& flux_zmax,
+                                   IJK_Field_double& resu, int k_layer, bool add);
+
+  void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
+                        const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
+                        IJK_Field_double& resu, int k_layer, bool add) override
   {
-    assert(&(cut_cell_flux[0].get_cut_cell_disc()) == &(cut_cell_flux[1].get_cut_cell_disc()));
-    assert(&(cut_cell_flux[0].get_cut_cell_disc()) == &(cut_cell_flux[2].get_cut_cell_disc()));
-    const Cut_cell_FT_Disc& cut_cell_disc = cut_cell_flux[0].get_cut_cell_disc();
+    Operateur_IJK_elem_base_double::Operator_IJK_div(flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
 
-    Cut_field_scalar& cut_field_resu = static_cast<Cut_field_scalar&>(resu);
-
-    for (int index = cut_cell_disc.get_k_value_index(k_layer); index < cut_cell_disc.get_k_value_index(k_layer+1); index++)
-      {
-        int n = cut_cell_disc.get_n_from_k_index(index);
-        Int3 ijk = cut_cell_disc.get_ijk(n);
-
-        int i = ijk[0];
-        int j = ijk[1];
-        int k = ijk[2];
-
-        if (!cut_cell_disc.within_ghost(i, j, k, 0, 0))
-          continue;
-
-        if (flux_determined_by_wall_<DIRECTION::Z>(k))
-          {
-            Cerr << "Le cas d'une cellule diphasique avec flux de paroi n'est pas traite" << finl;
-            Process::exit();
-          }
-        else
-          {
-            for (int phase = 0; phase < 2; phase++)
-              {
-                const DoubleTabFT_cut_cell& diph_flux_x = (phase == 0) ? cut_cell_flux[0].diph_v_ : cut_cell_flux[0].diph_l_;
-                const DoubleTabFT_cut_cell& diph_flux_y = (phase == 0) ? cut_cell_flux[1].diph_v_ : cut_cell_flux[1].diph_l_;
-                const DoubleTabFT_cut_cell& diph_flux_z = (phase == 0) ? cut_cell_flux[2].diph_v_ : cut_cell_flux[2].diph_l_;
-                DoubleTabFT_cut_cell& diph_resu = (phase == 0) ? cut_field_resu.diph_v_ : cut_field_resu.diph_l_;
-
-                int n_ip1 = cut_cell_disc.get_n(i+1,j,k);
-                int n_jp1 = cut_cell_disc.get_n(i,j+1,k);
-                int n_kp1 = cut_cell_disc.get_n(i,j,k+1); // ???k
-
-                double indicatrice_ip1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i+1,j,k) : cut_cell_disc.get_interfaces().I(i+1,j,k);
-                double indicatrice_jp1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i,j+1,k) : cut_cell_disc.get_interfaces().I(i,j+1,k);
-                double indicatrice_kp1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i,j,k+1) : cut_cell_disc.get_interfaces().I(i,j,k+1);
-
-                double fx_centre = diph_flux_x(n);
-                double fy_centre = diph_flux_y(n);
-                double fz_centre = diph_flux_z(n);
-
-                double fx_right  = (n_ip1 < 0) ? indicatrice_ip1*flux_x(i+1,j,0)  : diph_flux_x(n_ip1);
-                double fy_right  = (n_jp1 < 0) ? indicatrice_jp1*flux_y(i,j+1,0)  : diph_flux_y(n_jp1);
-                double fz_right  = (n_kp1 < 0) ? indicatrice_kp1*flux_zmax(i,j,0) : diph_flux_z(n_kp1);
-
-                double r = 0;
-                r += fx_centre - fx_right;
-                r += fy_centre - fy_right;
-                r += fz_centre - fz_right;
-
-                if(add)
-                  {
-                    r += diph_resu(n);
-                  }
-                diph_resu(n) = r;
-              }
-          }
-      }
+    FixedVector<Cut_cell_double, 3>& cut_cell_flux = *get_cut_cell_flux();
+    compute_cut_cell_divergence(cut_cell_flux, flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
   }
 
 protected:
@@ -174,14 +111,15 @@ private:
   bool ignore_small_cells_;
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
 
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 2> *temperature_face_;
-  FixedVector<Cut_cell_scalar, 3> *cut_cell_flux_;
+  const FixedVector<IJK_Field_vector3_double, 2> *temperature_face_;
+  FixedVector<Cut_cell_double, 3> *cut_cell_flux_;
 
   IJK_Field_int *treatment_count_;
   int *new_treatment_;
 
 };
 
+#include <IJK_Field_vector.h>
 #include <OpConvQuickIJKScalar_cut_cell.tpp>
 
 #endif /* OpConvQuickScalarIJK_cut_cell_included */

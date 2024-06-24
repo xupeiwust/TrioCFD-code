@@ -37,7 +37,7 @@ class OpGradCentre2IJKScalar_double : public OpConvCentre2IJKScalar_double
   Declare_instanciable_sans_constructeur( OpGradCentre2IJKScalar_double ) ;
 public :
   OpGradCentre2IJKScalar_double() :  OpConvCentre2IJKScalar_double() { is_grad_ = true; };
-  void calculer_grad(const IJK_Field_double& field, FixedVector<IJK_Field_double, 3>& result);
+  void calculer_grad(const IJK_Field_double& field, IJK_Field_vector3_double& result);
   void calculer_grad_x(const IJK_Field_double& field, IJK_Field_double& result);
   void calculer_grad_y(const IJK_Field_double& field, IJK_Field_double& result);
   void calculer_grad_z(const IJK_Field_double& field, IJK_Field_double& result);
@@ -55,7 +55,7 @@ public:
                           const IJK_Field_double& vx,
                           const IJK_Field_double& vy,
                           const IJK_Field_double& vz,
-                          FixedVector<IJK_Field_double, 3>& result);
+                          IJK_Field_vector3_double& result);
   void fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir) override;
   void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) override;
 };

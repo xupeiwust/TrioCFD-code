@@ -23,6 +23,7 @@
 #define IJK_Thermal_included
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <TRUST_Deriv.h>
 #include <IJK_Ghost_Fluid_Fields.h>
 
@@ -64,7 +65,7 @@ public :
   inline const IJK_Field_double& get_temperature_ana() const { return valeur().get_temperature_ana(); };
   inline const IJK_Field_double& get_ecart_t_ana() const { return valeur().get_ecart_t_ana(); }
   inline const IJK_Field_double& get_ecart_t_ana_rel() const { return valeur().get_ecart_t_ana_rel(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_grad_T() const { return valeur().get_grad_T(); }
+  inline const IJK_Field_vector3_double& get_grad_T() const { return valeur().get_grad_T(); }
   inline const IJK_Field_double& get_div_lambda_grad_T_volume() const { return valeur().get_div_lambda_grad_T_volume(); }
   inline const IJK_Field_double& get_div_lambda_grad_T() const { return valeur().get_div_lambda_grad_T(); }
   inline const IJK_Field_double& get_u_T_convective_volume() const { return valeur().get_u_T_convective_volume(); }
@@ -88,33 +89,33 @@ public :
   inline const IJK_Field_double& get_interfacial_area_ns() const { return valeur().get_interfacial_area_ns(); }
   inline const IJK_Field_double& get_grad_T_interface_ns() const { return valeur().get_grad_T_interface_ns(); }
   inline const IJK_Field_double& get_eulerian_rising_velocities() const {return valeur().get_eulerian_rising_velocities(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_bary() const { return valeur().get_bary(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem() { return valeur().get_gradient_temperature_elem(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_gradient_temperature_elem_smooth() { return valeur().get_gradient_temperature_elem_smooth(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_tangential_gradient_temperature_elem_smooth() { return valeur().get_tangential_gradient_temperature_elem_smooth(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns() const { return valeur().get_normal_vector_ns(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ns_normed() const { return valeur().get_normal_vector_ns_normed();}
-  inline const FixedVector<IJK_Field_double, 3>& get_normal_vector_ft() const { return valeur().get_normal_vector_ft(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_hessian_diag_temperature_elem() const { return valeur().get_hessian_diag_temperature_elem(); }
-  inline const FixedVector<IJK_Field_double, 3>& get_hessian_cross_temperature_elem() const { return valeur().get_hessian_cross_temperature_elem(); }
-  inline const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_diffusive() const { return valeur().get_cell_faces_corrected_diffusive(); }
-  inline const FixedVector<IJK_Field_double,3>& get_cell_faces_corrected_convective() const { return valeur().get_cell_faces_corrected_convective(); }
-  inline const FixedVector<IJK_Field_int,3>& get_cell_faces_corrected_bool() const { return valeur().get_cell_faces_corrected_bool(); }
-  inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_bool() const { return valeur().get_cell_faces_neighbours_corrected_diag_bool(); }
-  inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_all_bool() const { return valeur().get_cell_faces_neighbours_corrected_all_bool(); }
-  inline const FixedVector<IJK_Field_int,3>& get_cell_faces_neighbours_corrected_min_max_bool() const { return valeur().get_cell_faces_neighbours_corrected_min_max_bool(); }
-  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_velocity_temperature() const { return valeur().get_cell_faces_neighbours_corrected_velocity_temperature(); };
-  inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_convective() const { return valeur().get_cell_faces_neighbours_corrected_convective(); }
-  inline const FixedVector<IJK_Field_double,3>&  get_cell_faces_neighbours_corrected_convective_frame_of_ref() const { return valeur().get_cell_faces_neighbours_corrected_convective_frame_of_ref(); };
-  inline const FixedVector<IJK_Field_double,3>& get_cell_faces_neighbours_corrected_diffusive() const { return valeur().get_cell_faces_neighbours_corrected_diffusive(); }
-  inline const FixedVector<IJK_Field_double,3>& get_neighbours_faces_weighting_colinearity() const { return valeur().get_neighbours_faces_weighting_colinearity(); }
+  inline const IJK_Field_vector3_double& get_bary() const { return valeur().get_bary(); }
+  inline const IJK_Field_vector3_double& get_gradient_temperature_elem() { return valeur().get_gradient_temperature_elem(); }
+  inline const IJK_Field_vector3_double& get_gradient_temperature_elem_smooth() { return valeur().get_gradient_temperature_elem_smooth(); }
+  inline const IJK_Field_vector3_double& get_tangential_gradient_temperature_elem_smooth() { return valeur().get_tangential_gradient_temperature_elem_smooth(); }
+  inline const IJK_Field_vector3_double& get_normal_vector_ns() const { return valeur().get_normal_vector_ns(); }
+  inline const IJK_Field_vector3_double& get_normal_vector_ns_normed() const { return valeur().get_normal_vector_ns_normed();}
+  inline const IJK_Field_vector3_double& get_normal_vector_ft() const { return valeur().get_normal_vector_ft(); }
+  inline const IJK_Field_vector3_double& get_hessian_diag_temperature_elem() const { return valeur().get_hessian_diag_temperature_elem(); }
+  inline const IJK_Field_vector3_double& get_hessian_cross_temperature_elem() const { return valeur().get_hessian_cross_temperature_elem(); }
+  inline const IJK_Field_vector3_double& get_cell_faces_corrected_diffusive() const { return valeur().get_cell_faces_corrected_diffusive(); }
+  inline const IJK_Field_vector3_double& get_cell_faces_corrected_convective() const { return valeur().get_cell_faces_corrected_convective(); }
+  inline const IJK_Field_vector3_int& get_cell_faces_corrected_bool() const { return valeur().get_cell_faces_corrected_bool(); }
+  inline const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_bool() const { return valeur().get_cell_faces_neighbours_corrected_diag_bool(); }
+  inline const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_all_bool() const { return valeur().get_cell_faces_neighbours_corrected_all_bool(); }
+  inline const IJK_Field_vector3_int& get_cell_faces_neighbours_corrected_min_max_bool() const { return valeur().get_cell_faces_neighbours_corrected_min_max_bool(); }
+  inline const IJK_Field_vector3_double&  get_cell_faces_neighbours_corrected_velocity_temperature() const { return valeur().get_cell_faces_neighbours_corrected_velocity_temperature(); };
+  inline const IJK_Field_vector3_double& get_cell_faces_neighbours_corrected_convective() const { return valeur().get_cell_faces_neighbours_corrected_convective(); }
+  inline const IJK_Field_vector3_double&  get_cell_faces_neighbours_corrected_convective_frame_of_ref() const { return valeur().get_cell_faces_neighbours_corrected_convective_frame_of_ref(); };
+  inline const IJK_Field_vector3_double& get_cell_faces_neighbours_corrected_diffusive() const { return valeur().get_cell_faces_neighbours_corrected_diffusive(); }
+  inline const IJK_Field_vector3_double& get_neighbours_faces_weighting_colinearity() const { return valeur().get_neighbours_faces_weighting_colinearity(); }
   inline const IJK_Field_int& get_cell_neighbours_corrected_trimmed() const { return valeur().get_cell_neighbours_corrected_trimmed(); }
   inline const IJK_Field_double& get_probe_collision_debug_field() const { return valeur().get_probe_collision_debug_field(); };
-  inline const FixedVector<IJK_Field_double,3>& get_rho_cp_u_T_convective_fluxes() const { return valeur().get_rho_cp_u_T_convective_fluxes(); }
-  inline const FixedVector<IJK_Field_double,3>& get_div_coeff_grad_T_diffusive_fluxes() const { return valeur().get_div_coeff_grad_T_diffusive_fluxes(); }
-  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_dispatched() const { return valeur().get_interfacial_heat_flux_dispatched(); }
-  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_contrib() const { return valeur().get_interfacial_heat_flux_contrib(); }
-  inline const FixedVector<IJK_Field_double,3>& get_interfacial_heat_flux_current() const { return valeur().get_interfacial_heat_flux_current(); }
+  inline const IJK_Field_vector3_double& get_rho_cp_u_T_convective_fluxes() const { return valeur().get_rho_cp_u_T_convective_fluxes(); }
+  inline const IJK_Field_vector3_double& get_div_coeff_grad_T_diffusive_fluxes() const { return valeur().get_div_coeff_grad_T_diffusive_fluxes(); }
+  inline const IJK_Field_vector3_double& get_interfacial_heat_flux_dispatched() const { return valeur().get_interfacial_heat_flux_dispatched(); }
+  inline const IJK_Field_vector3_double& get_interfacial_heat_flux_contrib() const { return valeur().get_interfacial_heat_flux_contrib(); }
+  inline const IJK_Field_vector3_double& get_interfacial_heat_flux_current() const { return valeur().get_interfacial_heat_flux_current(); }
 
   inline const double& get_E0() const { return valeur().get_E0(); };
 

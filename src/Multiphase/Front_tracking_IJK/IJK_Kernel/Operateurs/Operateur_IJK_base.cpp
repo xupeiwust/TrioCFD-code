@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Operateur_IJK_base.h>
+#include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
 // Definition of the fluxes
 //
@@ -375,7 +376,7 @@ void Operateur_IJK_elem_base_double::Operator_IJK_div(const IJK_Field_local_doub
 
 }
 
-void Operateur_IJK_elem_base_double::compute_grad(FixedVector<IJK_Field_double, 3>& dx)
+void Operateur_IJK_elem_base_double::compute_grad(IJK_Field_vector3_double& dx)
 {
   IJK_Field_local_double storage;
   storage.allocate(dx[0].ni()+1, dx[0].nj()+1, 4, 0);
@@ -451,17 +452,17 @@ void Operateur_IJK_elem_base_double::compute_grad_z(IJK_Field_double& dx)
     }
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_x_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_x_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_x_y_(flux, resu[0], k, 0);
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_y_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_y_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_x_y_(flux, resu[1], k, 1);
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_z_(flux_min, flux_max, resu[2], k);
 }

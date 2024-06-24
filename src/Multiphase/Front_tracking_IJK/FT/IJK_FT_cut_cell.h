@@ -23,6 +23,7 @@
 #define IJK_FT_cut_cell_included
 
 #include <IJK_FT_base.h>
+#include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_Post.h>
 #include <Champ_diphasique.h>
@@ -61,15 +62,15 @@ public :
   {
     return &cut_cell_disc_;
   }
-  const FixedVector<Cut_field_scalar, 3>& get_cut_field_velocity() const
+  const FixedVector<Cut_field_double, 3>& get_cut_field_velocity() const
   {
     return cut_field_velocity_;
   }
-  const FixedVector<Cut_field_scalar, 3>& get_cut_field_remeshing_velocity() const
+  const FixedVector<Cut_field_double, 3>& get_cut_field_remeshing_velocity() const
   {
     return cut_field_remeshing_velocity_;
   }
-  const FixedVector<Cut_field_scalar, 3>& get_cut_field_total_velocity() const
+  const FixedVector<Cut_field_double, 3>& get_cut_field_total_velocity() const
   {
     return cut_field_total_velocity_;
   }
@@ -78,12 +79,12 @@ protected :
   friend class IJK_FT_Post;
   Cut_cell_FT_Disc cut_cell_disc_;
 
-  FixedVector<IJK_Field_double, 3> remeshing_velocity_;
-  FixedVector<IJK_Field_double, 3> total_velocity_;
+  IJK_Field_vector3_double remeshing_velocity_;
+  IJK_Field_vector3_double total_velocity_;
 
-  FixedVector<Cut_field_scalar, 3> cut_field_velocity_;
-  FixedVector<Cut_field_scalar, 3> cut_field_remeshing_velocity_;
-  FixedVector<Cut_field_scalar, 3> cut_field_total_velocity_;
+  FixedVector<Cut_field_double, 3> cut_field_velocity_;
+  FixedVector<Cut_field_double, 3> cut_field_remeshing_velocity_;
+  FixedVector<Cut_field_double, 3> cut_field_total_velocity_;
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 };
 

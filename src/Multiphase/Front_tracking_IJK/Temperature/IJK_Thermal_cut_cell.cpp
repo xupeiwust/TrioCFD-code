@@ -40,17 +40,17 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell()
   cut_cell_conv_scheme_.face_interp = CUT_CELL_CONV_FACE_INTERPOLATION::AUCUNE;
 
 
-  temperature_ = std::make_shared<Cut_field_scalar>();
-  RK3_F_temperature_ = std::make_shared<Cut_field_scalar>();
-  div_coeff_grad_T_volume_ = std::make_shared<Cut_field_scalar>();
-  d_temperature_ = std::make_shared<Cut_field_scalar>();
+  temperature_ = std::make_shared<Cut_field_double>();
+  RK3_F_temperature_ = std::make_shared<Cut_field_double>();
+  div_coeff_grad_T_volume_ = std::make_shared<Cut_field_double>();
+  d_temperature_ = std::make_shared<Cut_field_double>();
 
-  div_coeff_grad_T_volume_temp_ = std::make_shared<Cut_field_scalar>();
-  temperature_debut_sous_pas_ = std::make_shared<Cut_field_scalar>();
-  temperature_post_dying_ = std::make_shared<Cut_field_scalar>();
-  temperature_post_regular_ = std::make_shared<Cut_field_scalar>();
-  temperature_post_convection_ = std::make_shared<Cut_field_scalar>();
-  temperature_post_diff_regular_ = std::make_shared<Cut_field_scalar>();
+  div_coeff_grad_T_volume_temp_ = std::make_shared<Cut_field_double>();
+  temperature_debut_sous_pas_ = std::make_shared<Cut_field_double>();
+  temperature_post_dying_ = std::make_shared<Cut_field_double>();
+  temperature_post_regular_ = std::make_shared<Cut_field_double>();
+  temperature_post_convection_ = std::make_shared<Cut_field_double>();
+  temperature_post_diff_regular_ = std::make_shared<Cut_field_double>();
 }
 
 Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
@@ -134,24 +134,24 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
 
   int nalloc = 0;
 
-  Cut_field_scalar& cut_field_temperature                = static_cast<Cut_field_scalar&>(*temperature_);
+  Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
   cut_field_temperature.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
-  Cut_field_scalar& cut_field_RK3_F_temperature          = static_cast<Cut_field_scalar&>(*RK3_F_temperature_);
+  Cut_field_double& cut_field_RK3_F_temperature          = static_cast<Cut_field_double&>(*RK3_F_temperature_);
   cut_field_RK3_F_temperature.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
   cellule_rk_restreint_.allocate(splitting, IJK_Splitting::ELEM, 2);
 
-  Cut_field_scalar& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_scalar&>(*temperature_debut_sous_pas_);
+  Cut_field_double& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_double&>(*temperature_debut_sous_pas_);
   temperature_debut_sous_pas_->allocate(splitting, IJK_Splitting::ELEM, 2);
   cut_field_temperature_debut_sous_pas.associer_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
   if (postraiter_champs_intermediaires_)
     {
-      Cut_field_scalar& cut_field_temperature_post_dying        = static_cast<Cut_field_scalar&>(*temperature_post_dying_);
-      Cut_field_scalar& cut_field_temperature_post_regular      = static_cast<Cut_field_scalar&>(*temperature_post_regular_);
-      Cut_field_scalar& cut_field_temperature_post_convection   = static_cast<Cut_field_scalar&>(*temperature_post_convection_);
-      Cut_field_scalar& cut_field_temperature_post_diff_regular = static_cast<Cut_field_scalar&>(*temperature_post_diff_regular_);
+      Cut_field_double& cut_field_temperature_post_dying        = static_cast<Cut_field_double&>(*temperature_post_dying_);
+      Cut_field_double& cut_field_temperature_post_regular      = static_cast<Cut_field_double&>(*temperature_post_regular_);
+      Cut_field_double& cut_field_temperature_post_convection   = static_cast<Cut_field_double&>(*temperature_post_convection_);
+      Cut_field_double& cut_field_temperature_post_diff_regular = static_cast<Cut_field_double&>(*temperature_post_diff_regular_);
 
       temperature_post_dying_->allocate(splitting, IJK_Splitting::ELEM, 2);
       temperature_post_regular_->allocate(splitting, IJK_Splitting::ELEM, 2);
@@ -170,13 +170,10 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   cut_cell_flux_convection_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   cut_cell_flux_convection_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
-  for (int d = 0; d < 3; d++)
-    {
-      temperature_face_[0][d].allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_face_ft_[0][d].allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
-      temperature_face_[1][d].allocate(splitting, IJK_Splitting::ELEM, 2);
-      temperature_face_ft_[1][d].allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
-    }
+  allocate_cell_vector(temperature_face_[0], splitting, 2);
+  allocate_cell_vector(temperature_face_ft_[0], ref_ijk_ft_cut_cell_->get_splitting_ft(), 4);
+  allocate_cell_vector(temperature_face_[1], splitting, 2);
+  allocate_cell_vector(temperature_face_ft_[1], ref_ijk_ft_cut_cell_->get_splitting_ft(), 4);
   nalloc += 6;
 
   temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
@@ -197,15 +194,15 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   convective_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   diffusive_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
-  Cut_field_scalar& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_scalar&>(*div_coeff_grad_T_volume_);
+  Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
   cut_field_div_coeff_grad_T_volume.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
-  Cut_field_scalar& cut_field_d_temperature           = static_cast<Cut_field_scalar&>(*d_temperature_);
+  Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
   cut_field_d_temperature.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
   if (etalement_diffusion_ == ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT || etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE)
     {
-      Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_scalar&>(*div_coeff_grad_T_volume_temp_);
+      Cut_field_double& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_temp_);
       div_coeff_grad_T_volume_temp_->allocate(splitting, IJK_Splitting::ELEM, 2);
       cut_field_div_coeff_grad_T_volume_temp.associer_paresseux(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
       nalloc += 1;
@@ -272,7 +269,7 @@ void IJK_Thermal_cut_cell::update_thermal_properties()
 
 void IJK_Thermal_cut_cell::compute_temperature_init()
 {
-  Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+  Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
 
   if (cut_field_temperature.get_cut_cell_disc().get_n_tot() == 0)
     {
@@ -287,7 +284,7 @@ void IJK_Thermal_cut_cell::compute_temperature_init()
 
 void IJK_Thermal_cut_cell::recompute_temperature_init()
 {
-  Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+  Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
 
   if (cut_field_temperature.get_cut_cell_disc().get_n_tot() == 0)
     {
@@ -323,17 +320,17 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
 
-  Cut_field_scalar& cut_field_temperature                   = static_cast<Cut_field_scalar&>(*temperature_);
-  Cut_field_scalar& cut_field_temperature_post_regular      = static_cast<Cut_field_scalar&>(*temperature_post_regular_);
-  Cut_field_scalar& cut_field_temperature_post_dying        = static_cast<Cut_field_scalar&>(*temperature_post_dying_);
-  Cut_field_scalar& cut_field_temperature_post_convection   = static_cast<Cut_field_scalar&>(*temperature_post_convection_);
-  Cut_field_scalar& cut_field_temperature_post_diff_regular = static_cast<Cut_field_scalar&>(*temperature_post_diff_regular_);
-  Cut_field_scalar& cut_field_d_temperature                 = static_cast<Cut_field_scalar&>(*d_temperature_);
+  Cut_field_double& cut_field_temperature                   = static_cast<Cut_field_double&>(*temperature_);
+  Cut_field_double& cut_field_temperature_post_regular      = static_cast<Cut_field_double&>(*temperature_post_regular_);
+  Cut_field_double& cut_field_temperature_post_dying        = static_cast<Cut_field_double&>(*temperature_post_dying_);
+  Cut_field_double& cut_field_temperature_post_convection   = static_cast<Cut_field_double&>(*temperature_post_convection_);
+  Cut_field_double& cut_field_temperature_post_diff_regular = static_cast<Cut_field_double&>(*temperature_post_diff_regular_);
+  Cut_field_double& cut_field_d_temperature                 = static_cast<Cut_field_double&>(*d_temperature_);
 
 
   update_thermal_properties();
 
-  const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
+  const FixedVector<Cut_field_double, 3>& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
   //calculer_dT_cut_cell(cut_field_total_velocity); // Note : ne fait rien
 
   const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
@@ -527,10 +524,10 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
                                         const double time)
 {
-  Cut_field_scalar& cut_field_temperature                = static_cast<Cut_field_scalar&>(*temperature_);
-  Cut_field_scalar& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_scalar&>(*temperature_debut_sous_pas_);
-  Cut_field_scalar& cut_field_d_temperature              = static_cast<Cut_field_scalar&>(*d_temperature_);
-  Cut_field_scalar& cut_field_RK3_F_temperature          = static_cast<Cut_field_scalar&>(*RK3_F_temperature_);
+  Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
+  Cut_field_double& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_double&>(*temperature_debut_sous_pas_);
+  Cut_field_double& cut_field_d_temperature              = static_cast<Cut_field_double&>(*d_temperature_);
+  Cut_field_double& cut_field_RK3_F_temperature          = static_cast<Cut_field_double&>(*RK3_F_temperature_);
 
   if (rk_step == 0)
     {
@@ -619,8 +616,8 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
 
 void IJK_Thermal_cut_cell::compute_diffusion_increment()
 {
-  const Cut_field_scalar& cut_field_div_coeff_grad_T_volume = static_cast<const Cut_field_scalar&>(*div_coeff_grad_T_volume_);
-  Cut_field_scalar& cut_field_d_temperature                 = static_cast<Cut_field_scalar&>(*d_temperature_);
+  const Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<const Cut_field_double&>(*div_coeff_grad_T_volume_);
+  Cut_field_double& cut_field_d_temperature                 = static_cast<Cut_field_double&>(*d_temperature_);
 
   // Update d_temperature
   const int ni = cut_field_d_temperature.ni();
@@ -669,7 +666,7 @@ void cut_cell_reinit_streamObj(std::ostringstream& streamObj, const double& para
 }
 
 
-void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity)
+void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
 {
   // Note : Cette fonction regroupe tous les elements de calculer_dT qui ne sont pas utilisees en cut cell
 
@@ -754,10 +751,10 @@ void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const FixedVector<Cut_field_scal
   return;
 }
 
-void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity)
+void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
 {
-  const Cut_field_scalar& cut_field_temperature = static_cast<const Cut_field_scalar&>(*temperature_);
-  Cut_field_scalar& cut_field_d_temperature     = static_cast<Cut_field_scalar&>(*d_temperature_);
+  const Cut_field_double& cut_field_temperature = static_cast<const Cut_field_double&>(*temperature_);
+  Cut_field_double& cut_field_d_temperature     = static_cast<Cut_field_double&>(*d_temperature_);
 
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho");
   statistiques().begin_count(cnt_conv_temp);
@@ -816,10 +813,10 @@ void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const FixedVe
 
 void IJK_Thermal_cut_cell::add_temperature_diffusion()
 {
-  const Cut_field_scalar& cut_field_temperature            = static_cast<const Cut_field_scalar&>(*temperature_);
-  Cut_field_scalar& cut_field_div_coeff_grad_T_volume      = static_cast<Cut_field_scalar&>(*div_coeff_grad_T_volume_);
-  Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_scalar&>(*div_coeff_grad_T_volume_temp_);
-  Cut_field_scalar& cut_field_d_temperature                = static_cast<Cut_field_scalar&>(*d_temperature_);
+  const Cut_field_double& cut_field_temperature            = static_cast<const Cut_field_double&>(*temperature_);
+  Cut_field_double& cut_field_div_coeff_grad_T_volume      = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
+  Cut_field_double& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_temp_);
+  Cut_field_double& cut_field_d_temperature                = static_cast<Cut_field_double&>(*d_temperature_);
 
 
   lambda_.echange_espace_virtuel(lambda_.ghost());
@@ -902,7 +899,7 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
     }
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_field_scalar& cut_field_d_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_field_double& cut_field_d_temperature, bool next)
 {
   double global_energy_overall = 0.;
   double global_energy_overall_l = 0.;
@@ -1056,7 +1053,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_fi
   return {global_energy_overall, global_energy_overall_l, global_energy_overall_v, global_energy_pure, global_energy_diph_l, global_energy_diph_v, global_energy_diph_small, global_energy_diph_regular, global_energy_diph_nascent, global_energy_diph_dying};
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_field_scalar& cut_field_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_field_double& cut_field_temperature, bool next)
 {
   double global_energy_overall = 0.;
   double global_energy_overall_l = 0.;
@@ -1214,7 +1211,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
   return {global_energy_overall, global_energy_overall_l, global_energy_overall_v, global_energy_pure, global_energy_diph_l, global_energy_diph_v, global_energy_diph_small, global_energy_diph_regular, global_energy_diph_nascent, global_energy_diph_dying};
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_scalar& cut_field_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_double& cut_field_temperature, bool next)
 {
   double Tmin_overall = 1.e20;
   double Tmin_overall_l = 1.e20;
@@ -1322,7 +1319,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_scalar&
   return {Tmin_overall, Tmin_overall_l, Tmin_overall_v, Tmin_pure, Tmin_diph_l, Tmin_diph_v, Tmin_diph_small, Tmin_diph_regular, Tmin_diph_nascent, Tmin_diph_dying};
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_scalar& cut_field_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next)
 {
   double Tmax_overall = -1.e20;
   double Tmax_overall_l = -1.e20;

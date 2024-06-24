@@ -77,7 +77,7 @@ void Cut_cell_schema_auxiliaire::initialise(Cut_cell_FT_Disc& cut_cell_disc)
   flux_naive_.associer_ephemere(cut_cell_disc);
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::COPIE_DIRECTE)
     {
@@ -106,7 +106,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage(double timestep
     }
 }
 
-void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -223,7 +223,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const FixedVector<Cut_
     }
 }
 
-void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -347,7 +347,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const FixedVec
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -377,7 +377,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(c
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -528,7 +528,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
   const IJK_Field_double& surface_interface_old = cut_cell_disc.get_interfaces().get_surface_interface_old();
@@ -638,7 +638,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -754,7 +754,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
   Cerr << ">=1000000   " << count_status_above_1000000 << finl;
 }
 
-void Cut_cell_schema_auxiliaire::add_dying_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::add_dying_cells(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -854,7 +854,7 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const FixedVector<Cut_field_sca
     }
 }
 
-void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, Cut_field_scalar& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 

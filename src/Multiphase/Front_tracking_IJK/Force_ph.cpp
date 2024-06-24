@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Force_ph.h>
+#include <IJK_Field_vector.h>
 #include <fstream>
 #include <math.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -290,7 +291,7 @@ void Force_ph::from_spect_to_phys_opti2(ArrOfDouble& coeff_force )
          a une dimension, on reconstruit l'indice a aller chercher.
        - coefficients de la force physique recopies dans un tableau
          a trois dimensions (a changer, facile a changer), mais aussi stockes dans un
-         FixedVector<IJK_Field_double, 3>
+         IJK_Field_vector3_double
   */
   //////////////////////////////////////////////////////////////////////////////
 
@@ -425,7 +426,7 @@ void Force_ph::from_spect_to_phys_opti2_advection(ArrOfDouble& coeff_force, cons
          a une dimension, on reconstruit l'indice a aller chercher.
        - coefficients de la force physique recopies dans un tableau
          a trois dimensions (a changer, facile a changer), mais aussi stockes dans un
-         FixedVector<IJK_Field_double, 3>
+         IJK_Field_vector3_double
   */
   //////////////////////////////////////////////////////////////////////////////
 
@@ -669,12 +670,12 @@ void Force_ph::write_separate(std::string nom_fichier_sortie, double t)
     }
 }
 
-FixedVector<IJK_Field_double, 3> Force_ph::get_force_attribute()
+IJK_Field_vector3_double Force_ph::get_force_attribute()
 {
   return force_;
 }
 
-FixedVector<IJK_Field_double, 3>& Force_ph::get_force_attribute2()
+IJK_Field_vector3_double& Force_ph::get_force_attribute2()
 {
   return force_;
 }

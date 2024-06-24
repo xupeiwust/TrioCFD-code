@@ -22,7 +22,7 @@
 #ifndef IJK_FT_base_included
 #define IJK_FT_base_included
 
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <IJK_Splitting.h>
 #include <Operateur_IJK_faces_diff.h>
@@ -75,11 +75,11 @@ public :
   // Methodes d'acces :
   TimeScheme get_time_scheme() const;
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
-  const FixedVector<IJK_Field_double, 3>& get_velocity() const
+  const IJK_Field_vector3_double& get_velocity() const
   {
     return velocity_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_velocity_ft() const
+  const IJK_Field_vector3_double& get_velocity_ft() const
   {
     return velocity_ft_;
   }
@@ -277,8 +277,8 @@ public :
   void compute_and_add_qdm_corrections_monophasic();
   void compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle);
   void write_qdm_corrections_information();
-  IJK_Field_double scalar_product(const FixedVector<IJK_Field_double, 3>& V1, const FixedVector<IJK_Field_double, 3>& V2);
-  FixedVector<IJK_Field_double, 3> scalar_times_vector(const IJK_Field_double& Sca, const FixedVector<IJK_Field_double, 3>& Vec);
+  IJK_Field_double scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2);
+  IJK_Field_vector3_double scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec);
   IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
   // SURCHARGE DES OPERATEURS : dans FixedVector, on ajoute le produit_scalaire
   //  mais il faut que les operateur * et += soient definis pour IJK_FT_base
@@ -314,8 +314,8 @@ public :
   Redistribute_Field& redistrib_from_ft_elem() {return redistribute_from_splitting_ft_elem_;}
   // FixedVector<Redistribute_Field, 3>& redistrib_from_ft_face() const {return redistribute_from_splitting_ft_faces_;}
   void get_redistribute_from_splitting_ft_faces(
-    const FixedVector<IJK_Field_double, 3>& faces_ft,
-    FixedVector<IJK_Field_double, 3>& faces_ns
+    const IJK_Field_vector3_double& faces_ft,
+    IJK_Field_vector3_double& faces_ns
   )
   {
     for (int dir = 0; dir < 3; dir++)
@@ -367,8 +367,8 @@ protected :
   void calculer_dv(const double timestep, const double time, const int rk_step);
 
   //ab-sauv/repr-deb
-  void ecrire_donnees(const FixedVector<IJK_Field_double, 3>& f3compo, SFichier& le_fichier, const int compo, bool binary) const;
-  void dumpxyz_vector(const FixedVector<IJK_Field_double, 3>& f3compo, const char * filename, bool binary) const;
+  void ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const;
+  void dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const char * filename, bool binary) const;
   void sauvegarder_probleme(const char *fichier_sauvegarde,
                             const int& stop); //  const;
   void reprendre_probleme(const char *fichier_reprise);
@@ -414,13 +414,13 @@ protected :
   void transfer_ft_to_ns();
   void compute_add_external_forces(const int dir);
   // GAB
-  void compute_add_THI_force(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
                              const int time_iteration,
                              const double dt,
                              const double current_time,
                              const IJK_Splitting& my_splitting
                             );
-  void compute_add_THI_force_sur_d_velocity(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
                                             const int time_iteration,
                                             const double dt,
                                             const double current_time,
@@ -437,18 +437,18 @@ protected :
   Vecteur3 calculer_inv_rho_grad_p_moyen(const IJK_Field_double& inv_rho, const IJK_Field_double& pression);
   Vecteur3 calculer_grad_p_moyen(const IJK_Field_double& pression);
   Vecteur3 calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression);
-  FixedVector<IJK_Field_double, 3> terme_convection_mass_solver_;
-  FixedVector<IJK_Field_double, 3> terme_diffusion_mass_solver_;
-  FixedVector<IJK_Field_double, 3> rho_u_euler_av_prediction_champ_;
-  FixedVector<IJK_Field_double, 3> rho_du_euler_ap_prediction_champ_;
-  FixedVector<IJK_Field_double, 3> rho_u_euler_ap_projection_champ_;
-  FixedVector<IJK_Field_double, 3> rho_du_euler_ap_projection_champ_;
-  FixedVector<IJK_Field_double, 3> rho_u_euler_av_rho_mu_ind_champ_;
-  FixedVector<IJK_Field_double, 3> rho_u_euler_ap_rho_mu_ind_champ_;
-  FixedVector<IJK_Field_double, 3> terme_diffusion_local_;
-  FixedVector<IJK_Field_double, 3> terme_pression_local_;
-  FixedVector<IJK_Field_double, 3> terme_pression_in_ustar_local_;
-  FixedVector<IJK_Field_double, 3> d_v_diff_et_conv_;
+  IJK_Field_vector3_double terme_convection_mass_solver_;
+  IJK_Field_vector3_double terme_diffusion_mass_solver_;
+  IJK_Field_vector3_double rho_u_euler_av_prediction_champ_;
+  IJK_Field_vector3_double rho_du_euler_ap_prediction_champ_;
+  IJK_Field_vector3_double rho_u_euler_ap_projection_champ_;
+  IJK_Field_vector3_double rho_du_euler_ap_projection_champ_;
+  IJK_Field_vector3_double rho_u_euler_av_rho_mu_ind_champ_;
+  IJK_Field_vector3_double rho_u_euler_ap_rho_mu_ind_champ_;
+  IJK_Field_vector3_double terme_diffusion_local_;
+  IJK_Field_vector3_double terme_pression_local_;
+  IJK_Field_vector3_double terme_pression_in_ustar_local_;
+  IJK_Field_vector3_double d_v_diff_et_conv_;
   Vecteur3 rho_u_euler_av_prediction_ = {0.,0.,0.};
   Vecteur3 rho_du_euler_ap_prediction_ = {0.,0.,0.};
   Vecteur3 rho_u_euler_ap_projection_ = {0.,0.,0.};
@@ -515,11 +515,11 @@ protected :
   ArrOfInt correction_force_; // 3 flags d'activation de la correction ou non
 
   // Storage for rhov for the evaluation of the acceleration source term :
-  FixedVector<IJK_Field_double, 3> rho_v_;
-  FixedVector<IJK_Field_double, 3> psi_velocity_; // for storage.
+  IJK_Field_vector3_double rho_v_;
+  IJK_Field_vector3_double psi_velocity_; // for storage.
   //ab-forcage-control-ecoulement-fin
 
-  FixedVector<IJK_Field_double, 3> variable_source_;
+  IJK_Field_vector3_double variable_source_;
   Nom expression_derivee_facteur_variable_source_ = "0";
   Parser parser_derivee_facteur_variable_source_;
   double facteur_variable_source_ = 1.; // ArrOfDouble? vecteur de taille 3 a lire dans le jeu de donnees
@@ -565,7 +565,7 @@ protected :
 
   // Inconnues du probleme (a sauvegarder et a reprendre)
   // Velocity field:
-  FixedVector<IJK_Field_double, 3> velocity_;
+  IJK_Field_vector3_double velocity_;
 
   // Masse volumique:
   IJK_Field_double rho_field_;
@@ -580,8 +580,8 @@ protected :
   double coef_rayon_force_rappel_ = 0.;
   double p_seuil_max_ = 10000000;
   double p_seuil_min_ = -10000000;
-  FixedVector<IJK_Field_double, 3> force_rappel_;
-  FixedVector<IJK_Field_double, 3> force_rappel_ft_;
+  IJK_Field_vector3_double force_rappel_;
+  IJK_Field_vector3_double force_rappel_ft_;
 
   double vol_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
   double diam_bulle_monodisperse_ = -1; // Pour imposer le volume des bulles
@@ -591,9 +591,9 @@ protected :
   IJK_Field_double div_rhou_;
 
   // Temporary storage for the derivative
-  FixedVector<IJK_Field_double, 3> d_velocity_;
+  IJK_Field_vector3_double d_velocity_;
   // Temporary storage for the fractional timestep in rk3 :
-  FixedVector<IJK_Field_double, 3> RK3_F_velocity_;
+  IJK_Field_vector3_double RK3_F_velocity_;
 
   // To work in pressure increment and potentially help the solver for high density ratios
   IJK_Field_double d_pressure_;
@@ -601,27 +601,27 @@ protected :
   IJK_Field_double RK3_F_pressure_;
 
   // Celui la est discretise sur le maillage etendu:
-  FixedVector<IJK_Field_double, 3> terme_source_interfaces_ft_;
-  FixedVector<IJK_Field_double, 3> terme_repulsion_interfaces_ft_;
-  FixedVector<IJK_Field_double, 3> terme_abs_repulsion_interfaces_ft_;
+  IJK_Field_vector3_double terme_source_interfaces_ft_;
+  IJK_Field_vector3_double terme_repulsion_interfaces_ft_;
+  IJK_Field_vector3_double terme_abs_repulsion_interfaces_ft_;
 
   // Celui la est discretise sur le maillage ns:
-  FixedVector<IJK_Field_double, 3> terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
-  FixedVector<IJK_Field_double, 3> backup_terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
-  FixedVector<IJK_Field_double, 3> backup_terme_source_interfaces_ft_; // [ dt (rho u )/dt = N/m^3 ]
-  FixedVector<IJK_Field_double, 3> terme_repulsion_interfaces_ns_;
-  FixedVector<IJK_Field_double, 3> terme_abs_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
+  IJK_Field_vector3_double backup_terme_source_interfaces_ns_; // [ dt (rho u )/dt = N/m^3 ]
+  IJK_Field_vector3_double backup_terme_source_interfaces_ft_; // [ dt (rho u )/dt = N/m^3 ]
+  IJK_Field_vector3_double terme_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double terme_abs_repulsion_interfaces_ns_;
 
   // Pour l'option alternative du calcul de la diffusion :
   IJK_Field_double unit_;
-  FixedVector<IJK_Field_double, 3> zero_field_ft_;
-  FixedVector<IJK_Field_double, 3> laplacien_velocity_;
+  IJK_Field_vector3_double zero_field_ft_;
+  IJK_Field_vector3_double laplacien_velocity_;
 
 #ifdef BIDOUILLE
   // Test pour corriger le bilan de qdm :
   IJK_Field_double rho_old_;
-  FixedVector<IJK_Field_double, 3> velocity_old_;
-  FixedVector<IJK_Field_double, 3> psi_velocity_;
+  IJK_Field_vector3_double velocity_old_;
+  IJK_Field_vector3_double psi_velocity_;
 #endif
 
   // Booleen pour savoir si on a mis a jour l'indicatrice avec indicatrice next
@@ -787,7 +787,7 @@ protected :
   Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_max_;
 
   // Champs volumiques sur le maillage FT (pour convection des interfaces, etc)
-  FixedVector<IJK_Field_double, 3> velocity_ft_;
+  IJK_Field_vector3_double velocity_ft_;
 
   // Dealing with thermal aspects:
   LIST(IJK_Thermique) thermique_;

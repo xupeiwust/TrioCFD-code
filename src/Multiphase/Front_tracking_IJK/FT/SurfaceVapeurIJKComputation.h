@@ -22,7 +22,7 @@
 #ifndef SurfaceVapeurIJKComputation_included
 #define SurfaceVapeurIJKComputation_included
 
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h> // est-ce que j'en ai vraiment besoin ?
 #include <Linear_algebra_tools_impl.h>
 #include <Maillage_FT_IJK.h>
@@ -72,9 +72,9 @@ public:
   int compute_surf_and_barys(
     const Maillage_FT_IJK& maillage_ft_ijk,
     const IJK_Field_double& indicatrice_ft,
-    const FixedVector<IJK_Field_double, 3>& normale_of_interf,
-    FixedVector<IJK_Field_double, 3>& surface_vapeur_par_face,
-    FixedVector<FixedVector<IJK_Field_double, 3>, 3>& barycentre_vapeur_par_face
+    const IJK_Field_vector3_double& normale_of_interf,
+    IJK_Field_vector3_double& surface_vapeur_par_face,
+    FixedVector<IJK_Field_vector3_double, 3>& barycentre_vapeur_par_face
   );
   // Permet de recuperer un mcu qui est une vue de maillage_bulles_ft_ijk. Il
   // n'y a pas de copie memoire, seulement des passages de case memoire.
@@ -99,7 +99,7 @@ protected:
     Process::exit();
     return *this;
   }
-  int rempli_surface_vapeur_par_face_interieur_bulles(FixedVector<IJK_Field_double, 3>& surface_vapeur_par_face, const IJK_Field_double& indicatrice_ft);
+  int rempli_surface_vapeur_par_face_interieur_bulles(IJK_Field_vector3_double& surface_vapeur_par_face, const IJK_Field_double& indicatrice_ft);
   // Cette methode appelle la methode statique get_maillage_MED_from_IJK_FT sur ses propres membres. Elle met donc a jour le maillage maillage_bulles_med_.
   void set_maillage_MED(const Maillage_FT_IJK& maillage_ft_ijk);
 
@@ -115,9 +115,9 @@ protected:
   // barycentre de la phase vapeur.
   void calculer_surfaces_et_barys_faces_mouillees_vapeur(
     const Maillage_FT_IJK& maillage_ft_ijk,
-    const FixedVector<IJK_Field_double, 3>& normale_of_interf,
-    FixedVector<IJK_Field_double, 3>& surfaces,
-    FixedVector<FixedVector<IJK_Field_double, 3>, 3>& barycentres);
+    const IJK_Field_vector3_double& normale_of_interf,
+    IJK_Field_vector3_double& surfaces,
+    FixedVector<IJK_Field_vector3_double, 3>& barycentres);
 
   // Cette methode calcule le vecteur que va d'un barycentre à l'autre entre
   // deux sous-cellules d'une cellule du maillage IJ. Params:
@@ -177,7 +177,7 @@ protected:
   // Returns:
   //- TODO
   void check_if_vect_is_from_liquid2vapor(
-    const FixedVector<IJK_Field_double, 3>& normale_of_interf,
+    const IJK_Field_vector3_double& normale_of_interf,
     const DataArrayDouble *vector,
     const int dim, const int i_plan, const int nx,
     const DataArrayIdType *ids_diph,
@@ -186,7 +186,7 @@ protected:
   // Maillage au format MEDCouplingUMesh
   MCU maillage_bulles_med_;
   // Ref to maillage_ft_ijk
-  // const FixedVector<IJK_Field_double, 3> normale_of_interf_;
+  // const IJK_Field_vector3_double normale_of_interf_;
   REF(IJK_Splitting) ref_splitting_;
   bool desactive_med_;
   bool compute_surf_mouillees_;

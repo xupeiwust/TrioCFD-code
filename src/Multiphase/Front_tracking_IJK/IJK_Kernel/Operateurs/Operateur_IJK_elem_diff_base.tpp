@@ -370,7 +370,7 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
 {
   int dir = static_cast<int>(_DIR_);
 
-  const Cut_field_scalar& input_cut_field = static_cast<const Cut_field_scalar&>(*input_field_);
+  const Cut_field_double& input_cut_field = static_cast<const Cut_field_double&>(*input_field_);
   const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
   assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
   assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[2].get_cut_cell_disc());

@@ -241,14 +241,14 @@ protected :
   REF(Cut_cell_FT_Disc) cut_cell_disc_;
 };
 
-/*! @brief : class Cut_cell_scalar
+/*! @brief : class Cut_cell_double
  *
- *  <Description of class Cut_cell_scalar>
+ *  <Description of class Cut_cell_double>
  *
  *
  *
  */
-class Cut_cell_scalar : public Cut_cell_data
+class Cut_cell_double : public Cut_cell_data
 {
 public :
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
@@ -258,17 +258,17 @@ public :
 protected :
 };
 
-/*! @brief : class Cut_field_scalar
+/*! @brief : class Cut_field_double
  *
- *  <Description of class Cut_field_scalar>
+ *  <Description of class Cut_field_double>
  *
  *
  *
  */
-class Cut_field_scalar : public IJK_Field_double
+class Cut_field_double : public IJK_Field_double
 {
 public :
-  Cut_field_scalar();
+  Cut_field_double();
 
   DoubleTabFT_cut_cell diph_l_;
   DoubleTabFT_cut_cell diph_v_;
@@ -280,19 +280,19 @@ public :
   void transfert_diphasique_vers_pures();
   void set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time);
   void set_to_uniform_value(double valeur);
-  void set_to_sum(const Cut_field_scalar& data_1, const Cut_field_scalar& data_2);
+  void set_to_sum(const Cut_field_double& data_1, const Cut_field_double& data_2);
 
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
 
-  void copy_from(Cut_field_scalar& data);
-  void add_from(Cut_field_scalar& data);
+  void copy_from(Cut_field_double& data);
+  void add_from(Cut_field_double& data);
 
   const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
 
   // :integration(Dorian) De maniere temporaire avant la modification du type des champs
-  // vectoriels IJK, on ajoute des routines a la classe Cut_field_scalar,
+  // vectoriels IJK, on ajoute des routines a la classe Cut_field_double,
   // qui permettent a l'objet de referer aux donnees d'un objet IJK_Field_double existant.
   // Ces fonctionnalites sont temporaires et devront etre supprimees.
   void set_ijk_field(IJK_Field_double& field)
@@ -326,28 +326,28 @@ public :
 
   double& operator()(int i, int j, int k)
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k);
   }
 
   const double& operator()(int i, int j, int k) const
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k);
   }
 
   double& operator()(int i, int j, int k, int compo)
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k,compo);
   }
 
   const double& operator()(int i, int j, int k, int compo) const
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_scalar of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k,compo);
   }

@@ -308,33 +308,33 @@ void Cut_cell_data::echange_espace_virtuel(MD_Vector_tools::Operations_echange o
   diph_v_.echange_espace_virtuel(op);
 }
 
-void Cut_cell_scalar::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_cell_double::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
 {
   Cut_cell_data::associer_persistant(cut_cell_disc, 1);
 }
 
-void Cut_cell_scalar::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_cell_double::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
 {
   Cut_cell_data::associer_ephemere(cut_cell_disc, 1);
 }
 
-void Cut_cell_scalar::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_cell_double::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
 {
   Cut_cell_data::associer_paresseux(cut_cell_disc, 1);
 }
 
-Cut_field_scalar::Cut_field_scalar()
+Cut_field_double::Cut_field_double()
 {
 }
 
-void Cut_field_scalar::echange_espace_virtuel(int le_ghost)
+void Cut_field_double::echange_espace_virtuel(int le_ghost)
 {
   IJK_Field_double::echange_espace_virtuel(le_ghost);
   diph_l_.echange_espace_virtuel();
   diph_v_.echange_espace_virtuel();
 }
 
-void Cut_field_scalar::remplir_cellules_diphasiques()
+void Cut_field_double::remplir_cellules_diphasiques()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
@@ -350,7 +350,7 @@ void Cut_field_scalar::remplir_cellules_diphasiques()
   diph_v_.echange_espace_virtuel();
 }
 
-void Cut_field_scalar::remplir_cellules_devenant_diphasiques()
+void Cut_field_double::remplir_cellules_devenant_diphasiques()
 {
   int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::NAISSANT);
   int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
@@ -380,7 +380,7 @@ void Cut_field_scalar::remplir_cellules_devenant_diphasiques()
     }
 }
 
-void Cut_field_scalar::remplir_cellules_maintenant_pures()
+void Cut_field_double::remplir_cellules_maintenant_pures()
 {
   int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MOURRANT);
   int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
@@ -409,7 +409,7 @@ void Cut_field_scalar::remplir_cellules_maintenant_pures()
     }
 }
 
-void Cut_field_scalar::transfert_diphasique_vers_pures()
+void Cut_field_double::transfert_diphasique_vers_pures()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
@@ -425,7 +425,7 @@ void Cut_field_scalar::transfert_diphasique_vers_pures()
   IJK_Field_double::echange_espace_virtuel(IJK_Field_double::ghost());
 }
 
-void Cut_field_scalar::set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time)
+void Cut_field_double::set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time)
 {
   ArrOfDouble coord_i, coord_j, coord_k;
   build_local_coords(*this, coord_i, coord_j, coord_k);
@@ -504,9 +504,9 @@ void Cut_field_scalar::set_field_data(const Nom& parser_expression_of_x_y_z_and_
   IJK_Field_double::echange_espace_virtuel(IJK_Field_double::ghost());
 }
 
-void Cut_field_scalar::set_to_uniform_value(double valeur)
+void Cut_field_double::set_to_uniform_value(double valeur)
 {
-  Cut_field_scalar::data() = valeur;
+  Cut_field_double::data() = valeur;
   for (int n = 0; n < cut_cell_disc_->get_n_tot(); n++)
     {
       diph_l_(n) = valeur;
@@ -515,28 +515,28 @@ void Cut_field_scalar::set_to_uniform_value(double valeur)
 }
 
 
-void Cut_field_scalar::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_field_double::associer_persistant(Cut_cell_FT_Disc& cut_cell_disc)
 {
   cut_cell_disc_ = cut_cell_disc;
   diph_l_.associer_persistant(cut_cell_disc_, 1);
   diph_v_.associer_persistant(cut_cell_disc_, 1);
 }
 
-void Cut_field_scalar::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_field_double::associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc)
 {
   cut_cell_disc_ = cut_cell_disc;
   diph_l_.associer_ephemere(cut_cell_disc_, 1);
   diph_v_.associer_ephemere(cut_cell_disc_, 1);
 }
 
-void Cut_field_scalar::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
+void Cut_field_double::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
 {
   cut_cell_disc_ = cut_cell_disc;
   diph_l_.associer_paresseux(cut_cell_disc_, 1);
   diph_v_.associer_paresseux(cut_cell_disc_, 1);
 }
 
-void Cut_field_scalar::copy_from(Cut_field_scalar& data)
+void Cut_field_double::copy_from(Cut_field_double& data)
 {
   const int ni = IJK_Field_double::ni();
   const int nj = IJK_Field_double::nj();
@@ -563,7 +563,7 @@ void Cut_field_scalar::copy_from(Cut_field_scalar& data)
     }
 }
 
-void Cut_field_scalar::add_from(Cut_field_scalar& data)
+void Cut_field_double::add_from(Cut_field_double& data)
 {
   const int ni = data.ni();
   const int nj = data.nj();
@@ -590,7 +590,7 @@ void Cut_field_scalar::add_from(Cut_field_scalar& data)
     }
 }
 
-void Cut_field_scalar::set_to_sum(const Cut_field_scalar& data_1, const Cut_field_scalar& data_2)
+void Cut_field_double::set_to_sum(const Cut_field_double& data_1, const Cut_field_double& data_2)
 {
   const int ni = data_1.ni();
   const int nj = data_1.nj();

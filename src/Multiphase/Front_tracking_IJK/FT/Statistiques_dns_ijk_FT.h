@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #ifndef Statistiques_dns_ijk_FT_H
 #define Statistiques_dns_ijk_FT_H
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Statistiques_dns_ijk.h>
 #include <TRUSTArrays.h>
@@ -50,22 +50,22 @@ public:
   double compute_desequil_alpha(const IJK_Grid_Geometry& geom_NS,
                                 const double portee_wall_repulsion) const;
 
-  const FixedVector<IJK_Field_double, 3>& get_IJK_vector_field(const Nom& nom) const;
+  const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
 
   // Pour les deriv de U, V et W :
-  FixedVector<IJK_Field_double, 3> gradU_;
-  FixedVector<IJK_Field_double, 3> gradV_;
-  FixedVector<IJK_Field_double, 3> gradW_;
+  IJK_Field_vector3_double gradU_;
+  IJK_Field_vector3_double gradV_;
+  IJK_Field_vector3_double gradW_;
 
   // Pour les deriv secondes de P, U, V et W :
-  FixedVector<IJK_Field_double, 3> grad2Pi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> grad2Pc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> grad2Ui_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> grad2Uc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> grad2Vi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> grad2Vc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> grad2Wi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> grad2Wc_; // contient les deriv croisees
+  IJK_Field_vector3_double grad2Pi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double grad2Pc_; // contient les deriv croisees
+  IJK_Field_vector3_double grad2Ui_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double grad2Uc_; // contient les deriv croisees
+  IJK_Field_vector3_double grad2Vi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double grad2Vc_; // contient les deriv croisees
+  IJK_Field_vector3_double grad2Wi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double grad2Wc_; // contient les deriv croisees
 protected:
   int check_stats_;
   int nb_thermal_fields_; // Number of objects thermique_ in the list

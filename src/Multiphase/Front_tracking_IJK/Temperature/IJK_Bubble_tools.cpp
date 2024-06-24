@@ -239,7 +239,7 @@ void compute_rising_velocity_overall(const IJK_Interfaces& interfaces,
     }
 }
 
-void compute_rising_velocity(const FixedVector<IJK_Field_double, 3>& velocity,
+void compute_rising_velocity(const IJK_Field_vector3_double& velocity,
                              const IJK_Interfaces& interfaces,
                              const IJK_Field_int& eulerian_compo_connex_ns,
                              const int& gravity_dir,

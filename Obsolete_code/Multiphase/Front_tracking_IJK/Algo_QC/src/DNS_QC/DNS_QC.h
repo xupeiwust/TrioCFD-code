@@ -62,8 +62,8 @@ class DNS_QC_double : public Interprete
   void rk3_sub_step(const int rk_step, const double total_timestep);
 
   template<class T>
-  void calculer_convection_vitesse(FixedVector<IJK_Field_double, 3> & rho_v,
-                                   FixedVector<IJK_Field_double, 3> & velocity,
+  void calculer_convection_vitesse(IJK_Field_vector3& rho_v,
+                                   IJK_Field_vector3& velocity,
                                    const ArrOfDouble_with_ghost & delta_z,
                                    const double facteur_delta_x,
                                    const double facteur_delta_y,
@@ -71,11 +71,11 @@ class DNS_QC_double : public Interprete
                                    T& kernel,
                                    FixedVector<IJK_Field_local_double, 18> & tmp_b,
                                    FixedVector<IJK_Field_local_double, 18> & tmp_a,
-                                   FixedVector<IJK_Field_double, 3> & d_velocity_tmp,
-                                   FixedVector<IJK_Field_double, 3> & d_velocity,
+                                   IJK_Field_vector3& d_velocity_tmp,
+                                   IJK_Field_vector3& d_velocity,
                                    IJK_Field_double & u_div_rho_u);
   template<class T>
-  void calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_double, 3> & velocity,
+  void calculer_turbulent_diffusion_vitesse(IJK_Field_vector3& velocity,
                                             const IJK_Field_double & turbulent_mu_xx,
                                             const IJK_Field_double & turbulent_mu_xy,
                                             const IJK_Field_double & turbulent_mu_xz,
@@ -89,10 +89,10 @@ class DNS_QC_double : public Interprete
                                             T& kernel,
                                             FixedVector<IJK_Field_local_double, 18> & tmp_b,
                                             FixedVector<IJK_Field_local_double, 18> & tmp_a,
-                                            FixedVector<IJK_Field_double, 3> & d_velocity_tmp,
-                                            FixedVector<IJK_Field_double, 3> & d_velocity);
+                                            IJK_Field_vector3& d_velocity_tmp,
+                                            IJK_Field_vector3& d_velocity);
   template<class T>
-  void calculer_structural_diffusion_vitesse(FixedVector<IJK_Field_double, 3> & velocity,
+  void calculer_structural_diffusion_vitesse(IJK_Field_vector3& velocity,
                                              const FixedVector<IJK_Field_double, 6> & structural_uu_tensor,
                                              const ArrOfDouble_with_ghost & delta_z,
                                              const double facteur_delta_x,
@@ -101,8 +101,8 @@ class DNS_QC_double : public Interprete
                                              T& kernel,
                                              FixedVector<IJK_Field_local_double, 18> & tmp_b,
                                              FixedVector<IJK_Field_local_double, 18> & tmp_a,
-                                             FixedVector<IJK_Field_double, 3> & d_velocity_tmp,
-                                             FixedVector<IJK_Field_double, 3> & d_velocity);
+                                             IJK_Field_vector3& d_velocity_tmp,
+                                             IJK_Field_vector3& d_velocity);
   void calculer_diffusion_scalar(const IJK_Field_double & rho,
                                  const IJK_Field_double & turbulent_kappa_x,
                                  const IJK_Field_double & turbulent_kappa_y,
@@ -144,7 +144,7 @@ class DNS_QC_double : public Interprete
   // Champs inconnus (variables principales des equations differentielles
   //  qui doivent etre remplies au debut du pas de temps)
   // Velocity field:
-  FixedVector<IJK_Field_double, 3> velocity_;
+  IJK_Field_vector3 velocity_;
   // masse volumique
   IJK_Field_double rho_;
   // pression thermodynamique
@@ -172,7 +172,7 @@ class DNS_QC_double : public Interprete
   Nom sauvegarde_splitting_name_;
   FixedVector<Redistribute_Field, 3> redistribute_to_sauvegarde_splitting_faces_;
   Redistribute_Field redistribute_to_sauvegarde_splitting_elem_;
-  FixedVector<IJK_Field_double, 3> velocity_sauvegarde_;
+  IJK_Field_vector3 velocity_sauvegarde_;
   IJK_Field_double temperature_sauvegarde_;
   IJK_Field_double molecular_lambda_sauvegarde_;
   IJK_Field_double molecular_mu_sauvegarde_;
@@ -192,11 +192,11 @@ class DNS_QC_double : public Interprete
   IJK_Field_double velocity_elem_Z_;
   // Vitesse aux elements
   // momentum:
-  FixedVector<IJK_Field_double, 3> rho_v_;
+  IJK_Field_vector3 rho_v_;
   // Temporary storage for the derivative
-  FixedVector<IJK_Field_double, 3> d_velocity_;
+  IJK_Field_vector3 d_velocity_;
   // Temporary storage for the RungeKutta algorithm
-  FixedVector<IJK_Field_double, 3> RK3_F_velocity_;
+  IJK_Field_vector3 RK3_F_velocity_;
   // Pressure field
   IJK_Field_double pressure_;
   // viscosite dynamique: div(mu*grad(v)) => d/dt (rho*v)
@@ -257,7 +257,7 @@ class DNS_QC_double : public Interprete
   int flag_kappa_vectorial_;
   int flag_kappa_anisotropic_;
   IJK_Field_double turbulent_kappa_;
-  FixedVector<IJK_Field_double, 3> turbulent_kappa_vector_;
+  IJK_Field_vector3 turbulent_kappa_vector_;
   int turbulent_diffusivity_;
 
   Nom filter_kernel_name_;
@@ -267,15 +267,15 @@ class DNS_QC_double : public Interprete
   int flag_filtrage_structural_diffusion_qdm_;
   int flag_convection_qdm_sans_rho_;
   int flag_convection_qdm_sans_divergence_;
-  FixedVector<IJK_Field_double, 3> velocity_filtre_;
+  IJK_Field_vector3 velocity_filtre_;
   IJK_Field_double rho_filtre_;
   IJK_Field_double temperature_filtre_;
   IJK_Field_double turbulent_mu_filtre_;
   FixedVector<IJK_Field_double, 6> turbulent_mu_filtre_tensor_;
   IJK_Field_double turbulent_kappa_filtre_;
-  FixedVector<IJK_Field_double, 3> turbulent_kappa_filtre_vector_;
+  IJK_Field_vector3 turbulent_kappa_filtre_vector_;
   FixedVector<IJK_Field_double, 6> structural_uu_filtre_tensor_; // Vector with 6 components, 0:xx 1:xy 2:xz 3:yy 4:yz 5:zz
-  FixedVector<IJK_Field_double, 3> structural_uscalar_filtre_vector_;
+  IJK_Field_vector3 structural_uscalar_filtre_vector_;
   int flag_u_filtre_;
   int flag_rho_filtre_;
   int flag_temperature_filtre_;
@@ -298,9 +298,9 @@ class DNS_QC_double : public Interprete
   Nom structural_uscalar_dynamic_type_;
   double structural_uscalar_model_constant_;
   ArrOfDouble structural_uscalar_vector_coefficients_;
-  FixedVector<IJK_Field_double, 3> structural_uscalar_vector_;
+  IJK_Field_vector3 structural_uscalar_vector_;
   int flag_structural_uscalar_tmp_;
-  FixedVector<IJK_Field_double, 3> structural_uscalar_tmp_vector_;
+  IJK_Field_vector3 structural_uscalar_tmp_vector_;
   int structural_uscalar_;
 
   Nom large_eddy_simulation_formulation_;
@@ -317,7 +317,7 @@ class DNS_QC_double : public Interprete
   FixedVector<IJK_Field_local_double, 18> tmp_a_; // Temporary array used to compute the filter
   FixedVector<FixedVector<ArrOfDouble, 7>, 8> ml_; // Vector with 8 components, 0:l 1:m 2:h 3:mm 4:hh 5:ml 6:hl 7:mh. Each is a vector with 7 components, 0:xx 1:xy 2:xz 3:yy 4:yz 5:zz 6:sum
   int flag_d_velocity_tmp_;
-  FixedVector<IJK_Field_double, 3> d_velocity_tmp_;
+  IJK_Field_vector3 d_velocity_tmp_;
 
   OpConvCentre4IJK_double velocity_convection_op_;
   OpConvQuickSharpIJK_double velocity_convection_op_quicksharp_;

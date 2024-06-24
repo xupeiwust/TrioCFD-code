@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Connex_components.h>
+#include <IJK_Field_vector.h>
 #include <Connex_components_FT.h>
 #include <EcrFicPartageBin.h>
 #include <IJK_FT_base.h>
@@ -541,7 +542,7 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
   Cerr << "     total    " << count_total  << finl;
 }
 
-void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_scalar, 3>& remeshing_velocity)
+void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_double, 3>& remeshing_velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_face_initial())
@@ -554,7 +555,7 @@ void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, FixedVector<Cut_
                                                        remeshing_velocity);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_scalar, 3>& total_velocity)
+void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_double, 3>& total_velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_face_initial())
@@ -589,7 +590,7 @@ void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE typ
     indicatrice_surfacique_efficace_face_initial_);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_scalar, 3>& velocity)
+void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_double, 3>& velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_interface_/initial_ est correctement initialisee.
   // (Appel prealable a calcul_surface_efficace_interface_initial())
@@ -663,7 +664,7 @@ void IJK_Interfaces::calcul_surface_efficace_interface_initial()
 
 void IJK_Interfaces::compute_vinterp()
 {
-  const FixedVector<IJK_Field_double, 3>& velocity_ft = ref_ijk_ft_->get_velocity_ft();
+  const IJK_Field_vector3_double& velocity_ft = ref_ijk_ft_->get_velocity_ft();
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const DoubleTab& sommets = mesh.sommets(); // Tableau des coordonnees des marqueurs.
   int nbsom = sommets.dimension(0);
@@ -782,14 +783,11 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   surface_interface_ns_[old()].data() = 0.;
   surface_interface_ns_[next()].data() = 0.;
 
-  for (int d = 0; d < 3; d++)
-    {
-      barycentre_phase1_ft_[old()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-      barycentre_phase1_ft_[next()][d].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-      barycentre_phase1_ns_[old()][d].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-      barycentre_phase1_ns_[next()][d].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-      nalloc += 4;
-    }
+  allocate_cell_vector(barycentre_phase1_ft_[old()], splitting_FT, 2);
+  allocate_cell_vector(barycentre_phase1_ft_[next()], splitting_FT, 2);
+  allocate_cell_vector(barycentre_phase1_ns_[old()], splitting_NS, nb_ghost_cells);
+  allocate_cell_vector(barycentre_phase1_ns_[next()], splitting_NS, nb_ghost_cells);
+  nalloc += 4;
 
   for (int d = 0; d < 3; d++)
     {
@@ -2106,7 +2104,7 @@ void IJK_Interfaces::calculer_kappa_ft(IJK_Field_double& kappa_ft)
 // splitting_ft_ car le dom_vdf n'est pas construit pour le splitting ns. Par
 // definition, mettre igroup a -1 pour inclure toutes les bulles
 void IJK_Interfaces::calculer_normales_et_aires_interfaciales(IJK_Field_double& ai, IJK_Field_double& kappa_ai,
-                                                              FixedVector<IJK_Field_double, 3>& normale_cell,
+                                                              IJK_Field_vector3_double& normale_cell,
                                                               const int igroup) const
 {
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
@@ -3190,7 +3188,7 @@ void IJK_Interfaces::remailler_interface(const double temps,
 void IJK_Interfaces::calculer_vitesse_de_deformation(
   int compo,
   const DoubleTab& bounding_box_bulles,
-  const FixedVector<Cut_field_scalar, 3>& cut_field_velocity,
+  const FixedVector<Cut_field_double, 3>& cut_field_velocity,
   const DoubleTab& vitesses_translation_bulles,
   const DoubleTab& mean_bubble_rotation_vector,
   const DoubleTab& positions_bulles)
@@ -4883,7 +4881,7 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
   statistiques().end_count(calculer_indicatrice_counter_);
 }
 
-void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic)
+void IJK_Interfaces::calculer_indicatrices(IJK_Field_vector3_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
@@ -5029,7 +5027,7 @@ void IJK_Interfaces::calculer_indicatrices(FixedVector<IJK_Field_double, 3>& ind
   statistiques().end_count(calculer_indicatrice_counter_);
 }
 
-void IJK_Interfaces::calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic)
+void IJK_Interfaces::calculer_indicatrices_optim(IJK_Field_vector3_double& indic)
 {
   static Stat_Counter_Id calculer_indicatrice_counter_ =
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
@@ -5224,7 +5222,7 @@ int IJK_Interfaces::update_indicatrice(IJK_Field_double& indic)
 }
 
 // Calcul de l'indicatrice surfacique et du barycentre de la phase sur les faces euleriennes
-void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
+void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(IJK_Field_vector3_double& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme)
 {
   static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice surface face");
@@ -5411,7 +5409,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(FixedVector
 }
 
 // Calcul de l'indicatrice surfacique sur les faces euleriennes (sans le barycentre)
-void IJK_Interfaces::calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme)
+void IJK_Interfaces::calculer_indicatrice_surfacique_face(IJK_Field_vector3_double& indic_surfacique_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme)
 {
   static Stat_Counter_Id calculer_indicatrice_surfacique_face_counter_ =
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice surface face");
@@ -5616,7 +5614,7 @@ void IJK_Interfaces::calculer_surface_interface(IJK_Field_double& surf_interface
   statistiques().end_count(calculer_surface_interface_counter_);
 }
 
-void IJK_Interfaces::calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic)
+void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Field_double& indic)
 {
   static Stat_Counter_Id calculer_barycentre_counter_ =
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul du barycentre");
@@ -5786,9 +5784,9 @@ void IJK_Interfaces::convert_to_IntVect(const ArrOfInt& in, IntVect& out) const
 // vrepul : Champ etendu de potentiel de repulsion seul
 // vabsrepul : Champ etendu de la valeur absolue des repulsions.
 void IJK_Interfaces::ajouter_terme_source_interfaces(
-  FixedVector<IJK_Field_double, 3>& vpoint,
-  FixedVector<IJK_Field_double, 3>& vrepul,
-  FixedVector<IJK_Field_double, 3>& vabsrepul
+  IJK_Field_vector3_double& vpoint,
+  IJK_Field_vector3_double& vrepul,
+  IJK_Field_vector3_double& vabsrepul
 ) const
 {
   statistiques().begin_count(source_counter_);
@@ -7162,9 +7160,9 @@ void IJK_Interfaces::detecter_et_supprimer_rejeton(bool duplicatas_etaient_prese
 
 // Rempli le champ de force de rappel pour les bulles fixes.
 // coef_rayon_force_rappel : coef de taille du domaine de rappel const (attention aux superposition de bulles)
-void IJK_Interfaces::compute_external_forces_(FixedVector<IJK_Field_double, 3>& rappel_ft,
-                                              FixedVector<IJK_Field_double, 3>& rappel,
-                                              const FixedVector<IJK_Field_double, 3>& vitesse,
+void IJK_Interfaces::compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
+                                              IJK_Field_vector3_double& rappel,
+                                              const IJK_Field_vector3_double& vitesse,
                                               const IJK_Field_double& indic/*_ns*/,
                                               const IJK_Field_double& indic_ft,
                                               const double coef_immo,
@@ -7317,7 +7315,7 @@ void IJK_Interfaces::compute_external_forces_(FixedVector<IJK_Field_double, 3>& 
 // The method is based on an eulerian color function refering to each bubble
 // BEWARE : individual_forces should contain the value of each force in inlet and
 //          modify it to return the integrated value (homogeneous to "F*vol") at the end of the function
-void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Field_double, 3>& rappel_ft,
+void IJK_Interfaces::compute_external_forces_color_function(IJK_Field_vector3_double& rappel_ft,
                                                             const IJK_Field_double& indic_ns,
                                                             const IJK_Field_double& indic_ft,
                                                             DoubleTab& individual_forces,
@@ -7558,7 +7556,7 @@ void IJK_Interfaces::compute_external_forces_color_function(FixedVector<IJK_Fiel
 // individual_forces : The instantaneous value of the force for each bubble.
 // force_time_n_ : The same, but stored in the class for later use (only on master process).
 // mean_force_   : Time average of the force for each bubble (only on master process).
-void IJK_Interfaces::compute_external_forces_parser(FixedVector<IJK_Field_double, 3>& rappel,
+void IJK_Interfaces::compute_external_forces_parser(IJK_Field_vector3_double& rappel,
                                                     const IJK_Field_double& indic, // ns
                                                     const DoubleTab& individual_forces,
                                                     const ArrOfDouble& volume_reel,
@@ -7948,8 +7946,8 @@ void IJK_Interfaces::calculer_indicatrice_next(
 void IJK_Interfaces::calculer_indicatrice_intermediaire(
   IJK_Field_double& indicatrice_intermediaire_ft,
   IJK_Field_double& indicatrice_intermediaire_ns,
-  FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ft,
-  FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ns,
+  IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ft,
+  IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ns,
   const bool parcourir
 )
 {

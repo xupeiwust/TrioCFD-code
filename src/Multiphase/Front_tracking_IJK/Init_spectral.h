@@ -22,7 +22,7 @@
 #ifndef Init_spectral_included
 #define Init_spectral_included
 
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Objet_U.h>
 #include <fftw3.h>
@@ -34,7 +34,7 @@
  *
  *
  */
-void compute_inital_velocity_spectral(FixedVector<IJK_Field_double, 3>&);
+void compute_inital_velocity_spectral(IJK_Field_vector3_double&);
 
 class Init_spectral : public Objet_U
 {
@@ -44,7 +44,7 @@ class Init_spectral : public Objet_U
 public :
 
 protected :
-  //void compute_inital_velocity_spectral(FixedVector<IJK_Field_double, 3>);
+  //void compute_inital_velocity_spectral(IJK_Field_vector3_double);
 };
 
 #endif /* Init_spectral_included */

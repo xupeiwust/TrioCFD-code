@@ -36,7 +36,7 @@ Entree& OpGradQuickIJKScalar_double::readOn( Entree& is )
 }
 
 void OpGradQuickIJKScalar_double::calculer_grad(const IJK_Field_double& field,
-                                                FixedVector<IJK_Field_double, 3>& result)
+                                                IJK_Field_vector3_double& result)
 {
   input_field_ = &field;
   const int ni = field.ni();
@@ -139,7 +139,7 @@ void OpGradFluxQuickIJKScalar_double::calculer_grad_flux(const IJK_Field_double&
                                                          const IJK_Field_double& vx,
                                                          const IJK_Field_double& vy,
                                                          const IJK_Field_double& vz,
-                                                         FixedVector<IJK_Field_double, 3>& result)
+                                                         IJK_Field_vector3_double& result)
 {
   input_velocity_x_ = &vx;
   input_velocity_y_ = &vy;

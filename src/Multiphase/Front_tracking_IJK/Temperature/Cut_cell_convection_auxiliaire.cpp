@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Cut_cell_convection_auxiliaire.h>
+#include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_Thermal_base.h>
 #include <Process.h>
@@ -58,7 +59,7 @@ void Cut_cell_convection_auxiliaire::set_param(Param& param)
   Cut_cell_schema_auxiliaire::set_param(param);
 }
 
-double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -121,7 +122,7 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
     }
 }
 
-double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -183,15 +184,15 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
 }
 
 
-void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_centre(double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_scalar& cut_field_temperature, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face)
+void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_centre(double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature, FixedVector<IJK_Field_vector3_double, 2>& temperature_face)
 {
   const bool next_time = false;
 
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
   const IJK_Field_double& surface_interface = next_time ? cut_cell_disc.get_interfaces().get_surface_interface_next() : cut_cell_disc.get_interfaces().get_surface_interface_old();
 
-  const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
-  const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
+  const IJK_Field_vector3_double& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
+  const IJK_Field_vector3_double& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
 
   double dx = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(0);
   double dy = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(1);
@@ -249,7 +250,7 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_centre(doub
     }
 }
 
-void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(double lambda_liquid, double lambda_vapour, const ArrOfDouble& interfacial_temperature, const ArrOfDouble& interfacial_phin_ai, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ns)
+void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(double lambda_liquid, double lambda_vapour, const ArrOfDouble& interfacial_temperature, const ArrOfDouble& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns)
 {
   const bool next_time = false;
 
@@ -277,8 +278,8 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(dou
     int offset_y = s.get_offset_local(DIRECTION_J);
     int offset_z = s.get_offset_local(DIRECTION_K);
 
-    const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
-    const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
+    const IJK_Field_vector3_double& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
+    const IJK_Field_vector3_double& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
 
     const int ni_ft = temperature_face_ft[0][0].ni();
     const int nj_ft = temperature_face_ft[0][0].nj();
@@ -420,7 +421,7 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(dou
     }
 }
 
-void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ft, FixedVector<FixedVector<IJK_Field_double, 3>, 2>& temperature_face_ns, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity)
+void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity)
 {
   const bool next_time = false;
 
@@ -451,8 +452,8 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette_int
     int offset_y = s.get_offset_local(DIRECTION_J);
     int offset_z = s.get_offset_local(DIRECTION_K);
 
-    const FixedVector<IJK_Field_double, 3>& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
-    const FixedVector<IJK_Field_double, 3>& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
+    const IJK_Field_vector3_double& old_indicatrice_surfacique_face  = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_old();
+    const IJK_Field_vector3_double& next_indicatrice_surfacique_face = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_face_next();
 
     const int ni_ft = temperature_face_ft[0][0].ni();
     const int nj_ft = temperature_face_ft[0][0].nj();

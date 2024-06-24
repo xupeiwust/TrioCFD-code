@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblems.h>
+#include <IJK_Field_vector.h>
 #include <IJK_FT.h>
 #include <IJK_switch_FT.h>
 #include <IJK_Bubble_tools.h>
@@ -258,8 +259,8 @@ void IJK_One_Dimensional_Subproblems::associate_sub_problem_to_inputs(IJK_Therma
                                                                       double global_time_step,
                                                                       double current_time,
                                                                       const IJK_Interfaces& interfaces,
-                                                                      const FixedVector<IJK_Field_double, 3>& velocity,
-                                                                      const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                                                      const IJK_Field_vector3_double& velocity,
+                                                                      const IJK_Field_vector3_double& velocity_ft,
                                                                       const IJK_Field_double& pressure)
 {
   if (!init_ && subproblems_counter_ > max_subproblems_ && (pre_initialise_thermal_subproblems_list_ && !remove_append_subproblems_))
@@ -669,10 +670,10 @@ void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
     }
 }
 
-void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux_correction(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
                                                                                 FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                                                 ArrOfDouble& thermal_flux_out,
-                                                                                FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current)
+                                                                                IJK_Field_vector3_double& interfacial_heat_flux_current)
 {
 
   for (int c=0; c<3; c++)
@@ -775,7 +776,7 @@ void IJK_One_Dimensional_Subproblems::share_interfacial_heat_flux_correction_on_
 
 void IJK_One_Dimensional_Subproblems::retrieve_interfacial_heat_flux_correction_on_procs(const FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                                                          const ArrOfDouble& thermal_flux_out,
-                                                                                         FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched)
+                                                                                         IJK_Field_vector3_double& interfacial_heat_flux_dispatched)
 {
   const int ni = ref_ijk_ft_->itfce().I().ni();
   const int nj = ref_ijk_ft_->itfce().I().nj();
@@ -804,7 +805,7 @@ void IJK_One_Dimensional_Subproblems::retrieve_interfacial_heat_flux_correction_
     }
 }
 
-void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+void IJK_One_Dimensional_Subproblems::dispatch_interfacial_heat_flux(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
                                                                      FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                                                      FixedVector<ArrOfDouble, 3>& thermal_flux_out)
 {
@@ -1165,7 +1166,7 @@ DoubleVect IJK_One_Dimensional_Subproblems::get_temperature_gradient_times_condu
   return one_dimensional_effective_subproblems_[i]->get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(dist, level, dir);
 }
 
-void IJK_One_Dimensional_Subproblems::compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+void IJK_One_Dimensional_Subproblems::compare_fluxes_thermal_subproblems(const IJK_Field_vector3_double& convective_diffusive_fluxes_raw,
                                                                          const int flux_type,
                                                                          const int inv_sign)
 {

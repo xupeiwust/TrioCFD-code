@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <stat_counters.h>
 #include <DebogIJK.h>
@@ -1007,7 +1008,7 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
 
 
 // Mettre rk_step = -1 si schema temps different de rk3.
-void IJK_Thermal_base::calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_gfm_temperature = statistiques().new_counter(2, "GFM - Temperature");
   static Stat_Counter_Id cnt_temperature_grad_hess = statistiques().new_counter(2, "Gradient and Hessian Temperature calculation");
@@ -1384,7 +1385,7 @@ void IJK_Thermal_base::compute_temperature_hessian_cross_elem()
     Cerr << "The temperature gradient at the cell centres is not computed" << finl;
 }
 
-void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermal_base::compute_temperature_convective_fluxes(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_convective_flux_balance = statistiques().new_counter(2, "Thermal flux balance - Convection");
   static Stat_Counter_Id cnt_convective_flux_balance_op = statistiques().new_counter(3, "Thermal flux balance - Convection operator");
@@ -1433,7 +1434,7 @@ void IJK_Thermal_base::compute_temperature_convective_fluxes(const FixedVector<I
 
 // Convect temperature field by the velocity.
 // The output is stored in *d_temperature_ (it is a volume integral over the CV)
-void IJK_Thermal_base::compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermal_base::compute_temperature_convection(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(2, "FT convection temperature");
   static Stat_Counter_Id cnt_conv_temp_op = statistiques().new_counter(3, "FT convection temperature operator");
@@ -2186,7 +2187,7 @@ void IJK_Thermal_base::calculer_ecart_T_ana()
     }
 }
 
-void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T)
+void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T)
 {
   if ((liste_post_instantanes_.contient_("GRAD_T") || (calulate_grad_T_)))
     {

@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #ifndef RK3_IJK_H
 #define RK3_IJK_H
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <IJK_Splitting.h>
 #include <Operateur_IJK_faces_conv.h>
@@ -116,8 +116,8 @@ protected:
 
   // Inconnues du probleme (a sauvegarder et a reprendre)
   // Velocity field:
-  FixedVector<IJK_Field_double, 3> velocity_;
-  FixedVector<IJK_Field_double, 3> velocity_tmp_;
+  IJK_Field_vector3_double velocity_;
+  IJK_Field_vector3_double velocity_tmp_;
 
   // Fonction level set
   //IJK_Field_double fonction_levelset_;
@@ -135,7 +135,7 @@ protected:
 
 
   // Temporary storage for the derivative
-  FixedVector<IJK_Field_double, 3> d_velocity_;
+  IJK_Field_vector3_double d_velocity_;
 
   IJK_Field_double d_rho_field_;
   //IJK_Field_double d_fonction_levelset_;

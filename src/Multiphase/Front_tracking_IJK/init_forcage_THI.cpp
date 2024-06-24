@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <init_forcage_THI.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <string>
 #include <iostream>
@@ -97,7 +98,7 @@ void init_forcage_THI::compute_initial_chouippe(int my_nproc_tot,
                                                 int my_ni, int my_nj, int my_nk,
                                                 const IJK_Splitting& splitting_,
                                                 Nom nom_sauvegarde)
-// FixedVector<IJK_Field_double, 3> v_)
+// IJK_Field_vector3_double v_)
 {
   double Lx(my_geom.get_domain_length(DIRECTION_I));
   double Ly(my_geom.get_domain_length(DIRECTION_J));
@@ -252,13 +253,13 @@ ArrOfDouble init_forcage_THI::get_b_flt()
 
 }
 
-FixedVector<IJK_Field_double, 3> init_forcage_THI::get_force_ph()
+IJK_Field_vector3_double init_forcage_THI::get_force_ph()
 {
   return f_ph_THI.get_force_attribute();
 }
 
 
-FixedVector<IJK_Field_double, 3>& init_forcage_THI::get_force_ph2()
+IJK_Field_vector3_double& init_forcage_THI::get_force_ph2()
 {
   return f_ph_THI.get_force_attribute2();
 }

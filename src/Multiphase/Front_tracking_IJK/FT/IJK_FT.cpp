@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_FT.h>
+#include <IJK_Field_vector.h>
 #include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
@@ -322,7 +323,7 @@ void IJK_FT::run()
 
           if (!disable_diphasique_)
             {
-              FixedVector<IJK_Field_double, 3>& coords = post_.coords();
+              IJK_Field_vector3_double& coords = post_.coords();
 
               // Calcul du potentiel.
               for (int dir = 0; dir < 3; dir++)

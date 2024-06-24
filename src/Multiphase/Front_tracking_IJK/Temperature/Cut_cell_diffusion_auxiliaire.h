@@ -70,8 +70,8 @@ public:
 public:
   void set_param(Param& param);
 
-  double dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
-  double small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature) override;
+  double dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
+  double small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
 
   void calculer_flux_interface(bool next_time,
                                double lambda_liquid,
@@ -79,7 +79,7 @@ public:
                                Facettes_data& coord_facettes,
                                Facettes_data& interfacial_temperature,
                                DoubleTabFT& interfacial_phin_ai,
-                               const Cut_field_scalar& cut_field_temperature,
+                               const Cut_field_double& cut_field_temperature,
                                REF(IJK_FT_cut_cell)& ref_ijk_ft,
                                const IJK_Field_double& temperature_ns,
                                IJK_Field_double& temperature_ft);
@@ -88,7 +88,7 @@ public:
                                     Facettes_data& coord_facettes,
                                     Facettes_data& interfacial_temperature,
                                     DoubleTabFT& interfacial_phin_ai,
-                                    const Cut_field_scalar& cut_field_temperature,
+                                    const Cut_field_double& cut_field_temperature,
                                     REF(IJK_FT_cut_cell)& ref_ijk_ft,
                                     const IJK_Field_double& temperature_ns,
                                     IJK_Field_double& temperature_ft);
@@ -97,7 +97,7 @@ public:
                                    Facettes_data& coord_facettes,
                                    Facettes_data& interfacial_temperature,
                                    DoubleTabFT& interfacial_phin_ai,
-                                   const Cut_field_scalar& cut_field_temperature,
+                                   const Cut_field_double& cut_field_temperature,
                                    REF(IJK_FT_cut_cell)& ref_ijk_ft,
                                    const IJK_Field_double& temperature_ns,
                                    IJK_Field_double& temperature_ft);
@@ -114,7 +114,7 @@ public:
   void compute_interfacial_temperature_cut_cell(bool next_time,
                                                 double lambda_liquid,
                                                 double lambda_vapour,
-                                                const Cut_field_scalar& cut_field_temperature,
+                                                const Cut_field_double& cut_field_temperature,
                                                 const IJK_Grid_Geometry& geom,
                                                 const Maillage_FT_IJK& maillage,
                                                 Facettes_data& coord_facettes,
@@ -123,7 +123,7 @@ public:
   void compute_interfacial_temperature_local_normal(bool next_time,
                                                     double lambda_liquid,
                                                     double lambda_vapour,
-                                                    const Cut_field_scalar& cut_field_temperature,
+                                                    const Cut_field_double& cut_field_temperature,
                                                     const Maillage_FT_IJK& maillage,
                                                     const IJK_Splitting& s,
                                                     const IJK_Interfaces& interfaces,
@@ -131,9 +131,9 @@ public:
                                                     Facettes_data& interfacial_temperature,
                                                     DoubleTabFT& flux_normal_interp);
 
-  void ajout_flux_interface_a_divergence_simple(Cut_field_scalar& cut_field_div_coeff_grad_T_volume);
-  void ajout_flux_interface_a_divergence_etale(Cut_field_scalar& cut_field_div_coeff_grad_T_volume);
-  void etalement_divergence_flux_diffusifs(Cut_field_scalar& cut_field_div_coeff_grad_T_volume, Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp);
+  void ajout_flux_interface_a_divergence_simple(Cut_field_double& cut_field_div_coeff_grad_T_volume);
+  void ajout_flux_interface_a_divergence_etale(Cut_field_double& cut_field_div_coeff_grad_T_volume);
+  void etalement_divergence_flux_diffusifs(Cut_field_double& cut_field_div_coeff_grad_T_volume, Cut_field_double& cut_field_div_coeff_grad_T_volume_temp);
 
   void calcul_temperature_flux_interface(const IJK_Field_double& temperature, const double ldal, const double ldav,
                                          const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,
@@ -144,7 +144,7 @@ public:
                                          DoubleTab& coo_liqu,
                                          DoubleTab& coo_vap);
   void calcul_temperature_flux_interface_cut_cell(bool next_time,
-                                                  const Cut_field_scalar& temperature, const double ldal, const double ldav,
+                                                  const Cut_field_double& temperature, const double ldal, const double ldav,
                                                   const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,
                                                   DoubleTabFT& temperature_interp,
                                                   DoubleTabFT& flux_normal_interp,
@@ -165,7 +165,7 @@ public:
                                                       DoubleTab& coo_liqu_2,
                                                       DoubleTab& coo_vap_2);
   void calcul_temperature_flux_interface_cut_cell_second_order(bool next_time,
-                                                               const Cut_field_scalar& temperature, const double ldal, const double ldav,
+                                                               const Cut_field_double& temperature, const double ldal, const double ldav,
                                                                const double dist_1, const double dist_2, const DoubleTab& positions, const DoubleTab& normal_on_interf,
                                                                DoubleTabFT& temperature_interp,
                                                                DoubleTabFT& flux_normal_interp,
@@ -177,7 +177,7 @@ public:
                                                                DoubleTab& coo_vap_1,
                                                                DoubleTab& coo_liqu_2,
                                                                DoubleTab& coo_vap_2);
-  void calcul_temperature_flux_interface_local_normal(const Cut_field_scalar& temperature, const double ldal, const double ldav,
+  void calcul_temperature_flux_interface_local_normal(const Cut_field_double& temperature, const double ldal, const double ldav,
                                                       const Vecteur3& position_centre_cell, const Vecteur3& positions, const Vecteur3& normal_on_interf,
                                                       double& temperature_interp, double& flux_normal_interp);
 

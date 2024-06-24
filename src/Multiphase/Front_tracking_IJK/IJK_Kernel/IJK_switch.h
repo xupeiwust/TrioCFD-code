@@ -17,7 +17,7 @@
 #define IJK_SWITCH_H
 
 #include <IJK_Splitting.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <Interprete.h>
 #include <Linear_algebra_tools.h>
 #include <Param.h>
@@ -102,8 +102,8 @@ protected:
   int perio_k_ = 1;
 
   // vitesses
-  FixedVector<IJK_Field_double, 3> new_velocity_;
-  FixedVector<IJK_Field_double, 3> old_velocity_;
+  IJK_Field_vector3_double new_velocity_;
+  IJK_Field_vector3_double old_velocity_;
 
   // masse volumiques
   IJK_Field_double new_rho_;

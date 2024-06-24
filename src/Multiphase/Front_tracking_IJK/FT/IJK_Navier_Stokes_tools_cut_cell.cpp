@@ -181,7 +181,7 @@ Vecteur3 compute_lambda(int index_vertex0, int index_vertex1, int index_vertex2,
   return lambda_vec;
 }
 
-static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, const Cut_field_scalar& field, const double coordinates[3], ArrOfDouble& result, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, const Cut_field_double& field, const double coordinates[3], ArrOfDouble& result, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
 
@@ -415,7 +415,7 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
     }
 }
 
-static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
   if (Process::me() > 0)
     {
@@ -808,7 +808,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
 }
 
 // Interpolate the "field" at the requested "coordinates" (array with 3 columns), and stores into "result"
-static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
+static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, const Cut_field_double& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
 {
   const int nb_coords = coordinates.dimension(0);
   result.resize_array(nb_coords);
@@ -822,29 +822,29 @@ static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, c
     }
 }
 
-void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points)
+void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_field_double& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points)
 {
   ijk_interpolate_cut_cell_implementation(next_time, phase, field, coordinates, result, 1 /* yes:skip unknown points */, value_for_bad_points);
 }
 
-void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_scalar& field, const DoubleTab& coordinates, ArrOfDouble& result)
+void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_double& field, const DoubleTab& coordinates, ArrOfDouble& result)
 {
   ijk_interpolate_cut_cell_implementation(next_time, phase, field, coordinates, result, 0 /* skip unknown points=no */, 0.);
 }
 
-double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 1, value_for_bad_points, status);
   return interpolated_value;
 }
 
-double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_scalar& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status)
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 0, 0., status);
   return interpolated_value;
 }
 
-void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& v)
+void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_double& dv, Cut_field_double& v)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   const double delta_t = timestep;
@@ -882,7 +882,7 @@ void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time,
     }
 }
 
-void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1006,7 +1006,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_sc
     };
 }
 
-void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_scalar& dv, Cut_field_scalar& v)
+void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_double& dv, Cut_field_double& v)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   const double delta_t = timestep;
@@ -1047,7 +1047,7 @@ void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_s
     }
 }
 
-void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_field_scalar& F, Cut_field_scalar& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1183,7 +1183,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_scalar& dv, Cut_fiel
     };
 }
 
-void cut_cell_switch_field_time(Cut_field_scalar& v)
+void cut_cell_switch_field_time(Cut_field_double& v)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = v.get_cut_cell_disc();
   const int imax = v.ni();

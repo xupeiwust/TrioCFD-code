@@ -23,6 +23,7 @@
 #define IJK_One_Dimensional_Subproblems_included
 
 #include <IJK_One_Dimensional_Subproblem.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Finite_Difference_One_Dimensional_Matrix_Assembler.h>
 #include <TRUSTList.h>
 #include <TRUST_List.h>
@@ -87,8 +88,8 @@ public :
                                        double global_time_step,
                                        double current_time,
                                        const IJK_Interfaces& interfaces,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
-                                       const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                       const IJK_Field_vector3_double& velocity,
+                                       const IJK_Field_vector3_double& velocity_ft,
                                        const IJK_Field_double& pressure);
   void store_previous_temperature_indicator_velocities();
   void share_previous_temperature_indicator_velocities();
@@ -183,7 +184,7 @@ public :
                                      const Nom& overall_bubbles_quantities,
                                      const Nom& local_quantities_thermal_probes_time_index_folder);
 
-  void compare_fluxes_thermal_subproblems(const FixedVector<IJK_Field_double, 3>& convective_diffusive_fluxes_raw,
+  void compare_fluxes_thermal_subproblems(const IJK_Field_vector3_double& convective_diffusive_fluxes_raw,
                                           const int flux_type,
                                           const int inv_sign=0);
 
@@ -229,16 +230,16 @@ public :
   void compute_overall_quantities();
   void post_process_overall_bubbles_quantities(const int rank, const Nom& overall_bubbles_quantities);
 
-  void dispatch_interfacial_heat_flux_correction(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+  void dispatch_interfacial_heat_flux_correction(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
                                                  FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                  ArrOfDouble& thermal_flux_out,
-                                                 FixedVector<IJK_Field_double,3>& interfacial_heat_flux_current);
+                                                 IJK_Field_vector3_double& interfacial_heat_flux_current);
   void share_interfacial_heat_flux_correction_on_procs(FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                        ArrOfDouble& thermal_flux_out);
   void retrieve_interfacial_heat_flux_correction_on_procs(const FixedVector<ArrOfInt, 4>& ijk_indices_out,
                                                           const ArrOfDouble& thermal_flux_out,
-                                                          FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched);
-  void dispatch_interfacial_heat_flux(FixedVector<IJK_Field_double,3>& interfacial_heat_flux_dispatched,
+                                                          IJK_Field_vector3_double& interfacial_heat_flux_dispatched);
+  void dispatch_interfacial_heat_flux(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
                                       FixedVector<ArrOfInt, 3>& ijk_indices_out,
                                       FixedVector<ArrOfDouble, 3>& thermal_flux_out);
 

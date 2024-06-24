@@ -161,7 +161,7 @@ class OpDiffIJKScalar_cut_cell_double : public Operateur_IJK_elem_diff_base_doub
 public:
   OpDiffIJKScalar_cut_cell_double() : Operateur_IJK_elem_diff_base_double() {}
   void initialise_cut_cell(bool ignore_small_cells,
-                           FixedVector<Cut_cell_scalar, 3>& cut_cell_flux,
+                           FixedVector<Cut_cell_double, 3>& cut_cell_flux,
                            IJK_Field_int& treatment_count,
                            int& new_treatment)
   {
@@ -178,10 +178,17 @@ public:
     return &(*cut_cell_flux_)[0].get_cut_cell_disc();
   }
 
-  FixedVector<Cut_cell_scalar, 3>* get_cut_cell_flux()
+  FixedVector<Cut_cell_double, 3>* get_cut_cell_flux()
   {
     return cut_cell_flux_;
   }
+
+  void compute_cut_cell_divergence(const FixedVector<Cut_cell_double, 3>& cut_cell_flux,
+                                   const IJK_Field_local_double& flux_x,
+                                   const IJK_Field_local_double& flux_y,
+                                   const IJK_Field_local_double& flux_zmin,
+                                   const IJK_Field_local_double& flux_zmax,
+                                   IJK_Field_double& resu, int k_layer, bool add);
 
   void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
                         const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
@@ -189,16 +196,9 @@ public:
   {
     Operateur_IJK_elem_base_double::Operator_IJK_div(flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
 
-    FixedVector<Cut_cell_scalar, 3>& cut_cell_flux = *get_cut_cell_flux();
+    FixedVector<Cut_cell_double, 3>& cut_cell_flux = *get_cut_cell_flux();
     compute_cut_cell_divergence(cut_cell_flux, flux_x, flux_y, flux_zmin, flux_zmax, resu, k_layer, add);
   }
-
-  inline void compute_cut_cell_divergence(const FixedVector<Cut_cell_scalar, 3>& cut_cell_flux,
-                                          const IJK_Field_local_double& flux_x,
-                                          const IJK_Field_local_double& flux_y,
-                                          const IJK_Field_local_double& flux_zmin,
-                                          const IJK_Field_local_double& flux_zmax,
-                                          IJK_Field_double& resu, int k_layer, bool add);
 
 private:
   void correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir) override;
@@ -209,7 +209,7 @@ private:
 
   bool ignore_small_cells_;
 
-  FixedVector<Cut_cell_scalar, 3> *cut_cell_flux_;
+  FixedVector<Cut_cell_double, 3> *cut_cell_flux_;
 
   IJK_Field_int *treatment_count_;
   int *new_treatment_;

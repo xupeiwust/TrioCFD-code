@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal.h>
+#include <IJK_Field_vector.h>
 #include <IJK_FT.h>
 
 Implemente_instanciable_sans_constructeur( IJK_Thermal, "IJK_Thermal", DERIV(IJK_Thermal_base) ) ;
@@ -429,7 +430,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   Nom nom_grad(oss.str().c_str());
   if (liste_post_instantanes.contient_("GRAD_T") || (liste_post_instantanes.contient_(nom_grad)))
     {
-      const FixedVector<IJK_Field_double, 3>& grad_T = get_grad_T();
+      const IJK_Field_vector3_double& grad_T = get_grad_T();
       n++, dumplata_vector(lata_name, nom_grad, grad_T[0], grad_T[1], grad_T[2], latastep);
     }
   oss.str("");

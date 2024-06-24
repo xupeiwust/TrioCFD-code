@@ -76,7 +76,7 @@ void Cut_cell_diffusion_auxiliaire::set_param(Param& param)
   param.ajouter_flag("deactivate_correction_petites_cellules_diffusion", &deactivate_correction_petites_cellules_diffusion_);
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
 {
   // Transfer the field to FT splitting, needed for compute_interfacial_temperature
   ref_ijk_ft->redistrib_to_ft_elem().redistribute(temperature_ns, temperature_ft);
@@ -209,12 +209,12 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_efficace()
     }
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_next(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_next(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
 {
   calculer_flux_interface(true, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ns, temperature_ft);
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_old(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_scalar& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_old(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
 {
   calculer_flux_interface(false, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ns, temperature_ft);
 }
@@ -304,7 +304,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature2(bool next_t
 void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_cut_cell(bool next_time,
                                                                              double lambda_liquid,
                                                                              double lambda_vapour,
-                                                                             const Cut_field_scalar& cut_field_temperature,
+                                                                             const Cut_field_double& cut_field_temperature,
                                                                              const IJK_Grid_Geometry& geom,
                                                                              const Maillage_FT_IJK& maillage,
                                                                              Facettes_data& coord_facettes,
@@ -388,7 +388,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_local_normal
   bool next_time,
   double lambda_liquid,
   double lambda_vapour,
-  const Cut_field_scalar& cut_field_temperature,
+  const Cut_field_double& cut_field_temperature,
   const Maillage_FT_IJK& maillage,
   const IJK_Splitting& s,
   const IJK_Interfaces& interfaces,
@@ -485,7 +485,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_local_normal
     }
 }
 
-void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_simple(Cut_field_scalar& cut_field_div_coeff_grad_T_volume)
+void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_simple(Cut_field_double& cut_field_div_coeff_grad_T_volume)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_div_coeff_grad_T_volume.get_cut_cell_disc();
   for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
@@ -495,7 +495,7 @@ void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_simple(Cut
     }
 }
 
-void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_etale(Cut_field_scalar& cut_field_div_coeff_grad_T_volume)
+void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_etale(Cut_field_double& cut_field_div_coeff_grad_T_volume)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_div_coeff_grad_T_volume.get_cut_cell_disc();
   const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
@@ -591,7 +591,7 @@ void Cut_cell_diffusion_auxiliaire::ajout_flux_interface_a_divergence_etale(Cut_
     }
 }
 
-void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_field_scalar& cut_field_div_coeff_grad_T_volume, Cut_field_scalar& cut_field_div_coeff_grad_T_volume_temp)
+void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_field_double& cut_field_div_coeff_grad_T_volume, Cut_field_double& cut_field_div_coeff_grad_T_volume_temp)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_div_coeff_grad_T_volume.get_cut_cell_disc();
   const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
@@ -702,7 +702,7 @@ void Cut_cell_diffusion_auxiliaire::etalement_divergence_flux_diffusifs(Cut_fiel
   cut_field_div_coeff_grad_T_volume.add_from(cut_field_div_coeff_grad_T_volume_temp);
 }
 
-double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -755,7 +755,7 @@ double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, 
     }
 }
 
-double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity, const Cut_field_scalar& cut_field_temperature)
+double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const FixedVector<Cut_field_double, 3>& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -847,7 +847,7 @@ void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface(
 }
 
 void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface_cut_cell(
-  bool next_time, const Cut_field_scalar& cut_field_temperature, const double ldal, const double ldav,
+  bool next_time, const Cut_field_double& cut_field_temperature, const double ldal, const double ldav,
   const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,
   DoubleTabFT& temperature_interp,
   DoubleTabFT& flux_normal_interp,
@@ -936,7 +936,7 @@ void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface_second_ord
 }
 
 void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface_cut_cell_second_order(
-  bool next_time, const Cut_field_scalar& cut_field_temperature, const double ldal, const double ldav,
+  bool next_time, const Cut_field_double& cut_field_temperature, const double ldal, const double ldav,
   const double dist_1, const double dist_2, const DoubleTab& positions, const DoubleTab& normal_on_interf,
   DoubleTabFT& temperature_interp,
   DoubleTabFT& flux_normal_interp,
@@ -986,7 +986,7 @@ void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface_cut_cell_s
 }
 
 void Cut_cell_diffusion_auxiliaire::calcul_temperature_flux_interface_local_normal(
-  const Cut_field_scalar& cut_field_temperature, const double ldal, const double ldav,
+  const Cut_field_double& cut_field_temperature, const double ldal, const double ldav,
   const Vecteur3& position_centre_cell, const Vecteur3& positions, const Vecteur3& normal_on_interf,
   double& temperature_interp, double& flux_normal_interp)
 {

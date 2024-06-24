@@ -191,26 +191,6 @@ void force_zero_on_walls(IJK_Field_double& vz)
     }
 }
 
-void allocate_velocity(FixedVector<IJK_Field_double, 3>& v, const IJK_Splitting& s, int ghost, double DU)
-{
-  v[0].allocate(s, IJK_Splitting::FACES_I, ghost);
-  v[1].allocate(s, IJK_Splitting::FACES_J, ghost);
-  v[2].allocate(s, IJK_Splitting::FACES_K, ghost);
-  v[0].get_shear_BC_helpler().set_dU_(DU);
-  v[1].get_shear_BC_helpler().set_dU_(0.);
-  v[2].get_shear_BC_helpler().set_dU_(0.);
-}
-
-void allocate_velocity(FixedVector<IJK_Field_int, 3>& v, const IJK_Splitting& s, int ghost, double DU)
-{
-  v[0].allocate(s, IJK_Splitting::FACES_I, ghost);
-  v[1].allocate(s, IJK_Splitting::FACES_J, ghost);
-  v[2].allocate(s, IJK_Splitting::FACES_K, ghost);
-  v[0].get_shear_BC_helpler().set_dU_(DU);
-  v[1].get_shear_BC_helpler().set_dU_(0.);
-  v[2].get_shear_BC_helpler().set_dU_(0.);
-}
-
 // Interpolate the "field" at the requested "coordinates" (array with 3 columns), and stores into "result"
 static void ijk_interpolate_implementation(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result, int skip_unknown_points, double value_for_bad_points)
 {
@@ -1130,7 +1110,7 @@ static void calculer_rho_harmonic_v_DIR(DIRECTION _DIR_, const IJK_Field_double&
     }
 }
 
-void calculer_rho_v(const IJK_Field_double& rho, const FixedVector<IJK_Field_double, 3>& v, FixedVector<IJK_Field_double, 3>& rho_v)
+void calculer_rho_v(const IJK_Field_double& rho, const IJK_Field_vector3_double& v, IJK_Field_vector3_double& rho_v)
 {
   // Conditions aux limites plans: on suppose que v = 0 sur le plan, alors rho_v sera = 0,
   // donc il n'y a rien a faire.
@@ -1149,7 +1129,7 @@ void calculer_rho_v(const IJK_Field_double& rho, const FixedVector<IJK_Field_dou
 }
 
 // On utilise la moyenne harmonique au lieu de la moyenne arithmetique.
-void calculer_rho_harmonic_v(const IJK_Field_double& rho, const FixedVector<IJK_Field_double, 3>& v, FixedVector<IJK_Field_double, 3>& rho_v)
+void calculer_rho_harmonic_v(const IJK_Field_double& rho, const IJK_Field_vector3_double& v, IJK_Field_vector3_double& rho_v)
 {
   // Conditions aux limites plans: on suppose que v = 0 sur le plan, alors rho_v sera = 0,
   // donc il n'y a rien a faire.
@@ -1353,7 +1333,7 @@ void density_solver_with_rho(IJK_Field_double& velocity, const IJK_Field_double&
 }
 
 // fonction moyenne en temps du champs de vitesse utilise dans le cas de bulles fixes
-void update_integral_velocity(const FixedVector<IJK_Field_double, 3>& v_instant, FixedVector<IJK_Field_double, 3>& v_tmp, const IJK_Field_double& indic, const IJK_Field_double& indic_tmp)
+void update_integral_velocity(const IJK_Field_vector3_double& v_instant, IJK_Field_vector3_double& v_tmp, const IJK_Field_double& indic, const IJK_Field_double& indic_tmp)
 {
   const int ni = indic_tmp.ni();
   const int nj = indic_tmp.nj();

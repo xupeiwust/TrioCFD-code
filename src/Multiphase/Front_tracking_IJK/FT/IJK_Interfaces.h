@@ -23,7 +23,7 @@
 #define IJK_Interfaces_included
 
 #include <Connectivite_frontieres.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h> // est-ce que j'en ai vraiment besoin ?
 #include <Linear_algebra_tools_impl.h>
 #include <Maillage_FT_IJK.h>
@@ -110,7 +110,7 @@ public :
                                    const int first_step_interface_smoothing = 0);
   void calculer_vitesse_de_deformation(int compo,
                                        const DoubleTab& bounding_box_bulles,
-                                       const FixedVector<Cut_field_scalar, 3>& cut_field_velocity,
+                                       const FixedVector<Cut_field_double, 3>& cut_field_velocity,
                                        const DoubleTab& vitesses_translation_bulles,
                                        const DoubleTab& mean_bubble_rotation_vector,
                                        const DoubleTab& positions_bulles);
@@ -136,9 +136,9 @@ public :
 
   void compute_vinterp();
   // methode pour bulles fixes
-  void compute_external_forces_(FixedVector<IJK_Field_double, 3>& rappel_ft,
-                                FixedVector<IJK_Field_double, 3>& rappel,
-                                const FixedVector<IJK_Field_double, 3>& vitesse,
+  void compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
+                                IJK_Field_vector3_double& rappel,
+                                const IJK_Field_vector3_double& vitesse,
                                 const IJK_Field_double& indic_ns,
                                 const IJK_Field_double& indic_ft,
                                 const double coef_immo,
@@ -149,13 +149,13 @@ public :
                                 double compteur,
                                 double coef_mean_force,
                                 double coef_force_time_n);
-  void compute_external_forces_parser(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_parser(IJK_Field_vector3_double& rappel,
                                       const IJK_Field_double& indic_ns,
                                       const DoubleTab& individual_forces,
                                       const ArrOfDouble& volume_reel,
                                       const DoubleTab& position,
                                       const double coef_rayon_force_rappel);
-  void compute_external_forces_color_function(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_color_function(IJK_Field_vector3_double& rappel,
                                               const IJK_Field_double& indic_ns,
                                               const IJK_Field_double& indic_ft,
                                               DoubleTab& individual_forces,
@@ -172,9 +172,9 @@ public :
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
 
-  void calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_scalar, 3>& remeshing_velocity);
-  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_scalar, 3>& total_velocity);
-  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_scalar, 3>& velocity);
+  void calcul_vitesse_remaillage(double timestep, FixedVector<Cut_field_double, 3>& remeshing_velocity);
+  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const FixedVector<Cut_field_double, 3>& total_velocity);
+  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const FixedVector<Cut_field_double, 3>& velocity);
   void calcul_surface_efficace_face_initial();
   void calcul_surface_efficace_interface_initial();
 
@@ -353,7 +353,7 @@ public :
 
   void calculer_normales_et_aires_interfaciales(IJK_Field_double& ai,
                                                 IJK_Field_double& kappa_ai,
-                                                FixedVector<IJK_Field_double, 3>& normale_cell,
+                                                IJK_Field_vector3_double& normale_cell,
                                                 const int igroup) const;
 
   int compute_list_compo_connex_in_element(const Maillage_FT_IJK& mesh,
@@ -389,7 +389,7 @@ public :
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
                                              IJK_Field_double& kappa_ai,
-                                             FixedVector<IJK_Field_double, 3>& normale_cell) const;
+                                             IJK_Field_vector3_double& normale_cell) const;
 
   void compute_drapeaux_vapeur_v2(const IntVect& vecteur_composantes,
                                   ArrOfInt& drapeau_liquide) const;
@@ -403,9 +403,9 @@ public :
   void convert_to_IntVect(const ArrOfInt& in, IntVect& out) const;
 
   void ajouter_terme_source_interfaces(
-    FixedVector<IJK_Field_double, 3>& vpoint,
-    FixedVector<IJK_Field_double, 3>& vrepul,
-    FixedVector<IJK_Field_double, 3>& vabsrepul
+    IJK_Field_vector3_double& vpoint,
+    IJK_Field_vector3_double& vrepul,
+    IJK_Field_vector3_double& vabsrepul
   ) const;
 
   void remailler_interface(const double temps,
@@ -442,20 +442,20 @@ public :
     return surface_interface_ns_[next()];
   }
 
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_old_ft() const
+  const IJK_Field_vector3_double& get_barycentre_phase1_old_ft() const
   {
     return barycentre_phase1_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_old() const
+  const IJK_Field_vector3_double& get_barycentre_phase1_old() const
   {
     return barycentre_phase1_ns_[old()];
   }
 
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_next_ft() const
+  const IJK_Field_vector3_double& get_barycentre_phase1_next_ft() const
   {
     return barycentre_phase1_ft_[next()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_barycentre_phase1_next() const
+  const IJK_Field_vector3_double& get_barycentre_phase1_next() const
   {
     return barycentre_phase1_ns_[next()];
   }
@@ -612,23 +612,23 @@ public :
   }
 
   // Getter des surfaces par face
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face_ft() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const
   {
     return surface_vapeur_par_face_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face() const
   {
     return surface_vapeur_par_face_ns_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_ft() const
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_ft() const
   {
     return indicatrice_surfacique_face_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_old() const
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_old() const
   {
     return indicatrice_surfacique_face_ns_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_indicatrice_surfacique_face_next() const
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_next() const
   {
     return indicatrice_surfacique_face_ns_[next()];
   }
@@ -653,13 +653,13 @@ public :
     return coord_deplacement_interface_;
   }
   // Getter des surfaces par face
-  // void get_surface_vapeur_par_face_ns(FixedVector<IJK_Field_double, 3> &surfs) const ;
+  // void get_surface_vapeur_par_face_ns(IJK_Field_vector3_double &surfs) const ;
   // Getter des barycentres par face
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face_ft() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face_ft() const
   {
     return barycentre_vapeur_par_face_[old()];
   }
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face() const
   {
     return barycentre_vapeur_par_face_ns_[old()];
   }
@@ -714,7 +714,7 @@ public :
   static void mean_over_compo(
     const FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& field_for_compo,
     const IJK_Field_int& nb_compo_traversante,
-    FixedVector<IJK_Field_double, 3>& mean_par_compo_field
+    IJK_Field_vector3_double& mean_par_compo_field
   )
   {
     const int ni = nb_compo_traversante.ni();
@@ -782,8 +782,8 @@ public :
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
   const double& In_ft(const int i, const int j, const int k) const { return indicatrice_ft_[next()](i, j, k); }
 
-  const FixedVector<IJK_Field_double, 3>& BoI() const { return bary_of_interf_ns_[old()]; }
-  const FixedVector<IJK_Field_double, 3>& BoIn() const { return bary_of_interf_ns_[next()]; }
+  const IJK_Field_vector3_double& BoI() const { return bary_of_interf_ns_[old()]; }
+  const IJK_Field_vector3_double& BoIn() const { return bary_of_interf_ns_[next()]; }
 
   const IJK_Field_double& I() const { return indicatrice_ns_[old()]; }
   const IJK_Field_double& In() const { return indicatrice_ns_[next()]; }
@@ -851,19 +851,19 @@ public :
     return res;
   }
 
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
   {
     return groups_indicatrice_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
   {
     return groups_indicatrice_ns_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
   {
     return groups_indicatrice_ft_[next()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
   {
     return groups_indicatrice_ns_[next()];
   }
@@ -956,8 +956,8 @@ public :
   void calculer_indicatrice_intermediaire(
     IJK_Field_double& indicatrice_intermediaire_ft_,
     IJK_Field_double& indicatrice_intermediaire_ns_,
-    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ft_,
-    FixedVector<IJK_Field_double, 3>& indicatrice_surfacique_intermediaire_face_ns_,
+    IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ft_,
+    IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ns_,
     const bool parcourir = true
   );
   void calculer_indicatrice_avant_remaillage(const bool parcourir = true)
@@ -1119,8 +1119,8 @@ protected:
 
   void calculer_indicatrice(IJK_Field_double& indic);
   void calculer_indicatrice_optim(IJK_Field_double& indic);
-  void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
-  void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
+  void calculer_indicatrices(IJK_Field_vector3_double& indic);
+  void calculer_indicatrices_optim(IJK_Field_vector3_double& indic);
 
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
@@ -1129,9 +1129,9 @@ protected:
   int update_indicatrice(IJK_Field_double& indic);
 
   void calculer_surface_interface(IJK_Field_double& surf_interface, IJK_Field_double& indic);
-  void calculer_barycentre(FixedVector<IJK_Field_double, 3>& baric, IJK_Field_double& indic);
-  void calculer_indicatrice_surfacique_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
-  void calculer_indicatrice_surfacique_barycentre_face(FixedVector<IJK_Field_double, 3>& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, FixedVector<IJK_Field_double, 3>& norme);
+  void calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Field_double& indic);
+  void calculer_indicatrice_surfacique_face(IJK_Field_vector3_double& indic_surfacique_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme);
+  void calculer_indicatrice_surfacique_barycentre_face(IJK_Field_vector3_double& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme);
 
 
   // Cette methode appelle la methode statique get_maillage_MED_from_IJK_FT sur
@@ -1263,8 +1263,8 @@ protected:
   ArrOfDouble var_volume_remaillage_;   // Variation de volume cible pour l'operation de remaillage
   ArrOfDouble var_volume_correction_globale_;  // Variation de volume cible pour la correction globale de volume
 
-  FixedVector<Cut_field_scalar, 3> cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
-  FixedVector<IJK_Field_double, 3> deformation_velocity_;
+  FixedVector<Cut_field_double, 3> cut_field_deformation_velocity_; // Champ de vitesse associee a la deformation de la bulle
+  IJK_Field_vector3_double deformation_velocity_;
 
   // Algorithmes de parcours de l'interface (intersections Eulerien/Lagrangien)
   Parcours_interface parcours_;
@@ -1338,19 +1338,19 @@ protected:
   bool is_diphasique_ = true;
 
   // Surfaces vapeur des faces du maillage IJK
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_ns_;
 
   // Normale de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_ns_;
   // Barycentre de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_ns_;
 
   // Barycentres vapeur des faces du maillage IJK
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_;
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_ns_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_ns_;
 
   /////////////////////////////////////
   // indicatrice et var moy par cell //
@@ -1376,34 +1376,34 @@ protected:
   FixedVector<IJK_Field_double, 2> surface_interface_ns_;
   FixedVector<IJK_Field_double, 2> surface_interface_ft_;
 
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ns_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> barycentre_phase1_ft_;
+  FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ft_;
 
   // Indicatrice surfacique aux faces du maillage cartesien,
   // indiquant la fraction de la surface de chaque face associee a la phase.
   // Note : similaire a surface_vapeur_par_face_, mais sans medcoupling.
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ns_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> indicatrice_surfacique_face_ft_;
+  FixedVector<IJK_Field_vector3_double, 2> indicatrice_surfacique_face_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> indicatrice_surfacique_face_ft_;
 
   // Indicatrice surfacique apres la deformation de l'interface mais avant le remaillage/lissage de l'interface
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_avant_remaillage_face_ns_;
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_avant_remaillage_face_ft_;
+  IJK_Field_vector3_double indicatrice_surfacique_avant_remaillage_face_ns_;
+  IJK_Field_vector3_double indicatrice_surfacique_avant_remaillage_face_ft_;
 
   // Indicatrice surfacique apres le remaillage/lissage de l'interface mais avant le deplacement rigide (pas utilisee)
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_apres_remaillage_face_ns_;
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_apres_remaillage_face_ft_;
+  IJK_Field_vector3_double indicatrice_surfacique_apres_remaillage_face_ns_;
+  IJK_Field_vector3_double indicatrice_surfacique_apres_remaillage_face_ft_;
 
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ns_;
   FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ft_;
 
   // On prevoie un tableau assez grand pour contenir tous les groupes.
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
 
 #if VERIF_INDIC
   // pour verifier le calcul optimise de l'indicatrice
   IJK_Field_double indicatrice_ft_test_;
-  FixedVector<IJK_Field_double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
+  IJK_Field_vector<double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
 #endif
 
   // Vecteur des composantes normale dans chaque cellule par composante connexe
@@ -1443,7 +1443,7 @@ protected:
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
   DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
   DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
-  FixedVector<IJK_Field_double, 3> indicatrice_surfacique_efficace_deformation_face_; // ne peut etre sur la structure diphasique, car cree et utilisee avant
+  IJK_Field_vector3_double indicatrice_surfacique_efficace_deformation_face_; // ne peut etre sur la structure diphasique, car cree et utilisee avant
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_;
   DoubleTabFT_cut_cell_scalar surface_efficace_interface_initial_;
   DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;

@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermique.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <DebogIJK.h>
@@ -616,7 +617,7 @@ void IJK_Thermique::rk3_sub_step(const int rk_step, const double total_timestep,
 
 
 // Mettre rk_step = -1 si schema temps different de rk3.
-void IJK_Thermique::calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermique::calculer_dT(const IJK_Field_vector3_double& velocity)
 {
   const double current_time = ref_ijk_ft_->get_current_time();
   const double ene_ini = compute_global_energy(d_temperature_);
@@ -673,7 +674,7 @@ void IJK_Thermique::calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity
 
 // Convect temperature field by velocity.
 // The output is stored in d_temperature_ (it is a volume integral over the CV)
-void IJK_Thermique::compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermique::compute_temperature_convection(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho");
   statistiques().begin_count(cnt_conv_temp);
@@ -722,7 +723,7 @@ void IJK_Thermique::compute_temperature_convection(const FixedVector<IJK_Field_d
   return;
 }
 
-void IJK_Thermique::compute_temperature_convection_conservative(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermique::compute_temperature_convection_conservative(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho");
   statistiques().begin_count(cnt_conv_temp);
@@ -1611,7 +1612,7 @@ Cerr << finl ;
 }
 } */
 
-void IJK_Thermique::calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T)
+void IJK_Thermique::calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T)
 {
   // Remise a zero :
   for (int dir = 0; dir < 3; dir++)
@@ -1635,7 +1636,7 @@ void IJK_Thermique::calculer_gradient_temperature(const IJK_Field_double& temper
 void IJK_Thermique::compute_interfacial_temperature(
   ArrOfDouble& interfacial_temperature,
   ArrOfDouble& interfacial_phin_ai,
-  FixedVector<IJK_Field_double, 3> storage) const
+  IJK_Field_vector3_double storage) const
 {
   const IJK_Splitting& s =temperature_ft_.get_splitting();
   // Comme un cell_vector (ie cell-centered) mais en local :
@@ -1836,7 +1837,7 @@ double IJK_Thermique::compute_global_energy(const IJK_Field_double& temperature)
   return global_energy;
 }
 
-void IJK_Thermique::compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity)
+void IJK_Thermique::compute_T_rust(const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho cp");
   statistiques().begin_count(cnt_conv_temp);

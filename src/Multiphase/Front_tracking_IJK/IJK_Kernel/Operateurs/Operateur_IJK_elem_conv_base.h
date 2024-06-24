@@ -17,6 +17,7 @@
 #define Operateur_IJK_elem_conv_base_included
 
 #include <IJK_Splitting.h>
+#include <IJK_Field_vector.h>
 #include <Operateur_IJK_base.h>
 #include <Cut_cell_FT_Disc.h>
 #include <Cut_cell_convection_auxiliaire.h>
@@ -89,7 +90,7 @@ protected:
   bool is_grad_;
   bool is_flux_;
   Vecteur3 velocity_frame_of_reference_ = {0.,0.,0.};
-  FixedVector<IJK_Field_double, 3> * eulerian_normal_vectors_ns_normed_ = nullptr;
+  IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed_ = nullptr;
 
 private:
 

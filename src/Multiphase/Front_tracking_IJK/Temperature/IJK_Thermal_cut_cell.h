@@ -23,6 +23,7 @@
 #define IJK_Thermal_cut_cell_included
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
 #include <IJK_Splitting.h>
@@ -71,36 +72,36 @@ public :
   void euler_time_step(const double timestep) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time) override;
 
-  CutCell_GlobalInfo compute_global_energy_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
-  CutCell_GlobalInfo compute_d_global_energy_cut_cell(Cut_field_scalar& cut_field_d_temperature, bool next);
+  CutCell_GlobalInfo compute_global_energy_cut_cell(Cut_field_double& cut_field_temperature, bool next);
+  CutCell_GlobalInfo compute_d_global_energy_cut_cell(Cut_field_double& cut_field_d_temperature, bool next);
   double compute_global_energy() override
   {
     Cerr << "I want to make sure the function compute_global_energy is not used." << finl;
     Process::exit();
     return 0.;
   }
-  CutCell_GlobalInfo compute_Tmin_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
-  CutCell_GlobalInfo compute_Tmax_cut_cell(Cut_field_scalar& cut_field_temperature, bool next);
+  CutCell_GlobalInfo compute_Tmin_cut_cell(Cut_field_double& cut_field_temperature, bool next);
+  CutCell_GlobalInfo compute_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next);
   void calculer_flux_interface();
 
   void remplir_cellules_diphasiques() override
   {
-    Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+    Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
     cut_field_temperature.remplir_cellules_diphasiques();
   }
   void remplir_cellules_devenant_diphasiques() override
   {
-    Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+    Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
     cut_field_temperature.remplir_cellules_devenant_diphasiques();
   }
   void remplir_cellules_maintenant_pures() override
   {
-    Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+    Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
     cut_field_temperature.remplir_cellules_maintenant_pures();
   }
   void transfert_diphasique_vers_pures() override
   {
-    Cut_field_scalar& cut_field_temperature = static_cast<Cut_field_scalar&>(*temperature_);
+    Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
     cut_field_temperature.transfert_diphasique_vers_pures();
   }
 
@@ -109,8 +110,8 @@ protected :
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 
-  void calculer_dT_cut_cell(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity);
-  void compute_temperature_convection_cut_cell(const FixedVector<Cut_field_scalar, 3>& cut_field_total_velocity);
+  void calculer_dT_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity);
+  void compute_temperature_convection_cut_cell(const FixedVector<Cut_field_double, 3>& cut_field_total_velocity);
   void add_temperature_diffusion() override;
   void compute_diffusion_increment() override;
   void correct_temperature_for_eulerian_fluxes() override { ; };
@@ -119,7 +120,7 @@ protected :
   //Rustine
   double E0_ = 0;//volumique
   IJK_Field_double T_rust_;
-  void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   int type_temperature_convection_form_ = 0;
 
@@ -130,12 +131,12 @@ protected :
 
   std::shared_ptr<IJK_Field_double> div_coeff_grad_T_volume_temp_;
 
-  FixedVector<Cut_cell_scalar, 3> cut_cell_flux_diffusion_;
-  FixedVector<Cut_cell_scalar, 3> cut_cell_flux_convection_;
+  FixedVector<Cut_cell_double, 3> cut_cell_flux_diffusion_;
+  FixedVector<Cut_cell_double, 3> cut_cell_flux_convection_;
 
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> temperature_face_ft_;
+  FixedVector<IJK_Field_vector3_double, 2> temperature_face_;
+  FixedVector<IJK_Field_vector3_double, 2> temperature_face_ft_;
 
   double flux_interfacial_moyen_;
   double temperature_interfaciale_moyenne_;

@@ -22,7 +22,7 @@
 #ifndef init_forcage_THI_included
 #define init_forcage_THI_included
 
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Objet_U.h>
 #include <init_forcage_THI.h>
@@ -48,7 +48,7 @@ public :
                                 int my_ni, int my_nj, int my_nk,
                                 const IJK_Splitting& my_splitting,
                                 Nom nom_sauvegarde);
-  // FixedVector<IJK_Field_double, 3> v_);
+  // IJK_Field_vector3_double v_);
 
   void compute_THI_force(const int time_iteration,
                          const double tstep,
@@ -62,8 +62,8 @@ public :
   int activate_forcage(const int current_time_step, const double current_time);
   int get_semi_gen();
   ArrOfDouble get_b_flt();
-  FixedVector<IJK_Field_double, 3> get_force_ph();
-  FixedVector<IJK_Field_double, 3>& get_force_ph2();
+  IJK_Field_vector3_double get_force_ph();
+  IJK_Field_vector3_double& get_force_ph2();
 
   void update_advection_velocity(ArrOfDouble& value);
   void update_advection_length(double dt);

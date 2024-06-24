@@ -37,6 +37,7 @@
 
 #include <Objet_U.h>
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Splitting.h>
 #include <IJK_Field_forward.h>
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
@@ -148,7 +149,7 @@ protected:
   IntTab ijkf_interfaces_;
   // Le tableau qui donne pour un triplet ijk le numéro de la cellule diphasique
   // correspondante (-1. si la cellule n'est pas diphasique).
-  FixedVector<IJK_Field_int, 3> idiph_ijk_;
+  IJK_Field_vector3_int idiph_ijk_;
 
   // Calcul les positions des points sur l'interface.
   // Les centres de grav des faces mouillées sont projecté

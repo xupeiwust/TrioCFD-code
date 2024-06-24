@@ -40,7 +40,7 @@ Entree& OpHessCentre2IJKScalar_double::readOn( Entree& is )
 }
 
 void OpHessCentre2IJKScalar_double::calculer_hess(const IJK_Field_double& field,
-                                                  FixedVector<IJK_Field_double, 3>& result,
+                                                  IJK_Field_vector3_double& result,
                                                   const IJK_Field_local_double& boundary_flux_kmin,
                                                   const IJK_Field_local_double& boundary_flux_kmax)
 {
@@ -152,7 +152,7 @@ Entree& OpHessFluxCentre2IJKScalar_double::readOn( Entree& is )
 }
 
 void OpHessFluxCentre2IJKScalar_double::calculer_hess_flux(const IJK_Field_double& field,
-                                                           FixedVector<IJK_Field_double, 3>& result,
+                                                           IJK_Field_vector3_double& result,
                                                            const IJK_Field_local_double& boundary_flux_kmin,
                                                            const IJK_Field_local_double& boundary_flux_kmax)
 {

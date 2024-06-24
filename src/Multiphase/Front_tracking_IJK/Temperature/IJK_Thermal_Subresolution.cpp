@@ -3238,8 +3238,8 @@ void IJK_Thermal_Subresolution::interpolate_fields_on_downstream_line(const int&
                                                                       const FixedVector<ArrOfDouble,3>& coordinates_line,
                                                                       const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
                                                                       const IJK_Field_double& field,
-                                                                      const FixedVector<IJK_Field_double,3>& field_gradient,
-                                                                      const FixedVector<IJK_Field_double,3>& velocity,
+                                                                      const IJK_Field_vector3_double& field_gradient,
+                                                                      const IJK_Field_vector3_double& velocity,
                                                                       DoubleVect& values,
                                                                       const int field_type)
 {
@@ -3787,8 +3787,8 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int&
                                                                             FixedVector<IntTab, 2>& ij_indices,
                                                                             FixedVector<DoubleTab, 3>& ij_coords,
                                                                             const IJK_Field_double& field,
-                                                                            const FixedVector<IJK_Field_double,3>& field_gradient,
-                                                                            const FixedVector<IJK_Field_double,3>& velocity,
+                                                                            const IJK_Field_vector3_double& field_gradient,
+                                                                            const IJK_Field_vector3_double& velocity,
                                                                             DoubleTab& values,
                                                                             const int field_type,
                                                                             const int slice_to_nearest_plane,

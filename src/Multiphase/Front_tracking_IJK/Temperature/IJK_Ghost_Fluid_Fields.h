@@ -23,6 +23,7 @@
 #define IJK_Ghost_Fluid_Fields_included
 
 #include <Objet_U.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -85,23 +86,23 @@ public :
     return eulerian_distance_ns_;
   }
 
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ft() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ft() const
   {
     return eulerian_normal_vectors_ft_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_facets_barycentre_ft() const
+  const IJK_Field_vector3_double& get_eulerian_facets_barycentre_ft() const
   {
     return eulerian_facets_barycentre_ft_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ns() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ns() const
   {
     return eulerian_normal_vectors_ns_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ns_normed() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ns_normed() const
   {
     return eulerian_normal_vectors_ns_normed_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_facets_barycentre_ns() const
+  const IJK_Field_vector3_double& get_eulerian_facets_barycentre_ns() const
   {
     return eulerian_facets_barycentre_ns_;
   }
@@ -128,11 +129,11 @@ public :
     return eulerian_rising_velocities_;
   }
 
-  const FixedVector<IJK_Field_int, 3>& get_dummy_int_vect() const
+  const IJK_Field_vector3_int& get_dummy_int_vect() const
   {
     return dummy_int_vect_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_dummy_double_vect() const
+  const IJK_Field_vector3_double& get_dummy_double_vect() const
   {
     return dummy_double_vect_;
   }
@@ -149,14 +150,14 @@ protected :
   IJK_Field_double eulerian_distance_ft_;
   IJK_Field_double eulerian_distance_ns_;
 
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ft_;
-  FixedVector<IJK_Field_double, 3> eulerian_facets_barycentre_ft_;
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ns_;
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ns_normed_;
-  FixedVector<IJK_Field_double, 3> eulerian_facets_barycentre_ns_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ft_;
+  IJK_Field_vector3_double eulerian_facets_barycentre_ft_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ns_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ns_normed_;
+  IJK_Field_vector3_double eulerian_facets_barycentre_ns_;
 
-  FixedVector<IJK_Field_double, 3> tmp_old_vector_val_;
-  FixedVector<IJK_Field_double, 3> tmp_new_vector_val_;
+  IJK_Field_vector3_double tmp_old_vector_val_;
+  IJK_Field_vector3_double tmp_new_vector_val_;
 
   IJK_Field_int tmp_interf_cells_;
   IJK_Field_int tmp_propagated_cells_;
@@ -176,8 +177,8 @@ protected :
 
   IJK_Field_double eulerian_rising_velocities_;
 
-  FixedVector<IJK_Field_int,3> dummy_int_vect_;
-  FixedVector<IJK_Field_double,3> dummy_double_vect_;
+  IJK_Field_vector3_int dummy_int_vect_;
+  IJK_Field_vector3_double dummy_double_vect_;
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
 
