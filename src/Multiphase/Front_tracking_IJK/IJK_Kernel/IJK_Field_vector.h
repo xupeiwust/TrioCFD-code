@@ -18,6 +18,26 @@
 #include <FixedVector.h>
 #include <IJK_Field.h>
 
+/*! @brief The class IJK_Field_vector is a fixed array of polymorphic IJK fields.
+ *
+ * For example, the velocity is a fixed vector with 3 components.
+ * Each component is a (smart) pointer, thus allowing any derived class of IJK_Field_template to be used (this is used for example in cut-cell methods).
+ * 
+ * The bracket '[]' operator allows the direct retrieval of a reference to one of the components.
+ * 
+ * The function IJK_Navier_stokes_tools.h::allocate_velocity() gives an example on how the object is instanciated:
+ * 
+ *       // Construction of the IJK_Field_template objects
+ *       v.get_ptr(0) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();
+ *       v.get_ptr(1) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();
+ *       v.get_ptr(2) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();
+ *     
+ *       // Allocation of the fields
+ *       v[0].allocate(s, IJK_Splitting::FACES_I, ghost);
+ *       v[1].allocate(s, IJK_Splitting::FACES_J, ghost);
+ *       v[2].allocate(s, IJK_Splitting::FACES_K, ghost);                                                   
+ */
+
 template<class T, int N>
 class IJK_Field_vector : FixedVector<std::shared_ptr<IJK_Field_template<T,TRUSTArray<T>>>, N>
 {
