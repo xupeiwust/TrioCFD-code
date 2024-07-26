@@ -165,7 +165,7 @@ void IJK_Thermal::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   ArrOfDouble interfacial_phin_ai;
   // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
   IJK_Field_double& temperature_ft = get_temperature_ft();
-  ref_ijk_ft_->redistribute_to_splitting_ft_elem(get_temperature(), temperature_ft);
+  ref_ijk_ft_->redistribute_to_splitting_ft_elem(*get_temperature(), temperature_ft);
   temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
   //compute_interfacial_temperature(interfacial_temperature, interfacial_phin_ai, get_storage());
   compute_interfacial_temperature2(interfacial_temperature, interfacial_phin_ai);
@@ -260,6 +260,8 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   std::ostringstream oss;
   Motcle lata_suffix = lata_suffix_[thermal_rank_];
 
+  int cut_cell_activated = (thermal_rank_== CUTCELL);
+
   /*
    * TEMPERATURE
    */
@@ -267,14 +269,14 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
 //    Motcles tested_names(1);
 //    tested_names[0] = "TEMPERATURE";
 //    post_process_std_thermal_field(liste_post_instantanes, lata_name, latastep, current_time, idx,
-//  																 tested_names, "TEMPERATURE", lata_suffix, get_temperature(), oss, n);
+//                                   tested_names, "TEMPERATURE", lata_suffix, *get_temperature(), oss, n);
 //  }
 
   oss << "TEMPERATURE_" << lata_suffix << idx;
   Nom nom_temp(oss.str().c_str());
   if ((liste_post_instantanes.contient_("TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
     {
-      n++, dumplata_scalar(lata_name, nom_temp, get_temperature(), latastep);
+      n++, dumplata_scalar_cut_cell(cut_cell_activated, lata_name, nom_temp, get_temperature(), latastep);
     }
   oss.str("");
 
@@ -386,7 +388,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal(const Motcles& liste_pos
   Nom nom_div_lambda_grad_T_volume(oss.str().c_str());
   if ((liste_post_instantanes.contient_("DIV_LAMBDA_GRAD_T_VOLUME") || liste_post_instantanes.contient_(nom_div_lambda_grad_T_volume)))
     {
-      n++, dumplata_scalar(lata_name, nom_div_lambda_grad_T_volume, get_div_lambda_grad_T_volume(), latastep);
+      n++, dumplata_scalar_cut_cell(cut_cell_activated, lata_name, nom_div_lambda_grad_T_volume, get_div_lambda_grad_T_volume(), latastep);
     }
   oss.str("");
 
@@ -1748,7 +1750,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface_ref(const Motc
       ArrOfDouble interfacial_phin;
       // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
       IJK_Field_double& temperature_ft = get_temperature_ft();
-      ref_ijk_ft_->redistribute_to_splitting_ft_elem(get_temperature(), temperature_ft);
+      ref_ijk_ft_->redistribute_to_splitting_ft_elem(*get_temperature(), temperature_ft);
       temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
       // results are prop to the area :
       //itr.compute_interfacial_temperature(interfacial_temperature, interfacial_phin, itr.get_storage());

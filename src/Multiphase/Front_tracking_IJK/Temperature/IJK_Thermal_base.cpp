@@ -171,7 +171,7 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   if ( conv_temperature_negligible_)
     os << front_space << "conv_temperature_negligible" << escape;
   if ( diff_temperature_negligible_)
-    os << front_space << "diff_temp_negligible" << escape;
+    os << front_space << "diff_temperature_negligible" << escape;
   if (ghost_fluid_)
     os << front_space << "ghost_fluid" <<  escape;
   if (spherical_exact_)
@@ -298,12 +298,7 @@ int IJK_Thermal_base::initialize_switch(const IJK_Splitting& splitting, const in
     }
   else
     {
-      Cout << "Reading initial temperature field T" << rang_ <<" from file "
-           << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
-      const Nom& geom_name = splitting.get_grid_geometry().le_nom();
-      lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
-                     *temperature_); // fonction qui lit un champ a partir d'un lata .
-      temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
+      lire_temperature(splitting, idx);
     }
   return nalloc;
 }
@@ -501,11 +496,7 @@ int IJK_Thermal_base::initialize(const IJK_Splitting& splitting, const int idx)
     }
   else
     {
-      Cout << "Reading initial temperature field T"<< rang_<<" from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
-      const Nom& geom_name = splitting.get_grid_geometry().le_nom();
-      lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_")+Nom(idx),
-                     *temperature_); // fonction qui lit un champ a partir d'un lata .
-      temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
+      lire_temperature(splitting, idx);
     }
 
   /*
@@ -1006,6 +997,14 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
  * Protected methods
  ********************************************/
 
+void IJK_Thermal_base::lire_temperature(const IJK_Splitting& splitting, int idx)
+{
+  Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
+  const Nom& geom_name = splitting.get_grid_geometry().le_nom();
+  lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
+                 *temperature_); // fonction qui lit un champ a partir d'un lata .
+  temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
+}
 
 // Mettre rk_step = -1 si schema temps different de rk3.
 void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)

@@ -377,7 +377,6 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("dt_impression_bilan_indicatrice", &dt_impression_bilan_indicatrice_);
   param.ajouter("verbosite_surface_efficace_face", &verbosite_surface_efficace_face_);
   param.ajouter("verbosite_surface_efficace_interface", &verbosite_surface_efficace_interface_);
-  param.ajouter("seuil_indicatrice_petite", &seuil_indicatrice_petite_);
 
   param.ajouter_flag("use_barycentres_velocity", &use_barycentres_velocity_);
   param.ajouter_flag("read_barycentres_velocity", &read_barycentres_velocity_);
@@ -445,6 +444,9 @@ void IJK_Interfaces::activate_cut_cell()
   coord_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   vitesse_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   normale_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+
+  penalisation_surface_resolution_matricielle_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+  numero_de_surface_libre_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
 }
 
 void IJK_Interfaces::imprime_bilan_indicatrice()
@@ -558,10 +560,10 @@ void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE typ
 
   int iteration_solver_surface_efficace_face = 0;
 
-  if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME)
+  if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF)
     {
       // Raffinement de l'estimation initiale la surface efficace des faces
-      Cut_cell_surface_efficace::calcul_surface_face_efficace(
+      Cut_cell_surface_efficace::calcul_surface_face_efficace_iteratif(
         verbosite_surface_efficace_face_,
         timestep,
         total_velocity,
@@ -574,6 +576,22 @@ void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE typ
         indicatrice_surfacique_efficace_face_initial_,
         indicatrice_surfacique_efficace_face_correction_,
         indicatrice_surfacique_efficace_face_absolute_error_);
+    }
+  else if (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_MATRICE)
+    {
+      Cut_cell_surface_efficace::calcul_surface_face_efficace_matrice(
+        verbosite_surface_efficace_face_,
+        timestep,
+        total_velocity,
+        indicatrice_ns_[old()],
+        indicatrice_ns_[next()],
+        indicatrice_surfacique_face_ns_[old()],
+        indicatrice_surfacique_face_ns_[next()],
+        indice_surface_structure_diphasique_,
+        penalisation_surface_resolution_matricielle_,
+        numero_de_surface_libre_,
+        indicatrice_surfacique_efficace_face_,
+        indicatrice_surfacique_efficace_face_initial_);
     }
   Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
     verbosite_surface_efficace_face_,
@@ -592,6 +610,7 @@ void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INT
   // (Appel prealable a calcul_surface_efficace_interface_initial())
 
   Cut_cell_surface_efficace::calcul_surface_interface_efficace_initiale(
+    (type_surface_efficace_interface == TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE),
     indicatrice_ns_[old()],
     indicatrice_ns_[next()],
     surface_interface_ns_[old()],
@@ -635,18 +654,20 @@ void IJK_Interfaces::calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INT
     vitesse_deplacement_interface_);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_face_initial()
+void IJK_Interfaces::calcul_surface_efficace_face_initial(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face)
 {
   Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
+    (type_surface_efficace_face == TYPE_SURFACE_EFFICACE_FACE::EXPLICITE),
     indicatrice_surfacique_face_ns_[old()],
     indicatrice_surfacique_face_ns_[next()],
     indicatrice_surfacique_efficace_face_,
     indicatrice_surfacique_efficace_face_initial_);
 }
 
-void IJK_Interfaces::calcul_surface_efficace_interface_initial()
+void IJK_Interfaces::calcul_surface_efficace_interface_initial(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface)
 {
   Cut_cell_surface_efficace::calcul_surface_interface_efficace_initiale(
+    (type_surface_efficace_interface == TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE),
     indicatrice_ns_[old()],
     indicatrice_ns_[next()],
     surface_interface_ns_[old()],
@@ -2522,6 +2543,7 @@ void IJK_Interfaces::calculer_var_volume_remaillage(double timestep,
   delta_volume_theorique_bilan_ns_.data() = 0.;
 
   Cut_cell_surface_efficace::calcul_surface_face_efficace_initiale(
+    false,
     indicatrice_surfacique_face_ns_[next()], // Pour l'instant, next() est la fin du pas de temps precedent
     indicatrice_surfacique_avant_remaillage_face_ns_,
     indicatrice_surfacique_efficace_deformation_face_,

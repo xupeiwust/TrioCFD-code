@@ -56,6 +56,7 @@ Entree& IJK_FT_cut_cell::interpreter(Entree& is)
 void IJK_FT_cut_cell::run()
 {
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
+  cut_cell_disc_.initialise();
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
 
@@ -490,16 +491,6 @@ void IJK_FT_cut_cell::run()
             compute_add_external_forces(dir);
         }
     }
-
-  // Initialisation des structures cut-cell
-  cut_cell_disc_.initialise(interfaces_.I(), interfaces_.In());
-
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
-  thermals_.remplir_cellules_diphasiques();
-
-  thermals_.recompute_temperature_init();
 
   // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
   if (correction_semi_locale_volume_bulle_)
@@ -1074,6 +1065,14 @@ void IJK_FT_cut_cell::update_twice_indicator_field()
       update_indicator_field();
       update_old_intersections();
     }
+
+  // Mise a jour des structures cut-cell
+  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+
+  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
+  cut_field_velocity[0].remplir_cellules_diphasiques();
+  cut_field_velocity[1].remplir_cellules_diphasiques();
+  cut_field_velocity[2].remplir_cellules_diphasiques();
 }
 
 void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
@@ -1102,8 +1101,8 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   cut_field_velocity[2].remplir_cellules_diphasiques();
   thermals_.transfert_diphasique_vers_pures();
 
-  interfaces_.calcul_surface_efficace_face_initial();
-  interfaces_.calcul_surface_efficace_interface_initial();
+  interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
+  interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
 
   if (!deactivate_remeshing_velocity_)
     {
@@ -1147,8 +1146,8 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   cut_field_velocity[2].remplir_cellules_diphasiques();
   thermals_.transfert_diphasique_vers_pures();
 
-  interfaces_.calcul_surface_efficace_face_initial();
-  interfaces_.calcul_surface_efficace_interface_initial();
+  interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
+  interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
 
   const double fractionnal_timestep = compute_fractionnal_timestep_rk3(timestep, rk_step_);
 

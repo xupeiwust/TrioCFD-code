@@ -175,8 +175,8 @@ public :
   void calcul_vitesse_remaillage(double timestep, Cut_field_vector3_double& remeshing_velocity);
   void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity);
   void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector3_double& velocity);
-  void calcul_surface_efficace_face_initial();
-  void calcul_surface_efficace_interface_initial();
+  void calcul_surface_efficace_face_initial(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face);
+  void calcul_surface_efficace_interface_initial(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface);
 
   // fin de methode pour bulles fixes
   const Domaine_dis& get_domaine_dis() const
@@ -267,6 +267,11 @@ public :
   void set_fichier_reprise(const char *lataname)
   {
     fichier_reprise_interface_ = lataname;
+  };
+
+  void set_seuil_indicatrice_petite(double seuil_indicatrice_petite)
+  {
+    seuil_indicatrice_petite_ = seuil_indicatrice_petite;
   };
 
   Nom get_fichier_reprise()
@@ -1434,7 +1439,7 @@ protected:
   int dt_impression_bilan_indicatrice_ = -1;
   int verbosite_surface_efficace_face_ = 1;
   int verbosite_surface_efficace_interface_ = 1;
-  double seuil_indicatrice_petite_ = 0.025; // 0.01 would often work but not always be stable
+  double seuil_indicatrice_petite_ = -1;
 
   // Pour le calcul des champs cut-cell
   int cut_cell_activated_;
@@ -1448,6 +1453,11 @@ protected:
   DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;
   DoubleTabFT_cut_cell_vector3 vitesse_deplacement_interface_;
   DoubleTabFT_cut_cell_vector3 normale_deplacement_interface_;
+
+  // Variable interne utilisee pour la resolution matricielle des surfaces efficaces
+  IntTab indice_surface_structure_diphasique_;
+  DoubleTabFT_cut_cell_vector3 penalisation_surface_resolution_matricielle_;
+  IntTabFT_cut_cell_vector3 numero_de_surface_libre_;
 };
 
 #endif /* IJK_Interfaces_included */

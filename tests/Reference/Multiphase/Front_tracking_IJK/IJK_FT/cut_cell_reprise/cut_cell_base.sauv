@@ -1,0 +1,170 @@
+{
+ tinit 2.50000000000000000e-01
+ terme_acceleration_init 0.00000000000000000e+00
+ reprise_vap_velocity_tmoy 0.00000000000000000e+00
+ reprise_liq_velocity_tmoy 0.00000000000000000e+00
+ fichier_reprise_vitesse cut_cell_base.sauv.lata
+ timestep_reprise_vitesse 1
+ interfaces {
+   fichier_reprise_interface cut_cell_base.sauv.lata
+   timestep_reprise_interface 1
+   remaillage_ft_ijk {
+     pas_remaillage -1.00000000000000000e+00
+     nb_iter_barycentrage 0
+     relax_barycentrage 1.00000000000000000e+00
+     critere_arete 3.49999999999999978e-01
+     seuil_dvolume_residuel 0.00000000000000000e+00
+     nb_iter_correction_volume 0
+     nb_iter_remaillage 1
+     facteur_longueur_ideale -1.00000000000000000e+00
+     equilateral 1
+     lissage_courbure_coeff -5.00000000000000028e-02
+     lissage_courbure_iterations_systematique 0
+     lissage_courbure_iterations_si_remaillage 0
+   }
+   terme_gravite rho_g 
+  bubble_groups 1
+0 
+  parcours_interface { correction_parcours_thomas } 
+ }
+
+ forcage {
+   type 0
+   facteur 0
+   forced_advection 0
+   advection_velocity 0
+
+   advection_length 3
+0.00000000000000000e+00 0.00000000000000000e+00 0.00000000000000000e+00 
+
+   stops_at_time_step -1
+   stops_at_time -1.00000000000000000e+00
+   minimal_forced_mode 0
+   maximal_forced_mode 0
+   amplitude 1.00000000000000000e+00
+   dissipation 1.00000000000000006e-01
+   temps_grande_echelle 2.00000000000000004e-02
+   random_process {
+ semi_gen_et_modulo_reprise 2
+0 0 
+
+ process_b 0
+
+   }
+
+ }
+
+ corrections_qdm {
+type  none
+ correction_x {
+ type_correction consigne_initiale
+ parametres_cible_constante {
+ vitesse_cible 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_par_morceaux {
+ duree_morceau 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ qdm_integ_partielle 0.00000000000000000e+00
+ last_update_time 0.00000000000000000e+00
+ qdm_reprise 0.00000000000000000e+00
+ v_reprise 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_glissante {
+ duree_intervalle 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ list_index 0
+ offset_list_index 1
+ liste_instants 0
+
+ liste_v_cible_dl 0
+
+ liste_v_cible 0
+
+ duree_effective_morceau_glissant 0.00000000000000000e+00
+ v_cible_en_cours 0.00000000000000000e+00
+ }
+
+ parametres_consigne_initiale {
+ qdm_cible 0.00000000000000000e+00
+ }
+
+ }
+
+ correction_y {
+ type_correction consigne_initiale
+ parametres_cible_constante {
+ vitesse_cible 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_par_morceaux {
+ duree_morceau 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ qdm_integ_partielle 0.00000000000000000e+00
+ last_update_time 0.00000000000000000e+00
+ qdm_reprise 0.00000000000000000e+00
+ v_reprise 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_glissante {
+ duree_intervalle 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ list_index 0
+ offset_list_index 1
+ liste_instants 0
+
+ liste_v_cible_dl 0
+
+ liste_v_cible 0
+
+ duree_effective_morceau_glissant 0.00000000000000000e+00
+ v_cible_en_cours 0.00000000000000000e+00
+ }
+
+ parametres_consigne_initiale {
+ qdm_cible 0.00000000000000000e+00
+ }
+
+ }
+
+ correction_z {
+ type_correction consigne_initiale
+ parametres_cible_constante {
+ vitesse_cible 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_par_morceaux {
+ duree_morceau 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ qdm_integ_partielle 0.00000000000000000e+00
+ last_update_time 0.00000000000000000e+00
+ qdm_reprise 0.00000000000000000e+00
+ v_reprise 0.00000000000000000e+00
+ }
+
+ parametres_moyenne_glissante {
+ duree_intervalle 0.00000000000000000e+00
+ v_init_guess 0.00000000000000000e+00
+ list_index 0
+ offset_list_index 1
+ liste_instants 0
+
+ liste_v_cible_dl 0
+
+ liste_v_cible 0
+
+ duree_effective_morceau_glissant 0.00000000000000000e+00
+ v_cible_en_cours 0.00000000000000000e+00
+ }
+
+ parametres_consigne_initiale {
+ qdm_cible 0.00000000000000000e+00
+ }
+
+ }
+
+ }
+velocity_bubble_old -1.10000000000000000e+20
+vitesse_upstream_reprise -1.10000000000000000e+20
+}

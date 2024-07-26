@@ -455,12 +455,20 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.ajouter("Ki", &Ki_);
   param.ajouter("epaisseur_maille",&epaisseur_maille_);
 
+  double seuil_indicatrice_petite_fixe = -1;   // Valeur predefinie du seuil
+  double seuil_indicatrice_petite_facsec = -1; // Valeur du seuil exprimee relativement au facsec
+  param.ajouter("seuil_indicatrice_petite_fixe", &seuil_indicatrice_petite_fixe);
+  param.ajouter("seuil_indicatrice_petite_facsec", &seuil_indicatrice_petite_facsec);
+
   param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
   param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
-  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME);
+  param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
+  param.dictionnaire("conservation_volume_matrice", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_MATRICE);
   param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
   param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
   param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
   param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
@@ -591,6 +599,23 @@ Entree& IJK_FT_base::interpreter(Entree& is)
       exit();
     }
 
+  // Determination pour le seuil des petites cellules en cut-cell
+  if ((seuil_indicatrice_petite_fixe == -1) && (seuil_indicatrice_petite_facsec == -1))
+    {
+      seuil_indicatrice_petite_facsec = 0.125; // Default value = facsec/8. -- Note: The value facsec/20. = 0.01 would often work but not always be stable
+    }
+
+  double seuil_indicatrice_petite;
+  if (seuil_indicatrice_petite_facsec != -1)
+    {
+      seuil_indicatrice_petite = timestep_facsec_*seuil_indicatrice_petite_facsec;
+    }
+  else
+    {
+      seuil_indicatrice_petite = seuil_indicatrice_petite_fixe;
+    }
+  interfaces_.set_seuil_indicatrice_petite(seuil_indicatrice_petite);
+  Cerr << "Le seuil pour l'indicatrice des petites cellules est : " << seuil_indicatrice_petite << finl;
 
 
   splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
@@ -1525,7 +1550,8 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       /*
        * Thermals problems
        */
-      thermals_.sauvegarder_thermals(fichier);
+      // :integration(Dorian) Suppression du bloc thermals du .sauv
+      //thermals_.sauvegarder_thermals(fichier);
 
       post_.sauvegarder_post_maitre(lata_name, fichier);
       fichier << "}\n" ;
@@ -1557,7 +1583,8 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
    */
   param.ajouter("thermique", &thermique_);
   param.ajouter("energie", &energie_);
-  param.ajouter("thermals", &thermals_);
+  // :integration(Dorian) Suppression du bloc thermals du .sauv
+  //param.ajouter("thermals", &thermals_);
   param.ajouter("forcage", &forcage_);
   param.ajouter("corrections_qdm", &qdm_corrections_);
 
@@ -1880,7 +1907,7 @@ int IJK_FT_base::initialise()
   post_.complete(reprise_);
 
   // On la met a jour 2 fois, une fois next et une fois old
-  IJK_FT_base::update_twice_indicator_field();
+  update_twice_indicator_field();
 
   // Maj des grandeurs shear perio
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
@@ -1962,13 +1989,13 @@ int IJK_FT_base::initialise()
   if (energie_.size() > 0)
     {
       interfaces_.set_compute_surfaces_mouillees();
-      IJK_FT_base::update_twice_indicator_field();
+      update_twice_indicator_field();
     }
 
   if (thermals_.size_thermal_problem(Nom("onefluidenergy")) > 0)
     {
       interfaces_.set_compute_surfaces_mouillees();
-      IJK_FT_base::update_twice_indicator_field();
+      update_twice_indicator_field();
     }
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
@@ -4114,6 +4141,8 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
 
       interfaces_.transferer_bulle_perio();
       interfaces_.creer_duplicata_bulles();
+
+      update_post_remeshing_indicator_field();
     }
 
   // On supprime les fragments de bulles.
@@ -4209,6 +4238,8 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
       update_pre_remeshing_indicator_field();
 
       interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+
+      update_post_remeshing_indicator_field();
     }
 
   statistiques().end_count(deplacement_interf_counter_);
@@ -5001,7 +5032,7 @@ void IJK_FT_base::update_twice_indicator_field()
 {
   for(int i=0; i<2; i++)
     {
-      IJK_FT_base::update_indicator_field();
+      update_indicator_field();
       update_old_intersections();
     }
 }

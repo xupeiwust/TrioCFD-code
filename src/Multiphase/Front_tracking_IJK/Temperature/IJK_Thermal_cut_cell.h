@@ -71,6 +71,7 @@ public :
 
   void euler_time_step(const double timestep) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time) override;
+  void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0) override;
 
   CutCell_GlobalInfo compute_global_energy_cut_cell(Cut_field_double& cut_field_temperature, bool next);
   CutCell_GlobalInfo compute_d_global_energy_cut_cell(Cut_field_double& cut_field_d_temperature, bool next);
@@ -80,6 +81,7 @@ public :
     Process::exit();
     return 0.;
   }
+  void print_Tmin_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next, double current_time, const std::string& heading);
   CutCell_GlobalInfo compute_Tmin_cut_cell(Cut_field_double& cut_field_temperature, bool next);
   CutCell_GlobalInfo compute_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next);
   void calculer_flux_interface();
@@ -107,6 +109,8 @@ public :
 
 protected :
   friend class IJK_FT_Post;
+
+  void lire_temperature(const IJK_Splitting& splitting, int idx) override;
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 

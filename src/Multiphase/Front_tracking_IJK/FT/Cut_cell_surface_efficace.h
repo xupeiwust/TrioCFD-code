@@ -29,13 +29,16 @@
 enum class TYPE_SURFACE_EFFICACE_FACE : int
 {
   NON_INITIALISE, // Valeur non valide
+  EXPLICITE,  // Calcul explicite de la surface efficace
   ALGEBRIQUE_SIMPLE,  // Calcul algrebrique simple de la surface efficace
-  CONSERVATION_VOLUME // Calcul de la surface efficace fonde sur la conservation du volume
+  CONSERVATION_VOLUME_ITERATIF, // Calcul de la surface efficace fonde sur la conservation du volume (methode iterative)
+  CONSERVATION_VOLUME_MATRICE // Calcul de la surface efficace fonde sur la conservation du volume (methode matricielle)
 };
 
 enum class TYPE_SURFACE_EFFICACE_INTERFACE : int
 {
   NON_INITIALISE, // Valeur non valide
+  EXPLICITE,  // Calcul explicite de la surface efficace
   ALGEBRIQUE_SIMPLE,  // Calcul algrebrique simple de la surface efficace
   CONSERVATION_VOLUME // Calcul de la surface efficace fonde sur la conservation du volume
 };
@@ -44,6 +47,7 @@ class Cut_cell_surface_efficace
 {
 public:
   static void calcul_surface_interface_efficace_initiale(
+    int methode_explicite,
     const IJK_Field_double& old_indicatrice_ns,
     const IJK_Field_double& next_indicatrice_ns,
     const IJK_Field_double& surface_interface_ns_old,
@@ -72,19 +76,23 @@ public:
     const DoubleTabFT_cut_cell_vector3& normale_deplacement_interface,
     DoubleTabFT_cut_cell_scalar& surface_efficace_interface);
 
+  // calcul_surface_face_efficace_initiale: version with DoubleTabFT_cut_cell output (use cut-cell structures)
   static void calcul_surface_face_efficace_initiale(
+    int methode_explicite,
     const IJK_Field_vector3_double& old_indicatrice_surfacique_face_ns,
     const IJK_Field_vector3_double& next_indicatrice_surfacique_face_ns,
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
     DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
 
+  // calcul_surface_face_efficace_initiale: version with IJK_Field output (does not use cut-cell structures)
   static void calcul_surface_face_efficace_initiale(
+    int methode_explicite,
     const IJK_Field_vector3_double& old_indicatrice_surfacique_face_ns,
     const IJK_Field_vector3_double& next_indicatrice_surfacique_face_ns,
     IJK_Field_vector3_double& indicatrice_surfacique_efficace_face,
     IJK_Field_vector3_double& indicatrice_surfacique_efficace_face_initial);
 
-  static void calcul_surface_face_efficace(
+  static void calcul_surface_face_efficace_iteratif(
     int verbosite_surface_efficace_face,
     double timestep,
     const Cut_field_vector3_double& velocity,
@@ -97,6 +105,20 @@ public:
     const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial,
     DoubleTabFT_cut_cell_vector6& indicatrice_surfacique_efficace_face_correction,
     DoubleTabFT_cut_cell_scalar& indicatrice_surfacique_efficace_face_absolute_error);
+
+  static void calcul_surface_face_efficace_matrice(
+    int verbosite_surface_efficace_face,
+    double timestep,
+    const Cut_field_vector3_double& velocity,
+    const IJK_Field_double& old_indicatrice_ns,
+    const IJK_Field_double& next_indicatrice_ns,
+    const IJK_Field_vector3_double& old_indicatrice_surfacique_face_ns,
+    const IJK_Field_vector3_double& next_indicatrice_surfacique_face_ns,
+    IntTab& indice_surface_structure_diphasique,
+    DoubleTabFT_cut_cell_vector3& penalisation,
+    IntTabFT_cut_cell_vector3& numero_de_surface_libre,
+    DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
+    const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
 
   static void imprimer_informations_surface_efficace_interface(
     int verbosite_surface_efficace_interface,

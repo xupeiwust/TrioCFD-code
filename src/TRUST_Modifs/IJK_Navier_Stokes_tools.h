@@ -80,6 +80,8 @@ void force_zero_on_walls(IJK_Field_double& vz);
 template<class T, int N>
 void allocate_velocity(IJK_Field_vector<T, N>& v, const IJK_Splitting& s, int ghost, double DU=0.)
 {
+  assert(static_cast<int>(N) == 3);
+
   v.get_ptr(0) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();
   v.get_ptr(1) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();
   v.get_ptr(2) = std::make_shared<IJK_Field_template<T,TRUSTArray<T>>>();

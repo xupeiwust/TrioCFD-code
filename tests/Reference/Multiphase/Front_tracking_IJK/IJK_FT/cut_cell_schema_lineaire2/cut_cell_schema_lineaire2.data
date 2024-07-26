@@ -76,7 +76,6 @@ IJK_FT_cut_cell
    terme_gravite rho_g
    fichier_reprise_interface init.lata
    timestep_reprise_interface 1
-   seuil_indicatrice_petite 0.01
    lata_meshname   FTMESH 
    remaillage_ft_ijk {
      pas_remaillage -1
@@ -100,7 +99,8 @@ IJK_FT_cut_cell
   disable_convection_qdm
   disable_solveur_poisson
 
-  type_surface_efficace_face conservation_volume
+  seuil_indicatrice_petite_fixe 0.01
+  type_surface_efficace_face conservation_volume_iteratif
   type_surface_efficace_interface conservation_volume
   deactivate_remeshing_velocity
 

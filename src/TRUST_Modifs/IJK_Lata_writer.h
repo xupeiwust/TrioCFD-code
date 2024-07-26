@@ -57,6 +57,11 @@ void dumplata_scalar_parallele_plan(const char *filename, const char *fieldname,
                                     const IJK_Field_template<_TYPE_,_TYPE_ARRAY_>& f,
                                     int step);
 
+void dumplata_scalar_cut_cell(int cut_cell_activated,
+                              const char *filename, const char *fieldname,
+                              const std::shared_ptr<IJK_Field_double>& f,
+                              int step);
+
 void dumplata_finish(const char *filename);
 
 template<typename _TYPE_, typename _TYPE_ARRAY_>
@@ -66,6 +71,10 @@ void lire_dans_lata(const char *filename, int tstep, const char *geometryname, c
 template<typename _TYPE_, typename _TYPE_ARRAY_>
 void lire_dans_lata(const char *filename, int tstep, const char *geometryname, const char *fieldname,
                     IJK_Field_template<_TYPE_,_TYPE_ARRAY_>& vx, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>& vy, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>& vz);
+
+void lire_dans_lata_cut_cell(int cut_cell_activated,
+                             const char *filename, int tstep, const char *geometryname, const char *fieldname,
+                             std::shared_ptr<IJK_Field_double>& f);
 
 template<typename _TYPE_, typename _TYPE_ARRAY_>
 void read_lata_parallel_template(const char *filename_with_path, int tstep, const char *geometryname, const char *fieldname,

@@ -614,7 +614,7 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
   int idth = 0;
   for (auto& itr : (*this))
     {
-      switch_double_ft.switch_scalar_field(itr.get_temperature(),
+      switch_double_ft.switch_scalar_field(*itr.get_temperature(),
                                            new_thermal_field,
                                            coeff_i, Indice_i,
                                            coeff_j ,Indice_j,

@@ -42,6 +42,53 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   statut_diphasique_value_index_.resize(0, 1);
 }
 
+void Cut_cell_FT_Disc::initialise()
+{
+  /* Initialisation sans indicatrice (suppose aucune cellule diphasique) */
+
+  // Initialisation des tableaux
+  n_loc_ = 0;
+  n_tot_ = 0;
+
+  permutation_.resize(0, permutation_.dimension(1));
+
+  processed_.resize(0, processed_.dimension(1));
+
+  resize_data(0);
+
+  // Initialisation du champ IJK_Field utilise pour le post-traitement
+  write_buffer_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+
+  // Initialisation du champ IJK_Field des indices diphasiques
+  indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_);
+
+  // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
+  set_coord();
+
+  // Communication des elements virtuels
+  initialise_schema_comm();
+
+  n_tot_ = initialise_communications();
+  resize_data(n_tot_);
+
+  echange_espace_virtuel();
+
+  // Calcul de l'indice lineaire pour les elements virtuels
+  linear_index_.resize(n_tot_, linear_index_.dimension(1));
+  compute_virtual_linear_index();
+
+  // Remplissage du tableau des indices diphasiques
+  remplir_indice_diphasique();
+
+  // Creation des tableaux des indices tries par k
+  update_index_sorted_by_k();
+
+  // Verifications
+  assert(verifier_coherence_coord_linear_index());
+  assert(verifier_taille_tableaux());
+}
+
+
 void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   // Initialisation des tableaux
@@ -950,7 +997,7 @@ void Cut_cell_FT_Disc::remove_dead_and_virtual_cells(const IJK_Field_double& nex
 }
 
 template<typename T>
-void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component /* = 0 by default */)
+void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component /* = 0 by default */) const
 {
   assert(component < array.dimension(1));
   const int ni = splitting_.get_nb_elem_local(0);
@@ -980,8 +1027,28 @@ void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int
 }
 
 // Instantiation explicite pour IntTabFT et DoubleTabFT
-template void Cut_cell_FT_Disc::fill_buffer_with_variable<int>(const TRUSTTabFT<int>&, int);
-template void Cut_cell_FT_Disc::fill_buffer_with_variable<double>(const TRUSTTabFT<double>&, int);
+template void Cut_cell_FT_Disc::fill_buffer_with_variable<int>(const TRUSTTabFT<int>&, int) const;
+template void Cut_cell_FT_Disc::fill_buffer_with_variable<double>(const TRUSTTabFT<double>&, int) const;
+
+template<typename T>
+void Cut_cell_FT_Disc::fill_variable_with_buffer(TRUSTTabFT<T>& array, int component /* = 0 by default */) const
+{
+  assert(component < array.dimension(1));
+
+  for (int n = 0; n < n_loc_; n++)
+    {
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      array(n,component) = (T)write_buffer_(i,j,k);
+    }
+}
+
+// Instantiation explicite pour IntTabFT et DoubleTabFT
+template void Cut_cell_FT_Disc::fill_variable_with_buffer<int>(TRUSTTabFT<int>&, int) const;
+template void Cut_cell_FT_Disc::fill_variable_with_buffer<double>(TRUSTTabFT<double>&, int) const;
 
 bool Cut_cell_FT_Disc::verifier_coherence_coord_linear_index()
 {

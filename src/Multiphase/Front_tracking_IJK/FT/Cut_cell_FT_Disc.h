@@ -50,6 +50,7 @@ public:
   void add_to_transient_int_data(IntTabFT_cut_cell& field, int dimension);
   void add_to_lazy_int_data(IntTabFT_cut_cell& field, int dimension);
 
+  void initialise();
   void initialise(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
 
   int initialise_linear_index(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
@@ -75,7 +76,10 @@ public:
   void update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
 
   template<typename T>
-  void fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component = 0);
+  void fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component = 0) const; // :integration(Dorian) const mais modifie write_buffer_
+
+  template<typename T>
+  void fill_variable_with_buffer(TRUSTTabFT<T>& array, int component = 0) const;
 
   void remplir_indice_diphasique();
   void remove_dead_and_virtual_cells(const IJK_Field_double& next_indicatrice);
@@ -104,6 +108,8 @@ public:
   const IJK_Interfaces& get_interfaces() const { return interfaces_; }
   const IJK_Splitting& get_splitting() const { return splitting_; }
   const Desc_Structure_FT& get_desc_structure() const { return desc_; }
+
+  IJK_Field_double& get_write_buffer() const { return write_buffer_; }
 
   inline Int3 ijk_per_of_index(int i, int j, int k, int index) const;
   inline int next_index_ijk_per(int i, int j, int k, int index, int negative_ghost_size, int positive_ghost_size) const;
@@ -152,7 +158,7 @@ protected:
   friend IJK_FT_cut_cell;
 
   // Champ IJK_Field utilise pour le post-traitement des champs cut-cell
-  IJK_Field_double write_buffer_;
+  mutable IJK_Field_double write_buffer_;
 
   // Champ IJK_Field de l'indice dans la structure diphasique
   // Ce tableau semble pertinent pour acceder aux cellules diphasiques voisines.

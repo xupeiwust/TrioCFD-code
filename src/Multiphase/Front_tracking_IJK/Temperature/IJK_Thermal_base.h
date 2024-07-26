@@ -82,7 +82,7 @@ public:
   virtual void rk3_sub_step(const int rk_step,
                             const double total_timestep,
                             const double time);
-  void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0);
+  virtual void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0);
 
   double compute_global_energy(const IJK_Field_double& temperature);
   virtual double compute_global_energy()
@@ -118,9 +118,9 @@ public:
   double get_rhocp_l() const;
   double get_rhocp_v() const;
   const int& get_rank() const { return rang_; };
-  const IJK_Field_double& get_temperature() const
+  const std::shared_ptr<IJK_Field_double>& get_temperature() const
   {
-    return *temperature_ ;
+    return temperature_ ;
   }
   const IJK_Field_double& get_temperature_before_extrapolation() const
   {
@@ -154,9 +154,9 @@ public:
   {
     return div_coeff_grad_T_ ;
   }
-  const IJK_Field_double& get_div_lambda_grad_T_volume() const
+  const std::shared_ptr<IJK_Field_double>& get_div_lambda_grad_T_volume() const
   {
-    return *div_coeff_grad_T_volume_ ;
+    return div_coeff_grad_T_volume_ ;
   }
   const IJK_Field_double& get_u_T_convective() const
   {
@@ -467,6 +467,8 @@ protected:
   void compute_cell_volume();
   void compute_min_cell_delta();
   void compute_cell_diagonal(const IJK_Splitting& splitting);
+
+  virtual void lire_temperature(const IJK_Splitting& splitting, int idx);
 
   void calculer_dT(const IJK_Field_vector3_double& velocity);
   virtual void post_process_after_temperature_increment();

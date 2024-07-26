@@ -1,0 +1,20 @@
+LATA_V2.1
+IJK_specific_format
+TRUST
+Format LITTLE_ENDIAN,C_INDEXING,C_ORDERING,F_MARKERS_NO,INT32,REAL32
+Geom DOM type_elem=HEXAEDRE
+Champ SOMMETS_IJK_I cut_cell_base.sauv.lata.DOM.coordx geometrie=DOM size=17 composantes=1
+Champ SOMMETS_IJK_J cut_cell_base.sauv.lata.DOM.coordy geometrie=DOM size=17 composantes=1
+Champ SOMMETS_IJK_K cut_cell_base.sauv.lata.DOM.coordz geometrie=DOM size=17 composantes=1
+TEMPS 0.25
+Champ VELOCITY cut_cell_base.sauv.lata.0.VELOCITY geometrie=DOM size=4913 localisation=FACES composantes=3 nature=vector
+Geom INTERFACES type_elem=TRIANGLE_3D
+Champ SOMMETS cut_cell_base.sauv.lata.0.INTERFACES.SOMMETS geometrie=INTERFACES size=115 composantes=3
+Champ ELEMENTS cut_cell_base.sauv.lata.0.INTERFACES.ELEMENTS geometrie=INTERFACES size=226 composantes=3 format=INT32
+Champ FACETTE_PE_LOCAL cut_cell_base.sauv.lata.0.INTERFACES.FACETTE_PE_LOCAL geometrie=INTERFACES size=226 composantes=1 format=INT32 localisation=ELEM
+Champ FACETTE_PE_OWNER cut_cell_base.sauv.lata.0.INTERFACES.FACETTE_PE_OWNER geometrie=INTERFACES size=226 composantes=1 format=INT32 localisation=ELEM
+Champ INDEX_SOMMET_REEL cut_cell_base.sauv.lata.0.INTERFACES.INDEX_SOMMET_REEL geometrie=INTERFACES size=115 composantes=1 format=INT32 localisation=SOM
+Champ COMPO_CONNEXE cut_cell_base.sauv.lata.0.INTERFACES.COMPO_CONNEXE geometrie=INTERFACES size=226 composantes=1 format=INT32,NO_INDEXING localisation=ELEM
+Champ TEMPERATURE_0 cut_cell_base.sauv.lata.0.TEMPERATURE_0 geometrie=DOM size=4096 localisation=ELEM composantes=1
+Champ TEMPERATURE_0_CUT_L cut_cell_base.sauv.lata.0.TEMPERATURE_0_CUT_L geometrie=DOM size=4096 localisation=ELEM composantes=1
+Champ TEMPERATURE_0_CUT_V cut_cell_base.sauv.lata.0.TEMPERATURE_0_CUT_V geometrie=DOM size=4096 localisation=ELEM composantes=1

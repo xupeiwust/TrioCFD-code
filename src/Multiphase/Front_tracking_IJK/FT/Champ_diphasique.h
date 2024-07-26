@@ -321,28 +321,28 @@ public :
 
   double& operator()(int i, int j, int k)
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double. Please use pure_() instead." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k);
   }
 
   const double& operator()(int i, int j, int k) const
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double. Please use pure_() instead." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k);
   }
 
   double& operator()(int i, int j, int k, int compo)
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double. Please use pure_() instead." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k,compo);
   }
 
   const double& operator()(int i, int j, int k, int compo) const
   {
-    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double." << finl;
+    Cerr << "Disabling operator() for the derived class Cut_field_double of IJK_Field_double. Please use pure_() instead." << finl;
     Process::exit();
     return IJK_Field_double::operator()(i,j,k,compo);
   }

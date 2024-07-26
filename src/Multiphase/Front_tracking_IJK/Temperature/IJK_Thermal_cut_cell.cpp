@@ -60,7 +60,6 @@ Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
   Nom escape = "\n";
 
   IJK_Thermal_base::printOn( os );
-  os<< "  {\n";
 
   os<< "    type_T_source " << type_T_source_ << "\n";
 
@@ -68,6 +67,11 @@ Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
     os<< "    lambda_variable \n";
   if (conserv_energy_global_)
     os<< "    conserv_energy_global \n";
+
+
+  os<< "   convection_auxiliaire " << convective_correction_;
+
+  os<< "   diffusion_auxiliaire " << diffusive_correction_;
 
   os<< "  \n}";
   return os;
@@ -132,10 +136,6 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   // Cut-cell variables
   ref_ijk_ft_cut_cell_ = ref_cast(IJK_FT_cut_cell, ref_ijk_ft_.valeur());
 
-  int nalloc = IJK_Thermal_base::initialize(splitting, idx);
-  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
-  nalloc += 2;
-
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
   cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
 
@@ -166,6 +166,11 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   cut_cell_flux_convection_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   cut_cell_flux_convection_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
   cut_cell_flux_convection_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+
+
+  int nalloc = IJK_Thermal_base::initialize(splitting, idx);
+  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
+  nalloc += 2;
 
   allocate_cell_vector(temperature_face_[0], splitting, 2);
   allocate_cell_vector(temperature_face_ft_[0], ref_ijk_ft_cut_cell_->get_splitting_ft(), 4);
@@ -213,9 +218,18 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   temperature_convection_op_.typer("OpConvQuickIJKScalar_cut_cell_double");
   temperature_convection_op_.initialize(splitting);
 
-  if (expression_T_init_ != "??")
+  if (fichier_reprise_temperature_ == "??")   // si on ne fait pas une reprise on initialise V
     {
-      compute_temperature_init();
+      if (expression_T_init_ != "??")
+        {
+          compute_temperature_init();
+        }
+      else
+        {
+          Cerr << "Please provide initial conditions for temperature, either by an expression or a field for restart. "
+               << "You should consider using either fichier_reprise_temperature or expression_T_init keywords. " << finl;
+          Process::exit();
+        }
     }
 
   // Already allocated if rho_cp_post
@@ -367,6 +381,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   const CutCell_GlobalInfo ene_ini = compute_global_energy_cut_cell(cut_field_temperature, 0);
 
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 0, current_time, "Temperature Min/Max au debut du pas de temps");
+
   if (!diff_temperature_negligible_)
     {
       diffusive_correction_.compute_flux_dying_cells(cut_field_total_velocity, cut_field_temperature);
@@ -393,6 +409,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
   const CutCell_GlobalInfo ene_postconv_switch = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection principale");
+
   if (!conv_temperature_negligible_)
     {
       convective_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature);
@@ -404,6 +422,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
       cut_field_temperature_post_dying.copy_from(cut_field_temperature);
     }
   const CutCell_GlobalInfo ene_postconv_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
+
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules mourrantes");
 
   if (!conv_temperature_negligible_)
     {
@@ -421,6 +441,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
       diffusive_correction_.calcule_temperature_remplissage(timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
     }
   const CutCell_GlobalInfo ene_postconv_small_nascent = compute_global_energy_cut_cell(cut_field_temperature, 1);
+
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules naissantes");
 
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
@@ -447,6 +469,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     }
   const CutCell_GlobalInfo ene_postdiff_regular = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion principale");
+
   if (!diff_temperature_negligible_)
     {
       diffusive_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature);
@@ -454,6 +478,8 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     }
 
   const CutCell_GlobalInfo ene_postdiff_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
+
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion des cellules mourrantes");
 
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
@@ -498,24 +524,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
       Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_switch: " << ene_postconv_switch.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff_regular: " << ene_postdiff_regular.diph_dying << " post_diff_dying: " << ene_postdiff_dying.diph_dying   << " post_diff_small: " << ene_postdiff_small.diph_dying   << finl;
     }
 
-  CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature, 1);
-  CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature, 1);
-  if (verbosite_ >= 2)
-    {
-      Cerr << "T_MinMax, overall time: " << current_time << " Tmin: " << Tmin.overall << " Tmax: " << Tmax.overall << finl;
-    }
-  if (verbosite_ >= 4)
-    {
-      Cerr << "T_MinMax, overall_l time: " << current_time << " Tmin: " << Tmin.overall_l << " Tmax: " << Tmax.overall_l << finl;
-      Cerr << "T_MinMax, overall_v time: " << current_time << " Tmin: " << Tmin.overall_v << " Tmax: " << Tmax.overall_v << finl;
-      Cerr << "T_MinMax, pure.......... time: " << current_time << " Tmin: " << Tmin.pure         << " Tmax: " << Tmax.pure         << finl;
-      Cerr << "T_MinMax, diph_l........ time: " << current_time << " Tmin: " << Tmin.diph_l       << " Tmax: " << Tmax.diph_l       << finl;
-      Cerr << "T_MinMax, diph_v........ time: " << current_time << " Tmin: " << Tmin.diph_v       << " Tmax: " << Tmax.diph_v       << finl;
-      Cerr << "T_MinMax, diph_small.... time: " << current_time << " Tmin: " << Tmin.diph_small   << " Tmax: " << Tmax.diph_small   << finl;
-      Cerr << "T_MinMax, diph_regular.. time: " << current_time << " Tmin: " << Tmin.diph_regular << " Tmax: " << Tmax.diph_regular << finl;
-      Cerr << "T_MinMax, diph_nascent.. time: " << current_time << " Tmin: " << Tmin.diph_nascent << " Tmax: " << Tmax.diph_nascent << finl;
-      Cerr << "T_MinMax, diph_dying.... time: " << current_time << " Tmin: " << Tmin.diph_dying   << " Tmax: " << Tmax.diph_dying   << finl;
-    }
+  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "");
 }
 
 void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
@@ -610,6 +619,16 @@ void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_ti
 
   runge_kutta3_update_cut_cell_transport(cut_field_d_temperature, cut_field_RK3_F_temperature, cut_field_temperature, rk_step, total_timestep, cellule_rk_restreint_);
 }
+
+void IJK_Thermal_cut_cell::sauvegarder_temperature(Nom& lata_name, int idx, const int& stop)
+{
+  fichier_reprise_temperature_ = lata_name;
+  timestep_reprise_temperature_ = 1;
+  dumplata_scalar_cut_cell(true, lata_name, Nom("TEMPERATURE_") + Nom(idx) , temperature_, 0 /*we store a 0 */);
+  if (stop)
+    latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->get_tstep() + 1;
+}
+
 
 void IJK_Thermal_cut_cell::compute_diffusion_increment()
 {
@@ -1208,6 +1227,32 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
   return {global_energy_overall, global_energy_overall_l, global_energy_overall_v, global_energy_pure, global_energy_diph_l, global_energy_diph_v, global_energy_diph_small, global_energy_diph_regular, global_energy_diph_nascent, global_energy_diph_dying};
 }
 
+void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next, double current_time, const std::string& heading)
+{
+  CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature, 1);
+  CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature, 1);
+  if (verbosite_ >= 7)
+    {
+      Cerr << heading << finl;
+    }
+  if (verbosite_ >= 2)
+    {
+      Cerr << "T_MinMax, overall time: " << current_time << " Tmin: " << Tmin.overall << " Tmax: " << Tmax.overall << finl;
+    }
+  if (verbosite_ >= 4)
+    {
+      Cerr << "T_MinMax, overall_l time: " << current_time << " Tmin: " << Tmin.overall_l << " Tmax: " << Tmax.overall_l << finl;
+      Cerr << "T_MinMax, overall_v time: " << current_time << " Tmin: " << Tmin.overall_v << " Tmax: " << Tmax.overall_v << finl;
+      Cerr << "T_MinMax, pure.......... time: " << current_time << " Tmin: " << Tmin.pure         << " Tmax: " << Tmax.pure         << finl;
+      Cerr << "T_MinMax, diph_l........ time: " << current_time << " Tmin: " << Tmin.diph_l       << " Tmax: " << Tmax.diph_l       << finl;
+      Cerr << "T_MinMax, diph_v........ time: " << current_time << " Tmin: " << Tmin.diph_v       << " Tmax: " << Tmax.diph_v       << finl;
+      Cerr << "T_MinMax, diph_small.... time: " << current_time << " Tmin: " << Tmin.diph_small   << " Tmax: " << Tmax.diph_small   << finl;
+      Cerr << "T_MinMax, diph_regular.. time: " << current_time << " Tmin: " << Tmin.diph_regular << " Tmax: " << Tmax.diph_regular << finl;
+      Cerr << "T_MinMax, diph_nascent.. time: " << current_time << " Tmin: " << Tmin.diph_nascent << " Tmax: " << Tmax.diph_nascent << finl;
+      Cerr << "T_MinMax, diph_dying.... time: " << current_time << " Tmin: " << Tmin.diph_dying   << " Tmax: " << Tmax.diph_dying   << finl;
+    }
+}
+
 CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_double& cut_field_temperature, bool next)
 {
   double Tmin_overall = 1.e20;
@@ -1423,6 +1468,15 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_double&
   Tmax_diph_nascent = Process::mp_max(Tmax_diph_nascent);
   Tmax_diph_dying   = Process::mp_max(Tmax_diph_dying);
   return {Tmax_overall, Tmax_overall_l, Tmax_overall_v, Tmax_pure, Tmax_diph_l, Tmax_diph_v, Tmax_diph_small, Tmax_diph_regular, Tmax_diph_nascent, Tmax_diph_dying};
+}
+
+void IJK_Thermal_cut_cell::lire_temperature(const IJK_Splitting& splitting, int idx)
+{
+  Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
+  const Nom& geom_name = splitting.get_grid_geometry().le_nom();
+  lire_dans_lata_cut_cell(true, fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
+                          temperature_); // fonction qui lit un champ a partir d'un lata .
+  temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
 }
 
 void IJK_Thermal_cut_cell::compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,

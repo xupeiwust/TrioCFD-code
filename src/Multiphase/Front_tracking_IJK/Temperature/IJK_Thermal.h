@@ -54,7 +54,7 @@ public :
   inline int& get_thermal_rank() { return thermal_rank_; };
   inline Motcles& get_thermal_words() { return thermal_words_; };
   inline Motcles& get_thermal_suffix() { return lata_suffix_; };
-  inline const IJK_Field_double& get_temperature() const { return valeur().get_temperature(); };
+  inline const std::shared_ptr<IJK_Field_double>& get_temperature() const { return valeur().get_temperature(); };
   inline const IJK_Field_double& get_temperature_elem_smooth() const { return valeur().get_temperature_elem_smooth(); };
   inline const IJK_Field_double& get_temperature_before_extrapolation() const { return valeur().get_temperature_before_extrapolation(); }
   inline const IJK_Field_double& get_temperature_cell_neighbours() const { return valeur().get_temperature_cell_neighbours(); }
@@ -66,7 +66,7 @@ public :
   inline const IJK_Field_double& get_ecart_t_ana() const { return valeur().get_ecart_t_ana(); }
   inline const IJK_Field_double& get_ecart_t_ana_rel() const { return valeur().get_ecart_t_ana_rel(); }
   inline const IJK_Field_vector3_double& get_grad_T() const { return valeur().get_grad_T(); }
-  inline const IJK_Field_double& get_div_lambda_grad_T_volume() const { return valeur().get_div_lambda_grad_T_volume(); }
+  inline const std::shared_ptr<IJK_Field_double>& get_div_lambda_grad_T_volume() const { return valeur().get_div_lambda_grad_T_volume(); }
   inline const IJK_Field_double& get_div_lambda_grad_T() const { return valeur().get_div_lambda_grad_T(); }
   inline const IJK_Field_double& get_u_T_convective_volume() const { return valeur().get_u_T_convective_volume(); }
   inline const IJK_Field_double& get_u_T_convective() const { return valeur().get_u_T_convective(); }
@@ -222,7 +222,7 @@ protected:
   Nom prefix_ = "IJK_Thermal_";
   Motcles thermal_words_;
   Motcles lata_suffix_;
-  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE};
+  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE, CUTCELL};
 
   REF(IJK_FT_base) ref_ijk_ft_;
   REF(IJK_FT_Post) ref_ijk_ft_post_;
