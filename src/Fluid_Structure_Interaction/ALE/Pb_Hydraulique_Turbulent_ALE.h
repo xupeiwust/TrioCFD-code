@@ -23,7 +23,8 @@
 #ifndef Pb_Hydraulique_Turbulent_ALE_included
 #define Pb_Hydraulique_Turbulent_ALE_included
 
-#include <Pb_Fluide_base.h>
+// #include <Pb_Fluide_base.h>
+#include <Pb_Hydraulique_Turbulent.h>
 #include <Navier_Stokes_Turbulent_ALE.h>
 
 
@@ -36,7 +37,7 @@
  *
  * @sa Pb_Fluide_base Navier_Stokes_Turbulent_ALE Pb_Hydraulique
  */
-class Pb_Hydraulique_Turbulent_ALE : public Pb_Fluide_base
+class Pb_Hydraulique_Turbulent_ALE : public Pb_Hydraulique_Turbulent
 {
   Declare_instanciable(Pb_Hydraulique_Turbulent_ALE);
 

@@ -74,7 +74,9 @@ Entree& Transport_K_Omega::readOn(Entree& s)
       const Probleme_base& pb = probleme();
       Cerr << "Construction and typing for the source term of the Transport_K_Omega equation." << finl;
 
-      if (sub_type(Pb_Hydraulique_Turbulent,pb) || milieu().que_suis_je() == "Fluide_Quasi_Compressible")
+      if (sub_type(Pb_Hydraulique_Turbulent, pb)
+          || milieu().que_suis_je() == "Fluide_Quasi_Compressible"
+          ||  pb.que_suis_je().contient("ALE"))
         {
           Nom typ = "Source_Transport_K_Omega";
           Cerr << "TYPAGE DES SOURCES : this " << *this << finl;
