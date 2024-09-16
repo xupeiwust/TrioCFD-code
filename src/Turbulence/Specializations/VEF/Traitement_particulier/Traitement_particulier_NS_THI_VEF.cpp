@@ -1932,8 +1932,6 @@ void Traitement_particulier_NS_THI_VEF::calcul_nu_t()
 }
 
 
-
-
 void Traitement_particulier_NS_THI_VEF::calcul_vitesse_moyenne(const DoubleTab& tab_global , DoubleVect& moyenne)
 {
   const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,mon_equation->domaine_Cl_dis());
@@ -1946,7 +1944,7 @@ void Traitement_particulier_NS_THI_VEF::calcul_vitesse_moyenne(const DoubleTab& 
   int nb_cl=les_cl.size();
 
   ArrOfInt flags;
-  MD_Vector_tools::get_sequential_items_flags(tab_global.get_md_vector(), flags);
+  tab_global.get_md_vector()->get_sequential_items_flags(flags);
 
   moyenne = 0;
   const int nb_comp = tab_global.line_size();

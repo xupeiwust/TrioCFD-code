@@ -2872,7 +2872,7 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
   const DoubleVect& vol_entrelaces = ref_cast(Domaine_VF,mon_dom_dis).volumes_entrelaces();
   // Construction d'un tableau des items reels non communs
   ArrOfInt sequential_items_flags;
-  MD_Vector_tools::get_sequential_items_flags(source_val.get_md_vector(), sequential_items_flags);
+  source_val.get_md_vector()->get_sequential_items_flags(sequential_items_flags);
 
 
   for (int face=0; face<n; face++)
@@ -3060,7 +3060,7 @@ void Transport_Interfaces_FT_Disc::calcul_effort_fluide_interface(const DoubleTa
 
     // Construction d'un tableau des items sequentiels
     ArrOfInt sequential_items_flags;
-    MD_Vector_tools::get_sequential_items_flags(rho_faces.get_md_vector(), sequential_items_flags);
+    rho_faces.get_md_vector()->get_sequential_items_flags(sequential_items_flags);
 
     // Calcul de la force et du moment en fonction de la discretisation
     for (int i = 0; i < n; i++)

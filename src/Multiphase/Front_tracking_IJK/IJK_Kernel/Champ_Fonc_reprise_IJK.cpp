@@ -148,7 +148,7 @@ static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, c
   // Dans un premier temps, 1 si l'item est a lire, 0 s'il est lu par un autre processeur.
   // Une fois que l'item est lu, on met le flag a 2.
   ArrOfInt items_to_read;
-  const int n_to_read = MD_Vector_tools::get_sequential_items_flags(md_vect, items_to_read);
+  const int n_to_read = md_vect->get_sequential_items_flags(items_to_read);
   Octree_Double octree;
   // Build an octree with "thick" nodes (epsilon size)
   octree.build_nodes(coords, 0 /* do not include virtual elements */, epsilon);
