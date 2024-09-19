@@ -29,10 +29,11 @@ double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_ti
 void cut_cell_switch_field_time(Cut_field_double& v);
 
 void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_double& dv, Cut_field_double& v);
-void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
+void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
 
 void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_double& dv, Cut_field_double& v);
-void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint);
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
 
+void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
 
 #endif /* IJK_Navier_Stokes_tools_cut_cell_included */

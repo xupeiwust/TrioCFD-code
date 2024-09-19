@@ -754,7 +754,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
   Cerr << ">=1000000   " << count_status_above_1000000 << finl;
 }
 
-void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -849,12 +849,53 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
                       cut_field_temperature.diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale/next_nonzero_indicatrice;
                     }
                 }
+
+
+              if (write_flux)
+                {
+                  if (num_face < 3)
+                    {
+                      if (phase == 0)
+                        {
+                          cut_field_current_fluxes[dir].diph_v_(n) += (flux[num_face]/somme_flux)*quantite_totale;
+                        }
+                      else
+                        {
+                          cut_field_current_fluxes[dir].diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale;
+                        }
+                    }
+                  else
+                    {
+                      if (n_decale >= 0)
+                        {
+                          if (phase == 0)
+                            {
+                              cut_field_current_fluxes[dir].diph_v_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                          else
+                            {
+                              cut_field_current_fluxes[dir].diph_l_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                        }
+                      else
+                        {
+                          cut_field_current_fluxes[dir].pure_(i+di_decale,j+dj_decale,k+dk_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                        }
+                    }
+                }
             }
         }
     }
+
+  if (write_flux)
+    {
+      cut_field_current_fluxes[0].echange_espace_virtuel(1);
+      cut_field_current_fluxes[1].echange_espace_virtuel(1);
+      cut_field_current_fluxes[2].echange_espace_virtuel(1);
+    }
 }
 
-void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -1036,7 +1077,58 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
                       cut_field_temperature.diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale/cut_cell_disc.get_interfaces().In(i,j,k);
                     }
                 }
+
+
+              if (write_flux)
+                {
+                  if (num_face < 3)
+                    {
+                      if (phase == 0)
+                        {
+                          cut_field_current_fluxes[dir].diph_v_(n) += (flux[num_face]/somme_flux)*quantite_totale;
+                          if (n_decale < 0)
+                            {
+                              assert(phase == (int)next_indicatrice_decale);
+                              cut_field_current_fluxes[dir].pure_(i,j,k) += (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                        }
+                      else
+                        {
+                          cut_field_current_fluxes[dir].diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale;
+                          if (n_decale < 0)
+                            {
+                              assert(phase == (int)next_indicatrice_decale);
+                              cut_field_current_fluxes[dir].pure_(i,j,k) += (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                        }
+                    }
+                  else
+                    {
+                      if (n_decale >= 0)
+                        {
+                          if (phase == 0)
+                            {
+                              cut_field_current_fluxes[dir].diph_v_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                          else
+                            {
+                              cut_field_current_fluxes[dir].diph_l_(n_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                            }
+                        }
+                      else
+                        {
+                          cut_field_current_fluxes[dir].pure_(i+di_decale,j+dj_decale,k+dk_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
+                        }
+                    }
+                }
             }
         }
+    }
+
+  if (write_flux)
+    {
+      cut_field_current_fluxes[0].echange_espace_virtuel(1);
+      cut_field_current_fluxes[1].echange_espace_virtuel(1);
+      cut_field_current_fluxes[2].echange_espace_virtuel(1);
     }
 }

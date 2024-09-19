@@ -171,6 +171,30 @@ public:
     new_treatment_ = &new_treatment;
   }
 
+  void set_runge_kutta(int rk_step, double dt_tot, IJK_Field_vector3_double& current_fluxes, IJK_Field_vector3_double& RK3_F_fluxes, IJK_Field_int& cellule_rk_restreint_diff_main_l, IJK_Field_int& cellule_rk_restreint_diff_main_v)
+  {
+    if (rk_step == -1)
+      {
+        runge_kutta_flux_correction_ = false;
+        rk_step_ = -1;
+        dt_tot_ = 0;
+        current_fluxes_ = nullptr;
+        RK3_F_fluxes_ = nullptr;
+        cellule_rk_restreint_diff_main_l_ = nullptr;
+        cellule_rk_restreint_diff_main_v_ = nullptr;
+      }
+    else
+      {
+        runge_kutta_flux_correction_ = true;
+        rk_step_ = rk_step;
+        dt_tot_ = dt_tot;
+        current_fluxes_ = &current_fluxes;
+        RK3_F_fluxes_ = &RK3_F_fluxes;
+        cellule_rk_restreint_diff_main_l_ = &cellule_rk_restreint_diff_main_l;
+        cellule_rk_restreint_diff_main_v_ = &cellule_rk_restreint_diff_main_v;
+      }
+  };
+
   const Cut_cell_FT_Disc* get_cut_cell_disc()
   {
     assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
@@ -210,6 +234,8 @@ private:
   bool ignore_small_cells_;
 
   FixedVector<Cut_cell_double, 3> *cut_cell_flux_;
+  IJK_Field_int *cellule_rk_restreint_diff_main_l_;
+  IJK_Field_int *cellule_rk_restreint_diff_main_v_;
 
   IJK_Field_int *treatment_count_;
   int *new_treatment_;

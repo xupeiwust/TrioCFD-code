@@ -321,6 +321,53 @@ void Cut_cell_double::associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc)
   Cut_cell_data::associer_paresseux(cut_cell_disc, 1);
 }
 
+// Verifie que le champ pure_, suppose etre localise sur une surface, est coherent avec
+// le champ diph_v_ ou diph_l_ si la dite surface appartient a une cellule pure.
+bool Cut_cell_double::verify_consistency_within_layer(int dir, int k_layer, const IJK_Field_local_double& flux)
+{
+  int ni = (dir == 0) ? flux.ni() : flux.ni() - 1;
+  int nj = (dir == 1) ? flux.nj() : flux.nj() - 1;
+  int di = (dir == 0)*(-1);
+  int dj = (dir == 1)*(-1);
+  int dk = (dir == 2)*(-1);
+  for (int j = 0; j < nj; j++)
+    {
+      for (int i = 0; i < ni; i++)
+        {
+          int n = cut_cell_disc_->get_n(i, j, k_layer);
+          if (n >= 0)
+            {
+              int n_decale = cut_cell_disc_->get_n(i+di, j+dj, k_layer+dk);
+              if (n_decale < 0)
+                {
+                  // Surface between a pure and non-pure cells
+                  // There should be a consistency
+                  int phase = (int)(cut_cell_disc_->get_interfaces().I(i+di, j+dj, k_layer+dk));
+
+                  if (phase == 0)
+                    {
+                      if (flux(i,j,0) != diph_v_(n))
+                        {
+                          assert(0);
+                          return 0;
+                        }
+                    }
+                  else
+                    {
+                      if (flux(i,j,0) != diph_l_(n))
+                        {
+                          assert(0);
+                          return 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+  return 1;
+}
+
 Cut_field_double::Cut_field_double()
 {
 }

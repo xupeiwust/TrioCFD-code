@@ -255,6 +255,8 @@ public :
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_paresseux(Cut_cell_FT_Disc& cut_cell_disc);
 
+  bool verify_consistency_within_layer(int dir, int k_layer, const IJK_Field_local_double& flux);
+
 protected :
 };
 

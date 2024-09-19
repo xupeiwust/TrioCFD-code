@@ -683,6 +683,20 @@ void pressure_projection_with_inv_rho(const IJK_Field_double& inv_rho,
   statistiques().end_count(projection_counter_);
 }
 
+void forward_euler_update(const IJK_Field_double& dv, IJK_Field_double& v, const int k_layer, double dt_tot)
+{
+  const int imax = v.ni();
+  const int jmax = v.nj();
+  for (int j = 0; j < jmax; j++)
+    {
+      for (int i = 0; i < imax; i++)
+        {
+          double x = dv(i, j, k_layer);
+          v(i, j, k_layer) += x * dt_tot;
+        }
+    }
+}
+
 // Take the provided derivative dv and update F and the unknown v for the Runge Kutta "rk_step"
 //  (0<=rk_step<=2).
 // F is an intermediate result, from the previous rk step (overwritten at step==0), used by
@@ -823,6 +837,62 @@ void runge_kutta3_update(const DoubleTab& dvi, DoubleTab& G, DoubleTab& l,
     };
 }
 #endif
+
+void runge_kutta3_update_surfacic_fluxes(IJK_Field_double& dv, IJK_Field_double& F, const int step, const int k_layer, double dt_tot)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  const double facteurF = coeff_a[step];
+  const double one_divided_by_Fk = 1. / coeff_Fk[step];
+  const int imax = dv.ni();
+  const int jmax = dv.nj();
+  const int ghost = dv.ghost();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+
+              double x = dv(i, j, k_layer);
+              dv(i, j, k_layer) = x * one_divided_by_Fk;
+              F(i, j, k_layer) = x;
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+              double x = F(i, j, k_layer) * facteurF + dv(i, j, k_layer);
+              dv(i, j, k_layer) = x * one_divided_by_Fk;
+              F(i, j, k_layer) = x;
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+              double x = F(i, j, k_layer) * facteurF + dv(i, j, k_layer);
+              dv(i, j, k_layer) = x * one_divided_by_Fk;
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
+}
 
 // build local coordinates of discretisation nodes for the given field
 // (used in set_field_data() )

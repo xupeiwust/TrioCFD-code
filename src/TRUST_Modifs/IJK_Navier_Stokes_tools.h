@@ -72,8 +72,14 @@ void pressure_projection_with_inv_rho(const IJK_Field_double& rho,
                                       int check_divergence,
                                       Multigrille_Adrien& poisson_solver);
 
+void forward_euler_update(const IJK_Field_double& dv, IJK_Field_double& v,
+                          const int k_layer, double dt_tot);
+
 void runge_kutta3_update(const IJK_Field_double& dv, IJK_Field_double& F, IJK_Field_double& v,
                          const int step, const int k_layer, double dt_tot);
+
+void runge_kutta3_update_surfacic_fluxes(IJK_Field_double& dv, IJK_Field_double& F,
+                                         const int step, const int k_layer, double dt_tot);
 
 void force_zero_on_walls(IJK_Field_double& vz);
 

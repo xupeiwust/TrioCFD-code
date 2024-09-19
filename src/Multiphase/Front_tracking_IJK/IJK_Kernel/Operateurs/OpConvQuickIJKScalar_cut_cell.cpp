@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <OpConvQuickIJKScalar_cut_cell.h>
+#include <IJK_Navier_Stokes_tools_cut_cell.h>
 
 Implemente_instanciable_sans_constructeur(OpConvQuickIJKScalar_cut_cell_double, "OpConvQuickIJKScalar_cut_cell_double", Operateur_IJK_elem_conv_base_double);
 
@@ -46,6 +47,103 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *
       Cerr << "Unexpected value of dir in OpConvQuickIJKScalar_cut_cell_double::correct_flux" << finl;
       Process::exit();
     }
+
+  // Fluxes are stored in the flux variable (IJK_Field_local_double) for pure cells
+  // as well as within the cut_cell_flux_ variable for cut cells.
+  // The two variables must agrees for the fluxes between pure and cut cells.
+  assert((*cut_cell_flux_)[dir].verify_consistency_within_layer(dir, k_layer, *flux));
+
+
+
+  if (runge_kutta_flux_correction_)
+    {
+      Cut_field_vector3_double& cut_field_current_fluxes = static_cast<Cut_field_vector3_double&>(*current_fluxes_);
+      Cut_field_vector3_double& cut_field_RK3_F_fluxes = static_cast<Cut_field_vector3_double&>(*RK3_F_fluxes_);
+
+      assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
+      assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[2].get_cut_cell_disc());
+      const Cut_cell_FT_Disc& cut_cell_disc = (*cut_cell_flux_)[0].get_cut_cell_disc();
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                cut_field_current_fluxes[dir].pure_(i,j,k_layer) = (*flux)(i,j,0);
+                int n = cut_cell_disc.get_n(i, j, k_layer);
+                if (n >= 0)
+                  {
+                    cut_field_current_fluxes[dir].diph_l_(n) = (*cut_cell_flux_)[dir].diph_l_(n);
+                    cut_field_current_fluxes[dir].diph_v_(n) = (*cut_cell_flux_)[dir].diph_v_(n);
+                  }
+              }
+          }
+      }
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                int n = cut_cell_disc.get_n(i, j, k_layer);
+                if (n >= 0)
+                  {
+                    const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
+                    double indicatrice_surface = indicatrice_surfacique(n,dir);
+
+                    cut_field_RK3_F_fluxes[dir].diph_l_(n) = cut_field_RK3_F_fluxes[dir].diph_l_(n)*indicatrice_surface;
+                    cut_field_RK3_F_fluxes[dir].diph_v_(n) = cut_field_RK3_F_fluxes[dir].diph_v_(n)*(1 -indicatrice_surface);
+                  }
+              }
+          }
+      }
+
+      runge_kutta3_update_surfacic_fluxes(cut_field_current_fluxes[dir], cut_field_RK3_F_fluxes[dir], rk_step_, k_layer, dir, dt_tot_, *cellule_rk_restreint_conv_main_v_, *cellule_rk_restreint_conv_main_l_);
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                (*flux)(i,j,0) = cut_field_current_fluxes[dir].pure_(i,j,k_layer);
+                int n = cut_cell_disc.get_n(i, j, k_layer);
+                if (n >= 0)
+                  {
+                    (*cut_cell_flux_)[dir].diph_l_(n) = cut_field_current_fluxes[dir].diph_l_(n);
+                    (*cut_cell_flux_)[dir].diph_v_(n) = cut_field_current_fluxes[dir].diph_v_(n);
+                  }
+              }
+          }
+      }
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                int n = cut_cell_disc.get_n(i, j, k_layer);
+                if (n >= 0)
+                  {
+                    const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
+                    double indicatrice_surface = indicatrice_surfacique(n,dir);
+
+                    cut_field_RK3_F_fluxes[dir].diph_l_(n) = (indicatrice_surface == 0.)       ? 0. : cut_field_RK3_F_fluxes[dir].diph_l_(n)/indicatrice_surface;
+                    cut_field_RK3_F_fluxes[dir].diph_v_(n) = ((1 - indicatrice_surface) == 0.) ? 0. : cut_field_RK3_F_fluxes[dir].diph_v_(n)/(1 -indicatrice_surface);
+                  }
+              }
+          }
+      }
+    }
+
+  assert((*cut_cell_flux_)[dir].verify_consistency_within_layer(dir, k_layer, *flux));
 }
 
 void OpConvQuickIJKScalar_cut_cell_double::compute_cut_cell_divergence(const FixedVector<Cut_cell_double, 3>& cut_cell_flux,

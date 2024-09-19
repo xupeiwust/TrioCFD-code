@@ -41,12 +41,10 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell()
 
 
   temperature_ = std::make_shared<Cut_field_double>();
-  RK3_F_temperature_ = std::make_shared<Cut_field_double>();
   div_coeff_grad_T_volume_ = std::make_shared<Cut_field_double>();
   d_temperature_ = std::make_shared<Cut_field_double>();
 
   div_coeff_grad_T_volume_temp_ = std::make_shared<Cut_field_double>();
-  temperature_debut_sous_pas_ = std::make_shared<Cut_field_double>();
   temperature_post_dying_ = std::make_shared<Cut_field_double>();
   temperature_post_regular_ = std::make_shared<Cut_field_double>();
   temperature_post_convection_ = std::make_shared<Cut_field_double>();
@@ -99,6 +97,14 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.dictionnaire("divergence_uniquement", (int)ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT);
   param.dictionnaire("flux_interface_et_divergence", (int)ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE);
 
+  param.ajouter_flag("runge_kutta_fluxes_convection", &runge_kutta_fluxes_convection_);
+  param.ajouter_flag("runge_kutta_fluxes_diffusion", &runge_kutta_fluxes_diffusion_);
+  param.ajouter_flag("runge_kutta_fluxes_pas_de_correction_convection", &runge_kutta_fluxes_pas_de_correction_convection_);
+  param.ajouter_flag("runge_kutta_fluxes_pas_de_correction_diffusion", &runge_kutta_fluxes_pas_de_correction_diffusion_);
+
+  param.ajouter("runge_kutta_restriction_leniency_convection", &runge_kutta_restriction_leniency_convection_);
+  param.ajouter("runge_kutta_restriction_leniency_diffusion", &runge_kutta_restriction_leniency_diffusion_);
+
   param.ajouter("convection_auxiliaire", &convective_correction_, Param::REQUIRED);
   param.ajouter("diffusion_auxiliaire", &diffusive_correction_, Param::REQUIRED);
 
@@ -139,13 +145,26 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
   cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
 
-  Cut_field_double& cut_field_RK3_F_temperature          = static_cast<Cut_field_double&>(*RK3_F_temperature_);
-  cut_field_RK3_F_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 0); // Overrides the allocate in IJK_Thermal_base::initialize
+  Cut_field_vector3_double& cut_field_current_fluxes_conv = static_cast<Cut_field_vector3_double&>(current_fluxes_conv_);
+  Cut_field_vector3_double& cut_field_current_fluxes_diff = static_cast<Cut_field_vector3_double&>(current_fluxes_diff_);
+  Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv   = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
+  Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff   = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
+  if (runge_kutta_fluxes_convection_)
+    {
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_current_fluxes_conv, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_RK3_F_fluxes_conv, splitting, 2);
+    }
 
-  cellule_rk_restreint_.allocate(splitting, IJK_Splitting::ELEM, 2);
+  if (runge_kutta_fluxes_diffusion_)
+    {
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_current_fluxes_diff, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_RK3_F_fluxes_diff, splitting, 2);
+    }
 
-  Cut_field_double& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_double&>(*temperature_debut_sous_pas_);
-  cut_field_temperature_debut_sous_pas.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
+  cellule_rk_restreint_conv_l_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+  cellule_rk_restreint_conv_v_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+  cellule_rk_restreint_diff_l_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+  cellule_rk_restreint_diff_v_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
 
   if (postraiter_champs_intermediaires_)
     {
@@ -322,11 +341,160 @@ struct CutCell_GlobalInfo
   double diph_dying;
 };
 
-void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
+// Cette fonction sert ajouter la pente liee a la correction a la pente liee au schema principal
+// Le facteur vol_over_dt_surface existe car le flux calcule dans les routines de correction n'a
+// pas la bonne unite.
+void IJK_Thermal_cut_cell::add_flux_times_vol_over_dt_surface(double fractional_timestep, const Cut_field_vector3_double& cut_field_current_fluxes, Cut_field_vector3_double& cut_field_RK3_F_fluxes)
+{
+  for (int dir = 0; dir < 3; dir++)
+    {
+      const int ni = cut_field_current_fluxes[dir].ni();
+      const int nj = cut_field_current_fluxes[dir].nj();
+      const int nk = cut_field_current_fluxes[dir].nk();
+      for (int k = 0; k < nk; k++)
+        {
+          for (int j = 0; j < nj; j++)
+            {
+              for (int i = 0; i < ni; i++)
+                {
+                  double vol_over_dt = vol_/fractional_timestep;
+
+                  cut_field_RK3_F_fluxes[dir].pure_(i,j,k) += cut_field_current_fluxes[dir].pure_(i,j,k)*vol_over_dt;
+                }
+            }
+        }
+
+      const Cut_cell_FT_Disc& cut_cell_disc = cut_field_current_fluxes[dir].get_cut_cell_disc();
+      for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+        {
+          double vol_over_dt = vol_/fractional_timestep;
+
+          const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
+          double indicatrice_surface = indicatrice_surfacique(n,dir);
+
+          cut_field_RK3_F_fluxes[dir].diph_l_(n) += (indicatrice_surface == 0.)       ? 0. : cut_field_current_fluxes[dir].diph_l_(n)*vol_over_dt/indicatrice_surface;
+          cut_field_RK3_F_fluxes[dir].diph_v_(n) += ((1 - indicatrice_surface) == 0.) ? 0. : cut_field_current_fluxes[dir].diph_v_(n)*vol_over_dt/(1 - indicatrice_surface);
+        }
+    }
+}
+
+void IJK_Thermal_cut_cell::set_rk_restreint(int rk_step, int rk_restriction_leniency, const Cut_cell_FT_Disc& cut_cell_disc, IJK_Field_int& cellule_rk_restreint_v, IJK_Field_int& cellule_rk_restreint_l)
+{
+  if (rk_step == 0)
+    {
+      cellule_rk_restreint_l.data()=0;
+      cellule_rk_restreint_v.data()=0;
+    }
+
+  if (rk_restriction_leniency == 10)
+    {
+      cellule_rk_restreint_l.data()=1;
+      cellule_rk_restreint_v.data()=1;
+    }
+
+  if (rk_restriction_leniency == 11)
+    {
+      for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          cellule_rk_restreint_v(i,j,k) = 1;
+          cellule_rk_restreint_l(i,j,k) = 1;
+        }
+    }
+
+  // Boucle sur les cellules qui disparaissent lors de ce sous pas de temps
+  {
+    int statut_diphasique = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::MOURRANT);
+    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
+    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
+    for (int index = index_min; index < index_max; index++)
+      {
+        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
+
+        Int3 ijk = cut_cell_disc.get_ijk(n);
+        int i = ijk[0];
+        int j = ijk[1];
+        int k = ijk[2];
+
+        if ((rk_restriction_leniency == 4) || (rk_restriction_leniency == 5))
+          continue;
+
+        if ((rk_restriction_leniency == 1) || (rk_restriction_leniency == 3))
+          {
+            double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+            int phase = 1 - (int)next_indicatrice; // phase de la cellule mourrante
+
+            if (phase == 0)
+              {
+                cellule_rk_restreint_v(i,j,k) = 1;
+              }
+            else
+              {
+                cellule_rk_restreint_l(i,j,k) = 1;
+              }
+          }
+        else if ((rk_restriction_leniency == 0) || (rk_restriction_leniency == 2))
+          {
+            cellule_rk_restreint_v(i,j,k) = 1;
+            cellule_rk_restreint_l(i,j,k) = 1;
+          }
+      }
+  }
+
+  // Boucle sur les cellules qui apparaissent ou bien qui sont petites lors de ce sous pas de temps
+  {
+    int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
+    int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+    assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
+    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
+    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
+    for (int index = index_min; index < index_max; index++)
+      {
+        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
+
+        Int3 ijk = cut_cell_disc.get_ijk(n);
+        int i = ijk[0];
+        int j = ijk[1];
+        int k = ijk[2];
+
+        if (rk_step == 0 && ((rk_restriction_leniency == 5) || (rk_restriction_leniency == 4) || (rk_restriction_leniency == 3) || (rk_restriction_leniency == 2)))
+          continue;
+
+        if ((rk_restriction_leniency == 1) || (rk_restriction_leniency == 3) || (rk_restriction_leniency == 5))
+          {
+            double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
+            double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+            int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
+            int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+
+            if (phase == 0)
+              {
+                cellule_rk_restreint_v(i,j,k) = 1;
+              }
+            else
+              {
+                cellule_rk_restreint_l(i,j,k) = 1;
+              }
+          }
+        else if ((rk_restriction_leniency == 0) || (rk_restriction_leniency == 2) || (rk_restriction_leniency == 4))
+          {
+            cellule_rk_restreint_v(i,j,k) = 1;
+            cellule_rk_restreint_l(i,j,k) = 1;
+          }
+      }
+  }
+}
+
+void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_rk, int rk_step)
 {
   ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, treatment_count_, new_treatment_);
   ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, temperature_face_, false, cut_cell_flux_convection_, treatment_count_, new_treatment_);
 
+  double fractional_timestep = (flag_rk) ? compute_fractionnal_timestep_rk3(total_timestep, rk_step) : total_timestep;
 
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
@@ -337,6 +505,64 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
   Cut_field_double& cut_field_temperature_post_convection   = static_cast<Cut_field_double&>(*temperature_post_convection_);
   Cut_field_double& cut_field_temperature_post_diff_regular = static_cast<Cut_field_double&>(*temperature_post_diff_regular_);
   Cut_field_double& cut_field_d_temperature                 = static_cast<Cut_field_double&>(*d_temperature_);
+
+  Cut_field_vector3_double& cut_field_current_fluxes_conv = static_cast<Cut_field_vector3_double&>(current_fluxes_conv_);
+  Cut_field_vector3_double& cut_field_current_fluxes_diff = static_cast<Cut_field_vector3_double&>(current_fluxes_diff_);
+  Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
+  Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
+
+  CutCell_GlobalInfo ene_ini;
+  CutCell_GlobalInfo d_ene_Conv;
+  CutCell_GlobalInfo ene_postconv_switch;
+  CutCell_GlobalInfo ene_postconv_dying;
+  CutCell_GlobalInfo ene_postconv_small_nascent;
+  CutCell_GlobalInfo d_ene_Diffu;
+  CutCell_GlobalInfo ene_postdiff_regular;
+  CutCell_GlobalInfo ene_postdiff_dying;
+  CutCell_GlobalInfo ene_postdiff_small;
+
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
+
+
+  if (runge_kutta_fluxes_convection_)
+    {
+      cut_field_current_fluxes_conv[0].set_to_uniform_value(0);
+      cut_field_current_fluxes_conv[1].set_to_uniform_value(0);
+      cut_field_current_fluxes_conv[2].set_to_uniform_value(0);
+      if (rk_step == 0)
+        {
+          cut_field_RK3_F_fluxes_conv[0].set_to_uniform_value(0);
+          cut_field_RK3_F_fluxes_conv[1].set_to_uniform_value(0);
+          cut_field_RK3_F_fluxes_conv[2].set_to_uniform_value(0);
+        }
+      cut_field_current_fluxes_conv[0].echange_espace_virtuel(1);
+      cut_field_current_fluxes_conv[1].echange_espace_virtuel(1);
+      cut_field_current_fluxes_conv[2].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_conv[0].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_conv[1].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_conv[2].echange_espace_virtuel(1);
+    }
+
+  if (runge_kutta_fluxes_diffusion_)
+    {
+      cut_field_current_fluxes_diff[0].set_to_uniform_value(0);
+      cut_field_current_fluxes_diff[1].set_to_uniform_value(0);
+      cut_field_current_fluxes_diff[2].set_to_uniform_value(0);
+      if (rk_step == 0)
+        {
+          cut_field_RK3_F_fluxes_diff[0].set_to_uniform_value(0);
+          cut_field_RK3_F_fluxes_diff[1].set_to_uniform_value(0);
+          cut_field_RK3_F_fluxes_diff[2].set_to_uniform_value(0);
+        }
+      cut_field_current_fluxes_diff[0].echange_espace_virtuel(1);
+      cut_field_current_fluxes_diff[1].echange_espace_virtuel(1);
+      cut_field_current_fluxes_diff[2].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_diff[0].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_diff[1].echange_espace_virtuel(1);
+      cut_field_RK3_F_fluxes_diff[2].echange_espace_virtuel(1);
+    }
+
+
 
 
   update_thermal_properties();
@@ -351,7 +577,7 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.calcule_temperature_remplissage(timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
+      convective_correction_.calcule_temperature_remplissage(fractional_timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
     }
 
   if (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::POINT_CELLULE)
@@ -372,16 +598,17 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
            || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE0)
            || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE1))
     {
-      convective_correction_.calcule_temperature_face_depuis_facette_interpolate(cut_cell_conv_scheme_.face_interp, timestep, interfacial_temperature_.centre, temperature_ft_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_, cut_field_total_velocity);
+      convective_correction_.calcule_temperature_face_depuis_facette_interpolate(cut_cell_conv_scheme_.face_interp, fractional_timestep, interfacial_temperature_.centre, temperature_ft_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_, cut_field_total_velocity);
     }
   else
     {
       // Do nothing
     }
 
-  const CutCell_GlobalInfo ene_ini = compute_global_energy_cut_cell(cut_field_temperature, 0);
+  ene_ini = compute_global_energy_cut_cell(cut_field_temperature, 0);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 0, current_time, "Temperature Min/Max au debut du pas de temps");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 0, current_time, "Temperature Min/Max au debut du pas de temps");
 
   if (!diff_temperature_negligible_)
     {
@@ -394,26 +621,38 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
       convective_correction_.compute_flux_small_nascent_cells(cut_field_total_velocity, cut_field_temperature);
     }
 
-  compute_temperature_convection_cut_cell(cut_field_total_velocity);
-  const CutCell_GlobalInfo d_ene_Conv = compute_d_global_energy_cut_cell(cut_field_d_temperature, 0);
-  euler_explicit_update_cut_cell_notransport(timestep, false, cut_field_d_temperature, cut_field_temperature);
+  if (runge_kutta_fluxes_convection_)
+    {
+      set_rk_restreint(rk_step, runge_kutta_restriction_leniency_convection_, cut_cell_disc, cellule_rk_restreint_conv_v_, cellule_rk_restreint_conv_l_);
+      ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).set_runge_kutta(rk_step, total_timestep, current_fluxes_conv_, cut_field_RK3_F_fluxes_conv, cellule_rk_restreint_conv_v_, cellule_rk_restreint_conv_l_);
+    }
+
+  compute_temperature_convection_cut_cell(cut_field_total_velocity, cut_field_d_temperature);
+  d_ene_Conv = compute_d_global_energy_cut_cell(cut_field_d_temperature, 0);
+
+  euler_explicit_update_cut_cell_transport(fractional_timestep, cut_field_d_temperature, cut_field_temperature);
   cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
 
   if (postraiter_champs_intermediaires_)
     {
       cut_field_temperature_post_regular.copy_from(cut_field_temperature);
     }
-  const CutCell_GlobalInfo ene_postconv_regular = compute_global_energy_cut_cell(cut_field_temperature, 0);
 
-  cut_cell_switch_field_time(cut_field_temperature);
-  cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
-  const CutCell_GlobalInfo ene_postconv_switch = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postconv_switch = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection principale");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection principale");
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature);
+      if (runge_kutta_fluxes_convection_ && (!runge_kutta_fluxes_pas_de_correction_convection_))
+        {
+          cut_field_current_fluxes_conv[0].set_to_uniform_value(0);
+          cut_field_current_fluxes_conv[1].set_to_uniform_value(0);
+          cut_field_current_fluxes_conv[2].set_to_uniform_value(0);
+        }
+
+      convective_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_convection_, cut_field_current_fluxes_conv);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 
@@ -421,13 +660,14 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     {
       cut_field_temperature_post_dying.copy_from(cut_field_temperature);
     }
-  const CutCell_GlobalInfo ene_postconv_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postconv_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules mourrantes");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules mourrantes");
 
   if (!conv_temperature_negligible_)
     {
-      convective_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature);
+      convective_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_convection_, cut_field_current_fluxes_conv);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 
@@ -438,11 +678,18 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
-      diffusive_correction_.calcule_temperature_remplissage(timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
+      diffusive_correction_.calcule_temperature_remplissage(fractional_timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
     }
-  const CutCell_GlobalInfo ene_postconv_small_nascent = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postconv_small_nascent = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules naissantes");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la convection des cellules naissantes");
+
+  if (runge_kutta_fluxes_convection_ && (!runge_kutta_fluxes_pas_de_correction_convection_))
+    {
+      add_flux_times_vol_over_dt_surface(fractional_timestep, cut_field_current_fluxes_conv, cut_field_RK3_F_fluxes_conv);
+    }
+
 
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
@@ -458,36 +705,54 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
     {
       //Cerr << "Warning: The diffusion at the interface is not activated." << finl;
     }
+
+  if (runge_kutta_fluxes_diffusion_)
+    {
+      set_rk_restreint(rk_step, runge_kutta_restriction_leniency_diffusion_, cut_cell_disc, cellule_rk_restreint_diff_v_, cellule_rk_restreint_diff_l_);
+      ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).set_runge_kutta(rk_step, total_timestep, current_fluxes_diff_, cut_field_RK3_F_fluxes_diff, cellule_rk_restreint_diff_v_, cellule_rk_restreint_diff_l_);
+    }
+
   add_temperature_diffusion();
-  const CutCell_GlobalInfo d_ene_Diffu = compute_d_global_energy_cut_cell(cut_field_d_temperature, 1);
-  euler_explicit_update_cut_cell_notransport(timestep, true, cut_field_d_temperature, cut_field_temperature);
+  d_ene_Diffu = compute_d_global_energy_cut_cell(cut_field_d_temperature, 1);
+
+  euler_explicit_update_cut_cell_notransport(fractional_timestep, true, cut_field_d_temperature, cut_field_temperature);
+
   cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
 
   if (postraiter_champs_intermediaires_)
     {
       cut_field_temperature_post_diff_regular.copy_from(cut_field_temperature);
     }
-  const CutCell_GlobalInfo ene_postdiff_regular = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postdiff_regular = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion principale");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion principale");
 
   if (!diff_temperature_negligible_)
     {
-      diffusive_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature);
+      if (runge_kutta_fluxes_diffusion_ && (!runge_kutta_fluxes_pas_de_correction_diffusion_))
+        {
+          cut_field_current_fluxes_diff[0].set_to_uniform_value(0);
+          cut_field_current_fluxes_diff[1].set_to_uniform_value(0);
+          cut_field_current_fluxes_diff[2].set_to_uniform_value(0);
+        }
+
+      diffusive_correction_.add_dying_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_diffusion_, cut_field_current_fluxes_diff);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 
-  const CutCell_GlobalInfo ene_postdiff_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postdiff_dying = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
-  print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion des cellules mourrantes");
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "Temperature Min/Max apres la diffusion des cellules mourrantes");
 
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
-      diffusive_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature);
+      diffusive_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_diffusion_, cut_field_current_fluxes_diff);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 
-  const CutCell_GlobalInfo ene_postdiff_small = compute_global_energy_cut_cell(cut_field_temperature, 1);
+  ene_postdiff_small = compute_global_energy_cut_cell(cut_field_temperature, 1);
 
   Cerr.precision(16);
   if (verbosite_ >= 5)
@@ -509,115 +774,49 @@ void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
 
   if (verbosite_ >= 1)
     {
-      Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_regular: " << ene_postconv_regular.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_switch: " << ene_postconv_switch.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff_regular: " << ene_postdiff_regular.overall << " post_diff_dying: " << ene_postdiff_dying.overall << " post_diff_small: " << ene_postdiff_small.overall << finl;
+      Cerr << "T_Budget, overall time: " << current_time << " initial: " << ene_ini.overall << " post_conv_dying: " << ene_postconv_dying.overall << " post_conv_switch: " << ene_postconv_switch.overall << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall << " post_diff_regular: " << ene_postdiff_regular.overall << " post_diff_dying: " << ene_postdiff_dying.overall << " post_diff_small: " << ene_postdiff_small.overall << finl;
     }
   if (verbosite_ >= 3)
     {
-      Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_regular: " << ene_postconv_regular.overall_l << " post_conv_switch: " << ene_postconv_switch.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff_regular: " << ene_postdiff_regular.overall_l << " post_diff_dying: " << ene_postdiff_dying.overall_l << " post_diff_small: " << ene_postdiff_small.overall_l << finl;
-      Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_regular: " << ene_postconv_regular.overall_v << " post_conv_switch: " << ene_postconv_switch.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff_regular: " << ene_postdiff_regular.overall_v << " post_diff_dying: " << ene_postdiff_dying.overall_v << " post_diff_small: " << ene_postdiff_small.overall_v << finl;
-      Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_regular: " << ene_postconv_regular.pure         << " post_conv_switch: " << ene_postconv_switch.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff_regular: " << ene_postdiff_regular.pure << " post_diff_dying: " << ene_postdiff_dying.pure         << " post_diff_small: " << ene_postdiff_small.pure         << finl;
-      Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_regular: " << ene_postconv_regular.diph_l       << " post_conv_switch: " << ene_postconv_switch.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff_regular: " << ene_postdiff_regular.diph_l << " post_diff_dying: " << ene_postdiff_dying.diph_l       << " post_diff_small: " << ene_postdiff_small.diph_l       << finl;
-      Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_regular: " << ene_postconv_regular.diph_v       << " post_conv_switch: " << ene_postconv_switch.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff_regular: " << ene_postdiff_regular.diph_v << " post_diff_dying: " << ene_postdiff_dying.diph_v       << " post_diff_small: " << ene_postdiff_small.diph_v       << finl;
-      Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_regular: " << ene_postconv_regular.diph_small   << " post_conv_switch: " << ene_postconv_switch.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff_regular: " << ene_postdiff_regular.diph_small << " post_diff_dying: " << ene_postdiff_dying.diph_small   << " post_diff_small: " << ene_postdiff_small.diph_small   << finl;
-      Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_regular: " << ene_postconv_regular.diph_regular << " post_conv_switch: " << ene_postconv_switch.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff_regular: " << ene_postdiff_regular.diph_regular << " post_diff_dying: " << ene_postdiff_dying.diph_regular << " post_diff_small: " << ene_postdiff_small.diph_regular << finl;
-      Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_regular: " << ene_postconv_regular.diph_nascent << " post_conv_switch: " << ene_postconv_switch.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff_regular: " << ene_postdiff_regular.diph_nascent << " post_diff_dying: " << ene_postdiff_dying.diph_nascent << " post_diff_small: " << ene_postdiff_small.diph_nascent << finl;
-      Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_regular: " << ene_postconv_regular.diph_dying   << " post_conv_switch: " << ene_postconv_switch.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff_regular: " << ene_postdiff_regular.diph_dying << " post_diff_dying: " << ene_postdiff_dying.diph_dying   << " post_diff_small: " << ene_postdiff_small.diph_dying   << finl;
+      Cerr << "T_Budget, overall_l time: " << current_time << " initial: " << ene_ini.overall_l << " post_conv_switch: " << ene_postconv_switch.overall_l << " post_conv_dying: " << ene_postconv_dying.overall_l << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_l << " post_diff_regular: " << ene_postdiff_regular.overall_l << " post_diff_dying: " << ene_postdiff_dying.overall_l << " post_diff_small: " << ene_postdiff_small.overall_l << finl;
+      Cerr << "T_Budget, overall_v time: " << current_time << " initial: " << ene_ini.overall_v << " post_conv_switch: " << ene_postconv_switch.overall_v << " post_conv_dying: " << ene_postconv_dying.overall_v << " post_conv_small_nascent: " << ene_postconv_small_nascent.overall_v << " post_diff_regular: " << ene_postdiff_regular.overall_v << " post_diff_dying: " << ene_postdiff_dying.overall_v << " post_diff_small: " << ene_postdiff_small.overall_v << finl;
+      Cerr << "T_Budget, pure.......... time: " << current_time << " initial: " << ene_ini.pure         << " post_conv_switch: " << ene_postconv_switch.pure         << " post_conv_dying: " << ene_postconv_dying.pure         << " post_conv_small_nascent: " << ene_postconv_small_nascent.pure         << " post_diff_regular: " << ene_postdiff_regular.pure << " post_diff_dying: " << ene_postdiff_dying.pure         << " post_diff_small: " << ene_postdiff_small.pure         << finl;
+      Cerr << "T_Budget, diph_l........ time: " << current_time << " initial: " << ene_ini.diph_l       << " post_conv_switch: " << ene_postconv_switch.diph_l       << " post_conv_dying: " << ene_postconv_dying.diph_l       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_l       << " post_diff_regular: " << ene_postdiff_regular.diph_l << " post_diff_dying: " << ene_postdiff_dying.diph_l       << " post_diff_small: " << ene_postdiff_small.diph_l       << finl;
+      Cerr << "T_Budget, diph_v........ time: " << current_time << " initial: " << ene_ini.diph_v       << " post_conv_switch: " << ene_postconv_switch.diph_v       << " post_conv_dying: " << ene_postconv_dying.diph_v       << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_v       << " post_diff_regular: " << ene_postdiff_regular.diph_v << " post_diff_dying: " << ene_postdiff_dying.diph_v       << " post_diff_small: " << ene_postdiff_small.diph_v       << finl;
+      Cerr << "T_Budget, diph_small.... time: " << current_time << " initial: " << ene_ini.diph_small   << " post_conv_switch: " << ene_postconv_switch.diph_small   << " post_conv_dying: " << ene_postconv_dying.diph_small   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_small   << " post_diff_regular: " << ene_postdiff_regular.diph_small << " post_diff_dying: " << ene_postdiff_dying.diph_small   << " post_diff_small: " << ene_postdiff_small.diph_small   << finl;
+      Cerr << "T_Budget, diph_regular.. time: " << current_time << " initial: " << ene_ini.diph_regular << " post_conv_switch: " << ene_postconv_switch.diph_regular << " post_conv_dying: " << ene_postconv_dying.diph_regular << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_regular << " post_diff_regular: " << ene_postdiff_regular.diph_regular << " post_diff_dying: " << ene_postdiff_dying.diph_regular << " post_diff_small: " << ene_postdiff_small.diph_regular << finl;
+      Cerr << "T_Budget, diph_nascent.. time: " << current_time << " initial: " << ene_ini.diph_nascent << " post_conv_switch: " << ene_postconv_switch.diph_nascent << " post_conv_dying: " << ene_postconv_dying.diph_nascent << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_nascent << " post_diff_regular: " << ene_postdiff_regular.diph_nascent << " post_diff_dying: " << ene_postdiff_dying.diph_nascent << " post_diff_small: " << ene_postdiff_small.diph_nascent << finl;
+      Cerr << "T_Budget, diph_dying.... time: " << current_time << " initial: " << ene_ini.diph_dying   << " post_conv_switch: " << ene_postconv_switch.diph_dying   << " post_conv_dying: " << ene_postconv_dying.diph_dying   << " post_conv_small_nascent: " << ene_postconv_small_nascent.diph_dying   << " post_diff_regular: " << ene_postdiff_regular.diph_dying << " post_diff_dying: " << ene_postdiff_dying.diph_dying   << " post_diff_small: " << ene_postdiff_small.diph_dying   << finl;
     }
 
   print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, current_time, "");
+
+  if (runge_kutta_fluxes_diffusion_ && (!runge_kutta_fluxes_pas_de_correction_diffusion_))
+    {
+      add_flux_times_vol_over_dt_surface(fractional_timestep, cut_field_current_fluxes_diff, cut_field_RK3_F_fluxes_diff);
+    }
+
+
+
+}
+
+void IJK_Thermal_cut_cell::euler_time_step(const double timestep)
+{
+  perform_thermal_step(timestep, 0, 0);
 }
 
 void IJK_Thermal_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
                                         const double time)
 {
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
-  Cut_field_double& cut_field_temperature_debut_sous_pas = static_cast<Cut_field_double&>(*temperature_debut_sous_pas_);
-  Cut_field_double& cut_field_d_temperature              = static_cast<Cut_field_double&>(*d_temperature_);
-  Cut_field_double& cut_field_RK3_F_temperature          = static_cast<Cut_field_double&>(*RK3_F_temperature_);
 
-  if (rk_step == 0)
-    {
-      cellule_rk_restreint_.data()=0;
-    }
-
-  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
-
-  // Boucle sur les cellules qui disparaissent lors de ce sous pas de temps
-  {
-    int statut_diphasique = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::MOURRANT);
-    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
-    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
-    for (int index = index_min; index < index_max; index++)
-      {
-        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
-
-        Int3 ijk = cut_cell_disc.get_ijk(n);
-        int i = ijk[0];
-        int j = ijk[1];
-        int k = ijk[2];
-
-        cellule_rk_restreint_(i,j,k) = 1;
-      }
-  }
-
-  // Boucle sur les cellules qui apparaissent lors de ce sous pas de temps
-  {
-    int statut_diphasique = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
-    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
-    for (int index = index_min; index < index_max; index++)
-      {
-        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
-
-        Int3 ijk = cut_cell_disc.get_ijk(n);
-        int i = ijk[0];
-        int j = ijk[1];
-        int k = ijk[2];
-
-        cellule_rk_restreint_(i,j,k) = 1;
-      }
-  }
-
-  double fractional_timestep = compute_fractionnal_timestep_rk3(total_timestep, rk_step);
   if (debug_)
     Cerr << "Thermal Runge-Kutta3 time-step" << finl;
 
-  cut_field_temperature_debut_sous_pas.copy_from(cut_field_temperature);
+  perform_thermal_step(total_timestep, 1, rk_step);
 
-  euler_time_step(fractional_timestep);
-
-  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
-  const double delta_t_divided_by_Fk = fractional_timestep / coeff_Fk[rk_step];
-
-  const int nx = cut_field_temperature.ni();
-  const int ny = cut_field_temperature.nj();
-  const int nz = cut_field_temperature.nk();
-  for (int k=0; k < nz ; k++)
-    {
-      for (int j=0; j< ny; j++)
-        {
-          for (int i=0; i < nx; i++)
-            {
-              int n = cut_cell_disc.get_n(i,j,k);
-              if (n < 0)
-                {
-                  cut_field_d_temperature.pure_(i,j,k) = (cut_field_temperature.pure_(i,j,k) - cut_field_temperature_debut_sous_pas.pure_(i,j,k))/delta_t_divided_by_Fk;
-                }
-              else
-                {
-                  double old_chi_l = ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
-                  double next_chi_l = ref_ijk_ft_cut_cell_->itfce().In(i,j,k);
-                  cut_field_d_temperature.diph_l_(n) = (next_chi_l*cut_field_temperature.diph_l_(n) - old_chi_l*cut_field_temperature_debut_sous_pas.diph_l_(n))/delta_t_divided_by_Fk;
-                  cut_field_d_temperature.diph_v_(n) = ((1.- next_chi_l)*cut_field_temperature.diph_v_(n) - (1.- old_chi_l)*cut_field_temperature_debut_sous_pas.diph_v_(n))/delta_t_divided_by_Fk;
-                }
-            }
-        }
-    }
-
-
-  cut_field_temperature.copy_from(cut_field_temperature_debut_sous_pas);
-
-  runge_kutta3_update_cut_cell_transport(cut_field_d_temperature, cut_field_RK3_F_temperature, cut_field_temperature, rk_step, total_timestep, cellule_rk_restreint_);
+  if (verbosite_ >= 7)
+    print_Tmin_Tmax_cut_cell(cut_field_temperature, 1, time, "Temperature Min/Max apres etape Runge-Kutta (= etat final)");
 }
 
 void IJK_Thermal_cut_cell::sauvegarder_temperature(Nom& lata_name, int idx, const int& stop)
@@ -767,10 +966,9 @@ void IJK_Thermal_cut_cell::calculer_dT_cut_cell(const Cut_field_vector3_double& 
   return;
 }
 
-void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity)
+void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_d_temperature)
 {
   const Cut_field_double& cut_field_temperature = static_cast<const Cut_field_double&>(*temperature_);
-  Cut_field_double& cut_field_d_temperature     = static_cast<Cut_field_double&>(*d_temperature_);
 
   static Stat_Counter_Id cnt_conv_temp = statistiques().new_counter(1, "FT convection rho");
   statistiques().begin_count(cnt_conv_temp);
@@ -1227,10 +1425,47 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
   return {global_energy_overall, global_energy_overall_l, global_energy_overall_v, global_energy_pure, global_energy_diph_l, global_energy_diph_v, global_energy_diph_small, global_energy_diph_regular, global_energy_diph_nascent, global_energy_diph_dying};
 }
 
-void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next, double current_time, const std::string& heading)
+Nom get_T_location(double T, const Cut_field_double& cut_field_temperature)
 {
-  CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature, 1);
-  CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature, 1);
+  const int nx = cut_field_temperature.ni();
+  const int ny = cut_field_temperature.nj();
+  const int nz = cut_field_temperature.nk();
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
+  for (int k=0; k < nz ; k++)
+    {
+      for (int j=0; j< ny; j++)
+        {
+          for (int i=0; i < nx; i++)
+            {
+              int n = cut_cell_disc.get_n(i,j,k);
+              if (n < 0)
+                {
+                  if (T == cut_field_temperature.pure_(i,j,k))
+                    {
+                      return Nom("ijk_pure_") + Nom(i) + Nom("_") + Nom(j) + Nom("_") + Nom(k);
+                    }
+                }
+              else
+                {
+                  if (T == cut_field_temperature.diph_l_(n))
+                    {
+                      return Nom("ijk_l_") + Nom(i) + Nom("_") + Nom(j) + Nom("_") + Nom(k);
+                    }
+                  if (T == cut_field_temperature.diph_v_(n))
+                    {
+                      return Nom("ijk_v_") + Nom(i) + Nom("_") + Nom(j) + Nom("_") + Nom(k);
+                    }
+                }
+            }
+        }
+    }
+  return Nom("_not_here_");
+}
+
+void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(const Cut_field_double& cut_field_temperature, bool next, double current_time, const std::string& heading)
+{
+  CutCell_GlobalInfo Tmin = compute_Tmin_cut_cell(cut_field_temperature, next);
+  CutCell_GlobalInfo Tmax = compute_Tmax_cut_cell(cut_field_temperature, next);
   if (verbosite_ >= 7)
     {
       Cerr << heading << finl;
@@ -1251,9 +1486,21 @@ void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(Cut_field_double& cut_field_
       Cerr << "T_MinMax, diph_nascent.. time: " << current_time << " Tmin: " << Tmin.diph_nascent << " Tmax: " << Tmax.diph_nascent << finl;
       Cerr << "T_MinMax, diph_dying.... time: " << current_time << " Tmin: " << Tmin.diph_dying   << " Tmax: " << Tmax.diph_dying   << finl;
     }
+  if (verbosite_ >= 10)
+    {
+      Cerr << "Location T_MinMax, overall_l time: " << current_time << " Tmin: " << get_T_location(Tmin.overall_l, cut_field_temperature) << " Tmax: " << get_T_location(Tmax.overall_l, cut_field_temperature) << finl;
+      Cerr << "Location T_MinMax, overall_v time: " << current_time << " Tmin: " << get_T_location(Tmin.overall_v, cut_field_temperature) << " Tmax: " << get_T_location(Tmax.overall_v, cut_field_temperature) << finl;
+      Cerr << "Location T_MinMax, pure.......... time: " << current_time << " Tmin: " << get_T_location(Tmin.pure, cut_field_temperature)         << " Tmax: " << get_T_location(Tmax.pure, cut_field_temperature)         << finl;
+      Cerr << "Location T_MinMax, diph_l........ time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_l, cut_field_temperature)       << " Tmax: " << get_T_location(Tmax.diph_l, cut_field_temperature)       << finl;
+      Cerr << "Location T_MinMax, diph_v........ time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_v, cut_field_temperature)       << " Tmax: " << get_T_location(Tmax.diph_v, cut_field_temperature)       << finl;
+      Cerr << "Location T_MinMax, diph_small.... time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_small, cut_field_temperature)   << " Tmax: " << get_T_location(Tmax.diph_small, cut_field_temperature)   << finl;
+      Cerr << "Location T_MinMax, diph_regular.. time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_regular, cut_field_temperature) << " Tmax: " << get_T_location(Tmax.diph_regular, cut_field_temperature) << finl;
+      Cerr << "Location T_MinMax, diph_nascent.. time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_nascent, cut_field_temperature) << " Tmax: " << get_T_location(Tmax.diph_nascent, cut_field_temperature) << finl;
+      Cerr << "Location T_MinMax, diph_dying.... time: " << current_time << " Tmin: " << get_T_location(Tmin.diph_dying, cut_field_temperature)   << " Tmax: " << get_T_location(Tmax.diph_dying, cut_field_temperature)   << finl;
+    }
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_double& cut_field_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(const Cut_field_double& cut_field_temperature, bool next)
 {
   double Tmin_overall = 1.e20;
   double Tmin_overall_l = 1.e20;
@@ -1291,8 +1538,8 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_double&
               else
                 {
                   // Excluding the value of the phase in dying cells
-                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k));
-                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k));
+                  bool exclude_l = (next && (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k))) || ((!next) && (ref_ijk_ft_cut_cell_->itfce().phase_naissante(1, i,j,k)));
+                  bool exclude_v = (next && (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k))) || ((!next) && (ref_ijk_ft_cut_cell_->itfce().phase_naissante(0, i,j,k)));
 
                   Tmin_overall = exclude_l ? Tmin_overall : std::min(Tmin_overall, cut_field_temperature.diph_l_(n));
                   Tmin_overall = exclude_v ? Tmin_overall : std::min(Tmin_overall, cut_field_temperature.diph_v_(n));
@@ -1361,7 +1608,7 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(Cut_field_double&
   return {Tmin_overall, Tmin_overall_l, Tmin_overall_v, Tmin_pure, Tmin_diph_l, Tmin_diph_v, Tmin_diph_small, Tmin_diph_regular, Tmin_diph_nascent, Tmin_diph_dying};
 }
 
-CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_double& cut_field_temperature, bool next)
+CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(const Cut_field_double& cut_field_temperature, bool next)
 {
   double Tmax_overall = -1.e20;
   double Tmax_overall_l = -1.e20;
@@ -1400,8 +1647,8 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(Cut_field_double&
               else
                 {
                   // Excluding the value of the phase in dying cells
-                  bool exclude_l = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k));
-                  bool exclude_v = (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k));
+                  bool exclude_l = (next && (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(1, i,j,k))) || ((!next) && (ref_ijk_ft_cut_cell_->itfce().phase_naissante(1, i,j,k)));
+                  bool exclude_v = (next && (ref_ijk_ft_cut_cell_->itfce().phase_mourrante(0, i,j,k))) || ((!next) && (ref_ijk_ft_cut_cell_->itfce().phase_naissante(0, i,j,k)));
 
                   Tmax_overall = exclude_l ? Tmax_overall : std::max(Tmax_overall, cut_field_temperature.diph_l_(n));
                   Tmax_overall = exclude_v ? Tmax_overall : std::max(Tmax_overall, cut_field_temperature.diph_v_(n));

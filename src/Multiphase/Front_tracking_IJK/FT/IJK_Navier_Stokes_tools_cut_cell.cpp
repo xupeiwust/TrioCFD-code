@@ -891,7 +891,7 @@ void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time,
     }
 }
 
-void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -956,22 +956,58 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
+                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
+                      if (cellule_rk_restreint == 0)
+                        {
+                          double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                          double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                          F.pure_(i,j,k) = x;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
+                      else
+                        {
+                          double x = dv.pure_(i,j,k);
+                          double next_v_vol = v.pure_(i,j,k) + x * intermediate_dt;
+                          F.pure_(i,j,k) = x;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                        {
+                          double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
-                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                          double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                          F.diph_v_(n) = x_v;
+                          v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                        }
+                      else
+                        {
+                          double x_v = dv.diph_v_(n);
+
+                          double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * intermediate_dt;
+                          F.diph_v_(n) = x_v;
+                          v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                        }
+
+                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                        {
+                          double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                          F.diph_l_(n) = x_l;
+                          v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                        }
+                      else
+                        {
+                          double x_l = dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * intermediate_dt;
+                          F.diph_l_(n) = x_l;
+                          v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                        }
                     }
                 }
             }
@@ -991,19 +1027,52 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      v.pure_(i,j,k) = next_v_vol;
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
+                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
+                      if (cellule_rk_restreint == 0)
+                        {
+                          double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                          double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
+                      else
+                        {
+                          double x = dv.pure_(i,j,k);
+                          double next_v_vol = v.pure_(i,j,k) + x * intermediate_dt;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                        {
+                          double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                          double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                          v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                        }
+                      else
+                        {
+                          double x_v = dv.diph_v_(n);
+
+                          double next_v_vol_v = v.diph_v_(n)*nonzero_indicatrice_v + x_v * intermediate_dt;
+                          v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
+                        }
+
+                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                        {
+                          double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                          v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                        }
+                      else
+                        {
+                          double x_l = dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*nonzero_indicatrice_l + x_l * intermediate_dt;
+                          v.diph_l_(n) = next_v_vol_l/nonzero_indicatrice_l;
+                        }
                     }
                 }
             }
@@ -1056,7 +1125,7 @@ void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_d
     }
 }
 
-void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint)
+void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1127,24 +1196,64 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      F.pure_(i,j,k) = x;
-                      v.pure_(i,j,k) = next_v_vol;
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
+                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
+                      if (cellule_rk_restreint == 0)
+                        {
+                          double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                          assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                          double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                          F.pure_(i,j,k) = x;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
+                      else
+                        {
+                          double x = dv.pure_(i,j,k);
+                          assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                          double next_v_vol = v.pure_(i,j,k) + x * intermediate_dt;
+                          F.pure_(i,j,k) = x;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                        {
+                          double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
-                      F.diph_l_(n) = x_l;
-                      F.diph_v_(n) = x_v;
+                          double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                          F.diph_v_(n) = x_v;
 
-                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                          v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                        }
+                      else
+                        {
+                          double x_v = dv.diph_v_(n);
+
+                          double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * intermediate_dt;
+                          F.diph_v_(n) = x_v;
+
+                          v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                        }
+
+                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                        {
+                          double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+                          F.diph_l_(n) = x_l;
+
+                          v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                        }
+                      else
+                        {
+                          double x_l = dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * intermediate_dt;
+                          F.diph_l_(n) = x_l;
+
+                          v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                        }
                     }
                 }
             }
@@ -1166,21 +1275,58 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      double x = F.pure_(i, j, k) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.pure_(i,j,k);
-                      assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
-                      double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
-                      v.pure_(i,j,k) = next_v_vol;
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
+                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
+                      if (cellule_rk_restreint == 0)
+                        {
+                          double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
+                          assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                          double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
+                      else
+                        {
+                          double x = dv.pure_(i,j,k);
+                          assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
+                          double next_v_vol = v.pure_(i,j,k) + x * intermediate_dt;
+                          v.pure_(i,j,k) = next_v_vol;
+                        }
                     }
                   else
                     {
-                      double x_l = F.diph_l_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_l_(n);
-                      double x_v = F.diph_v_(n) * facteurF * (cellule_rk_restreint(i,j,k) == 0) + dv.diph_v_(n);
+                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                        {
+                          double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
-                      double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
-                      double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
+                          double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * delta_t_divided_by_Fk;
 
-                      v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
-                      v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                          v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                        }
+                      else
+                        {
+                          double x_v = dv.diph_v_(n);
+
+                          double next_v_vol_v = v.diph_v_(n)*old_nonzero_indicatrice_v + x_v * intermediate_dt;
+
+                          v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
+                        }
+
+                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                        {
+                          double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * delta_t_divided_by_Fk;
+
+                          v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                        }
+                      else
+                        {
+                          double x_l = dv.diph_l_(n);
+
+                          double next_v_vol_l = v.diph_l_(n)*old_nonzero_indicatrice_l + x_l * intermediate_dt;
+
+                          v.diph_l_(n) = next_v_vol_l/next_nonzero_indicatrice_l;
+                        }
                     }
                 }
             }
@@ -1227,5 +1373,194 @@ void cut_cell_switch_field_time(Cut_field_double& v)
             }
         }
     }
+}
+
+void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
+{
+  const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
+  // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
+  const double coeff_Fk[3] = { 1., 4. / 9., 15. / 32. };
+
+  int di = (dir == 0) ? -1 : 0;
+  int dj = (dir == 1) ? -1 : 0;
+  int dk = (dir == 2) ? -1 : 0;
+
+  const double facteurF = coeff_a[step];
+  const double one_divided_by_Fk = 1. / coeff_Fk[step];
+  const int imax = dv.ni();
+  const int jmax = dv.nj();
+  const int ghost = dv.ghost();
+  const Cut_cell_FT_Disc& cut_cell_disc = dv.get_cut_cell_disc();
+  switch(step)
+    {
+    case 0:
+      // don't read initial value of F (no performance benefit because write to F causes the
+      // processor to fetch the cache line, but we don't wand to use a potentially uninitialized value
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+              int n = cut_cell_disc.get_n(i,j,k_layer);
+              if (n < 0)
+                {
+                  double x = dv.pure_(i,j,k_layer);
+                  dv.pure_(i,j,k_layer) = x * one_divided_by_Fk;
+                  F.pure_(i,j,k_layer) = x;
+                }
+              else
+                {
+                  double x_l = dv.diph_l_(n);
+                  double x_v = dv.diph_v_(n);
+
+                  dv.diph_l_(n) = x_l * one_divided_by_Fk;
+                  dv.diph_v_(n) = x_v * one_divided_by_Fk;
+                  F.diph_l_(n) = x_l;
+                  F.diph_v_(n) = x_v;
+
+                  int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
+                  if (n_decale < 0)
+                    {
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
+                      F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
+                    }
+                }
+            }
+        }
+      break;
+    case 1:
+      // general case, read and write F
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+              int n = cut_cell_disc.get_n(i,j,k_layer);
+              if (n < 0)
+                {
+                  int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k_layer));
+                  int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k_layer) : cellule_rk_restreint_l(i,j,k_layer);
+                  int cellule_rk_restreint_decale = (phase == 0) ? cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) : cellule_rk_restreint_l(i+di,j+dj,k_layer+dk);
+                  if ((cellule_rk_restreint == 0) && (cellule_rk_restreint_decale == 0))
+                    {
+                      double x = F.pure_(i, j, k_layer) * facteurF + dv.pure_(i,j,k_layer);
+                      dv.pure_(i,j,k_layer) = x * one_divided_by_Fk;
+                      F.pure_(i,j,k_layer) = x;
+                    }
+                  else
+                    {
+                      double x = dv.pure_(i,j,k_layer);
+                      dv.pure_(i,j,k_layer) = x;
+                      F.pure_(i,j,k_layer) = x;
+                    }
+                }
+              else
+                {
+                  if ((cellule_rk_restreint_v(i,j,k_layer) == 0) && (cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) == 0))
+                    {
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      dv.diph_v_(n) = x_v * one_divided_by_Fk;
+                      F.diph_v_(n) = x_v;
+                    }
+                  else
+                    {
+                      double x_v = dv.diph_v_(n);
+
+                      dv.diph_v_(n) = x_v;
+                      F.diph_v_(n) = x_v;
+                    }
+
+                  if ((cellule_rk_restreint_l(i,j,k_layer) == 0) && (cellule_rk_restreint_l(i+di,j+dj,k_layer+dk) == 0))
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                      dv.diph_l_(n) = x_l * one_divided_by_Fk;
+                      F.diph_l_(n) = x_l;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+
+                      dv.diph_l_(n) = x_l;
+                      F.diph_l_(n) = x_l;
+                    }
+
+                  int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
+                  if (n_decale < 0)
+                    {
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
+                      F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
+                    }
+                }
+            }
+        }
+      break;
+    case 2:
+      // do not write F
+      for (int j = -ghost; j < jmax+ghost; j++)
+        {
+          for (int i = -ghost; i < imax+ghost; i++)
+            {
+              int n = cut_cell_disc.get_n(i,j,k_layer);
+              if (n < 0)
+                {
+                  int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k_layer));
+                  int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k_layer) : cellule_rk_restreint_l(i,j,k_layer);
+                  int cellule_rk_restreint_decale = (phase == 0) ? cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) : cellule_rk_restreint_l(i+di,j+dj,k_layer+dk);
+                  if ((cellule_rk_restreint == 0) && (cellule_rk_restreint_decale == 0))
+                    {
+                      double x = F.pure_(i, j, k_layer) * facteurF + dv.pure_(i,j,k_layer);
+                      dv.pure_(i,j,k_layer) = x * one_divided_by_Fk;
+                    }
+                  else
+                    {
+                      double x = dv.pure_(i,j,k_layer);
+                      dv.pure_(i,j,k_layer) = x;
+                    }
+                }
+              else
+                {
+                  if ((cellule_rk_restreint_v(i,j,k_layer) == 0) && (cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) == 0))
+                    {
+                      double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
+
+                      dv.diph_v_(n) = x_v * one_divided_by_Fk;
+                    }
+                  else
+                    {
+                      double x_v = dv.diph_v_(n);
+
+                      dv.diph_v_(n) = x_v;
+                    }
+
+                  if ((cellule_rk_restreint_l(i,j,k_layer) == 0) && (cellule_rk_restreint_l(i+di,j+dj,k_layer+dk) == 0))
+                    {
+                      double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
+
+                      dv.diph_l_(n) = x_l * one_divided_by_Fk;
+                    }
+                  else
+                    {
+                      double x_l = dv.diph_l_(n);
+
+                      dv.diph_l_(n) = x_l;
+                    }
+
+                  int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
+                  if (n_decale < 0)
+                    {
+                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
+                      F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
+                    }
+                }
+            }
+        }
+      break;
+    default:
+      Cerr << "Error in runge_kutta_update: wrong step" << finl;
+      Process::exit();
+    };
 }
 

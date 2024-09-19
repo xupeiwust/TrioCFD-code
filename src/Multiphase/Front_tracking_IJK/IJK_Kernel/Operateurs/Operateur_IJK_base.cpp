@@ -277,6 +277,26 @@ Entree& Operateur_IJK_elem_base_double::readOn(Entree& is)
   return is;
 }
 
+void Operateur_IJK_elem_base_double::set_runge_kutta(int rk_step, double dt_tot, IJK_Field_vector3_double& current_fluxes, IJK_Field_vector3_double& RK3_F_fluxes)
+{
+  if (rk_step == -1)
+    {
+      runge_kutta_flux_correction_ = false;
+      rk_step_ = -1;
+      dt_tot_ = 0;
+      current_fluxes_ = nullptr;
+      RK3_F_fluxes_ = nullptr;
+    }
+  else
+    {
+      runge_kutta_flux_correction_ = true;
+      rk_step_ = rk_step;
+      dt_tot_ = dt_tot;
+      current_fluxes_ = &current_fluxes;
+      RK3_F_fluxes_ = &RK3_F_fluxes;
+    }
+}
+
 void Operateur_IJK_elem_base_double::compute_set(IJK_Field_double& dx)
 {
   compute_(dx, 0);
@@ -374,6 +394,38 @@ void Operateur_IJK_elem_base_double::Operator_IJK_div(const IJK_Field_local_doub
       resu_ptr.next_j();
     }
 
+}
+
+void Operateur_IJK_elem_base_double::correct_flux(IJK_Field_local_double *const flux,	const int k_layer, const int dir)
+{
+  if (runge_kutta_flux_correction_)
+    {
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                (*current_fluxes_)[dir](i,j,k_layer) = (*flux)(i,j,0);
+              }
+          }
+      }
+
+      runge_kutta3_update_surfacic_fluxes((*current_fluxes_)[dir], (*RK3_F_fluxes_)[dir], rk_step_, k_layer, dt_tot_);
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                (*flux)(i,j,0) = (*current_fluxes_)[dir](i,j,k_layer);
+              }
+          }
+      }
+    }
 }
 
 void Operateur_IJK_elem_base_double::compute_grad(IJK_Field_vector3_double& dx)

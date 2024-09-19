@@ -64,8 +64,8 @@ public:
   void calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature);
   void calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature);
 
-  void add_dying_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature);
-  void add_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature);
+  void add_dying_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes);
+  void add_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes);
 
 protected:
   CORRECTION_PETITES_CELLULES correction_petites_cellules_;
