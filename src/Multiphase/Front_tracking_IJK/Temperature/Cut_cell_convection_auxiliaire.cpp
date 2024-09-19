@@ -325,47 +325,55 @@ void Cut_cell_convection_auxiliaire::calcule_temperature_face_depuis_facette(dou
 
                       int n = cut_cell_disc.get_n(i_ns, j_ns, k_ns);
 
-                      assert(mesh.ref_splitting().valeur() == s);
-                      const int num_elem = s.convert_ijk_cell_to_packed(i_ft,j_ft,k_ft);
-                      int index = index_elem[num_elem];
-
                       int facette_la_plus_proche[2][3] = {{-1, -1, -1}, {-1, -1, -1}};
                       double min_distance_facette[2][3] = {{DMAXFLOAT, DMAXFLOAT, DMAXFLOAT}, {DMAXFLOAT, DMAXFLOAT, DMAXFLOAT}};
 
-                      // Boucle sur les facettes qui traversent cet element
-                      while (index >= 0)
+                      for (int sub_k = 0; sub_k < 2; sub_k++)
                         {
-                          const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-                          const int fa7 = data.numero_facette_;
-
-                          double coord_facettes[3] = {0};
-                          for (int dir = 0; dir < 3; dir++)
-                            for (int som = 0; som < 3; som++)
-                              coord_facettes[dir] += sommets(facettes(fa7, som), dir);
-                          for (int dir = 0; dir < 3; dir++)
-                            coord_facettes[dir] /= 3.;
-
-                          for (int dir = 0; dir < 3; dir++)
+                          for (int sub_j = 0; sub_j < 2; sub_j++)
                             {
-                              for (int phase = 0; phase < 2; phase++)
+                              for (int sub_i = 0; sub_i < 2; sub_i++)
                                 {
-                                  double old_indicatrice_surfacique  = old_indicatrice_surfacique_face[dir](i_ns,j_ns,k_ns);
-                                  double next_indicatrice_surfacique = next_indicatrice_surfacique_face[dir](i_ns,j_ns,k_ns);
-                                  double face_bary_x = origin_x + dx*(i_ft + offset_x + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 0, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
-                                  double face_bary_y = origin_y + dy*(j_ft + offset_y + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 1, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
-                                  double face_bary_z = origin_z + dz*(k_ft + offset_z + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 2, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+                                  const int num_elem = mesh.ref_splitting()->convert_ijk_cell_to_packed(2*i_ft + sub_i, 2*j_ft + sub_j, 2*k_ft + sub_k);
+                                  int index = index_elem[num_elem];
 
-                                  double distance_facette = sqrt((face_bary_x - coord_facettes[0])*(face_bary_x - coord_facettes[0]) + (face_bary_y - coord_facettes[1])*(face_bary_y - coord_facettes[1]) + (face_bary_z - coord_facettes[2])*(face_bary_z - coord_facettes[2]));
-                                  // Ce code est un debut d'implementation. Le calcul de la distance a la facette n'est pas termine (distance au centre uniquement).
-                                  Cerr << "distance_facette : calcul pas implementee." << finl;
-                                  Process::exit();
-                                  facette_la_plus_proche[phase][dir] = distance_facette < min_distance_facette[phase][dir] ? fa7 : facette_la_plus_proche[phase][dir];
-                                  min_distance_facette[phase][dir] = distance_facette < min_distance_facette[phase][dir] ? distance_facette : min_distance_facette[phase][dir];
+                                  // Boucle sur les facettes qui traversent cet element
+                                  while (index >= 0)
+                                    {
+                                      const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                                      const int fa7 = data.numero_facette_;
+
+                                      double coord_facettes[3] = {0};
+                                      for (int dir = 0; dir < 3; dir++)
+                                        for (int som = 0; som < 3; som++)
+                                          coord_facettes[dir] += sommets(facettes(fa7, som), dir);
+                                      for (int dir = 0; dir < 3; dir++)
+                                        coord_facettes[dir] /= 3.;
+
+                                      for (int dir = 0; dir < 3; dir++)
+                                        {
+                                          for (int phase = 0; phase < 2; phase++)
+                                            {
+                                              double old_indicatrice_surfacique  = old_indicatrice_surfacique_face[dir](i_ns,j_ns,k_ns);
+                                              double next_indicatrice_surfacique = next_indicatrice_surfacique_face[dir](i_ns,j_ns,k_ns);
+                                              double face_bary_x = origin_x + dx*(i_ft + offset_x + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 0, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+                                              double face_bary_y = origin_y + dy*(j_ft + offset_y + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 1, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+                                              double face_bary_z = origin_z + dz*(k_ft + offset_z + (cut_cell_disc.get_interfaces().get_barycentre_face(next_time, dir, 2, phase, i_ns,j_ns,k_ns, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+
+                                              double distance_facette = sqrt((face_bary_x - coord_facettes[0])*(face_bary_x - coord_facettes[0]) + (face_bary_y - coord_facettes[1])*(face_bary_y - coord_facettes[1]) + (face_bary_z - coord_facettes[2])*(face_bary_z - coord_facettes[2]));
+                                              // Ce code est un debut d'implementation. Le calcul de la distance a la facette n'est pas termine (distance au centre uniquement).
+                                              Cerr << "distance_facette : calcul pas implementee." << finl;
+                                              Process::exit();
+                                              facette_la_plus_proche[phase][dir] = distance_facette < min_distance_facette[phase][dir] ? fa7 : facette_la_plus_proche[phase][dir];
+                                              min_distance_facette[phase][dir] = distance_facette < min_distance_facette[phase][dir] ? distance_facette : min_distance_facette[phase][dir];
+                                            }
+                                        }
+
+                                      index = data.index_facette_suivante_;
+                                    };
                                 }
                             }
-
-                          index = data.index_facette_suivante_;
-                        };
+                        }
 
                       for (int dir = 0; dir < 3; dir++)
                         {

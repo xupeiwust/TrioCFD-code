@@ -27,6 +27,7 @@
 #include <SFichier.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
+#include <IJK_subdivided_mesh_tools.h>
 #include <communications.h>
 #include <LecFicDiffuse_JDD.h>
 #include <MaillerParallel.h>
@@ -641,8 +642,17 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   Cerr << "Construction du domaine VDF..." << finl;
   {
+    // Construction du domaine VDF :
+    //  * Domaine FT : domaine etendu avec la meme taille de maille que le maillage NS de la simulation.
+    //  * Domaine 8X : domaine etendu avec une taille de maille deux fois plus petite que le maillage NS de la simulation.
+    // Les intersections entre l'interface et la maillage sont realisees sur le maillage 8X.
+    // Ces intersections sont utilisees pour creer des champs sur le maillage FT, qui sont ensuite redistribues sur le maillage NS.
+    // L'objectif du raffinement est de permettre un calcul commode de champs lies a l'indicatrice a la fois sur le volume de controle de l'element et sur les volumes de controle des faces.
+
     build_extended_splitting(splitting_, splitting_ft_, ijk_splitting_ft_extension_);
+    build_subdivided_splitting(splitting_ft_, splitting_8x_);
     refprobleme_ft_disc_ = creer_domaine_vdf(splitting_ft_, "DOM_VDF");
+    refprobleme_8x_disc_ = creer_domaine_vdf(splitting_8x_, "DOM_8X");
     for (int dir = 0; dir < 3; dir++)
       {
         VECT(IntTab) map(3);
@@ -1852,11 +1862,12 @@ int IJK_FT_base::initialise()
     }
 
   // On peut recuperer le domainevf:
-  const Domaine_dis& domaine_dis = refprobleme_ft_disc_.valeur().domaine_dis();
+  const Domaine_dis& domaine_dis_ft = refprobleme_ft_disc_.valeur().domaine_dis();
+  const Domaine_dis& domaine_dis_8x = refprobleme_8x_disc_.valeur().domaine_dis();
 
   // TODO: a valider
   // if (!disable_diphasique_)
-  nalloc += interfaces_.initialize(splitting_ft_, splitting_, domaine_dis, thermal_probes_ghost_cells_);
+  nalloc += interfaces_.initialize(splitting_ft_, splitting_8x_, splitting_, domaine_dis_ft, domaine_dis_8x, thermal_probes_ghost_cells_);
 
   /*
    * Compute mean rho_g using the indicator function
@@ -4965,16 +4976,87 @@ void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle
     }
 }
 
+void IJK_FT_base::get_redistribute_from_splitting_ft_faces(const IJK_Field_vector3_double& faces_ft,
+                                                           IJK_Field_vector3_double& faces_ns)
+{
+  for (int dir = 0; dir < 3; dir++)
+    {
+      redistribute_from_splitting_ft_faces_[dir].redistribute(
+        faces_ft[dir],
+        faces_ns[dir]);
+    }
+}
+
+void IJK_FT_base::get_redistribute_from_splitting_ft_faces(const ElemFace_IJK_Field_vector3_double& faces_ft,
+                                                           ElemFace_IJK_Field_vector3_double& faces_ns)
+{
+  for (int dir = 0; dir < 3; dir++)
+    {
+      redistribute_from_splitting_ft_faces_[dir].redistribute(
+        faces_ft.elem_data()[dir],
+        faces_ns.elem_data()[dir]);
+    }
+
+  for (int dir1 = 0; dir1 < 3; dir1++)
+    {
+      for (int dir2 = 0; dir2 < 3; dir2++)
+        {
+          redistribute_from_splitting_ft_faces_[dir1].redistribute(
+            faces_ft.face_data_[dir1][dir2],
+            faces_ns.face_data_[dir1][dir2]);
+        }
+    }
+}
+
+void IJK_FT_base::get_redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_vector3_double& cell_vector_ft,
+                                                          ElemFace_IJK_Field_vector3_double& cell_vector_ns)
+{
+  for (int dir = 0; dir < 3; dir++)
+    {
+      redistribute_from_splitting_ft_elem_.redistribute(
+        cell_vector_ft.elem_data()[dir],
+        cell_vector_ns.elem_data()[dir]);
+    }
+
+  for (int dir1 = 0; dir1 < 3; dir1++)
+    {
+      for (int dir2 = 0; dir2 < 3; dir2++)
+        {
+          redistribute_from_splitting_ft_faces_[dir1].redistribute(
+            cell_vector_ft.face_data_[dir1][dir2],
+            cell_vector_ns.face_data_[dir1][dir2]);
+        }
+    }
+}
+
 void IJK_FT_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                                     IJK_Field_double& output_field)
 {
   redistribute_to_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
+void IJK_FT_base::redistribute_to_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
+                                                    ElemFace_IJK_Field_double& output_field)
+{
+  redistribute_to_splitting_ft_elem_.redistribute(input_field.elem_data(), output_field.elem_data());
+  redistribute_to_splitting_ft_faces_[0].redistribute(input_field.face_data(0), output_field.face_data(0));
+  redistribute_to_splitting_ft_faces_[1].redistribute(input_field.face_data(1), output_field.face_data(1));
+  redistribute_to_splitting_ft_faces_[2].redistribute(input_field.face_data(2), output_field.face_data(2));
+}
+
 void IJK_FT_base::redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                                       IJK_Field_double& output_field)
 {
   redistribute_from_splitting_ft_elem_.redistribute(input_field, output_field);
+}
+
+void IJK_FT_base::redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
+                                                      ElemFace_IJK_Field_double& output_field)
+{
+  redistribute_from_splitting_ft_elem_.redistribute(input_field.elem_data(), output_field.elem_data());
+  redistribute_from_splitting_ft_faces_[0].redistribute(input_field.face_data(0), output_field.face_data(0));
+  redistribute_from_splitting_ft_faces_[1].redistribute(input_field.face_data(1), output_field.face_data(1));
+  redistribute_from_splitting_ft_faces_[2].redistribute(input_field.face_data(2), output_field.face_data(2));
 }
 
 void IJK_FT_base::copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy)

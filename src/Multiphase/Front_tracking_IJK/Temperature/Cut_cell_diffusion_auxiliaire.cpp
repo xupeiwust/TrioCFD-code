@@ -108,7 +108,6 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, doub
     const Cut_cell_FT_Disc& cut_cell_disc = flux_interface_efficace_.get_cut_cell_disc();
     const Maillage_FT_IJK& mesh = cut_cell_disc.get_interfaces().maillage_ft_ijk();
     const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
-    const IJK_Splitting& s = flux_interface_ft_[next_time].get_splitting();
 
     const int ni = flux_interface_ft_[next_time].ni();
     const int nj = flux_interface_ft_[next_time].nj();
@@ -139,19 +138,28 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, doub
                 {
                   if (next_time ? (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().In_ft(i,j,k))) : (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I_ft(i,j,k))))
                     {
-                      assert(mesh.ref_splitting().valeur() == s);
-                      const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
-                      int index = index_elem[num_elem];
                       double somme_contrib = 0.;
-                      // Boucle sur les facettes qui traversent cet element
-                      while (index >= 0)
+                      for (int sub_k = 0; sub_k < 2; sub_k++)
                         {
-                          const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-                          const int fa7 = data.numero_facette_;
-                          somme_contrib += interfacial_phin_ai[fa7] * data.fraction_surface_intersection_;
+                          for (int sub_j = 0; sub_j < 2; sub_j++)
+                            {
+                              for (int sub_i = 0; sub_i < 2; sub_i++)
+                                {
+                                  const int num_elem = mesh.ref_splitting()->convert_ijk_cell_to_packed(2*i +  sub_i, 2*j + sub_j, 2*k + sub_k);
 
-                          index = data.index_facette_suivante_;
-                        };
+                                  int index = index_elem[num_elem];
+                                  // Boucle sur les facettes qui traversent cet element
+                                  while (index >= 0)
+                                    {
+                                      const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                                      const int fa7 = data.numero_facette_;
+                                      somme_contrib += interfacial_phin_ai[fa7] * data.fraction_surface_intersection_;
+
+                                      index = data.index_facette_suivante_;
+                                    };
+                                }
+                            }
+                        }
 
                       flux_interface_ft_[next_time](i,j,k) = somme_contrib;
                     }
@@ -440,39 +448,47 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_local_normal
             {
               if (next_time ? (!interfaces.est_pure(interfaces.In_ft(i,j,k))) : (!interfaces.est_pure(interfaces.I_ft(i,j,k))))
                 {
-                  assert(maillage.ref_splitting().valeur() == s);
-                  const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
-
-                  double x_centre_cell = (i + s.get_offset_local(DIRECTION_I) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_I) + s.get_grid_geometry().get_origin(DIRECTION_I);
-                  double y_centre_cell = (j + s.get_offset_local(DIRECTION_J) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_J) + s.get_grid_geometry().get_origin(DIRECTION_J);
-                  double z_centre_cell = (k + s.get_offset_local(DIRECTION_K) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_K) + s.get_grid_geometry().get_origin(DIRECTION_K);
-                  Vecteur3 coord_centre_cell = {x_centre_cell, y_centre_cell, z_centre_cell};
-
-                  int index = index_elem[num_elem];
-                  // Boucle sur les facettes qui traversent cet element
-                  while (index >= 0)
+                  for (int sub_k = 0; sub_k < 2; sub_k++)
                     {
-                      const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-                      const int fa7 = data.numero_facette_;
+                      for (int sub_j = 0; sub_j < 2; sub_j++)
+                        {
+                          for (int sub_i = 0; sub_i < 2; sub_i++)
+                            {
+                              const int num_elem = maillage.ref_splitting()->convert_ijk_cell_to_packed(2*i + sub_i, 2*j + sub_j, 2*k + sub_k);
 
-                      double Ti_intersection = 0.;
-                      double flux_normal_intersection = 0.;
-                      Vecteur3 coord = {coord_facettes.centre(fa7,0), coord_facettes.centre(fa7,1), coord_facettes.centre(fa7,2)};
-                      Vecteur3 normale = {normale_facettes(fa7,0), normale_facettes(fa7,1), normale_facettes(fa7,2)};
-                      calcul_temperature_flux_interface_local_normal(cut_field_temperature,
-                                                                     lambda_liquid,
-                                                                     lambda_vapour,
-                                                                     coord_centre_cell,
-                                                                     coord,
-                                                                     normale,
-                                                                     Ti_intersection,
-                                                                     flux_normal_intersection);
+                              double x_centre_cell = (i + s.get_offset_local(DIRECTION_I) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_I) + s.get_grid_geometry().get_origin(DIRECTION_I);
+                              double y_centre_cell = (j + s.get_offset_local(DIRECTION_J) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_J) + s.get_grid_geometry().get_origin(DIRECTION_J);
+                              double z_centre_cell = (k + s.get_offset_local(DIRECTION_K) + .5)*s.get_grid_geometry().get_constant_delta(DIRECTION_K) + s.get_grid_geometry().get_origin(DIRECTION_K);
+                              Vecteur3 coord_centre_cell = {x_centre_cell, y_centre_cell, z_centre_cell};
 
-                      interfacial_temperature.centre[fa7] += Ti_intersection*data.fraction_surface_intersection_;
-                      flux_normal_interp[fa7] += flux_normal_intersection*data.fraction_surface_intersection_;
+                              int index = index_elem[num_elem];
+                              // Boucle sur les facettes qui traversent cet element
+                              while (index >= 0)
+                                {
+                                  const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+                                  const int fa7 = data.numero_facette_;
 
-                      index = data.index_facette_suivante_;
-                    };
+                                  double Ti_intersection = 0.;
+                                  double flux_normal_intersection = 0.;
+                                  Vecteur3 coord = {coord_facettes.centre(fa7,0), coord_facettes.centre(fa7,1), coord_facettes.centre(fa7,2)};
+                                  Vecteur3 normale = {normale_facettes(fa7,0), normale_facettes(fa7,1), normale_facettes(fa7,2)};
+                                  calcul_temperature_flux_interface_local_normal(cut_field_temperature,
+                                                                                 lambda_liquid,
+                                                                                 lambda_vapour,
+                                                                                 coord_centre_cell,
+                                                                                 coord,
+                                                                                 normale,
+                                                                                 Ti_intersection,
+                                                                                 flux_normal_intersection);
+
+                                  interfacial_temperature.centre[fa7] += Ti_intersection*data.fraction_surface_intersection_;
+                                  flux_normal_interp[fa7] += flux_normal_intersection*data.fraction_surface_intersection_;
+
+                                  index = data.index_facette_suivante_;
+                                };
+                            }
+                        }
+                    }
                 }
             }
         }

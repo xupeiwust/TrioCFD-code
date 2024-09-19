@@ -13,15 +13,14 @@
 *
 *****************************************************************************/
 
+#include <IJK_Interfaces.h>
 #include <Cut_cell_FT_Disc.h>
 #include <Maillage_FT_Disc.h>
 #include <IJK_Field.h>
 #include <Array_tools.h>
 #include <IJK_Splitting.h>
 
-Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& splitting) :
-  interfaces_(interfaces),
-  splitting_(splitting),
+Cut_cell_FT_Disc::Cut_cell_FT_Disc() :
   ghost_size_(4),
   processed_count_(0),
   n_loc_(0),
@@ -42,9 +41,13 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc(IJK_Interfaces& interfaces, IJK_Splitting& sp
   statut_diphasique_value_index_.resize(0, 1);
 }
 
-void Cut_cell_FT_Disc::initialise()
+void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc)
 {
   /* Initialisation sans indicatrice (suppose aucune cellule diphasique) */
+
+  ref_interfaces_ = interfaces;
+  ref_splitting_ = splitting;
+  localisation_ = loc;
 
   // Initialisation des tableaux
   n_loc_ = 0;
@@ -57,10 +60,10 @@ void Cut_cell_FT_Disc::initialise()
   resize_data(0);
 
   // Initialisation du champ IJK_Field utilise pour le post-traitement
-  write_buffer_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+  write_buffer_.allocate(ref_splitting_, localisation_, 1);
 
   // Initialisation du champ IJK_Field des indices diphasiques
-  indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_);
+  indice_diphasique_.allocate(ref_splitting_, localisation_, ghost_size_);
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
   set_coord();
@@ -89,8 +92,14 @@ void Cut_cell_FT_Disc::initialise()
 }
 
 
-void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
+void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
+  ref_interfaces_ = interfaces;
+  ref_splitting_ = splitting;
+  localisation_ = loc;
+  assert(localisation_ == old_indicatrice.get_localisation());
+  assert(localisation_ == next_indicatrice.get_localisation());
+
   // Initialisation des tableaux
   n_loc_ = initialise_linear_index(old_indicatrice, next_indicatrice);
   n_tot_ = n_loc_;
@@ -104,10 +113,10 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const
   resize_data(n_loc_);
 
   // Initialisation du champ IJK_Field utilise pour le post-traitement
-  write_buffer_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+  write_buffer_.allocate(ref_splitting_, localisation_, 1);
 
   // Initialisation du champ IJK_Field des indices diphasiques
-  indice_diphasique_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_);
+  indice_diphasique_.allocate(ref_splitting_, localisation_, ghost_size_);
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
   set_coord();
@@ -143,6 +152,9 @@ void Cut_cell_FT_Disc::initialise(const IJK_Field_double& old_indicatrice, const
 
 void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
+  assert(localisation_ == old_indicatrice.get_localisation());
+  assert(localisation_ == next_indicatrice.get_localisation());
+
   // Increment du compteur des iterations
   processed_count_ += 1;
 
@@ -188,16 +200,20 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK
   assert(verifier_coherence_coord_linear_index());
   assert(verifier_taille_tableaux());
 
-  Cerr << "(Cut_cell_FT_Disc::update) Iter: " << processed_count_-1 << " n_tot_=" << n_tot_  << " n_loc_=" << n_loc_ << finl;
+  Nom string_localisation = (localisation_ == IJK_Splitting::ELEM) ? Nom("ELEM") :
+                            ((localisation_ == IJK_Splitting::FACES_I) ? Nom("FACES_I") :
+                             ((localisation_ == IJK_Splitting::FACES_J) ? Nom("FACES_J") :
+                              (localisation_ == IJK_Splitting::FACES_K) ? Nom("FACES_K") : Nom("Error")));
+  Cerr << "(Cut_cell_FT_Disc::update " << string_localisation << ") Iter: " << processed_count_-1 << " n_tot_=" << n_tot_  << " n_loc_=" << n_loc_ << finl;
 }
 
 // Initialise le tableau des indices a partir du champ de l'indicatrice
 // et renvoie le nombre local d'elements diphasiques n_loc.
 int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   int n_loc = n_loc_;
 
@@ -210,7 +226,7 @@ int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& old_indica
         {
           for (int i = 0; i < ni; i++)
             {
-              if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
+              if (!ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                 {
                   n_loc += 1;
                 }
@@ -228,14 +244,14 @@ int Cut_cell_FT_Disc::initialise_linear_index(const IJK_Field_double& old_indica
           {
             for (int i = 0; i < ni; i++)
               {
-                if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
+                if (!ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                   {
-                    linear_index_(n) = get_linear_index(i, j, k, ghost_size_, splitting_, true);
+                    linear_index_(n) = get_linear_index(i, j, k, ghost_size_, ref_splitting_, true);
 
                     // Verification de la fonction function get_ijk_from_linear_index
-                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true)[0] == i);
-                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true)[1] == j);
-                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true)[2] == k);
+                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true)[0] == i);
+                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true)[1] == j);
+                    assert(get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true)[2] == k);
 
                     n += 1;
                   }
@@ -268,12 +284,12 @@ void Cut_cell_FT_Disc::initialise_processed()
 void Cut_cell_FT_Disc::set_coord()
 {
   const int processed_sign = (processed_.dimension(0) == 0) ? 1 : (processed_(0) > 0 ? 1 : -1);
-  assert(splitting_.get_grid_geometry().is_uniform(0));
-  assert(splitting_.get_grid_geometry().is_uniform(1));
-  assert(splitting_.get_grid_geometry().is_uniform(2));
+  assert(ref_splitting_->get_grid_geometry().is_uniform(0));
+  assert(ref_splitting_->get_grid_geometry().is_uniform(1));
+  assert(ref_splitting_->get_grid_geometry().is_uniform(2));
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -282,14 +298,14 @@ void Cut_cell_FT_Disc::set_coord()
       // a fixer la valeur de coord_.
       if (processed_(n) * processed_sign >= processed_count_)
         {
-          coord_(n,0) = (i + splitting_.get_offset_local(0) + .5)*splitting_.get_grid_geometry().get_constant_delta(0) + splitting_.get_grid_geometry().get_origin(0);
-          coord_(n,1) = (j + splitting_.get_offset_local(1) + .5)*splitting_.get_grid_geometry().get_constant_delta(1) + splitting_.get_grid_geometry().get_origin(1);
-          coord_(n,2) = (k + splitting_.get_offset_local(2) + .5)*splitting_.get_grid_geometry().get_constant_delta(2) + splitting_.get_grid_geometry().get_origin(2);
+          coord_(n,0) = (i + ref_splitting_->get_offset_local(0) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(0) + ref_splitting_->get_grid_geometry().get_origin(0);
+          coord_(n,1) = (j + ref_splitting_->get_offset_local(1) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(1) + ref_splitting_->get_grid_geometry().get_origin(1);
+          coord_(n,2) = (k + ref_splitting_->get_offset_local(2) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(2) + ref_splitting_->get_grid_geometry().get_origin(2);
 
           // Verification de la fonction function get_ijk_from_linear_index
-          assert(i == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[0]);
-          assert(j == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[1]);
-          assert(k == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true)[2]);
+          assert(i == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true)[0]);
+          assert(j == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true)[1]);
+          assert(k == get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true)[2]);
         }
     }
 }
@@ -299,9 +315,9 @@ void Cut_cell_FT_Disc::set_coord()
 // et renvoie le nombre local d'elements diphasiques n_loc.
 int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   int n_loc = n_loc_;
 
@@ -332,9 +348,9 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_
         {
           for (int i = 0; i < ni; i++)
             {
-              if (!interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
+              if (!ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                 {
-                  int linear_index = get_linear_index(i, j, k, ghost_size_, splitting_, true);
+                  int linear_index = get_linear_index(i, j, k, ghost_size_, ref_splitting_, true);
 
                   // Recherche de l'element dans la structure cut-cell
                   // La zone de recherche est restreinte car on sait que l'on va trouver les
@@ -373,12 +389,12 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_
   int n_deletion = 0;
   for (int n = 0; n < n_initial; n++)
     {
-      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      if (interfaces_.est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
+      if (ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
         {
           permutation_(index_perm) = n;
           index_perm += 1;
@@ -508,12 +524,12 @@ void Cut_cell_FT_Disc::compute_virtual_linear_index()
   // Verification de l'indice lineaire pour les elements locaux
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      linear_index = get_linear_index(i, j, k, ghost_size_, splitting_, true);
+      linear_index = get_linear_index(i, j, k, ghost_size_, ref_splitting_, true);
 
       assert(linear_index_(n) == linear_index);
     }
@@ -521,12 +537,12 @@ void Cut_cell_FT_Disc::compute_virtual_linear_index()
   // Calcul de l'indice lineaire pour les elements virtuels
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, false);
+      Int3 ijk = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, false);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      linear_index = get_linear_index(i, j, k, ghost_size_, splitting_, false);
+      linear_index = get_linear_index(i, j, k, ghost_size_, ref_splitting_, false);
 
       linear_index_(n) = linear_index;
     }
@@ -552,12 +568,12 @@ void Cut_cell_FT_Disc::initialise_schema_comm()
                           if ((direction_3 == 3) && (next_3 == 1))
                             continue;
 
-                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
                           int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
-                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
+                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
                             continue;
 
                           pe_list.append_array(dest_pe);
@@ -573,9 +589,9 @@ void Cut_cell_FT_Disc::initialise_schema_comm()
 
 int Cut_cell_FT_Disc::initialise_communications()
 {
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   Descripteur_FT& espace_distant = desc_.espace_distant();
 
@@ -606,13 +622,29 @@ int Cut_cell_FT_Disc::initialise_communications()
                           if ((direction_3 == 3) && (next_3 == 1))
                             continue;
 
-                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
                           int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
-                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
+                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
                             continue;
+
+                          // On verifie que le processeur est bien different avec le deplacement
+                          int dest_pe3a_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe3a_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe3a_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe3a = periodic_get_processor_by_ijk(dest_pe3a_position_x, dest_pe3a_position_y, dest_pe3a_position_z);
+                          if ((direction_2 != 3) && (dest_pe == dest_pe3a))
+                            continue;
+
+                          int dest_pe3b_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0);
+                          int dest_pe3b_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1);
+                          int dest_pe3b_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2);
+                          int dest_pe3b = periodic_get_processor_by_ijk(dest_pe3b_position_x, dest_pe3b_position_y, dest_pe3b_position_z);
+                          if ((direction_3 != 3) && (dest_pe == dest_pe3b))
+                            continue;
+
 
                           int ni_dir = select(direction, ni, nj, nk);
                           int ni_dir2 = (direction_2 == 3) ? 0 : select(direction_2, ni, nj, nk);
@@ -622,9 +654,9 @@ int Cut_cell_FT_Disc::initialise_communications()
 
                           for (int n = 0; n < n_loc; n++)
                             {
-                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true, false);
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true, false);
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true, false);
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, ref_splitting_, true, false);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, ref_splitting_, true, false);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, ref_splitting_, true, false);
                               if ((!next) && (i_selon_dir >= ghost_size_))
                                 continue;
                               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
@@ -726,7 +758,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
   // Remplissage du tableau
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int k = ijk[2];
 
       index_sorted_by_k_(n,0) = n;
@@ -735,7 +767,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, false);
       int k = ijk[2];
 
       index_sorted_by_k_(n,0) = n;
@@ -746,7 +778,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
   index_sorted_by_k_.sort_tot(1);
 
   // Trouve les indices des differents k
-  const int nk_tot = splitting_.get_nb_elem_local(2) + 2*ghost_size_;
+  const int nk_tot = ref_splitting_->get_nb_elem_local(2) + 2*ghost_size_;
   k_value_index_.resize(nk_tot+1, 1);
 
   int previous_k = -ghost_size_;
@@ -764,7 +796,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
           previous_k = k;
         }
     }
-  for (int k_intermediaire = previous_k+1; k_intermediaire <= splitting_.get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
+  for (int k_intermediaire = previous_k+1; k_intermediaire <= ref_splitting_->get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
     {
       k_value_index_(k_intermediaire + ghost_size_) = n_tot_;
     }
@@ -775,7 +807,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_indicatrice(const IJK_Field_double
   // Remplissage du tableau
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -794,7 +826,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_indicatrice(const IJK_Field_double
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, false);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -826,11 +858,11 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       int j = ijk[1];
       int k = ijk[2];
 
-      bool est_reguliere = interfaces_.est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool devient_pure = interfaces_.devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool devient_diphasique = interfaces_.devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool desequilibre_final = interfaces_.a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      bool desequilibre_initial_uniquement = interfaces_.a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool est_reguliere = ref_interfaces_->est_reguliere(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_pure = ref_interfaces_->devient_pure(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool devient_diphasique = ref_interfaces_->devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_final = ref_interfaces_->a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
+      bool desequilibre_initial_uniquement = ref_interfaces_->a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
@@ -871,9 +903,9 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
 
 void Cut_cell_FT_Disc::remplir_indice_diphasique()
 {
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   for (int k = -ghost_size_; k < nk+ghost_size_; k++)
     {
@@ -888,7 +920,7 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
 
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk_no_per[0];
       int j = ijk_no_per[1];
       int k = ijk_no_per[2];
@@ -907,7 +939,7 @@ void Cut_cell_FT_Disc::remplir_indice_diphasique()
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      Int3 ijk_no_per = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, false);
       int i = ijk_no_per[0];
       int j = ijk_no_per[1];
       int k = ijk_no_per[2];
@@ -942,7 +974,7 @@ void Cut_cell_FT_Disc::remove_dead_and_virtual_cells(const IJK_Field_double& nex
 
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -1000,9 +1032,9 @@ template<typename T>
 void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component /* = 0 by default */) const
 {
   assert(component < array.dimension(1));
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   for (int k = 0; k < nk; k++)
     {
@@ -1017,7 +1049,7 @@ void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int
 
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -1037,7 +1069,7 @@ void Cut_cell_FT_Disc::fill_variable_with_buffer(TRUSTTabFT<T>& array, int compo
 
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -1055,11 +1087,11 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_linear_index()
   // Verifie la coherence entre les tableaux coord_ et linear_index_
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk_1 = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, true);
+      Int3 ijk_1 = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, true);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
-      Int3 ijk_2 = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk_2 = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i_2 = ijk_2[0];
       int j_2 = ijk_2[1];
       int k_2 = ijk_2[2];
@@ -1070,11 +1102,11 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_linear_index()
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk_1 = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, splitting_, false);
+      Int3 ijk_1 = get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), ghost_size_, ref_splitting_, false);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
-      Int3 ijk_2 = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      Int3 ijk_2 = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, false);
       int i_2 = ijk_2[0];
       int j_2 = ijk_2[1];
       int k_2 = ijk_2[2];
@@ -1130,10 +1162,10 @@ bool Cut_cell_FT_Disc::verifier_taille_tableaux()
 
 void Cut_cell_FT_Disc::imprime_elements_diphasiques()
 {
-  Cerr << "# Impression des elements diphasiques pour le PE#" << splitting_.me() << " [N IJK XYZ T]" << finl;
+  Cerr << "# Impression des elements diphasiques pour le PE#" << ref_splitting_->me() << " [N IJK XYZ T]" << finl;
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -1147,7 +1179,7 @@ void Cut_cell_FT_Disc::imprime_elements_diphasiques()
     }
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, false);
+      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, false);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -1165,9 +1197,9 @@ void Cut_cell_FT_Disc::imprime_elements_diphasiques()
 void Cut_cell_FT_Disc::imprime_elements_distants()
 {
   Cerr << "# Impression des elements distants [N PE IJK XYZ T]" << finl;
-  const int ni = splitting_.get_nb_elem_local(0);
-  const int nj = splitting_.get_nb_elem_local(1);
-  const int nk = splitting_.get_nb_elem_local(2);
+  const int ni = ref_splitting_->get_nb_elem_local(0);
+  const int nj = ref_splitting_->get_nb_elem_local(1);
+  const int nk = ref_splitting_->get_nb_elem_local(2);
 
   // next indique la direction du processeur :
   //   0    voisin vers les petits indices
@@ -1189,12 +1221,12 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
                           if ((direction_3 == 3) && (next_3 == 1))
                             continue;
 
-                          int dest_pe_position_x = splitting_.get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = splitting_.get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = splitting_.get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
+                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
+                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
+                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
                           int dest_pe = periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == splitting_.get_neighbour_processor(next, direction)));
-                          if ((dest_pe == splitting_.me()) || (dest_pe == -1))
+                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
+                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
                             continue;
 
                           int ni_dir = select(direction, ni, nj, nk);
@@ -1203,9 +1235,9 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
 
                           for (int n = 0; n < n_loc_; n++)
                             {
-                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, splitting_, true, false);
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, splitting_, true, false);
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, splitting_, true, false);
+                              int i_selon_dir = get_i_selon_dir(direction, coord_(n,direction), ghost_size_, ref_splitting_, true, false);
+                              int i_selon_dir2 = (direction_2 == 3) ? 0 : get_i_selon_dir(direction_2, coord_(n,direction_2), ghost_size_, ref_splitting_, true, false);
+                              int i_selon_dir3 = (direction_3 == 3) ? 0 : get_i_selon_dir(direction_3, coord_(n,direction_3), ghost_size_, ref_splitting_, true, false);
                               if ((!next) && (i_selon_dir >= ghost_size_))
                                 continue;
                               if ((next) && (i_selon_dir < ni_dir - ghost_size_))
@@ -1219,7 +1251,7 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
                               if ((direction_3 != 3) && (next_3) && (i_selon_dir3 < ni_dir3 - ghost_size_))
                                 continue;
 
-                              Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, splitting_, true);
+                              Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
                               int i = ijk[0];
                               int j = ijk[1];
                               int k = ijk[2];
@@ -1233,6 +1265,21 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
         }
     }
   Cerr << "# Fin impression elements distants" << finl;
+}
+
+const IJK_Interfaces& Cut_cell_FT_Disc::get_interfaces() const
+{
+  return ref_interfaces_;
+}
+
+const IJK_Splitting& Cut_cell_FT_Disc::get_splitting() const
+{
+  return ref_splitting_;
+}
+
+const Desc_Structure_FT& Cut_cell_FT_Disc::get_desc_structure() const
+{
+  return desc_;
 }
 
 // Recherche d'une valeur dans un tableau non trie.

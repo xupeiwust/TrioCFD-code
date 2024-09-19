@@ -1972,7 +1972,7 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
       };
 
       double tetraedre2_sommet1[3] = {poly_reelles(i,0),           poly_reelles(i,1),           poly_reelles(i,2)};
-      double tetraedre2_sommet2[3] = {poly_reelles(i_precedent,0), poly_reelles(i_precedent,1), poly_reelles(i_precedent,2)};
+      double tetraedre2_sommet2[3] = {poly_reelles(i_precedent,0), y_min,                       poly_reelles(i_precedent,2)};
       double tetraedre2_sommet3[3] = {poly_reelles(i,0),           y_min,                       poly_reelles(i,2)};
       double tetraedre2_sommet4[3] = {poly_reelles(i_min,0),       poly_reelles(i_min,1),       poly_reelles(i_min,2)};
       double volume_tetraedre2 = std::fabs(FTd_calculer_volume_tetraedre(tetraedre2_sommet1, tetraedre2_sommet2, tetraedre2_sommet3, tetraedre2_sommet4));

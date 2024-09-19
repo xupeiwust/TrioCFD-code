@@ -158,7 +158,7 @@ void Cut_cell_surface_efficace::calcul_surface_interface_efficace_initiale(
 }
 
 void Cut_cell_surface_efficace::calcul_vitesse_interface(
-  const Cut_field_vector3_double& velocity,
+  const IJK_Field_vector3_double& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const IJK_Field_vector3_double& barycentre_phase1_ns_old,
@@ -230,7 +230,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
 
 void Cut_cell_surface_efficace::calcul_surface_interface_efficace(
   double timestep,
-  const Cut_field_vector3_double& velocity,
+  const IJK_Field_vector3_double& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface,
@@ -970,7 +970,7 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_matrice(
 void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface(
   int verbosite_surface_efficace_interface,
   double timestep,
-  const Cut_field_vector3_double& velocity,
+  const IJK_Field_vector3_double& velocity,
   const IJK_Field_double& old_indicatrice_ns,
   const IJK_Field_double& next_indicatrice_ns,
   const DoubleTabFT_cut_cell_scalar& surface_efficace_interface,

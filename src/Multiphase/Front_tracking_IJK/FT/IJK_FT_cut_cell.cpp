@@ -30,8 +30,7 @@
 
 
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
-IJK_FT_cut_cell::IJK_FT_cut_cell():
-  cut_cell_disc_(interfaces_, splitting_)
+IJK_FT_cut_cell::IJK_FT_cut_cell()
 {
 }
 
@@ -56,7 +55,7 @@ Entree& IJK_FT_cut_cell::interpreter(Entree& is)
 void IJK_FT_cut_cell::run()
 {
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
-  cut_cell_disc_.initialise();
+  cut_cell_disc_.initialise(interfaces_, splitting_);
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
 
@@ -72,18 +71,18 @@ void IJK_FT_cut_cell::run()
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, splitting_, 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+      allocate_velocity_persistant(cut_cell_disc_.elem_data(), cut_field_velocity, splitting_, 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
     }
   else
     {
-      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, splitting_, thermal_probes_ghost_cells_);
+      allocate_velocity_persistant(cut_cell_disc_.elem_data(), cut_field_velocity, splitting_, thermal_probes_ghost_cells_);
     }
 
-  Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<Cut_field_vector3_double&>(remeshing_velocity_);
-  allocate_velocity_ephemere(cut_cell_disc_, cut_field_remeshing_velocity, splitting_, thermal_probes_ghost_cells_);
+  ElemFace_Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(remeshing_velocity_);
+  allocate_elem_face_velocity_ephemere(cut_cell_disc_, cut_field_remeshing_velocity, splitting_, thermal_probes_ghost_cells_);
 
-  Cut_field_vector3_double& cut_field_total_velocity = static_cast<Cut_field_vector3_double&>(total_velocity_);
-  allocate_velocity_ephemere(cut_cell_disc_, cut_field_total_velocity, splitting_, thermal_probes_ghost_cells_);
+  ElemFace_Cut_field_vector3_double& cut_field_total_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(total_velocity_);
+  allocate_elem_face_velocity_ephemere(cut_cell_disc_, cut_field_total_velocity, splitting_, thermal_probes_ghost_cells_);
 
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
@@ -1053,7 +1052,7 @@ void IJK_FT_cut_cell::update_indicator_field()
   // La suppression des cellules mortes est vraiment au tout dernier moment,
   // pour laisser la possibilite d'utiliser ces cellules lors des bilans
   // pour determiner l'indicatrice cible du remaillage.
-  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
+  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In_elem_face());
 
   IJK_FT_base::update_indicator_field();
 }
@@ -1067,7 +1066,7 @@ void IJK_FT_cut_cell::update_twice_indicator_field()
     }
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interfaces_.I_elem_face(), interfaces_.In_elem_face());
 
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
   cut_field_velocity[0].remplir_cellules_diphasiques();
@@ -1080,8 +1079,8 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
                                           const int first_step_interface_smoothing)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
-  Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<Cut_field_vector3_double&>(remeshing_velocity_);
-  Cut_field_vector3_double& cut_field_total_velocity = static_cast<Cut_field_vector3_double&>(total_velocity_);
+  ElemFace_Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(remeshing_velocity_);
+  ElemFace_Cut_field_vector3_double& cut_field_total_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(total_velocity_);
 
   thermals_.remplir_cellules_maintenant_pures();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
@@ -1093,7 +1092,7 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   IJK_FT_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interfaces_.I_elem_face(), interfaces_.In_elem_face());
 
   thermals_.remplir_cellules_devenant_diphasiques();
   cut_field_velocity[0].remplir_cellules_diphasiques();
@@ -1108,9 +1107,19 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
     {
       interfaces_.calcul_vitesse_remaillage(timestep_, cut_field_remeshing_velocity);
     }
-  cut_field_total_velocity[0].set_to_sum(cut_field_velocity[0], cut_field_remeshing_velocity[0]);
-  cut_field_total_velocity[1].set_to_sum(cut_field_velocity[1], cut_field_remeshing_velocity[1]);
-  cut_field_total_velocity[2].set_to_sum(cut_field_velocity[2], cut_field_remeshing_velocity[2]);
+
+  cut_field_total_velocity.elem_data()[0].set_to_sum(cut_field_velocity[0], cut_field_remeshing_velocity.elem_data()[0]);
+  cut_field_total_velocity.elem_data()[1].set_to_sum(cut_field_velocity[1], cut_field_remeshing_velocity.elem_data()[1]);
+  cut_field_total_velocity.elem_data()[2].set_to_sum(cut_field_velocity[2], cut_field_remeshing_velocity.elem_data()[2]);
+  cut_field_total_velocity.face_data(0)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(0)[0]);
+  cut_field_total_velocity.face_data(0)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(0)[1]);
+  cut_field_total_velocity.face_data(0)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(0)[2]);
+  cut_field_total_velocity.face_data(1)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(1)[0]);
+  cut_field_total_velocity.face_data(1)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(1)[1]);
+  cut_field_total_velocity.face_data(1)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(1)[2]);
+  cut_field_total_velocity.face_data(2)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(2)[0]);
+  cut_field_total_velocity.face_data(2)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(2)[1]);
+  cut_field_total_velocity.face_data(2)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(2)[2]);
 
   interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, timestep_, cut_field_total_velocity);
   interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, timestep_, cut_field_velocity);
@@ -1125,8 +1134,8 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
                                               ArrOfDouble& var_volume_par_bulle)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
-  Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<Cut_field_vector3_double&>(remeshing_velocity_);
-  Cut_field_vector3_double& cut_field_total_velocity = static_cast<Cut_field_vector3_double&>(total_velocity_);
+  ElemFace_Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(remeshing_velocity_);
+  ElemFace_Cut_field_vector3_double& cut_field_total_velocity = static_cast<ElemFace_Cut_field_vector3_double&>(total_velocity_);
 
   thermals_.remplir_cellules_maintenant_pures();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
@@ -1138,7 +1147,7 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   IJK_FT_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interfaces_.I_elem_face(), interfaces_.In_elem_face());
 
   thermals_.remplir_cellules_devenant_diphasiques();
   cut_field_velocity[0].remplir_cellules_diphasiques();
@@ -1155,9 +1164,19 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
     {
       interfaces_.calcul_vitesse_remaillage(fractionnal_timestep, cut_field_remeshing_velocity);
     }
-  cut_field_total_velocity[0].set_to_sum(cut_field_velocity[0], cut_field_remeshing_velocity[0]);
-  cut_field_total_velocity[1].set_to_sum(cut_field_velocity[1], cut_field_remeshing_velocity[1]);
-  cut_field_total_velocity[2].set_to_sum(cut_field_velocity[2], cut_field_remeshing_velocity[2]);
+
+  cut_field_total_velocity.elem_data()[0].set_to_sum(cut_field_velocity[0], cut_field_remeshing_velocity.elem_data()[0]);
+  cut_field_total_velocity.elem_data()[1].set_to_sum(cut_field_velocity[1], cut_field_remeshing_velocity.elem_data()[1]);
+  cut_field_total_velocity.elem_data()[2].set_to_sum(cut_field_velocity[2], cut_field_remeshing_velocity.elem_data()[2]);
+  cut_field_total_velocity.face_data(0)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(0)[0]);
+  cut_field_total_velocity.face_data(0)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(0)[1]);
+  cut_field_total_velocity.face_data(0)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_I, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(0)[2]);
+  cut_field_total_velocity.face_data(1)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(1)[0]);
+  cut_field_total_velocity.face_data(1)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(1)[1]);
+  cut_field_total_velocity.face_data(1)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_J, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(1)[2]);
+  cut_field_total_velocity.face_data(2)[0].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[0], cut_field_remeshing_velocity.face_data(2)[0]);
+  cut_field_total_velocity.face_data(2)[1].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[1], cut_field_remeshing_velocity.face_data(2)[1]);
+  cut_field_total_velocity.face_data(2)[2].set_to_sum_interpolate_loc(IJK_Splitting::FACES_K, cut_field_velocity[2], cut_field_remeshing_velocity.face_data(2)[2]);
 
   interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_total_velocity);
   interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity);
