@@ -26,14 +26,12 @@ public:
   OpConvQuickIJKScalar_cut_cell_double() : Operateur_IJK_elem_conv_base_double() { };
 
   void initialise_cut_cell(Cut_cell_conv_scheme cut_cell_conv_scheme,
-                           const FixedVector<IJK_Field_vector3_double, 2>& temperature_face,
                            bool ignore_small_cells,
                            FixedVector<Cut_cell_double, 3>& cut_cell_flux,
                            IJK_Field_int& treatment_count,
                            int& new_treatment)
   {
     cut_cell_conv_scheme_ = cut_cell_conv_scheme;
-    temperature_face_ = &temperature_face;
     ignore_small_cells_ = ignore_small_cells;
     cut_cell_flux_ = &cut_cell_flux;
     treatment_count_ = &treatment_count;
@@ -135,7 +133,6 @@ private:
   bool ignore_small_cells_;
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
 
-  const FixedVector<IJK_Field_vector3_double, 2> *temperature_face_;
   FixedVector<Cut_cell_double, 3> *cut_cell_flux_;
   IJK_Field_int *cellule_rk_restreint_conv_main_l_;
   IJK_Field_int *cellule_rk_restreint_conv_main_v_;

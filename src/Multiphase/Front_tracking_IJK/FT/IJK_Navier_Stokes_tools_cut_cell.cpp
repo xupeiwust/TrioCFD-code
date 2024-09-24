@@ -588,44 +588,36 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
         }
 
       const ArrOfInt& index_elem = intersec.index_elem();
-      for (int sub_k = 0; sub_k < 2; sub_k++)
+      assert(mesh.ref_splitting().valeur() == splitting_ft);
+      const int num_elem = splitting_ft.convert_ijk_cell_to_packed(i_candidate_ft,j_candidate_ft,k_candidate_ft);
+      int index = index_elem[num_elem];
+
+      // Boucle sur les facettes qui traversent cet element
+      while (index >= 0)
         {
-          for (int sub_j = 0; sub_j < 2; sub_j++)
+          const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
+          const int fa7 = data.numero_facette_;
+
+          for (int som = 0; som < 3; som++)
             {
-              for (int sub_i = 0; sub_i < 2; sub_i++)
+              // Note : Incomplet
+              // On ne prend en compte que les sommets reels
+              // car il semble difficile de prendre en compte les facettes que le PE ne connait pas
+              // et je suppose que l'on connait toutes les facettes associees a un sommet reel.
+              // Cela veut dire qu'il y aura une difference entre sequentiel et parallele.
+              if (!mesh.sommet_virtuel_old(facettes(fa7, som)))
                 {
-                  const int num_elem = mesh.ref_splitting()->convert_ijk_cell_to_packed(2*i_candidate_ft + sub_i, 2*j_candidate_ft + sub_j, 2*k_candidate_ft + sub_k);
-                  int index = index_elem[num_elem];
-
-                  // Boucle sur les facettes qui traversent cet element
-                  while (index >= 0)
-                    {
-                      const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-                      const int fa7 = data.numero_facette_;
-
-                      for (int som = 0; som < 3; som++)
-                        {
-                          // Note : Incomplet
-                          // On ne prend en compte que les sommets reels
-                          // car il semble difficile de prendre en compte les facettes que le PE ne connait pas
-                          // et je suppose que l'on connait toutes les facettes associees a un sommet reel.
-                          // Cela veut dire qu'il y aura une difference entre sequentiel et parallele.
-                          if (!mesh.sommet_virtuel_old(facettes(fa7, som)))
-                            {
-                              assert(number_of_involved_sommet < max_number_of_involved_sommet);
-                              involved_sommet[number_of_involved_sommet].sommet = facettes(fa7, som);
-                              involved_sommet[number_of_involved_sommet].fa7 = fa7;
-                              involved_sommet[number_of_involved_sommet].value = interfacial_temperature(fa7)/surface_facettes(fa7);
-                              involved_sommet[number_of_involved_sommet].count = 1;
-                              number_of_involved_sommet += 1;
-                            }
-                        }
-
-                      index = data.index_facette_suivante_;
-                    };
+                  assert(number_of_involved_sommet < max_number_of_involved_sommet);
+                  involved_sommet[number_of_involved_sommet].sommet = facettes(fa7, som);
+                  involved_sommet[number_of_involved_sommet].fa7 = fa7;
+                  involved_sommet[number_of_involved_sommet].value = interfacial_temperature(fa7)/surface_facettes(fa7);
+                  involved_sommet[number_of_involved_sommet].count = 1;
+                  number_of_involved_sommet += 1;
                 }
             }
-        }
+
+          index = data.index_facette_suivante_;
+        };
     }
 
   qsort(involved_sommet, number_of_involved_sommet, sizeof(Sommet), compare_sommet);

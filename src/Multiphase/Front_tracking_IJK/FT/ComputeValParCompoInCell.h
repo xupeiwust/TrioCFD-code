@@ -58,37 +58,12 @@ public:
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& courbure_par_compo
   );
 
-  void calculer_valeur_par_compo_8x_downscaled(
-#ifdef SMOOTHING_RHO
-    const double delta_rho,
-#endif
-    const double time,
-    const int itstep,
-    IJK_Field_int& nb_compo_trav,
-    FixedVector<IJK_Field_int, max_authorized_nb_of_components_>& compos_trav,
-    FixedVector<IJK_Field_double, 3*max_authorized_nb_of_components_>& normale_par_compo,
-    FixedVector<IJK_Field_double, 3*max_authorized_nb_of_components_>& bary_par_compo,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& indicatrice_par_compo,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& surface_par_compo,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& courbure_par_compo
-  );
-
   void calculer_moy_field_sommet_par_compo(
     const ArrOfDouble& val_on_sommet,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
   ) const;
 
-  void calculer_moy_field_sommet_par_compo_8x_downscaled(
-    const ArrOfDouble& val_on_sommet,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
-  ) const;
-
   void calculer_moy_field_fa7_par_compo(
-    const ArrOfDouble& val_on_fa7,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
-  ) const;
-
-  void calculer_moy_field_fa7_par_compo_8x_downscaled(
     const ArrOfDouble& val_on_fa7,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
   ) const;
@@ -103,17 +78,7 @@ protected:
     Vecteur3& bary
   ) const;
 
-  void calculer_moyennes_interface_element_pour_compo_8x_downscaled(
-    const int num_compo,
-    int i, int j, int k,
-    double& surface,
-    Vecteur3& normale,
-    Vecteur3& bary
-  ) const;
-
   int calculer_indic_elem_pour_compo(const int icompo, const int elem, double& indic) const;
-
-  int calculer_indic_elem_pour_compo_8x_downscaled(const int icompo, int i, int j, int k, double& indic) const;
 
   void calculer_moy_par_compo(
 #ifdef SMOOTHING_RHO
@@ -127,24 +92,8 @@ protected:
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& surface_par_compo
   ) const;
 
-  void calculer_moy_par_compo_8x_downscaled(
-#ifdef SMOOTHING_RHO
-    const double delta_rho,
-#endif
-    IJK_Field_int& nb_compo_traversante,
-    FixedVector<IJK_Field_int, max_authorized_nb_of_components_>& compos_traversantes,
-    FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& normale_par_compo,
-    FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& bary_par_compo,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& indic_par_compo,
-    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& surface_par_compo
-  ) const;
-
   int compute_list_compo_connex_in_element(
     const int elem,
-    ArrOfInt& liste_composantes_connexes_dans_element) const;
-
-  int compute_list_compo_connex_in_element_8x_downscaled(
-    int i, int j, int k,
     ArrOfInt& liste_composantes_connexes_dans_element) const;
 
   REF(IJK_Splitting) ref_splitting_;

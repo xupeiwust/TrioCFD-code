@@ -27,7 +27,6 @@
 #include <SFichier.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <IJK_subdivided_mesh_tools.h>
 #include <communications.h>
 #include <LecFicDiffuse_JDD.h>
 #include <MaillerParallel.h>
@@ -466,7 +465,6 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
   param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
   param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
-  param.dictionnaire("conservation_volume_matrice", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_MATRICE);
   param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
   param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
   param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
@@ -642,17 +640,8 @@ Entree& IJK_FT_base::interpreter(Entree& is)
 
   Cerr << "Construction du domaine VDF..." << finl;
   {
-    // Construction du domaine VDF :
-    //  * Domaine FT : domaine etendu avec la meme taille de maille que le maillage NS de la simulation.
-    //  * Domaine 8X : domaine etendu avec une taille de maille deux fois plus petite que le maillage NS de la simulation.
-    // Les intersections entre l'interface et la maillage sont realisees sur le maillage 8X.
-    // Ces intersections sont utilisees pour creer des champs sur le maillage FT, qui sont ensuite redistribues sur le maillage NS.
-    // L'objectif du raffinement est de permettre un calcul commode de champs lies a l'indicatrice a la fois sur le volume de controle de l'element et sur les volumes de controle des faces.
-
     build_extended_splitting(splitting_, splitting_ft_, ijk_splitting_ft_extension_);
-    build_subdivided_splitting(splitting_ft_, splitting_8x_);
     refprobleme_ft_disc_ = creer_domaine_vdf(splitting_ft_, "DOM_VDF");
-    refprobleme_8x_disc_ = creer_domaine_vdf(splitting_8x_, "DOM_8X");
     for (int dir = 0; dir < 3; dir++)
       {
         VECT(IntTab) map(3);
@@ -1560,7 +1549,6 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       /*
        * Thermals problems
        */
-      // :integration(Dorian) Suppression du bloc thermals du .sauv
       //thermals_.sauvegarder_thermals(fichier);
 
       post_.sauvegarder_post_maitre(lata_name, fichier);
@@ -1593,7 +1581,6 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
    */
   param.ajouter("thermique", &thermique_);
   param.ajouter("energie", &energie_);
-  // :integration(Dorian) Suppression du bloc thermals du .sauv
   //param.ajouter("thermals", &thermals_);
   param.ajouter("forcage", &forcage_);
   param.ajouter("corrections_qdm", &qdm_corrections_);
@@ -1622,7 +1609,8 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
   interfaces_.set_reprise(1);
   Nom prefix = dirname(fichier_reprise);
   interfaces_.set_fichier_reprise(prefix + interfaces_.get_fichier_reprise());
-  thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
+  if (!thermals_.est_vide())
+    thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
   fichier_reprise_vitesse_= prefix + fichier_reprise_vitesse_;
 }
 
@@ -1862,12 +1850,11 @@ int IJK_FT_base::initialise()
     }
 
   // On peut recuperer le domainevf:
-  const Domaine_dis& domaine_dis_ft = refprobleme_ft_disc_.valeur().domaine_dis();
-  const Domaine_dis& domaine_dis_8x = refprobleme_8x_disc_.valeur().domaine_dis();
+  const Domaine_dis& domaine_dis = refprobleme_ft_disc_.valeur().domaine_dis();
 
   // TODO: a valider
   // if (!disable_diphasique_)
-  nalloc += interfaces_.initialize(splitting_ft_, splitting_8x_, splitting_, domaine_dis_ft, domaine_dis_8x, thermal_probes_ghost_cells_);
+  nalloc += interfaces_.initialize(splitting_ft_, splitting_, domaine_dis, thermal_probes_ghost_cells_);
 
   /*
    * Compute mean rho_g using the indicator function
@@ -3512,513 +3499,6 @@ void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_d
 }
 // -----------------------------------------------------------------------------------
 
-void IJK_FT_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
-{
-  static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
-  statistiques().begin_count(euler_rk3_counter_);
-  if (thermals_.size())
-    {
-      if (boundary_conditions_.get_correction_conserv_qdm()==2)
-        {
-          update_rho_v();
-          rho_field_.echange_espace_virtuel(rho_field_.ghost());
-          update_v_ghost_from_rho_v();
-        }
-      else
-        {
-          // Protection to make sure that even without the activation of the flag check_divergence_, the EV of velocity is correctly field.
-          // This protection MAY be necessary if convection uses ghost velocity (but I'm not sure it actually does)
-          velocity_[0].echange_espace_virtuel(2);
-          velocity_[1].echange_espace_virtuel(2);
-          velocity_[2].echange_espace_virtuel(2);
-        }
-
-
-    }
-
-  /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
-   */
-  for (auto& itr : thermique_)
-    itr.euler_time_step(timestep_);
-
-  for (auto& itr : energie_)
-    itr.euler_time_step(velocity_);
-
-  thermals_.euler_time_step(timestep_);
-
-  if (!frozen_velocity_)
-    {
-      if (boundary_conditions_.get_correction_conserv_qdm()==2)
-        {
-          update_rho_v();
-          rho_field_.echange_espace_virtuel(rho_field_.ghost());
-          update_v_ghost_from_rho_v();
-        }
-      else
-        {
-          velocity_[0].echange_espace_virtuel(2);
-          velocity_[1].echange_espace_virtuel(2);
-          velocity_[2].echange_espace_virtuel(2);
-        }
-
-      // GAB, qdm
-      if (test_etapes_et_bilan_)
-        {
-          calculer_rho_v(rho_field_,velocity_,rho_u_euler_av_prediction_champ_);
-          for (int dir = 0; dir<3; dir++)
-            rho_u_euler_av_prediction_[dir] = calculer_v_moyen(rho_u_euler_av_prediction_champ_[dir]);
-        }
-      // GAB, remarque : calculer dv calcule dv, MAIS NE L'APPLIQUE PAS au champ de vitesse !!!
-      //                 l'increment de vitesse est ajoute au champ de vitesse avec euler_explicit_update
-      calculer_dv(timestep_, current_time_, -1 /*rk_step = -1 pour sch euler... */);
-      // GAB, qdm calculer_dv ne fait que l'etape de prediction)
-      if (test_etapes_et_bilan_)
-        {
-          calculer_rho_v(rho_field_,d_velocity_,rho_du_euler_ap_prediction_champ_);
-          for (int dir = 0; dir<3; dir++)
-            rho_du_euler_ap_prediction_[dir] = calculer_v_moyen(rho_du_euler_ap_prediction_champ_[dir]);
-        }
-#ifdef PROJECTION_DE_LINCREMENT_DV
-      // ajout du gradient de pression a dv
-      if (!disable_solveur_poisson_)
-        {
-          if (!include_pressure_gradient_in_ustar_)
-            {
-              pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_);
-              // GAB --> C'est plutot ici que l(on ajoute le terme_pression !!)
-            }
-          else
-            {
-              pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           d_pressure_, 1.,  pressure_rhs_, check_divergence_, poisson_solver_);
-
-              // Then update the pressure field :
-              const int kmax = pressure_.nk();
-              for (int k = 0; k < kmax; k++)
-                euler_explicit_update(d_pressure_, pressure_, k);
-            }
-        }
-
-#else
-#endif
-      // Mise a jour du champ de vitesse (etape de projection et de prediction)
-      for (int dir = 0; dir < 3; dir++)
-        {
-          const int kmax = d_velocity_[dir].nk();
-          for (int k = 0; k < kmax; k++)
-            {
-              // GAB, question : d_velocity est issu de calculer_dv. Il manque pas l'appliquation de l'operateur de divergence avant d'appliquer d_velocity e velocity ?
-              //                 il manque au moins la multiplication par les surfaces je pense -> NON, lis bien les etapes de convection et de diffusion.
-              euler_explicit_update(d_velocity_[dir], velocity_[dir], k);
-            }
-        }
-
-      // GAB, qdm : cree le rho_n * v_n+1
-      if (test_etapes_et_bilan_)
-        {
-          calculer_rho_v(rho_field_,d_velocity_,rho_du_euler_ap_projection_champ_);
-          for (int dir=0; dir<3; dir++)
-            rho_du_euler_ap_projection_[dir] = calculer_v_moyen(rho_du_euler_ap_projection_champ_[dir]);
-        }
-
-      if (test_etapes_et_bilan_)
-        {
-          calculer_rho_v(rho_field_,velocity_,rho_u_euler_ap_projection_champ_);
-          for (int dir=0; dir<3; dir++)
-            rho_u_euler_ap_projection_[dir] = calculer_v_moyen(rho_u_euler_ap_projection_champ_[dir]);
-        }
-
-      // Conditions en entree
-      if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0],
-                             velocity_[1],
-                             velocity_[2],
-                             vitesse_entree_,
-                             vitesse_entree_dir_,
-                             vitesse_entree_compo_to_force_,
-                             stencil_vitesse_entree_);
-
-      // Forcage de la vitesse en amont de la bulle :
-      if (vitesse_upstream_ > -1e20)
-        {
-          if (!upstream_velocity_measured_)
-            {
-              if (expression_vitesse_upstream_ != "??")
-                {
-                  std::string expr(expression_vitesse_upstream_);
-                  Parser parser;
-                  parser.setString(expr);
-                  parser.setNbVar((int) 1);
-                  parser.addVar("t");
-                  parser.parseString();
-                  parser.setVar((int) 0, (*this).current_time_ - modified_time_ini_);
-                  vitesse_upstream_ = parser.eval();
-                }
-            }
-          else
-            {
-              int dir = 0;
-              if (upstream_dir_ == -1)
-                {
-                  dir = get_direction_gravite();
-                  if (dir == -1)
-                    dir=0;
-                }
-              const DoubleTab& rising_vector = interfaces_.get_ijk_compo_connex().get_rising_vectors();
-              const double velocity_magnitude = interfaces_.get_ijk_compo_connex().get_rising_velocities()[0];
-              const Vecteur3& velocity_vector = interfaces_.get_ijk_compo_connex().get_rising_velocity_overall();
-              velocity_bubble_new_ = velocity_vector[dir]; //  * rising_vector[dir];
-              if (tstep_ == 0)
-                {
-                  if (velocity_bubble_old_ < -1e20)
-                    velocity_bubble_old_ = 0.;
-                  else
-                    velocity_bubble_new_ = velocity_bubble_old_;
-                  if (vitesse_upstream_reprise_ < -1e20)
-                    vitesse_upstream_ = - velocity_bubble_scope_;
-                  else
-                    vitesse_upstream_ = vitesse_upstream_reprise_;
-                }
-              const double delta_velocity = velocity_bubble_scope_ + velocity_bubble_new_;
-              const double ddelta_velocity = (velocity_bubble_new_ - velocity_bubble_old_) / timestep_;
-              if (tstep_ % 100)
-                velocity_bubble_integral_err_ = 0.;
-              velocity_bubble_integral_err_ += delta_velocity * timestep_;
-              vitesse_upstream_ -= delta_velocity * upstream_velocity_bubble_factor_;
-              vitesse_upstream_ -= ddelta_velocity * upstream_velocity_bubble_factor_deriv_;
-              vitesse_upstream_ -= velocity_bubble_integral_err_ * upstream_velocity_bubble_factor_integral_;
-              Cerr << "Velocity bubble (old): " << velocity_bubble_old_ << finl;
-              velocity_bubble_old_ = velocity_bubble_new_;
-              Cerr << "Velocity upstream: " << vitesse_upstream_ << finl;
-              Cerr << "Velocity bubble (new): " << velocity_bubble_new_ << finl;
-              Cerr << "Velocity magnitude: " << velocity_magnitude << finl;
-              Cerr << "Velocity dir upstream: " << rising_vector(0, dir) << finl;
-            }
-          vitesse_upstream_reprise_ = vitesse_upstream_;
-          Cerr << "Force upstream velocity" << finl;
-
-          if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-            {
-              double vx;
-              double vy;
-              double vz;
-
-              calculer_vitesse_gauche(velocity_[0],velocity_[1],velocity_[2],vx,vy,vz);
-
-              force_upstream_velocity_shear_perio(velocity_[0], velocity_[1], velocity_[2],
-                                                  vitesse_upstream_, interfaces_, nb_diam_upstream_, boundary_conditions_, nb_diam_ortho_shear_perio_,
-                                                  vx,vy,vz,epaisseur_maille_);
-            }
-          else
-            {
-              force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
-                                      vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
-            }
-
-        }
-    } // end of if ! frozen_velocity
-// static Stat_Counter_Id projection_counter_ = statistiques().new_counter(0, "projection");
-#ifdef PROJECTION_DE_LINCREMENT_DV
-  if (0)
-#else
-  if (!disable_solveur_poisson_)
-#endif
-    {
-
-      //  statistiques().begin_count(projection_counter_);
-      if (include_pressure_gradient_in_ustar_)
-        {
-          Cerr << "Methode incrementale pour le grad(P)" << finl;
-          Cerr << "Initialisation du d_pressure_ conservee depuis le pas de temps precedent... " << finl;
-          Cerr << "Ce n'est probablement pas optimal. QQ idees dans les sources si divergence . " << finl;
-          // Que vaut d_pressure ?
-          // Important car c'est l'initialisation du solveur...
-
-          // 1. raz :
-          // d_pressure_.data() = 0.; // raz...
-          // 2. dp = - timestep_ * (potentiel_elem - delta_rho * phi) * u . grad(I)
-          //                       (sigma_ * courbure)                  on a ustar a dispo, par u^n.
-          // 3. dp = - timestep_ * u . grad(P^n)
-          //                       ici, on a ustar dispo, plus u^n.
-          //                       Si on veut tester avec u^n (c mieux je pense), il faut initialiser dp
-          //                       juste avant l'euler_explicit_update
-
-          if (use_inv_rho_in_poisson_solver_)
-            {
-
-              pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, timestep_,
-                                               pressure_rhs_, check_divergence_, poisson_solver_);
-
-            }
-          else
-            {
-#ifdef PROJECTION_DE_LINCREMENT_DV
-              // On l'a fait avant pour etre sur qu'elle soit bien dans la derivee stockee...
-#else
-
-              pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, timestep_,
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
-#endif
-
-            }
-
-          // Mise a jour de la pression :
-          for (int dir = 0; dir < 3; dir++)
-            {
-              const int kmax = pressure_.nk();
-              for (int k = 0; k < kmax; k++)
-                euler_explicit_update(d_pressure_, pressure_, k);
-            }
-
-          Cerr << " Un exit pour voir avec gdb... " << finl;
-          Cerr << " Si ca fonctionne, faire le meme en RK3... " << finl;
-          // Process::exit();
-        }
-      else
-        {
-          if (use_inv_rho_in_poisson_solver_)
-            {
-
-              pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, timestep_,
-                                               pressure_rhs_, check_divergence_, poisson_solver_);
-
-            }
-          else
-            {
-#ifdef PROJECTION_DE_LINCREMENT_DV
-#else
-
-              pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, timestep_,
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
-
-#endif
-            }
-        }
-      if (test_etapes_et_bilan_)
-        {
-          // GAB, qdm : recuperons le temre de pression (1/rho * grad(p)) si on fait le bilan en u (ca a du sens meme?)
-          //                                                     grap(p) si on fait le bilan de qdm
-          // terme_pression_bis = calculer_inv_rho_grad_p_moyen(rho_field_, pressure_);
-          terme_pression_bis_ = calculer_grad_p_moyen(pressure_);
-          // GAB, qdm : recuperons le terme de pression (1/rho * grad(p))
-          terme_pression_ter_ = calculer_grad_p_over_rho_moyen(pressure_);
-          pression_ap_proj_ = calculer_v_moyen(pressure_);
-        }
-      //statistiques().end_count(projection_counter_);
-    }
-
-  Cerr << "Copy pressure on extended field for probes" << finl;
-  copy_field_values(pressure_ghost_cells_, pressure_);
-
-  if (Process::je_suis_maitre())
-    {
-      Cout << "Timings diff=" << statistiques().last_time(diffusion_counter_)
-           << " conv=" << statistiques().last_time(convection_counter_);
-      Cout << " src=" << statistiques().last_time(source_counter_)
-           << finl;
-    }
-  statistiques().end_count(euler_rk3_counter_);
-}
-
-// Perform one sub-step of rk3 for FT algorithm, called 3 times per time step.
-// rk_step = 0, 1 or 2
-// total_timestep = not the fractionnal timestep !
-void IJK_FT_base::rk3_sub_step(const int rk_step, const double total_timestep,
-                               const double fractionnal_timestep, const double time )
-{
-  assert(rk_step>=0 && rk_step<3);
-  static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
-  statistiques().begin_count(euler_rk3_counter_);
-
-  /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
-   */
-  for (auto& itr : thermique_)
-    {
-      itr.rk3_sub_step(rk_step, total_timestep, time);
-    }
-  for (auto&& itr = energie_.begin(); itr != energie_.begin(); ++itr)
-    {
-      // curseur->rk3_sub_step(rk_step, total_timestep, time);
-      // ++curseur;
-      Cerr << "Le schema RK3 n est pas implemente avec des champs d energie" << finl;
-      Process::exit();
-    }
-
-  thermals_.rk3_sub_step(rk_step, total_timestep, time);
-
-  if (!frozen_velocity_)
-    {
-      if (boundary_conditions_.get_correction_conserv_qdm()==2)
-        {
-          update_rho_v();
-          rho_field_.echange_espace_virtuel(rho_field_.ghost());
-          update_v_ghost_from_rho_v();
-        }
-      else
-        {
-          velocity_[0].echange_espace_virtuel(2);
-          velocity_[1].echange_espace_virtuel(2);
-          velocity_[2].echange_espace_virtuel(2);
-        }
-      // GAB TODO : voir dans euler_explicite ce qu'on a dit qu'on ferai pour voir
-      // si le calculer_dv s'est bien passe
-      Cout << "rk3ss: rk_step " << rk_step << finl;
-      calculer_dv(total_timestep, time, rk_step);
-      //
-#ifdef PROJECTION_DE_LINCREMENT_DV
-      // ajout du gradient de pression a dv
-      if (!disable_solveur_poisson_)
-        {
-          if (include_pressure_gradient_in_ustar_)
-            {
-              pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           d_pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_);
-            }
-          else
-            {
-              pressure_projection_with_rho(rho_field_, d_velocity_[0], d_velocity_[1],  d_velocity_[2],
-                                           pressure_,1. ,  pressure_rhs_, check_divergence_, poisson_solver_);
-            }
-        }
-#else
-#endif
-
-      // Mise a jour du champ de vitesse (etape de projection GAB, 28/06/21 : c'est la prediction, pas la projection non ?)
-      for (int dir = 0; dir < 3; dir++)
-        {
-          const int kmax = d_velocity_[dir].nk();
-          for (int k = 0; k < kmax; k++)
-            {
-              runge_kutta3_update(d_velocity_[dir], RK3_F_velocity_[dir], velocity_[dir], rk_step, k, total_timestep);
-              // GAB, correction qdm a posteriori
-            }
-        }
-
-#ifdef PROJECTION_DE_LINCREMENT_DV
-      // Mise a jour du champ de pression
-      if ((!disable_solveur_poisson_) && (include_pressure_gradient_in_ustar_))
-        {
-          const int kmax = pressure_.nk();
-          for (int k = 0; k < kmax; k++)
-            {
-              runge_kutta3_update(d_pressure_ /* increment */,
-                                  RK3_F_pressure_ /* intermediate storage */,
-                                  pressure_ /* variable to update */, rk_step, k, total_timestep);
-            }
-        }
-#else
-#endif
-
-      // Conditions en entree
-      if (vitesse_entree_ > -1e20)
-        force_entry_velocity(velocity_[0],
-                             velocity_[1],
-                             velocity_[2],
-                             vitesse_entree_,
-                             vitesse_entree_dir_,
-                             vitesse_entree_compo_to_force_,
-                             stencil_vitesse_entree_);
-
-
-      // Forcage de la vitesse en amont de la bulle :
-      if (vitesse_upstream_ > -1e20)
-        {
-          if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-            {
-
-              double vx;
-              double vy;
-              double vz;
-
-              calculer_vitesse_gauche(velocity_[0],velocity_[1],velocity_[2],vx,vy,vz);
-
-              force_upstream_velocity_shear_perio(velocity_[0], velocity_[1], velocity_[2],
-                                                  vitesse_upstream_, interfaces_, nb_diam_upstream_, boundary_conditions_, nb_diam_ortho_shear_perio_,
-                                                  vx,vy,vz,epaisseur_maille_);
-            }
-          else
-            {
-              force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
-                                      vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
-            }
-        }
-
-    } // end of if ! frozen_velocity
-//static Stat_Counter_Id projection_counter_ = statistiques().new_counter(0, "projection");
-#ifdef PROJECTION_DE_LINCREMENT_DV
-  if (0)
-#else
-  if (!disable_solveur_poisson_)
-#endif
-    {
-      //statistiques().begin_count(projection_counter_);
-      if (include_pressure_gradient_in_ustar_)
-        {
-          Cerr << "L'option include_pressure_gradient_in_ustar n'est pas encore implementee en RK3." << finl;
-
-          Process::exit();
-        }
-
-      if (include_pressure_gradient_in_ustar_)
-        {
-          Cerr << "Methode incremental pour le grad(P)" << finl;
-          Cerr << " Option codee uniquement pour le sch_euler... Tester et implementer si besoiN. " << finl;
-          Process::exit();
-        }
-      // OPTION A SELECTIONNE DANS LE CAS DUN SHEAR PERIO POUR EVITER LES PBMS D INTERPOLATION DE RHO AU NIVEAU DU BORD PERIO_Z
-      if (use_inv_rho_in_poisson_solver_)
-        {
-          // Cerr << "Methode basee sur inv rho pour le grad(P) en RK3" << finl;
-          // Cerr << " Option a tester si besoin. " << finl;
-
-          pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
-                                           fractionnal_timestep,
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
-
-        }
-      else
-        {
-#ifdef PROJECTION_DE_LINCREMENT_DV
-          // On l'a fait avant pour etre sur qu'elle soit bien dans la derivee stockee...
-#else
-
-
-          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
-                                       fractionnal_timestep,
-                                       pressure_rhs_, check_divergence_, poisson_solver_);
-
-          // GAB TODO : cest a peu pres ici qu'il faudra travailler pour recuperer le
-          // terme de pression
-#endif
-          // GAB TODO : checker si le passage de rho_n a rho_n+1 est bon
-          // chercher ca pour l'etape de deplacement de rho : maj_indicatrice_rho_mu
-        }
-
-      // GAB, qdm : on recupere ici le terme grad(p),
-      terme_pression_bis_ = calculer_grad_p_moyen(pressure_);
-      // GAB, qdm : on recupere ici le terme de pression (1/rho * grad(p))
-      terme_pression_ter_ = calculer_grad_p_over_rho_moyen(pressure_);
-      pression_ap_proj_ += calculer_v_moyen(pressure_);
-
-      //statistiques().end_count(projection_counter_);
-    }
-
-  if (Process::je_suis_maitre())
-    {
-      Cout << "Timings diff=" << statistiques().last_time(diffusion_counter_)
-           << " conv=" << statistiques().last_time(convection_counter_);
-      Cout << " src=" << statistiques().last_time(source_counter_)
-           << finl;
-    }
-  statistiques().end_count(euler_rk3_counter_);
-
-}
-
 // Hard coded constant pressure gradient in i direction, add contribution in m/s*volume of control volume
 void IJK_FT_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const
 {
@@ -4091,7 +3571,7 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
    * Calculation of intersections on interface at time (n)
    */
   Cerr << "Compute Eulerian distance and curvature fields" << finl;
-  //thermals_.compute_eulerian_distance_curvature(); /* :integration(Dorian) Ligne mise en commentaire la fonction est tres couteuse en temps de calcul ; brise certainement des fonctionalites */
+  thermals_.compute_eulerian_distance_curvature();
   Cerr << "Clean IJK intersections" << finl;
   thermals_.clean_ijk_intersections();
   Cerr << "Copy interface state for post-processing on surface" << finl;
@@ -4127,7 +3607,7 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
     }
   else
     {
-      // :integration(Dorian) Pour ne pas alterer les cas tests, on supprime
+      // Note : Pour ne pas alterer les cas tests, on supprime
       // les duplicatas avant le transport dans ce cas. Si on ne supprime pas
       // les duplicatas, cela fonctionne aussi, mais le resultat des cas tests
       // est un peu different.
@@ -4950,7 +4430,7 @@ void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle
   else
     {
       // Initialisation de vol_bulles_ a la valeur initiale du volume des bulles, dans le cas ou il n'est pas specifie dans le jeu de donnees.
-      // :integration(Dorian) uniquement dans le cas de la correction_semi_locale du volume, pour ne pas impacter les cas tests
+      // Note : uniquement dans le cas de la correction_semi_locale du volume, pour ne pas impacter les cas tests
       if (correction_semi_locale_volume_bulle_)
         {
           ArrOfDouble volume_reel;
@@ -4976,87 +4456,16 @@ void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle
     }
 }
 
-void IJK_FT_base::get_redistribute_from_splitting_ft_faces(const IJK_Field_vector3_double& faces_ft,
-                                                           IJK_Field_vector3_double& faces_ns)
-{
-  for (int dir = 0; dir < 3; dir++)
-    {
-      redistribute_from_splitting_ft_faces_[dir].redistribute(
-        faces_ft[dir],
-        faces_ns[dir]);
-    }
-}
-
-void IJK_FT_base::get_redistribute_from_splitting_ft_faces(const ElemFace_IJK_Field_vector3_double& faces_ft,
-                                                           ElemFace_IJK_Field_vector3_double& faces_ns)
-{
-  for (int dir = 0; dir < 3; dir++)
-    {
-      redistribute_from_splitting_ft_faces_[dir].redistribute(
-        faces_ft.elem_data()[dir],
-        faces_ns.elem_data()[dir]);
-    }
-
-  for (int dir1 = 0; dir1 < 3; dir1++)
-    {
-      for (int dir2 = 0; dir2 < 3; dir2++)
-        {
-          redistribute_from_splitting_ft_faces_[dir1].redistribute(
-            faces_ft.face_data_[dir1][dir2],
-            faces_ns.face_data_[dir1][dir2]);
-        }
-    }
-}
-
-void IJK_FT_base::get_redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_vector3_double& cell_vector_ft,
-                                                          ElemFace_IJK_Field_vector3_double& cell_vector_ns)
-{
-  for (int dir = 0; dir < 3; dir++)
-    {
-      redistribute_from_splitting_ft_elem_.redistribute(
-        cell_vector_ft.elem_data()[dir],
-        cell_vector_ns.elem_data()[dir]);
-    }
-
-  for (int dir1 = 0; dir1 < 3; dir1++)
-    {
-      for (int dir2 = 0; dir2 < 3; dir2++)
-        {
-          redistribute_from_splitting_ft_faces_[dir1].redistribute(
-            cell_vector_ft.face_data_[dir1][dir2],
-            cell_vector_ns.face_data_[dir1][dir2]);
-        }
-    }
-}
-
 void IJK_FT_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                                     IJK_Field_double& output_field)
 {
   redistribute_to_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
-void IJK_FT_base::redistribute_to_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
-                                                    ElemFace_IJK_Field_double& output_field)
-{
-  redistribute_to_splitting_ft_elem_.redistribute(input_field.elem_data(), output_field.elem_data());
-  redistribute_to_splitting_ft_faces_[0].redistribute(input_field.face_data(0), output_field.face_data(0));
-  redistribute_to_splitting_ft_faces_[1].redistribute(input_field.face_data(1), output_field.face_data(1));
-  redistribute_to_splitting_ft_faces_[2].redistribute(input_field.face_data(2), output_field.face_data(2));
-}
-
 void IJK_FT_base::redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                                       IJK_Field_double& output_field)
 {
   redistribute_from_splitting_ft_elem_.redistribute(input_field, output_field);
-}
-
-void IJK_FT_base::redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
-                                                      ElemFace_IJK_Field_double& output_field)
-{
-  redistribute_from_splitting_ft_elem_.redistribute(input_field.elem_data(), output_field.elem_data());
-  redistribute_from_splitting_ft_faces_[0].redistribute(input_field.face_data(0), output_field.face_data(0));
-  redistribute_from_splitting_ft_faces_[1].redistribute(input_field.face_data(1), output_field.face_data(1));
-  redistribute_from_splitting_ft_faces_[2].redistribute(input_field.face_data(2), output_field.face_data(2));
 }
 
 void IJK_FT_base::copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy)

@@ -37,16 +37,7 @@ enum class METHODE_FLUX_INTERFACE : int
 {
   NON_INITIALISE,  // Valeur invalide par defaut, pour forcer le choix
   INTERP_PURE,     // Methode d'interpolation n'utilisant pas les donnees cut-cell (cf. Aymeric)
-  INTERP_CUT_CELL, // Methode d'interpolation utilisant les donnees cut-cell
-  LOCAL_CELLULE    // Methode utilisant les points de la cellule, en negligeant les variations tangentes
-};
-
-enum class ETALEMENT_DIFFUSION : int
-{
-  AUCUN_ETALEMENT,             // Choix normal, par defaut : pas d'etalement particulier
-  FLUX_INTERFACE_UNIQUEMENT,   // Etalement de la contribution du flux a l'interface
-  DIVERGENCE_UNIQUEMENT,       // Etalement de la divergence des flux diffusifs
-  FLUX_INTERFACE_ET_DIVERGENCE // Etalement de la contribution du flux a l'interface et de la divergence  des flux diffusifs
+  INTERP_CUT_CELL  // Methode d'interpolation utilisant les donnees cut-cell
 };
 
 struct Facettes_data
@@ -120,20 +111,8 @@ public:
                                                 Facettes_data& coord_facettes,
                                                 Facettes_data& interfacial_temperature,
                                                 DoubleTabFT& flux_normal_interp);
-  void compute_interfacial_temperature_local_normal(bool next_time,
-                                                    double lambda_liquid,
-                                                    double lambda_vapour,
-                                                    const Cut_field_double& cut_field_temperature,
-                                                    const Maillage_FT_IJK& maillage,
-                                                    const IJK_Splitting& s,
-                                                    const IJK_Interfaces& interfaces,
-                                                    Facettes_data& coord_facettes,
-                                                    Facettes_data& interfacial_temperature,
-                                                    DoubleTabFT& flux_normal_interp);
 
   void ajout_flux_interface_a_divergence_simple(Cut_field_double& cut_field_div_coeff_grad_T_volume);
-  void ajout_flux_interface_a_divergence_etale(Cut_field_double& cut_field_div_coeff_grad_T_volume);
-  void etalement_divergence_flux_diffusifs(Cut_field_double& cut_field_div_coeff_grad_T_volume, Cut_field_double& cut_field_div_coeff_grad_T_volume_temp);
 
   void calcul_temperature_flux_interface(const IJK_Field_double& temperature, const double ldal, const double ldav,
                                          const double dist, const DoubleTab& positions, const DoubleTab& normal_on_interf,
@@ -177,9 +156,6 @@ public:
                                                                DoubleTab& coo_vap_1,
                                                                DoubleTab& coo_liqu_2,
                                                                DoubleTab& coo_vap_2);
-  void calcul_temperature_flux_interface_local_normal(const Cut_field_double& temperature, const double ldal, const double ldav,
-                                                      const Vecteur3& position_centre_cell, const Vecteur3& positions, const Vecteur3& normal_on_interf,
-                                                      double& temperature_interp, double& flux_normal_interp);
 
 protected:
   int second_order_diffusion_interface_;

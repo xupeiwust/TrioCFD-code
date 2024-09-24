@@ -931,7 +931,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
 
 
   // Post-traitement des champs cut-cell
-  // :integration(Dorian) Dans le cas cut-cell, on sauvegarde toujours les coordonnees (pas de mots-cles)
+  // Dans le cas cut-cell, on sauvegarde toujours les coordonnees.
   if (cut_cell_activated_)
     {
       dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_X"), interfaces_.get_barycentre_phase1_old()[0], latastep);

@@ -442,23 +442,6 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                           Process::exit();
                         }
 
-                      if ((cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::FACETTE_PROCHE)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATE)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT0)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT1)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT2)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE0)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE1)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE0)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE1)
-                          || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::POINT_CELLULE))
-                        {
-                          double T_face = (*temperature_face_)[phase][dir](i,j,k);
-                          if (T_face != 0.)
-                            {
-                              flux_2 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, T_face);
-                            }
-                        }
 
                       double flux_1l = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_left);
                       double flux_1c = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(surface, velocity, input_centre);

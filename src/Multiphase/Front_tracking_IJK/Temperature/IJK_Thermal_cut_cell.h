@@ -201,14 +201,10 @@ protected :
   IJK_Field_double div_rho_cp_T_;
   IJK_Field_double lambda_;
 
-  std::shared_ptr<IJK_Field_double> div_coeff_grad_T_volume_temp_;
-
   FixedVector<Cut_cell_double, 3> cut_cell_flux_diffusion_;
   FixedVector<Cut_cell_double, 3> cut_cell_flux_convection_;
 
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
-  FixedVector<IJK_Field_vector3_double, 2> temperature_face_;
-  FixedVector<IJK_Field_vector3_double, 2> temperature_face_ft_;
 
   double flux_interfacial_moyen_;
   double temperature_interfaciale_moyenne_;
@@ -240,7 +236,6 @@ protected :
   Cut_cell_diffusion_auxiliaire diffusive_correction_;
 
   int deactivate_diffusion_interface_ = 0;
-  ETALEMENT_DIFFUSION etalement_diffusion_ = ETALEMENT_DIFFUSION::AUCUN_ETALEMENT;
 
   int runge_kutta_restriction_leniency_convection_ = 0;
   int runge_kutta_restriction_leniency_diffusion_ = 0;

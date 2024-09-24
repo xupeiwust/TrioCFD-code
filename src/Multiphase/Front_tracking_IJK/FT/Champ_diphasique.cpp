@@ -672,51 +672,6 @@ void Cut_field_double::set_to_sum(const Cut_field_double& data_1, const Cut_fiel
     }
 }
 
-void Cut_field_double::set_to_sum_interpolate_loc(IJK_Splitting::Localisation loc, const Cut_field_double& data_1, const Cut_field_double& data_2)
-{
-  assert(IJK_Field_double::get_splitting().get_grid_geometry().is_uniform(0));
-  assert(IJK_Field_double::get_splitting().get_grid_geometry().is_uniform(1));
-  assert(IJK_Field_double::get_splitting().get_grid_geometry().is_uniform(2));
-  assert(data_1.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I));
-  assert(data_1.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J));
-  assert(data_1.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K));
-  assert(data_2.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I));
-  assert(data_2.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J));
-  assert(data_2.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) == IJK_Field_double::get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K));
-
-  // Implementation preliminaire : interpolation sur la base des champs pure_ uniquement,
-  // puis remplissage des cellules diphasiques par remplir_cellules_diphasiques().
-  const int ni = data_1.ni();
-  const int nj = data_1.nj();
-  const int nk = data_1.nk();
-  const int ghost = data_1.ghost();
-  assert(ni == data_2.ni());
-  assert(nj == data_2.nj());
-  assert(nk == data_2.nk());
-  assert(ghost == data_2.ghost());
-  assert(ni == IJK_Field_double::ni());
-  assert(nj == IJK_Field_double::nj());
-  assert(nk == IJK_Field_double::nk());
-  assert(ghost == IJK_Field_double::ghost());
-  for (int k = 0; k < nk; k++)
-    {
-      for (int j = 0; j < nj; j++)
-        {
-          for (int i = 0; i < ni; i++)
-            {
-              int di = (loc == IJK_Splitting::FACES_I);
-              int dj = (loc == IJK_Splitting::FACES_J);
-              int dk = (loc == IJK_Splitting::FACES_K);
-
-              double interpolation_data_1 = .5*(data_1.pure_(i,j,k) + data_1.pure_(i+di,j+dj,k+dk));
-              pure_(i,j,k) = interpolation_data_1 + data_2.pure_(i,j,k);
-            }
-        }
-    }
-  IJK_Field_double::echange_espace_virtuel(ghost);
-  remplir_cellules_diphasiques();
-}
-
 Cut_field_vector3_double::Cut_field_vector3_double()
 {
 }

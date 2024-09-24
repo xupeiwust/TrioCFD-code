@@ -45,25 +45,9 @@ enum class CUT_CELL_SCHEMA_CONVECTION : int
   AMONT                                      // Utilise toujours le schema amont
 };
 
-enum class CUT_CELL_CONV_FACE_INTERPOLATION : int
-{
-  AUCUNE,          // La temperature d'un schema plus classique est utilisee
-  FACETTE_PROCHE,  // Routine d'interpolation sur la face fondee sur la temperature et le flux sur la facette la plus proche
-  INTERPOLATE,    // Routine d'interpolation tetraedrique de la temperature prenant en compte la temperature des facettes
-  INTERPOLATEAMONT0,
-  INTERPOLATEAMONT1,
-  INTERPOLATEAMONT2,
-  INTERPOLATEDISTANCE0,
-  INTERPOLATEDISTANCE1,
-  INTERPOLATENORMALE0,
-  INTERPOLATENORMALE1,
-  POINT_CELLULE    // Routine d'interpolation sur la face fondee sur la temperature de la cellule et le flux a l'interface
-};
-
 struct Cut_cell_conv_scheme
 {
   CUT_CELL_SCHEMA_CONVECTION scheme;
-  CUT_CELL_CONV_FACE_INTERPOLATION face_interp;
 };
 
 
@@ -76,10 +60,6 @@ public:
 
   double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
   double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
-
-  void calcule_temperature_face_depuis_centre(double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature, FixedVector<IJK_Field_vector3_double, 2>& temperature_face);
-  void calcule_temperature_face_depuis_facette(double lambda_liquid, double lambda_vapour, const ArrOfDouble& interfacial_temperature, const ArrOfDouble& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns);
-  void calcule_temperature_face_depuis_facette_interpolate(CUT_CELL_CONV_FACE_INTERPOLATION face_interp, double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, REF(IJK_FT_cut_cell)& ref_ijk_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ft, FixedVector<IJK_Field_vector3_double, 2>& temperature_face_ns, const Cut_field_vector3_double& cut_field_total_velocity);
 
 protected:
 };

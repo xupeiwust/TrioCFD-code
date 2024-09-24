@@ -22,8 +22,6 @@
 #ifndef IJK_FT_base_included
 #define IJK_FT_base_included
 
-#include <Cut_cell_FT_Disc.h>
-#include <ElemFace_structure.h>
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <IJK_Splitting.h>
@@ -39,6 +37,7 @@
 #include <Parser.h>
 #include <IJK_FT_Post.h>
 #include <IJK_Thermique.h>
+#include <Cut_cell_FT_Disc.h>
 #include <init_forcage_THI.h>
 #include <corrections_qdm.h>
 #include <Force_sp.h>
@@ -259,7 +258,8 @@ public :
   //  const Intersection_Interface_ijk_face& get_intersection_ijk_face() const {return intersection_ijk_face_;}
 
   virtual void run() = 0;
-  void euler_time_step(ArrOfDouble& var_volume_par_bulle);
+  virtual void euler_time_step(ArrOfDouble& var_volume_par_bulle) = 0;
+  virtual void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) = 0;
   // MODIF Aymeric : c'est plus pratique de mettre cette methode publique,
   // c'est une methode generique cont.
   void euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
@@ -314,9 +314,18 @@ public :
   // TODO: aym attention, cette methode n'est pas constante
   Redistribute_Field& redistrib_from_ft_elem() {return redistribute_from_splitting_ft_elem_;}
   // FixedVector<Redistribute_Field, 3>& redistrib_from_ft_face() const {return redistribute_from_splitting_ft_faces_;}
-  void get_redistribute_from_splitting_ft_faces(const IJK_Field_vector3_double& faces_ft, IJK_Field_vector3_double& faces_ns);
-  void get_redistribute_from_splitting_ft_faces(const ElemFace_IJK_Field_vector3_double& faces_ft, ElemFace_IJK_Field_vector3_double& faces_ns);
-  void get_redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_vector3_double& cell_vector_ft, ElemFace_IJK_Field_vector3_double& cell_vector_ns);
+  void get_redistribute_from_splitting_ft_faces(
+    const IJK_Field_vector3_double& faces_ft,
+    IJK_Field_vector3_double& faces_ns
+  )
+  {
+    for (int dir = 0; dir < 3; dir++)
+      {
+        redistribute_from_splitting_ft_faces_[dir].redistribute(
+          faces_ft[dir],
+          faces_ns[dir]);
+      }
+  }
 
   const IJK_Grid_Geometry& get_geometry() const
   {
@@ -326,13 +335,9 @@ public :
 
   void redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                          IJK_Field_double& output_field);
-  void redistribute_to_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
-                                         ElemFace_IJK_Field_double& output_field);
 
   void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                            IJK_Field_double& output_field);
-  void redistribute_from_splitting_ft_elem(const ElemFace_IJK_Field_double& input_field,
-                                           ElemFace_IJK_Field_double& output_field);
   void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
   virtual void update_indicator_field();
   void update_pre_remeshing_indicator_field();
@@ -341,13 +346,7 @@ public :
 
   void update_old_intersections();
 
-  virtual ElemFace_Cut_cell_FT_Disc* get_cut_cell_disc()
-  {
-    Cerr << "No cut fields are found." << finl;
-    Process::exit();
-    return nullptr;
-  }
-  virtual Cut_cell_FT_Disc* get_cut_cell_disc(IJK_Splitting::Localisation)
+  virtual Cut_cell_FT_Disc* get_cut_cell_disc()
   {
     Cerr << "No cut fields are found." << finl;
     Process::exit();
@@ -364,8 +363,6 @@ protected :
   void update_pressure_phase();
   int initialise();
   void terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const;
-  void rk3_sub_step(const int rk_step, const double total_timestep,
-                    const double fractionnal_timestep, const double time);
   void calculer_dv(const double timestep, const double time, const int rk_step);
 
   //ab-sauv/repr-deb
@@ -558,7 +555,6 @@ protected :
   IJK_Splitting splitting_;
   // Le probleme ft disc qui porte le maillage vdf pour les algorithmes front-tracking
   REF(Probleme_base) refprobleme_ft_disc_;
-  REF(Probleme_base) refprobleme_8x_disc_;
   // Creation d'un probleme sur le domaine d'origine pour les sondes et pour faire leur VDF...
   REF(Probleme_base) refprobleme_ns_;
 
@@ -780,7 +776,6 @@ protected :
   // Nombre de mailles etendues dans les directions periodiques
   int ijk_splitting_ft_extension_ = 0;
   IJK_Splitting splitting_ft_;
-  IJK_Splitting splitting_8x_; // Maillage deux fois plus fin dans chaque direction utilise pour le parcours de l'interface
   // Classe outil pour passer entre splitting_ et splitting_ft_
   // Une instance par direction des faces:
   FixedVector<Redistribute_Field, 3> redistribute_to_splitting_ft_faces_;

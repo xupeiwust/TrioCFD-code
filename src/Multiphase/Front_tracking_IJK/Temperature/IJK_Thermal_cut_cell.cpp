@@ -37,14 +37,12 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell()
   conserv_energy_global_=0; // Note : doit etre zero sinon la rustine est appliquee
 
   cut_cell_conv_scheme_.scheme = CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_CENTRE2_STENCIL;
-  cut_cell_conv_scheme_.face_interp = CUT_CELL_CONV_FACE_INTERPOLATION::AUCUNE;
 
 
   temperature_ = std::make_shared<Cut_field_double>();
   div_coeff_grad_T_volume_ = std::make_shared<Cut_field_double>();
   d_temperature_ = std::make_shared<Cut_field_double>();
 
-  div_coeff_grad_T_volume_temp_ = std::make_shared<Cut_field_double>();
   temperature_post_dying_ = std::make_shared<Cut_field_double>();
   temperature_post_regular_ = std::make_shared<Cut_field_double>();
   temperature_post_convection_ = std::make_shared<Cut_field_double>();
@@ -91,11 +89,6 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.ajouter_flag("postraiter_champs_intermediaires", &postraiter_champs_intermediaires_);
 
   param.ajouter_flag("deactivate_diffusion_interface", &deactivate_diffusion_interface_);
-  param.ajouter("etalement_diffusion", (int*)&etalement_diffusion_);
-  param.dictionnaire("aucun_etalement",(int)ETALEMENT_DIFFUSION::AUCUN_ETALEMENT);
-  param.dictionnaire("flux_interface_uniquement", (int)ETALEMENT_DIFFUSION::FLUX_INTERFACE_UNIQUEMENT);
-  param.dictionnaire("divergence_uniquement", (int)ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT);
-  param.dictionnaire("flux_interface_et_divergence", (int)ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE);
 
   param.ajouter_flag("runge_kutta_fluxes_convection", &runge_kutta_fluxes_convection_);
   param.ajouter_flag("runge_kutta_fluxes_diffusion", &runge_kutta_fluxes_diffusion_);
@@ -118,18 +111,6 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.dictionnaire("centre2", (int)CUT_CELL_SCHEMA_CONVECTION::CENTRE2);
   param.dictionnaire("lineaire2", (int)CUT_CELL_SCHEMA_CONVECTION::LINEAIRE2);
   param.dictionnaire("amont", (int)CUT_CELL_SCHEMA_CONVECTION::AMONT);
-  param.ajouter("cut_cell_conv_face_interpolation", (int*)&cut_cell_conv_scheme_.face_interp);
-  param.dictionnaire("aucune", (int)CUT_CELL_CONV_FACE_INTERPOLATION::AUCUNE);
-  param.dictionnaire("facette_proche", (int)CUT_CELL_CONV_FACE_INTERPOLATION::FACETTE_PROCHE);
-  param.dictionnaire("interpolate", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATE);
-  param.dictionnaire("interpolateamont0", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT0);
-  param.dictionnaire("interpolateamont1", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT1);
-  param.dictionnaire("interpolateamont2", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT2);
-  param.dictionnaire("interpolatedistance0", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE0);
-  param.dictionnaire("interpolatedistance1", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE1);
-  param.dictionnaire("interpolatenormale0", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE0);
-  param.dictionnaire("interpolatenormale1", (int)CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE1);
-  param.dictionnaire("point_cellule", (int)CUT_CELL_CONV_FACE_INTERPOLATION::POINT_CELLULE);
 
 
   param.ajouter("verbosite", &verbosite_);
@@ -143,7 +124,7 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   ref_ijk_ft_cut_cell_ = ref_cast(IJK_FT_cut_cell, ref_ijk_ft_.valeur());
 
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
-  cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
+  cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
 
   Cut_field_vector3_double& cut_field_current_fluxes_conv = static_cast<Cut_field_vector3_double&>(current_fluxes_conv_);
   Cut_field_vector3_double& cut_field_current_fluxes_diff = static_cast<Cut_field_vector3_double&>(current_fluxes_diff_);
@@ -151,14 +132,14 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff   = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
   if (runge_kutta_fluxes_convection_)
     {
-      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_current_fluxes_conv, splitting, 2);
-      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_RK3_F_fluxes_conv, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), cut_field_current_fluxes_conv, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), cut_field_RK3_F_fluxes_conv, splitting, 2);
     }
 
   if (runge_kutta_fluxes_diffusion_)
     {
-      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_current_fluxes_diff, splitting, 2);
-      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), cut_field_RK3_F_fluxes_diff, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), cut_field_current_fluxes_diff, splitting, 2);
+      allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), cut_field_RK3_F_fluxes_diff, splitting, 2);
     }
 
   cellule_rk_restreint_conv_l_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
@@ -173,29 +154,23 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
       Cut_field_double& cut_field_temperature_post_convection   = static_cast<Cut_field_double&>(*temperature_post_convection_);
       Cut_field_double& cut_field_temperature_post_diff_regular = static_cast<Cut_field_double&>(*temperature_post_diff_regular_);
 
-      cut_field_temperature_post_dying.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
-      cut_field_temperature_post_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
-      cut_field_temperature_post_convection.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
-      cut_field_temperature_post_diff_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_dying.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_convection.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      cut_field_temperature_post_diff_regular.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
     }
 
-  cut_cell_flux_diffusion_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  cut_cell_flux_diffusion_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  cut_cell_flux_diffusion_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  cut_cell_flux_convection_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  cut_cell_flux_convection_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  cut_cell_flux_convection_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
+  cut_cell_flux_diffusion_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_cell_flux_diffusion_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_cell_flux_diffusion_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_cell_flux_convection_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_cell_flux_convection_[1].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  cut_cell_flux_convection_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
 
   int nalloc = IJK_Thermal_base::initialize(splitting, idx);
   lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
   nalloc += 2;
-
-  allocate_cell_vector(temperature_face_[0], splitting, 2);
-  allocate_cell_vector(temperature_face_ft_[0], ref_ijk_ft_cut_cell_->get_splitting_ft(), 4);
-  allocate_cell_vector(temperature_face_[1], splitting, 2);
-  allocate_cell_vector(temperature_face_ft_[1], ref_ijk_ft_cut_cell_->get_splitting_ft(), 4);
-  nalloc += 6;
 
   temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
   nalloc += 1;
@@ -210,23 +185,17 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
       diffusive_correction_.flux_interface_ft_[next_time].data() = 0.;
       diffusive_correction_.flux_interface_ns_[next_time].data() = 0.;
     }
-  diffusive_correction_.flux_interface_efficace_.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
+  diffusive_correction_.flux_interface_efficace_.associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
-  convective_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
-  diffusive_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_));
+  convective_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
+  diffusive_correction_.initialise(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
   Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
-  cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
+  cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
   Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
-  cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
+  cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
-  if (etalement_diffusion_ == ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT || etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE)
-    {
-      Cut_field_double& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_temp_);
-      cut_field_div_coeff_grad_T_volume_temp.allocate_paresseux(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(localisation_), splitting, IJK_Splitting::ELEM, 2);
-      nalloc += 1;
-    }
 
   temperature_diffusion_op_.typer("OpDiffIJKScalar_cut_cell_double");
   temperature_diffusion_op_.initialize(splitting);
@@ -492,7 +461,7 @@ void IJK_Thermal_cut_cell::set_rk_restreint(int rk_step, int rk_restriction_leni
 void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_rk, int rk_step)
 {
   ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, treatment_count_, new_treatment_);
-  ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, temperature_face_, false, cut_cell_flux_convection_, treatment_count_, new_treatment_);
+  ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, false, cut_cell_flux_convection_, treatment_count_, new_treatment_);
 
   double fractional_timestep = (flag_rk) ? compute_fractionnal_timestep_rk3(total_timestep, rk_step) : total_timestep;
 
@@ -567,7 +536,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
 
   update_thermal_properties();
 
-  const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity(localisation_);
+  const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
   //calculer_dT_cut_cell(cut_field_total_velocity); // Note : ne fait rien
 
   const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
@@ -580,30 +549,6 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
       convective_correction_.calcule_temperature_remplissage(fractional_timestep, lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], interfacial_temperature_.centre, temperature_ft_, cut_field_total_velocity, cut_field_temperature);
     }
 
-  if (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::POINT_CELLULE)
-
-    {
-      convective_correction_.calcule_temperature_face_depuis_centre(lambda_liquid_, lambda_vapour_, diffusive_correction_.flux_interface_ns_[0], cut_field_temperature, temperature_face_);
-    }
-  else if (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::FACETTE_PROCHE)
-    {
-      convective_correction_.calcule_temperature_face_depuis_facette(lambda_liquid_, lambda_vapour_, interfacial_temperature_.centre, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_);
-    }
-  else if ((cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATE)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT0)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT1)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEAMONT2)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE0)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATEDISTANCE1)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE0)
-           || (cut_cell_conv_scheme_.face_interp == CUT_CELL_CONV_FACE_INTERPOLATION::INTERPOLATENORMALE1))
-    {
-      convective_correction_.calcule_temperature_face_depuis_facette_interpolate(cut_cell_conv_scheme_.face_interp, fractional_timestep, interfacial_temperature_.centre, temperature_ft_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_face_ft_, temperature_face_, cut_field_total_velocity);
-    }
-  else
-    {
-      // Do nothing
-    }
 
   ene_ini = compute_global_energy_cut_cell(cut_field_temperature, 0);
 
@@ -1029,7 +974,6 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
 {
   const Cut_field_double& cut_field_temperature            = static_cast<const Cut_field_double&>(*temperature_);
   Cut_field_double& cut_field_div_coeff_grad_T_volume      = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
-  Cut_field_double& cut_field_div_coeff_grad_T_volume_temp = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_temp_);
   Cut_field_double& cut_field_d_temperature                = static_cast<Cut_field_double&>(*d_temperature_);
 
 
@@ -1095,18 +1039,7 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
                                          cut_field_div_coeff_grad_T_volume,
                                          boundary_flux_kmin_,
                                          boundary_flux_kmax_);
-      if (etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_UNIQUEMENT || etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE)
-        {
-          diffusive_correction_.ajout_flux_interface_a_divergence_etale(cut_field_div_coeff_grad_T_volume);
-        }
-      else
-        {
-          diffusive_correction_.ajout_flux_interface_a_divergence_simple(cut_field_div_coeff_grad_T_volume);
-        }
-      if (etalement_diffusion_ == ETALEMENT_DIFFUSION::DIVERGENCE_UNIQUEMENT || etalement_diffusion_ == ETALEMENT_DIFFUSION::FLUX_INTERFACE_ET_DIVERGENCE)
-        {
-          diffusive_correction_.etalement_divergence_flux_diffusifs(cut_field_div_coeff_grad_T_volume, cut_field_div_coeff_grad_T_volume_temp);
-        }
+      diffusive_correction_.ajout_flux_interface_a_divergence_simple(cut_field_div_coeff_grad_T_volume);
       compute_diffusion_increment();
       statistiques().end_count(cnt_diff_temp);
       DebogIJK::verifier("div_coeff_grad_T_volume_", *div_coeff_grad_T_volume_);

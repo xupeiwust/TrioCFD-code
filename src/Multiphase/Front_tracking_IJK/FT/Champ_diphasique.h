@@ -283,7 +283,6 @@ public :
   void set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time);
   void set_to_uniform_value(double valeur);
   void set_to_sum(const Cut_field_double& data_1, const Cut_field_double& data_2);
-  void set_to_sum_interpolate_loc(IJK_Splitting::Localisation loc, const Cut_field_double& data_1, const Cut_field_double& data_2);
 
   void associer_persistant(Cut_cell_FT_Disc& cut_cell_disc);
   void associer_ephemere(Cut_cell_FT_Disc& cut_cell_disc);

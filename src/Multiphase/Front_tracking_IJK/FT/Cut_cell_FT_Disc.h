@@ -76,7 +76,7 @@ public:
   void update_index_sorted_by_statut_diphasique(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
 
   template<typename T>
-  void fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component = 0) const; // :integration(Dorian) const mais modifie write_buffer_
+  void fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component = 0) const; // Attention : fonction const, mais modifie write_buffer_
 
   template<typename T>
   void fill_variable_with_buffer(TRUSTTabFT<T>& array, int component = 0) const;

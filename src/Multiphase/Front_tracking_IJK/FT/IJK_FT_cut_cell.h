@@ -25,7 +25,6 @@
 #include <IJK_FT_base.h>
 #include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
-#include <ElemFace_structure.h>
 #include <IJK_FT_Post.h>
 #include <Champ_diphasique.h>
 
@@ -49,6 +48,8 @@ public :
   IJK_FT_cut_cell();
   Entree& interpreter(Entree&) override;
   void run() override;
+  void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
+  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
 
   void deplacer_interfaces(const double timestep,
                            const int rk_step,
@@ -59,36 +60,32 @@ public :
   void update_indicator_field() override;
   void update_twice_indicator_field() override;
 
-  ElemFace_Cut_cell_FT_Disc* get_cut_cell_disc() override
+  Cut_cell_FT_Disc* get_cut_cell_disc() override
   {
     return &cut_cell_disc_;
-  }
-  Cut_cell_FT_Disc* get_cut_cell_disc(IJK_Splitting::Localisation loc) override
-  {
-    return &cut_cell_disc_.data_loc(loc);
   }
   const Cut_field_vector3_double& get_cut_field_velocity() const
   {
     const Cut_field_vector3_double& cut_field_velocity = static_cast<const Cut_field_vector3_double&>(velocity_);
     return cut_field_velocity;
   }
-  const Cut_field_vector3_double& get_cut_field_remeshing_velocity(IJK_Splitting::Localisation loc = IJK_Splitting::ELEM) const
+  const Cut_field_vector3_double& get_cut_field_remeshing_velocity() const
   {
-    const ElemFace_Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<const ElemFace_Cut_field_vector3_double&>(remeshing_velocity_);
-    return cut_field_remeshing_velocity.data_loc(loc);
+    const Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<const Cut_field_vector3_double&>(remeshing_velocity_);
+    return cut_field_remeshing_velocity;
   }
-  const Cut_field_vector3_double& get_cut_field_total_velocity(IJK_Splitting::Localisation loc = IJK_Splitting::ELEM) const
+  const Cut_field_vector3_double& get_cut_field_total_velocity() const
   {
-    const ElemFace_Cut_field_vector3_double& cut_field_total_velocity = static_cast<const ElemFace_Cut_field_vector3_double&>(total_velocity_);
-    return cut_field_total_velocity.data_loc(loc);
+    const Cut_field_vector3_double& cut_field_total_velocity = static_cast<const Cut_field_vector3_double&>(total_velocity_);
+    return cut_field_total_velocity;
   }
 
 protected :
   friend class IJK_FT_Post;
-  ElemFace_Cut_cell_FT_Disc cut_cell_disc_;
+  Cut_cell_FT_Disc cut_cell_disc_;
 
-  ElemFace_IJK_Field_vector3_double remeshing_velocity_;
-  ElemFace_IJK_Field_vector3_double total_velocity_;
+  IJK_Field_vector3_double remeshing_velocity_;
+  IJK_Field_vector3_double total_velocity_;
 
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 };

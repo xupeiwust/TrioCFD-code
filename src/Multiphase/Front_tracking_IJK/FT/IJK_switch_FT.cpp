@@ -96,9 +96,7 @@ void Switch_FT_double::initialise()
   const Domaine_dis& domaine_dis = refprobleme_ft_disc.domaine_dis();
 
   interfaces_.initialize(splitting_ft /* splitting_FT */,
-                         splitting_ft /* splitting_FT */,
                          new_mesh_ /* splitting_NS */,
-                         domaine_dis,
                          domaine_dis,
                          0,
                          false,
