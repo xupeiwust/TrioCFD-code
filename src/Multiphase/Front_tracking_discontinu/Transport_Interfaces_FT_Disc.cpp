@@ -241,7 +241,7 @@ int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
   // correctement reconstruite a partir de l'interface (on tolere qu'il y ait
   // des inconsistances) :
   int bytes=0;
-  bytes += indicatrice_cache.sauvegarder(os);
+  bytes += indicatrice_cache->sauvegarder(os);
   int special, afaire;
   const int format_xyz = EcritureLectureSpecial::is_ecriture_special(special, afaire);
   if (format_xyz)
@@ -269,7 +269,7 @@ int Transport_Interfaces_FT_Disc_interne::reprendre(Entree& is)
       // Le champ n'est pas discretise, on lit ceci pour sauter le bloc
       indicatrice_cache.typer(type);
     }
-  indicatrice_cache.reprendre(is);
+  indicatrice_cache->reprendre(is);
   is >> indicatrice_cache_tag;
   maillage_interface.reprendre(is);
   remaillage_interface_.reprendre(is);
@@ -325,7 +325,7 @@ Entree& Transport_Interfaces_FT_Disc::readOn(Entree& is)
     {
       Cerr << "Name of subdomaine for interfaces deletion: " << suppression_interfaces_sous_domaine_ << finl;
       // Juste un test pour verifier que le nom existe:
-      domaine_dis().domaine().ss_domaine(suppression_interfaces_sous_domaine_);
+      domaine_dis()->domaine().ss_domaine(suppression_interfaces_sous_domaine_);
     }
   return is;
 }
@@ -816,7 +816,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
  */
 int Transport_Interfaces_FT_Disc::verif_Cl() const
 {
-  const Conds_lim& les_cl = le_dom_Cl_dis.valeur().les_conditions_limites();
+  const Conds_lim& les_cl = le_dom_Cl_dis->les_conditions_limites();
   const int n = les_cl.size();
   int i;
   for (i = 0; i < n; i++)
@@ -1143,7 +1143,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
         }
     }
   // Met a jour l'indicatrice de phase:
-  DoubleTab& indic = variables_internes_->indicatrice_cache.valeur().valeurs();
+  DoubleTab& indic = variables_internes_->indicatrice_cache->valeurs();
   for (int i = 0; i < nb_elem; i++)
     {
       const int compo = num_compo[i];
@@ -1279,7 +1279,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
                 // (items communs correctement initialises).
                 int ignorer_collision = (rang==2);
                 const int ok = marching_cubes().construire_iso(expression, 0., maillage_tmp,
-                                                               variables_internes_->indicatrice_cache.valeur().valeurs(),
+                                                               variables_internes_->indicatrice_cache->valeurs(),
                                                                phase,
                                                                variables_internes_->distance_interface_sommets,
                                                                ignorer_collision);
@@ -1385,7 +1385,7 @@ void Transport_Interfaces_FT_Disc::discretiser(void)
                         1 /* composantes */, nb_valeurs_temps,
                         temps,
                         indicatrice_);
-  indicatrice_.associer_eqn(*this);
+  indicatrice_->associer_eqn(*this);
   //Nouvelle formulation
   champs_compris_.ajoute_champ(indicatrice_);
   //champs_compris_.liste_noms_compris()[0]+le_nom();
@@ -1397,7 +1397,7 @@ void Transport_Interfaces_FT_Disc::discretiser(void)
                         1 /* composantes */, 1 /* valeur temporelle */,
                         temps,
                         variables_internes_->indicatrice_cache);
-  variables_internes_->indicatrice_cache.associer_eqn(*this);
+  variables_internes_->indicatrice_cache->associer_eqn(*this);
   champs_compris_.ajoute_champ(variables_internes_->indicatrice_cache);
   //champs_compris_.liste_noms_compris()[1]+le_nom();
 
@@ -1408,7 +1408,7 @@ void Transport_Interfaces_FT_Disc::discretiser(void)
                         1 /* composantes */, nb_valeurs_temps,
                         temps,
                         indicatrice_faces_);
-  indicatrice_faces_.associer_eqn(*this);
+  indicatrice_faces_->associer_eqn(*this);
   champs_compris_.ajoute_champ(indicatrice_faces_);
 
   fieldname = "VITESSE_FILTREE";
@@ -1418,7 +1418,7 @@ void Transport_Interfaces_FT_Disc::discretiser(void)
                         Objet_U::dimension /* composantes */, 1, /* valeur temporelle */
                         temps,
                         variables_internes_->vitesse_filtree);
-  variables_internes_->vitesse_filtree.associer_eqn(*this);
+  variables_internes_->vitesse_filtree->associer_eqn(*this);
   champs_compris_.ajoute_champ(variables_internes_->vitesse_filtree);
   //champs_compris_.liste_noms_compris()[2]+le_nom();
 
@@ -1498,7 +1498,7 @@ void Transport_Interfaces_FT_Disc::discretiser(void)
   // Construction de la structure du tableau avec l'espace virtuel:
   {
     DoubleTab& d = variables_internes_->distance_interface_sommets;
-    const Domaine& dom = domaine_dis().domaine();
+    const Domaine& dom = domaine_dis()->domaine();
     d.resize(0);
     dom.creer_tableau_sommets(d);
   }
@@ -1595,7 +1595,7 @@ int Transport_Interfaces_FT_Disc::preparer_calcul(void)
   const double temps = schema_temps().temps_courant();
   // La ligne suivante doit figurer avant le premier remaillage
   // car le remaillage utilise les angles de contact (lissage courbure)
-  le_dom_Cl_dis.valeur().initialiser(temps);
+  le_dom_Cl_dis->initialiser(temps);
 
   if (probleme().reprise_effectuee())
     {
@@ -1610,23 +1610,23 @@ int Transport_Interfaces_FT_Disc::preparer_calcul(void)
     }
 
   // Ajout pour la sauvegarde au premier pas de temps si reprise
-  indicatrice_.changer_temps(temps);
-  variables_internes_->indicatrice_cache.changer_temps(temps);
-  indicatrice_faces_.changer_temps(temps);
-  variables_internes_->vitesse_filtree.changer_temps(temps);
-  variables_internes_->tmp_flux.changer_temps(temps);
-  variables_internes_->index_element.changer_temps(temps);
-  variables_internes_->nelem_par_direction.changer_temps(temps);
-  variables_internes_->distance_interface.changer_temps(temps);
-  variables_internes_->distance_interface_faces.changer_temps(temps);
-  variables_internes_->distance_interface_faces_corrigee.changer_temps(temps);
-  variables_internes_->distance_interface_faces_difference.changer_temps(temps);
-  vitesse_imp_interp_.changer_temps(temps);
-  variables_internes_->normale_interface.changer_temps(temps);
-  variables_internes_->surface_interface.changer_temps(temps);
+  indicatrice_->changer_temps(temps);
+  variables_internes_->indicatrice_cache->changer_temps(temps);
+  indicatrice_faces_->changer_temps(temps);
+  variables_internes_->vitesse_filtree->changer_temps(temps);
+  variables_internes_->tmp_flux->changer_temps(temps);
+  variables_internes_->index_element->changer_temps(temps);
+  variables_internes_->nelem_par_direction->changer_temps(temps);
+  variables_internes_->distance_interface->changer_temps(temps);
+  variables_internes_->distance_interface_faces->changer_temps(temps);
+  variables_internes_->distance_interface_faces_corrigee->changer_temps(temps);
+  variables_internes_->distance_interface_faces_difference->changer_temps(temps);
+  vitesse_imp_interp_->changer_temps(temps);
+  variables_internes_->normale_interface->changer_temps(temps);
+  variables_internes_->surface_interface->changer_temps(temps);
 
   //calcul de l'indicatrice
-  indicatrice_.valeurs() = get_update_indicatrice().valeurs();
+  indicatrice_->valeurs() = get_update_indicatrice().valeurs();
   get_update_distance_interface();
   get_update_normale_interface();
 
@@ -1646,7 +1646,7 @@ int Transport_Interfaces_FT_Disc::preparer_calcul(void)
   //                                                  Maillage_FT_Disc::MINIMAL);
 
   //Ajout TF : gestion de la derivee en temps
-  if (calculate_time_derivative()) derivee_en_temps().changer_temps(temps);
+  if (calculate_time_derivative()) derivee_en_temps()->changer_temps(temps);
   //Fin TF
   return 1;
 }
@@ -1685,7 +1685,7 @@ const Champ_base& Transport_Interfaces_FT_Disc::get_update_indicatrice()
   const int tag = maillage_interface().get_mesh_tag();
   if (tag != variables_internes_->indicatrice_cache_tag)
     {
-      DoubleVect& valeurs_indicatrice = variables_internes_->indicatrice_cache.valeur().valeurs();
+      DoubleVect& valeurs_indicatrice = variables_internes_->indicatrice_cache->valeurs();
       maillage_interface().parcourir_maillage();
       maillage_interface().calcul_indicatrice(valeurs_indicatrice,
                                               valeurs_indicatrice);
@@ -2232,12 +2232,12 @@ void Transport_Interfaces_FT_Disc::calculer_scalaire_interpole(
                   ref_cast(Champ_P1NC, champ_scal).filtrer_L2(scal_filtre_val);
                 else if (sub_type(Champ_Fonc_P1NC, champ_scal))
                   ref_cast(Champ_Fonc_P1NC, champ_scal).filtrer_L2(scal_filtre_val);
-                champ_scal_interp.valeurs() = scal_filtre_val;
+                champ_scal_interp->valeurs() = scal_filtre_val;
               }
 
           }
         else if (sub_type(Champ_Fonc_P0_base, champ_scal))
-          champ_scal_interp.valeurs() = champ_scal.valeurs();
+          champ_scal_interp->valeurs() = champ_scal.valeurs();
 
         else
           {
@@ -2439,7 +2439,7 @@ void Transport_Interfaces_FT_Disc::modifier_vpoint_pour_imposer_vit(const Double
                       else
                         vit_imposee(i,j) = f*vit_imposee(i,j) + (1.-f)*vitesse(i,j)/rho_faces(i);
 
-                      vitesse_imp_interp_.valeur().valeurs()(i,j)= vit_imposee( i,j ) ;
+                      vitesse_imp_interp_->valeurs()(i,j)= vit_imposee( i,j ) ;
                     }
 
                 }
@@ -2483,7 +2483,7 @@ void Transport_Interfaces_FT_Disc::modifier_vpoint_pour_imposer_vit(const Double
 void Transport_Interfaces_FT_Disc::calcul_indicatrice_faces(const DoubleTab& indicatrice,
                                                             const IntTab& face_voisins)
 {
-  DoubleTab& indicatrice_faces = indicatrice_faces_.valeurs();
+  DoubleTab& indicatrice_faces = indicatrice_faces_->valeurs();
   const int nfaces = face_voisins.dimension_tot(0);
   for (int i = 0; i < nfaces; i++)
     {
@@ -2547,7 +2547,7 @@ void Transport_Interfaces_FT_Disc::calcul_indicatrice_faces(const DoubleTab& ind
             const DoubleTab& interfacial_area = ns.get_interfacial_area();
             const DoubleTab& normale_elements = get_update_normale_interface().valeurs();
 
-            const int dim = ns.inconnue().valeurs().line_size();
+            const int dim = ns.inconnue()->valeurs().line_size();
             const int vef = (dim == 2);
             if (vef)
               {
@@ -2655,7 +2655,7 @@ void Transport_Interfaces_FT_Disc::calcul_indicatrice_faces(const DoubleTab& ind
                 if (indic_face >1.)
                   indic_face=1.;
 
-                indicatrice_faces_(face) = indic_face;
+                indicatrice_faces_->valeurs()(face) = indic_face;
               }
           }
         else
@@ -2832,7 +2832,7 @@ void Transport_Interfaces_FT_Disc::modifie_source(DoubleTab& termes_sources_face
       termes_sources_face(face,dim)=vol_entrelaces(face)*source_val(face,dim);
 
   termes_sources_face.echange_espace_virtuel() ; // CI
-  un_solv_masse.appliquer(termes_sources_face);
+  un_solv_masse->appliquer(termes_sources_face);
 
   if (!is_QC)
     {
@@ -2960,7 +2960,7 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
       for(int k=0; k<dimension; k++)
         Force << espace << force_[k];
       Force << finl;
-      const Domaine& domaine=domaine_dis().domaine();
+      const Domaine& domaine=domaine_dis()->domaine();
       const int impr_mom = domaine.moments_a_imprimer();
       if (impr_mom)
         {
@@ -2981,8 +2981,8 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
 void Transport_Interfaces_FT_Disc::update_critere_statio()
 {
   Schema_Temps_base& sch_tps = schema_temps();
-  const DoubleTab& present = inconnue().valeurs();
-  const DoubleTab& passe = inconnue().passe();
+  const DoubleTab& present = inconnue()->valeurs();
+  const DoubleTab& passe = inconnue()->passe();
   const double dt = sch_tps.pas_de_temps();
   DoubleTab tab_critere(present);
 
@@ -3036,14 +3036,14 @@ void Transport_Interfaces_FT_Disc::calcul_effort_fluide_interface(const DoubleTa
       }
 
   termes_sources_face.echange_espace_virtuel() ;
-  le_solveur_masse.appliquer(termes_sources_face);
+  le_solveur_masse->appliquer(termes_sources_face);
 
   // Impression des efforts exerces par le fluide sur l'interface
   {
     ArrOfDouble dforce(dimension);
     force_=0;
     moment_=0;
-    const Domaine& domaine=domaine_dis().domaine();
+    const Domaine& domaine=domaine_dis()->domaine();
     const int impr_mom = domaine.moments_a_imprimer();
     const ArrOfDouble& centre_gravite = domaine.cg_moments();
     const DoubleTab& centre_faces = ref_cast(Domaine_VF,domaine_dis().valeur()).xv();
@@ -3407,7 +3407,7 @@ const Champ_base& Transport_Interfaces_FT_Disc::get_update_distance_interface_fa
 
   const DoubleTab& dist_elem = get_update_distance_interface().valeurs();
   const DoubleTab& normale_elem = get_update_normale_interface().valeurs();
-  DoubleTab&        dist_face = variables_internes_->distance_interface_faces.valeur().valeurs();
+  DoubleTab&        dist_face = variables_internes_->distance_interface_faces->valeurs();
 
   calculer_distance_interface_faces(dist_elem, normale_elem, dist_face);
   return variables_internes_->distance_interface_faces.valeur();
@@ -3556,7 +3556,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
       for(int njoint=0; njoint<nbjoints; njoint++)
         {
           const Joint& joint_temp = domaine_vf.joint(njoint);
-          const IntTab& indices_faces_joint = joint_temp.joint_item(Joint::FACE).renum_items_communs();
+          const IntTab& indices_faces_joint = joint_temp.joint_item(JOINT_ITEM::FACE).renum_items_communs();
           const int nb_faces = indices_faces_joint.dimension(0);
           for (int j = 0; j < nb_faces; j++)
             {
@@ -3854,8 +3854,8 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
   ///----- variables pour post-traitement
   for( i_face=0 ; i_face<nfaces ; i_face++ )
     {
-      variables_internes_->distance_interface_faces_corrigee.valeur().valeurs()(i_face) = dist_face_cor(i_face) ;
-      variables_internes_->distance_interface_faces_difference.valeur().valeurs()(i_face) = dist_face_cor(i_face) - distance_interface_faces(i_face) ;
+      variables_internes_->distance_interface_faces_corrigee->valeurs()(i_face) = dist_face_cor(i_face) ;
+      variables_internes_->distance_interface_faces_difference->valeurs()(i_face) = dist_face_cor(i_face) - distance_interface_faces(i_face) ;
     }
 
   if( variables_internes_-> type_vitesse_imposee == Transport_Interfaces_FT_Disc_interne::ANALYTIQUE
@@ -4562,11 +4562,11 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
                   champ(i_face) += d * grad ;
                 }
             }
-          vitesse_imp_interp_.valeur().valeurs()(i_face)= champ( i_face ) ;
+          vitesse_imp_interp_->valeurs()(i_face)= champ( i_face ) ;
         }
       else
         {
-          vitesse_imp_interp_.valeur().valeurs()(i_face)=-3e30;
+          vitesse_imp_interp_->valeurs()(i_face)=-3e30;
         }
     }
   champ.echange_espace_virtuel() ;
@@ -6492,11 +6492,11 @@ void Transport_Interfaces_FT_Disc::deplacer_maillage_ft_v_fluide(const double te
         Navier_Stokes_FT_Disc& ns = ref_cast_non_const(Navier_Stokes_FT_Disc, eqn_hydraulique);
 
         DoubleVect dI_dt;
-        domaine_dis().valeur().domaine().creer_tableau_elements(dI_dt);
+        domaine_dis()->domaine().creer_tableau_elements(dI_dt);
         ns.calculer_dI_dt(dI_dt);
         dI_dt.echange_espace_virtuel();
 #if DEBUG_CONSERV_VOLUME
-        const int nb_elem = domaine_dis().valeur().nb_elem();
+        const int nb_elem = domaine_dis()->nb_elem();
         double sum_before_rm = 0.;
         double sum_before_rm_dvol = 0.;
         for (int i = 0; i < nb_elem; i++)
@@ -6568,14 +6568,14 @@ void Transport_Interfaces_FT_Disc::deplacer_maillage_ft_v_fluide(const double te
 //        volume_sous_domaine   ->   values(1)
 //        volume_phase_0     ->   values(2)
           if (variables_internes_->nom_domaine_volume_impose_ == "??")
-            values(0) = calculer_integrale_indicatrice(indicatrice_.valeurs(), values(2));
+            values(0) = calculer_integrale_indicatrice(indicatrice_->valeurs(), values(2));
           else
             {
               const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis().valeur());
               const DoubleVect& volumes = domaine_vf.volumes();
-              const Sous_Domaine& sous_domaine = domaine_dis().valeur().domaine().ss_domaine(variables_internes_->nom_domaine_volume_impose_);
+              const Sous_Domaine& sous_domaine = domaine_dis()->domaine().ss_domaine(variables_internes_->nom_domaine_volume_impose_);
               const int nb_elem_sous_domaine = sous_domaine.nb_elem_tot();
-              const DoubleTab& indic = indicatrice_.valeurs();
+              const DoubleTab& indic = indicatrice_->valeurs();
               const int nb_elem = domaine_vf.nb_elem();
               for (int i = 0; i < nb_elem_sous_domaine; i++)
                 {
@@ -6737,7 +6737,7 @@ double Transport_Interfaces_FT_Disc::suppression_interfaces(const IntVect& num_c
   Maillage_FT_Disc& maillage = maillage_interface();
   const double volume = topologie_interface().suppression_interfaces(num_compo,
                                                                      flags_compo_a_supprimer, maillage,
-                                                                     variables_internes_->indicatrice_cache.valeur().valeurs());
+                                                                     variables_internes_->indicatrice_cache->valeurs());
   return volume;
 }
 
@@ -6747,7 +6747,7 @@ void Transport_Interfaces_FT_Disc::test_suppression_interfaces_sous_domaine()
     return;
 
   const DoubleTab& indicatrice = get_update_indicatrice().valeurs();
-  const Sous_Domaine& sous_domaine = domaine_dis().domaine().ss_domaine(suppression_interfaces_sous_domaine_);
+  const Sous_Domaine& sous_domaine = domaine_dis()->domaine().ss_domaine(suppression_interfaces_sous_domaine_);
   // Construction de la liste des elements de la sous-domaine contenant la phase a supprimer
   ArrOfInt liste_elems_sous_domaine;
   int i;
@@ -6778,7 +6778,7 @@ void Transport_Interfaces_FT_Disc::test_suppression_interfaces_sous_domaine()
       mp_sum_for_each_item(flags_compo_a_supprimer);
       Maillage_FT_Disc& maillage = maillage_interface();
       topologie_interface().suppression_interfaces(num_compo, flags_compo_a_supprimer, maillage,
-                                                   variables_internes_->indicatrice_cache.valeur().valeurs());
+                                                   variables_internes_->indicatrice_cache->valeurs());
 
       // Parcours de toutes les equations du probleme,
       // Pour les equations "temperature FT" on appelle la methode "suppression_interfaces"
@@ -6924,10 +6924,10 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           maillage_tmp.associer_equation_transport(*this);
           Maillage_FT_Disc::AjoutPhase phase = variables_internes_->injection_interfaces_phase_[i]
                                                ? Maillage_FT_Disc::AJOUTE_PHASE1 : Maillage_FT_Disc::AJOUTE_PHASE0;
-          DoubleTab sauvegarde(variables_internes_->indicatrice_cache.valeur().valeurs());
+          DoubleTab sauvegarde(variables_internes_->indicatrice_cache->valeurs());
           const int ok = marching_cubes().construire_iso(expr[i],
                                                          0., maillage_tmp,
-                                                         variables_internes_->indicatrice_cache.valeur().valeurs(),
+                                                         variables_internes_->indicatrice_cache->valeurs(),
                                                          phase,
                                                          variables_internes_->distance_interface_sommets);
 
@@ -6941,7 +6941,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
               double unused_vol_phase_0 = 0.;
               const double volume_phase_1_old = calculer_integrale_indicatrice(sauvegarde, unused_vol_phase_0);
               unused_vol_phase_0= 0.;
-              const double volume_phase_1 = calculer_integrale_indicatrice(variables_internes_->indicatrice_cache.valeur().valeurs(), unused_vol_phase_0);
+              const double volume_phase_1 = calculer_integrale_indicatrice(variables_internes_->indicatrice_cache->valeurs(), unused_vol_phase_0);
               double volume = volume_phase_1-volume_phase_1_old;
               // pow(-1,1-phase) ne compile pas avec xlC sur AIX car n'a que pow(double,int)
               volume*=pow(-1.,1-phase);
@@ -6950,7 +6950,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           else
             {
               Cerr << " failure: collision" << finl;
-              variables_internes_->indicatrice_cache.valeur().valeurs() = sauvegarde;
+              variables_internes_->indicatrice_cache->valeurs() = sauvegarde;
             }
         }
       if (i == n)
@@ -7033,10 +7033,10 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
 
   // Attention: get_update_indicatrice renvoie une ref a indicatrice_cache.
   //  C'est ici qu'on copie le contenu de indicatrice_cache dans indicatrice :
-  indicatrice_.valeurs() = get_update_indicatrice().valeurs();
+  indicatrice_->valeurs() = get_update_indicatrice().valeurs();
 
-  variables_internes_->indicatrice_cache.changer_temps(temps);
-  indicatrice_.changer_temps(temps);
+  variables_internes_->indicatrice_cache->changer_temps(temps);
+  indicatrice_->changer_temps(temps);
 
   update_critere_statio();
 
@@ -7045,7 +7045,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
 
   {
     double volume_phase_0 = 0.;
-    const double volume_phase_1 = calculer_integrale_indicatrice(indicatrice_.valeurs(), volume_phase_0);
+    const double volume_phase_1 = calculer_integrale_indicatrice(indicatrice_->valeurs(), volume_phase_0);
     if (Process::je_suis_maitre())
       {
         Cerr << "Volume_phase_0 " << Nom(volume_phase_0, "%20.14g") << " time " << temps << finl;
@@ -7077,7 +7077,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
     // Calcul du centre de gravite des phases 0 et 1 a partir de l'indicatrice
     // indicatrice de phase:
     const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis().valeur());
-    const DoubleTab& indic = indicatrice_.valeurs();
+    const DoubleTab& indic = indicatrice_->valeurs();
     // centre de gravite des elements euleriens:
     const DoubleTab& xp = domaine_vf.xp();
     // volumes des elements euleriens:
@@ -7151,7 +7151,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
     const ArrOfDouble& surface_facettes = maillage.get_update_surface_facettes();
     const Intersections_Elem_Facettes& intersections = maillage.intersections_elem_facettes();
     const ArrOfInt& index_elem = intersections.index_elem();
-    DoubleTab& surface = variables_internes_->surface_interface.valeur().valeurs();
+    DoubleTab& surface = variables_internes_->surface_interface->valeurs();
     const int nb_elements = surface.dimension(0);
     for (int element = 0; element < nb_elements; element++)
       {
@@ -7167,12 +7167,12 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
         surface[element] = surface_totale;
       }
     surface.echange_espace_virtuel();
-    variables_internes_->surface_interface.mettre_a_jour(temps);
+    variables_internes_->surface_interface->mettre_a_jour(temps);
   }
   // Fin de GB
 
   //TF : Gestion de l avancee en temps de la derivee
-  if (calculate_time_derivative()) derivee_en_temps().changer_temps(temps);
+  if (calculate_time_derivative()) derivee_en_temps()->changer_temps(temps);
   //Fin de TF
 }
 
@@ -7200,9 +7200,9 @@ void Transport_Interfaces_FT_Disc::transporter_sans_changement_topologie(DoubleT
                                           maillage.desc_sommets());
   //ajout pour postraiter ss pas de tps RK3_FT
   maillage.changer_temps(temps);
-  indicatrice_.valeurs()=get_update_indicatrice().valeurs();
-  variables_internes_->indicatrice_cache.changer_temps(temps);
-  indicatrice_.changer_temps(temps);
+  indicatrice_->valeurs()=get_update_indicatrice().valeurs();
+  variables_internes_->indicatrice_cache->changer_temps(temps);
+  indicatrice_->changer_temps(temps);
   get_update_distance_interface();
   get_update_normale_interface();
 }
@@ -7373,7 +7373,7 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
   {
     int special, afaire;
     const int format_xyz = EcritureLectureSpecial::is_ecriture_special(special, afaire);
-    double temps=inconnue().temps();
+    double temps=inconnue()->temps();
     Nom mon_ident("variables_internes_transport");
     mon_ident += Nom(temps,"%e");
     if (format_xyz)
@@ -7761,8 +7761,8 @@ const Champ_base& Transport_Interfaces_FT_Disc::get_update_distance_interface() 
   const int tag = maillage_interface().get_mesh_tag();
   if (tag != variables_internes_->distance_normale_cache_tag)
     {
-      DoubleTab& distance = variables_internes_->distance_interface.valeur().valeurs();
-      DoubleTab& normale  = variables_internes_->normale_interface.valeur().valeurs();
+      DoubleTab& distance = variables_internes_->distance_interface->valeurs();
+      DoubleTab& normale  = variables_internes_->normale_interface->valeurs();
       calculer_distance_interface(maillage_interface(),
                                   distance,
                                   normale,
@@ -7780,8 +7780,8 @@ const Champ_base& Transport_Interfaces_FT_Disc::get_update_normale_interface() c
   const int tag = maillage_interface().get_mesh_tag();
   if (tag != variables_internes_->distance_normale_cache_tag)
     {
-      DoubleTab& distance = variables_internes_->distance_interface.valeur().valeurs();
-      DoubleTab& normale  = variables_internes_->normale_interface.valeur().valeurs();
+      DoubleTab& distance = variables_internes_->distance_interface->valeurs();
+      DoubleTab& normale  = variables_internes_->normale_interface->valeurs();
       calculer_distance_interface(maillage_interface(),
                                   distance,
                                   normale,

@@ -28,7 +28,7 @@
 #include <Fluide_base.h>
 #include <EFichier.h>
 #include <Diffu_lm.h>
-#include <Schema_Temps.h>
+#include <Schema_Temps_base.h>
 #include <time.h>
 #include <Modele_turbulence_scal_base.h>
 #include <Probleme_base.h>
@@ -113,7 +113,7 @@ int ParoiVEF_TBLE::init_lois_paroi()
   const int nfac = domaine.nb_faces_elem();
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const Fluide_base& le_fluide = ref_cast(Fluide_base,eqn_hydr.milieu());
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs();
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs();
 
   // OC: Je ne comprends pas pourquoi dans les autres LP VEF on resize a nb_faces_tot le cisaillement et le tab_u_star
   // De plus aucune loi de paroi VEF n appelle la methode init_lois_paroi_ de la classe mere
@@ -145,7 +145,7 @@ int ParoiVEF_TBLE::init_lois_paroi()
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int size=le_bord.nb_faces();
 
           //Boucle sur les faces des bords parietaux
@@ -153,7 +153,7 @@ int ParoiVEF_TBLE::init_lois_paroi()
             {
               Eq_couch_lim& equation_vitesse = eq_vit[compteur_faces_paroi];
               Diffu_totale_hyd_base& diffu_hyd = ref_cast_non_const(Diffu_totale_hyd_base, equation_vitesse.get_diffu()); //modele de viscosite turbulente
-              diffu_hyd.setKappa(Kappa);
+              diffu_hyd.setKappa(Kappa_);
 
               int num_face = le_bord.num_face(ind_face);
               elem = face_voisins(num_face,0);
@@ -367,17 +367,17 @@ int ParoiVEF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
 
   int itmax=0,itmax_loc;
 
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs(); //vitesse
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs(); //vitesse
 
   const Navier_Stokes_std& eqnNS = ref_cast(Navier_Stokes_std, eqn_hydr);
 
   // Calcul du gradient de pression
   DoubleTab grad_p(vit);
-  const DoubleTab& p = eqnNS.pression().valeurs();
+  const DoubleTab& p = eqnNS.pression()->valeurs();
   const Operateur_Grad& gradient = eqnNS.operateur_gradient();
   gradient.calculer(p, grad_p);
 
-  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente().valeurs();
+  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente()->valeurs();
 
 
   DoubleTab termes_sources(vit);
@@ -410,7 +410,7 @@ int ParoiVEF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int size=le_bord.nb_faces();
 
           //Boucle sur les faces des bords parietaux
@@ -752,17 +752,17 @@ int ParoiVEF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
 
   int itmax=0,itmax_loc;
 
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs(); //vitesse
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs(); //vitesse
 
   const Navier_Stokes_std& eqnNS = ref_cast(Navier_Stokes_std, eqn_hydr);
 
   // Calcul du gradient de pression
   DoubleTab grad_p(vit);
-  const DoubleTab& p = eqnNS.pression().valeurs();
+  const DoubleTab& p = eqnNS.pression()->valeurs();
   const Operateur_Grad& gradient = eqnNS.operateur_gradient();
   gradient.calculer(p, grad_p);
 
-  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente().valeurs();
+  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente()->valeurs();
 
 
   DoubleTab termes_sources(vit);
@@ -810,7 +810,7 @@ int ParoiVEF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int size=le_bord.nb_faces();
 
           //Boucle sur les faces des bords parietaux
@@ -1274,10 +1274,10 @@ int ParoiVEF_TBLE::calculer_k_eps(double& k, double& eps , double yp, double u_s
 {
   // PQ : 05/04/07 : formulation continue de k et epsilon
   //  assurant le bon comportement asymptotique
-  k    = 0.07*yp*yp*(exp(-yp/9.))+(1./(sqrt(Cmu)))*pow((1.-exp(-yp/20.)),2);  // k_plus
+  k    = 0.07*yp*yp*(exp(-yp/9.))+(1./(sqrt(Cmu_)))*pow((1.-exp(-yp/20.)),2);  // k_plus
   k   *= u_star*u_star;
   // PL: 50625=15^4 on evite d'utiliser pow car lent
-  eps  = (1./(Kappa*pow(yp*yp*yp*yp+50625,0.25)));  // eps_plus
+  eps  = (1./(Kappa_*pow(yp*yp*yp*yp+50625,0.25)));  // eps_plus
   eps *= pow(u_star,4)/d_visco;
 
   return 1;
@@ -1291,7 +1291,7 @@ int ParoiVEF_TBLE::calculer_stats()
   //const int nfac = domaine.nb_faces_elem();
 
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
-  const double tps = eqn_hydr.inconnue().temps();
+  const double tps = eqn_hydr.inconnue()->temps();
   const double dt = eqn_hydr.schema_temps().pas_de_temps();
 
   int num_face, num_face_global;
@@ -1396,7 +1396,7 @@ int ParoiVEF_TBLE::calculer_stats()
 void ParoiVEF_TBLE::imprimer_ustar(Sortie& os) const
 {
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
-  const double tps = eqn_hydr.inconnue().temps();
+  const double tps = eqn_hydr.inconnue()->temps();
 
   const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
   //const Domaine& domaine = domaine_VEF.domaine();
@@ -1517,7 +1517,7 @@ void ParoiVEF_TBLE::imprimer_ustar(Sortie& os) const
 int ParoiVEF_TBLE::sauvegarder(Sortie& os) const
 {
   const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
-  double tps =  mon_modele_turb_hyd->equation().inconnue().temps();
+  double tps =  mon_modele_turb_hyd->equation().inconnue()->temps();
   return Paroi_TBLE_QDM::sauvegarder(os, domaine_VEF, le_dom_Cl_VEF.valeur(), tps);
 }
 

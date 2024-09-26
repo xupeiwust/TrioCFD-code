@@ -23,17 +23,17 @@
 #define Modele_Fonc_Bas_Reynolds_Base_included
 
 
-#include <Champ_Fonc.h>
-#include <Champs_compris.h>
 #include <Champs_compris_interface.h>
+#include <Champs_compris.h>
+#include <Domaine_Cl_dis.h>
+#include <Domaine_dis.h>
+#include <Champ_Fonc.h>
 #include <Champ_Don.h>
+#include <Champ_Inc.h>
 #include <TRUST_Ref.h>
 
-class Champ_Inc;
 class Fluide_base;
 class Motcle;
-class Domaine_dis;
-class Domaine_Cl_dis;
 class Equation_base;
 class Probleme_base;
 class Discretisation_base;
@@ -45,6 +45,8 @@ class Modele_Fonc_Bas_Reynolds_Base : public Champs_compris_interface, public Ob
   Declare_base(Modele_Fonc_Bas_Reynolds_Base);
 
 public:
+
+  static void typer_lire_Modele_Fonc_Bas_Reynolds(OWN_PTR(Modele_Fonc_Bas_Reynolds_Base)&, const Equation_base&, Entree& is );
 
   inline const Equation_base& equation() const;
   inline  Equation_base& equation();
@@ -99,6 +101,8 @@ public:
   void get_noms_champs_postraitables(Noms& nom,Option opt=NONE) const override;
   /////////////////////////////////////////////////////
   virtual void lire_distance_paroi( );
+
+  bool has_seconde_equation() const { return ma_seconde_equation.non_nul(); }
 
 public:
   REF(Equation_base) ma_seconde_equation;

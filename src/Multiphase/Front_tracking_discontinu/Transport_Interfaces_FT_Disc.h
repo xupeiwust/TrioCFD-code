@@ -36,6 +36,7 @@
 #include <Champ_Fonc.h>
 #include <Navier_Stokes_FT_Disc.h>
 #include <Proprietes_part_vol.h>
+#include <TRUSTTabs_forward.h>
 #include <TRUSTTabFT_forward.h>
 #include <TRUST_Ref.h>
 
@@ -45,8 +46,6 @@ class Navier_Stokes_FT_Disc;
 class Loi_horaire;
 
 class Transport_Interfaces_FT_Disc_interne;
-template <typename titi> class TRUSTTab;
-using FloatTab = TRUSTTab<float>;
 
 class Transport_Interfaces_FT_Disc : public Transport_Interfaces_base
 {
@@ -280,7 +279,7 @@ public:
     maillage_interface().nettoyer_maillage();
   };
 
-  // On utilise des DERIV() pour ne pas avoir a inclure la definition
+  // On utilise des OWN_PTR() pour ne pas avoir a inclure la definition
   // de ces classes (pour reduire les dependances).
   static void transfert_conservatif_eulerien_vers_lagrangien_sommets(const Maillage_FT_Disc& maillage,
                                                                      const DoubleVect& valeurs_euler,
@@ -537,6 +536,6 @@ public:
   Connectivite_frontieres connectivite_frontieres_;
   Topologie_Maillage_FT   topologie_interface_;
   // Cet objet est type en fonction de la discretisation:
-  DERIV(Algorithmes_Transport_FT_Disc) algorithmes_transport_;
+  OWN_PTR(Algorithmes_Transport_FT_Disc) algorithmes_transport_;
 };
 #endif

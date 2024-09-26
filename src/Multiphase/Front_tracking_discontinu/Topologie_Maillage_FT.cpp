@@ -69,7 +69,9 @@ Entree& Topologie_Maillage_FT::readOn(Entree& is)
 
   if (juric_pour_tout)
     {
-      Cerr<<"Warning : juric_pour_tout is obsolete "<<finl;
+      Cerr<<"Error : juric_pour_tout is obsolete and does noting since v1.7.0"<<finl;
+      Cerr<<"remove juric_pour_tout from your datafile"<<finl;
+      Process::exit();
     }
   // Verifications qu'on a bien tout lu :
   if (!active_)
@@ -640,7 +642,7 @@ double Topologie_Maillage_FT::suppression_interfaces(const IntVect& num_compo,
   //flags_compo_front_a_supprimer = 0;
 
   double variation_indicatrice = 0.;
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, maillage.refdomaine_dis_.valeur().valeur());
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, maillage.refdomaine_dis_->valeur());
   const DoubleVect& volumes = domaine_vf.volumes();
   for (int i = 0; i < n; i++)
     {

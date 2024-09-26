@@ -105,8 +105,8 @@ void Energie_cinetique_turbulente_WIT::discretiser()
   Cerr << "Turbulent kinetic energy discretization" << finl;
   //On utilise temperature pour la directive car discretisation identique
   dis.discretiser_champ("temperature",domaine_dis(),"k_WIT","J/kg", 1,nb_valeurs_temp,temps,l_inco_ch);//une seule compo, meme en multiphase
-  l_inco_ch.valeur().fixer_nature_du_champ(scalaire);
-  l_inco_ch.valeur().fixer_nom_compo(0, Nom("k_WIT"));
+  l_inco_ch->fixer_nature_du_champ(scalaire);
+  l_inco_ch->fixer_nom_compo(0, Nom("k_WIT"));
   champs_compris_.ajoute_champ(l_inco_ch);
   Equation_base::discretiser();
   Cerr << "Energie_cinetique_turbulente_WIT::discretiser() ok" << finl;
@@ -173,7 +173,7 @@ void Energie_cinetique_turbulente_WIT::associer_fluide(const Fluide_base& un_flu
 void Energie_cinetique_turbulente_WIT::calculer_alpha_rho_k_WIT(const Objet_U& obj, DoubleTab& val, DoubleTab& bval, tabs_t& deriv)
 {
   const Equation_base& eqn = ref_cast(Equation_base, obj);
-  const DoubleTab& k = eqn.inconnue().valeurs();
+  const DoubleTab& k = eqn.inconnue()->valeurs();
 
   /* valeurs du champ */
   int i, n, N = val.line_size(), Nl = val.dimension_tot(0);

@@ -49,7 +49,7 @@ void Paroi_frottante_simple::completer()
 
 void Paroi_frottante_simple::liste_faces_loi_paroi(IntTab& tab)
 {
-  int nf = la_frontiere_dis.valeur().frontiere().nb_faces(), f1 = la_frontiere_dis.valeur().frontiere().num_premiere_face();
+  int nf = la_frontiere_dis->frontiere().nb_faces(), f1 = la_frontiere_dis->frontiere().num_premiere_face();
   int N = tab.line_size();
 
   for (int f =0 ; f < nf ; f++)
@@ -60,11 +60,11 @@ void Paroi_frottante_simple::liste_faces_loi_paroi(IntTab& tab)
 int Paroi_frottante_simple::initialiser(double temps)
 {
   valeurs_coeff_.resize(0, ref_cast(Pb_Multiphase, domaine_Cl_dis().equation().probleme()).nb_phases());
-  la_frontiere_dis.valeur().frontiere().creer_tableau_faces(valeurs_coeff_);
+  la_frontiere_dis->frontiere().creer_tableau_faces(valeurs_coeff_);
   valeurs_coeff_ = 0 ;
 
   valeurs_coeff_grad_.resize(0, ref_cast(Pb_Multiphase, domaine_Cl_dis().equation().probleme()).nb_phases());
-  la_frontiere_dis.valeur().frontiere().creer_tableau_faces(valeurs_coeff_grad_);
+  la_frontiere_dis->frontiere().creer_tableau_faces(valeurs_coeff_grad_);
   valeurs_coeff_grad_ = 0 ;
 
   correlation_loi_paroi_ = ref_cast(Pb_Multiphase, domaine_Cl_dis().equation().probleme()).get_correlation("Loi_paroi");
@@ -78,12 +78,12 @@ void Paroi_frottante_simple::mettre_a_jour(double tps)
 
 void Paroi_frottante_simple::me_calculer()
 {
-  Loi_paroi_adaptative& corr_loi_paroi = ref_cast(Loi_paroi_adaptative, correlation_loi_paroi_.valeur().valeur());
+  Loi_paroi_adaptative& corr_loi_paroi = ref_cast(Loi_paroi_adaptative, correlation_loi_paroi_->valeur());
   const Domaine_VF& domaine = ref_cast(Domaine_VF, domaine_Cl_dis().equation().probleme().domaine_dis().valeur());
 
   const DoubleTab& u_tau = corr_loi_paroi.get_tab("u_tau"); // y_p est numerote selon les faces du domaine
   const DoubleTab& nu_visc  = ref_cast(Navier_Stokes_std, domaine_Cl_dis().equation().probleme().equation(0)).diffusivite_pour_pas_de_temps().passe(),
-                   &mu_visc  = ref_cast(Navier_Stokes_std, domaine_Cl_dis().equation().probleme().equation(0)).diffusivite_pour_transport().passe(),
+                   &mu_visc  = ref_cast(Navier_Stokes_std, domaine_Cl_dis().equation().probleme().equation(0)).diffusivite_pour_transport()->passe(),
                     &vit   = domaine_Cl_dis().equation().probleme().get_champ("vitesse").passe(),
                      &rho = domaine_Cl_dis().equation().probleme().get_champ("masse_volumique").passe(),
                       *alp = sub_type(Pb_Multiphase, domaine_Cl_dis().equation().probleme()) ? &domaine_Cl_dis().equation().probleme().get_champ("alpha").passe() : nullptr;
@@ -93,8 +93,8 @@ void Paroi_frottante_simple::me_calculer()
                    *mu_vdf = domaine.que_suis_je().debute_par("Domaine_VDF") ? &ref_cast(Op_Dift_Multiphase_VDF_Face, domaine_Cl_dis().equation().operateur(0).l_op_base()).get_diffusivite_turbulente() : nullptr;
   assert((mu_poly) || (mu_vdf));
 
-  int nf = la_frontiere_dis.valeur().frontiere().nb_faces(), nf_tot = domaine.nb_faces_tot(), f1 = la_frontiere_dis.valeur().frontiere().num_premiere_face();
-  int N = domaine_Cl_dis().equation().inconnue().valeurs().line_size(), D = dimension;
+  int nf = la_frontiere_dis->frontiere().nb_faces(), nf_tot = domaine.nb_faces_tot(), f1 = la_frontiere_dis->frontiere().num_premiere_face();
+  int N = domaine_Cl_dis().equation().inconnue()->valeurs().line_size(), D = dimension;
 
   const DoubleTab& n_f = domaine.face_normales();
   const DoubleVect& fs = domaine.face_surfaces();

@@ -39,7 +39,6 @@ public:
   void set_param(Param& param) override;
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   int preparer_calcul() override;
-  void verifie_loi_paroi() override;
   bool initTimeStep(double dt) override;
   void mettre_a_jour(double) override;
   virtual inline Champ_Inc& K_Omega();
@@ -66,12 +65,15 @@ public:
   void controler() { eqn_transport_K_Omega_.controler_K_Omega(); }
   virtual Champ_Fonc& calculer_viscosite_turbulente(double );
 
+  inline bool is_SST() const { return is_SST_ ;};
+
 protected:
   Transport_K_Omega eqn_transport_K_Omega_;
   void fill_turbulent_viscosity_tab(const int n, const DoubleTab& , DoubleTab& );
   DoubleTab blenderF1_; // Blending field for SST model
   DoubleTab fieldF2_; // for the turbulent viscosity in the SST model
   DoubleTab enstrophy_; // for the turbulent viscosity in the SST model
+  bool is_SST_; // check if model variant is SST
 };
 
 /*! @brief Renvoie le champ inconnue du modele de turbulence i.

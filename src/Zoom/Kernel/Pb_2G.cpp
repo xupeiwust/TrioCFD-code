@@ -70,10 +70,10 @@ void Pb_2G::calculer_connectivites_2G()
   Domaine_VF& domaine_VFG = ref_cast(Domaine_VF, domaine_disG);
 
 
-  IntVect& connect_ff = connectivites().connectivites_faceF_faceG();
-  IntVect& connect_ee = connectivites().connectivites_elemF_elemG();
+  IntVect& connect_ff = connectivites()->connectivites_faceF_faceG();
+  IntVect& connect_ee = connectivites()->connectivites_elemF_elemG();
 
-  connectivites_ff_ee.calculer_connectivites(domaine_VFF, domaine_VFG, domaineG);
+  connectivites_ff_ee->calculer_connectivites(domaine_VFF, domaine_VFG, domaineG);
   if (nb_prolongement_>0)
     {
       /*if (sub_type(Prolongement_elem_face_FMG,mon_prolongement_.valeur()))
@@ -82,7 +82,7 @@ void Pb_2G::calculer_connectivites_2G()
         else */
       for(i=0; i<nb_prolongement_; i++)
         {
-          mon_prolongement_(i).calculer(domaine_VFF, domaine_VFG, connect_ff);
+          mon_prolongement_(i)->calculer(domaine_VFF, domaine_VFG, connect_ff);
         }
     }
 
@@ -140,7 +140,7 @@ void Pb_2G::prolonger_2G(IntVect& connect, DoubleTab& valG, int nb_compo,
 
   //Cout << "Inco Grossiere = " << incoG.valeurs() << finl;
 
-  mon_prolongement_(num_prolongement).prolonger(domaine_VFG, domaine_VFF, frontF, connect, valG, tab, nb_compo);
+  mon_prolongement_(num_prolongement)->prolonger(domaine_VFG, domaine_VFF, frontF, connect, valG, tab, nb_compo);
 
   //Cerr<<"fin de Pb_2G::prolonger_2G"<<finl;
 }
@@ -175,7 +175,7 @@ void Pb_2G::restreindre_2G(IntVect& connect, DoubleTab& val_incoG, const DoubleT
   //   Cerr<<"nom de l'incoG : "<<incoG.le_nom()<<finl;
   //   Cerr<<"nom de l'incoF : "<<incoF.le_nom()<<finl;
 
-  ma_restriction_(num_rest).restreindre(domaine_VFG, domaine_VFF,connect, val_incoG, val_incoF,nb_comp_incoG);
+  ma_restriction_(num_rest)->restreindre(domaine_VFG, domaine_VFF,connect, val_incoG, val_incoF,nb_comp_incoG);
 }
 
 
@@ -194,7 +194,7 @@ void Pb_2G::restreindre_2G(IntVect& connect, DoubleTab& val_incoG, const DoubleT
   Domaine_dis_base& domaineg = pb_G.domaine_dis();
   Domaine_VF& domaine_VFG = ref_cast(Domaine_VF, domaineg);
 
-  ma_restriction_(num_rest).restreindre(domaine_VFG, domaine_VFF,connect, val_incoG, val_incoF,nb_comp_incoG, num_prem_face_frontG);
+  ma_restriction_(num_rest)->restreindre(domaine_VFG, domaine_VFF,connect, val_incoG, val_incoF,nb_comp_incoG, num_prem_face_frontG);
 }
 
 

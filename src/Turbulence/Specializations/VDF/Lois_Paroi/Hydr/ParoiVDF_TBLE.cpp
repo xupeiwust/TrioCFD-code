@@ -29,7 +29,6 @@
 #include <EFichier.h>
 #include <Diffu_lm.h>
 #include <Schema_Temps_base.h>
-#include <Schema_Temps.h>
 #include <Operateur_Grad.h>
 #include <Probleme_base.h>
 #include <Modele_turbulence_scal_base.h>
@@ -108,7 +107,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
-  const DoubleVect& vit = eqn_hydr.inconnue().valeurs();
+  const DoubleVect& vit = eqn_hydr.inconnue()->valeurs();
   const Fluide_base& le_fluide = ref_cast(Fluide_base,eqn_hydr.milieu());
   int compteur_faces_paroi = 0;
   int elem;
@@ -134,7 +133,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int ndeb = le_bord.num_premiere_face();
           int nfin = ndeb + le_bord.nb_faces();
 
@@ -162,7 +161,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int ndeb = le_bord.num_premiere_face();
           int nfin = ndeb + le_bord.nb_faces();
 
@@ -190,7 +189,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
                     dist = domaine_VDF.dist_norm_bord(num_face);
 
                   Diffu_totale_hyd_base& diffu_hyd = ref_cast_non_const(Diffu_totale_hyd_base, eq_vit[corresp[num_face]].get_diffu()); //modele de viscosite turbulente
-                  diffu_hyd.setKappa(Kappa);
+                  diffu_hyd.setKappa(Kappa_);
 
                   eq_vit[corresp[num_face]].set_y0(0.); //ordonnee de la paroi
                   eq_vit[corresp[num_face]].set_yn(dist); //ordonnee du 1er centre de maille
@@ -399,15 +398,15 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
   int itmax=0;
 
   double gradient_de_pression0 = 0., gradient_de_pression1 = 0., vmoy = 0., ts0 =0., ts1=0.;
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs(); //vitesse
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs(); //vitesse
   Navier_Stokes_std& eqnNS = ref_cast_non_const(Navier_Stokes_std, eqn_hydr);
 
   // Calcul du gradient de pression
   DoubleTab grad_p(vit);
-  const DoubleTab& p = eqnNS.pression().valeurs();
+  const DoubleTab& p = eqnNS.pression()->valeurs();
   const Operateur_Grad& gradient = eqnNS.operateur_gradient();
   gradient.calculer(p, grad_p);
-  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente().valeurs();
+  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente()->valeurs();
 
 
   DoubleTab termes_sources;
@@ -449,7 +448,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           ndeb = le_bord.num_premiere_face();
           nfin = ndeb + le_bord.nb_faces();
 
@@ -625,14 +624,14 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                       double lm_plus = calcul_lm_plus(y_plus);
                       double  deriv = Fdypar_direct(lm_plus);
                       double x = lm_plus*u_star*deriv;
-                      tab_k(elem)   = x*x/sqrt(Cmu) ;
-                      tab_eps(elem) = (tab_k(elem)*u_star*u_star*deriv)*sqrt(Cmu)/d_visco;
+                      tab_k(elem)   = x*x/sqrt(Cmu_) ;
+                      tab_eps(elem) = (tab_k(elem)*u_star*u_star*deriv)*sqrt(Cmu_)/d_visco;
                     }
                   else if (y_plus>30)
                     {
                       double us2 = tab_u_star(num_face)*tab_u_star(num_face);
-                      tab_k(elem)  =us2/sqrt(Cmu);
-                      tab_eps(elem)=us2*tab_u_star(num_face)/Kappa/dist;
+                      tab_k(elem)  =us2/sqrt(Cmu_);
+                      tab_eps(elem)=us2*tab_u_star(num_face)/Kappa_/dist;
                     }
 
 
@@ -855,14 +854,14 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                       double lm_plus = calcul_lm_plus(y_plus);
                       double  deriv = Fdypar_direct(lm_plus);
                       double x = lm_plus*u_star*deriv;
-                      tab_k(elem)   = x*x/sqrt(Cmu);
-                      tab_eps(elem) = (tab_k(elem)*u_star*u_star*deriv)*sqrt(Cmu)/d_visco;
+                      tab_k(elem)   = x*x/sqrt(Cmu_);
+                      tab_eps(elem) = (tab_k(elem)*u_star*u_star*deriv)*sqrt(Cmu_)/d_visco;
                     }
                   else if (y_plus>30)
                     {
                       double us2 = tab_u_star(num_face)*tab_u_star(num_face);
-                      tab_k(elem)=us2/sqrt(Cmu);
-                      tab_eps(elem)=us2*tab_u_star(num_face)/Kappa/dist;
+                      tab_k(elem)=us2/sqrt(Cmu_);
+                      tab_eps(elem)=us2*tab_u_star(num_face)/Kappa_/dist;
                     }
 
                   compteur_faces_paroi++;
@@ -946,15 +945,15 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
   int itmax=0;
 
   double gradient_de_pression0 = 0., gradient_de_pression1 = 0., vmoy = 0., ts0 =0., ts1=0.;
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs(); //vitesse
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs(); //vitesse
   Navier_Stokes_std& eqnNS = ref_cast_non_const(Navier_Stokes_std, eqn_hydr);
 
   // Calcul du gradient de pression
   DoubleTab grad_p(vit);
-  const DoubleTab& p = eqnNS.pression().valeurs();
+  const DoubleTab& p = eqnNS.pression()->valeurs();
   const Operateur_Grad& gradient = eqnNS.operateur_gradient();
   gradient.calculer(p, grad_p);
-  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente().valeurs();
+  const DoubleTab& visco_turb = mon_modele_turb_hyd->viscosite_turbulente()->valeurs();
 
 
   DoubleTab termes_sources;
@@ -996,7 +995,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           ndeb = le_bord.num_premiere_face();
           nfin = ndeb + le_bord.nb_faces();
 
@@ -1185,14 +1184,14 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
                           double lm_plus = calcul_lm_plus(y_plus);
                           double  deriv = Fdypar_direct(lm_plus);
                           double x = lm_plus*u_star*deriv;
-                          tab1(elem,0) = x*x/sqrt(Cmu) ;
-                          tab1(elem,1) = (tab1(elem,0)*u_star*u_star*deriv)*sqrt(Cmu)/d_visco;
+                          tab1(elem,0) = x*x/sqrt(Cmu_) ;
+                          tab1(elem,1) = (tab1(elem,0)*u_star*u_star*deriv)*sqrt(Cmu_)/d_visco;
                         }
                       else if (y_plus>30)
                         {
                           double us2 = tab_u_star(num_face)*tab_u_star(num_face);
-                          tab1(elem,0)=us2/sqrt(Cmu);
-                          tab1(elem,1)=us2*tab_u_star(num_face)/Kappa/dist;
+                          tab1(elem,0)=us2/sqrt(Cmu_);
+                          tab1(elem,1)=us2*tab_u_star(num_face)/Kappa_/dist;
                         }
                     }
 
@@ -1431,14 +1430,14 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
                           double lm_plus = calcul_lm_plus(y_plus);
                           double  deriv = Fdypar_direct(lm_plus);
                           double x = lm_plus*u_star*deriv;
-                          tab1(elem,0) = x*x/sqrt(Cmu);
-                          tab1(elem,1) = (tab1(elem,0)*u_star*u_star*deriv)*sqrt(Cmu)/d_visco;
+                          tab1(elem,0) = x*x/sqrt(Cmu_);
+                          tab1(elem,1) = (tab1(elem,0)*u_star*u_star*deriv)*sqrt(Cmu_)/d_visco;
                         }
                       else if (y_plus>30)
                         {
                           double us2 = tab_u_star(num_face)*tab_u_star(num_face);
-                          tab1(elem,0)=us2/sqrt(Cmu);
-                          tab1(elem,1)=us2*tab_u_star(num_face)/Kappa/dist;
+                          tab1(elem,0)=us2/sqrt(Cmu_);
+                          tab1(elem,1)=us2*tab_u_star(num_face)/Kappa_/dist;
                         }
                     }
 
@@ -1471,7 +1470,7 @@ int ParoiVDF_TBLE::calculer_stats()
   const IntVect& orientation = domaine_VDF.orientation();
 
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
-  const double tps = eqn_hydr.inconnue().temps();
+  const double tps = eqn_hydr.inconnue()->temps();
   const double dt = eqn_hydr.schema_temps().pas_de_temps();
 
 
@@ -1543,7 +1542,7 @@ int ParoiVDF_TBLE::calculer_stats()
 void ParoiVDF_TBLE::imprimer_ustar(Sortie& os) const
 {
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
-  const double tps = eqn_hydr.inconnue().temps();
+  const double tps = eqn_hydr.inconnue()->temps();
 
   const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
   const IntVect& orientation = domaine_VDF.orientation();
@@ -1589,7 +1588,7 @@ void ParoiVDF_TBLE::imprimer_ustar(Sortie& os) const
 int ParoiVDF_TBLE::sauvegarder(Sortie& os) const
 {
   const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
-  double tps =  mon_modele_turb_hyd->equation().inconnue().temps();
+  double tps =  mon_modele_turb_hyd->equation().inconnue()->temps();
   return Paroi_TBLE_QDM::sauvegarder(os, domaine_VDF, le_dom_Cl_VDF.valeur(), tps);
 }
 

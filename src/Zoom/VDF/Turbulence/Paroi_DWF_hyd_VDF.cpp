@@ -115,15 +115,15 @@ int Paroi_DWF_hyd_VDF::init_lois_paroi()
   pb2G.typer_Connectivites("Connectivites_DWF");
   pb2G.set_nb_prol(3);
   pb2G.set_nb_rest(0);
-  Prolongement P1;
+  OWN_PTR(Prolongement_base) P1;
   P1.typer("Prolongement_elem_elem_DWF"); // Pour la pression ou la temperature
   pb2G.mon_prolongement().add(P1);
 
-  Prolongement P2;
+  OWN_PTR(Prolongement_base) P2;
   P2.typer("Prolongement_face_face_DWF"); // Pour la vitesse
   pb2G.mon_prolongement().add(P2);
 
-  Prolongement P3;
+  OWN_PTR(Prolongement_base) P3;
   P3.typer("Prolongement_face_face_FMG"); // Pour les termes sources : prolongement partout
   pb2G.mon_prolongement().add(P3);
 
@@ -136,10 +136,10 @@ int Paroi_DWF_hyd_VDF::init_lois_paroi()
   // on doit retyper maintenant le champ de la CL "Interface" en Champ_front_zoom
   for(int i=0; i<pb_fin->nombre_d_equations(); i++)
     {
-      Conds_lim& les_cl = pb_fin->equation(i).domaine_Cl_dis().les_conditions_limites();
+      Conds_lim& les_cl = pb_fin->equation(i).domaine_Cl_dis()->les_conditions_limites();
       for (int icl = 0; icl<les_cl.size(); icl++)
         {
-          const Frontiere_dis_base& cl = les_cl[icl].valeur().frontiere_dis();
+          const Frontiere_dis_base& cl = les_cl[icl]->frontiere_dis();
 
           if (sub_type(Navier_Stokes_std,pb_fin->equation(i)))
             {
@@ -151,11 +151,11 @@ int Paroi_DWF_hyd_VDF::init_lois_paroi()
                   champ+=Nom(" ");
                   champ+=pb_thhyd.le_nom();
                   champ+=Nom(" ");
-                  champ+=Nom(mon_modele_turb_hyd->equation().domaine_Cl_dis().les_conditions_limites(0)->frontiere_dis().le_nom());
+                  champ+=Nom(mon_modele_turb_hyd->equation().domaine_Cl_dis()->les_conditions_limites(0)->frontiere_dis().le_nom());
                   champ+=Nom(" vitesse ");
                   EChaine chp(champ);
-                  chp >> les_cl[icl].valeur().champ_front();
-                  les_cl[icl].valeur().associer_fr_dis_base(cl);
+                  chp >> les_cl[icl]->champ_front();
+                  les_cl[icl]->associer_fr_dis_base(cl);
                 }
             }
 
@@ -171,12 +171,12 @@ int Paroi_DWF_hyd_VDF::init_lois_paroi()
               champ+=pb_thhyd.le_nom();
               champ+=Nom(" ");
               // marchait avant
-              //          champ+=Nom(modele_turbulence().equation().domaine_Cl_dis().les_conditions_limites(0)->frontiere_dis().le_nom());
-              champ+=Nom(mon_modele_turb_hyd->equation().domaine_Cl_dis().les_conditions_limites(0)->frontiere_dis().le_nom());
+              //          champ+=Nom(modele_turbulence().equation().domaine_Cl_dis()->les_conditions_limites(0)->frontiere_dis().le_nom());
+              champ+=Nom(mon_modele_turb_hyd->equation().domaine_Cl_dis()->les_conditions_limites(0)->frontiere_dis().le_nom());
               champ+=Nom(" temperature ");
               EChaine chp(champ);
-              chp >> les_cl[icl].valeur().champ_front();
-              les_cl[icl].valeur().associer_fr_dis_base(cl);
+              chp >> les_cl[icl]->champ_front();
+              les_cl[icl]->associer_fr_dis_base(cl);
             }
           // #################
           // # FIN THERMIQUE #
@@ -194,7 +194,7 @@ int Paroi_DWF_hyd_VDF::init_lois_paroi()
   //////////////////////////////////////////////////////////////////////////
   ///if(CHT)
   ////{
-  ////Probleme_Couple& pb_couple = pb_fin.valeur().probleme_couple();
+  ////Probleme_Couple& pb_couple = pb_fin->probleme_couple();
   ////pb_couple.preparer_calcul(); // on prepare le probleme couple
   ////pb_couple.postraiter();
   ////}
@@ -232,7 +232,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
   const double temps = eqn_hydr.schema_temps().temps_courant();
 
   // la vitesse resolue par l'equation hydr
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs();
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs();
   const int nb_compo = eqn_hydr.inconnue()->nb_comp();
 
   // Variables sur le probleme fin
@@ -279,14 +279,14 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
 
   // Remplissage de la CL sur le bord de nom "Interface" du probleme fin
-  Conds_lim& les_cl = pb_fin->equation(0).domaine_Cl_dis().les_conditions_limites();
+  Conds_lim& les_cl = pb_fin->equation(0).domaine_Cl_dis()->les_conditions_limites();
   Prolongement_base& P_cl = pbMG.pb_2G(0).mon_prolongement(1);
 
   int icl,i_de_la_cl=0;
 
   for (icl = 0; icl<les_cl.size(); icl++)
     {
-      const Frontiere_dis_base& cl = les_cl[icl].valeur().frontiere_dis();
+      const Frontiere_dis_base& cl = les_cl[icl]->frontiere_dis();
       if (cl.le_nom() == "Interface")
         {
           i_de_la_cl = icl;
@@ -295,8 +295,8 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
 
   // On prolonge la vitesse sur ce bord
-  const Frontiere_dis_base& cl = les_cl[i_de_la_cl].valeur().frontiere_dis();
-  DoubleTab& val  = les_cl[i_de_la_cl].valeur().champ_front().valeurs();
+  const Frontiere_dis_base& cl = les_cl[i_de_la_cl]->frontiere_dis();
+  DoubleTab& val  = les_cl[i_de_la_cl]->champ_front()->valeurs();
   DoubleTab pente(val);
 
   P_cl.prolonger(domaine_VDF,domaine_fine,cl.frontiere(),connect.connectivites_elemF_elemG(),vit, pente,nb_compo);
@@ -315,7 +315,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
       // Et on met pente a 0.
       pente = 0;
     }
-  ref_cast(Champ_front_var_instationnaire,les_cl[i_de_la_cl].valeur().champ_front().valeur()).set_derivee_en_temps(pente);
+  ref_cast(Champ_front_var_instationnaire,les_cl[i_de_la_cl]->champ_front().valeur()).set_derivee_en_temps(pente);
 
   // #############
   // # THERMIQUE #
@@ -329,23 +329,23 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
   Equation_base& eqn_NRJ_F = pb_fin->equation(1);
   const Probleme_base& pb_gros = mon_modele_turb_hyd->equation().probleme();
-  const DoubleTab& tempiotte_grosse = pb_gros.equation(1).inconnue().valeurs();
+  const DoubleTab& tempiotte_grosse = pb_gros.equation(1).inconnue()->valeurs();
 
-  Conds_lim& les_cl_th = eqn_NRJ_F.domaine_Cl_dis().les_conditions_limites();
+  Conds_lim& les_cl_th = eqn_NRJ_F.domaine_Cl_dis()->les_conditions_limites();
   Prolongement_base& P_cl_th = pbMG.pb_2G(0).mon_prolongement(0);
 
   i_de_la_cl=0;
 
   for (icl = 0; icl<les_cl_th.size(); icl++)
     {
-      const Frontiere_dis_base& cl_th = les_cl_th[icl].valeur().frontiere_dis();
+      const Frontiere_dis_base& cl_th = les_cl_th[icl]->frontiere_dis();
       if (cl_th.le_nom() == "Interface")
         {
           i_de_la_cl = icl;
         }
     }
-  const Frontiere_dis_base& cl_th = les_cl_th[i_de_la_cl].valeur().frontiere_dis();
-  DoubleTab& val_th  = les_cl_th[i_de_la_cl].valeur().champ_front().valeurs();
+  const Frontiere_dis_base& cl_th = les_cl_th[i_de_la_cl]->frontiere_dis();
+  DoubleTab& val_th  = les_cl_th[i_de_la_cl]->champ_front()->valeurs();
 
   DoubleTab pente_th(val_th);
 
@@ -396,7 +396,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
       if(CHT)
         {
           // Sauvegarde probleme Fin
-          ////Probleme_Couple& pb_coupleF = pb_fin.valeur().probleme_couple();
+          ////Probleme_Couple& pb_coupleF = pb_fin->probleme_couple();
           ////pb_coupleF.sauver();
           // Sauvegarde probleme Grossier
           ////Probleme_base& pb_grosse = ref_cast(Probleme_base,mon_modele_turb_hyd->equation().probleme());
@@ -436,7 +436,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
       double dt;
       if(CHT)
         {
-          ////Probleme_Couple& pb_couple = pb_fin.valeur().probleme_couple();
+          ////Probleme_Couple& pb_couple = pb_fin->probleme_couple();
           ////dt=pb_couple.calculer_pas_de_temps();
         }
       else dt=pb_base.calculer_pas_de_temps();
@@ -473,7 +473,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
       ////if(CHT)
       ////{
-      ////Probleme_Couple& pb_couple = pb_fin.valeur().probleme_couple();
+      ////Probleme_Couple& pb_couple = pb_fin->probleme_couple();
       ////sch.faire_un_pas_de_temps_pb_couple(pb_couple);
       ////}
       ////else sch.faire_un_pas_de_temps_pb_base(pb_base);
@@ -487,7 +487,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
         {
           ////if(CHT)
           ////{
-          ////Probleme_Couple& pb_couple = pb_fin.valeur().probleme_couple();
+          ////Probleme_Couple& pb_couple = pb_fin->probleme_couple();
           ////pb_couple.mettre_a_jour(temps_pour_mise_a_jour);
           ////}
           ////else pb_base.mettre_a_jour(temps_pour_mise_a_jour);
@@ -520,7 +520,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
   ////if(CHT)
   ////{
-  ////Probleme_Couple& pb_couple = pb_fin.valeur().probleme_couple();
+  ////Probleme_Couple& pb_couple = pb_fin->probleme_couple();
   ////pb_couple.traiter_postraitement();
   ////}
   ////else pb_base.traiter_postraitement();

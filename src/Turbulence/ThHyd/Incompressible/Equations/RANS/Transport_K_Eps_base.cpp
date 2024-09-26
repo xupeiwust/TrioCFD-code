@@ -86,7 +86,7 @@ void Transport_K_Eps_base::discretiser_K_Eps(const Schema_Temps_base& sch,
 
   const Discretisation_base& dis = discretisation();
   dis.discretiser_champ("temperature",z.valeur(),multi_scalaire,noms,unit,2,sch.nb_valeurs_temporelles(),sch.temps_courant(),ch);
-  ch.valeur().nommer("K_Eps");
+  ch->nommer("K_Eps");
 }
 
 // For VEF-like scheme
@@ -129,12 +129,12 @@ void Transport_K_Eps_base::get_position_cells(Nom& position, int& n)
  */
 int Transport_K_Eps_base::controler_K_Eps()
 {
-  DoubleTab& K_Eps = le_champ_K_Eps.valeurs();
+  DoubleTab& K_Eps = le_champ_K_Eps->valeurs();
   int size = K_Eps.dimension(0);
   if (size < 0)
     {
       if (sub_type(Champ_Inc_P0_base, le_champ_K_Eps.valeur()))
-        size = le_champ_K_Eps.valeur().equation().domaine_dis().domaine().nb_elem();
+        size = le_champ_K_Eps->equation().domaine_dis()->domaine().nb_elem();
       else
         {
           Cerr << "Unsupported K_Eps field in Transport_K_Eps_base::controler_K_Eps()" << finl;
@@ -332,7 +332,7 @@ int Transport_K_Eps_base::controler_K_Eps()
         {
           if (Process::je_suis_maitre())
             {
-              const double time = le_champ_K_Eps.temps();
+              const double time = le_champ_K_Eps->temps();
               Cerr << "Values forced for k and eps because:" << finl;
               if (neg[0])
                 Cerr << "Negative values found for k on " << neg[0] << "/" << size_tot << " nodes at time " << time << finl;
@@ -347,12 +347,11 @@ int Transport_K_Eps_base::controler_K_Eps()
                   Cerr << "Check the initial and boundary values for k and eps by using:" << finl;
                   Cerr << "k~" << (dimension == 2 ? "" : "3/2*") << "(t*U)^2 (t turbulence rate, U mean velocity) ";
                   Cerr << "and eps~Cmu^0.75 k^1.5/l with l turbulent length scale and Cmu a k-eps model parameter whose value is typically given as 0.09." << finl;
-                  Cerr << "See explanations here: http://www.esi-cfd.com/esi-users/turb_parameters/" << finl;
                   Cerr << "Remark : by giving the velocity field (u) and the hydraulic diameter (d), by using boundary_field_uniform_keps_from_ud and field_uniform_keps_from_ud,  " << finl;
-                  Cerr << "respectively for boudnaries and initial conditions, TRUST will determine automatically values for k and eps." << finl;
+                  Cerr << "respectively for boudnaries and initial conditions, TrioCFD will determine automatically values for k and eps." << finl;
                   if (probleme().is_dilatable() == 1)
                     {
-                      Cerr << "Please, don't forget (sorry for this TRUST syntax weakness) that when using Quasi-Compressible module" << finl;
+                      Cerr << "Please, don't forget (sorry for this TrioCFD syntax weakness) that when using Quasi-Compressible module" << finl;
                       Cerr << "the unknowns for which you define initial and boundary conditions are rho*k and rho*eps." << finl;
                     }
                 }
@@ -370,7 +369,7 @@ int Transport_K_Eps_base::controler_K_Eps()
         {
           if (Process::je_suis_maitre())
             {
-              const double time = le_champ_K_Eps.temps();
+              const double time = le_champ_K_Eps->temps();
               Cerr << "Values forced for eps because:" << finl;
               Cerr << "Maximum values found for eps on " << neg[2] << "/" << size_tot << " nodes at time " << time << finl;
             }

@@ -272,7 +272,7 @@ void IJK_FT::run()
 
 
   velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
-  velocity_diffusion_op_.set_bc(boundary_conditions_);
+  velocity_diffusion_op_->set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
 
   // Economise la memoire si pas besoin

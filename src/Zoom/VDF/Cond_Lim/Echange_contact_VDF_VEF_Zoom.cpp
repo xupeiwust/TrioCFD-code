@@ -120,9 +120,9 @@ void Echange_contact_VDF_VEF_Zoom::mettre_a_jour(double temps)
   int num_faceG;
   if(sub_type(Champ_front_zoom, T_ext().valeur()))
     {
-      //   Cout << "Dans Echange_contact_VDF_VEF_Zoom Text = " << T_ext().valeur().valeurs() << finl;
+      //   Cout << "Dans Echange_contact_VDF_VEF_Zoom Text = " << T_ext()->valeurs() << finl;
       Champ_front_zoom& ch = ref_cast(Champ_front_zoom, T_ext().valeur());
-      DoubleTab& Text_valeurs = T_ext().valeur().valeurs_au_temps(temps);
+      DoubleTab& Text_valeurs = T_ext()->valeurs_au_temps(temps);
       int elemF;
       REF(Pb_2G) le_pb2G;
       Pb_MG& pbMG = ch.le_pb_MG();
@@ -182,7 +182,7 @@ void Echange_contact_VDF_VEF_Zoom::mettre_a_jour(double temps)
       tab = 0.;
 
 
-      if (domaine_dis1.domaine().raccord(nom_racc1).valeur().que_suis_je() =="Raccord_distant_homogene")
+      if (domaine_dis1.domaine().raccord(nom_racc1)->que_suis_je() =="Raccord_distant_homogene")
         {
           //POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!
           Cerr<<"POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!"<<finl;
@@ -197,7 +197,7 @@ void Echange_contact_VDF_VEF_Zoom::mettre_a_jour(double temps)
           if(!sub_type(Champ_Uniforme,le_milieu->conductivite().valeur()))
             {
               //Cerr << "raccord local homogene et conductivite non uniforme" << finl;
-              const DoubleTab& lambda = le_milieu->conductivite().valeurs();
+              const DoubleTab& lambda = le_milieu->conductivite()->valeurs();
               assert(h_paroi!=0.);
 
               if (lambda.nb_dim() == 1)
@@ -254,7 +254,7 @@ void Echange_contact_VDF_VEF_Zoom::mettre_a_jour(double temps)
           else  // la conductivite est un Champ uniforme
             {
               assert(h_paroi!=0.);
-              const DoubleTab& lambda = le_milieu->conductivite().valeurs();
+              const DoubleTab& lambda = le_milieu->conductivite()->valeurs();
               for(i=0; i<nb_comp; i++)
                 assert(lambda(0,i)!=0.); // juste des asserts
 

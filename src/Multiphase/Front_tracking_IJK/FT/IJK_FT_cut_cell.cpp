@@ -293,7 +293,7 @@ void IJK_FT_cut_cell::run()
 
 
   velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
-  velocity_diffusion_op_.set_bc(boundary_conditions_);
+  velocity_diffusion_op_->set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
 
   // Economise la memoire si pas besoin
@@ -328,7 +328,7 @@ void IJK_FT_cut_cell::run()
           if (!disable_diphasique_)
             {
               /*
-               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
                */
               for (auto& itr : thermique_)
                 itr.update_thermal_properties();
@@ -453,7 +453,7 @@ void IJK_FT_cut_cell::run()
       // indicatrice_ns_next_.data() = 1.;
 
       /*
-       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
        */
       for (auto& itr : thermique_)
         {
@@ -472,7 +472,7 @@ void IJK_FT_cut_cell::run()
       Cerr << "Cas normal diphasique IJK_FT_cut_cell::run()" << finl;
 
       /*
-       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
        */
       for (auto& itr : thermique_)
         itr.update_thermal_properties();
@@ -713,7 +713,7 @@ void IJK_FT_cut_cell::run()
               maj_indicatrice_rho_mu();
 
               /*
-               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
                */
               for (auto& itr : thermique_)
                 {
@@ -1192,7 +1192,7 @@ void IJK_FT_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bulle)
     }
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     itr.euler_time_step(timestep_);
@@ -1489,7 +1489,7 @@ void IJK_FT_cut_cell::rk3_sub_step(const int rk_step, const double total_timeste
   statistiques().begin_count(euler_rk3_counter_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     {

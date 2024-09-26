@@ -40,10 +40,10 @@
 #include <IJK_Composantes_Connex.h>
 #include <Champ_diphasique.h>
 #include <Cut_cell_surface_efficace.h>
+#include <Domaine_dis.h>
 
 class IJK_FT_base;
 class Switch_FT_double;
-class Domaine_dis;
 
 #define VERIF_INDIC 0
 

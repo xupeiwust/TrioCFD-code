@@ -114,7 +114,7 @@ void Champ_front_zoom::creer(Nom& nom_pbMG,
       if (sub_type(Champ_Inc_base,rch.valeur()))
         {
           l_inconnueF=ref_cast(Champ_Inc_base, rch.valeur()) ;
-          fixer_nb_comp(rch.valeur().nb_comp());
+          fixer_nb_comp(rch->nb_comp());
         }
       else
         {
@@ -125,7 +125,7 @@ void Champ_front_zoom::creer(Nom& nom_pbMG,
       if (sub_type(Champ_Inc_base,rch.valeur()))
         {
           l_inconnue=ref_cast(Champ_Inc_base, rch.valeur()) ;
-          fixer_nb_comp(rch.valeur().nb_comp());
+          fixer_nb_comp(rch->nb_comp());
         }
       else
         {
@@ -286,12 +286,12 @@ const Frontiere_dis_base& Champ_front_zoom::front_dis_exterieure() const
   int n=zcl.nb_cond_lim();
   for(int i=0; i<n ; i++)
     {
-      const Frontiere_dis_base& fr_dis=zcl.les_conditions_limites(i).frontiere_dis();
+      const Frontiere_dis_base& fr_dis=zcl.les_conditions_limites(i)->frontiere_dis();
       if (fr_dis.le_nom() == nom_bord)
         return fr_dis;
     }
   Cerr << "Error in Champ_front_calc : we did not find a boundary with name : "
        << nom_bord << finl;
   exit();
-  return zcl.les_conditions_limites(0).frontiere_dis();
+  return zcl.les_conditions_limites(0)->frontiere_dis();
 }

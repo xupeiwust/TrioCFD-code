@@ -23,6 +23,7 @@
 #define OpGradCentre2IJKScalar_included
 
 #include <OpConvCentre2IJKScalar.h>
+#include <IJK_Field_vector.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //

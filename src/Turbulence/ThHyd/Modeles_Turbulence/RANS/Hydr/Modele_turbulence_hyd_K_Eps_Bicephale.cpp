@@ -28,7 +28,6 @@
 #include <communications.h>
 #include <stat_counters.h>
 #include <Probleme_base.h>
-#include <Schema_Temps.h>
 #include <Fluide_base.h>
 #include <TRUSTTrav.h>
 #include <Param.h>
@@ -55,13 +54,12 @@ int Modele_turbulence_hyd_K_Eps_Bicephale::lire_motcle_non_standard(const Motcle
   if (mot == "Modele_Fonc_Bas_Reynolds")
     {
       Cerr << "Lecture du modele bas reynolds associe " << finl;
-      mon_modele_fonc_.associer_eqn(eqn_transp_K());
-      is >> mon_modele_fonc_;
-      mon_modele_fonc_.associer_eqn_2(eqn_transp_Eps());
-      Cerr << "mon_modele_fonc.que_suis_je() avant discretisation " << mon_modele_fonc_.que_suis_je() << finl;
-      mon_modele_fonc_.valeur().discretiser();
-      Cerr << "mon_modele_fonc.que_suis_je() " << mon_modele_fonc_.valeur().que_suis_je() << finl;
-      mon_modele_fonc_.valeur().lire_distance_paroi();
+      Modele_Fonc_Bas_Reynolds_Base::typer_lire_Modele_Fonc_Bas_Reynolds(mon_modele_fonc_, eqn_transp_K(), is);
+      mon_modele_fonc_->associer_eqn_2(eqn_transp_Eps());
+      Cerr << "mon_modele_fonc.que_suis_je() avant discretisation " << mon_modele_fonc_->que_suis_je() << finl;
+      mon_modele_fonc_->discretiser();
+      Cerr << "mon_modele_fonc.que_suis_je() " << mon_modele_fonc_->que_suis_je() << finl;
+      mon_modele_fonc_->lire_distance_paroi();
       return 1;
     }
   else
@@ -83,7 +81,7 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente
   const Nom& type = chK.que_suis_je();
   const DoubleTab& tab_K = chK.valeurs(), &tab_Eps = chEps.valeurs();
 
-  DoubleTab& visco_turb = la_viscosite_turbulente_.valeurs();
+  DoubleTab& visco_turb = la_viscosite_turbulente_->valeurs();
 
   DoubleTrav Cmu(tab_K.dimension_tot(0));
   Cmu = 0.;
@@ -92,14 +90,14 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente
   if (n < 0)
     {
       if (sub_type(Champ_Inc_P0_base, chK))
-        n = eqn_transp_K().domaine_dis().domaine().nb_elem();
+        n = eqn_transp_K().domaine_dis()->domaine().nb_elem();
       else
         {
           Cerr << "Unsupported K field in Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente" << finl;
           Process::exit(-1);
         }
       if (sub_type(Champ_Inc_P0_base, chEps))
-        n = eqn_transp_Eps().domaine_dis().domaine().nb_elem();
+        n = eqn_transp_Eps().domaine_dis()->domaine().nb_elem();
       else
         {
           Cerr << "Unsupported epsilon field in Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente" << finl;
@@ -120,25 +118,25 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente
 
       Fmu.resize(tab_K.dimension_tot(0));
 
-      mon_modele_fonc_.Calcul_Fmu_BiK(Fmu, le_dom_dis, le_dom_Cl_dis, tab_K, tab_Eps, ch_visco);
+      mon_modele_fonc_->Calcul_Fmu_BiK(Fmu, le_dom_dis, le_dom_Cl_dis, tab_K, tab_Eps, ch_visco);
 
-      int is_Cmu_constant = mon_modele_fonc_.Calcul_is_Cmu_constant();
+      int is_Cmu_constant = mon_modele_fonc_->Calcul_is_Cmu_constant();
       if (is_Cmu_constant == 0)
         {
           Cerr << " On utilise un Cmu non constant " << finl;
-          const DoubleTab& vitesse = mon_equation_->inconnue().valeurs();
-          mon_modele_fonc_.Calcul_Cmu_BiK(Cmu, le_dom_dis, le_dom_Cl_dis, vitesse, tab_K, tab_Eps, EPS_MIN_);
+          const DoubleTab& vitesse = mon_equation_->inconnue()->valeurs();
+          mon_modele_fonc_->Calcul_Cmu_BiK(Cmu, le_dom_dis, le_dom_Cl_dis, vitesse, tab_K, tab_Eps, EPS_MIN_);
 
           /*Paroi*/
-          Nom lp = eqn_transp_K().modele_turbulence().loi_paroi().valeur().que_suis_je();
+          Nom lp = eqn_transp_K().modele_turbulence().loi_paroi()->que_suis_je();
           if (lp != "negligeable_VEF")
             {
               DoubleTab visco_tab(visco_turb.dimension_tot(0));
               assert(sub_type(Champ_Uniforme,ch_visco_cin.valeur()));
               visco_tab = tab_visco(0, 0);
               const int idt = mon_equation_->schema_temps().nb_pas_dt();
-              const DoubleTab& tab_paroi = loi_paroi().valeur().Cisaillement_paroi();
-              mon_modele_fonc_.Calcul_Cmu_Paroi_BiK(Cmu, le_dom_dis, le_dom_Cl_dis, visco_tab, visco_turb, tab_paroi, idt, vitesse, tab_K, tab_Eps, EPS_MIN_);
+              const DoubleTab& tab_paroi = loi_paroi()->Cisaillement_paroi();
+              mon_modele_fonc_->Calcul_Cmu_Paroi_BiK(Cmu, le_dom_dis, le_dom_Cl_dis, visco_tab, visco_turb, tab_paroi, idt, vitesse, tab_K, tab_Eps, EPS_MIN_);
             }
         }
       else
@@ -147,7 +145,7 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente
 
   // dans le cas d'un domaine nul on doit effectuer le dimensionnement
   double non_prepare = 1;
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente la_viscosite_turbulente before", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente la_viscosite_turbulente before", la_viscosite_turbulente_->valeurs());
   Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente tab_K", tab_K);
   Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente tab_Eps", tab_Eps);
   if (visco_turb.size() == n)
@@ -177,8 +175,8 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente
   else
     fill_turbulent_viscosity_tab(n, tab_K, tab_Eps, Cmu, Fmu, D, visco_turb);
 
-  la_viscosite_turbulente_.changer_temps(temps);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente la_viscosite_turbulente after", la_viscosite_turbulente_.valeurs());
+  la_viscosite_turbulente_->changer_temps(temps);
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbulente la_viscosite_turbulente after", la_viscosite_turbulente_->valeurs());
   return la_viscosite_turbulente_;
 }
 
@@ -194,7 +192,7 @@ void Modele_turbulence_hyd_K_Eps_Bicephale::fill_turbulent_viscosity_tab(const i
         {
           if (mon_modele_fonc_.non_nul())
             {
-              int is_Cmu_constant = mon_modele_fonc_.Calcul_is_Cmu_constant();
+              int is_Cmu_constant = mon_modele_fonc_->Calcul_is_Cmu_constant();
               if (is_Cmu_constant)
                 turbulent_viscosity[i] = Fmu(i) * LeCmu_ * tab_K(i) * tab_K(i) / (tab_Eps(i) + D(i));
               else
@@ -218,12 +216,12 @@ int Modele_turbulence_hyd_K_Eps_Bicephale::preparer_calcul()
       if (sub_type(Modele_turbulence_scal_base, modele_turbulence.valeur()))
         {
           Turbulence_paroi_scal& loi_paroi_T = ref_cast_non_const(Modele_turbulence_scal_base,modele_turbulence.valeur()).loi_paroi();
-          loi_paroi_T.init_lois_paroi();
+          loi_paroi_T->init_lois_paroi();
         }
     }
 
   calculate_limit_viscosity<MODELE_TYPE::K_EPS_BICEPHALE>(K(), Eps(), LeCmu_);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::preparer_calcul la_viscosite_turbulente", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::preparer_calcul la_viscosite_turbulente", la_viscosite_turbulente_->valeurs());
   return 1;
 }
 
@@ -243,8 +241,8 @@ bool Modele_turbulence_hyd_K_Eps_Bicephale::initTimeStep(double dt)
 void Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour(double temps)
 {
   Schema_Temps_base& sch = eqn_transp_K().schema_temps(), &sch2 = eqn_transp_Eps().schema_temps();
-  eqn_transp_K().domaine_Cl_dis().mettre_a_jour(temps);
-  eqn_transp_Eps().domaine_Cl_dis().mettre_a_jour(temps);
+  eqn_transp_K().domaine_Cl_dis()->mettre_a_jour(temps);
+  eqn_transp_Eps().domaine_Cl_dis()->mettre_a_jour(temps);
 
   if (!eqn_transp_K().equation_non_resolue())
     sch.faire_un_pas_de_temps_eqn_base(eqn_transp_K());
@@ -255,9 +253,9 @@ void Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour(double temps)
   eqn_transp_Eps().mettre_a_jour(temps);
 
   statistiques().begin_count(nut_counter_);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour la_viscosite_turbulente before", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour la_viscosite_turbulente before", la_viscosite_turbulente_->valeurs());
   calculate_limit_viscosity<MODELE_TYPE::K_EPS_BICEPHALE>(K(), Eps(), LeCmu_);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour la_viscosite_turbulente after", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Bicephale::mettre_a_jour la_viscosite_turbulente after", la_viscosite_turbulente_->valeurs());
   statistiques().end_count(nut_counter_);
 }
 
@@ -287,7 +285,7 @@ const Champ_base& Modele_turbulence_hyd_K_Eps_Bicephale::get_champ(const Motcle&
     {
       try
         {
-          return mon_modele_fonc_.valeur().get_champ(nom);
+          return mon_modele_fonc_->get_champ(nom);
         }
       catch (Champs_compris_erreur&)
         {
@@ -300,12 +298,12 @@ void Modele_turbulence_hyd_K_Eps_Bicephale::get_noms_champs_postraitables(Noms& 
 {
   Modele_turbulence_hyd_RANS_Bicephale_base::get_noms_champs_postraitables(nom, opt);
   if (mon_modele_fonc_.non_nul())
-    mon_modele_fonc_.valeur().get_noms_champs_postraitables(nom, opt);
+    mon_modele_fonc_->get_noms_champs_postraitables(nom, opt);
 
 }
 void Modele_turbulence_hyd_K_Eps_Bicephale::verifie_loi_paroi()
 {
-  Nom lp = loipar_.valeur().que_suis_je();
+  Nom lp = loipar_->que_suis_je();
   if (!(lp == "negligeable_VEF" || lp == "negligeable_VDF"))
     {
       Cerr << "The turbulence model of type " << que_suis_je() << finl;

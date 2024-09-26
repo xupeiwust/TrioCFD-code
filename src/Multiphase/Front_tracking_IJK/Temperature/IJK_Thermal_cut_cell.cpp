@@ -199,9 +199,9 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
 
   temperature_diffusion_op_.typer("OpDiffIJKScalar_cut_cell_double");
   temperature_diffusion_op_.initialize(splitting);
-  temperature_diffusion_op_.set_uniform_lambda_liquid(lambda_liquid_);
-  temperature_diffusion_op_.set_uniform_lambda_vapour(lambda_vapour_);
-  temperature_diffusion_op_.set_lambda(lambda_);
+  temperature_diffusion_op_->set_uniform_lambda_liquid(lambda_liquid_);
+  temperature_diffusion_op_->set_uniform_lambda_vapour(lambda_vapour_);
+  temperature_diffusion_op_->set_lambda(lambda_);
 
   temperature_convection_op_.typer("OpConvQuickIJKScalar_cut_cell_double");
   temperature_convection_op_.initialize(splitting);
@@ -924,11 +924,11 @@ void IJK_Thermal_cut_cell::compute_temperature_convection_cut_cell(const Cut_fie
     }
   else
     {
-      temperature_convection_op_.calculer(cut_field_temperature,
-                                          cut_field_total_velocity[0],
-                                          cut_field_total_velocity[1],
-                                          cut_field_total_velocity[2],
-                                          cut_field_d_temperature);
+      temperature_convection_op_->calculer(cut_field_temperature,
+                                           cut_field_total_velocity[0],
+                                           cut_field_total_velocity[1],
+                                           cut_field_total_velocity[2],
+                                           cut_field_d_temperature);
       const int ni = cut_field_d_temperature.ni();
       const int nj = cut_field_d_temperature.nj();
       const int nk = cut_field_d_temperature.nk();
@@ -980,7 +980,7 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
   lambda_.echange_espace_virtuel(lambda_.ghost());
   DebogIJK::verifier("lambda", lambda_);
 
-  temperature_diffusion_op_.set_lambda(lambda_);
+  temperature_diffusion_op_->set_lambda(lambda_);
 
   if (boundary_conditions_.get_bctype_k_min() == Boundary_Conditions_Thermique::Paroi_Temperature_imposee)
     {
@@ -1035,10 +1035,10 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
       /*
        * Correct the diffusive fluxes here or in the operator ?
        */
-      temperature_diffusion_op_.calculer(cut_field_temperature,
-                                         cut_field_div_coeff_grad_T_volume,
-                                         boundary_flux_kmin_,
-                                         boundary_flux_kmax_);
+      temperature_diffusion_op_->calculer(cut_field_temperature,
+                                          cut_field_div_coeff_grad_T_volume,
+                                          boundary_flux_kmin_,
+                                          boundary_flux_kmax_);
       diffusive_correction_.ajout_flux_interface_a_divergence_simple(cut_field_div_coeff_grad_T_volume);
       compute_diffusion_increment();
       statistiques().end_count(cnt_diff_temp);

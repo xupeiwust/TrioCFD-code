@@ -35,7 +35,7 @@
 #include <OpHessCentre2IJKScalar.h>
 #include <OpGradQuickIJKScalar.h>
 #include <Ouvrir_fichier.h>
-#include <Corrige_flux_FT.h>
+#include <Corrige_flux_FT_base.h>
 #include <TRUST_Ref.h>
 #include <IJK_FT_Post.h>
 #include <IJK_Ghost_Fluid_Fields.h>
@@ -567,7 +567,7 @@ protected:
   REF(Switch_FT_double) ref_ijk_ft_switch_;
   REF(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   REF(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
-  Corrige_flux_FT corrige_flux_;
+  OWN_PTR(Corrige_flux_FT_base) corrige_flux_;
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   int rang_ = 0; // default value, used as an index for the list of thermal sub-problems
 

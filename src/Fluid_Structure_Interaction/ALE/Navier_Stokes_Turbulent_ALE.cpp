@@ -29,7 +29,6 @@
 #include <Modele_turbulence_hyd_null.h>
 #include <Discretisation_base.h>
 #include <Schema_Temps_base.h>
-#include <Schema_Temps.h>
 #include <Discret_Thyd.h>
 #include <Modele_turbulence_hyd_K_Eps.h>
 #include <Modele_turbulence_hyd_K_Eps_Realisable.h>
@@ -93,27 +92,44 @@ int Navier_Stokes_Turbulent_ALE::lire_motcle_non_standard(const Motcle& mot, Ent
   else if (mot=="modele_turbulence")
     {
       Cerr << "Reading and typing of the turbulence model :" ;
-      le_modele_turbulence.associer_eqn(*this);
-      is >> le_modele_turbulence;
-      // Si on vient de lire un modele de turbulence nul et que l'operateur
-      // de diffusion a deja ete lu, alors on s'est plante d'operateur,
-      // stop.
-      if (sub_type(Modele_turbulence_hyd_null, le_modele_turbulence.valeur())
-          && terme_diffusif.non_nul())
-        {
-          Cerr << "Erreur dans Navier_Stokes_Turbulent_ALE::lire:\n"
-               " Si le modele de turbulence est nul, il faut le specifier\n"
-               " en premier dans Navier_Stokes_Turbulent_ALE { ... }\n";
+      Motcle typ;
+      is >> typ;
+      Motcle nom1("Modele_turbulence_hyd_");
+      nom1 += typ;
+      Nom discr = discretisation().que_suis_je();
 
-          Cerr << "Error for the method Navier_Stokes_Turbulent_ALE::lire_motcle_non_standard:\n"
-               " For the case of a nul turbulence model, it must be specified\n"
-               " first for the data of Navier_Stokes_Turbulent_ALE { ... }\n";
-          exit();
+      if (typ.debute_par("SOUS_MAILLE") || discr == "VDF_Hyper" || typ.debute_par("LONGUEUR_MELANGE") || (typ == "K_Epsilon_V2"))
+        {
+          if (dimension == 2 && discr != "VDF_Hyper")
+            {
+              Cerr << "Vous traitez un cas turbulent en dimension 2 avec un modele sous maille" << finl;
+              Cerr << "Attention a l'interpretation des resultats !!" << finl;
+            }
+
+          nom1 += "_";
+          // les operateurs de diffusion sont communs aux discretisations VEF et VEFP1B
+          if (discr == "VEFPreP1B") discr = "VEF";
+          nom1 += discr;
         }
-      le_modele_turbulence.discretiser();
+      if (nom1 == "MODELE_TURBULENCE_HYD_SOUS_MAILLE_LM_VEF")
+        {
+          Cerr << "Le mot cle Sous_maille_LM s'appelle desormais Longueur_Melange pour etre coherent en VDF et VEF." << finl;
+          Cerr << "Changer votre jeu de donnees." << finl;
+          Process::exit();
+        }
+
+      Cerr << nom1 << finl;
+
+      le_modele_turbulence.typer(nom1);
+      le_modele_turbulence->associer_eqn(*this);
+      le_modele_turbulence->associer(domaine_dis(), domaine_Cl_dis());
+      is >> le_modele_turbulence.valeur(); // on lit !
+
+      le_modele_turbulence->discretiser();
       RefObjU le_modele;
       le_modele = le_modele_turbulence.valeur();
       liste_modeles_.add_if_not(le_modele);
+
       return 1;
     }
   else
@@ -188,7 +204,7 @@ Entree& Navier_Stokes_Turbulent_ALE::lire_op_diff_turbulent(Entree& is)
     {
       terme_diffusif.typer(type);
       terme_diffusif.l_op_base().associer_eqn(*this);
-      Cerr << terme_diffusif.valeur().que_suis_je() << finl;
+      Cerr << terme_diffusif->que_suis_je() << finl;
       terme_diffusif->associer_diffusivite(terme_diffusif.diffusivite());
     }
   else if (motbidon=="stab")
@@ -215,7 +231,7 @@ Entree& Navier_Stokes_Turbulent_ALE::lire_op_diff_turbulent(Entree& is)
         }
       terme_diffusif.typer(type);
       terme_diffusif.l_op_base().associer_eqn(*this);
-      Cerr << terme_diffusif.valeur().que_suis_je() << finl;
+      Cerr << terme_diffusif->que_suis_je() << finl;
       terme_diffusif->associer_diffusivite(terme_diffusif.diffusivite());
     }
   return is;
@@ -231,12 +247,12 @@ Entree& Navier_Stokes_Turbulent_ALE::lire_op_diff_turbulent(Entree& is)
 int Navier_Stokes_Turbulent_ALE::preparer_calcul()
 {
 
-  Turbulence_paroi& loipar=le_modele_turbulence.valeur().loi_paroi();
+  Turbulence_paroi& loipar=le_modele_turbulence->loi_paroi();
   if (loipar.non_nul())
-    loipar.init_lois_paroi();
+    loipar->init_lois_paroi();
 
   Navier_Stokes_std_ALE::preparer_calcul();
-  le_modele_turbulence.preparer_calcul();
+  le_modele_turbulence->preparer_calcul();
   return 1;
 }
 
@@ -259,7 +275,7 @@ int Navier_Stokes_Turbulent_ALE::sauvegarder(Sortie& os) const
   int bytes=0;
   bytes += Navier_Stokes_std_ALE::sauvegarder(os);
   assert(bytes % 4 == 0);
-  bytes += le_modele_turbulence.sauvegarder(os);
+  bytes += le_modele_turbulence->sauvegarder(os);
   assert(bytes % 4 == 0);
   return bytes;
 }
@@ -275,12 +291,12 @@ int Navier_Stokes_Turbulent_ALE::reprendre(Entree& is)
 {
   Navier_Stokes_std_ALE::reprendre(is);
   double temps = schema_temps().temps_courant();
-  Nom ident_modele(le_modele_turbulence.valeur().que_suis_je());
+  Nom ident_modele(le_modele_turbulence->que_suis_je());
   ident_modele += probleme().domaine().le_nom();
   ident_modele += Nom(temps,probleme().reprise_format_temps());
 
   avancer_fichier(is, ident_modele);
-  le_modele_turbulence.reprendre(is);
+  le_modele_turbulence->reprendre(is);
 
   return 1;
 }
@@ -294,7 +310,7 @@ int Navier_Stokes_Turbulent_ALE::reprendre(Entree& is)
 void Navier_Stokes_Turbulent_ALE::completer()
 {
   Navier_Stokes_std_ALE::completer();
-  le_modele_turbulence.completer();
+  le_modele_turbulence->completer();
 }
 
 
@@ -305,7 +321,7 @@ void Navier_Stokes_Turbulent_ALE::completer()
 void Navier_Stokes_Turbulent_ALE::mettre_a_jour(double temps)
 {
   Navier_Stokes_std_ALE::mettre_a_jour(temps);
-  le_modele_turbulence.mettre_a_jour(temps);
+  le_modele_turbulence->mettre_a_jour(temps);
 }
 
 void Navier_Stokes_Turbulent_ALE::creer_champ(const Motcle& motlu)
@@ -322,7 +338,7 @@ const Champ_base& Navier_Stokes_Turbulent_ALE::get_champ(const Motcle& nom) cons
     {
       return Navier_Stokes_std_ALE::get_champ(nom);
     }
-  catch (Champs_compris_erreur)
+  catch (Champs_compris_erreur&)
     {
     }
   if (le_modele_turbulence.non_nul())
@@ -330,7 +346,7 @@ const Champ_base& Navier_Stokes_Turbulent_ALE::get_champ(const Motcle& nom) cons
       {
         return le_modele_turbulence->get_champ(nom);
       }
-    catch (Champs_compris_erreur)
+    catch (Champs_compris_erreur&)
       {
       }
   throw Champs_compris_erreur();
@@ -349,7 +365,7 @@ void Navier_Stokes_Turbulent_ALE::get_noms_champs_postraitables(Noms& nom,Option
 void Navier_Stokes_Turbulent_ALE::imprimer(Sortie& os) const
 {
   Navier_Stokes_std_ALE::imprimer(os);
-  le_modele_turbulence.imprimer(os);
+  le_modele_turbulence->imprimer(os);
 }
 
 const RefObjU& Navier_Stokes_Turbulent_ALE::get_modele(Type_modele type) const

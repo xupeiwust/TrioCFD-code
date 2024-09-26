@@ -58,7 +58,7 @@ void Traitement_particulier_NS_THI_thermo_VDF::init_calc_spectre(void)
 {
 
 
-  const Probleme_base& pb = mon_equation.valeur().probleme();
+  const Probleme_base& pb = mon_equation->probleme();
   int flag=0;
   for(int i=0; i<pb.nombre_d_equations(); i++)
     {
@@ -95,14 +95,14 @@ void Traitement_particulier_NS_THI_thermo_VDF::calcul_spectre(void)
 {
 
   const Domaine_dis& zdis = mon_equation->domaine_dis();
-  const Domaine& domaine = zdis.domaine();
+  const Domaine& domaine = zdis->domaine();
   int nb_elem = domaine.nb_elem();
   //  double nb=pow(nb_elem*1.,1./3.);
   //  int nb_elem_dir = (int)(nb)+1;
   calcul_nb_elem_dir(domaine);
 
-  double temps_crt = mon_equation->inconnue().temps();
-  const DoubleTab& Temp = mon_equation_NRJ.valeur().inconnue().valeurs();
+  double temps_crt = mon_equation->inconnue()->temps();
+  const DoubleTab& Temp = mon_equation_NRJ->inconnue()->valeurs();
 
   int i,k;
 
@@ -136,12 +136,12 @@ void Traitement_particulier_NS_THI_thermo_VDF::calcul_spectre(void)
 void Traitement_particulier_NS_THI_thermo_VDF::sorties_fichiers(void)
 {
   const Domaine_dis& zdis = mon_equation->domaine_dis();
-  const Domaine& domaine = zdis.domaine();
+  const Domaine& domaine = zdis->domaine();
   int nb_elem = domaine.nb_elem();
   int i;
 
-  double temps_crt = mon_equation->inconnue().temps();
-  const DoubleTab& Temp = mon_equation_NRJ.valeur().inconnue().valeurs();
+  double temps_crt = mon_equation->inconnue()->temps();
+  const DoubleTab& Temp = mon_equation_NRJ->inconnue()->valeurs();
 
   SFichier fic45("Sorties_THI_Thermo.dat",ios::app);
 
@@ -219,13 +219,13 @@ void Traitement_particulier_NS_THI_thermo_VDF::sorties_fichiers(void)
 double Traitement_particulier_NS_THI_thermo_VDF::calcul_enstrophie(void)
 {
   const Domaine_dis& zdis = mon_equation->domaine_dis();
-  const Domaine& domaine = zdis.domaine();
+  const Domaine& domaine = zdis->domaine();
   const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF,zdis.valeur());
   int nb_elem = domaine.nb_elem();
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
 
-  const DoubleTab& Temp = mon_equation_NRJ.valeur().inconnue().valeurs();
+  const DoubleTab& Temp = mon_equation_NRJ->inconnue()->valeurs();
 
   double DT=0;
   double gradT=0.;

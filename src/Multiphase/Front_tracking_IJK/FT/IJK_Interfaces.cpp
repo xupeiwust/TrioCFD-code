@@ -1222,7 +1222,7 @@ void IJK_Interfaces::supprimer_certaines_bulles_reelles()
     {
       // Calcul du domaine dans lequelle une bulle est supprimee:
       bounding_box_delete_criteria_.resize(3, 2);
-      const IJK_Grid_Geometry& geom_FT = ref_splitting_.valeur().get_grid_geometry();
+      const IJK_Grid_Geometry& geom_FT = ref_splitting_->get_grid_geometry();
       for (int direction = 0; direction < 3; direction++)
         {
           if (perio_NS_[direction])
@@ -1909,11 +1909,11 @@ void IJK_Interfaces::calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const
       const double d_i_1 = sqrt( (sommets(i1, 0)-centre_gravite(compo,0))*(sommets(i1, 0)-centre_gravite(compo,0)) + (sommets(i1, 1)-centre_gravite(compo,1))*(sommets(i1, 1)-centre_gravite(compo,1)) + (sommets(i1, 2)-centre_gravite(compo,2))*(sommets(i1, 2)-centre_gravite(compo,2)) );
       const double d_i_2 = sqrt( (sommets(i2, 0)-centre_gravite(compo,0))*(sommets(i2, 0)-centre_gravite(compo,0)) + (sommets(i2, 1)-centre_gravite(compo,1))*(sommets(i2, 1)-centre_gravite(compo,1)) + (sommets(i2, 2)-centre_gravite(compo,2))*(sommets(i2, 2)-centre_gravite(compo,2)) );
 
-      // On rÃ©cupÃ¨re la plus grande distance et la plus petite distance parmi les 3 calculÃ©es
+      // On recupere la plus grande distance et la plus petite distance parmi les 3 calculees
       d_imax = std::max(d_i_0,std::max(d_i_1,d_i_2));
       d_imin = std::min(d_i_0,std::min(d_i_1,d_i_2));
 
-      // On met Ã  jour le grand axe et le petit axe
+      // On met a jour le grand axe et le petit axe
       if (d_imax > d_max[compo])
         d_max[compo] = d_imax;
 
@@ -4175,7 +4175,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
           // la bulle sort du domaine (et le domaine est periodique)
 
           // pour le shear_periodic,
-          // on passe d'une variable 6 bit, à 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
+          // on passe d'une variable 6 bit, a 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
           for (int direction = 0; direction < 3; direction++)
             {
               if (perio_NS_[direction])
@@ -4235,7 +4235,7 @@ void IJK_Interfaces::preparer_duplicata_bulles(const DoubleTab& bounding_box,
           // Stocke le masque dans le tableau resultat :
           masque_duplicata_pour_compo[icompo] = masque_sortie_domaine_reel;
           // duCluzeau : pour shear-perio, il faut stocker un autre tableau avec le nombre de duplicata par bulles.
-          // pour ça, il faut tester la position de la bulle ghost en z, et verifier si elle sort en x
+          // pour ca, il faut tester la position de la bulle ghost en z, et verifier si elle sort en x
         }
     }
   envoyer_broadcast(masque_duplicata_pour_compo, 0);
@@ -4258,7 +4258,7 @@ void IJK_Interfaces::preparer_duplicata_bulles_masque_6bit(const DoubleTab& boun
           // la bulle sort du domaine (et le domaine est periodique)
 
           // pour le shear_periodic,
-          // on passe d'une variable 6 bit, à 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
+          // on passe d'une variable 6 bit, a 8 bit, puisqu on a un degres de liberte supplementaire sur les ghost
           for (int direction = 0; direction < 3; direction++)
             {
               if (perio_NS_[direction])
@@ -4623,7 +4623,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul de l'indicatrice");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_->valeur());
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_voisins = domaine_vf.face_voisins();
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
@@ -4892,7 +4892,7 @@ void IJK_Interfaces::calculer_indicatrices(IJK_Field_vector3_double& indic)
     statistiques().new_counter(2, "Calcul rho mu indicatrice: calcul des indicatrices");
   statistiques().begin_count(calculer_indicatrice_counter_);
 
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_->valeur());
   const Domaine& domaine = domaine_vf.domaine();
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_voisins = domaine_vf.face_voisins();
@@ -5760,7 +5760,7 @@ void IJK_Interfaces::convert_to_IntVect(const ArrOfInt& in, IntVect& out) const
   // Cree un tableau parallele structure comme un tableau aux elements
   // du maillage vdf, initialise a zero.
 
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_->valeur());
   const Domaine& domaine = domaine_vf.domaine();
   domaine.creer_tableau_elements(out);
 
@@ -6230,7 +6230,7 @@ void IJK_Interfaces::compute_drapeaux_vapeur_v4(const IntVect& vecteur_composant
   const ArrOfInt& index_elem = maillage_ft_ijk_.intersections_elem_facettes().index_elem();
   const ArrOfInt& index_facette = maillage_ft_ijk_.intersections_elem_facettes().index_facette();
 
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_->valeur());
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_voisins = domaine_vf.face_voisins();
 

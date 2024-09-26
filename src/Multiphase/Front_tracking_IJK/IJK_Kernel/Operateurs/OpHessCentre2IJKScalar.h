@@ -23,6 +23,7 @@
 #define OpHessCentre2IJKScalar_included
 
 #include <Operateur_IJK_elem_diff_base.h>
+#include <IJK_Field_vector.h>
 
 /////////////////////////////////////////////////////////////////////////////
 //

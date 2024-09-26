@@ -28,12 +28,11 @@
 #include <Domaine_Cl_dis.h>
 #include <Eq_couch_lim.h>
 #include <Milieu_base.h>
-#include <Mod_echelle_LRM.h>
+#include <Mod_echelle_LRM_base.h>
 #include <TRUST_Ref.h>
-
+#include <Domaine_dis.h>
+#include <Domaine_Cl_dis.h>
 class Champ_Fonc_base;
-class Domaine_dis;
-class Domaine_Cl_dis;
 class Mod_echelle_LRM_base;
 
 /*! @brief CLASS: ParoiVDF_TBLE_LRM
@@ -77,7 +76,7 @@ protected:
 
 private:
 
-  Mod_echelle_LRM mod_ech;
+  OWN_PTR(Mod_echelle_LRM_base) mod_ech;
 
 
 };

@@ -60,7 +60,7 @@ Entree& Implicit_steady::readOn(Entree& is )
 void test_impose_bound_cond(Equation_base& eqn,DoubleTab& current2,const char * msg,int flag)
 {
   return;
-  DoubleTab& present = eqn.inconnue().futur();
+  DoubleTab& present = eqn.inconnue()->futur();
   DoubleTab sauv(present);
   const Schema_Temps_base& sch = eqn.probleme().schema_temps();
   eqn.domaine_Cl_dis()->imposer_cond_lim(eqn.inconnue(),sch.temps_courant()+sch.pas_de_temps());
@@ -111,7 +111,7 @@ void Implicit_steady::iterer_NS(Equation_base& eqn,DoubleTab& current,DoubleTab&
   resu -= gradP;
 
   eqnNS.assembler_avec_inertie(matrice,current,resu);
-  le_solveur_.valeur().reinit();
+  le_solveur_->reinit();
   Debog::verifier("Implicit_steady::iterer_NS resu apres assembler_avec_inertie",resu);
 
   //Definition de matrice_en_pression_2
@@ -164,19 +164,19 @@ void Implicit_steady::iterer_NS(Equation_base& eqn,DoubleTab& current,DoubleTab&
     calcul_mat_masse_diviser_par_dt_vef(eqnNS, m_dt, dt_locaux);
 
   //DoubleVect  m_dt(dt_locaux);
-  //eqnNS.solv_masse().get_masse_divide_by_local_dt(m_dt, dt_locaux, 0);
+  //eqnNS.solv_masse()->get_masse_divide_by_local_dt(m_dt, dt_locaux, 0);
 
 
   //Construction de matrice_en_pression_2 = B*dt_locaux*M-1Bt
-  eqnNS.assembleur_pression().valeur().assembler_mat(matrice_en_pression_2,m_dt,1,1);
-  solveur_pression_.valeur().reinit();
+  eqnNS.assembleur_pression()->assembler_mat(matrice_en_pression_2,m_dt,1,1);
+  solveur_pression_->reinit();
   //Resolution du systeme (B*dt_locaux*M-1Bt)P' = Bu*
   solveur_pression_.resoudre_systeme(matrice_en_pression_2.valeur(),
                                      secmem,correction_en_pression);
   correction_en_pression.echange_espace_virtuel();
   //Calcul de M^-1BtP'=gradP
-  gradient.valeur().multvect(correction_en_pression,gradP);
-  eqn.solv_masse().appliquer(gradP);
+  gradient->multvect(correction_en_pression,gradP);
+  eqn.solv_masse()->appliquer(gradP);
   //Calcul de Un+1 = U* -dt_locaux*gradP -M*dt_locaux*deltaU/dt
   //dt = pas de temps global
   //deltaU = Un+1 -Un
@@ -204,7 +204,7 @@ void Implicit_steady::iterer_NS(Equation_base& eqn,DoubleTab& current,DoubleTab&
     }
   DoubleVect  dt_locaux_masse (dt_locaux_taille_vitesse);
   //Calcul du M*dt_locaux
-  eqnNS.solv_masse().get_masse_dt_local(dt_locaux_masse, dt_locaux_taille_vitesse, 0);
+  eqnNS.solv_masse()->get_masse_dt_local(dt_locaux_masse, dt_locaux_taille_vitesse, 0);
 
 
   for(int i=0; i<size; i++)
@@ -232,7 +232,7 @@ void Implicit_steady::iterer_NS(Equation_base& eqn,DoubleTab& current,DoubleTab&
   //Calcul de Pn+1 = Pn + P'
   pression += correction_en_pression;
   Debog::verifier("Implicit_steady::iterer_NS pression fin", pression);
-  eqnNS.assembleur_pression().valeur().modifier_solution(pression);
+  eqnNS.assembleur_pression()->modifier_solution(pression);
   pression.echange_espace_virtuel();
   return;
 }
@@ -255,7 +255,7 @@ void Implicit_steady::calcul_mat_masse_diviser_par_dt_vef(Navier_Stokes_std& eqn
 
   int size=volumes_entrelaces.size_totale();
   // Si rho n'est pas constant
-  const DoubleVect& masse_volumique = eqnNS.fluide().masse_volumique().valeurs();
+  const DoubleVect& masse_volumique = eqnNS.fluide().masse_volumique()->valeurs();
   if(masse_volumique.size_totale()==size)
     {
       for (int face=0; face<size; face++)
@@ -280,7 +280,7 @@ void Implicit_steady::calcul_mat_masse_diviser_par_dt_vdf(Navier_Stokes_std& eqn
   const DoubleVect& volumes_entrelaces=le_dom.volumes_entrelaces();
   int size=volumes_entrelaces.size_totale();
   // Si rho n'est pas constant
-  const DoubleVect& masse_volumique = eqnNS.fluide().masse_volumique().valeurs();
+  const DoubleVect& masse_volumique = eqnNS.fluide().masse_volumique()->valeurs();
   if(masse_volumique.size_totale()==size)
     {
       for (int face=0; face<size; face++)
@@ -312,7 +312,7 @@ void Implicit_steady::test_periodic_solution(Navier_Stokes_std& eqnNS, DoubleTab
       if (sub_type(Periodique,la_cl.valeur()))
         {
           const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           int nb_faces_bord=le_bord.nb_faces();
           for (int ind_face=0; ind_face<nb_faces_bord; ind_face++)
             {
