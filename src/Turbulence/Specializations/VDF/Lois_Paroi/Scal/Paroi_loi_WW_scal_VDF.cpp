@@ -120,7 +120,7 @@ int Paroi_loi_WW_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
   const RefObjU& modele_turbulence_hydr = eqn_hydr.get_modele(TURBULENCE);
   const Modele_turbulence_hyd_base& mod_turb_hydr = ref_cast(Modele_turbulence_hyd_base,modele_turbulence_hydr.valeur());
   const Turbulence_paroi& loi = mod_turb_hydr.loi_paroi();
-  const DoubleVect& tab_ustar = loi.valeur().tab_u_star();
+  const DoubleVect& tab_ustar = loi->tab_u_star();
   const Convection_Diffusion_std& eqn = mon_modele_turb_scal->equation();
   int schmidt = 0;
   if (sub_type(Convection_Diffusion_Concentration,eqn)) schmidt = 1;
@@ -142,7 +142,7 @@ int Paroi_loi_WW_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
            || (sub_type(Dirichlet_paroi_defilante,la_cl.valeur())) )
         {
 
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           ndeb = le_bord.num_premiere_face();
           nfin = ndeb + le_bord.nb_faces();
 
@@ -176,13 +176,13 @@ int Paroi_loi_WW_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
               double u_star = tab_ustar(num_face);
               double d_alpha=0.;
               if (sub_type(Champ_Uniforme,alpha.valeur()))
-                d_alpha = alpha(0,0);
+                d_alpha = alpha->valeurs()(0,0);
               else
                 {
-                  if (alpha.nb_comp()==1)
-                    d_alpha = alpha(elem);
+                  if (alpha->nb_comp()==1)
+                    d_alpha = alpha->valeurs()(elem);
                   else
-                    d_alpha = alpha(elem,0);
+                    d_alpha = alpha->valeurs()(elem,0);
                 }
               double Pr = d_visco/d_alpha;
               double Beta = pow(3.85*pow(Pr,1./3.)-1.3,2.)+2.12*log(Pr);

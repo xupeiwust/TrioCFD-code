@@ -161,7 +161,7 @@ int Navier_Stokes_phase_field::lire_motcle_non_standard(const Motcle& mot, Entre
         {
           boussi_=1;
           diff_boussi_=0;
-          if (!betac_.valeur().non_nul())
+          if (!betac_->non_nul())
             {
               fonctionsALire = true;
               Cerr << "Approximation de Boussinesq utilisee mais beta_co non defini comme propriete du fluide"<< finl;
@@ -335,15 +335,15 @@ void Navier_Stokes_phase_field::discretiser()
   type = "Assembleur_P_VDF_Phase_Field";
   Cerr << "** Pressure assembling tool : " << type << " **" << finl;
   assembleur_pression_.typer(type);
-  assembleur_pression_.associer_domaine_dis_base(domaine_dis().valeur());
-  assembleur_pression_.valeur().set_resoudre_increment_pression(1);
+  assembleur_pression_->associer_domaine_dis_base(domaine_dis().valeur());
+  assembleur_pression_->set_resoudre_increment_pression(1);
   // la discretisation du champ associe
   // - a la masse volumique est "retardee" a la methode creer_champ/completer
   // - a la viscosite dynamique est "retardee" a la methode lire_motcle_non_standard
   //   (et non pas creer_champ/completer comme pour la masse volumique sinon probleme dans terme_diffusif.associer_diffusivite dans Navier_Stokes_std::lire_motcle_non_standard)
   // afin que les options boussi_ et diff_boussi_ soient connues
 
-  const DoubleTab& rho0Tab=le_fluide.valeur().masse_volumique().valeurs();
+  const DoubleTab& rho0Tab=le_fluide->masse_volumique()->valeurs();
   int dim=rho0Tab.nb_dim();
   switch(dim)
     {
@@ -358,7 +358,7 @@ void Navier_Stokes_phase_field::discretiser()
       exit();
       break;
     }
-  betac_ = le_fluide.valeur().beta_c();
+  betac_ = le_fluide->beta_c();
 }
 
 void Navier_Stokes_phase_field::completer()
@@ -370,12 +370,12 @@ void Navier_Stokes_phase_field::completer()
     {
       if (diff_boussi_==0)
         {
-          terme_diffusif.valeur().associer_champ_masse_volumique(rho_);
+          terme_diffusif->associer_champ_masse_volumique(rho_);
         }
       else
         {
-          Cout << "Navier_Stokes_phase_field::completer rho=" << le_fluide.valeur().masse_volumique() << finl;
-          terme_diffusif.valeur().associer_champ_masse_volumique(le_fluide.valeur().masse_volumique());
+          Cout << "Navier_Stokes_phase_field::completer rho=" << le_fluide->masse_volumique() << finl;
+          terme_diffusif->associer_champ_masse_volumique(le_fluide->masse_volumique());
         }
     }*/
 }
@@ -402,7 +402,7 @@ void Navier_Stokes_phase_field::creer_champ(const Motcle& motlu)
         }
       if (rho_.le_nom()=="anonyme")
         {
-          if (boussi_ == 1 && betac_.valeur().non_nul())
+          if (boussi_ == 1 && betac_->non_nul())
             {
               Cerr << "Navier_Stokes_phase_field::creer_champ: should not be here (2)"<< finl;
               exit();
@@ -420,7 +420,7 @@ void Navier_Stokes_phase_field::creer_champ(const Motcle& motlu)
  */
 void Navier_Stokes_phase_field::calculer_rho(const bool init)
 {
-  const Convection_Diffusion_Phase_field& eq_c=ref_cast(Convection_Diffusion_Phase_field, mon_probleme.valeur().equation(1));
+  const Convection_Diffusion_Phase_field& eq_c=ref_cast(Convection_Diffusion_Phase_field, mon_probleme->equation(1));
   Sources& list_sources = ref_cast_non_const(Sources, eq_c.sources());
   Source_Con_Phase_field& source_pf = ref_cast(Source_Con_Phase_field, list_sources(0).valeur());
   int type_systeme_naire = source_pf.get_type_systeme_naire();
@@ -432,32 +432,32 @@ void Navier_Stokes_phase_field::calculer_rho(const bool init)
       i = 0;
       temps = schema_temps().temps_courant();
     }
-  if (boussi_==0 || !betac_.valeur().non_nul())
+  if (boussi_==0 || !betac_->non_nul())
     {
-      // normalement, quelque chose comme 'rho_.valeur().mettre_a_jour(schema_temps().temps_futur(i))' devrait faire l'affaire
+      // normalement, quelque chose comme 'rho_->mettre_a_jour(schema_temps().temps_futur(i))' devrait faire l'affaire
       // probleme, cette evaluation se fait avec c(n) alors que l'on veut evaluer avec c(n+1)
       // on introduit une methode specifique (qui depend de la discretisation) que l'on met arbitrairement dans Source_Con_Phase_field_base
       Source_Con_Phase_field_base& source_pf_base = ref_cast(Source_Con_Phase_field_base, list_sources(0).valeur());
-      source_pf_base.calculer_champ_fonc_c(temps, rho_, eq_c.inconnue().futur(i));
-      source_pf_base.calculer_champ_fonc_c(temps, drhodc_, eq_c.inconnue().futur(i));
-      //Cerr << "rho = " << rho_.valeur().valeurs()[14*48+24] << finl;
+      source_pf_base.calculer_champ_fonc_c(temps, rho_, eq_c.inconnue()->futur(i));
+      source_pf_base.calculer_champ_fonc_c(temps, drhodc_, eq_c.inconnue()->futur(i));
+      //Cerr << "rho = " << rho_->valeurs()[14*48+24] << finl;
     }
   else
     {
-      const DoubleTab& c = eq_c.inconnue().futur(i);
+      const DoubleTab& c = eq_c.inconnue()->futur(i);
       //Mirantsoa 264902
-      DoubleTab& rhoTab = rho_.valeurs(); /**/
-      DoubleTab& drhodcTab = drhodc_.valeurs();/**/
+      DoubleTab& rhoTab = rho_->valeurs(); /**/
+      DoubleTab& drhodcTab = drhodc_->valeurs();/**/
       DoubleTab rho0Tab(rhoTab);
       //Cerr << "c = "<<c<<finl;
-      // DoubleTab& betacTab = betac_.valeur().valeurs();
-      //      rho_.valeur().affecter_(betac_.valeur());
+      // DoubleTab& betacTab = betac_->valeurs();
+      //      rho_->affecter_(betac_.valeur());
 
 
       if (type_systeme_naire==0)
         {
           drhodcTab=rho0_;
-          tab_multiply_any_shape(drhodcTab, betac_.valeur().valeurs());
+          tab_multiply_any_shape(drhodcTab, betac_.valeur()->valeurs());
           rhoTab=c;
           tab_multiply_any_shape(rhoTab, drhodcTab);
           rhoTab+=rho0_;
@@ -475,7 +475,7 @@ void Navier_Stokes_phase_field::calculer_rho(const bool init)
             {
               for (int j=0; j<betacTab.line_size(); j++)
                 {
-                  betacTab(i,j)=betac_.valeur().valeurs()(0,j);
+                  betacTab(i,j)=betac_.valeur()->valeurs()(0,j);
                   beta_(i)+=betacTab(i,j);
                 }
             }
@@ -502,15 +502,15 @@ void Navier_Stokes_phase_field::calculer_rho(const bool init)
 
         }
     }
-  rho_.valeur().valeurs().echange_espace_virtuel();
-  drhodc_.valeur().valeurs().echange_espace_virtuel();
+  rho_->valeurs().echange_espace_virtuel();
+  drhodc_->valeurs().echange_espace_virtuel();
 }
 
 void Navier_Stokes_phase_field::calculer_mu(const bool init)
 {
   if (boussi_==0 && diff_boussi_==0)
     {
-      const Convection_Diffusion_Phase_field& eq_c=ref_cast(Convection_Diffusion_Phase_field, mon_probleme.valeur().equation(1));
+      const Convection_Diffusion_Phase_field& eq_c=ref_cast(Convection_Diffusion_Phase_field, mon_probleme->equation(1));
       int i = 1;
       double temps = schema_temps().temps_futur(i);
       if (init)
@@ -518,13 +518,13 @@ void Navier_Stokes_phase_field::calculer_mu(const bool init)
           i = 0;
           temps = schema_temps().temps_courant();
         }
-      // normalement, quelque chose comme 'mu_.valeur().mettre_a_jour(schema_temps().temps_futur(i))' devrait faire l'affaire
+      // normalement, quelque chose comme 'mu_->mettre_a_jour(schema_temps().temps_futur(i))' devrait faire l'affaire
       // probleme, cette evaluation se fait avec c(n) alors que l'on veut evaluer avec c(n+1)
       // on introduit une methode specifique (qui depend de la discretisation) que l'on met arbitrairement dans Source_Con_Phase_field_base
       Sources& list_sources = ref_cast_non_const(Sources, eq_c.sources());
       Source_Con_Phase_field_base& source_pf = ref_cast(Source_Con_Phase_field_base, list_sources(0).valeur());
-      source_pf.calculer_champ_fonc_c(temps, mu_, eq_c.inconnue().futur(i));
-      mu_.valeur().valeurs().echange_espace_virtuel();
+      source_pf.calculer_champ_fonc_c(temps, mu_, eq_c.inconnue()->futur(i));
+      mu_->valeurs().echange_espace_virtuel();
     }
 }
 
@@ -609,12 +609,12 @@ void Navier_Stokes_phase_field::rho_aux_faces(const DoubleTab& tab_rho, Champ_Do
       el0=face_voisins(fac,0);
       if(el0!=-1)
         {
-          rho_face_P.valeurs()(fac) = tab_rho(el0);
+          rho_face_P->valeurs()(fac) = tab_rho(el0);
         }
       else
         {
           el1=face_voisins(fac,1);
-          rho_face_P.valeurs()(fac) = tab_rho(el1);
+          rho_face_P->valeurs()(fac) = tab_rho(el1);
         }
     }
 
@@ -624,7 +624,7 @@ void Navier_Stokes_phase_field::rho_aux_faces(const DoubleTab& tab_rho, Champ_Do
       el1=face_voisins(fac,1);
       vol0=volumes(el0);
       vol1=volumes(el1);
-      rho_face_P.valeurs()(fac)=(vol0*tab_rho(el0)+vol1*tab_rho(el1))/(vol0+vol1);
+      rho_face_P->valeurs()(fac)=(vol0*tab_rho(el0)+vol1*tab_rho(el1))/(vol0+vol1);
     }
 }
 
@@ -638,12 +638,12 @@ int Navier_Stokes_phase_field::preparer_calcul()
   Equation_base::preparer_calcul();
 
   // Calcul de la masse volumique
-  rho_.valeur().initialiser(schema_temps().temps_courant());
+  rho_->initialiser(schema_temps().temps_courant());
   //Cerr << " rho_"<< rho_<< finl;
   //Cerr << "valeur de rho_"<< rho_.valeur()<< finl;
   //Cerr << "valeur de rho_ valeurs"<< rho_.valeurs()<< finl;
 
-  drhodc_.valeur().initialiser(schema_temps().temps_courant());
+  drhodc_->initialiser(schema_temps().temps_courant());
   //Cerr << " drhodc_"<< drhodc_<< finl;
   //Cerr << "valeur de rho_"<< drhodc_.valeur()<< finl;
   //Cerr << "valeur de rho_ valeurs"<< drhodc_.valeurs()<< finl;
@@ -652,7 +652,7 @@ int Navier_Stokes_phase_field::preparer_calcul()
   // Calcul de la viscosite dynamique dans le cas boussi_==0 et diff_boussi_==0
   if (mu_.non_nul())
     {
-      mu_.valeur().initialiser(schema_temps().temps_courant());
+      mu_->initialiser(schema_temps().temps_courant());
       calculer_mu(true); // RLT: cette minitialisation etait incorrecte dans dans TrioCFD 1.8.0 car on utilisait c.futur()
     }
 
@@ -660,22 +660,22 @@ int Navier_Stokes_phase_field::preparer_calcul()
     {
       Champ_Don rho_face_P;
       rho_face_P.typer("Champ_Fonc_Face");
-      rho_face_P.valeurs()=inconnue().valeurs();
-      const DoubleTab& tab_rho=rho_.valeurs();
+      rho_face_P->valeurs()=inconnue()->valeurs();
+      const DoubleTab& tab_rho=rho_->valeurs();
 
       rho_aux_faces(tab_rho, rho_face_P);
 
-      assembleur_pression_.valeur().assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
+      assembleur_pression_->assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
     }
   else
     {
-      assembleur_pression_.valeur().assembler(matrice_pression_);
+      assembleur_pression_->assembler(matrice_pression_);
     }
 
   // -------------------------------------------------------------------------------------------------------
 
   //  la_pression.valeurs()=0.;
-  la_pression.changer_temps(schema_temps().temps_courant());
+  la_pression->changer_temps(schema_temps().temps_courant());
   rho_->changer_temps(schema_temps().temps_courant());
   drhodc_->changer_temps(schema_temps().temps_courant());
   if (mu_.non_nul())
@@ -683,33 +683,33 @@ int Navier_Stokes_phase_field::preparer_calcul()
       mu_->changer_temps(schema_temps().temps_courant());
     }
 
-  la_pression.valeurs().echange_espace_virtuel();
+  la_pression->valeurs().echange_espace_virtuel();
 
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP av", gradient_P.valeurs());
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression av", la_pression.valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP av", gradient_P->valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression av", la_pression->valeurs());
   //Cerr << "Navier_Stokes_phase_field::preparer_calcul() avant grad" << finl;
-  gradient.calculer(la_pression.valeurs(),
-                    gradient_P.valeurs());
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP ap", gradient_P.valeurs());
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression ap", la_pression.valeurs());
+  gradient.calculer(la_pression->valeurs(),
+                    gradient_P->valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP ap", gradient_P->valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression ap", la_pression->valeurs());
 
-  gradient_P.changer_temps(schema_temps().temps_courant());
-  divergence_U.valeurs()=0.;
-  divergence_U.changer_temps(schema_temps().temps_courant());
+  gradient_P->changer_temps(schema_temps().temps_courant());
+  divergence_U->valeurs()=0.;
+  divergence_U->changer_temps(schema_temps().temps_courant());
   Cerr << "Projection of initial and boundaries conditions " << finl;
 
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP av projeter", gradient_P.valeurs());
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression av projeter", la_pression.valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP av projeter", gradient_P->valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression av projeter", la_pression->valeurs());
   if (projection_a_faire()) projeter();
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP ap projeter", gradient_P.valeurs());
-  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression ap projeter", la_pression.valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, gradP ap projeter", gradient_P->valeurs());
+  Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, la_pression ap projeter", la_pression->valeurs());
 
   Navier_Stokes_std::calculer_la_pression_en_pa();
   Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, vitesse", inconnue());
   Debog::verifier("Navier_Stokes_phase_field::preparer_calcul, pression", la_pression);
 
   if (le_traitement_particulier.non_nul())
-    le_traitement_particulier.preparer_calcul_particulier();
+    le_traitement_particulier->preparer_calcul_particulier();
 
   return 1;
 }
@@ -718,28 +718,28 @@ void Navier_Stokes_phase_field::mettre_a_jour(double temps)
 {
   Navier_Stokes_std::mettre_a_jour(temps);
   calculer_rho();
-  rho_.valeur().changer_temps(temps);
-  drhodc_.valeur().changer_temps(temps);
+  rho_->changer_temps(temps);
+  drhodc_->changer_temps(temps);
   if (mu_.non_nul())
     {
       calculer_mu(); // RLT: cette mise a jour etait manquante dans TrioCFD 1.8.0
-      mu_.valeur().changer_temps(temps);
+      mu_->changer_temps(temps);
     }
 
   if(boussi_==0)
     {
       Champ_Don rho_face_P;
       rho_face_P.typer("Champ_Fonc_Face");
-      rho_face_P.valeurs()=inconnue().valeurs();
-      const DoubleTab& tab_rho=rho_.valeurs();
+      rho_face_P->valeurs()=inconnue()->valeurs();
+      const DoubleTab& tab_rho=rho_->valeurs();
 
       rho_aux_faces(tab_rho, rho_face_P);
 
-      assembleur_pression_.valeur().assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
+      assembleur_pression_->assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
     }
   else
     {
-      assembleur_pression_.valeur().assembler(matrice_pression_);
+      assembleur_pression_->assembler(matrice_pression_);
     }
 
   // -------------------------------------------------------------------------------------------------------
@@ -866,13 +866,13 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
 
       //   Cerr << "** Navier_Stokes_phase_field::derivee_en_temps_inco **" << finl;
       //   Cerr << " - Copie via Navier_Stokes_Front_Tracking et modifie pour le Phase_field - " << finl;
-      DoubleTrav secmem(la_pression.valeurs());
-      DoubleTrav gradP(la_vitesse.valeurs());
+      DoubleTrav secmem(la_pression->valeurs());
+      DoubleTrav gradP(la_vitesse->valeurs());
       double dt=le_schema_en_temps->pas_de_temps();
 
       //   const Probleme_base& pb=ref_cast(Probleme_base, probleme());
       const Domaine_VF& zvf=ref_cast(Domaine_VF, domaine_dis().valeur());
-      const DoubleTab& tab_rho=rho_.valeurs();
+      const DoubleTab& tab_rho=rho_->valeurs();
       const IntTab& face_voisins = zvf.face_voisins();
       const int nbfaces_bord = zvf.premiere_face_int();
       const int nbfaces = zvf.nb_faces();
@@ -961,7 +961,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       // #endif
 
       // 1/dt B Un :;
-      divergence.calculer(la_vitesse.valeurs(), secmem);
+      divergence.calculer(la_vitesse->valeurs(), secmem);
       secmem/=dt;
 
       //   // Debug de l'affichage
@@ -977,7 +977,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       //     Cerr<<"terme_diffusif.ajouter : attention, partie FT de la diffusion non implementee en 3D !!"<<finl;
       // Ajout de Div(tau_d), terme diffusif
       DoubleTrav diff(vpoint);
-      terme_diffusif.ajouter(la_vitesse.valeurs(), diff);
+      terme_diffusif.ajouter(la_vitesse->valeurs(), diff);
 
       if(diff_boussi_==1)
         {
@@ -1017,7 +1017,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       // Modif pour convection :
       DoubleTrav conv(vpoint);
       conv = 0.;
-      terme_convectif.ajouter(la_vitesse.valeurs(), conv);
+      terme_convectif.ajouter(la_vitesse->valeurs(), conv);
 
       // on multiplie par rho :
       if (conv.line_size()==1)
@@ -1078,9 +1078,9 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       //   _aff_donnee_P1(vpoint,"VPOINT apres sources");
       // #endif
 
-      solveur_masse.appliquer(vpoint);
+      solveur_masse->appliquer(vpoint);
       if (calculate_time_derivative())
-        derivee_en_temps().valeurs()=vpoint;
+        derivee_en_temps()->valeurs()=vpoint;
       schema_temps().modifier_second_membre((*this),vpoint);
 
       // Appliquer le solveur masse => diviser par le volume
@@ -1127,7 +1127,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       //Assembleur_P_VDF_FT& assembleur_pression=ref_cast(Assembleur_P_VDF_FT, assembleur_pression_.valeur());
       //assembleur_pression.modifier_matrice_pression(matrice_pression_);
 
-      const Domaine_VF& domaine_VF = ref_cast(Domaine_VF,le_dom_dis.valeur().valeur());
+      const Domaine_VF& domaine_VF = ref_cast(Domaine_VF,le_dom_dis->valeur());
       const DoubleVect& volumes = domaine_VF.volumes();
       int el0,el1;
       double vol0,vol1;
@@ -1136,19 +1136,19 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       //Champ_Fonc_Face rho_face_P;
       Champ_Don rho_face_P;
       rho_face_P.typer("Champ_Fonc_Face");
-      rho_face_P.valeurs()=inconnue().valeurs();
+      rho_face_P->valeurs()=inconnue()->valeurs();
 
       for (int fac=0; fac<nbfaces_bord; fac++)
         {
           el0=face_voisins(fac,0);
           if(el0!=-1)
             {
-              rho_face_P.valeurs()(fac) = tab_rho(el0);
+              rho_face_P->valeurs()(fac) = tab_rho(el0);
             }
           else
             {
               el1=face_voisins(fac,1);
-              rho_face_P.valeurs()(fac) = tab_rho(el1);
+              rho_face_P->valeurs()(fac) = tab_rho(el1);
             }
         }
 
@@ -1158,18 +1158,18 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
           el1=face_voisins(fac,1);
           vol0=volumes(el0);
           vol1=volumes(el1);
-          rho_face_P.valeurs()(fac)=(vol0*tab_rho(el0)+vol1*tab_rho(el1))/(vol0+vol1);
+          rho_face_P->valeurs()(fac)=(vol0*tab_rho(el0)+vol1*tab_rho(el1))/(vol0+vol1);
         }
 
-      assembleur_pression_.valeur().assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
-      assembleur_pression_.valeur().modifier_secmem(secmem);
+      assembleur_pression_->assembler_rho_variable(matrice_pression_, rho_face_P.valeur());
+      assembleur_pression_->modifier_secmem(secmem);
 
       solveur_pression_->reinit();
       secmem.echange_espace_virtuel();
-      solveur_pression_.resoudre_systeme(matrice_pression_.valeur(),secmem,la_pression.valeurs());
-      assembleur_pression_.valeur().modifier_solution(la_pression.valeurs());
+      solveur_pression_.resoudre_systeme(matrice_pression_.valeur(),secmem,la_pression->valeurs());
+      assembleur_pression_->modifier_solution(la_pression->valeurs());
 
-      la_pression.valeurs().echange_espace_virtuel();
+      la_pression->valeurs().echange_espace_virtuel();
 
       //   // Debug de l'affichage
       // #ifdef _AFFDEBUG
@@ -1183,7 +1183,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       // #endif
 
       // M-1 Bt P
-      gradient.calculer(la_pression.valeurs(), gradP);
+      gradient.calculer(la_pression->valeurs(), gradP);
       gradP.echange_espace_virtuel();
 
       //   // Debug de l'affichage
@@ -1191,7 +1191,7 @@ DoubleTab& Navier_Stokes_phase_field::derivee_en_temps_inco(DoubleTab& vpoint)
       //   _aff_donnee_P1(gradP,"GRADP avant SolvMasse");
       // #endif
 
-      solveur_masse.appliquer(gradP);
+      solveur_masse->appliquer(gradP);
       // Idem qu'avant
 
       //   // Debug de l'affichage

@@ -67,12 +67,24 @@ paroi_tble turbulence_paroi_base paroi_tble 1 Keyword for the Thin Boundary Laye
   attr stats twofloat stats 1 Statistics of the TBLE velocity and turbulent viscosity profiles. 2 values are required : the starting time and ending time of the statistics computation.
   attr sonde_tble liste_sonde_tble sonde_tble 1 not_set
   attr restart rien restart 1 not_set
-  attr stationnaire entierfloat stationnaire 1 not_set
+  attr stationnaire floatfloat stationnaire 1 not_set
   attr lambda chaine lambda_u 1 not_set
   attr mu chaine mu 1 not_set
   attr sans_source_boussinesq rien sans_source_boussinesq 1 not_set
   attr alpha floattant alpha 1 not_set
   attr kappa floattant kappa 1 not_set
+fourfloat objet_lecture nul 0 Four reals.
+  attr a floattant a 0 First real.
+  attr b floattant b 0 Second real.
+  attr c floattant c 0 Third real.
+  attr d floattant d 0 Fourth real.
+twofloat objet_lecture nul 0 two reals.
+  attr a floattant a 0 First real.
+  attr b floattant b 0 Second real.
+sonde_tble objet_lecture nul 0 not_set
+  attr name chaine name 0 not_set
+  attr point un_point point 0 not_set
+liste_sonde_tble listobj nul 0 sonde_tble 0 not_set
 paroi_tble_scal turbulence_paroi_scalaire_base paroi_tble_scal 1 Keyword for the Thin Boundary Layer Equation thermal wall-model.
   attr n entier n 1 Number of nodes in the TBLE grid (mandatory option).
   attr facteur floattant facteur 1 Stretching ratio for the TBLE grid (to refine, the TBLE facteur must be greater than 1).
@@ -102,6 +114,8 @@ source_transport_k_eps_aniso_concen source_transport_k_eps source_transport_k_ep
 source_transport_k_eps_aniso_therm_concen source_transport_k_eps source_transport_k_eps_aniso_therm_concen -1 Keywords to modify the source term constants in the anisotherm standard k-eps model epsilon transport equation. By default, these constants are set to: C1_eps=1.44 C2_eps=1.92 C3_eps=1.0
   attr c3_eps floattant c3_eps 1 Third constant.
 frontiere_ouverte_k_eps_impose condlim_base frontiere_ouverte_k_eps_impose -1 Turbulence condition imposed on an open boundary called bord (edge) (this situation corresponds to a fluid inlet). This condition must be associated with an imposed inlet velocity condition.
+  attr ch front_field_base ch 0 Boundary field type.
+frontiere_ouverte_k_omega_impose condlim_base frontiere_ouverte_k_omega_impose -1 Turbulence condition imposed on an open boundary called bord (edge) (this situation corresponds to a fluid inlet). This condition must be associated with an imposed inlet velocity condition.
   attr ch front_field_base ch 0 Boundary field type.
 boundary_field_uniform_keps_from_ud front_field_base boundary_field_uniform_keps_from_ud 1 field which allows to impose on a boundary K and EPS values derived from U velocity and D hydraulic diameter
   attr u floattant u 0 value of velocity
@@ -152,6 +166,7 @@ paroi_ft_disc_constant paroi_ft_disc_deriv constant 0 condition contact angle fi
   attr ch front_field_base ch 0 Boundary field type.
 paroi_echange_contact_vdf_ft paroi_echange_contact_vdf paroi_echange_contact_vdf_ft -1 This boundary condition is used between a conduction problem and a thermohydraulic problem with two phases flow (Front-Tracking method) to modelize heat exchange.
 milieu_v2_base objet_u milieu_v2_base -1 Basic class for medium (physics properties of medium) composed of constituents (fluids and solids).
+methode_transport_deriv objet_lecture methode_transport_deriv 0 Basic class for method of transport of interface.
 vitesse_imposee methode_transport_deriv vitesse_imposee -1 Class to specify that the speed of displacement of the nodes of the interfaces is imposed with an analytical formula.
   attr val listchainef val 0 Analytical formula.
 vitesse_interpolee methode_transport_deriv vitesse_interpolee -1 Class to specify that the interpolation will use the velocity field of the Navier-Stokes equation named val to compute the speed of displacement of the nodes of the interfaces.
@@ -187,6 +202,7 @@ convection_diffusion_temperature_ft_disc convection_diffusion_temperature convec
   attr stencil_width entier stencil_width 1 distance in mesh elements over which the temperature field should be extrapolated in the opposite phase.
   attr maintien_temperature objet_lecture_maintien_temperature maintien_temperature 1 maintien_temperature SOUS_ZONE_NAME VALUE : experimental, this acts as a dynamic source term that heats or cools the fluid to maintain the average temperature to VALUE within the specified region. At this time, this is done by multiplying the temperature within the SOUS_ZONE by an appropriate uniform value at each timestep. This feature might be implemented in a separate source term in the future.
   attr prescribed_mpoint floattant prescribed_mpoint 1 User defined value of the phase-change rate (override the value computed based on the temperature field)
+  attr correction_mpoint_diff_conv_energy list correction_mpoint_diff_conv_energy 1 not_set 
 interpolation_champ_face_deriv objet_lecture interpolation_champ_face_deriv -1 not_set
 type_indic_faces_deriv objet_lecture type_indic_faces_deriv -1 not_set
 type_indic_faces_standard type_indic_faces_deriv standard 0 not_set
@@ -206,7 +222,7 @@ transport_interfaces_ft_disc eqn_base transport_interfaces_ft_disc -1 Interface 
   attr n_iterations_distance entier n_iterations_distance 1 Keyword to specify the number or iterations requested for the smoothing process of computing the field corresponding to the signed distance to the interfaces and located at the center of the Eulerian elements. This smoothing is necessary when there are more Lagrangian nodes than Eulerian two-phase cells.
   attr maillage chaine maillage 1 This optional block is used to specify that we want a Gnuplot drawing of the initial mesh. There is only one keyword, niveau_plot, that is used only to define if a Gnuplot drawing is active (value 1) or not active (value -1). By default, skipping the block will produce non Gnuplot drawing. This option is to be used only in a debug process.
   attr remaillage bloc_lecture_remaillage remaillage 1 This block is used to specify the operations that are used to keep the solid interfaces in a proper condition. The remaillage block only contains parameter\'s values.
-  attr collisions chaine collisions 1 This block is used to specify the operations that are used when a collision occurs between two parts of interfaces. When this occurs, it is necessary to build a new mesh that has locally a clear definition of what is inside and what is outside of the mesh. The collisions can either be active or inactive. If the collisions are active (highly recommended), the keyword juric_pour_tout indicates that the Juric level-set reconstruction method will be used to re-create the new mesh after each coalescence or breakup. The next line (type_remaillage) is used to state whose field will be used for the level-set computation. Main option is Juric, a remeshing that is compatible with parallel computing. When using Juric level-set remeshing, the source field (source_isovaleur) that is used to compute the level-sets is then defined. It can be either the indicator function (indicatrice), a choice which is the default one and the most robust, or a geometrical distance computed from the mesh at the beginning of the time step (fonction_distance), a choice that may be more accurate in specific situations.NL2 Type_remaillage Thomas is an enhancement of the Juric global remeshing algorithm designed to compensate for mass loss during remeshing. The mesh is always reconstructed with the indicator function (not with the distance function). After having reconstructed the mesh with the Juric algorithm, the difference between the old indicator function (before remeshing) and the new indicator function is computed. The differences occuring at a distance below or equal to N elements from the interface are summed up and used to move the interface in the normal direction. The displacement of the interface is such that the volume of each phase after displacement is equal to the volume of the phase before remeshing. N (default value 1) must be smaller than n_iterations_distance (suggested value: 2). NL2 An alternate choice for the remeshing type (type_remaillage) is collision_seq, which is more complex and tries to sew the two meshes that have collided, once the collision zone has been removed. This algorithm does not work in parallel computation.
+ attr collisions chaine collisions 1 This block is used to specify the operations that are used when a collision occurs between two parts of interfaces. When this occurs, it is necessary to build a new mesh that has locally a clear definition of what is inside and what is outside of the mesh. The collisions can either be active or inactive. If the collisions are active (highly recommended), a Juric level-set reconstruction method will be used to re-create the new mesh after each coalescence or breakup. An option Juric_local phase_continue N can be used to force the remeshing to impact only a local portion of the mesh, near the collision.  The next line (type_remaillage) is used to state whose field will be used for the level-set computation. Main option is Juric, a remeshing that is compatible with parallel computing. When using Juric level-set remeshing, the source field (source_isovaleur) that is used to compute the level-sets is then defined. It can be either the indicator function (indicatrice), a choice which is the default one and the most robust, or a geometrical distance computed from the mesh at the beginning of the time step (fonction_distance), a choice that may be more accurate in specific situations.NL2 Type_remaillage can be either Juric or Thomas. When Thomas is used, it is an enhancement of the Juric remeshing algorithm designed to compensate for mass loss during remeshing. The mesh is always reconstructed with the indicator function (not with the distance function). After having reconstructed the mesh with the Juric algorithm, the difference between the old indicator function (before remeshing) and the new indicator function is computed. The differences occuring at a distance below or equal to N elements from the interface are summed up and used to move the interface in the normal direction. The displacement of the interface is such that the volume of each phase after displacement is equal to the volume of the phase before remeshing. N (default value 1) must be smaller than n_iterations_distance (suggested value: 2).
   attr methode_interpolation_v chaine(into=["valeur_a_elem","vdf_lineaire"]) methode_interpolation_v 1 In this block, two keywords are possible for method to select the way the interpolation is performed. With the choice valeur_a_elem the speed of displacement of the nodes of the interfaces is the velocity at the center of the Eulerian element in which each node is located at the beginning of the time step. This choice is the default interpolation method. The choice VDF_lineaire is only available with a VDF discretization (VDF). In this case, the speed of displacement of the nodes of the interfaces is linearly interpolated on the 4 (in 2D) or the 6 (in 3D) Eulerian velocities closest the location of each node at the beginning of the time step. In peculiar situation, this choice may provide a better interpolated value. Of course, this choice is not available with a VEF discretization (VEFPreP1B).
   attr volume_impose_phase_1 floattant volume_impose_phase_1 1 this keyword is used to specify the volume of one phase to keep the volume of the phases constant during the remeshing process. It is an alternate solution to trouble in mass conservation. This option is mainly realistic when only one inclusion of phase 1 is present in the domain. In most other situations, the iterations_correction_volume keyword seems easier to justify. The volume to be keep is in m3 and should agree with initial condition.
   attr parcours_interface parcours_interface parcours_interface 1 Parcours_interface allows you to configure the algorithm that computes the surface mesh to volume mesh intersection. This algorithm has some serious trouble when the surface mesh points coincide with some faces of the volume mesh. Effects are visible on the indicator function, in VDF when a plane interface coincides with a volume mesh surface. NL2 To overcome these problems, the keyword correction_parcours_thomas keyword can be used: it allows the algorithm to slightly move some mesh points. This algorithm is experimental and is NOT activated by default.
@@ -260,17 +276,10 @@ navier_stokes_ft_disc navier_stokes_turbulent navier_stokes_ft_disc -1 Two-phase
   attr new_mass_source rien new_mass_source 1 Flag for localised computation of velocity jump based on interfacial area AI (advanced option)
   attr interpol_indic_pour_dI_dt chaine(into=["interp_ai_based","interp_standard","interp_modifiee"]) interpol_indic_pour_dI_dt 1 Specific interpolation of phase indicator function in VoF mass-preserving method (advanced option)
   attr OutletCorrection_pour_dI_dt chaine(into=["CORRECTION_GHOST_INDIC"]) OutletCorrection_pour_dI_dt 1 not_set
+  attr boussinesq_approximation rien boussinesq_approximation 1 not_set
 source_trainee source_base trainee 0 drag effect
 source_flottabilite source_base flottabilite 0 buoyancy effect
 source_masse_ajoutee source_base masse_ajoutee 0 weight added effect
-probleme_ft_disc_gen problem_read_generic probleme_ft_disc_gen -1 The generic Front-Tracking problem in the discontinuous version. It differs from the rest of the TRUST code : The problem does not state the number of equations that are enclosed in the problem. Two equations are compulsory : a momentum balance equation (alias Navier-Stokes equation) and an interface tracking equation. The list of equations to be solved is declared in the beginning of the data file. Another difference with more classical TRUST data file, lies in the fluids definition. The two-phase fluid (Fluide_Diphasique) is made with two usual single-phase fluids (Fluide_Incompressible). As the list of equations to be solved in the generic Front-Tracking problem is declared in the data file and not pre-defined in the structure of the problem, each equation has to be distinctively associated with the problem with the Associer keyword.
-  ref mm milieu_v2_base
-  ref chimie chimie
-  ref constituant constituant
-  ref fluide_incompressible fluide_incompressible
-  ref fluide_diphasique fluide_diphasique
-  ref Triple_Line_Model_FT_Disc Triple_Line_Model_FT_Disc
-
 probleme_couple_rayonnement coupled_problem pb_couple_rayonnement -1 This keyword is used to define a problem coupling several other problems to which radiation coupling is added.
   ref modele modele_rayonnement_base
 frontiere_ouverte_temperature_imposee_rayo_transp frontiere_ouverte_temperature_imposee frontiere_ouverte_temperature_imposee_rayo_transp -1 Imposed temperature condition for a radiation problem with transparent gas.
@@ -338,4 +347,5 @@ contact_vdf_vef condlim_base contact_vdf_vef 0 Boundary condition in the case of
   attr champ front_field_base champ 0 Boundary field type.
 contact_vef_vdf condlim_base contact_vef_vdf 0 Boundary condition in the case of two problems (VEF -> VDF).
   attr champ front_field_base champ 0 Boundary field type.
-
+methode_loi_horaire methode_transport_deriv loi_horaire -1 not_set
+  attr nom_loi ref_loi_horaire nom_loi 0 not_set

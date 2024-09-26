@@ -29,7 +29,6 @@
 #include <communications.h>
 #include <Probleme_base.h>
 #include <stat_counters.h>
-#include <Schema_Temps.h>
 #include <TRUSTTrav.h>
 #include <Param.h>
 #include <Debog.h>
@@ -68,9 +67,8 @@ int Modele_turbulence_hyd_K_Eps_Realisable::lire_motcle_non_standard(const Motcl
     }
   else if (mot == "Modele_Fonc_Realisable")
     {
-      get_modele_fonction().associer_eqn(eqn_transp_K_Eps());
-      is >> mon_modele_fonc_;
-      get_modele_fonction().discretiser();
+      Modele_Fonc_Realisable_base::typer_lire_Modele_Fonc_Realisable(mon_modele_fonc_, eqn_transp_K_Eps(), is);
+      get_modele_fonction()->discretiser();
       Cerr << "Realizable K_Epsilon model type " << get_modele_fonction().que_suis_je() << finl;
       return 1;
     }
@@ -84,7 +82,7 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Realisable::calculer_viscosite_turbulent
   const Nom& type = chK_Eps.que_suis_je();
   const DoubleTab& tab_K_Eps = chK_Eps.valeurs();
   Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::calculer_viscosite_turbulente K_Eps", tab_K_Eps);
-  DoubleTab& visco_turb = la_viscosite_turbulente_.valeurs();
+  DoubleTab& visco_turb = la_viscosite_turbulente_->valeurs();
 
   int n = tab_K_Eps.dimension(0);
 
@@ -112,13 +110,13 @@ Champ_Fonc& Modele_turbulence_hyd_K_Eps_Realisable::calculer_viscosite_turbulent
   else
     fill_turbulent_viscosity_tab(n, tab_K_Eps, visco_turb);
 
-  la_viscosite_turbulente_.changer_temps(temps);
+  la_viscosite_turbulente_->changer_temps(temps);
   return la_viscosite_turbulente_;
 }
 
 void Modele_turbulence_hyd_K_Eps_Realisable::fill_turbulent_viscosity_tab(const int n, const DoubleTab& tab_K_Eps, DoubleTab& turbulent_viscosity)
 {
-  const DoubleTab& Cmu = get_modele_fonction().get_Cmu(); // attention : il faut qu'il soit deja calcule!
+  const DoubleTab& Cmu = get_modele_fonction()->get_Cmu(); // attention : il faut qu'il soit deja calcule!
   Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::calculer_viscosite_turbulente Cmu", Cmu);
 
   for (int i = 0; i < n; i++)
@@ -141,15 +139,15 @@ int Modele_turbulence_hyd_K_Eps_Realisable::preparer_calcul()
 void Modele_turbulence_hyd_K_Eps_Realisable::mettre_a_jour(double temps)
 {
   Schema_Temps_base& sch = eqn_transp_K_Eps().schema_temps();
-  eqn_transp_K_Eps().domaine_Cl_dis().mettre_a_jour(temps);
+  eqn_transp_K_Eps().domaine_Cl_dis()->mettre_a_jour(temps);
   if (!eqn_transp_K_Eps().equation_non_resolue())
     sch.faire_un_pas_de_temps_eqn_base(eqn_transp_K_Eps());
   eqn_transp_K_Eps().mettre_a_jour(temps);
 
   statistiques().begin_count(nut_counter_);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::mettre_a_jour la_viscosite_turbulente before", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::mettre_a_jour la_viscosite_turbulente before", la_viscosite_turbulente_->valeurs());
   calculate_limit_viscosity<MODELE_TYPE::K_EPS_REALISABLE>(K_Eps(), LeCmu_);
-  Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::mettre_a_jour apres calculer_viscosite_turbulente la_viscosite_turbulente", la_viscosite_turbulente_.valeurs());
+  Debog::verifier("Modele_turbulence_hyd_K_Eps_Realisable::mettre_a_jour apres calculer_viscosite_turbulente la_viscosite_turbulente", la_viscosite_turbulente_->valeurs());
   statistiques().end_count(nut_counter_);
 }
 
@@ -197,7 +195,7 @@ void Modele_turbulence_hyd_K_Eps_Realisable::get_noms_champs_postraitables(Noms&
 
 void Modele_turbulence_hyd_K_Eps_Realisable::verifie_loi_paroi()
 {
-  Nom lp = loipar_.valeur().que_suis_je();
+  Nom lp = loipar_->que_suis_je();
   if (lp == "negligeable_VEF" || lp == "negligeable_VDF")
     if (!associe_modele_fonction().non_nul())
       {

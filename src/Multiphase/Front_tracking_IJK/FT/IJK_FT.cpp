@@ -593,7 +593,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   param.ajouter("thermals", &thermals_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   param.ajouter("thermique", &thermique_); // XD_ADD_P thermique not_set
   param.ajouter("energie", &energie_); // XD_ADD_P chaine not_set
@@ -980,7 +980,7 @@ Entree& IJK_FT_double::interpreter(Entree& is)
   interfaces_.associer(*this);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     itr.associer(*this);
@@ -1572,7 +1572,7 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
   //TODO: sauvegarde des champs surfaces (vapeur) et barycentre,
   // eventuellement du med pour voir si la conversion marche.
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     {
@@ -1628,7 +1628,7 @@ void IJK_FT_double::sauvegarder_probleme(const char *fichier_sauvegarde,
               << " corrections_qdm " << qdm_corrections_;
 
       /*
-       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
        */
       /*
        * Temperature
@@ -1699,7 +1699,7 @@ void IJK_FT_double::reprendre_probleme(const char *fichier_reprise)
   // param.ajouter("force_init", &force_init_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   param.ajouter("thermique", &thermique_);
   param.ajouter("energie", &energie_);
@@ -1811,7 +1811,7 @@ double IJK_FT_double::find_timestep(const double max_timestep,
   const double dt_eq_velocity = 1. / (1./dt_cfl_ + 1./dt_fo_ + 1./dt_oh_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   double dt_thermique = 1.e20;
   for (const auto& itr : thermique_)
@@ -1970,7 +1970,7 @@ int IJK_FT_double::initialise()
     }
 
   // On peut recuperer le domainevf:
-  const Domaine_dis& domaine_dis = refprobleme_ft_disc_.valeur().domaine_dis();
+  const Domaine_dis& domaine_dis = refprobleme_ft_disc_->domaine_dis();
 
   // TODO: a valider
   // if (!disable_diphasique_)
@@ -2057,7 +2057,7 @@ int IJK_FT_double::initialise()
   statistiques().begin_count(calculer_thermique_prop_counter_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   int idx =0;
   for (auto& itr : thermique_)
@@ -2096,7 +2096,7 @@ int IJK_FT_double::initialise()
   Cout << "End of IJK_FT_double::initialise()" << finl;
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   //  if ((energie_.size() > 0) or (thermique_.size() >0) or (thermal_subresolution_.size()>0))
   if (energie_.size() > 0)
@@ -2899,7 +2899,7 @@ void IJK_FT_double::run()
 
 
   velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
-  velocity_diffusion_op_.set_bc(boundary_conditions_);
+  velocity_diffusion_op_->set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
 
   // Economise la memoire si pas besoin
@@ -2934,7 +2934,7 @@ void IJK_FT_double::run()
           if (!disable_diphasique_)
             {
               /*
-               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
                */
               for (auto& itr : thermique_)
                 itr.update_thermal_properties();
@@ -3059,7 +3059,7 @@ void IJK_FT_double::run()
       // indicatrice_ns_next_.data() = 1.;
 
       /*
-       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
        */
       for (auto& itr : thermique_)
         {
@@ -3078,7 +3078,7 @@ void IJK_FT_double::run()
       Cerr << "Cas normal diphasique IJK_FT::run()" << finl;
 
       /*
-       * TODO: Change this block with DERIV CLASS IJK_Thermal
+       * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
        */
       for (auto& itr : thermique_)
         itr.update_thermal_properties();
@@ -3266,7 +3266,7 @@ void IJK_FT_double::run()
               maj_indicatrice_rho_mu();
 
               /*
-               * TODO: Change this block with DERIV CLASS IJK_Thermal
+               * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
                */
               for (auto& itr : thermique_)
                 {
@@ -3842,9 +3842,9 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
     {
       if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_simple)
         {
-          velocity_convection_op_.calculer(velocity_[0], velocity_[1], velocity_[2],
-                                           velocity_[0], velocity_[1], velocity_[2],
-                                           d_velocity_[0], d_velocity_[1], d_velocity_[2]);
+          velocity_convection_op_->calculer(velocity_[0], velocity_[1], velocity_[2],
+                                            velocity_[0], velocity_[1], velocity_[2],
+                                            d_velocity_[0], d_velocity_[1], d_velocity_[2]);
           // Multiplication par rho (on va rediviser a la fin)
           // (a partir de rho aux elements et dv aux faces)
           if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
@@ -3870,18 +3870,18 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
           d_velocity_[2].data() = 0.;
           if (velocity_convection_op_.get_convection_op() != Nom("Centre4"))
             {
-              velocity_convection_op_.ajouter_avec_u_div_rhou(rho_v_[0], rho_v_[1], rho_v_[2], // rhov_
-                                                              velocity_[0], velocity_[1], velocity_[2],
-                                                              d_velocity_[0], d_velocity_[1], d_velocity_[2],
-                                                              div_rhou_);
+              velocity_convection_op_->ajouter_avec_u_div_rhou(rho_v_[0], rho_v_[1], rho_v_[2], // rhov_
+                                                               velocity_[0], velocity_[1], velocity_[2],
+                                                               d_velocity_[0], d_velocity_[1], d_velocity_[2],
+                                                               div_rhou_);
             }
         }
       else if (velocity_convection_op_.get_convection_op_option_rank() == conservative)
         {
           update_rho_v();
-          velocity_convection_op_.calculer(rho_v_[0], rho_v_[1], rho_v_[2],
-                                           velocity_[0], velocity_[1], velocity_[2],
-                                           d_velocity_[0], d_velocity_[1], d_velocity_[2]);
+          velocity_convection_op_->calculer(rho_v_[0], rho_v_[1], rho_v_[2],
+                                            velocity_[0], velocity_[1], velocity_[2],
+                                            d_velocity_[0], d_velocity_[1], d_velocity_[2]);
         }
       else
         {
@@ -3935,9 +3935,9 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
   // Calcul diffusion
   if ((!diffusion_alternative_) && (!disable_diffusion_qdm_) )
     {
-      velocity_diffusion_op_.set_nu(molecular_mu_);
-      velocity_diffusion_op_.ajouter(velocity_[0], velocity_[1], velocity_[2],
-                                     d_velocity_[0], d_velocity_[1], d_velocity_[2]);
+      velocity_diffusion_op_->set_nu(molecular_mu_);
+      velocity_diffusion_op_->ajouter(velocity_[0], velocity_[1], velocity_[2],
+                                      d_velocity_[0], d_velocity_[1], d_velocity_[2]);
       // GAB, qdm
       // a priori homogene a int_{volume_cellule} (d rho v / dt) pour le moment
       // mais on le divise par volume_cell_uniforme donc homogene a d rho v / dt maintenant
@@ -4280,9 +4280,9 @@ void IJK_FT_double::calculer_dv(const double timestep, const double time, const 
 
           if ((diffusion_alternative_) && (!disable_diffusion_qdm_))
             {
-              velocity_diffusion_op_.set_nu(unit_);
-              velocity_diffusion_op_.ajouter(velocity_[0], velocity_[1], velocity_[2],
-                                             laplacien_velocity_[0], laplacien_velocity_[1], laplacien_velocity_[2]);
+              velocity_diffusion_op_->set_nu(unit_);
+              velocity_diffusion_op_->ajouter(velocity_[0], velocity_[1], velocity_[2],
+                                              laplacien_velocity_[0], laplacien_velocity_[1], laplacien_velocity_[2]);
               for (int dir2 = 0; dir2 < 3; dir2++)
                 {
                   const int kmax2 = d_velocity_[dir2].nk();
@@ -4560,7 +4560,7 @@ void IJK_FT_double::euler_time_step(ArrOfDouble& var_volume_par_bulle)
     }
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     itr.euler_time_step(timestep_);
@@ -4808,7 +4808,7 @@ void IJK_FT_double::rk3_sub_step(const int rk_step, const double total_timestep,
   statistiques().begin_count(euler_rk3_counter_);
 
   /*
-   * TODO: Change this block with DERIV CLASS IJK_Thermal
+   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   for (auto& itr : thermique_)
     {

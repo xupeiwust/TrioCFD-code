@@ -23,13 +23,10 @@
 #ifndef Source_DC_VDF_included
 #define Source_DC_VDF_included
 
-
-
 #include <Source_Correction_Deficitaire.h>
-
+#include <Domaine_dis.h>
+#include <Domaine_Cl_dis.h>
 class Probleme_base;
-class Domaine_dis;
-class Domaine_Cl_dis;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -52,7 +49,7 @@ public:
 
   DoubleTab& calculer_residu(Connectivites_IndGros& connect, Restriction_base& rest, Equation_base& eq_fine) override ;
 
-  inline DoubleTab& calculer_residu(Connectivites_base& connect, LIST(Prolongement)& P, Equation_base& eqG, Nom&) override ;
+  inline DoubleTab& calculer_residu(Connectivites_base& connect, LIST(OWN_PTR(Prolongement_base))& P, Equation_base& eqG, Nom&) override ;
 
 
 

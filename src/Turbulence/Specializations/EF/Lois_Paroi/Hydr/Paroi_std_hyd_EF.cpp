@@ -37,7 +37,7 @@
 #include <Paroi_rugueuse.h>
 #include <SFichier.h>
 #include <Paroi_decalee_Robin.h>
-#include <Schema_Temps.h>
+#include <Schema_Temps_base.h>
 #include <communications.h>
 #include <Equation_base.h>
 
@@ -102,7 +102,7 @@ int Paroi_std_hyd_EF::init_lois_paroi()
   if (!Cisaillement_paroi_.get_md_vector().non_nul())
     {
       Cisaillement_paroi_.resize(0, dimension);
-      le_dom_EF.valeur().creer_tableau_faces(Cisaillement_paroi_);
+      le_dom_EF->creer_tableau_faces(Cisaillement_paroi_);
     }
   seuil_LP.resize(le_dom_EF->nb_faces_tot());
   iterations_LP.resize(le_dom_EF->nb_faces_tot());
@@ -115,7 +115,7 @@ int Paroi_std_hyd_EF::init_lois_paroi()
 
 int Paroi_std_hyd_EF::init_lois_paroi_hydraulique()
 {
-  Cmu = mon_modele_turb_hyd->get_Cmu();
+  Cmu_ = mon_modele_turb_hyd->get_Cmu();
   init_lois_paroi_hydraulique_();
   return 1;
 }
@@ -143,7 +143,7 @@ int Paroi_std_hyd_EF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const Fluide_base& le_fluide = ref_cast(Fluide_base, eqn_hydr.milieu());
   const Champ_Don& ch_visco_cin = le_fluide.viscosite_cinematique();
-  const DoubleTab& vitesse = eqn_hydr.inconnue().valeurs();
+  const DoubleTab& vitesse = eqn_hydr.inconnue()->valeurs();
   const DoubleTab& tab_visco = ch_visco_cin->valeurs();
   int nsom = domaine_EF.nb_som_face();
   int nsom_elem = domaine_EF.domaine().nb_som_elem();
@@ -197,7 +197,7 @@ int Paroi_std_hyd_EF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
           if (sub_type(Paroi_rugueuse,la_cl.valeur()))
             erugu=ref_cast(Paroi_rugueuse,la_cl.valeur()).get_erugu();
 
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
 
           // Loop on real faces
           //ArrOfDouble vit_face_loc(dimension);
@@ -273,7 +273,7 @@ int Paroi_std_hyd_EF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
               // Remplissage des tableaux (dans le cas de Longueur de melange on laisse la viscosite telle quelle)
               tab_k(elem) = k;
 
-              if((!LM) && (!COMB)) tab_nu_t(elem) = Cmu*k*k/(eps+DMINFLOAT);
+              if((!LM) && (!COMB)) tab_nu_t(elem) = Cmu_*k*k/(eps+DMINFLOAT);
 
               uplus_(num_face) = u_plus;
               tab_d_plus_(num_face) = d_plus;
@@ -309,10 +309,10 @@ int Paroi_std_hyd_EF::calculer_k_eps(double& k, double& eps , double yp, double 
   // PQ : 05/04/07 : formulation continue de k et epsilon
   //  assurant le bon comportement asymptotique
   double u_star_carre = u_star * u_star;
-  k    = 0.07*yp*yp*(exp(-yp/9.))+(1./(sqrt(Cmu)))*pow((1.-exp(-yp/20.)),2);  // k_plus
+  k    = 0.07*yp*yp*(exp(-yp/9.))+(1./(sqrt(Cmu_)))*pow((1.-exp(-yp/20.)),2);  // k_plus
   k   *= u_star_carre;
   // PL: 50625=15^4 on evite d'utiliser pow car lent
-  eps  = (1./(Kappa*pow(yp*yp*yp*yp+50625,0.25)));  // eps_plus
+  eps  = (1./(Kappa_*pow(yp*yp*yp*yp+50625,0.25)));  // eps_plus
   eps *= u_star_carre*u_star_carre/d_visco;
 
   return 1;
@@ -332,15 +332,15 @@ double Paroi_std_hyd_EF::calculer_u_plus(const int ind_face,const double u_plus_
   int    iter   = 0;
   int    itmax  = 25;
 
-  double A = (1/Kappa)*log(erugu/Kappa) ; //  (=7.44, contre 7.8 dans la loi d'origine)
+  double A = (1/Kappa_)*log(erugu/Kappa_) ; //  (=7.44, contre 7.8 dans la loi d'origine)
   //  permettant d'avoir en l'infini la loi de
-  //  Reichardt se calant sur : u+ = (1/Kappa).ln(Erugu.y+)
+  //  Reichardt se calant sur : u+ = (1/Kappa_).ln(Erugu.y+)
   double d_plus,u_plus2;
 
   while((iter++<itmax) && (r>seuil))
     {
       d_plus  = u_plus_d_plus/ u_plus ;
-      u_plus2 = ((1./Kappa)*log(1.+Kappa*d_plus))+A*(1.-exp(-d_plus/11.)-exp(-d_plus/3.)*d_plus/11.); // Equation de Reichardt
+      u_plus2 = ((1./Kappa_)*log(1.+Kappa_*d_plus))+A*(1.-exp(-d_plus/11.)-exp(-d_plus/3.)*d_plus/11.); // Equation de Reichardt
       u_plus  = 0.5*(u_plus+u_plus2);
       r       = std::fabs(u_plus-u_plus2)/u_plus;
     }
@@ -378,9 +378,9 @@ void Paroi_std_hyd_EF::imprimer_ustar(Sortie& os) const
       if ( (sub_type(Dirichlet_paroi_fixe,la_cl.valeur())) ||
            (sub_type(Dirichlet_paroi_defilante,la_cl.valeur())) ||
            (sub_type(Paroi_decalee_Robin,la_cl.valeur()) ) ||
-           (la_cl.valeur().que_suis_je() == "Frontiere_ouverte_vitesse_imposee_ALE"))
+           (la_cl->que_suis_je() == "Frontiere_ouverte_vitesse_imposee_ALE"))
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           if(je_suis_maitre())
             {
               Ustar << finl;

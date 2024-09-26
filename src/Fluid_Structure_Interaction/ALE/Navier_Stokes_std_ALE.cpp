@@ -80,13 +80,13 @@ int Navier_Stokes_std_ALE::reprendre(Entree& is)
   Champ_Inc JacobianOld = vitesse(); // Initialize with same discretization
   JacobianOld->nommer("JacobianOld");
   Nom field_tag_JOld(JacobianOld->le_nom());
-  field_tag_JOld += JacobianOld.valeur().que_suis_je();
+  field_tag_JOld += JacobianOld->que_suis_je();
   field_tag_JOld += probleme().domaine().le_nom();
   field_tag_JOld += Nom(probleme().schema_temps().temps_courant(),probleme().reprise_format_temps());
   Champ_Inc JacobianNew = vitesse(); // Initialize with same discretization
   JacobianNew->nommer("JacobianNew");
   Nom field_tag_JNew(JacobianNew->le_nom());
-  field_tag_JNew += JacobianNew.valeur().que_suis_je();
+  field_tag_JNew += JacobianNew->que_suis_je();
   field_tag_JNew += probleme().domaine().le_nom();
   field_tag_JNew += Nom(probleme().schema_temps().temps_courant(),probleme().reprise_format_temps());
 
@@ -139,9 +139,9 @@ void Navier_Stokes_std_ALE::renewing_jacobians( DoubleTab& derivee )
   Cerr << "Adding ALE contribution..." << finl;
   Op_Conv_ALE& opale=ref_cast(Op_Conv_ALE, terme_convectif.valeur());
   DoubleTrav ALE(derivee); // copie de la structure, initialise a zero
-  opale.ajouterALE(la_vitesse.valeurs(), ALE);
+  opale.ajouterALE(la_vitesse->valeurs(), ALE);
   ALE.echange_espace_virtuel();
-  solveur_masse.appliquer(ALE);
+  solveur_masse->appliquer(ALE);
   ALE.echange_espace_virtuel();
   derivee+=ALE; // M-1(F + ALEconvectiveTerm - BtP(n))=derivee_withALEconvectiveTerm
   derivee.echange_espace_virtuel();
@@ -172,12 +172,11 @@ void Navier_Stokes_std_ALE::div_ale_derivative( DoubleTrav& deriveeALE, double t
   secmemP.echange_espace_virtuel();
   //Debog::verifier("secmemP  modifier Navier_Stokes_std::corriger_derivee_impl",secmemP);
   // Correction du second membre d'apres les conditions aux limites :
-  assembleur_pression_.modifier_secmem(secmemP);
+  assembleur_pression_->modifier_secmem(secmemP);
   secmemP.echange_espace_virtuel();
 
   Debog::verifier("secmemP Navier_Stokes_std::corriger_derivee_impl",secmemP);
 }
-
 
 void Navier_Stokes_std_ALE::update_pressure_matrix( void )
 {
@@ -185,7 +184,7 @@ void Navier_Stokes_std_ALE::update_pressure_matrix( void )
   Domaine_ALE& dom_ale=ref_cast(Domaine_ALE, probleme().domaine());
   if(dom_ale.update_or_not_matrix_coeffs() == 0)
     {
-      assembleur_pression_.assembler(matrice_pression_); // Here B M-1 Bt is assembled.
+      assembleur_pression_->assembler(matrice_pression_); // Here B M-1 Bt is assembled.
       solveur_pression_->reinit();
     }
 }
@@ -197,11 +196,11 @@ void Navier_Stokes_std_ALE::discretiser()
   Cerr << "Mesh Velocity discretization" << finl;
   dis.discretiser_champ("vitesse", domaine_dis().valeur(), "ALEMeshVelocity","m/s", dimension,1,schema_temps().temps_courant(), ALEMeshVelocity_);
   champs_compris_.ajoute_champ(ALEMeshVelocity_);
-  ALEMeshVelocity_.valeur().add_synonymous(Nom("ALEMeshVelocity"));
+  ALEMeshVelocity_->add_synonymous(Nom("ALEMeshVelocity"));
   Cerr << "Mesh Velocity discretization" << finl;
   dis.discretiser_champ("vitesse",domaine_dis().valeur(),"ALEMeshTotalDisplacement","m/s",dimension,1,schema_temps().temps_courant(),ALEMeshTotalDisplacement_);
   champs_compris_.ajoute_champ(ALEMeshTotalDisplacement_);
-  ALEMeshTotalDisplacement_.valeur().add_synonymous(Nom("ALEMeshTotalDisplacement"));
+  ALEMeshTotalDisplacement_->add_synonymous(Nom("ALEMeshTotalDisplacement"));
 }
 
 void Navier_Stokes_std_ALE::mettre_a_jour(double temps)
@@ -211,7 +210,7 @@ void Navier_Stokes_std_ALE::mettre_a_jour(double temps)
     {
       const Domaine_ALE& dom_ale=ref_cast(Domaine_ALE, probleme().domaine());
       const DoubleTab& ALEMeshVelocity= dom_ale.vitesse_faces();//we access the mesh speed
-      ALEMeshVelocity_.valeurs()= ALEMeshVelocity;
+      ALEMeshVelocity_->valeurs()= ALEMeshVelocity;
       double dt = schema_temps().pas_de_temps();
       DoubleTab ALEMeshVelocity_dt= ALEMeshVelocity;
       for(int dim=0; dim<dimension; dim++)
@@ -222,14 +221,11 @@ void Navier_Stokes_std_ALE::mettre_a_jour(double temps)
             }
         }
       ALEMeshVelocity_dt.echange_espace_virtuel();
-      ALEMeshTotalDisplacement_.valeurs() +=ALEMeshVelocity_dt;
-      //ALEMeshTotalDisplacement_.valeurs().echange_espace_virtuel();
-      //ALEMeshVelocity_.valeurs().echange_espace_virtuel();
-      ALEMeshVelocity_.mettre_a_jour(temps);
-      ALEMeshTotalDisplacement_.mettre_a_jour(temps);
+      ALEMeshTotalDisplacement_->valeurs() +=ALEMeshVelocity_dt;
+      //ALEMeshTotalDisplacement_->valeurs().echange_espace_virtuel();
+      //ALEMeshVelocity_->valeurs().echange_espace_virtuel();
+      ALEMeshVelocity_->mettre_a_jour(temps);
+      ALEMeshTotalDisplacement_->mettre_a_jour(temps);
 
     }
-
-
 }
-

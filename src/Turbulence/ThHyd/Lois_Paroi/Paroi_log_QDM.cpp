@@ -24,14 +24,14 @@
 Paroi_log_QDM::Paroi_log_QDM()
 {
   A_plus = A_DEF;
-  Kappa = K_DEF;
+  Kappa_ = K_DEF;
   Erugu = E_DEF;
-  Cmu = CMU;
+  Cmu_ = CMU;
 }
 
 void Paroi_log_QDM::set_param(Param& param)
 {
-  param.ajouter("Kappa", &Kappa);
+  param.ajouter("Kappa", &Kappa_);
   param.ajouter("Erugu", &Erugu);
   param.ajouter("A_plus", &A_plus);
 }
@@ -49,7 +49,7 @@ void Paroi_log_QDM::init_lois_paroi_hydraulique_()
   double val = 0;
   for (int i = 0; i < 40; i++)
     {
-      val += integrale(les_params[i] - 1, les_params[i], Kappa, A_plus, pf);
+      val += integrale(les_params[i] - 1, les_params[i], Kappa_, A_plus, pf);
       les_valeurs(i, 0) = val*les_params[i];
     }
 
@@ -58,7 +58,7 @@ void Paroi_log_QDM::init_lois_paroi_hydraulique_()
 
 double Paroi_log_QDM::calcul_lm_plus(double d_plus)
 {
-  return Kappa*d_plus*(1 - exp(-d_plus/A_plus));
+  return Kappa_*d_plus*(1 - exp(-d_plus/A_plus));
 }
 
 double Fdypar_direct(double lm_plus)
@@ -68,13 +68,12 @@ double Fdypar_direct(double lm_plus)
 
 double Fdypar(double d_plus, double kappa, double a_plus)
 {
-  double lm_plus = kappa*d_plus*(1-exp(-d_plus/a_plus));
+  const double lm_plus = kappa*d_plus*(1-exp(-d_plus/a_plus));
   return 2./(1+sqrt(1.0+4*lm_plus*lm_plus));
 }
 
 double integrale(double a, double b, double param1, double param2,
                  double (*pf) (double, double, double))
 {
-  double sum = 0.5*(pf(a, param1, param2) + pf(b, param1, param2))*(b - a);
-  return sum;
+  return 0.5*(pf(a, param1, param2) + pf(b, param1, param2))*(b - a);
 }

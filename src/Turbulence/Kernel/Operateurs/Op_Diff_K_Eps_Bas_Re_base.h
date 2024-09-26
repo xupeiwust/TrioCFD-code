@@ -29,12 +29,10 @@
 #include <Matrice_Morse.h>
 #include <TRUSTTabs_forward.h>
 #include <TRUST_Ref.h>
+#include <Champ_Don.h>
+#include <Champ_Fonc.h>
 
-class Champ_Don;
-class Champ_Fonc;
 class Champ_base;
-
-
 
 /*! @brief classe Op_Diff_K_Eps_Bas_Re_base Classe de base de la hierarchie des operateurs de diffusion
  *
@@ -104,7 +102,7 @@ protected:
  * @sa Op_Diff_K_Eps_Bas_Re_base
  */
 class Op_Diff_K_Eps_Bas_Re : public Operateur,
-  public DERIV(Op_Diff_K_Eps_Bas_Re_base)
+  public OWN_PTR(Op_Diff_K_Eps_Bas_Re_base)
 {
 
   Declare_instanciable(Op_Diff_K_Eps_Bas_Re);

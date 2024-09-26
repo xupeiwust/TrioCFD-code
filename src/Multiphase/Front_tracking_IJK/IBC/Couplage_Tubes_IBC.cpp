@@ -96,7 +96,7 @@ void Couplage_Tubes_IBC::initialize(const IJK_Splitting& splitting)
   masse_fluide_cylindres_.resize(n_tubes_total, 3);
 
   for (int i = 0; i < n_tubes_total; i++)
-    faisceau_[i].valeur().initialize(splitting); // la fonction initialize() appartient a la class Tube_base, on l'appelle ici pour pouvoir accader a splitting dans cette class
+    faisceau_[i]->initialize(splitting); // la fonction initialize() appartient a la class Tube_base, on l'appelle ici pour pouvoir accader a splitting dans cette class
 }
 
 void Couplage_Tubes_IBC::sauvegarder_probleme(SFichier& f)
@@ -3142,7 +3142,7 @@ void Couplage_Tubes_IBC::update(double current_time,
   Vecteur3 F_IBC_post_proj;
   Vecteur3 m_a;
 
-  // faisceau_[i] est un objet de type DERIV(Tube_base)
+  // faisceau_[i] est un objet de type OWN_PTR(Tube_base)
   // pour acceder a l'objet Tube_impose ou Tube_libre ou autre, il faut utiliser
   // faisceau_[i].valeur() qui est ici de type Tube_base.
   const int ntubes = faisceau_.size();
@@ -3209,7 +3209,7 @@ void Couplage_Tubes_IBC::update(double current_time,
       Cout << "m_a : " << m_a << " t= " << current_time << finl;
       Cout << " " << finl;
       // Actualisation de la position du tube i
-      faisceau_[i].valeur().update_vitesse_position(current_time, timestep, force_appliquee);
+      faisceau_[i]->update_vitesse_position(current_time, timestep, force_appliquee);
 
     }
 }

@@ -33,10 +33,9 @@
 #include <Paroi_log_QDM.h>
 #include <Modele_turbulence_hyd_K_Eps.h>
 #include <Modele_turbulence_hyd_K_Omega.h>
-
+#include <Domaine_dis.h>
+#include <Domaine_Cl_dis.h>
 class Champ_Fonc_base;
-class Domaine_dis;
-class Domaine_Cl_dis;
 
 /*! @brief CLASS: Paroi_std_hyd_VEF
  *
@@ -69,11 +68,11 @@ public:
   virtual int calculer_k_eps(double& , double& , double , double , double , double);
 
   //
-  void compute_k(double& k, double yp, double u_star);
-  void compute_epsilon(double& epsilon, double yp, double u_star, double d_visco);
-  void compute_omega(double& omega, double yp, double u_star, double d_visco, double dist);
-  void compute_k_epsilon(double& k, double& epsilon, double yplus, double u_star, double d_visco, double dist);
-  void compute_k_omega(double& k, double& omega, double yplus, double u_star, double d_visco, double dist);
+  void compute_k(double& k, const double yp, const double u_star);
+  void compute_epsilon(double& epsilon, const double yp, const double u_star, const double d_visco);
+  void compute_omega(double& omega, const double yp, const double u_star, const double d_visco, const double dist);
+  void compute_k_epsilon(double& k, double& epsilon, const double yplus, const double u_star, const double d_visco, const double dist);
+  void compute_k_omega(double& k, double& omega, const double yplus, const double u_star, const double d_visco, const double dist);
 
 
 
@@ -84,8 +83,8 @@ protected:
 
   DoubleVect uplus_;
 
-  DoubleVect seuil_LP;
-  IntVect iterations_LP;
+  DoubleVect seuil_LP_;
+  IntVect iterations_LP_;
 
   double u_star_impose_;
   int is_u_star_impose_;
@@ -96,6 +95,9 @@ protected:
   static constexpr double BETA_OMEGA {0.075};
   static constexpr double BETA_K {0.09};  // equals to Cmu
 };
+
+KOKKOS_FUNCTION
+double calculer_u_plus(const int ind_face, const double u_plus_d_plus, const double erugu, const double Kappa, DoubleArrView seuil_LP, IntArrView iterations_LP);
 
 /*! @brief Returns an integer value depending on the turbulence model.
  *

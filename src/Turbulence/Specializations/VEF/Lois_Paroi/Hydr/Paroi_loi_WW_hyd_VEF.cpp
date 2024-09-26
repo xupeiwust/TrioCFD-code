@@ -62,7 +62,7 @@ void Paroi_loi_WW_hyd_VEF::set_param(Param& param)
 // Remplissage de la table
 int Paroi_loi_WW_hyd_VEF::init_lois_paroi_hydraulique()
 {
-  Cmu = mon_modele_turb_hyd->get_Cmu();
+  Cmu_ = mon_modele_turb_hyd->get_Cmu();
   A= 8.3 ;
   B= 1./7. ;
   Y0= 11.81 ;
@@ -94,7 +94,7 @@ int Paroi_loi_WW_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const Fluide_base& le_fluide = ref_cast(Fluide_base, eqn_hydr.milieu());
   const Champ_Don& ch_visco_cin = le_fluide.viscosite_cinematique();
-  const DoubleTab& vit = eqn_hydr.inconnue().valeurs();
+  const DoubleTab& vit = eqn_hydr.inconnue()->valeurs();
   const DoubleTab& tab_visco = ch_visco_cin->valeurs();
   double visco=-1;
   int l_unif;
@@ -135,7 +135,7 @@ int Paroi_loi_WW_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
           const IntTab& elem_faces = domaine_VEF.elem_faces();
           ndeb = le_bord.num_premiere_face();
           nfin = ndeb + le_bord.nb_faces();
@@ -351,14 +351,14 @@ int Paroi_loi_WW_hyd_VEF::calculer_couche_puissance(DoubleTab& nu_t,DoubleTab& t
   //  nu_t = Cmu*k*k/eps
   //
   //                          2                       3
-  //  En utilisant  k =     u*/sqrt(Cmu)  et eps = u* / Kd
+  //  En utilisant  k =     u*/sqrt(Cmu_)  et eps = u* / Kd
   //
   //  on calcule nu_t en fonction de u*
 
   double u_star = tab_u_star(face);
 
-  tab_k(elem) = u_star*u_star/sqrt(Cmu);
-  nu_t(elem) =  u_star*Kappa*dist ;
+  tab_k(elem) = u_star*u_star/sqrt(Cmu_);
+  nu_t(elem) =  u_star*Kappa_*dist ;
 
   return 1;
 }

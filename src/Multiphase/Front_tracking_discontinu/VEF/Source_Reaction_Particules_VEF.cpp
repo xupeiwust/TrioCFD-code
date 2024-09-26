@@ -70,7 +70,7 @@ DoubleTab& Source_Reaction_Particules_VEF::ajouter(DoubleTab& resu) const
   int premiere_face_interne = zvf.premiere_face_int();
   int nb_pos = positions.dimension(0);
   int nb_som_elem = domaine_geom.nb_som_elem();
-  int nb_som_face = domaine_geom.type_elem().nb_som_face();
+  int nb_som_face = domaine_geom.type_elem()->nb_som_face();
   int is_QC=0;
   int is_FT=0;
   double coord_b=0.;
@@ -132,7 +132,7 @@ DoubleTab& Source_Reaction_Particules_VEF::ajouter(DoubleTab& resu) const
   for (num_cl=0 ; num_cl<zdis.nb_front_Cl() ; num_cl++)
     {
       const Cond_lim& la_cl = zcldis.les_conditions_limites(num_cl);
-      const Front_VF& le_bord = ref_cast(Front_VF,la_cl.frontiere_dis());
+      const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
       int ndeb = le_bord.num_premiere_face();
       int nfin = ndeb + le_bord.nb_faces();
       if (sub_type(Dirichlet,la_cl.valeur()) || sub_type(Dirichlet_homogene,la_cl.valeur()))

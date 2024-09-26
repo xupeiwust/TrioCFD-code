@@ -26,10 +26,9 @@
 
 #include <Paroi_hyd_base_VDF.h>
 #include <Paroi_log_QDM.h>
-
+#include <Domaine_dis.h>
+#include <Domaine_Cl_dis.h>
 class Champ_Fonc_base;
-class Domaine_dis;
-class Domaine_Cl_dis;
 class Param;
 
 /*! @brief CLASS: Paroi_std_hyd_VDF
@@ -107,7 +106,7 @@ protected:
 inline double Paroi_std_hyd_VDF::tau_tang(int face, int k) const
 {
   if(face >= Cisaillement_paroi_.dimension(0))
-    face -= le_dom_VDF.valeur().nb_faces_internes();
+    face -= le_dom_VDF->nb_faces_internes();
 
   if(face >= Cisaillement_paroi_.dimension_tot(0))
     {

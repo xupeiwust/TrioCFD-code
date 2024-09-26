@@ -21,7 +21,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <RK3_FT.h>
-#include <Equation.h>
+#include <Equation_base.h>
 #include <Probleme_base.h>
 #include <Transport_Interfaces_FT_Disc.h>
 #include <TRUSTTabs.h>
@@ -105,8 +105,8 @@ bool RK3_FT::iterateTimeStep(bool& converged)
       // Astuce pour calculer la derivee gpoint de la vitesse imposee au bord:
       //  gpoint est calcule par difference finie entre les deux derniers
       //  "mettre_a_jour". On fait une difference finie avec un delta_t tout petit:
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_ - epsilon_dt);
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_ - epsilon_dt);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_);
       prob.equation(i).domaine_Cl_dis()->calculer_derivee_en_temps(temps_courant_ - epsilon_dt,temps_courant_);
     }
 
@@ -143,8 +143,8 @@ bool RK3_FT::iterateTimeStep(bool& converged)
 
   for(i=0; i<nb_eqn; i++)
     {
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_ - epsilon_dt);
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_ - epsilon_dt);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_);
       prob.equation(i).domaine_Cl_dis()->calculer_derivee_en_temps(temps_courant_ - epsilon_dt,temps_courant_);
     }
 
@@ -185,8 +185,8 @@ bool RK3_FT::iterateTimeStep(bool& converged)
 
   for(i=0; i<nb_eqn; i++)
     {
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_ - epsilon_dt);
-      prob.equation(i).domaine_Cl_dis().mettre_a_jour(temps_courant_);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_ - epsilon_dt);
+      prob.equation(i).domaine_Cl_dis()->mettre_a_jour(temps_courant_);
       prob.equation(i).domaine_Cl_dis()->calculer_derivee_en_temps(temps_courant_ - epsilon_dt,temps_courant_);
     }
 
@@ -284,8 +284,8 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       // <REF(Champ_Inc_base)> = <Champ_Inc_base>
       Probleme_base& pb = ref_cast(Probleme_base,pbc.probleme(i));
       inconnues[i] = pb.equation(0).inconnue().valeur();
-      qNSi[i] = inconnues[i].valeur().valeurs();
-      qNSj[i] = inconnues[i].valeur().valeurs();
+      qNSi[i] = inconnues[i]->valeurs();
+      qNSj[i] = inconnues[i]->valeurs();
     }
 
   //ss pas de temps 1
@@ -298,7 +298,7 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       for(int j=0; j<nb_eqn; j++)
         {
           Equation_base& eqn = pb.equation(j);
-          eqn.domaine_Cl_dis().mettre_a_jour(temps_courant_);
+          eqn.domaine_Cl_dis()->mettre_a_jour(temps_courant_);
         }
     }
   temps_courant_ += dt_*1./3.;
@@ -323,8 +323,8 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       double accroissement_max_abs=qNSi[i].mp_max_abs_vect();
       set_stationnaire_atteint() *= ( accroissement_max_abs < seuil_statio_ );
 
-      inconnues[i].valeur().futur() = inconnues[i].valeur().valeurs();
-      inconnues[i].valeur().futur().ajoute_sans_ech_esp_virt(b1 * dt_, qNSi[i], VECT_ALL_ITEMS);
+      inconnues[i]->futur() = inconnues[i]->valeurs();
+      inconnues[i]->futur().ajoute_sans_ech_esp_virt(b1 * dt_, qNSi[i], VECT_ALL_ITEMS);
 
       if (pbc.probleme(i).que_suis_je() == "Probleme_FT_Disc_gen")
         {
@@ -349,7 +349,7 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       for(int j=0; j<nb_eqn; j++)
         {
           Equation_base& eqn = pb.equation(j);
-          eqn.domaine_Cl_dis().mettre_a_jour(temps_courant_);
+          eqn.domaine_Cl_dis()->mettre_a_jour(temps_courant_);
         }
     }
   temps_courant_ += dt_*5./12.;
@@ -368,8 +368,8 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       Probleme_base& pb = ref_cast(Probleme_base,pbc.probleme(i));
       pb.equation(0).derivee_en_temps_inco(qNSj[i]);
       qNSj[i].ajoute_sans_ech_esp_virt(a2, qNSi[i]);
-      inconnues[i].valeur().futur() = inconnues[i].valeur().valeurs();
-      inconnues[i].valeur().futur().ajoute(b2 * dt_, qNSj[i], VECT_ALL_ITEMS);
+      inconnues[i]->futur() = inconnues[i]->valeurs();
+      inconnues[i]->futur().ajoute(b2 * dt_, qNSj[i], VECT_ALL_ITEMS);
       if (pbc.probleme(i).que_suis_je() == "Probleme_FT_Disc_gen")
         {
           Transport_Interfaces_FT_Disc& equ_int=
@@ -395,7 +395,7 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       for(int j=0; j<nb_eqn; j++)
         {
           Equation_base& eqn = pb.equation(j);
-          eqn.domaine_Cl_dis().mettre_a_jour(temps_courant_);
+          eqn.domaine_Cl_dis()->mettre_a_jour(temps_courant_);
         }
     }
   temps_courant_ += dt_*1./4.;
@@ -414,8 +414,8 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       Probleme_base& pb = ref_cast(Probleme_base,pbc.probleme(i));
       pb.equation(0).derivee_en_temps_inco(qNSi[i]);
       qNSi[i].ajoute_sans_ech_esp_virt(a3, qNSj[i], VECT_ALL_ITEMS);
-      inconnues[i].valeur().futur() = inconnues[i].valeur().valeurs();
-      inconnues[i].valeur().futur().ajoute_sans_ech_esp_virt(b3 * dt_, qNSi[i], VECT_ALL_ITEMS);
+      inconnues[i]->futur() = inconnues[i]->valeurs();
+      inconnues[i]->futur().ajoute_sans_ech_esp_virt(b3 * dt_, qNSi[i], VECT_ALL_ITEMS);
       if (pbc.probleme(i).que_suis_je() == "Probleme_FT_Disc_gen")
         {
           Transport_Interfaces_FT_Disc& equ_int=
@@ -439,7 +439,7 @@ int RK3_FT::faire_un_pas_de_temps_pb_couple(Probleme_Couple& pbc)
       if ( pb.que_suis_je() == "Probleme_FT_Disc_gen")
         {
           // pour ne pas deplacer les interfaces:
-          inconnues[i].valeur().valeurs() = 0;
+          inconnues[i]->valeurs() = 0;
           // on tourne la roue juste apres donc on s'en fout de perdre les valeurs.
           pb.equation(1).mettre_a_jour(temps_courant_);
         }

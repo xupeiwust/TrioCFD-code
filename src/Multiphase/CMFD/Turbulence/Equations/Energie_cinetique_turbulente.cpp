@@ -78,8 +78,8 @@ void Energie_cinetique_turbulente::discretiser()
   Cerr << "Turbulent kinetic energy discretization" << finl;
   //On utilise temperature pour la directive car discretisation identique
   dis.discretiser_champ("temperature",domaine_dis(),"k","J/kg", 1,nb_valeurs_temp,temps,l_inco_ch);//une seule compo, meme en multiphase
-  l_inco_ch.valeur().fixer_nature_du_champ(scalaire);
-  l_inco_ch.valeur().fixer_nom_compo(0, Nom("k"));
+  l_inco_ch->fixer_nature_du_champ(scalaire);
+  l_inco_ch->fixer_nom_compo(0, Nom("k"));
   champs_compris_.ajoute_champ(l_inco_ch);
   Equation_base::discretiser();
   Cerr << "Energie_cinetique_turbulente::discretiser() ok" << finl;
@@ -120,9 +120,9 @@ void Energie_cinetique_turbulente::calculer_alpha_rho_k(const Objet_U& obj, Doub
     const Champ_base& ch_rho = fl.masse_volumique();
     const Champ_Inc_base *ch_alpha = sub_type(Pb_Multiphase, eqn.probleme()) ? &ref_cast(Pb_Multiphase, eqn.probleme()).equation_masse().inconnue().valeur() : nullptr,
                           *pch_rho = sub_type(Champ_Inc_base, ch_rho) ? &ref_cast(Champ_Inc_base, ch_rho) : nullptr; //pas toujours un Champ_Inc
-    const DoubleTab* alpha = ch_alpha ? &ch_alpha->valeurs() : nullptr, &rho = ch_rho.valeurs(), &k = eqn.inconnue().valeurs();
+    const DoubleTab* alpha = ch_alpha ? &ch_alpha->valeurs() : nullptr, &rho = ch_rho.valeurs(), &k = eqn.inconnue()->valeurs();
   */
-  const DoubleTab& k = eqn.inconnue().valeurs();
+  const DoubleTab& k = eqn.inconnue()->valeurs();
 
   /* valeurs du champ */
   int i, n, N = val.line_size(), Nl = val.dimension_tot(0);

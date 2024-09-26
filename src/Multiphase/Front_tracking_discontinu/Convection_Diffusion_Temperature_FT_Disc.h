@@ -25,7 +25,6 @@
 #include <Convection_Diffusion_Temperature.h>
 #include <Champ_Fonc.h>
 #include <Champ_Don.h>
-#include <Assembleur.h>
 #include <Assembleur_base.h>
 #include <TRUST_Ref.h>
 
@@ -67,7 +66,7 @@ public:
 
   const DoubleTab& get_mpoint() const
   {
-    return mpoint_.valeur().valeurs();
+    return mpoint_->valeurs();
   };
 
   const Transport_Interfaces_FT_Disc& get_eq_interface() const
@@ -124,7 +123,7 @@ protected:
 
   // To make a divergence-free velocity extension :
   int divergence_free_velocity_extension_;
-  Assembleur assembleur_pression_;
+  OWN_PTR(Assembleur_base) assembleur_pression_;
   Champ_Inc la_pression; // Of course, it's a fake :D
   Champ_Inc gradient_pression_;
   Champ_Inc divergence_delta_U;

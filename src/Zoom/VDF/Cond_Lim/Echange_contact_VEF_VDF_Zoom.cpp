@@ -132,7 +132,7 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
 
 
 
-      if (domaine_dis1.domaine().raccord(nom_racc1).valeur().que_suis_je() =="Raccord_distant_homogene")
+      if (domaine_dis1.domaine().raccord(nom_racc1)->que_suis_je() =="Raccord_distant_homogene")
         {
           //POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!
           Cerr<<"POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!"<<finl;
@@ -199,8 +199,8 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
           if(!sub_type(Champ_Uniforme,le_milieu->conductivite().valeur()))
             {
               //Cerr << "raccord local homogene et conductivite non uniforme" << finl;
-              const DoubleTab& lambda = le_milieu->conductivite().valeurs();
-              const DoubleTab& lambda_vdf = le_milieu_vdf->conductivite().valeurs();
+              const DoubleTab& lambda = le_milieu->conductivite()->valeurs();
+              const DoubleTab& lambda_vdf = le_milieu_vdf->conductivite()->valeurs();
               assert(h_paroi!=0.);
 
               if (lambda.nb_dim() == 1)
@@ -255,8 +255,8 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
           else  // la conductivite est un Champ uniforme
             {
               assert(h_paroi!=0.);
-              const DoubleTab& lambda = le_milieu->conductivite().valeurs();
-              const DoubleTab& lambda_vdf = le_milieu_vdf->conductivite().valeurs();
+              const DoubleTab& lambda = le_milieu->conductivite()->valeurs();
+              const DoubleTab& lambda_vdf = le_milieu_vdf->conductivite()->valeurs();
               for(i=0; i<nb_comp_vef; i++)
                 assert(lambda(0,i)!=0.); // juste des asserts
 
@@ -311,7 +311,7 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
                   {
                     const Champ_Inc_base& incoG = eqG.inconnue();
                     const DoubleTab& T_VDF = incoG.valeurs();
-                    const DoubleTab& T_VEF = eqF.inconnue().valeurs();
+                    const DoubleTab& T_VEF = eqF.inconnue()->valeurs();
                     DoubleVect cumulHiSi(nb_faces_front_vdf);
                     DoubleVect Tparoi(nb_faces_front_vdf);
 

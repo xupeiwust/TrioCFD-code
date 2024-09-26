@@ -27,11 +27,11 @@
 #include <TRUSTTabs_forward.h>
 #include <Matrice_Morse.h>
 #include <TRUST_Deriv.h>
+#include <Champ_Fonc.h>
 #include <TRUST_Ref.h>
 #include <Operateur.h>
+#include <Champ_Don.h>
 
-class Champ_Don;
-class Champ_Fonc;
 class Champ_base;
 
 // cAlan: 2023-01-30 : pardon pour ce vilain copier-coller, mais
@@ -118,7 +118,7 @@ protected:
  * @sa Op_Diff_K_Omega_base
  */
 class Op_Diff_K_Omega : public Operateur,
-  public DERIV(Op_Diff_K_Omega_base)
+  public OWN_PTR(Op_Diff_K_Omega_base)
 {
 
   Declare_instanciable(Op_Diff_K_Omega);

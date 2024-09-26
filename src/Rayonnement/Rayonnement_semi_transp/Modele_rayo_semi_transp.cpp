@@ -95,19 +95,19 @@ Sortie& Modele_rayo_semi_transp::printOn(Sortie& os) const
 
 bool Modele_rayo_semi_transp::initTimeStep(double dt)
 {
-  return eq_rayo()->initTimeStep(dt);
+  return eq_rayo().initTimeStep(dt);
 }
 
 bool Modele_rayo_semi_transp::iterateTimeStep(bool& converged)
 {
   converged=true;
-  return eq_rayo()->solve();
+  return eq_rayo().solve();
 }
 
 void Modele_rayo_semi_transp::validateTimeStep()
 {
   double temps=probleme().presentTime();
-  eq_rayo()->mettre_a_jour(temps);
+  eq_rayo().mettre_a_jour(temps);
   calculer_flux_radiatif();
   les_postraitements_.mettre_a_jour(temps);
   schema_temps().mettre_a_jour();
@@ -202,9 +202,9 @@ void Modele_rayo_semi_transp::preparer_calcul()
 
       // Associer le modele au CL rayonnantes.
       Domaine_Cl_dis& la_zcl = probleme().equation(j).domaine_Cl_dis();
-      for (int num_cl=0; num_cl<la_zcl.nb_cond_lim(); num_cl++)
+      for (int num_cl=0; num_cl<la_zcl->nb_cond_lim(); num_cl++)
         {
-          Cond_lim_base& la_cl = la_zcl.les_conditions_limites(num_cl).valeur();
+          Cond_lim_base& la_cl = la_zcl->les_conditions_limites(num_cl).valeur();
           Cond_Lim_rayo_semi_transp* la_cl_rayo_semi_transp;
 
           if (is_la_cl_rayo(la_cl,la_cl_rayo_semi_transp))
@@ -227,8 +227,8 @@ void Modele_rayo_semi_transp::preparer_calcul()
       for(int num_source = 0; num_source < les_sources.size(); num_source++)
         {
           if (  (sub_type(Source_rayo_semi_transp_base,les_sources[num_source].valeur()))
-                || (les_sources[num_source].valeur().que_suis_je() == "Source_rayo_semi_transp_QC_VDF_P0_VDF")
-                || (les_sources[num_source].valeur().que_suis_je() == "Source_rayo_semi_transp_QC_VEF_P1NC") )
+                || (les_sources[num_source]->que_suis_je() == "Source_rayo_semi_transp_QC_VDF_P0_VDF")
+                || (les_sources[num_source]->que_suis_je() == "Source_rayo_semi_transp_QC_VEF_P1NC") )
             {
               contient_source_rayo_semi_transp = 1;
             }
@@ -250,17 +250,23 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
 {
 
   // Typage de l'equation de rayonnement
-  Cerr<<"typage de l'equation de rayonnement"<<finl;
-  Nom type;
+  Cerr<<"typage de l'equation de rayonnement " ;
   Equation_base& eq_base = probleme().equation(1);
-  Eq_rayo_.typer(type,eq_base);
+  Nom disc = eq_base.discretisation().que_suis_je(), type = "Eq_rayo_semi_transp_";
+  if(disc=="VEFPreP1B")
+    disc="VEF";
+
+  type+=disc;
+  Cerr << type << finl;
+
+  Eq_rayo_.typer(type);
   //
   // Creation des associations pour l'equation de rayonnement.
   // Necessairement ici car, contrairement aux cas classiques, l'equation
   // a besoin d'etre typee !
   //
-  Eq_rayo_.associer_modele_rayonnement(*this);
-  Eq_rayo_.associer_sch_tps_base(schema_temps());
+  Eq_rayo_->associer_modele_rayonnement(*this);
+  Eq_rayo_->associer_sch_tps_base(schema_temps());
 
   //  Probleme_base::discretiser(dis);
   associer();
@@ -274,7 +280,7 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
   dis.associer_domaine(le_domaine_.valeur());
   dis.discretiser(le_domaine_dis_);
   // Can not do this before, since the Domaine_dis is not typed yet:
-  le_domaine_dis_->associer_domaine(le_domaine_);
+  le_domaine_dis_->valeur().associer_domaine(le_domaine_);
 
   Cerr << "Discretisation des equations" << finl;
   for(int i=0; i<nombre_d_equations(); i++)
@@ -289,7 +295,7 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
     {
 
       Fluide_base& fluide = ref_cast(Fluide_base,probleme().milieu());
-      Eq_rayo_.associer_fluide(fluide);
+      Eq_rayo_->associer_fluide(fluide);
 
       if (fluide.is_rayo_semi_transp())
         {
@@ -345,12 +351,12 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
 // On met a jour le flux radiatif pour tous les bords du probleme
 void Modele_rayo_semi_transp::calculer_flux_radiatif()
 {
-  Conds_lim& les_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites();
+  Conds_lim& les_cl_rayo = eq_rayo().domaine_Cl_dis()->les_conditions_limites();
 
   int num_cl_rayo=0;
   for(num_cl_rayo=0; num_cl_rayo<les_cl_rayo.size(); num_cl_rayo++)
     {
-      Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites(num_cl_rayo);
+      Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis()->les_conditions_limites(num_cl_rayo);
       if(sub_type(Flux_radiatif_base,la_cl_rayo.valeur()))
         {
           Flux_radiatif_base& la_cl_rayon = ref_cast(Flux_radiatif_base,la_cl_rayo.valeur());
@@ -393,15 +399,15 @@ const Champ_front& Modele_rayo_semi_transp::flux_radiatif(const Nom& nom_bord) c
 {
   //  Cerr<<"Modele_rayo_semi_transp::flux_radiatif const : Debut"<<finl;
   // On fait une boucle sur les bords pour trouver celui dont le nom est nom_bord
-  const Conds_lim& les_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites();
+  const Conds_lim& les_cl_rayo = eq_rayo().domaine_Cl_dis()->les_conditions_limites();
 
 
   int num_cl_rayo=0;
   for(num_cl_rayo=0; num_cl_rayo<les_cl_rayo.size(); num_cl_rayo++)
     {
-      const Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites(num_cl_rayo);
+      const Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis()->les_conditions_limites(num_cl_rayo);
 
-      if(la_cl_rayo.frontiere_dis().le_nom()==nom_bord)
+      if(la_cl_rayo->frontiere_dis().le_nom()==nom_bord)
         {
           if(sub_type(Flux_radiatif_base,la_cl_rayo.valeur()))
             {
@@ -421,7 +427,7 @@ const Champ_front& Modele_rayo_semi_transp::flux_radiatif(const Nom& nom_bord) c
   Cerr<<"il n'y a pas de condition a la limite portant le nom "<<nom_bord<<finl;
   exit();
   //pour les compilos
-  const Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites(0);
+  const Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis()->les_conditions_limites(0);
   Flux_radiatif_base& la_cl_rayon = ref_cast_non_const(Flux_radiatif_base,la_cl_rayo.valeur());
   return la_cl_rayon.flux_radiatif();
   //  Cerr<<"Modele_rayo_semi_transp::flux_radiatif const : Fin"<<finl;
