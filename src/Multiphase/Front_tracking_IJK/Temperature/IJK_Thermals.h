@@ -46,7 +46,7 @@ class IJK_Thermals : public LIST(IJK_Thermal)
 public :
   IJK_Thermals(const IJK_FT_base& ijk_ft);
   void set_fichier_reprise(const char *lataname);
-  const Nom& get_fichier_reprise();
+  const Nom get_fichier_reprise();
   void associer(const IJK_FT_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);

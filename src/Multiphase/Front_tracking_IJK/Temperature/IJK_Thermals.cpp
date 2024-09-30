@@ -51,7 +51,7 @@ void IJK_Thermals::set_fichier_reprise(const char *lataname)
       itr->set_fichier_reprise(lataname);
 }
 
-const Nom& IJK_Thermals::get_fichier_reprise()
+const Nom IJK_Thermals::get_fichier_reprise()
 {
   assert(!est_vide());
   return (*this)[0]->get_fichier_reprise();

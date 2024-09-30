@@ -1324,7 +1324,7 @@ protected:
 
   enum Terme_Gravite { GRAVITE_RHO_G, GRAVITE_GRAD_I };
   // Terme_Gravite terme_gravite_;
-  int terme_gravite_ = GRAVITE_GRAD_I; // Par defaut terme gravite ft sans courants parasites
+  int terme_gravite_ = GRAVITE_RHO_G; // Par defaut terme gravite ft sans courants parasites
 
   int nb_groups_ = 1;           // Nombre de groupes/classes de bulles. Par defaut toutes les bulles sont dans le meme group.
   ArrOfInt compo_to_group_; // Tableau de conversion: numero_de_groupe =

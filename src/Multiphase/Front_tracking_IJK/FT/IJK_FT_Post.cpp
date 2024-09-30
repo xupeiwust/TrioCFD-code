@@ -3041,6 +3041,15 @@ int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_p
     {
       n++, dumplata_scalar(lata_name, nom_temp, itr.temperature_, latastep);
     }
+
+  oss.str("");
+  oss << "D_TEMPERATURE_" << idx;
+  Nom nom_dtemp(oss.str().c_str());
+  if ((liste_post_instantanes_.contient_("D_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_dtemp)))
+    {
+      n++, dumplata_scalar(lata_name, nom_dtemp, itr.d_temperature_, latastep);
+    }
+
   oss.str("");
   if (liste_post_instantanes.contient_("CP"))
     n++, dumplata_scalar(lata_name, "CP", itr.cp_, latastep);
