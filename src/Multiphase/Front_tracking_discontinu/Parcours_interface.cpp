@@ -41,6 +41,7 @@ Entree& Parcours_interface::readOn(Entree& is)
 {
   Param param(que_suis_je());
   param.ajouter_flag("correction_parcours_thomas", &correction_parcours_thomas_);
+  param.ajouter_flag("parcours_sans_tolerance", &parcours_sans_tolerance_);
   param.lire_avec_accolades_depuis(is);
   return is;
 }
@@ -60,7 +61,8 @@ Parcours_interface::Parcours_interface()
   domaine_sommets_ptr = 0;
   Valeur_max_coordonnees_ = 0.;
   Erreur_max_coordonnees_ = 0.;
-  correction_parcours_thomas_ = 1;
+  correction_parcours_thomas_ = 0;
+  parcours_sans_tolerance_ = 0;
 }
 
 /*! @brief La construction par copie est interdite !
@@ -526,7 +528,12 @@ int Parcours_interface::calcul_intersection_facelem_2D(
   double u1 = 0.;
 
   // Estimation de l'incertitude sur l'evaluation de la fonction plan
-  double Zero = 0.;
+  double Zero = - Erreur_max_coordonnees_;
+  double tolerance_comparaisons = Objet_U::precision_geom;
+  if (correction_parcours_thomas_)
+    Zero = 0.;
+  if (parcours_sans_tolerance_)
+    tolerance_comparaisons = 0.;
   // Extension du segment si un sommet au bord
   {
     const double dx = x1 - x0;
@@ -567,8 +574,8 @@ int Parcours_interface::calcul_intersection_facelem_2D(
       // Calcul de la fonction aux extremites du segment tronque.
       const double f0 = f_0 * u0 + f_1 * (1. - u0);
       const double f1 = f_0 * u1 + f_1 * (1. - u1);
-      const int s0_dehors = f0 < Zero ? 1 : 0;
-      const int s1_dehors = f1 < Zero ? 1 : 0;
+      const int s0_dehors = inf_strict(f0,Zero,tolerance_comparaisons) ? 1 : 0;
+      const int s1_dehors = inf_strict(f1,Zero,tolerance_comparaisons) ? 1 : 0;
 
       if (s0_dehors + s1_dehors == 1)
         {
@@ -1096,7 +1103,12 @@ int Parcours_interface::calcul_intersection_facelem_3D(
       }
   }
   // Estimation de l'incertitude sur l'evaluation de la fonction plan
-  double Zero = 0.;
+  double Zero = - Erreur_max_coordonnees_;
+  double tolerance_comparaisons = Objet_U::precision_geom;
+  if (correction_parcours_thomas_)
+    Zero = 0.;
+  if (parcours_sans_tolerance_)
+    tolerance_comparaisons = 0.;
 
   // polygone_plan_coupe contient pour chaque segment du polygone
   // le numero du plan de l'element qui a genere ce segment.
@@ -1134,7 +1146,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
       double w = poly_(i,2);
       // Calcul de la "fonction plan" au sommet du polygone
       double f = f0 * u + f1 * v + f2 * w;
-      int sommet_dehors = f < Zero ? 1 : 0;
+      int sommet_dehors = inf_strict(f,Zero,tolerance_comparaisons) ? 1 : 0;
 
       for (i = 0; i < nb_sommets_poly; i++)
         {
@@ -1147,7 +1159,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
           w = poly_(i,2);
           // Calcul de la "fonction plan" au sommet du polygone
           f = f0 * u + f1 * v + f2 * w;
-          sommet_dehors = f < Zero ? 1 : 0;
+          sommet_dehors = inf_strict(f,Zero,tolerance_comparaisons) ? 1 : 0;
           if (sommet_dehors + sommet_precedent_dehors == 1)
             {
               // Le dernier segment du polygone coupe le plan.
@@ -1234,15 +1246,16 @@ int Parcours_interface::calcul_intersection_facelem_3D(
             double CdGrY = (v+v_prec)/2.;
             double St = (B-b) * h/2.;
             double CdGtX = (2.*b+B)/3.;
-            double CdGtY;
+            double CdGtY = v+v_prec;
             if (u<u_prec)
               {
-                CdGtY = (1./3.)*v + (2./3.)*v_prec;
+                CdGtY += v_prec;
               }
             else
               {
-                CdGtY = (2./3.)*v + (1./3.)*v_prec;
+                CdGtY += v;
               }
+            CdGtY /= 3.;
 
             double S = Sr + St;
             double uX = (Sr * CdGrX + St * CdGtX) / S;
@@ -1251,7 +1264,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
             double contrib_u_centre = uX * contrib_surface;
             double contrib_v_centre = vX * contrib_surface;
 
-            surface  += contrib_surface;
+            surface += contrib_surface;
             u_centre += contrib_u_centre;
             v_centre += contrib_v_centre;
           }
@@ -1266,7 +1279,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
   if (correction_parcours_thomas_ || (sqrt(surface) > 5. * Erreur_max_coordonnees_))
     {
       // normalisation du centre de gravite
-      if (surface != 0.) // Note : meme si la surface est tres petite, il ne devrait y avoir de problemes
+      if (sup_strict(surface,0.,tolerance_comparaisons))
         {
           u_centre /= surface;
           v_centre /= surface;
@@ -1281,11 +1294,10 @@ int Parcours_interface::calcul_intersection_facelem_3D(
       {
         for (int ii = 0; ii < 3; ii++)
           {
-            double somme = 0.;
-            somme += u_centre * coord_som[0][ii];
-            somme += v_centre * coord_som[1][ii];
-            somme += w_centre * coord_som[2][ii];
-            centre_de_gravite[ii] = somme;
+            centre_de_gravite[ii] =
+              u_centre * coord_som[0][ii]
+              + v_centre * coord_som[1][ii]
+              + w_centre * coord_som[2][ii];
           }
       }
       //calcul des coordonnees reelles du polygone d'intersection
@@ -1294,11 +1306,10 @@ int Parcours_interface::calcul_intersection_facelem_3D(
         {
           for (k=0 ; k<dimension ; k++)
             {
-              double somme = 0.;
-              somme += poly_(i,0) * coord_som[0][k];
-              somme += poly_(i,1) * coord_som[1][k];
-              somme += poly_(i,2) * coord_som[2][k];
-              poly_reelles_(i,k) = somme;
+              poly_reelles_(i,k) =
+                poly_(i,0) * coord_som[0][k]
+                + poly_(i,1) * coord_som[1][k]
+                + poly_(i,2) * coord_som[2][k];
             }
         }
       FTd_vecteur3 norme;

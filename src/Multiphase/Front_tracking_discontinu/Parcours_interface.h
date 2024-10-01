@@ -62,6 +62,18 @@ public:
   {
     return correction_parcours_thomas_ ;
   };
+  int get_parcours_sans_tolerance() const
+  {
+    return parcours_sans_tolerance_ ;
+  };
+  void set_correction_parcours_thomas()
+  {
+    correction_parcours_thomas_ = 1;
+  };
+  void set_parcours_sans_tolerance()
+  {
+    parcours_sans_tolerance_ = 1;
+  };
   void projeter_vecteur_sur_face(const int num_face, double& x_, double& y_, double& z_) const;
 
   void calculer_normale_face_bord(int num_face, double x, double y, double z,
@@ -199,6 +211,9 @@ protected:
   int eloigner_sommets_des_faces(Maillage_FT_Disc& maillage) const;
   double uzawa2(const Domaine_VF& domaine_vf, const int elem,
                 double& x, double& y, double& z) const;
+
+  // Drapeau de suppression de la tolerance sur la position dedans/dehors des points
+  int parcours_sans_tolerance_;
 };
 
 #endif

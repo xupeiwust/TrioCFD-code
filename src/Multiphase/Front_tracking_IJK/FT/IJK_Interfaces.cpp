@@ -326,6 +326,8 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 
   if (parcours_.get_correction_parcours_thomas())
     os << "  parcours_interface { correction_parcours_thomas } " << "\n";
+  if (parcours_.get_parcours_sans_tolerance())
+    os << "  parcours_interface { parcours_sans_tolerance } " << "\n";
 
   if (use_barycentres_velocity_)
     os << "use_barycentres_velocity" << "\n";
@@ -444,6 +446,18 @@ void IJK_Interfaces::activate_cut_cell()
   coord_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   vitesse_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
   normale_deplacement_interface_.associer_ephemere(*ref_ijk_ft_->get_cut_cell_disc());
+
+  if (!parcours_.get_correction_parcours_thomas())
+    {
+      Cerr << "Warning: The cut-cell method overrides default or user parameters to force the use of correction_parcours_thomas in parcours_interface." << finl;
+      parcours_.set_correction_parcours_thomas();
+    }
+
+  if (!parcours_.get_parcours_sans_tolerance())
+    {
+      Cerr << "Warning: The cut-cell method overrides default or user parameters to force the use of parcours_sans_tolerance in parcours_interface." << finl;
+      parcours_.set_parcours_sans_tolerance();
+    }
 }
 
 void IJK_Interfaces::imprime_bilan_indicatrice()
