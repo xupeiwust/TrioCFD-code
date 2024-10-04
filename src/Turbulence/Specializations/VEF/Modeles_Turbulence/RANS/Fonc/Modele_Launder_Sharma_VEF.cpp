@@ -222,13 +222,24 @@ DoubleTab& Modele_Launder_Sharma_VEF::Calcul_E(DoubleTab& E,const Domaine_dis_ba
       for (i=0; i<dimension; i++)
         {
           elem1=face_voisins(fac,0);
-          if (elem1 != -1)
-            gradient(fac, comp, i) = gradient_elem(elem1, comp, i);
-          else
+          elem2=face_voisins(fac,1);
+          if (elem2 != -1)
             {
-              elem1=face_voisins(fac,1);
-              gradient(fac, comp, i) = gradient_elem(elem1, comp, i);
+              double vol1=volumes(elem1);
+              double vol2=volumes(elem2);
+              double voltot=vol1+vol2;
+              for (comp=0; comp<ncomp_ch_transporte; comp++)
+                for (i=0; i<dimension; i++)
+                  {
+                    double grad1=gradient_elem(elem1, comp, i);
+                    double grad2=gradient_elem(elem2, comp, i);
+                    gradient(fac, comp, i) =  (vol1*grad1 + vol2*grad2)/voltot;
+                  }
             }
+          else
+            for (comp=0; comp<ncomp_ch_transporte; comp++)
+              for (i=0; i<dimension; i++)
+                gradient(fac, comp, i) =  gradient_elem(elem1, comp, i);
         }
 // fin du for faces
 
