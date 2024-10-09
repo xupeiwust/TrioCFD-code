@@ -269,10 +269,11 @@ public :
   DoubleTabFT_cut_cell diph_v_;
 
   void echange_espace_virtuel(int ghost);
-  void remplir_cellules_diphasiques();
-  void remplir_cellules_devenant_diphasiques();
-  void remplir_cellules_maintenant_pures();
-  void transfert_diphasique_vers_pures();
+  void copie_pure_vers_diph_sans_interpolation();
+  void echange_pure_vers_diph_cellules_initialement_pures();
+  void echange_diph_vers_pure_cellules_finalement_pures();
+  void vide_phase_invalide_cellules_diphasiques();
+  void remplir_tableau_pure_cellules_diphasiques(int next_time);
   void set_field_data(const Nom& parser_expression_of_x_y_z_and_t, const IJK_Field_double& input_f, const double current_time);
   void set_to_uniform_value(double valeur);
   void set_to_sum(const Cut_field_double& data_1, const Cut_field_double& data_2);

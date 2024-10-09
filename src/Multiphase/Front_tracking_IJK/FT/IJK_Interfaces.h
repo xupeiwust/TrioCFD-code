@@ -803,7 +803,7 @@ public :
     if (current_indic == 0)
       {
         double other_indic = (phase == 0) ? 1 - In(i, j, k) : In(i, j, k);
-        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+        return (other_indic == 0) ? 1. : other_indic;
       }
     else
       {
@@ -816,7 +816,7 @@ public :
     if (current_indic == 0)
       {
         double other_indic = (phase == 0) ? 1 - I(i, j, k) : I(i, j, k);
-        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+        return (other_indic == 0) ? 1. : other_indic;
       }
     else
       {

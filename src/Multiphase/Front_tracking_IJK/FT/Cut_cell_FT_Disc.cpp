@@ -863,11 +863,12 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
       bool devient_diphasique = ref_interfaces_->devient_diphasique(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       bool desequilibre_final = ref_interfaces_->a_desequilibre_final(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
       bool desequilibre_initial_uniquement = ref_interfaces_->a_desequilibre_initial_uniquement(old_indicatrice(i,j,k), next_indicatrice(i,j,k));
-      assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement == 1);
+      bool monophasique = ref_interfaces_->est_pure(.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k)));
+      assert(est_reguliere + devient_pure + devient_diphasique + desequilibre_final + desequilibre_initial_uniquement + monophasique == 1);
 
       index_sorted_by_statut_diphasique_(n,0) = n;
       index_sorted_by_statut_diphasique_(n,1) = est_reguliere*static_cast<int>(STATUT_DIPHASIQUE::REGULIER) + devient_pure*static_cast<int>(STATUT_DIPHASIQUE::MOURRANT) + devient_diphasique*static_cast<int>(STATUT_DIPHASIQUE::NAISSANT)
-                                                + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL);
+                                                + desequilibre_final*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL) + desequilibre_initial_uniquement*static_cast<int>(STATUT_DIPHASIQUE::DESEQUILIBRE_INITIAL) + monophasique*static_cast<int>(STATUT_DIPHASIQUE::MONOPHASIQUE);
       assert(index_sorted_by_statut_diphasique_(n,1) < STATUT_DIPHASIQUE::count);
       index_sorted_by_statut_diphasique_(n,2) = index;
     }
@@ -1047,14 +1048,26 @@ void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int
         }
     }
 
-  for (int n = 0; n < n_loc_; n++)
+  STATUT_DIPHASIQUE liste_statuts_valides[5] = { REGULIER, MOURRANT, NAISSANT, DESEQUILIBRE_FINAL, DESEQUILIBRE_INITIAL };
+  for (int index_statut_diphasique = 0; index_statut_diphasique < 5; index_statut_diphasique++)
     {
-      Int3 ijk = get_ijk_from_linear_index(linear_index_(n), ghost_size_, ref_splitting_, true);
-      int i = ijk[0];
-      int j = ijk[1];
-      int k = ijk[2];
+      int statut_diphasique = liste_statuts_valides[index_statut_diphasique];
+      int index_min = get_statut_diphasique_value_index(statut_diphasique);
+      int index_max = get_statut_diphasique_value_index(statut_diphasique+1);
+      for (int index = index_min; index < index_max; index++)
+        {
+          int n = get_n_from_statut_diphasique_index(index);
 
-      write_buffer_(i,j,k) = (double)(array(n,component));
+          Int3 ijk = get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          if (!within_ghost(i, j, k, 0, 0))
+            continue;
+
+          write_buffer_(i,j,k) = (double)(array(n,component));
+        }
     }
 }
 

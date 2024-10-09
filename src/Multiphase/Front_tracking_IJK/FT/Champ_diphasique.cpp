@@ -373,7 +373,7 @@ void Cut_field_double::echange_espace_virtuel(int le_ghost)
   diph_v_.echange_espace_virtuel();
 }
 
-void Cut_field_double::remplir_cellules_diphasiques()
+void Cut_field_double::copie_pure_vers_diph_sans_interpolation()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
@@ -389,11 +389,15 @@ void Cut_field_double::remplir_cellules_diphasiques()
   diph_v_.echange_espace_virtuel();
 }
 
-void Cut_field_double::remplir_cellules_devenant_diphasiques()
+void Cut_field_double::echange_pure_vers_diph_cellules_initialement_pures()
 {
-  int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::NAISSANT);
-  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
-  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique+1);
+  IJK_Field_double::echange_espace_virtuel(IJK_Field_double::ghost());
+
+  int statut_diphasique_monophasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MONOPHASIQUE);
+  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::NAISSANT);
+  assert(statut_diphasique_naissant == statut_diphasique_monophasique + 1);
+  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_monophasique);
+  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_naissant+1);
   for (int index = index_min; index < index_max; index++)
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
@@ -407,7 +411,6 @@ void Cut_field_double::remplir_cellules_devenant_diphasiques()
         continue;
 
       double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
-      assert(cut_cell_disc_->get_interfaces().devient_diphasique(i,j,k));
 
       // On garde les donnees de l'ancienne phase pour la nouvelle cellule_diphasique
       int ancienne_phase = (int)old_indicatrice;
@@ -422,11 +425,13 @@ void Cut_field_double::remplir_cellules_devenant_diphasiques()
     }
 }
 
-void Cut_field_double::remplir_cellules_maintenant_pures()
+void Cut_field_double::echange_diph_vers_pure_cellules_finalement_pures()
 {
-  int statut_diphasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MOURRANT);
-  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique);
-  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique+1);
+  int statut_diphasique_mourrant = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MOURRANT);
+  int statut_diphasique_monophasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MONOPHASIQUE);
+  assert(statut_diphasique_monophasique == statut_diphasique_mourrant + 1);
+  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_mourrant);
+  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_monophasique+1);
   for (int index = index_min; index < index_max; index++)
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
@@ -441,7 +446,7 @@ void Cut_field_double::remplir_cellules_maintenant_pures()
 
       double indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k); // Note : In car on est avant l'inversion
       assert(cut_cell_disc_->get_interfaces().est_pure(indicatrice));
-      // On garde les donnees de la cellule diphasique pour la nouvelle cellule_pure
+      // On garde les donnees de la cellule diphasique pour pure
       int phase_pure = (int)indicatrice;
       if (phase_pure == 1)
         {
@@ -454,7 +459,42 @@ void Cut_field_double::remplir_cellules_maintenant_pures()
     }
 }
 
-void Cut_field_double::transfert_diphasique_vers_pures()
+void Cut_field_double::vide_phase_invalide_cellules_diphasiques()
+{
+  int statut_diphasique_mourrant = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MOURRANT);
+  int statut_diphasique_monophasique = static_cast<int>(cut_cell_disc_->STATUT_DIPHASIQUE::MONOPHASIQUE);
+  assert(statut_diphasique_monophasique == statut_diphasique_mourrant + 1);
+  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_mourrant);
+  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_monophasique+1);
+  for (int index = index_min; index < index_max; index++)
+    {
+      int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
+
+      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      if (!cut_cell_disc_->within_ghost(i, j, k, ghost(), ghost()))
+        continue;
+
+      double next_indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k);
+
+      int phase_valide = (int)next_indicatrice;
+      if (phase_valide == 1)
+        {
+          assert(std::abs(diph_v_(n)) < 1e-12);
+          diph_v_(n) = 0.;
+        }
+      else if (phase_valide == 0)
+        {
+          assert(std::abs(diph_l_(n)) < 1e-12);
+          diph_l_(n) = 0.;
+        }
+    }
+}
+
+void Cut_field_double::remplir_tableau_pure_cellules_diphasiques(int next_time)
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
@@ -463,7 +503,7 @@ void Cut_field_double::transfert_diphasique_vers_pures()
       int j = ijk[1];
       int k = ijk[2];
 
-      double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
+      double indicatrice = next_time ? cut_cell_disc_->get_interfaces().In(i,j,k) : cut_cell_disc_->get_interfaces().I(i,j,k);
 
       pure_(i,j,k) = indicatrice*diph_l_(n) + (1 - indicatrice)*diph_v_(n);
     }

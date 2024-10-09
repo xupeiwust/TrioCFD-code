@@ -51,10 +51,11 @@ public :
   void compute_timestep(double& dt_thermals, const double dxmin);
   void initialize(const IJK_Splitting& splitting, int& nalloc);
   void recompute_temperature_init();
-  void remplir_cellules_diphasiques();
-  void remplir_cellules_devenant_diphasiques();
-  void remplir_cellules_maintenant_pures();
-  void transfert_diphasique_vers_pures();
+  void copie_pure_vers_diph_sans_interpolation();
+  void echange_pure_vers_diph_cellules_initialement_pures();
+  void echange_diph_vers_pure_cellules_finalement_pures();
+  void vide_phase_invalide_cellules_diphasiques();
+  void remplir_tableau_pure_cellules_diphasiques(int next_time);
   int size_thermal_problem(Nom thermal_problem);
   void update_thermal_properties();
   void euler_time_step(const double timestep);

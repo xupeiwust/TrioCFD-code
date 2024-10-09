@@ -22,6 +22,13 @@ void dumplata_scalar_cut_cell(int cut_cell_activated,
                               const char *filename, const char *fieldname,
                               const std::shared_ptr<IJK_Field_double>& f, int step)
 {
+  if (cut_cell_activated)
+    {
+      Cut_field_double& cut_field_f = static_cast<Cut_field_double&>(*f);
+      cut_field_f.echange_diph_vers_pure_cellules_finalement_pures();
+      cut_field_f.remplir_tableau_pure_cellules_diphasiques(true);
+    }
+
   dumplata_scalar(filename, fieldname, *f, step);
 
   if (cut_cell_activated)
@@ -52,6 +59,8 @@ void lire_dans_lata_cut_cell(int cut_cell_activated,
 
       lire_dans_lata(filename_with_path, tstep, geometryname, Nom(fieldname) + "_CUT_V", cut_field_f.get_cut_cell_disc().get_write_buffer());
       cut_field_f.get_cut_cell_disc().fill_variable_with_buffer(cut_field_f.diph_v_);
+
+      cut_field_f.echange_pure_vers_diph_cellules_initialement_pures();
     }
 }
 

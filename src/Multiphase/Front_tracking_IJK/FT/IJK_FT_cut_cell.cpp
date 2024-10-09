@@ -1064,9 +1064,9 @@ void IJK_FT_cut_cell::update_twice_indicator_field()
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
+  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 }
 
 void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
@@ -1077,23 +1077,24 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<Cut_field_vector3_double&>(remeshing_velocity_);
   Cut_field_vector3_double& cut_field_total_velocity = static_cast<Cut_field_vector3_double&>(total_velocity_);
 
-  thermals_.remplir_cellules_maintenant_pures();
+  thermals_.echange_diph_vers_pure_cellules_finalement_pures();
+  thermals_.vide_phase_invalide_cellules_diphasiques();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
+  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
   IJK_FT_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
-  thermals_.remplir_cellules_devenant_diphasiques();
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
-  thermals_.transfert_diphasique_vers_pures();
+  thermals_.echange_pure_vers_diph_cellules_initialement_pures();
+  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
+  thermals_.remplir_tableau_pure_cellules_diphasiques(false);
 
   interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
   interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
@@ -1122,23 +1123,24 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<Cut_field_vector3_double&>(remeshing_velocity_);
   Cut_field_vector3_double& cut_field_total_velocity = static_cast<Cut_field_vector3_double&>(total_velocity_);
 
-  thermals_.remplir_cellules_maintenant_pures();
+  thermals_.echange_diph_vers_pure_cellules_finalement_pures();
+  thermals_.vide_phase_invalide_cellules_diphasiques();
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
+  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
   IJK_FT_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
-  thermals_.remplir_cellules_devenant_diphasiques();
-  cut_field_velocity[0].remplir_cellules_diphasiques();
-  cut_field_velocity[1].remplir_cellules_diphasiques();
-  cut_field_velocity[2].remplir_cellules_diphasiques();
-  thermals_.transfert_diphasique_vers_pures();
+  thermals_.echange_pure_vers_diph_cellules_initialement_pures();
+  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
+  thermals_.remplir_tableau_pure_cellules_diphasiques(false);
 
   interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
   interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);

@@ -88,88 +88,109 @@ public :
   CutCell_GlobalInfo compute_Tmax_cut_cell(const Cut_field_double& cut_field_temperature, bool next);
   void calculer_flux_interface();
 
-  void remplir_cellules_diphasiques() override
+  void copie_pure_vers_diph_sans_interpolation() override
   {
     Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
-    cut_field_temperature.remplir_cellules_diphasiques();
+    cut_field_temperature.copie_pure_vers_diph_sans_interpolation();
 
     if (runge_kutta_fluxes_convection_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].remplir_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_conv[1].remplir_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_conv[2].remplir_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_conv[0].copie_pure_vers_diph_sans_interpolation();
+        cut_field_RK3_F_fluxes_conv[1].copie_pure_vers_diph_sans_interpolation();
+        cut_field_RK3_F_fluxes_conv[2].copie_pure_vers_diph_sans_interpolation();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].remplir_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_diff[1].remplir_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_diff[2].remplir_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_diff[0].copie_pure_vers_diph_sans_interpolation();
+        cut_field_RK3_F_fluxes_diff[1].copie_pure_vers_diph_sans_interpolation();
+        cut_field_RK3_F_fluxes_diff[2].copie_pure_vers_diph_sans_interpolation();
       }
   }
-  void remplir_cellules_devenant_diphasiques() override
+  void echange_pure_vers_diph_cellules_initialement_pures() override
   {
     Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
-    cut_field_temperature.remplir_cellules_devenant_diphasiques();
+    cut_field_temperature.echange_pure_vers_diph_cellules_initialement_pures();
 
     if (runge_kutta_fluxes_convection_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].remplir_cellules_devenant_diphasiques();
-        cut_field_RK3_F_fluxes_conv[1].remplir_cellules_devenant_diphasiques();
-        cut_field_RK3_F_fluxes_conv[2].remplir_cellules_devenant_diphasiques();
+        cut_field_RK3_F_fluxes_conv[0].echange_pure_vers_diph_cellules_initialement_pures();
+        cut_field_RK3_F_fluxes_conv[1].echange_pure_vers_diph_cellules_initialement_pures();
+        cut_field_RK3_F_fluxes_conv[2].echange_pure_vers_diph_cellules_initialement_pures();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].remplir_cellules_devenant_diphasiques();
-        cut_field_RK3_F_fluxes_diff[1].remplir_cellules_devenant_diphasiques();
-        cut_field_RK3_F_fluxes_diff[2].remplir_cellules_devenant_diphasiques();
+        cut_field_RK3_F_fluxes_diff[0].echange_pure_vers_diph_cellules_initialement_pures();
+        cut_field_RK3_F_fluxes_diff[1].echange_pure_vers_diph_cellules_initialement_pures();
+        cut_field_RK3_F_fluxes_diff[2].echange_pure_vers_diph_cellules_initialement_pures();
       }
   }
-  void remplir_cellules_maintenant_pures() override
+  void echange_diph_vers_pure_cellules_finalement_pures() override
   {
     Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
-    cut_field_temperature.remplir_cellules_maintenant_pures();
+    cut_field_temperature.echange_diph_vers_pure_cellules_finalement_pures();
 
     if (runge_kutta_fluxes_convection_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].remplir_cellules_maintenant_pures();
-        cut_field_RK3_F_fluxes_conv[1].remplir_cellules_maintenant_pures();
-        cut_field_RK3_F_fluxes_conv[2].remplir_cellules_maintenant_pures();
+        cut_field_RK3_F_fluxes_conv[0].echange_diph_vers_pure_cellules_finalement_pures();
+        cut_field_RK3_F_fluxes_conv[1].echange_diph_vers_pure_cellules_finalement_pures();
+        cut_field_RK3_F_fluxes_conv[2].echange_diph_vers_pure_cellules_finalement_pures();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].remplir_cellules_maintenant_pures();
-        cut_field_RK3_F_fluxes_diff[1].remplir_cellules_maintenant_pures();
-        cut_field_RK3_F_fluxes_diff[2].remplir_cellules_maintenant_pures();
+        cut_field_RK3_F_fluxes_diff[0].echange_diph_vers_pure_cellules_finalement_pures();
+        cut_field_RK3_F_fluxes_diff[1].echange_diph_vers_pure_cellules_finalement_pures();
+        cut_field_RK3_F_fluxes_diff[2].echange_diph_vers_pure_cellules_finalement_pures();
       }
   }
-  void transfert_diphasique_vers_pures() override
+  void vide_phase_invalide_cellules_diphasiques() override
   {
     Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
-    cut_field_temperature.transfert_diphasique_vers_pures();
+    cut_field_temperature.vide_phase_invalide_cellules_diphasiques();
 
     if (runge_kutta_fluxes_convection_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].transfert_diphasique_vers_pures();
-        cut_field_RK3_F_fluxes_conv[1].transfert_diphasique_vers_pures();
-        cut_field_RK3_F_fluxes_conv[2].transfert_diphasique_vers_pures();
+        cut_field_RK3_F_fluxes_conv[0].vide_phase_invalide_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_conv[1].vide_phase_invalide_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_conv[2].vide_phase_invalide_cellules_diphasiques();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
         Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].transfert_diphasique_vers_pures();
-        cut_field_RK3_F_fluxes_diff[1].transfert_diphasique_vers_pures();
-        cut_field_RK3_F_fluxes_diff[2].transfert_diphasique_vers_pures();
+        cut_field_RK3_F_fluxes_diff[0].vide_phase_invalide_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_diff[1].vide_phase_invalide_cellules_diphasiques();
+        cut_field_RK3_F_fluxes_diff[2].vide_phase_invalide_cellules_diphasiques();
+      }
+  }
+  void remplir_tableau_pure_cellules_diphasiques(int next_time) override
+  {
+    Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
+    cut_field_temperature.remplir_tableau_pure_cellules_diphasiques(next_time);
+
+    if (runge_kutta_fluxes_convection_)
+      {
+        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
+        cut_field_RK3_F_fluxes_conv[0].remplir_tableau_pure_cellules_diphasiques(next_time);
+        cut_field_RK3_F_fluxes_conv[1].remplir_tableau_pure_cellules_diphasiques(next_time);
+        cut_field_RK3_F_fluxes_conv[2].remplir_tableau_pure_cellules_diphasiques(next_time);
+      }
+
+    if (runge_kutta_fluxes_diffusion_)
+      {
+        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
+        cut_field_RK3_F_fluxes_diff[0].remplir_tableau_pure_cellules_diphasiques(next_time);
+        cut_field_RK3_F_fluxes_diff[1].remplir_tableau_pure_cellules_diphasiques(next_time);
+        cut_field_RK3_F_fluxes_diff[2].remplir_tableau_pure_cellules_diphasiques(next_time);
       }
   }
 

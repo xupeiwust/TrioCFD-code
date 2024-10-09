@@ -690,25 +690,31 @@ void IJK_Thermal_base::recompute_temperature_init()
   //  set_field_data(*temperature_, expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
 }
 
-void IJK_Thermal_base::remplir_cellules_diphasiques()
+void IJK_Thermal_base::copie_pure_vers_diph_sans_interpolation()
 {
-  Cerr << "remplir_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Cerr << "copie_pure_vers_diph_sans_interpolation est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
   Process::exit();
 }
 
-void IJK_Thermal_base::remplir_cellules_devenant_diphasiques()
+void IJK_Thermal_base::echange_pure_vers_diph_cellules_initialement_pures()
 {
-  Cerr << "remplir_cellules_devenant_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Cerr << "echange_pure_vers_diph_cellules_initialement_pures est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
   Process::exit();
 }
 
-void IJK_Thermal_base::remplir_cellules_maintenant_pures()
+void IJK_Thermal_base::echange_diph_vers_pure_cellules_finalement_pures()
 {
-  Cerr << "remplir_cellules_maintenant_pures est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Cerr << "echange_diph_vers_pure_cellules_finalement_pures est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
   Process::exit();
 }
 
-void IJK_Thermal_base::transfert_diphasique_vers_pures()
+void IJK_Thermal_base::vide_phase_invalide_cellules_diphasiques()
+{
+  Cerr << "vide_phase_invalide_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
+  Process::exit();
+}
+
+void IJK_Thermal_base::remplir_tableau_pure_cellules_diphasiques(int next_time)
 {
   Cerr << "Remplir_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
   Process::exit();

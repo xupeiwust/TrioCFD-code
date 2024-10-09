@@ -534,7 +534,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
   const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
 
   // Toujours necessaire, ou presque
-  diffusive_correction_.calculer_flux_interface_old(lambda_liquid_, lambda_vapour_, coord_facettes_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_, *temperature_, temperature_ft_);
+  diffusive_correction_.calculer_flux_interface_old(lambda_liquid_, lambda_vapour_, coord_facettes_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_ft_);
 
   if (!conv_temperature_negligible_)
     {
@@ -635,7 +635,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
 
   if (!deactivate_diffusion_interface_)
     {
-      diffusive_correction_.calculer_flux_interface_next(lambda_liquid_, lambda_vapour_, coord_facettes_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_, *temperature_, temperature_ft_);
+      diffusive_correction_.calculer_flux_interface_next(lambda_liquid_, lambda_vapour_, coord_facettes_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_, temperature_ft_);
       diffusive_correction_.calculer_flux_interface_efficace();
     }
   else
@@ -1080,13 +1080,41 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell(Cut_fi
                   global_energy_overall += cut_field_d_temperature.pure_(i,j,k);
                   count_overall += 1;
 
-                  global_energy_overall_l += cut_field_d_temperature.pure_(i,j,k);
-                  count_overall_l += 1;
+                  global_energy_overall_l += (indic_old(i,j,k) == 0) ? 0. : cut_field_d_temperature.pure_(i,j,k);
+                  count_overall_l += (indic_old(i,j,k) == 0) ? 0 : 1;
 
-                  global_energy_overall_v += cut_field_d_temperature.pure_(i,j,k);
-                  count_overall_v += 1;
+                  global_energy_overall_v += (indic_old(i,j,k) == 0) ? cut_field_d_temperature.pure_(i,j,k) : 0.;
+                  count_overall_v += (indic_old(i,j,k) == 0) ? 1 : 0;
 
                   global_energy_pure += cut_field_d_temperature.pure_(i,j,k);
+                  count_pure += 1;
+                }
+              else if (IJK_Interfaces::est_pure(.5*(ref_ijk_ft_cut_cell_->itfce().I(i,j,k) + ref_ijk_ft_cut_cell_->itfce().In(i,j,k))))
+                {
+                  bool phase_invalide_l = (indic_old(i,j,k) == 0);
+                  if (phase_invalide_l && cut_field_d_temperature.diph_l_(n) != 0.)
+                    {
+                      Cerr << "IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell: There is a non-zero cut_field_d_temperature.diph_l_(" << n << ") in an invalid cell (in the non-existant phase of a purely monophasic cell)." << finl;
+                      Process::exit();
+                    }
+
+                  bool phase_invalide_v = (indic_old(i,j,k) == 1);
+                  if (phase_invalide_v && cut_field_d_temperature.diph_v_(n) != 0.)
+                    {
+                      Cerr << "IJK_Thermal_cut_cell::compute_d_global_energy_cut_cell: There is a non-zero cut_field_d_temperature.diph_v_(" << n << ") in an invalid cell (in the non-existant phase of a purely monophasic cell)." << finl;
+                      Process::exit();
+                    }
+
+                  global_energy_overall += (indic_old(i,j,k) == 0) ? cut_field_d_temperature.diph_v_(n) : cut_field_d_temperature.diph_l_(n);
+                  count_overall += 1;
+
+                  global_energy_overall_l += (indic_old(i,j,k) == 0) ? 0. : cut_field_d_temperature.diph_l_(n);
+                  count_overall_l += (indic_old(i,j,k) == 0) ? 0 : 1;
+
+                  global_energy_overall_v += (indic_old(i,j,k) == 0) ? cut_field_d_temperature.diph_v_(n) : 0.;
+                  count_overall_v += (indic_old(i,j,k) == 0) ? 1 : 0;
+
+                  global_energy_pure += (indic_old(i,j,k) == 0) ? cut_field_d_temperature.diph_v_(n) : cut_field_d_temperature.diph_l_(n);
                   count_pure += 1;
                 }
               else
@@ -1230,8 +1258,10 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
         {
           for (int i=0; i < nx; i++)
             {
-              double chi_l = next ? ref_ijk_ft_cut_cell_->itfce().In_nonzero(1,i,j,k) : ref_ijk_ft_cut_cell_->itfce().I_nonzero(1,i,j,k);
-              double chi_v = next ? ref_ijk_ft_cut_cell_->itfce().In_nonzero(0,i,j,k) : ref_ijk_ft_cut_cell_->itfce().I_nonzero(0,i,j,k);
+              double chi_l = next ? ref_ijk_ft_cut_cell_->itfce().In(i,j,k) : ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
+              double chi_v = next ? 1-ref_ijk_ft_cut_cell_->itfce().In(i,j,k) : 1-ref_ijk_ft_cut_cell_->itfce().I(i,j,k);
+              double chi_nonzero_l = next ? ref_ijk_ft_cut_cell_->itfce().In_nonzero(1,i,j,k) : ref_ijk_ft_cut_cell_->itfce().I_nonzero(1,i,j,k);
+              double chi_nonzero_v = next ? ref_ijk_ft_cut_cell_->itfce().In_nonzero(0,i,j,k) : ref_ijk_ft_cut_cell_->itfce().I_nonzero(0,i,j,k);
               int n = cut_cell_disc.get_n(i,j,k);
               if (n < 0)
                 {
@@ -1247,10 +1277,38 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                   global_energy_pure += (chi_l * rhocpl + chi_v * rhocpv) * cut_field_temperature.pure_(i,j,k);
                   count_pure += 1;
                 }
+              else if (IJK_Interfaces::est_pure(.5*(ref_ijk_ft_cut_cell_->itfce().I(i,j,k) + ref_ijk_ft_cut_cell_->itfce().In(i,j,k))))
+                {
+                  bool phase_invalide_l = (indic_old(i,j,k) == 0);
+                  if (phase_invalide_l && cut_field_temperature.diph_l_(n) != 0.)
+                    {
+                      Cerr << "IJK_Thermal_cut_cell::compute_global_energy_cut_cell: There is a non-zero cut_field_temperature.diph_l_(" << n << ") in an invalid cell (in the non-existant phase of a purely monophasic cell)." << finl;
+                      Process::exit();
+                    }
+
+                  bool phase_invalide_v = (indic_old(i,j,k) == 1);
+                  if (phase_invalide_v && cut_field_temperature.diph_v_(n) != 0.)
+                    {
+                      Cerr << "IJK_Thermal_cut_cell::compute_global_energy_cut_cell: There is a non-zero cut_field_temperature.diph_v_(" << n << ") in an invalid cell (in the non-existant phase of a purely monophasic cell)." << finl;
+                      Process::exit();
+                    }
+
+                  global_energy_overall += (chi_l * rhocpl + chi_v * rhocpv) * ((indic_old(i,j,k) == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
+                  count_overall += 1;
+
+                  global_energy_overall_l += chi_l * rhocpl * cut_field_temperature.diph_l_(n);
+                  count_overall_l += chi_l;
+
+                  global_energy_overall_v += chi_v * rhocpv * cut_field_temperature.diph_v_(n);
+                  count_overall_v += chi_v;
+
+                  global_energy_pure += (chi_l * rhocpl + chi_v * rhocpv) * ((indic_old(i,j,k) == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
+                  count_pure += 1;
+                }
               else
                 {
-                  double chi_T_l = chi_l * cut_field_temperature.diph_l_(n);
-                  double chi_T_v = chi_v * cut_field_temperature.diph_v_(n);
+                  double chi_T_l = chi_nonzero_l * cut_field_temperature.diph_l_(n);
+                  double chi_T_v = chi_nonzero_v * cut_field_temperature.diph_v_(n);
 
                   global_energy_overall += rhocpl * chi_T_l;
                   global_energy_overall += rhocpv * chi_T_v;
@@ -1263,10 +1321,10 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                   count_overall_v += 1;
 
                   global_energy_diph_l += rhocpl * chi_T_l;
-                  count_diph_l += chi_l;
+                  count_diph_l += chi_nonzero_l;
 
                   global_energy_diph_v += rhocpv * chi_T_v;
-                  count_diph_v += chi_v;
+                  count_diph_v += chi_nonzero_v;
 
                   if (ref_ijk_ft_cut_cell_->itfce().devient_pure(i,j,k))
                     {
@@ -1274,12 +1332,12 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                       if (phase_dying == 1)
                         {
                           global_energy_diph_dying += rhocpl * chi_T_l;
-                          count_diph_dying += chi_l;
+                          count_diph_dying += chi_nonzero_l;
                         }
                       else
                         {
                           global_energy_diph_dying += rhocpv * chi_T_v;
-                          count_diph_dying += chi_v;
+                          count_diph_dying += chi_nonzero_v;
                         }
                     }
                   else if (ref_ijk_ft_cut_cell_->itfce().devient_diphasique(i,j,k))
@@ -1288,29 +1346,29 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_global_energy_cut_cell(Cut_fiel
                       if (phase_nascent == 1)
                         {
                           global_energy_diph_nascent += rhocpl * chi_T_l;
-                          count_diph_nascent += chi_l;
+                          count_diph_nascent += chi_nonzero_l;
                         }
                       else
                         {
                           global_energy_diph_nascent += rhocpv * chi_T_v;
-                          count_diph_nascent += chi_v;
+                          count_diph_nascent += chi_nonzero_v;
                         }
                     }
                   else if (ref_ijk_ft_cut_cell_->itfce().next_below_small_threshold_for_phase(1, indic_old(i,j,k), indic_next(i,j,k)))
                     {
                       global_energy_diph_small += rhocpl * chi_T_l;
-                      count_diph_small += chi_l;
+                      count_diph_small += chi_nonzero_l;
 
                       global_energy_diph_regular += rhocpv * chi_T_v;
-                      count_diph_regular += chi_v;
+                      count_diph_regular += chi_nonzero_v;
                     }
                   else if (ref_ijk_ft_cut_cell_->itfce().next_below_small_threshold_for_phase(0, indic_old(i,j,k), indic_next(i,j,k)))
                     {
                       global_energy_diph_small += rhocpv * chi_T_v;
-                      count_diph_small += chi_v;
+                      count_diph_small += chi_nonzero_v;
 
                       global_energy_diph_regular += rhocpl * chi_T_l;
-                      count_diph_regular += chi_l;
+                      count_diph_regular += chi_nonzero_l;
                     }
                   else
                     {
@@ -1460,6 +1518,13 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmin_cut_cell(const Cut_field_d
                   Tmin_overall_v = (chi_l == 1) ? Tmin_overall_v : std::min(Tmin_overall_v, cut_field_temperature.pure_(i,j,k));
                   Tmin_pure = std::min(Tmin_pure, cut_field_temperature.pure_(i,j,k));
                 }
+              else if (IJK_Interfaces::est_pure(.5*(ref_ijk_ft_cut_cell_->itfce().I(i,j,k) + ref_ijk_ft_cut_cell_->itfce().In(i,j,k))))
+                {
+                  Tmin_overall = std::min(Tmin_overall, (chi_l == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
+                  Tmin_overall_l = (chi_l == 0) ? Tmin_overall_l : std::min(Tmin_overall_l, cut_field_temperature.diph_l_(n));
+                  Tmin_overall_v = (chi_l == 1) ? Tmin_overall_v : std::min(Tmin_overall_v, cut_field_temperature.diph_v_(n));
+                  Tmin_pure = std::min(Tmin_pure, (chi_l == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
+                }
               else
                 {
                   // Excluding the value of the phase in dying cells
@@ -1568,6 +1633,13 @@ CutCell_GlobalInfo IJK_Thermal_cut_cell::compute_Tmax_cut_cell(const Cut_field_d
                   Tmax_overall_l = (chi_l == 0) ? Tmax_overall_l : std::max(Tmax_overall_l, cut_field_temperature.pure_(i,j,k));
                   Tmax_overall_v = (chi_l == 1) ? Tmax_overall_v : std::max(Tmax_overall_v, cut_field_temperature.pure_(i,j,k));
                   Tmax_pure = std::max(Tmax_pure, cut_field_temperature.pure_(i,j,k));
+                }
+              else if (IJK_Interfaces::est_pure(.5*(ref_ijk_ft_cut_cell_->itfce().I(i,j,k) + ref_ijk_ft_cut_cell_->itfce().In(i,j,k))))
+                {
+                  Tmax_overall = std::max(Tmax_overall, (chi_l == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
+                  Tmax_overall_l = (chi_l == 0) ? Tmax_overall_l : std::max(Tmax_overall_l, cut_field_temperature.diph_l_(n));
+                  Tmax_overall_v = (chi_l == 1) ? Tmax_overall_v : std::max(Tmax_overall_v, cut_field_temperature.diph_v_(n));
+                  Tmax_pure = std::max(Tmax_pure, (chi_l == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n));
                 }
               else
                 {

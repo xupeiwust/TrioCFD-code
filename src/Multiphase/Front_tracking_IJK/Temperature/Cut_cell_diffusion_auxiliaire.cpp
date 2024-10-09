@@ -69,14 +69,17 @@ void Cut_cell_diffusion_auxiliaire::set_param(Param& param)
   param.ajouter_flag("deactivate_correction_petites_cellules_diffusion", &deactivate_correction_petites_cellules_diffusion_);
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, IJK_Field_double& temperature_ft)
 {
-  // Transfer the field to FT splitting, needed for compute_interfacial_temperature
-  ref_ijk_ft->redistrib_to_ft_elem().redistribute(temperature_ns, temperature_ft);
-  temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
-
   if (methode_flux_interface_ == METHODE_FLUX_INTERFACE::INTERP_PURE)
     {
+      cut_field_temperature.echange_diph_vers_pure_cellules_finalement_pures();
+      cut_field_temperature.remplir_tableau_pure_cellules_diphasiques(next_time);
+
+      // Transfer the field to FT splitting, needed for compute_interfacial_temperature
+      ref_ijk_ft->redistrib_to_ft_elem().redistribute(cut_field_temperature, temperature_ft);
+      temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
+
       compute_interfacial_temperature2(next_time, lambda_liquid, lambda_vapour, temperature_ft, ref_ijk_ft->get_geometry(), ref_ijk_ft->itfce().maillage_ft_ijk(), coord_facettes, interfacial_temperature, interfacial_phin_ai);
     }
   else if (methode_flux_interface_ == METHODE_FLUX_INTERFACE::INTERP_CUT_CELL)
@@ -168,41 +171,49 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_efficace()
       int j = ijk[1];
       int k = ijk[2];
 
-      assert(flux_interface_ns_[0].ghost() == flux_interface_ns_[1].ghost());
-      if (!cut_cell_disc.within_ghost(i, j, k, flux_interface_ns_[0].ghost(), flux_interface_ns_[0].ghost()))
-        continue;
-
-      double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
-      double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
-
-      // Note : contrairement au champs de IJK_Interfaces, on a toujours [0] = old et [1] = next pour le flux_interface
-      if (IJK_Interfaces::devient_pure(old_indicatrice, next_indicatrice))
+      if (IJK_Interfaces::est_pure(.5*(cut_cell_disc.get_interfaces().I(i, j, k) + cut_cell_disc.get_interfaces().In(i, j, k))))
         {
-          assert(old_surface_interface(i,j,k) != 0.);
-          flux_interface_efficace_(n) = (flux_interface_ns_[0](i,j,k)/old_surface_interface(i,j,k)) * surface_efficace_interface(n);
-        }
-      else if (IJK_Interfaces::devient_diphasique(old_indicatrice, next_indicatrice))
-        {
-          assert(next_surface_interface(i,j,k) != 0.);
-          flux_interface_efficace_(n) = (flux_interface_ns_[1](i,j,k)/next_surface_interface(i,j,k)) * surface_efficace_interface(n);
+          // Si la cellule est purement monophasique, il n'y a pas d'intersection avec l'interface
+          flux_interface_efficace_(n) = 0.;
         }
       else
         {
-          assert(old_surface_interface(i,j,k) != 0.);
-          assert(next_surface_interface(i,j,k) != 0.);
-          flux_interface_efficace_(n) = .5 * (flux_interface_ns_[0](i,j,k)/old_surface_interface(i,j,k) + flux_interface_ns_[1](i,j,k)/next_surface_interface(i,j,k)) * surface_efficace_interface(n);
+          assert(flux_interface_ns_[0].ghost() == flux_interface_ns_[1].ghost());
+          if (!cut_cell_disc.within_ghost(i, j, k, flux_interface_ns_[0].ghost(), flux_interface_ns_[0].ghost()))
+            continue;
+
+          double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
+          double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+
+          // Note : contrairement au champs de IJK_Interfaces, on a toujours [0] = old et [1] = next pour le flux_interface
+          if (IJK_Interfaces::devient_pure(old_indicatrice, next_indicatrice))
+            {
+              assert(old_surface_interface(i,j,k) != 0.);
+              flux_interface_efficace_(n) = (flux_interface_ns_[0](i,j,k)/old_surface_interface(i,j,k)) * surface_efficace_interface(n);
+            }
+          else if (IJK_Interfaces::devient_diphasique(old_indicatrice, next_indicatrice))
+            {
+              assert(next_surface_interface(i,j,k) != 0.);
+              flux_interface_efficace_(n) = (flux_interface_ns_[1](i,j,k)/next_surface_interface(i,j,k)) * surface_efficace_interface(n);
+            }
+          else
+            {
+              assert(old_surface_interface(i,j,k) != 0.);
+              assert(next_surface_interface(i,j,k) != 0.);
+              flux_interface_efficace_(n) = .5 * (flux_interface_ns_[0](i,j,k)/old_surface_interface(i,j,k) + flux_interface_ns_[1](i,j,k)/next_surface_interface(i,j,k)) * surface_efficace_interface(n);
+            }
         }
     }
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_next(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_next(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, IJK_Field_double& temperature_ft)
 {
-  calculer_flux_interface(true, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ns, temperature_ft);
+  calculer_flux_interface(true, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ft);
 }
 
-void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_old(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, const Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, const IJK_Field_double& temperature_ns, IJK_Field_double& temperature_ft)
+void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_old(double lambda_liquid, double lambda_vapour, Facettes_data& coord_facettes, Facettes_data& interfacial_temperature, DoubleTabFT& interfacial_phin_ai, Cut_field_double& cut_field_temperature, OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft, IJK_Field_double& temperature_ft)
 {
-  calculer_flux_interface(false, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ns, temperature_ft);
+  calculer_flux_interface(false, lambda_liquid, lambda_vapour, coord_facettes, interfacial_temperature, interfacial_phin_ai, cut_field_temperature, ref_ijk_ft, temperature_ft);
 }
 
 // Copie de IJK_Thermal_base::compute_interfacial_temperature2

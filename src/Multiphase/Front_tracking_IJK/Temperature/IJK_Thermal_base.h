@@ -450,10 +450,11 @@ public:
                                                  const char *lata_name,
                                                  const int latastep);
 
-  virtual void remplir_cellules_diphasiques();
-  virtual void remplir_cellules_devenant_diphasiques();
-  virtual void remplir_cellules_maintenant_pures();
-  virtual void transfert_diphasique_vers_pures();
+  virtual void copie_pure_vers_diph_sans_interpolation();
+  virtual void echange_pure_vers_diph_cellules_initialement_pures();
+  virtual void echange_diph_vers_pure_cellules_finalement_pures();
+  virtual void vide_phase_invalide_cellules_diphasiques();
+  virtual void remplir_tableau_pure_cellules_diphasiques(int next_time);
 
   virtual void compare_fluxes_thermal_subproblems() { }
 

@@ -348,6 +348,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
               }
 
               double indicatrice_centre = cut_cell_disc.get_interfaces().I(i,j,k);
+              double next_indicatrice_centre = cut_cell_disc.get_interfaces().In(i,j,k);
               int n_centre = cut_cell_disc.get_n(i, j, k);
 
               if (flux_determined_by_wall_<_DIR_>(k))
@@ -359,8 +360,9 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
               else
                 {
                   assert((n_centre >= 0) || ((indicatrice_centre == 0.) || (indicatrice_centre == 1.)));
-                  int phase_min = (n_centre < 0) ? (int)indicatrice_centre : 0;
-                  int phase_max = (n_centre < 0) ? (int)indicatrice_centre : 1;
+                  bool centre_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_centre + next_indicatrice_centre));
+                  int phase_min = centre_monophasique ? (int)indicatrice_centre : 0;
+                  int phase_max = centre_monophasique ? (int)indicatrice_centre : 1;
 
                   for (int phase = phase_min ; phase <= phase_max ; phase++)
                     {
@@ -382,14 +384,20 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
 
                       double next_indicatrice_left_left = cut_cell_disc.get_interfaces().In(i-2*dir_i,j-2*dir_j,k-2*dir_k);
                       double next_indicatrice_left = cut_cell_disc.get_interfaces().In(i-dir_i,j-dir_j,k-dir_k);
-                      double next_indicatrice_centre = cut_cell_disc.get_interfaces().In(i,j,k);
                       double next_indicatrice_right = cut_cell_disc.get_interfaces().In(i+dir_i,j+dir_j,k+dir_k);
+
+                      bool left_left_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_left_left + next_indicatrice_left_left));
+                      bool left_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_left + next_indicatrice_left));
+                      bool right_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_right + next_indicatrice_right));
+                      bool phase_invalide_left_left = (left_left_monophasique && (phase != (int)indicatrice_left_left));
+                      bool phase_invalide_left = (left_monophasique && (phase != (int)indicatrice_left));
+                      bool phase_invalide_centre = (centre_monophasique && (phase != (int)indicatrice_centre));
+                      bool phase_invalide_right = (right_monophasique && (phase != (int)indicatrice_right));
 
                       const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k-1] + channel_data_.get_delta_z()[k]) * 0.5 : channel_data_.get_delta((int)_DIR_);
 
                       const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
-                      double indicatrice_surface = (n_centre < 0) ? 1. : ((phase == 0) ? 1 - indicatrice_surfacique(n_centre,dir) : indicatrice_surfacique(n_centre,dir));
-                      assert((n_centre >= 0) || (indicatrice_surface == 1.));
+                      double indicatrice_surface = (n_centre < 0) ? ((phase == 0) ? 1 - indicatrice_centre : indicatrice_centre) : ((phase == 0) ? 1 - indicatrice_surfacique(n_centre,dir) : indicatrice_surfacique(n_centre,dir));
 
                       const double surface = channel_data_.get_surface(k, 1, (int)_DIR_) * indicatrice_surface;
 
@@ -450,7 +458,8 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       double flux_4 = OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_<_DIR_>(k, delta_xyz, surface, velocity, input_left_left, input_left, input_centre, input_right);
                       if      ((cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_CENTRE2_STENCIL)
                                || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_LINEAIRE2_STENCIL)
-                               || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_AMONT_STENCIL))
+                               || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_AMONT_STENCIL)
+                               || (left_left_monophasique && left_monophasique && centre_monophasique && right_monophasique))
                         {
                           // Ne fait rien : on garde le flux_4 quick
                         }
@@ -536,22 +545,22 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                         }
                       else if (phase_mourrante_left_left || phase_mourrante_right || phase_naissante_left_left || phase_naissante_right) //|| petit_left_left || petit_right)
                         {
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
+                          assert(phase_invalide_left || (input_left != 0.));
+                          assert(phase_invalide_centre || (input_centre != 0.));
                           flux_value = flux_2;
                         }
-                      else if ((phase_left_left == phase) && (phase_right == phase))
+                      else if ((phase_left_left == phase && (!phase_invalide_left_left)) && (phase_right == phase && (!phase_invalide_right)))
                         {
                           assert(input_left_left != 0);
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
+                          assert(phase_invalide_left || (input_left != 0.));
+                          assert(phase_invalide_centre || (input_centre != 0.));
                           assert(input_right != 0);
                           flux_value = flux_4;
                         }
                       else
                         {
-                          assert(input_left != 0);
-                          assert(input_centre != 0);
+                          assert(phase_invalide_left || (input_left != 0.));
+                          assert(phase_invalide_centre || (input_centre != 0.));
                           flux_value = flux_2;
                         }
 
@@ -569,7 +578,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       else
                         {
                           diph_flux(n_centre) = flux_value;
-                          if ((n_left < 0) && (phase == phase_left))
+                          if ((n_left < 0) && (phase == phase_left && (!phase_invalide_centre) && (!phase_invalide_left)))
                             {
                               int index_ijk_per = 0;
                               while (index_ijk_per >= 0)
@@ -580,6 +589,12 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                                   (*flux)(ijk[0],ijk[1],0) = flux_value;
                                 }
                             }
+                        }
+
+                      // Si on est monophasique de la phase non-existante, le flux devrait etre nul
+                      if (phase_invalide_centre || phase_invalide_left)
+                        {
+                          assert(flux_value == 0.);
                         }
                     }
                 }

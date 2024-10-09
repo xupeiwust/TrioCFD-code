@@ -632,34 +632,42 @@ void IJK_Thermals::copy_previous_interface_state()
     itr->copy_previous_interface_state();
 }
 
-void IJK_Thermals::remplir_cellules_diphasiques()
+void IJK_Thermals::copie_pure_vers_diph_sans_interpolation()
 {
   for (auto& itr : (*this))
     {
-      itr->remplir_cellules_diphasiques();
+      itr->copie_pure_vers_diph_sans_interpolation();
     }
 }
 
-void IJK_Thermals::remplir_cellules_devenant_diphasiques()
+void IJK_Thermals::echange_pure_vers_diph_cellules_initialement_pures()
 {
   for (auto& itr : (*this))
     {
-      itr->remplir_cellules_devenant_diphasiques();
+      itr->echange_pure_vers_diph_cellules_initialement_pures();
     }
 }
 
-void IJK_Thermals::remplir_cellules_maintenant_pures()
+void IJK_Thermals::echange_diph_vers_pure_cellules_finalement_pures()
 {
   for (auto& itr : (*this))
     {
-      itr->remplir_cellules_maintenant_pures();
+      itr->echange_diph_vers_pure_cellules_finalement_pures();
     }
 }
 
-void IJK_Thermals::transfert_diphasique_vers_pures()
+void IJK_Thermals::vide_phase_invalide_cellules_diphasiques()
 {
   for (auto& itr : (*this))
     {
-      itr->transfert_diphasique_vers_pures();
+      itr->vide_phase_invalide_cellules_diphasiques();
+    }
+}
+
+void IJK_Thermals::remplir_tableau_pure_cellules_diphasiques(int next_time)
+{
+  for (auto& itr : (*this))
+    {
+      itr->remplir_tableau_pure_cellules_diphasiques(next_time);
     }
 }

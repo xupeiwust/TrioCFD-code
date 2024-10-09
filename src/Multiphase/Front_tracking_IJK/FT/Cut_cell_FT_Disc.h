@@ -93,12 +93,13 @@ public:
 
   enum STATUT_DIPHASIQUE : int
   {
-    REGULIER = 0,             // Les deux phases sont regulieres (hors des cas suivants)
+    REGULIER = 0,             // Les deux phases sont regulieres (hors des cas diphasiques suivants)
     MOURRANT = 1,             // Une des deux phases est mourrante, l'autre occupera toute la cellule au temps suivant
-    NAISSANT = 2,             // Une des deux phases est naissante, l'autre occupe initialement toute la cellule
-    DESEQUILIBRE_FINAL = 3,   // Une des deux phases forme une cellule petite au temps suivant, sans indication sur l'etat initial
-    DESEQUILIBRE_INITIAL = 4, // Une des deux phases forme une cellule petite au temps initial uniquement
-    count = 5
+    MONOPHASIQUE = 2,         // La cellule est purement monophasique. Une des deux phases n'existe pas sur la cellule.
+    NAISSANT = 3,             // Une des deux phases est naissante, l'autre occupe initialement toute la cellule
+    DESEQUILIBRE_FINAL = 4,   // Une des deux phases forme une cellule petite au temps suivant, sans indication sur l'etat initial
+    DESEQUILIBRE_INITIAL = 5, // Une des deux phases forme une cellule petite au temps initial uniquement
+    count = 6
   };
 
   const IntTabFT_cut_cell& get_linear_index() const { return linear_index_; }
