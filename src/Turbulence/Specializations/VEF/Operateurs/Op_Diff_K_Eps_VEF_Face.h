@@ -63,11 +63,15 @@ public:
   inline void contribuer_au_second_membre(DoubleTab& ) const override;
   void contribue_au_second_membre(DoubleTab& ) const;
   void ajouter_contribution(const DoubleTab&, Matrice_Morse& ) const;
+  virtual void remplir_nu(DoubleTab&) const;
+
 
 protected :
   OBS_PTR(Domaine_VEF) le_dom_vef;
   OBS_PTR(Domaine_Cl_VEF) la_zcl_vef;
   OBS_PTR(Champ_P1NC) inconnue_;
+  mutable DoubleTab nu_;
+
 };
 
 // ATTENTION le diffu intervenant dans les fonctions n'est que LOCAL (on appelle d_mu apres)
