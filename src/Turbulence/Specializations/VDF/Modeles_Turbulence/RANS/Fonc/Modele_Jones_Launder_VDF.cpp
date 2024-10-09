@@ -273,10 +273,13 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_E(DoubleTab& E,const Domaine_dis_bas
       const Champ_Face_VDF& vitesse = ref_cast(Champ_Face_VDF,eq_hydraulique->inconnue());
       int nb_elem_tot=le_dom.nb_elem_tot();
       assert (vitesse.valeurs().line_size() == 1);
-      DoubleTab gij(nb_elem_tot,dimension,dimension, vitesse.valeurs().line_size());
+      DoubleTab gij(0,dimension,dimension, vitesse.valeurs().line_size());
+      le_dom.domaine().creer_tableau_elements(gij);
       // Rque methode non const Pourquoi ?
 
       ref_cast_non_const(Champ_Face_VDF,vitesse).calcul_duidxj(vitesse.valeurs(),gij,ref_cast(Domaine_Cl_VDF,eq_hydraulique->domaine_Cl_dis()));
+      gij.echange_espace_virtuel();
+
       DoubleTab der_seconde(dimension,dimension,dimension);
       // der_seconde (i,j,k) d2 ui dxj dxk
       for (int elem=0; elem<nb_elem_tot; elem++)

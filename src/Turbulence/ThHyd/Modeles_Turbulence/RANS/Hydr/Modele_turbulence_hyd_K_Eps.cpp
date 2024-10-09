@@ -91,7 +91,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps::calculer_viscosite_turbulente(doub
   const DoubleTab& tab_K_Eps = chK_Eps.valeurs();
   DoubleTab& visco_turb = la_viscosite_turbulente_->valeurs();
 
-  DoubleTab Cmu(tab_K_Eps.dimension_tot(0));
+  DoubleTab Cmu(tab_K_Eps.dimension(0));
 
   // K_Eps(i,0) = K au noeud i
   // K_Eps(i,1) = Epsilon au noeud i
@@ -108,7 +108,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps::calculer_viscosite_turbulente(doub
         }
     }
 
-  DoubleTrav Fmu, D(tab_K_Eps.dimension_tot(0));
+  DoubleTrav Fmu, D(tab_K_Eps.dimension(0));
   D = 0;
   if (mon_modele_fonc_.non_nul())
     {
@@ -121,7 +121,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps::calculer_viscosite_turbulente(doub
 
       const DoubleTab& tab_visco = ch_visco_cin.valeurs();
       //      const DoubleTab& tab_visco = ch_visco.valeurs();
-      Fmu.resize(tab_K_Eps.dimension_tot(0));
+      Fmu.resize(tab_K_Eps.dimension(0));
       const Domaine_dis_base& le_dom_dis = eqn_transp_K_Eps().domaine_dis();
 
       mon_modele_fonc_->Calcul_Fmu(Fmu, le_dom_dis, le_dom_Cl_dis, tab_K_Eps, ch_visco);
