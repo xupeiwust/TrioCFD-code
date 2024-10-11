@@ -3439,9 +3439,9 @@ void IJK_Interfaces::calculer_vitesse_de_deformation(
                 {
                   for (int phase = 0 ; phase < 2 ; phase++)
                     {
-                      double x_cut_cell = x_centre_cell - .5*dx + dx*cut_cell_disc.get_interfaces().get_barycentre(1, 0, phase, i,j,k, I(i,j,k), In(i,j,k));
-                      double y_cut_cell = y_centre_cell - .5*dy + dy*cut_cell_disc.get_interfaces().get_barycentre(1, 1, phase, i,j,k, I(i,j,k), In(i,j,k));
-                      double z_cut_cell = z_centre_cell - .5*dz + dz*cut_cell_disc.get_interfaces().get_barycentre(1, 2, phase, i,j,k, I(i,j,k), In(i,j,k));
+                      double x_cut_cell = x_centre_cell - .5*dx + dx*cut_cell_disc.get_interfaces().get_barycentre(1, 0, phase, i,j,k);
+                      double y_cut_cell = y_centre_cell - .5*dy + dy*cut_cell_disc.get_interfaces().get_barycentre(1, 1, phase, i,j,k);
+                      double z_cut_cell = z_centre_cell - .5*dz + dz*cut_cell_disc.get_interfaces().get_barycentre(1, 2, phase, i,j,k);
 
                       Vecteur3 coord = {x_cut_cell, y_cut_cell, z_cut_cell};
 
@@ -8061,12 +8061,9 @@ void IJK_Interfaces::calculer_indicatrice_next(
   //
   //              for (int dir = 0; dir < 3; dir++)
   //                {
-  //                  double old_indicatrice_surfacique  = indicatrice_surfacique_face_ns_[old()][dir](i,j,k);
-  //                  double next_indicatrice_surfacique = indicatrice_surfacique_face_ns_[next()][dir](i,j,k);
-  //
-  //                  double face_bary_x = origin_x + dx*(i + offset_x + (get_barycentre_face(1, dir, 0, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
-  //                  double face_bary_y = origin_y + dy*(j + offset_y + (get_barycentre_face(1, dir, 1, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
-  //                  double face_bary_z = origin_z + dz*(k + offset_z + (get_barycentre_face(1, dir, 2, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
+  //                  double face_bary_x = origin_x + dx*(i + offset_x + (get_barycentre_face(1, dir, 0, phase, i,j,k)));
+  //                  double face_bary_y = origin_y + dy*(j + offset_y + (get_barycentre_face(1, dir, 1, phase, i,j,k)));
+  //                  double face_bary_z = origin_z + dz*(k + offset_z + (get_barycentre_face(1, dir, 2, phase, i,j,k)));
   //
   //
   //                  double f_dir = select_dir(dir, dy*dz, dx*dz, dx*dy);

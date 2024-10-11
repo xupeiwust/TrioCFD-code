@@ -1094,7 +1094,6 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
-  thermals_.remplir_tableau_pure_cellules_diphasiques(false);
 
   interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
   interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
@@ -1140,7 +1139,6 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
-  thermals_.remplir_tableau_pure_cellules_diphasiques(false);
 
   interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
   interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);

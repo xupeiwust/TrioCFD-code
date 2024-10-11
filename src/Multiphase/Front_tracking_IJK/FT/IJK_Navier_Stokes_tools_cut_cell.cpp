@@ -210,10 +210,6 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
   double origin_y = geom.get_origin(DIRECTION_J);
   double origin_z = geom.get_origin(DIRECTION_K);
 
-  const int offset_x = splitting.get_offset_local(DIRECTION_I);
-  const int offset_y = splitting.get_offset_local(DIRECTION_J);
-  const int offset_z = splitting.get_offset_local(DIRECTION_K);
-
   const double x2 = (x - origin_x) / dx;
   const double y2 = (y - origin_y) / dy;
   const double z2 = (z - origin_z) / dz;
@@ -225,9 +221,9 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_i_selon_dir(0, x, ghost, splitting, false, true);
-  const int index_j = cut_cell_disc.get_i_selon_dir(1, y, ghost, splitting, false, true);
-  const int index_k = cut_cell_disc.get_i_selon_dir(2, z, ghost, splitting, false, true);
+  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(0, x);
+  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(1, y);
+  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(2, z);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -reduced_ghost && index_i < ni + reduced_ghost) && (index_j >= -reduced_ghost && index_j < nj + reduced_ghost) && (index_k >= -reduced_ghost && index_k < nk + reduced_ghost);
@@ -255,12 +251,9 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
       int k_candidate_aperio = index_k + candidate_offset[i][2];
 
       // Prise en compte de la periodicite
-      double x_candidate_centred_aperio = (i_candidate_aperio + offset_x + .5)*dx + origin_x;
-      double y_candidate_centred_aperio = (j_candidate_aperio + offset_y + .5)*dy + origin_y;
-      double z_candidate_centred_aperio = (k_candidate_aperio + offset_z + .5)*dz + origin_z;
-      int i_candidate = cut_cell_disc.get_i_selon_dir(0, x_candidate_centred_aperio);
-      int j_candidate = cut_cell_disc.get_i_selon_dir(1, y_candidate_centred_aperio);
-      int k_candidate = cut_cell_disc.get_i_selon_dir(2, z_candidate_centred_aperio);
+      int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
+      int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
+      int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
       assert((i_candidate_aperio == i_candidate) || (close_to_edge));
       assert((j_candidate_aperio == j_candidate) || (close_to_edge));
       assert((k_candidate_aperio == k_candidate) || (close_to_edge));
@@ -274,9 +267,9 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
         }
       else
         {
-          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
-          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
-          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate));
+          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate));
+          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate));
           double decalage_x = candidate_x - xfact;
           double decalage_y = candidate_y - yfact;
           double decalage_z = candidate_z - zfact;
@@ -477,10 +470,6 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   double origin_y = geom.get_origin(DIRECTION_J);
   double origin_z = geom.get_origin(DIRECTION_K);
 
-  const int offset_x = splitting.get_offset_local(DIRECTION_I);
-  const int offset_y = splitting.get_offset_local(DIRECTION_J);
-  const int offset_z = splitting.get_offset_local(DIRECTION_K);
-
   const double x2 = (x - origin_x) / dx;
   const double y2 = (y - origin_y) / dy;
   const double z2 = (z - origin_z) / dz;
@@ -492,9 +481,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_i_selon_dir(0, x);
-  const int index_j = cut_cell_disc.get_i_selon_dir(1, y);
-  const int index_k = cut_cell_disc.get_i_selon_dir(2, z);
+  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(0, x);
+  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(1, y);
+  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(2, z);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -ghost && index_i < ni + ghost) && (index_j >= -ghost && index_j < nj + ghost) && (index_k >= -ghost && index_k < nk + ghost);
@@ -532,12 +521,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
       int k_candidate_aperio = index_k + candidate_offset[i][2];
 
       // Prise en compte de la periodicite
-      double x_candidate_centred_aperio = (i_candidate_aperio + offset_x + .5)*dx + origin_x;
-      double y_candidate_centred_aperio = (j_candidate_aperio + offset_y + .5)*dy + origin_y;
-      double z_candidate_centred_aperio = (k_candidate_aperio + offset_z + .5)*dz + origin_z;
-      int i_candidate = cut_cell_disc.get_i_selon_dir(0, x_candidate_centred_aperio);
-      int j_candidate = cut_cell_disc.get_i_selon_dir(1, y_candidate_centred_aperio);
-      int k_candidate = cut_cell_disc.get_i_selon_dir(2, z_candidate_centred_aperio);
+      int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
+      int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
+      int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
       assert((i_candidate_aperio == i_candidate) || (close_to_edge));
       assert((j_candidate_aperio == j_candidate) || (close_to_edge));
       assert((k_candidate_aperio == k_candidate) || (close_to_edge));
@@ -551,9 +537,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
         }
       else
         {
-          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
-          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
-          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate, old_indicatrice, next_indicatrice));
+          double candidate_x = (double)candidate_offset[i][0] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 0, phase, i_candidate, j_candidate, k_candidate));
+          double candidate_y = (double)candidate_offset[i][1] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 1, phase, i_candidate, j_candidate, k_candidate));
+          double candidate_z = (double)candidate_offset[i][2] + (cut_cell_disc.get_interfaces().get_barycentre(next_time, 2, phase, i_candidate, j_candidate, k_candidate));
           double decalage_x = candidate_x - xfact;
           double decalage_y = candidate_y - yfact;
           double decalage_z = candidate_z - zfact;

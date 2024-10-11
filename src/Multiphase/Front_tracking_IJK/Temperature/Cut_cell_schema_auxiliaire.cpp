@@ -130,7 +130,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -249,7 +249,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -365,7 +365,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(c
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -403,7 +403,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -551,7 +551,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -566,9 +566,9 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       double velocity_y = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,1);
       double velocity_z = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,2);
 
-      double next_bary_x = dx*cut_cell_disc.get_interfaces().get_barycentre(true, 0, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
-      double next_bary_y = dy*cut_cell_disc.get_interfaces().get_barycentre(true, 1, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
-      double next_bary_z = dz*cut_cell_disc.get_interfaces().get_barycentre(true, 2, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
+      double next_bary_x = dx*cut_cell_disc.get_interfaces().get_barycentre(true, 0, phase, i,j,k);
+      double next_bary_y = dy*cut_cell_disc.get_interfaces().get_barycentre(true, 1, phase, i,j,k);
+      double next_bary_z = dz*cut_cell_disc.get_interfaces().get_barycentre(true, 2, phase, i,j,k);
 
       double next_bary_deplace_x = next_bary_x - velocity_x*timestep;
       double next_bary_deplace_y = next_bary_y - velocity_y*timestep;
@@ -608,11 +608,10 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
         }
 
       int n_old = cut_cell_disc.get_n(i_old,j_old,k_old);
-      double old_indicatrice = cut_cell_disc.get_interfaces().I(i_old,j_old,k_old);
 
-      double old_bary_x = dx*((i_old - i) + cut_cell_disc.get_interfaces().get_barycentre(false, 0, phase, i_old,j_old,k_old, old_indicatrice, cut_cell_disc.get_interfaces().In(i_old,j_old,k_old)));
-      double old_bary_y = dy*((j_old - j) + cut_cell_disc.get_interfaces().get_barycentre(false, 1, phase, i_old,j_old,k_old, old_indicatrice, cut_cell_disc.get_interfaces().In(i_old,j_old,k_old)));
-      double old_bary_z = dz*((k_old - k) + cut_cell_disc.get_interfaces().get_barycentre(false, 2, phase, i_old,j_old,k_old, old_indicatrice, cut_cell_disc.get_interfaces().In(i_old,j_old,k_old)));
+      double old_bary_x = dx*((i_old - i) + cut_cell_disc.get_interfaces().get_barycentre(false, 0, phase, i_old,j_old,k_old));
+      double old_bary_y = dy*((j_old - j) + cut_cell_disc.get_interfaces().get_barycentre(false, 1, phase, i_old,j_old,k_old));
+      double old_bary_z = dz*((k_old - k) + cut_cell_disc.get_interfaces().get_barycentre(false, 2, phase, i_old,j_old,k_old));
 
       if (n_old < 0)
         {
@@ -669,7 +668,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -680,9 +679,9 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       double velocity_y = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,1);
       double velocity_z = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,2);
 
-      double next_bary_x = dx*cut_cell_disc.get_interfaces().get_barycentre(true, 0, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
-      double next_bary_y = dy*cut_cell_disc.get_interfaces().get_barycentre(true, 1, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
-      double next_bary_z = dz*cut_cell_disc.get_interfaces().get_barycentre(true, 2, phase, i,j,k, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice);
+      double next_bary_x = dx*cut_cell_disc.get_interfaces().get_barycentre(true, 0, phase, i,j,k);
+      double next_bary_y = dy*cut_cell_disc.get_interfaces().get_barycentre(true, 1, phase, i,j,k);
+      double next_bary_z = dz*cut_cell_disc.get_interfaces().get_barycentre(true, 2, phase, i,j,k);
 
       double next_bary_deplace_x = next_bary_x - velocity_x*timestep;
       double next_bary_deplace_y = next_bary_y - velocity_y*timestep;
@@ -774,7 +773,7 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -917,7 +916,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);

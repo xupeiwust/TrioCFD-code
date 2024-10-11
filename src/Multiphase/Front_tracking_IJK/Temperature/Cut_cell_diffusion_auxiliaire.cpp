@@ -179,7 +179,7 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface_efficace()
       else
         {
           assert(flux_interface_ns_[0].ghost() == flux_interface_ns_[1].ghost());
-          if (!cut_cell_disc.within_ghost(i, j, k, flux_interface_ns_[0].ghost(), flux_interface_ns_[0].ghost()))
+          if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, flux_interface_ns_[0].ghost(), flux_interface_ns_[0].ghost()))
             continue;
 
           double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);

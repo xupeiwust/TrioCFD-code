@@ -1136,7 +1136,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
               int j = ijk[1];
               int k = ijk[2];
 
-              if (!cut_cell_disc.within_ghost(i, j, k, 1, 1))
+              if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
                 continue;
 
 

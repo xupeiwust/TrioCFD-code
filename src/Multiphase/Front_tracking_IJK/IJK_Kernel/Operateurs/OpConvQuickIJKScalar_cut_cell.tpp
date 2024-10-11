@@ -274,7 +274,7 @@ Vecteur3 OpConvQuickIJKScalar_cut_cell_double::compute_curv_fram_local_(int k_la
 template <DIRECTION _DIR_>
 void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *const flux, int k_layer)
 {
-  int dir = static_cast<int>(_DIR_);
+  const int dir = static_cast<int>(_DIR_);
 
   const Cut_field_double& velocity_dir = static_cast<const Cut_field_double&>(get_input_velocity(_DIR_));
   const Cut_field_double& input_cut_field = static_cast<const Cut_field_double&>(*input_field_);
@@ -330,7 +330,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
               int k = ijk_no_per[2] + (_DIR_ == DIRECTION::Z)*decalage;
               assert(k_layer == k);
 
-              if (!cut_cell_disc.within_ghost_<_DIR_>(i, j, k, 0, 1))
+              if (!cut_cell_disc.get_splitting().within_ghost_<dir>(i, j, k, 0, 1))
                 continue;
 
               if (treatment_count(i,j,k) == new_treatment)
@@ -425,10 +425,10 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                                || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_LINEAIRE2_STENCIL)
                                || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE))
                         {
-                          double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left, next_indicatrice_left);
+                          double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k);
                           assert((n_left >= 0) || (bar_dir_left == .5));
 
-                          double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
+                          double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k);
                           assert((n_centre >= 0) || (bar_dir_centre == .5));
 
                           // Note : suppose un maillage uniforme, splitting_.get_grid_geometry().is_uniform(_DIR_)
@@ -467,23 +467,23 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                                || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_LINEAIRE2_PERPENDICULAR_DISTANCE)
                                || (cut_cell_conv_scheme_.scheme == CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_AMONT_PERPENDICULAR_DISTANCE))
                         {
-                          double bar_dir_perp1_left_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i-2*dir_i,j-2*dir_j,k-2*dir_k, indicatrice_left_left, next_indicatrice_left_left);
-                          double bar_dir_perp2_left_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i-2*dir_i,j-2*dir_j,k-2*dir_k, indicatrice_left_left, next_indicatrice_left_left);
+                          double bar_dir_perp1_left_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i-2*dir_i,j-2*dir_j,k-2*dir_k);
+                          double bar_dir_perp2_left_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i-2*dir_i,j-2*dir_j,k-2*dir_k);
                           assert((n_left_left >= 0) || (bar_dir_perp1_left_left == .5));
                           assert((n_left_left >= 0) || (bar_dir_perp2_left_left == .5));
 
-                          double bar_dir_perp1_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left, next_indicatrice_left);
-                          double bar_dir_perp2_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i-dir_i,j-dir_j,k-dir_k, indicatrice_left, next_indicatrice_left);
+                          double bar_dir_perp1_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i-dir_i,j-dir_j,k-dir_k);
+                          double bar_dir_perp2_left = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i-dir_i,j-dir_j,k-dir_k);
                           assert((n_left >= 0) || (bar_dir_perp1_left == .5));
                           assert((n_left >= 0) || (bar_dir_perp2_left == .5));
 
-                          double bar_dir_perp1_centre = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
-                          double bar_dir_perp2_centre = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i,j,k, indicatrice_centre, next_indicatrice_centre);
+                          double bar_dir_perp1_centre = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i,j,k);
+                          double bar_dir_perp2_centre = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i,j,k);
                           assert((n_centre >= 0) || (bar_dir_perp1_centre == .5));
                           assert((n_centre >= 0) || (bar_dir_perp2_centre == .5));
 
-                          double bar_dir_perp1_right = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i+dir_i,j+dir_j,k+dir_k, indicatrice_right, next_indicatrice_right);
-                          double bar_dir_perp2_right = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i+dir_i,j+dir_j,k+dir_k, indicatrice_right, next_indicatrice_right);
+                          double bar_dir_perp1_right = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+1)%3, phase, i+dir_i,j+dir_j,k+dir_k);
+                          double bar_dir_perp2_right = cut_cell_disc.get_interfaces().get_barycentre(true, (dir+2)%3, phase, i+dir_i,j+dir_j,k+dir_k);
                           assert((n_right >= 0) || (bar_dir_perp1_right == .5));
                           assert((n_right >= 0) || (bar_dir_perp2_right == .5));
 

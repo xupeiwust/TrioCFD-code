@@ -377,7 +377,7 @@ void Cut_field_double::copie_pure_vers_diph_sans_interpolation()
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), true);
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -402,12 +402,12 @@ void Cut_field_double::echange_pure_vers_diph_cellules_initialement_pures()
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
 
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc_->within_ghost(i, j, k, ghost(), ghost()))
+      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, ghost(), ghost()))
         continue;
 
       double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
@@ -436,12 +436,12 @@ void Cut_field_double::echange_diph_vers_pure_cellules_finalement_pures()
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
 
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc_->within_ghost(i, j, k, ghost(), ghost()))
+      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, ghost(), ghost()))
         continue;
 
       double indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k); // Note : In car on est avant l'inversion
@@ -470,12 +470,12 @@ void Cut_field_double::vide_phase_invalide_cellules_diphasiques()
     {
       int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
 
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), false);
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc_->within_ghost(i, j, k, ghost(), ghost()))
+      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, ghost(), ghost()))
         continue;
 
       double next_indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k);
@@ -498,7 +498,7 @@ void Cut_field_double::remplir_tableau_pure_cellules_diphasiques(int next_time)
 {
   for (int n = 0; n < cut_cell_disc_->get_n_loc(); n++)
     {
-      Int3 ijk = Cut_cell_FT_Disc::get_ijk_from_linear_index(cut_cell_disc_->get_linear_index(n), cut_cell_disc_->get_ghost_size(), IJK_Field_double::get_splitting(), true);
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];

@@ -368,7 +368,7 @@ Vecteur3 Operateur_IJK_elem_diff_base_double::compute_surface_d0_d1_(int k)
 template <DIRECTION _DIR_>
 void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *const flux, int k_layer)
 {
-  int dir = static_cast<int>(_DIR_);
+  const int dir = static_cast<int>(_DIR_);
 
   const Cut_field_double& input_cut_field = static_cast<const Cut_field_double&>(*input_field_);
   const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
@@ -424,7 +424,7 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
               int k = ijk_no_per[2] + (_DIR_ == DIRECTION::Z)*decalage;
               assert(k_layer == k);
 
-              if (!cut_cell_disc.within_ghost_<_DIR_>(i, j, k, 0, 1))
+              if (!cut_cell_disc.get_splitting().within_ghost_<dir>(i, j, k, 0, 1))
                 continue;
 
               if (treatment_count(i,j,k) == new_treatment)
@@ -478,10 +478,10 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
                       bool phase_invalide_centre = (centre_monophasique && (phase != (int)indicatrice_centre));
                       bool phase_invalide_left = (left_monophasique && (phase != (int)indicatrice_left));
 
-                      double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k, old_indicatrice_left, indicatrice_left);
+                      double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k);
                       assert((n_left >= 0) || (bar_dir_left == .5));
 
-                      double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k, old_indicatrice_centre, indicatrice_centre);
+                      double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k);
                       assert((n_centre >= 0) || (bar_dir_centre == .5));
 
                       Vecteur3 surface_d0_d1 = compute_surface_d0_d1_<_DIR_>(k);

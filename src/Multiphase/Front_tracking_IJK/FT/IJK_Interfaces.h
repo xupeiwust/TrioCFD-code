@@ -464,19 +464,19 @@ public :
   {
     return barycentre_phase1_ns_[next()];
   }
-  double get_barycentre(bool next_time, int dir, int phase, int i, int j, int k, double old_indicatrice, double next_indicatrice) const
+  double get_barycentre(bool next_time, int dir, int phase, int i, int j, int k) const
   {
     int current_time = next_time ? next() : old();
     int other_time = next_time ? old() : next();
 
-    double current_indicatrice = next_time ? next_indicatrice : old_indicatrice;
-    double other_time_indicatrice = next_time ? old_indicatrice : next_indicatrice;
+    double current_indicatrice = next_time ? In(i,j,k) : I(i,j,k);
+    double other_time_indicatrice = next_time ? I(i,j,k) : In(i,j,k);
 
-    if ((old_indicatrice == 0.) && (next_indicatrice == 0.))
+    if ((I(i,j,k) == 0.) && (In(i,j,k) == 0.))
       {
         return .5;
       }
-    else if ((old_indicatrice == 1.) && (next_indicatrice == 1.))
+    else if ((I(i,j,k) == 1.) && (In(i,j,k) == 1.))
       {
         return .5;
       }
@@ -532,11 +532,13 @@ public :
         return bary;
       }
   }
-  double get_barycentre_face(bool next_time, int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  double get_barycentre_face(bool next_time, int face_dir, int dir, int phase, int i, int j, int k) const
   {
     int current_time = next_time ? next() : old();
     int other_time = next_time ? old() : next();
 
+    double old_indicatrice_surfacique  = get_indicatrice_surfacique_face_old()[face_dir](i,j,k);
+    double next_indicatrice_surfacique = get_indicatrice_surfacique_face_next()[face_dir](i,j,k);
     double current_indicatrice_surfacique = next_time ? next_indicatrice_surfacique : old_indicatrice_surfacique;
     double other_time_indicatrice_surfacique = next_time ? old_indicatrice_surfacique : next_indicatrice_surfacique;
 
