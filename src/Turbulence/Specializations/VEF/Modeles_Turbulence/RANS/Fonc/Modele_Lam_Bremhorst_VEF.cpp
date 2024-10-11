@@ -30,6 +30,7 @@
 #include <Check_espace_virtuel.h>
 #include <LecFicDiffuse.h>
 #include <EcritureLectureSpecial.h>
+#include <Debog.h>
 
 Implemente_instanciable(Modele_Lam_Bremhorst_VEF,"Modele_Lam_Bremhorst_VEF",Modele_Fonc_Bas_Reynolds_Base);
 // XD Lam_Bremhorst modele_fonction_bas_reynolds_base Lam_Bremhorst -1 Model described in ' C.K.G.Lam and K.Bremhorst, A modified form of the k- epsilon model for predicting wall turbulence, ASME J. Fluids Engng., Vol.103, p456, (1981)'. Only in VEF.
@@ -115,7 +116,6 @@ DoubleTab& Modele_Lam_Bremhorst_VEF::Calcul_F1( DoubleTab& F1, const Domaine_dis
   if (is_visco_const)
     visco=tab_visco(0,0);
   const Domaine_VEF& le_dom = ref_cast(Domaine_VEF,domaine_dis);
-  const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,domaine_Cl_dis);
   const DoubleTab& wall_length = BR_wall_length_->valeurs();
   DoubleTab wall_length_face(0);
   le_dom.creer_tableau_faces(wall_length_face);
@@ -124,78 +124,21 @@ DoubleTab& Modele_Lam_Bremhorst_VEF::Calcul_F1( DoubleTab& F1, const Domaine_dis
   DoubleTab Fmu_loc(0);
   le_dom.creer_tableau_faces(Fmu_loc);
   int nb_faces = le_dom.nb_faces();
-  const Conds_lim& les_cl = domaine_Cl_VEF.les_conditions_limites();
-  int nb_cl=les_cl.size();
   const IntTab& face_voisins = le_dom.face_voisins();
   int num_face;
   double Rey,Re;
-  /*
-  	for (num_face=0; num_face <nb_faces; num_face ++ )
-  		F1[num_face] = 1.;
-  	return F1;
-  */
-  // Calcul de la distance a la paroi aux faces
-  for (int n_bord=0; n_bord<nb_cl; n_bord++)
-    {
-      const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-      const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-      int ndeb = le_bord.num_premiere_face();
-      int nfin = ndeb + le_bord.nb_faces();
 
-      if (sub_type(Periodique,la_cl.valeur()))
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              int elem2 = face_voisins(num_face,1);
-              wall_length_face(num_face) = 0.5*wall_length(elem1) + 0.5*wall_length(elem2);
-            }
-        }
-      /* else if (sub_type(Pa,la_cl.valeur()))
-      {
-        for (int num_face=ndeb; num_face<nfin; num_face++)
-        {
-      	  int elem1 = face_voisins(num_face,0);
-      	  int elem2 = face_voisins(num_face,1);
-      			  wall_length_face(num_face) = 0.;
-        }
-      }*/
+  // Calcul de la distance a la paroi aux faces
+  for (num_face=0; num_face<nb_faces  ; num_face++)
+    {
+      int elem0 = face_voisins(num_face,0);
+      int elem1 = face_voisins(num_face,1);
+      if (elem1!=-1)
+        wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
       else
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              wall_length_face(num_face) = wall_length(elem1);
-            }
-        }
+        wall_length_face(num_face) = wall_length(elem0);
     }
-  int n0 = le_dom.premiere_face_int();
-  for (num_face=n0; num_face<nb_faces; num_face++)
-    {
-      int elem0 = le_dom.face_voisins(num_face,0);
-      int elem1 = le_dom.face_voisins(num_face,1);
-      wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-    }
-  // Calcul de la distance a la paroi aux faces
-  /*    for (num_face=0; num_face< le_dom.premiere_face_int(); num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  if (elem0 != -1)
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  else
-    	  {
-    		  elem0 = le_dom.face_voisins(num_face,1);
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  }
-      }
 
-      for (; num_face<nb_faces; num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  int elem1 = le_dom.face_voisins(num_face,1);
-    	  wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-      }
-  */
   for (num_face=0; num_face <nb_faces; num_face ++ )
     {
       if (visco>BR_EPS && K_eps_Bas_Re(num_face,1)>BR_EPS && K_eps_Bas_Re(num_face,0))
@@ -276,85 +219,27 @@ DoubleTab&  Modele_Lam_Bremhorst_VEF::Calcul_Fmu( DoubleTab& Fmu,const Domaine_d
   if (is_visco_const)
     visco=tab_visco(0,0);
   const Domaine_VEF& le_dom = ref_cast(Domaine_VEF,domaine_dis);
-  const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,domaine_Cl_dis);
   const DoubleTab& wall_length = BR_wall_length_->valeurs();
   DoubleTab wall_length_face(0);
   le_dom.creer_tableau_faces(wall_length_face);
   DoubleTab Pderive(0);
   le_dom.creer_tableau_faces(Pderive);
   int nb_faces = le_dom.nb_faces();
-  const Conds_lim& les_cl = domaine_Cl_VEF.les_conditions_limites();
-  int nb_cl=les_cl.size();
   const IntTab& face_voisins = le_dom.face_voisins();
   int num_face;
   double Rey,Re;
-  /*
-  	for (num_face=0; num_face <nb_faces; num_face ++ )
-  		F1[num_face] = 1.;
-  	return F1;
-  */
-  // Calcul de la distance a la paroi aux faces
-  for (int n_bord=0; n_bord<nb_cl; n_bord++)
-    {
-      const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-      const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-      int ndeb = le_bord.num_premiere_face();
-      int nfin = ndeb + le_bord.nb_faces();
 
-      if (sub_type(Periodique,la_cl.valeur()))
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              int elem2 = face_voisins(num_face,1);
-              wall_length_face(num_face) = 0.5*wall_length(elem1) + 0.5*wall_length(elem2);
-            }
-        }
-      /* else if (sub_type(Pa,la_cl.valeur()))
-      {
-        for (int num_face=ndeb; num_face<nfin; num_face++)
-        {
-      	  int elem1 = face_voisins(num_face,0);
-      	  int elem2 = face_voisins(num_face,1);
-      			  wall_length_face(num_face) = 0.;
-        }
-      }*/
+  // Calcul de la distance a la paroi aux faces
+  for (num_face=0; num_face<nb_faces  ; num_face++)
+    {
+      int elem0 = face_voisins(num_face,0);
+      int elem1 = face_voisins(num_face,1);
+      if (elem1!=-1)
+        wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
       else
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              wall_length_face(num_face) = wall_length(elem1);
-            }
-        }
+        wall_length_face(num_face) = wall_length(elem0);
     }
-  int n0 = le_dom.premiere_face_int();
-  for (num_face=n0; num_face<nb_faces; num_face++)
-    {
-      int elem0 = le_dom.face_voisins(num_face,0);
-      int elem1 = le_dom.face_voisins(num_face,1);
-      wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-    }
-  // Calcul de la distance a la paroi aux faces
-  /*    for (num_face=0; num_face< le_dom.premiere_face_int(); num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  if (elem0 != -1)
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  else
-    	  {
-    		  elem0 = le_dom.face_voisins(num_face,1);
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  }
-      }
 
-      for (; num_face<nb_faces; num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  int elem1 = le_dom.face_voisins(num_face,1);
-    	  wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-      }
-  */
   for (num_face=0; num_face <nb_faces; num_face ++ )
     {
       if (visco>BR_EPS && K_eps_Bas_Re(num_face,1)>BR_EPS && K_eps_Bas_Re(num_face,0))
@@ -366,12 +251,10 @@ DoubleTab&  Modele_Lam_Bremhorst_VEF::Calcul_Fmu( DoubleTab& Fmu,const Domaine_d
         }
       else
         {
-          //Cerr <<  " visco " << visco << " Eps " << K_eps_Bas_Re(num_face,1) << " K " << K_eps_Bas_Re(num_face,0) <<finl;
           Fmu(num_face) = 1.;
         }
       if (Fmu(num_face) > 1. + 1.e-8)
         {
-          //Cerr <<  " Fmu=" << Fmu(num_face) << " Eps=" << K_eps_Bas_Re(num_face,1) << " K=" << K_eps_Bas_Re(num_face,0) << " Re=" << Re << " Rey=" << Rey <<finl;
           Fmu(num_face) = 1.;
           //Cerr <<  " On force Fmu a 1 " << finl;
           //exit();
@@ -530,7 +413,7 @@ DoubleTab Modele_Lam_Bremhorst_VEF::calcul_tenseur_Re_elem(const Discretisation_
                                                            const DoubleTab& R, const DoubleTab& Sn,
                                                            const Champ_base& K_Eps) const
 {
-  int nelem = G.dimension(0);
+  int nelem = domaine_dis.domaine().nb_elem();
 
   OWN_PTR(Champ_Fonc_base)  K_Eps_elem;
   Noms noms(2), unites(2);
@@ -547,13 +430,12 @@ DoubleTab Modele_Lam_Bremhorst_VEF::calcul_tenseur_Re_elem(const Discretisation_
   const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF,domaine_dis);
   init_tenseur_elem(ReNL,domaine_VEF,2);
 
-  ReNL = 0.;
   for (int elem=0; elem<nelem; elem++)
     {
       double kseps;
-      if (K_Eps.valeurs()(elem,1) <= BR_EPS)
+      if (tab_K_Eps(elem,1) <= BR_EPS)
         {
-          kseps = K_Eps.valeurs()(elem,0)/BR_EPS;
+          kseps = tab_K_Eps(elem,0)/BR_EPS;
         }
       else
         {
@@ -579,6 +461,8 @@ DoubleTab Modele_Lam_Bremhorst_VEF::calcul_tenseur_Re_elem(const Discretisation_
               }
           }
     }
+
+  Debog::verifier("calcul_tenseur_Re_elem ReNL", ReNL);
 
   return ReNL;
 }
@@ -615,9 +499,9 @@ DoubleTab Modele_Lam_Bremhorst_VEF::calcul_tenseur_Re_elem_BiK(const Discretisat
   for (int elem=0; elem<nelem; elem++)
     {
       double kseps;
-      if (Eps.valeurs()(elem,0) <= BR_EPS)
+      if (tab_Eps(elem,0) <= BR_EPS)
         {
-          kseps = K.valeurs()(elem,0)/BR_EPS;
+          kseps = tab_K(elem,0)/BR_EPS;
         }
       else
         {
@@ -710,9 +594,9 @@ DoubleTab Modele_Lam_Bremhorst_VEF::calcul_tenseur_Re_elem_shih(const Discretisa
   for (int elem=0; elem<nelem; elem++)
     {
       double kseps;
-      if (K_Eps.valeurs()(elem,1) <= BR_EPS)
+      if (tab_K_Eps(elem,1) <= BR_EPS)
         {
-          kseps = K_Eps.valeurs()(elem,0)/BR_EPS;
+          kseps = tab_K_Eps(elem,0)/BR_EPS;
         }
       else
         {
@@ -1012,85 +896,25 @@ DoubleTab&  Modele_Lam_Bremhorst_VEF::Calcul_Fmu_BiK( DoubleTab& Fmu,const Domai
   if (is_visco_const)
     visco=tab_visco(0,0);
   const Domaine_VEF& le_dom = ref_cast(Domaine_VEF,domaine_dis);
-  const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,domaine_Cl_dis);
   const DoubleTab& wall_length = BR_wall_length_->valeurs();
   DoubleTab wall_length_face(0);
   le_dom.creer_tableau_faces(wall_length_face);
-  DoubleTab Pderive(0);
-  le_dom.creer_tableau_faces(Pderive);
   int nb_faces = le_dom.nb_faces();
-  const Conds_lim& les_cl = domaine_Cl_VEF.les_conditions_limites();
-  int nb_cl=les_cl.size();
   const IntTab& face_voisins = le_dom.face_voisins();
   int num_face;
   double Rey,Re;
-  /*
-  	for (num_face=0; num_face <nb_faces; num_face ++ )
-  		F1[num_face] = 1.;
-  	return F1;
-  */
-  // Calcul de la distance a la paroi aux faces
-  for (int n_bord=0; n_bord<nb_cl; n_bord++)
-    {
-      const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-      const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-      int ndeb = le_bord.num_premiere_face();
-      int nfin = ndeb + le_bord.nb_faces();
 
-      if (sub_type(Periodique,la_cl.valeur()))
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              int elem2 = face_voisins(num_face,1);
-              wall_length_face(num_face) = 0.5*wall_length(elem1) + 0.5*wall_length(elem2);
-            }
-        }
-      /* else if (sub_type(Pa,la_cl.valeur()))
-      {
-        for (int num_face=ndeb; num_face<nfin; num_face++)
-        {
-      	  int elem1 = face_voisins(num_face,0);
-      	  int elem2 = face_voisins(num_face,1);
-      			  wall_length_face(num_face) = 0.;
-        }
-      }*/
+  // Calcul de la distance a la paroi aux faces
+  for (num_face=0; num_face<nb_faces  ; num_face++)
+    {
+      int elem0 = face_voisins(num_face,0);
+      int elem1 = face_voisins(num_face,1);
+      if (elem1!=-1)
+        wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
       else
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              wall_length_face(num_face) = wall_length(elem1);
-            }
-        }
+        wall_length_face(num_face) = wall_length(elem0);
     }
-  int n0 = le_dom.premiere_face_int();
-  for (num_face=n0; num_face<nb_faces; num_face++)
-    {
-      int elem0 = le_dom.face_voisins(num_face,0);
-      int elem1 = le_dom.face_voisins(num_face,1);
-      wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-    }
-  // Calcul de la distance a la paroi aux faces
-  /*    for (num_face=0; num_face< le_dom.premiere_face_int(); num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  if (elem0 != -1)
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  else
-    	  {
-    		  elem0 = le_dom.face_voisins(num_face,1);
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  }
-      }
 
-      for (; num_face<nb_faces; num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  int elem1 = le_dom.face_voisins(num_face,1);
-    	  wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-      }
-  */
   for (num_face=0; num_face <nb_faces; num_face ++ )
     {
       if (visco>BR_EPS && eps_Bas_Re(num_face)>BR_EPS && K_Bas_Re(num_face))
@@ -1168,87 +992,27 @@ DoubleTab& Modele_Lam_Bremhorst_VEF::Calcul_F1_BiK( DoubleTab& F1, const Domaine
   if (is_visco_const)
     visco=tab_visco(0,0);
   const Domaine_VEF& le_dom = ref_cast(Domaine_VEF,domaine_dis);
-  const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,domaine_Cl_dis);
   const DoubleTab& wall_length = BR_wall_length_->valeurs();
   DoubleTab wall_length_face(0);
   le_dom.creer_tableau_faces(wall_length_face);
-  DoubleTab Pderive(0);
-  le_dom.creer_tableau_faces(Pderive);
   DoubleTab Fmu_loc(0);
   le_dom.creer_tableau_faces(Fmu_loc);
   int nb_faces = le_dom.nb_faces();
-  const Conds_lim& les_cl = domaine_Cl_VEF.les_conditions_limites();
-  int nb_cl=les_cl.size();
   const IntTab& face_voisins = le_dom.face_voisins();
   int num_face;
   double Rey,Re;
-  /*
-  	for (num_face=0; num_face <nb_faces; num_face ++ )
-  		F1[num_face] = 1.;
-  	return F1;
-  */
-  // Calcul de la distance a la paroi aux faces
-  for (int n_bord=0; n_bord<nb_cl; n_bord++)
-    {
-      const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-      const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-      int ndeb = le_bord.num_premiere_face();
-      int nfin = ndeb + le_bord.nb_faces();
 
-      if (sub_type(Periodique,la_cl.valeur()))
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              int elem2 = face_voisins(num_face,1);
-              wall_length_face(num_face) = 0.5*wall_length(elem1) + 0.5*wall_length(elem2);
-            }
-        }
-      /* else if (sub_type(Pa,la_cl.valeur()))
-      {
-        for (int num_face=ndeb; num_face<nfin; num_face++)
-        {
-      	  int elem1 = face_voisins(num_face,0);
-      	  int elem2 = face_voisins(num_face,1);
-      			  wall_length_face(num_face) = 0.;
-        }
-      }*/
+  // Calcul de la distance a la paroi aux faces
+  for (num_face=0; num_face<nb_faces  ; num_face++)
+    {
+      int elem0 = face_voisins(num_face,0);
+      int elem1 = face_voisins(num_face,1);
+      if (elem1!=-1)
+        wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
       else
-        {
-          for (num_face=ndeb; num_face<nfin; num_face++)
-            {
-              int elem1 = face_voisins(num_face,0);
-              wall_length_face(num_face) = wall_length(elem1);
-            }
-        }
+        wall_length_face(num_face) = wall_length(elem0);
     }
-  int n0 = le_dom.premiere_face_int();
-  for (num_face=n0; num_face<nb_faces; num_face++)
-    {
-      int elem0 = le_dom.face_voisins(num_face,0);
-      int elem1 = le_dom.face_voisins(num_face,1);
-      wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-    }
-  // Calcul de la distance a la paroi aux faces
-  /*    for (num_face=0; num_face< le_dom.premiere_face_int(); num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  if (elem0 != -1)
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  else
-    	  {
-    		  elem0 = le_dom.face_voisins(num_face,1);
-    		  wall_length_face(num_face) = wall_length(elem0);
-    	  }
-      }
 
-      for (; num_face<nb_faces; num_face++)
-      {
-    	  int elem0 = le_dom.face_voisins(num_face,0);
-    	  int elem1 = le_dom.face_voisins(num_face,1);
-    	  wall_length_face(num_face) = 0.5*wall_length(elem0)+0.5*wall_length(elem1);
-      }
-  */
   for (num_face=0; num_face <nb_faces; num_face ++ )
     {
       if (visco>BR_EPS && eps_Bas_Re(num_face)>BR_EPS && K_Bas_Re(num_face))
