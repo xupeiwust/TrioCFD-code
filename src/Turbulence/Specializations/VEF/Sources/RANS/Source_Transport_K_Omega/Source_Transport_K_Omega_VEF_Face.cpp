@@ -29,6 +29,7 @@
 #include <Milieu_base.h>
 #include <VEF_discretisation.h>
 #include <Domaine_VEF.h>
+#include <Domaine_Cl_VEF.h>
 
 Implemente_instanciable_sans_constructeur(Source_Transport_K_Omega_VEF_Face,
                                           "Source_Transport_K_Omega_VEF_P1NC",
@@ -265,15 +266,44 @@ void Source_Transport_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& a,
   const DoubleVect& porosite_face = eqn_K_Omega->milieu().porosite_face();
   const DoubleVect& volumes_entrelaces = le_dom_VEF->volumes_entrelaces();
 
+  const int nb_faces_tot = le_dom_VEF->nb_faces_tot();
+  DoubleTrav gradKgradOmega(nb_faces_tot),  production_TKE {nb_faces_tot};
+  const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,
+                                                  eq_hydraulique->domaine_Cl_dis());
+  const DoubleTab& visco_turb = get_visc_turb(); // voir les classes filles
+  const DoubleTab& velocity = eq_hydraulique->inconnue().valeurs();
+  const DoubleTab& TKE = get_K_pour_production(); // voir les classes filles
+  calculer_terme_production_K(le_dom_VEF.valeur(), domaine_Cl_VEF, production_TKE,
+                              TKE, velocity, visco_turb,
+                              _interpolation_viscosite_turbulente,
+                              _coefficient_limiteur);
+
+  compute_cross_diffusion(gradKgradOmega);
+
   for (int face = 0; face < K_Omega.dimension(0); face++)
     if (K_Omega(face, 0) >= LeK_MIN)
       {
+        const double tke = K_Omega(face, 0);
+        const double omega = K_Omega(face, 1);
+
         const double volporo = porosite_face(face) * volumes_entrelaces(face);
 
-        const double coef_k = K_Omega(face, 1)/K_Omega(face, 0)*volporo;
+        const double coef_k = BETA_K*omega*volporo; // K_Omega(face, 1)/K_Omega(face, 0)*volporo;
         matrice(face*2, face*2) += coef_k;
 
-        const double coef_omega = ALPHA_OMEGA*coef_k;
+        const double cALPHA = turbulence_model->is_SST()
+                              ? blender(GAMMA1, GAMMA2, face)
+                              : ALPHA_OMEGA;
+
+        const double cBETA = turbulence_model->is_SST()
+                             ? blender(BETA1, BETA2, face)
+                             : BETA_OMEGA;
+
+        const double cSIGMA = turbulence_model->is_SST()
+                              ? 2*(1 - turbulence_model->get_blenderF1()(face)*SIGMA_OMEGA2)
+                              : (gradKgradOmega(face) > 0)*1/8;
+
+        const double coef_omega = ( -cALPHA*production_TKE(face)/tke + cBETA*omega - cSIGMA/(omega*omega)*gradKgradOmega(face) ) * volporo;//ALPHA_OMEGA*coef_k;
         matrice(face*2 + 1, face*2 + 1) += coef_omega;
       }
 }
