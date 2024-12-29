@@ -48,8 +48,8 @@ public :
   void associer_modele_turbulence(const Modele_turbulence_scal_Fluctuation_Temperature& );
   void discretiser() override;
   void completer() override;
-  inline const Milieu_base& milieu() const override;
-  inline Milieu_base& milieu() override;
+  const Milieu_base& milieu() const override;
+  Milieu_base& milieu() override;
   inline const Modele_turbulence_scal_Fluctuation_Temperature& modele_turbulence() const;
   inline Modele_turbulence_scal_Fluctuation_Temperature& modele_turbulence();
   int nombre_d_operateurs() const override;

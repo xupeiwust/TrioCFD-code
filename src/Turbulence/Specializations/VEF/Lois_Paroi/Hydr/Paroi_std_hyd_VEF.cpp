@@ -106,6 +106,7 @@ void Paroi_std_hyd_VEF::set_param(Param& param)
 //  Implementation des fonctions de la classe Paroi_std_hyd_VEF
 //
 /////////////////////////////////////////////////////////////////////
+KOKKOS_FUNCTION
 bool compute_u_plus(const int ind_face,
                     const double u_plus_d_plus,
                     const double erugu,
