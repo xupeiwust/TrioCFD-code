@@ -1848,7 +1848,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
               nu_t(elem) *= dist_corr;
 
           }); // End loop on real faces
-          end_gpu_timer(Objet_U::computeOnDevice, __KERNEL_NAME__);
+          end_gpu_timer(__KERNEL_NAME__);
 
         } // End BC conditions
 
