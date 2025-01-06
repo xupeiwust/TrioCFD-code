@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------------------------
+Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
 Release notes version 1.9.5 : Enhancements, modifications and corrected bugs since version 1.9.4 :
 --------------------------------------------------------------------------------------------------
 06/12/24 (TrioCFD) New feature : Sensibility Analisis - module based on the Polynomial Chaos Method.
