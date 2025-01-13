@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Sauvegarde_Reprise_Maillage_FT.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/10
-//
-//////////////////////////////////////////////////////////////////////////////
 #include <Sauvegarde_Reprise_Maillage_FT.h>
 #include <Maillage_FT_Disc.h>
 #include <Domaine_VF.h>
@@ -29,7 +22,7 @@
 void ecrire_tableau(Sortie& os, const DoubleTab& tab)
 {
   const int dim0 = tab.dimension(0);
-  const int dimtot = Process::mp_sum(dim0);
+  const int dimtot = Process::check_int_overflow(Process::mp_sum(dim0));
   if (Process::je_suis_maitre())
     os << dimtot << tspace << tab.dimension(1) << finl;
   os.put(tab.addr(), tab.size_array());
@@ -39,7 +32,7 @@ void ecrire_tableau(Sortie& os, const DoubleTab& tab)
 void ecrire_tableau(Sortie& os, const IntTab& tab)
 {
   const int dim0 = tab.dimension(0);
-  const int dimtot = Process::mp_sum(dim0);
+  const int dimtot = Process::check_int_overflow(Process::mp_sum(dim0));
   if (Process::je_suis_maitre())
     os << dimtot << tspace << tab.dimension(1) << finl;
   os.put(tab.addr(), tab.size_array());
@@ -49,7 +42,7 @@ void ecrire_tableau(Sortie& os, const IntTab& tab)
 void ecrire_tableau(Sortie& os, const ArrOfInt& tab)
 {
   const int dim0 = tab.size_array();
-  const int dimtot = Process::mp_sum(dim0);
+  const int dimtot = Process::check_int_overflow(Process::mp_sum(dim0));
   if (Process::je_suis_maitre())
     os << dimtot << finl;
   os.put(tab.addr(), tab.size_array());
@@ -107,7 +100,7 @@ void Sauvegarde_Reprise_Maillage_FT::ecrire_xyz(const Maillage_FT_Disc& mesh, co
   coord_som.resize(nb_sommets_reels, dim);
   num_face_bord.resize_array(nb_sommets_reels);
   // Calcul de l'offset a ajouter pour avoir l'indice global du sommet:
-  const int offset = mppartial_sum(nb_sommets_reels);
+  const int offset = Process::check_int_overflow(Process::mppartial_sum(nb_sommets_reels));
   for (i = 0; i < nb_sommets; i++)
     if (indice_global_sommet[i] >= 0)
       indice_global_sommet[i] += offset;
@@ -278,7 +271,7 @@ void Sauvegarde_Reprise_Maillage_FT::lire_xyz(Maillage_FT_Disc& mesh,
       }
   }
 
-// if (Process::mp_sum(erreur_sommets_exterieurs))
+// if (Process::check_int_overflow(Process::mp_sum(erreur_sommets_exterieurs))
 // GF bloque sinon dans avancer en // de plis c'est inutil
   if (erreur_sommets_exterieurs)
     {

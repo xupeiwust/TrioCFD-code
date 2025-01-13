@@ -34,20 +34,6 @@
 #include <OpConvDiscQuickIJKScalar.h>
 #include <OpConvCentre4IJK.h>
 
-/*
-#include <OpConvIJKQuickScalar.h>
-#include <OpDiffTurbIJK.h>
-#include <OpConvCentre4IJK.h>
-#include <OpConvIJKQuickScalar.h>
-#include <OpDiffTurbIJKScalar.h>
-*/
-/*! @brief : class IJK_Thermique
- *
- *  <Description of class IJK_Thermique>
- *
- *
- *
- */
 class IJK_FT_base;
 
 class IJK_Thermique : public Objet_U

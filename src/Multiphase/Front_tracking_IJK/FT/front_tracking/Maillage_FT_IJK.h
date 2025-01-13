@@ -25,6 +25,7 @@
 class Domaine_dis_base;
 
 class Parcours_interface;
+
 /*! @brief : class Maillage_FT_IJK
  *
  */

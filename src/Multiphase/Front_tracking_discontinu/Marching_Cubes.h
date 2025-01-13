@@ -39,7 +39,7 @@ class Marching_Cubes : public Objet_U
 {
   Declare_instanciable_sans_constructeur(Marching_Cubes);
 public:
-  Marching_Cubes();
+  Marching_Cubes() { }
 
   void associer_domaine_vf(const Domaine_VF& domaine_vf);
 
@@ -101,18 +101,18 @@ protected:
   // *********** DEBUT
   OBS_PTR(Domaine_VF) ref_domaine_vf_;
 
-  int nb_sommets_element;
+  int nb_sommets_element = -1;
   // Definition des aretes de l'element de base eulerien
   // (exemple pour des triangles 2D {{0,1},{1,2},{2,0}}
-  int nb_aretes_element;
+  int nb_aretes_element = -1;
   IntTabFT mcubes_def_aretes;
   // Definition des aretes des faces
-  int nb_sommets_par_face;
-  int nb_aretes_faces;
+  int nb_sommets_par_face = -1;
+  int nb_aretes_faces = -1;
   IntTabFT mcubes_def_aretes_faces;
   // Definition des facettes a creer en fonction du cas marching_cubes
   // voir Marching_cubes_data.h
-  int nb_sommets_facette;
+  int nb_sommets_facette = -1;
   ArrOfIntFT mcubes_index_facettes;
   ArrOfIntFT mcubes_facettes;
   ArrOfIntFT mcubes_nb_facettes;
@@ -125,11 +125,11 @@ protected:
   // *********** FIN
 
   // Taille du tableau a la derniere construction d'une iso...
-  mutable int last_def_noeud_size;
+  mutable int last_def_noeud_size = 0;
 
 private:
-  Marching_Cubes(const Marching_Cubes&);  // Interdit !
-  const Marching_Cubes& operator=(const Marching_Cubes&);   // Interdit !
+  Marching_Cubes(const Marching_Cubes&): Objet_U() { throw; }  // Interdit !
+  const Marching_Cubes& operator=(const Marching_Cubes& a) { throw; }   // Interdit !
 };
 
 #endif

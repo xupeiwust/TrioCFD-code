@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Paroi_2couches_VDF.cpp
-// Directory:   $TURBULENCE_ROOT/src/Specializations/VDF/Lois_Paroi/Hydr
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Paroi_2couches_VDF.h>
 #include <Modele_turbulence_hyd_K_Eps_2_Couches.h>
@@ -760,7 +754,7 @@ void Paroi_2couches_VDF::imprimer_ustar(Sortie& os) const
   upmoy = mp_sum(upmoy);
   dpmoy = mp_sum(dpmoy);
   utaumoy = mp_sum(utaumoy);
-  compt = mp_sum(compt);
+  compt = check_int_overflow(mp_sum(compt));
   if (compt && je_suis_maitre())
     {
       Ustar << finl;

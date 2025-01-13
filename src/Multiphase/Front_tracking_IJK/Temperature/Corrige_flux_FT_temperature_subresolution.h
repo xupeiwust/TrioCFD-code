@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Corrige_flux_FT_temperature_subresolution.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Corrige_flux_FT_temperature_subresolution_included
 #define Corrige_flux_FT_temperature_subresolution_included
@@ -32,13 +26,7 @@
 #define NEIGHBOURS_FACES_I {0, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_FACES_J {0, 0, 0, 1, 0, 0}
 #define NEIGHBOURS_FACES_K {0, 0, 0, 0, 0, 1}
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class Corrige_flux_FT_temperature_subresolution
-//
-// <Description of class Corrige_flux_FT_temperature_subresolution>
-//
-/////////////////////////////////////////////////////////////////////////////
+
 #define FACES_DIR {0, 0, 1, 1, 2, 2}
 // TODO: Be careful to operators ! (Left - Right) values
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}

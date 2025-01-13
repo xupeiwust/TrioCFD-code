@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblem.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblem.h>
 #include <IJK_Field_vector.h>
@@ -29,9 +23,9 @@
 #include <IJK_One_Dimensional_Subproblems.h>
 
 #define selectxy(a,x,y) ((a==0)?(x):(y))
+Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblem, "IJK_One_Dimensional_Subproblem", Objet_U ) ;
 
-Implemente_instanciable( IJK_One_Dimensional_Subproblem, "IJK_One_Dimensional_Subproblem", Objet_U ) ;
-
+IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem() : Objet_U() { }
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const IJK_FT_base& ijk_ft) : IJK_One_Dimensional_Subproblem()
 {

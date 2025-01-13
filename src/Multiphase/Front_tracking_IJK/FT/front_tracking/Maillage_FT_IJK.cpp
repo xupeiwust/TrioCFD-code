@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Maillage_FT_IJK.cpp
-// Directory : $IJK_ROOT/src/FT/front_tracking
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Maillage_FT_IJK.h>
 #include <IJK_Field.h>
@@ -137,7 +131,7 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
               n++;
             }
           longueur_cara_fa7= Process::mp_sum(longueur_cara_fa7);
-          n= Process::mp_sum(n);
+          n = Process::check_int_overflow(Process::mp_sum(n));
           if (n>0)
             {
               longueur_cara_fa7 /= n ;
@@ -401,7 +395,7 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
         }
 #endif
     }
-  max_voisinage = ::mp_max(max_voisinage);
+  max_voisinage = Process::mp_max(max_voisinage);
   ArrOfInt recv_pe_list; // Liste des processeurs qui recoivent des sommets
   if (max_voisinage == 0)
     {
@@ -487,6 +481,9 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
   // On teste le compo_connexe : il n'a pas ete mis a jour, les facettes non plus... Ils sont donc en coherence.
 }
 
+/*! Reading the FT mesh from a LATA file.
+ * Assumption: FT mesh is always small enough so that all indices fit within 32b. This check implicitely in the 'ref_as_small' methods.
+ */
 void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path, int tstep,
                                                  const char *geometryname)
 {
@@ -499,7 +496,7 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
   Nom path, dbname;
   split_path_filename(filename_with_path, path, dbname);
   LataDB db;
-  FloatTab coord;
+  BigFloatTab coord;
 
   Vecteur3 origine;
   for (int j = 0; j < 3; j++)
@@ -524,12 +521,17 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
             Process::exit();
           }
         const LataDBField& db_field = db.get_field(tstep, geometryname, "COMPO_CONNEXE", "ELEM");
-        IntTab tmp;
+        BigIntTab tmp;
         db.read_data(db_field, tmp);
-        compo_connexe_facettes_ = tmp;
+        IntTab small_tmp;
+        tmp.ref_as_small(small_tmp); // Will check possible overflow issue
+        compo_connexe_facettes_ = small_tmp;
       }
 
-      db.read_data(db_elem, facettes_); // on lit directement les indices de sommets dans le tableau destination
+      BigIntTab tmp_fac;
+      db.read_data(db_elem, tmp_fac);
+      tmp_fac.ref_as_small(facettes_); // Will check possible overflow issue
+
       // Il faut traduire les indices de sommets virtuels en indices reels avec le tableau INDEX_SOMMET_REEL
       // En meme temps on supprime les facettes virtuelles
       // Il faut a ce moment faire suivre le tableau compo_connex pour qu'il soit coherent...
@@ -538,8 +540,12 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
       if (db.field_exists(tstep, geometryname, "INDEX_SOMMET_REEL"))
         {
           const LataDBField& db_index_sommet_reel = db.get_field(tstep, geometryname, "INDEX_SOMMET_REEL","");
+
           IntTab index_sommet_reel_tab;
-          db.read_data(db_index_sommet_reel, index_sommet_reel_tab);
+          BigIntTab big_idx;
+          db.read_data(db_index_sommet_reel, big_idx);
+          big_idx.ref_as_small(index_sommet_reel_tab);
+
           // le tableau lu est dimensionne (nsom,1), on cast en arrofint pour ne pas avoir a donner 2 indices
           const ArrOfInt& index_sommet_reel = index_sommet_reel_tab;
           // Traduction. On cast le IntTab en ArrOfInt pour adresser lineairement tous les sommets
@@ -576,7 +582,10 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
         {
           Journal() << " Pas de champ INDEX_SOMMET_REEL, on suppose qu'il n'y a pas de sommet virtuel" << finl;
         }
-      nbsom = coord.dimension(0);
+      trustIdType nbSom0 = coord.dimension(0);
+      if (nbSom0 > std::numeric_limits<int>::max())
+        Process::exit("The FT mesh has too many vertices (>32b) - this is not implemented yet!!");
+      nbsom = static_cast<int>(nbSom0);
       Cerr << "Le maillage a nbsom=" << nbsom << " (avant suppression des sommets virtuels lus)" << finl;
       // Creation d'un maillage sur le proc0, tous les sommets a l'origine du maillage
       sommets_.resize(nbsom, 3);

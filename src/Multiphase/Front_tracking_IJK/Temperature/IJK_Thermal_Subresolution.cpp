@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_Subresolution.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal_Subresolution.h>
 #include <Param.h>
@@ -1922,7 +1916,7 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
           // int nb_subproblems_ini = thermal_local_subproblems_.get_subproblems_counter();
           int nb_subproblems_ini = thermal_local_subproblems_.get_effective_subproblems_counter();
           if (!(ref_ijk_ft_->get_disable_convection_qdm() && ref_ijk_ft_->get_disable_diffusion_qdm()))
-            nb_subproblems_ini = Process::mp_sum(nb_subproblems_ini);
+            nb_subproblems_ini = Process::check_int_overflow(Process::mp_sum(nb_subproblems_ini));
           const int max_subproblems_predicted = (int) ((double) nb_subproblems_ini * pre_factor_subproblems_number_);
           finite_difference_assembler_.pre_initialise_matrix_subproblems(thermal_subproblems_matrix_assembly_,
                                                                          radial_second_order_operator_raw_,

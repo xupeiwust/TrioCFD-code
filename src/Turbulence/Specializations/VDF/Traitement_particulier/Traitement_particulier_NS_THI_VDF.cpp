@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Traitement_particulier_NS_THI_VDF.cpp
-// Directory:   $TURBULENCE_ROOT/src/Specializations/VDF/Traitement_particulier
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Traitement_particulier_NS_THI_VDF.h>
 #include <Domaine_VDF.h>
@@ -440,7 +434,7 @@ void Traitement_particulier_NS_THI_VDF::calcul_skewness_ordre_2(double& Skewness
       num_face ++;
       ori = orientation(num_face);
     }
-  compt = mp_sum(compt);
+  compt = Process::check_int_overflow(mp_sum(compt));
   Skewness_num = mp_sum(Skewness_num);
   Skewness_den = mp_sum(Skewness_den);
 

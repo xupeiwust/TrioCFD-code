@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Transport_Interfaces_FT_Disc.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/patch_168/1
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Transport_Interfaces_FT_Disc.h>
 #include <Probleme_FT_Disc_gen.h>
@@ -4324,7 +4317,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
           Cerr << "A UN ELEMENT TRAVERSE PAR L INTERFACE" << finl;
           projete_point_face_interface(nb_proj_modif,dimfa7,indicatrice_face,indicatrice,dist_face_cor,t,dt,Tab100,
                                        Tab101,Tab102,Tab103,Tab12,CptFacette,v_imp,PPP,parser_x,parser_y,parser_z) ;
-          nb_proj_modif_tot = mp_sum(nb_proj_modif) ;
+          nb_proj_modif_tot = Process::check_int_overflow(mp_sum(nb_proj_modif)) ;
           if( Process::je_suis_maitre() )
             Cerr << " Nombre de projete modifie pour les faces diphasiques : "<<nb_proj_modif_tot<<" au temps "<<schema_temps().temps_courant()<<finl ;
 
@@ -4334,7 +4327,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
           projete_point_face_fluide(nb_proj_modif,dimfa7,indicatrice_face,indicatrice,dist_face_cor,
                                     t,dt,Tab100,Tab101,Tab102,Tab103,Tab12,CptFacette,v_imp,PPP,parser_x,parser_y,parser_z) ;
           v_imp.echange_espace_virtuel() ;
-          nb_proj_modif_tot = mp_sum(nb_proj_modif) ;
+          nb_proj_modif_tot = Process::check_int_overflow(mp_sum(nb_proj_modif)) ;
           if( Process::je_suis_maitre() )
             Cerr << " Nombre de projete modifie pour les faces fluides : "<<nb_proj_modif_tot<<" au temps "<<schema_temps().temps_courant()<<finl ;
           Debog::verifier("Transport_Interfaces_FT_Disc::interpoler_vitesse_face vimp",v_imp);
@@ -6881,7 +6874,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           }
         // Calcul du barycentre des noeuds de l'interface
         // en tenant compte du parallelisme
-        nb_sommets_reels=mp_sum(nb_sommets_reels);
+        nb_sommets_reels=Process::check_int_overflow(mp_sum(nb_sommets_reels));
         /*        for (int j = 0; j < dim; j++)
                   {
                     coord_barycentre(j)=mp_sum(coord_barycentre(j))/nb_sommets_reels;

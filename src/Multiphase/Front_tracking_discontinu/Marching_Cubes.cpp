@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Marching_Cubes.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/19
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Marching_Cubes.h>
 #include <TRUST_Deriv.h>
@@ -38,33 +31,6 @@
 
 Implemente_instanciable_sans_constructeur(Marching_Cubes,"Marching_Cubes",Objet_U);
 
-
-// **********************************************************************
-//                       Methodes publiques
-
-Marching_Cubes::Marching_Cubes() :
-  last_def_noeud_size(0)
-{
-}
-
-/*! @brief Constructeur par copie interdit !
- *
- */
-Marching_Cubes::Marching_Cubes(const Marching_Cubes& a): Objet_U(a)
-{
-  Cerr << "Erreur : Marching_Cubes::Marching_Cubes  Constructeur par copie interdit !" << finl;
-  exit();
-}
-
-/*! @brief Operateur copie interdit !
- *
- */
-const Marching_Cubes& Marching_Cubes::operator=(const Marching_Cubes&)
-{
-  Cerr << "Erreur : Marching_Cubes::operator= Operateur copie interdit !" << finl;
-  exit();
-  return *this;
-}
 
 Entree& Marching_Cubes::readOn(Entree& is)
 {
@@ -784,7 +750,7 @@ int Marching_Cubes::construire_noeuds_et_facettes(const ArrOfBit& signe,
         }
     }
   // S'il y a une erreur sur un processeur, tout le monde renvoie 0
-  resultat_ok = ::mp_min(resultat_ok);
+  resultat_ok = Process::mp_min(resultat_ok);
   return resultat_ok;
 }
 

@@ -447,7 +447,7 @@ void Corrige_flux_FT_temperature_subresolution::receive_temperature_cell_centre_
 
           const int size_vector = indices_temperature_neighbours_on_procs_[0].size_array();
           int size_vector_total = size_vector;
-          size_vector_total = Process::mp_sum(size_vector_total);
+          size_vector_total = Process::check_int_overflow(Process::mp_sum(size_vector_total));
 
           ArrOfInt overall_numerotation(nb_procs);
           ArrOfInt start_indices(nb_procs);
@@ -1318,7 +1318,7 @@ void Corrige_flux_FT_temperature_subresolution::receive_all_fluxes_from_outisde_
                 {
                   const int size_array = index_face_ij_flux_xyz_neighbours_all_faces_remaining_global_sorted_[0][c][k].size_array();
                   int size_array_global = size_array;
-                  size_array_global = mp_sum(size_array_global);
+                  size_array_global = Process::check_int_overflow(Process::mp_sum(size_array_global));
                   ArrOfInt overall_numerotation(nb_procs);
                   ArrOfInt start_indices(nb_procs);
                   overall_numerotation(proc_num) = size_array;
@@ -3415,7 +3415,7 @@ void Corrige_flux_FT_temperature_subresolution::receive_fluxes_from_frontier_on_
                 {
                   const int size_array = flux_xyz_remaining_global[c][k].size_array();
                   int size_array_global = size_array;
-                  size_array_global = mp_sum(size_array_global);
+                  size_array_global = Process::check_int_overflow(Process::mp_sum(size_array_global));
                   size_array_global_array[c](k) = size_array_global;
                   overall_numerotation_array[c][k] = ArrOfInt(nb_procs);
                   start_indices_array[c][k] = ArrOfInt(nb_procs);

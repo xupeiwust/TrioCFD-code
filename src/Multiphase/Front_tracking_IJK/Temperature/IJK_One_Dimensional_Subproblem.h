@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblem.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_One_Dimensional_Subproblem_included
 #define IJK_One_Dimensional_Subproblem_included
@@ -59,12 +53,14 @@
 #define INVALID_INDEX -100
 #define MAX_FLUX_TEST 1.e16
 
-
 class IJK_FT_base;
 class IJK_Thermal_base;
 class IJK_Thermal_Subresolution;
 class IJK_One_Dimensional_Subproblems;
 
+/*! class IJK_One_Dimensional_Subproblem
+ *
+ */
 class IJK_One_Dimensional_Subproblem : public Objet_U
 {
   Declare_instanciable( IJK_One_Dimensional_Subproblem ) ;

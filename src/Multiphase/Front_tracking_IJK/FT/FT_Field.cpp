@@ -1389,7 +1389,7 @@ ArrOfDouble FT_Field::check_conservation(const Maillage_FT_IJK& mesh)
   int nb_bulles_reelles = 0 ;
   if (compo_connex.size_array()!=0)
     nb_bulles_reelles = max_array(compo_connex);
-  nb_bulles_reelles = ::mp_max(nb_bulles_reelles) + 1;
+  nb_bulles_reelles = Process::mp_max(nb_bulles_reelles) + 1;
   ArrOfDouble Surfactant_par_compo(nb_bulles_reelles);
   for (int fa7=0 ; fa7<nbfa7 ; fa7++)
     {
@@ -1418,7 +1418,7 @@ void FT_Field::correction_conservation_globale(const Maillage_FT_IJK& mesh, cons
       int nb_bulles_reelles = 0 ;
       if (compo_connex.size_array()!=0)
         nb_bulles_reelles = max_array(compo_connex);
-      nb_bulles_reelles = ::mp_max(nb_bulles_reelles) + 1;
+      nb_bulles_reelles = Process::mp_max(nb_bulles_reelles) + 1;
       ArrOfDouble Surface_par_compo(nb_bulles_reelles);
 
       for (int fa7=0 ; fa7<nbfa7 ; fa7++)

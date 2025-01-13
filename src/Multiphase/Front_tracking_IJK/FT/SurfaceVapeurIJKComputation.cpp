@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : SurfaceVapeurIJKComputation.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <SurfaceVapeurIJKComputation.h>
 
@@ -181,7 +175,7 @@ void SurfaceVapeurIJKComputation::slice_bubble(
 
 void SurfaceVapeurIJKComputation::findCommonTuples(
   const DataArrayIdType *new_to_old_id,
-  const int n_tot_mesh2d,
+  const mcIdType n_tot_mesh2d,
   DataArrayIdType *tab_id_subcells,
   DataArrayIdType *tab_id_cut_cell) const
 {
@@ -194,10 +188,10 @@ void SurfaceVapeurIJKComputation::findCommonTuples(
   const auto n_new_to_old = new_to_old_id->getNumberOfTuples();
   const auto new_to_old_id_ptr = new_to_old_id->getConstPointer();
 
-  DAI temp = DataArrayInt::New();
+  MCT temp = DataArrayIdType::New();
   temp->alloc(n_tot_mesh2d, 2);
-  temp->fillWithValue(-1.);
-  int *temp_ptr = temp->getPointer();
+  temp->fillWithValue(-1);
+  mcIdType *temp_ptr = temp->getPointer();
   // n_cut n'est pas le bon nombre ! Mais comme je n'ai aucune;
   // idée de sa valeur je prend la différence entre new et old qui me
   // donne le bon résultat si toutes les surfaces ne sont coupées que par une
@@ -211,14 +205,14 @@ void SurfaceVapeurIJKComputation::findCommonTuples(
   // tab_id_cut_cell = DataArrayInt::New();
   tab_id_cut_cell->alloc(n_cut, 1);
   tab_id_cut_cell->fillWithValue(-1);
-  int *tab_id_cut_cell_ptr = tab_id_cut_cell->getPointer();
+//  mcIdType *tab_id_cut_cell_ptr = tab_id_cut_cell->getPointer();
   // tab_id_subcells est un tableau de tuple des ids des bouts de cellules qui
   // sont en fait dans la meme cellule. La taille de ce tuple est celle du nbre
   // max de compo connexe plus 1 (la phase liquide). Le tuple est rempli au fur
   // et à mesure et complété par des -1 deja defini mais pas encore alloué
   tab_id_subcells->alloc(n_cut, max_authorized_nb_of_components_ + 1);
   tab_id_subcells->fillWithValue(-1);
-  int *tab_id_subcells_ptr = tab_id_subcells->getPointer();
+  mcIdType *tab_id_subcells_ptr = tab_id_subcells->getPointer();
   int ind = 0;
   // ind est l'indice du dernier doublon qui avance au fur et à mesure de la
   // découverte d'un nouveau doublon
@@ -236,7 +230,7 @@ void SurfaceVapeurIJKComputation::findCommonTuples(
               // la cellule n'est pas encore marquee comme diphasique, on ajoute les
               // deux subcells identifies pour le moment et on augmente le nbre de
               // cellule diph
-              tab_id_cut_cell_ptr[ind] = i_old;
+//              tab_id_cut_cell_ptr[ind] = i_old;
               tab_id_subcells_ptr[(max_authorized_nb_of_components_ + 1) * ind] = temp_ptr[2 * i_old];
               tab_id_subcells_ptr[(max_authorized_nb_of_components_ + 1) * ind + 1] = i_new;
               // On garde une trace du fait que ce tuple est a la ind eme position
@@ -251,7 +245,7 @@ void SurfaceVapeurIJKComputation::findCommonTuples(
             {
               // la cellule avait deja été marquee comme diphasique, on va juste
               // modifier le bon tuple des subcells
-              const int ind_tuple = temp_ptr[2 * i_old + 1];
+              const mcIdType ind_tuple = temp_ptr[2 * i_old + 1];
               assert(ind_tuple >= 0);
               int last_compo_remplie = 1;
               // ca plante si on a plus de compo dans une cellule que nb_max_compo + 1
@@ -320,7 +314,7 @@ void get_coo_inv_to_keep(int d, std::array<int, 3>& COOINV)
 void SurfaceVapeurIJKComputation::get_IJK_ind_from_ind2d(
   const int i_dim,
   const int i_plan,
-  const int i_2d,
+  const trustIdType i_2d,
   const int nx,
   std::array<int, 3>& ijk_coo) const
 {
@@ -332,8 +326,8 @@ void SurfaceVapeurIJKComputation::get_IJK_ind_from_ind2d(
   // cellule du maillage cartesien du plan XY
   // Pour rappel mon tableau est de taille un peu supérieur car
   // il représente un chmap aux faces et non au centre des cellules.
-  const int y = i_2d / (nx - 1);
-  const int x = i_2d - (nx - 1) * y;
+  const int y = Process::check_int_overflow(i_2d / (nx - 1));
+  const int x = Process::check_int_overflow(i_2d - (nx - 1) * y);
 
   // On remet dans l'ordre ijk les indices selon la direction normale
   // au plan de coupe.
@@ -352,12 +346,12 @@ void SurfaceVapeurIJKComputation::check_if_vect_is_from_liquid2vapor(
   const int nx, const DataArrayIdType *ids_old,
   DataArrayIdType *ids_new) const
 {
-  const int *ids_old_ptr = ids_old->getConstPointer();
-  int *ids_new_ptr = ids_new->getPointer();
+  const mcIdType *ids_old_ptr = ids_old->getConstPointer();
+  mcIdType *ids_new_ptr = ids_new->getPointer();
   const double *vector_ptr = vector->getConstPointer();
   const int n_compo_ids_IJ = static_cast<int>(ids_new->getNumberOfComponents());
   const int n_compo_v = static_cast<int>(vector->getNumberOfComponents());
-  const int n_tup_v = vector->getNumberOfTuples();
+  const mcIdType n_tup_v = vector->getNumberOfTuples();
   std::vector<int> coo2keep(2);
   get_coo_to_keep(dim, coo2keep);
 
@@ -423,16 +417,16 @@ void SurfaceVapeurIJKComputation::get_vect_from_sub_cells_tuple(
 {
   // vect est de la taille du nombre de cellules diphasiques, on ne regarde vect
   // que quand la face est coupée.
-  const int n_vect = cIcellsIdinMesh0->getNumberOfTuples();
+  const mcIdType n_vect = cIcellsIdinMesh0->getNumberOfTuples();
   vect->alloc(n_vect, 2);
   double *vect_ptr = vect->getPointer();
   // const int n_diph = bary0->getNumberOfTuples();
   // const int dim_bary0 = static_cast<int>(bary0->getNumberOfComponents());
   std::vector<int> coo_to_keep(2);
   get_coo_to_keep(dim, coo_to_keep);
-  const int *cellsIdinMesh0_ptr = cellsIdinMesh0->getConstPointer();
+  const mcIdType *cellsIdinMesh0_ptr = cellsIdinMesh0->getConstPointer();
   // const int* cIcellsIdinMesh0_ptr = cIcellsIdinMesh0->getConstPointer();
-  const int n_cIcellsIdinMesh0 = cIcellsIdinMesh0->getNumberOfTuples();
+  const mcIdType n_cIcellsIdinMesh0 = cIcellsIdinMesh0->getNumberOfTuples();
 
   // {
   //   // debug part
@@ -447,10 +441,10 @@ void SurfaceVapeurIJKComputation::get_vect_from_sub_cells_tuple(
     {
       // on considere arbitrairement les 2 premiers, je ne vois pas comment on
       // pourrait faire dans le cas ou il y en a plus.
-      const int ind_phase0 = cellsIdinMesh0_ptr[(max_authorized_nb_of_components_ + 1) * c];
+      const mcIdType ind_phase0 = cellsIdinMesh0_ptr[(max_authorized_nb_of_components_ + 1) * c];
       assert(ind_phase0 >= 0);
       assert(ind_phase0 < bary0->getNumberOfTuples());
-      const int ind_phase1 = cellsIdinMesh0_ptr[(max_authorized_nb_of_components_ + 1) * c + 1];
+      const mcIdType ind_phase1 = cellsIdinMesh0_ptr[(max_authorized_nb_of_components_ + 1) * c + 1];
       assert(ind_phase1 >= 0);
       assert(ind_phase1 < bary0->getNumberOfTuples());
       // const int ind_maillage_2d_cart = cIcellsIdinMesh0_ptr[c];
@@ -551,7 +545,7 @@ void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vap
       mesh->orientCorrectly2DCells(vect, false);
       mesh->changeSpaceDimension(2);
       /* MCT do_not_use3 = */ mesh->zipCoordsTraducer();
-      const int n_cell_tot = mesh->getNumberOfCells();
+      const mcIdType n_cell_tot = mesh->getNumberOfCells();
       if (Process::je_suis_maitre())
         MEDCoupling::WriteUMesh("mesh.med", mesh, true);
 
@@ -562,7 +556,7 @@ void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vap
       const auto zmin = geom.get_origin(d) + dz * splitting.get_offset_local(d);
       // Marche si le forecasting marche, sinon il faut parcourir en boucle
       auto zarr_ptr = zarr->getPointer();
-      const int n_tup_zarr = zarr->getNumberOfTuples();
+      const mcIdType n_tup_zarr = zarr->getNumberOfTuples();
       for (int c = 0; c < n_tup_zarr; c++)
         {
           zarr_ptr[c] *= dz;
@@ -730,23 +724,23 @@ void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vap
               // Cette boucle est un parcours des cellules diphasiques seulement.
               // Elle permet de remplir de manière efficace les tableaux surfaces et
               // barycentres
-              const int n_diph = cellsIdinMesh0->getNumberOfTuples();
+              const mcIdType n_diph = cellsIdinMesh0->getNumberOfTuples();
               const int n_compo_subcell = static_cast<int>(cellsIdinMesh0->getNumberOfComponents());
-              const int *subcellPtr = cellsIdinMesh0->getConstPointer();
-              const int *cIPtr = cIcellsIdinMesh0->getConstPointer();
+              const mcIdType *subcellPtr = cellsIdinMesh0->getConstPointer();
+              const mcIdType *cIPtr = cIcellsIdinMesh0->getConstPointer();
               const double *surf0Ptr = surf0->getConstPointer();
               const double *bary0Ptr = bary0->getConstPointer();
               const int n_compo_bary = static_cast<int>(bary0->getNumberOfComponents());
 
-              for (int c = 0; c < n_diph; c++)
+              for (mcIdType c = 0; c < n_diph; c++)
                 {
                   // TODO renvoie les coordonnees x et y correspondant au numero de la
                   // cellule du maillage cartesien du plan XY
-                  const int i_cell_cart = cIPtr[c];
+                  const mcIdType i_cell_cart = cIPtr[c];
                   // On prend le premier de la ligne parce que pour rappel on les a
                   // réordonné afin d'avoir le premier qui correspond à la subcell
                   // vapeur
-                  const int i_subcell = subcellPtr[c * n_compo_subcell];
+                  const mcIdType i_subcell = subcellPtr[c * n_compo_subcell];
                   std::array<int, 3> coo_inv {0, 0, 0};
                   get_IJK_ind_from_ind2d(d, i_plan, i_cell_cart, N[X1], coo_inv);
 
@@ -847,19 +841,19 @@ int SurfaceVapeurIJKComputation::rempli_surface_vapeur_par_face_interieur_bulles
 void SurfaceVapeurIJKComputation::order_elem_mesh_filaire(MEDCouplingUMesh *mesh1D)
 {
   DataArrayIdType *n = mesh1D->getNodalConnectivity();
-  int *n_ptr = n->getPointer();
+  mcIdType *n_ptr = n->getPointer();
   DataArrayIdType *nI = mesh1D->getNodalConnectivityIndex();
-  const int *nI_ptr = nI->getConstPointer();
-  int n_cells = mesh1D->getNumberOfCells();
+  const mcIdType *nI_ptr = nI->getConstPointer();
+  mcIdType n_cells = mesh1D->getNumberOfCells();
   Cerr << "Coordonnees de mesh1D : " << finl;
   print_double_med(mesh1D->getCoords());
   if (n_cells > 1)
     {
-      int last_node, second_node;
+      mcIdType last_node, second_node;
       last_node = -1;
-      int node0, node1, node2, node3;
+      mcIdType node0, node1, node2, node3;
 
-      for (int i_cell = 0; i_cell < n_cells; i_cell++)
+      for (mcIdType i_cell = 0; i_cell < n_cells; i_cell++)
         {
           // Dans ce cas là on traite un debut de boucle par exemple.
           // Pour changer de boucle il faut atteindre à nouveau le
@@ -936,9 +930,9 @@ void SurfaceVapeurIJKComputation::order_elem_mesh_filaire(MEDCouplingUMesh *mesh
 
 void print_int_med(const DataArrayIdType *data)
 {
-  const int n_tup = data->getNumberOfTuples();
+  const mcIdType n_tup = data->getNumberOfTuples();
   const int n_compo = static_cast<int>(data->getNumberOfComponents());
-  const int *dataPtr = data->getConstPointer();
+  const mcIdType *dataPtr = data->getConstPointer();
   if (n_compo == 1)
     {
       Cerr << "[ ";
@@ -959,19 +953,19 @@ void print_int_med(const DataArrayIdType *data)
 
 void print_double_med(const DataArrayDouble *data)
 {
-  const int n_tup = data->getNumberOfTuples();
+  const mcIdType n_tup = data->getNumberOfTuples();
   const int n_compo = static_cast<int>(data->getNumberOfComponents());
   const double *dataPtr = data->getConstPointer();
   if (n_compo == 1)
     {
       Cerr << "[ ";
-      for (int i = 0; i < n_tup; i++)
+      for (mcIdType i = 0; i < n_tup; i++)
         Cerr << dataPtr[i] << ", ";
       Cerr << "]" << finl;
     }
   else
     {
-      for (int i = 0; i < n_tup; i++)
+      for (mcIdType i = 0; i < n_tup; i++)
         {
           for (int j = 0; j < n_compo; j++)
             Cerr << dataPtr[i * n_compo + j] << ", ";
@@ -982,19 +976,19 @@ void print_double_med(const DataArrayDouble *data)
 
 void print_umesh_conn(const DataArrayIdType *data)
 {
-  const int n_tup = data->getNumberOfTuples();
+  const mcIdType n_tup = data->getNumberOfTuples();
   const int n_compo = static_cast<int>(data->getNumberOfComponents());
-  const int *dataPtr = data->getConstPointer();
+  const mcIdType *dataPtr = data->getConstPointer();
   if (n_compo == 1)
     {
       // Cerr << "[ ";
-      int i = 0;
+      mcIdType i = 0;
       while (i < n_tup)
         {
-          int elem_type = dataPtr[i];
+          mcIdType elem_type = dataPtr[i];
           if (elem_type == 1)
             elem_type++;
-          for (int j = 0; j < elem_type; j++)
+          for (mcIdType j = 0; j < elem_type; j++)
             {
               Cerr << dataPtr[i + 1] << " ";
               i++;

@@ -662,8 +662,8 @@ void Modele_turbulence_scal_LES_dyn_VDF::stabilise_moyenne_plans_paralleles(cons
 
   for (int j = 0; j < N_c_; j++)
     {
-      coeff_m_tmp(j) = mp_sum(coeff_m_tmp(j));
-      coeff_m_tmp(j) /= mp_sum(compt_c_(j));
+      coeff_m_tmp(j) = Process::mp_sum(coeff_m_tmp(j));
+      coeff_m_tmp(j) /= Process::check_int_overflow(Process::mp_sum(compt_c_(j)));
     }
 
   for (int element_number = 0; element_number < nb_elem; element_number++)

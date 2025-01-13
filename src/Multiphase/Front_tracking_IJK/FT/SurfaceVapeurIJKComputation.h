@@ -148,7 +148,7 @@ protected:
   //    un tableau avec les indices des 2 cellules du maillage diphasique en
   //    couple et un tableau avec les cellules du maillage non decoupe
   //    correspondantes.
-  void findCommonTuples(const DataArrayIdType *mesh_merge, const int n_tot_mesh2d, DataArrayIdType *tab_id_subcells,
+  void findCommonTuples(const DataArrayIdType *mesh_merge, const mcIdType n_tot_mesh2d, DataArrayIdType *tab_id_subcells,
                         DataArrayIdType *tab_id_cut_cells) const;
 
   // Cette methode ordonne les noeuds par ordre croissant cellule par cellule
@@ -158,7 +158,7 @@ protected:
   // informations concernant la geometrie IJK et le plan de coupe que l'on est
   // en train de parcourir. Elle renvoie les coordonnees IJK correspondant, dans
   // le bon ordre.
-  void get_IJK_ind_from_ind2d(const int dim, const int i_plan, const int i_2d, const int nx,
+  void get_IJK_ind_from_ind2d(const int dim, const int i_plan, const trustIdType i_2d, const int nx,
                               std::array<int, 3>& ijk_coo) const;
 
   // Cette methode verifie si les subcells sont dans le bon sens (vapeur ->

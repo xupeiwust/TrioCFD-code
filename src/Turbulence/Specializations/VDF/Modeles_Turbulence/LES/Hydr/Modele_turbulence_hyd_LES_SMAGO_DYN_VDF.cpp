@@ -909,8 +909,8 @@ void Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::stabilise_moyenne_plans_paralleles
 
   for (int j = 0; j < N_c_; j++)
     {
-      model_coeff_tmp(j) = mp_sum(model_coeff_tmp(j));
-      model_coeff_tmp(j) /= mp_sum(compt_c_(j));
+      model_coeff_tmp(j) = Process::mp_sum(model_coeff_tmp(j));
+      model_coeff_tmp(j) /= Process::check_int_overflow(Process::mp_sum(compt_c_(j)));
     }
   for (int element_number = 0; element_number < nb_elem; element_number++)
     model_coeff(element_number) = model_coeff_tmp(corresp_c_(element_number));

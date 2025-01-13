@@ -437,10 +437,10 @@ void Maillage_FT_Disc::ecrire_plot(const Nom& nom,double un_temps, int niveau_re
   Nom nom_fic=Objet_U::nom_du_cas();
   nom_fic += "_";
   char str[14];
-#ifndef INT_is_64_
-  snprintf(str,14,"%03d",compteur_plot++);
-#else
+#if INT_is_64_ == 1
   snprintf(str,14,"%03ld",compteur_plot++);
+#else
+  snprintf(str,14,"%03d",compteur_plot++);
 #endif
   nom_fic += Nom(str);
   nom_fic += "_";
@@ -451,20 +451,20 @@ void Maillage_FT_Disc::ecrire_plot(const Nom& nom,double un_temps, int niveau_re
     }
   if (Process::nproc()>1)
     {
-#ifndef INT_is_64_
-      if (Process::nproc()<=1000)
-        snprintf(str,14,"%03d_",me());
-      else if (Process::nproc()<=10000)
-        snprintf(str,14,"%04d_",me());
-      else if (Process::nproc()<=100000)
-        snprintf(str,14,"%05d_",me());
-#else
+#if INT_is_64_ == 1
       if (Process::nproc()<=1000)
         snprintf(str,14,"%03ld_",me());
       else if (Process::nproc()<=10000)
         snprintf(str,14,"%04ld_",me());
       else if (Process::nproc()<=100000)
         snprintf(str,14,"%05ld_",me());
+#else
+      if (Process::nproc()<=1000)
+        snprintf(str,14,"%03d_",me());
+      else if (Process::nproc()<=10000)
+        snprintf(str,14,"%04d_",me());
+      else if (Process::nproc()<=100000)
+        snprintf(str,14,"%05d_",me());
 #endif
       else
         {
@@ -1922,7 +1922,7 @@ int Maillage_FT_Disc::nb_facettes_reelle_totale() const
           compt++;
         }
     }
-  compt = Process::mp_sum(compt);
+  compt = Process::check_int_overflow(Process::mp_sum(compt));
   return compt;
 }
 
@@ -1935,7 +1935,7 @@ int Maillage_FT_Disc::nb_facettes_totale() const
     {
       compt++;
     }
-  compt = Process::mp_sum(compt);
+  compt = Process::check_int_overflow(Process::mp_sum(compt));
   return compt;
 }
 /*! @brief Cette methode teste si les facettes sont voisines : Des facettes sont voisines si :
@@ -3867,7 +3867,7 @@ void Maillage_FT_Disc::deplacer_sommets(const ArrOfInt& liste_sommets_initiale,
       desc_sommets_.echange_espace_virtuel(sommet_face_bord_);
 
       const int nb_sommets_envoyes = sommets_envoyes.size_array();
-      somme_nb_sommets_envoyes = mp_sum(nb_sommets_envoyes);
+      somme_nb_sommets_envoyes = Process::check_int_overflow(mp_sum(nb_sommets_envoyes));
       if (somme_nb_sommets_envoyes > 0)
         {
           // Echange des sommets et des deplacements restants

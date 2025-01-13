@@ -708,15 +708,12 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_iteratif(
             indicatrice_surfacique_efficace_face_initial);
         }
 
-      solution_not_found = ::mp_max(solution_locally_not_found);
+      solution_not_found = Process::mp_max(solution_locally_not_found);
     }
   while (solution_not_found && iteration_solver_surface_efficace_face < maximum_iteration);
 
   statistiques().end_count(calculer_surface_efficace_face_counter_);
 }
-
-
-
 
 void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface(
   int verbosite_surface_efficace_interface,
@@ -840,10 +837,10 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface
   switch_moyenne_ecart_relatif_surface = Process::mp_sum(switch_moyenne_ecart_relatif_surface);
   switch_maximum_ecart_absolue_surface = Process::mp_max(switch_maximum_ecart_absolue_surface);
   switch_maximum_ecart_relatif_surface = Process::mp_max(switch_maximum_ecart_relatif_surface);
-  n_count = Process::mp_sum(n_count);
-  n_count_surface = Process::mp_sum(n_count_surface);
-  switch_n_count = Process::mp_sum(switch_n_count);
-  switch_n_count_surface = Process::mp_sum(switch_n_count_surface);
+  n_count = Process::check_int_overflow(Process::mp_sum(n_count));
+  n_count_surface = Process::check_int_overflow(Process::mp_sum(n_count_surface));
+  switch_n_count = Process::check_int_overflow(Process::mp_sum(switch_n_count));
+  switch_n_count_surface = Process::check_int_overflow(Process::mp_sum(switch_n_count_surface));
   assert(n_count_surface == n_count);
   assert(switch_n_count_surface == switch_n_count);
   if (n_count >= 1)
@@ -1028,10 +1025,10 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
   switch_moyenne_ecart_relatif_surface = Process::mp_sum(switch_moyenne_ecart_relatif_surface);
   switch_maximum_ecart_absolue_surface = Process::mp_max(switch_maximum_ecart_absolue_surface);
   switch_maximum_ecart_relatif_surface = Process::mp_max(switch_maximum_ecart_relatif_surface);
-  n_count = Process::mp_sum(n_count);
-  n_count_surface = Process::mp_sum(n_count_surface);
-  switch_n_count = Process::mp_sum(switch_n_count);
-  switch_n_count_surface = Process::mp_sum(switch_n_count_surface);
+  n_count = Process::check_int_overflow(Process::mp_sum(n_count));
+  n_count_surface = Process::check_int_overflow(Process::mp_sum(n_count_surface));
+  switch_n_count = Process::check_int_overflow(Process::mp_sum(switch_n_count));
+  switch_n_count_surface = Process::check_int_overflow(Process::mp_sum(switch_n_count_surface));
   if (n_count >= 1)
     {
       moyenne_erreur_relative /= n_count;
@@ -1252,7 +1249,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
           Cerr << "  (Debug) on pass " << pass << " the max absolute error is " << max_erreur_absolue << finl;
         }
 
-      if (::mp_max(at_least_one_cell_has_changed))
+      if (Process::mp_max(at_least_one_cell_has_changed))
         {
           remeshing_velocity[0].echange_espace_virtuel(remeshing_velocity[0].ghost());
           remeshing_velocity[1].echange_espace_virtuel(remeshing_velocity[1].ghost());

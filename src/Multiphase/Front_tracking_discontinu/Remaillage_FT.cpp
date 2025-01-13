@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Remaillage_FT.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Multiphase/Front_tracking_discontinu/src
-// Version:     /main/patch_168/1
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Remaillage_FT.h>
 #include <TRUST_Deriv.h>
@@ -2070,7 +2063,7 @@ int Remaillage_FT::supprimer_petites_aretes(Maillage_FT_Disc& maillage,
 
       }
       nb_sommets_supprimes = remplacement_ilocal.dimension(0);
-      nb_sommets_supprimes = Process::mp_sum(nb_sommets_supprimes);
+      nb_sommets_supprimes = Process::check_int_overflow(Process::mp_sum(nb_sommets_supprimes));
       nb_sommets_supprimes_tot += nb_sommets_supprimes;
     }
   while (nb_sommets_supprimes > 0);
@@ -2680,7 +2673,7 @@ int Remaillage_FT::diviser_grandes_aretes(Maillage_FT_Disc& maillage) const
 
   Process::Journal()<<"FIN Remaillage_FT::diviser_grandes_aretes "<<temps_<<"  nb_som="<<maillage.nb_sommets()
                     <<"  nb_aretes_divisees="<< nb_aretes_divis<<finl;
-  int nb_aretes_divis_tot = Process::mp_sum(nb_aretes_divis);
+  int nb_aretes_divis_tot = Process::check_int_overflow(Process::mp_sum(nb_aretes_divis));
 
   Process::Journal()<<"FIN Remaillage_FT::diviser_grandes_aretes " <<"  nb_aretes_divisees_tot="<< nb_aretes_divis_tot<<finl;
 
@@ -3284,7 +3277,7 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
           }
       }
     test = (NV_nb_sommets!=nb_sommets);
-    test = Process::mp_sum(test);
+    test = static_cast<int>(Process::mp_sum(test));
     if (test>0)
       {
         //le nb de sommets a ete modifie :
@@ -3700,8 +3693,8 @@ void Remaillage_FT::regulariser_courbure(Maillage_FT_Disc& maillage,
             }
         }
     }
-  clip = Process::mp_sum(clip);
-  nb_som_reels = Process::mp_sum(nb_som_reels);
+  clip = Process::check_int_overflow(Process::mp_sum(clip));
+  nb_som_reels = Process::check_int_overflow(Process::mp_sum(nb_som_reels));
   lost_volume = Process::mp_sum(lost_volume);
   if (je_suis_maitre() && clip)
     {

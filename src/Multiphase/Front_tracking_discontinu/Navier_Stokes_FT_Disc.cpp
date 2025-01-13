@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Navier_Stokes_FT_Disc.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/55
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Parametre_implicite.h>
 #include <Navier_Stokes_FT_Disc.h>
@@ -994,7 +987,7 @@ void Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles(const Maillage_
             }
           potentiel_sommets[i] = c * sigma;
         }
-      clip_counter = mp_sum(clip_counter);
+      clip_counter = check_int_overflow(mp_sum(clip_counter));
       if (clip_counter > 0 && je_suis_maitre())
         {
           Cerr << "Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles : clip_count " << clip_counter << finl;

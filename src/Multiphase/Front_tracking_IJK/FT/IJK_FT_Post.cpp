@@ -12,12 +12,6 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_FT_Post.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Param.h>
 #include <IJK_Field_vector.h>
@@ -569,7 +563,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
           const int ni = velocity_[dir].ni();
           const int nj = velocity_[dir].nj();
           const int nk = velocity_[dir].nk();
-          const int ntot = Process::mp_sum(ni * nj * nk);
+          const trustIdType ntot = Process::mp_sum(ni * nj * nk);
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
@@ -579,7 +573,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
                   err += val * val;
                 }
           err = Process::mp_sum(err);
-          err = sqrt(err / ntot);
+          err = sqrt(err / static_cast<double>(ntot));
           Cerr << " " << err;
           if (!Process::je_suis_maitre())
             {
@@ -626,7 +620,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       const int ni = pressure_.ni();
       const int nj = pressure_.nj();
       const int nk = pressure_.nk();
-      const int ntot = Process::mp_sum(ni * nj * nk);
+      const trustIdType ntot = Process::mp_sum(ni * nj * nk);
       // La pression est definie a une constante pres:
       const double cst_press = pressure_ana_(0, 0, 0) - pressure_(0, 0, 0);
       for (int k = 0; k < nk; k++)
@@ -638,7 +632,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
               err += val * val;
             }
       err = Process::mp_sum(err);
-      err = sqrt(err / ntot);
+      err = sqrt(err / static_cast<double>(ntot));
       Cerr << " " << err;
       if (!Process::je_suis_maitre())
         {
@@ -660,7 +654,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
             const int ni = d_velocity_[dir].ni();
             const int nj = d_velocity_[dir].nj();
             const int nk = d_velocity_[dir].nk();
-            const int ntot = Process::mp_sum(ni * nj * nk);
+            const trustIdType ntot = Process::mp_sum(ni * nj * nk);
             for (int k = 0; k < nk; k++)
               for (int j = 0; j < nj; j++)
                 for (int i = 0; i < ni; i++)
@@ -669,7 +663,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
                     err += val * val;
                   }
             err = Process::mp_sum(err);
-            err = sqrt(err / ntot);
+            err = sqrt(err / static_cast<double>(ntot));
             Cerr << " " << err;
             if (!Process::je_suis_maitre())
               {
@@ -1103,10 +1097,10 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
               const int n = Ti_per_bubble.size_array();
               IOS_OPEN_MODE mode = (reset) ? ios::out : ios::app;
 
-#ifndef INT_is_64_
-              snprintf(s, 1000, "%s_bulles_Ti_%d.out", nomcas, idx_th);
-#else
+#if INT_is_64_ == 1
               snprintf(s, 1000, "%s_bulles_Ti_%ld.out", nomcas, idx_th);
+#else
+              snprintf(s, 1000, "%s_bulles_Ti_%d.out", nomcas, idx_th);
 #endif
               // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
               fic.ouvrir(s, mode);
@@ -1121,10 +1115,10 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
               fic.close();
 
               // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-#ifndef INT_is_64_
-              snprintf(s, 1000, "%s_bulles_phin_%d.out", nomcas, idx_th);
-#else
+#if INT_is_64_ == 1
               snprintf(s, 1000, "%s_bulles_phin_%ld.out", nomcas, idx_th);
+#else
+              snprintf(s, 1000, "%s_bulles_phin_%d.out", nomcas, idx_th);
 #endif
               fic.ouvrir(s, mode);
               snprintf(s, 1000, "%.16e ", current_time);
@@ -2803,11 +2797,9 @@ void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh)
 
 
 
-  errcount_pext = Process::mp_sum(errcount_pext);
-  if ((Process::je_suis_maitre()) && (errcount_pext))
-    {
-      Cerr << "[WARNING-Extended-pressure] Error Count = " << errcount_pext << endl;
-    }
+  errcount_pext = static_cast<int>(Process::mp_sum(errcount_pext));
+  if (Process::je_suis_maitre() && errcount_pext)
+    Cerr << "[WARNING-Extended-pressure] Error Count = " << errcount_pext << endl;
 
 // Interpolation on the image points
 // All the quantities are evaluated on the extended domain, both the pressure field, both the image points coordinates
@@ -2867,11 +2859,11 @@ void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh)
         }
     }
 
-  inval_pl_count = Process::mp_sum(inval_pl_count);
-  inval_pv_count = Process::mp_sum(inval_pv_count);
-  if ((Process::je_suis_maitre()) && (inval_pl_count))
+  inval_pl_count = static_cast<int>(Process::mp_sum(inval_pl_count));
+  inval_pv_count = static_cast<int>(Process::mp_sum(inval_pv_count));
+  if (Process::je_suis_maitre() && inval_pl_count)
     Cerr << "[WARNING-Extended-pressure] Invalid p_l cells Count = " << inval_pl_count << endl;
-  if ((Process::je_suis_maitre()) && (inval_pv_count))
+  if (Process::je_suis_maitre() && inval_pv_count)
     Cerr << "[WARNING-Extended-pressure] Invalid p_v cells Count = " << inval_pv_count << endl;
 
   // The previous evaluated extended pressure has to be recomputed on the real NS domain

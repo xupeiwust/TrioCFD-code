@@ -12,13 +12,7 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Parcours_interface.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Front_tracking_discontinu/src
-// Version:     /main/23
-//
-//////////////////////////////////////////////////////////////////////////////
+
 #include <Parcours_interface.h>
 #include <Domaine_VF.h>
 #include <Domaine.h>
@@ -206,17 +200,12 @@ void Parcours_interface::parcourir(Maillage_FT_Disc& maillage) const
       eloigner_sommets_des_faces(maillage);
     }
 
-
-
   // RAZ des intersections elements-facettes
   {
     const int nb_elem = domaine_vf.nb_elem();
     const int nb_facettes = maillage.facettes_.dimension(0);
     maillage.intersections_elem_facettes_.reset(nb_elem, nb_facettes);
   }
-
-
-
 
   // Facettes et elements d'arrivee a envoyer aux processeurs voisins pour l'iteration
   // suivante:
@@ -230,16 +219,6 @@ void Parcours_interface::parcourir(Maillage_FT_Disc& maillage) const
   compteur_erreur_grossiere = 0;
   int nb_facettes_echangees = 0;
   int iteration = 0;
-
-
-
-
-
-
-
-
-
-
 
   do
     {
@@ -286,17 +265,13 @@ void Parcours_interface::parcourir(Maillage_FT_Disc& maillage) const
                                  facettes_a_traiter_numfacette,
                                  facettes_a_traiter_numelement);
       // Arret lorsque plus aucun processeur n'a de facettes a traiter.
-      nb_facettes_echangees =
-        Process::mp_sum(facettes_a_traiter_numfacette.size_array());
+      nb_facettes_echangees = Process::check_int_overflow(Process::mp_sum(facettes_a_traiter_numfacette.size_array()));
       Process::Journal() << " nombre de faces echangees : ";
       Process::Journal() << facettes_a_traiter_numfacette.size_array() << " (total ";
       Process::Journal() << nb_facettes_echangees << ")" << finl;
       iteration++;
-
     }
   while (nb_facettes_echangees > 0);
-
-
 
   if (correction_parcours_thomas_)
     {
@@ -2806,7 +2781,7 @@ int Parcours_interface::eloigner_sommets_des_faces(Maillage_FT_Disc& maillage) c
           count++;
         }
     }
-  const int nb_som_tot_deplaces = mp_sum(count);
+  const int nb_som_tot_deplaces = check_int_overflow(mp_sum(count));
   if (nb_som_tot_deplaces > 0)
     {
       if (je_suis_maitre())

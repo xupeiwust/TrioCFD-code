@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Traitement_particulier_NS_CEG.cpp
-// Directory:   $TRUST_ROOT/../Composants/TrioCFD/Critere_Entrainement_Gaz/src
-// Version:     /main/23
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Traitement_particulier_NS_CEG.h>
 #include <Navier_Stokes_Turbulent.h>
@@ -466,8 +459,8 @@ void Traitement_particulier_NS_CEG::critere_cea_jaea()
       statistiques().begin_count(m3_counter_);
       // On ne prend que des vortex superieres a N mailles dont toutes les
       // mailles sont dans le domaine fluide (points_trouves==nb_dtheta)
-      points_trouves=mp_sum(points_trouves);
-      int taille_vortex_mailles=mp_sum(taille_vortex);
+      points_trouves=check_int_overflow(mp_sum(points_trouves));
+      int taille_vortex_mailles=check_int_overflow(mp_sum(taille_vortex));
       taille_maxi = (taille_vortex_mailles > taille_maxi ? taille_vortex_mailles : taille_maxi);
       if (points_trouves==nb_dtheta && taille_vortex_mailles>nb_mailles_mini_)
         {

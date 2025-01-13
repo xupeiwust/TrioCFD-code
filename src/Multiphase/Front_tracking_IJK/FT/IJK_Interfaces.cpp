@@ -78,10 +78,15 @@ static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr,
 }
 
 
-// Ajoute ceci dans le fichier lata maitre:
-// GEOM meshname type_elem=TRIANGLE_3D
-// CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
-// CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
+/*! Output the FT mesh information in the master LATA file.
+ *
+ * ASSUMPTION: for now the FT mesh always fits within 32b (in terms of nb of elems / vertices). This is checked.
+ *
+ * Ajoute ceci dans le fichier lata maitre:
+ *  GEOM meshname type_elem=TRIANGLE_3D
+ *  CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
+ *  CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
+ */
 void dumplata_ft_mesh(const char *filename, const char *meshname,
                       const Maillage_FT_IJK& mesh, int step)
 {
@@ -94,11 +99,11 @@ void dumplata_ft_mesh(const char *filename, const char *meshname,
 
   const int nb_som = mesh.nb_sommets();
   const int nb_elem = mesh.nb_facettes();
-  const int nsomtot = Process::mp_sum(nb_som);
-  const int nelemtot = Process::mp_sum(nb_elem);
+  const int nsomtot = Process::check_int_overflow(Process::mp_sum(nb_som));
+  const int nelemtot = Process::check_int_overflow(Process::mp_sum(nb_elem));
   // valeur a ajouter a un indice local de sommet pour obtenir un indice global
   // de sommet
-  const int offset_sommet = mppartial_sum(nb_som);
+  const int offset_sommet = Process::check_int_overflow(Process::mppartial_sum(nb_som));
   FloatTab tmp(nb_som, 3);
   const DoubleTab& sommets = mesh.sommets();
 
@@ -521,15 +526,15 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
           count_pure += 1;
         }
     }
-  count_total = mp_sum(count_total);
-  count_40pct = mp_sum(count_40pct);
-  count_30pct = mp_sum(count_30pct);
-  count_20pct = mp_sum(count_20pct);
-  count_10pct = mp_sum(count_10pct);
-  count_5pct  = mp_sum(count_5pct);
-  count_1pct  = mp_sum(count_1pct);
-  count_0pct  = mp_sum(count_0pct);
-  count_pure  = mp_sum(count_pure);
+  count_total = Process::check_int_overflow(Process::mp_sum(count_total));
+  count_40pct = Process::check_int_overflow(mp_sum(count_40pct));
+  count_30pct = Process::check_int_overflow(mp_sum(count_30pct));
+  count_20pct = Process::check_int_overflow(mp_sum(count_20pct));
+  count_10pct = Process::check_int_overflow(mp_sum(count_10pct));
+  count_5pct  = Process::check_int_overflow(mp_sum(count_5pct));
+  count_1pct  = Process::check_int_overflow(mp_sum(count_1pct));
+  count_0pct  = Process::check_int_overflow(mp_sum(count_0pct));
+  count_pure  = Process::check_int_overflow(mp_sum(count_pure));
 
   min_indicatrice = Process::mp_min(min_indicatrice);
 
@@ -992,16 +997,12 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   // Initialisation du nombre de bulles :
   int loc_max;
   if (maillage_ft_ijk_.compo_connexe_facettes().size_array())
-    {
-      loc_max = max_array(maillage_ft_ijk_.compo_connexe_facettes());
-    }
+    loc_max = max_array(maillage_ft_ijk_.compo_connexe_facettes());
   else
-    {
-      // on n'a pas une seule facette dans cette partie du decoupage :
-      loc_max = -1; // Invalid value... Comme ca si on a -1 partout, on a 0 bulle.
-    }
+    // on n'a pas une seule facette dans cette partie du decoupage :
+    loc_max = -1; // Invalid value... Comme ca si on a -1 partout, on a 0 bulle.
   // ::mp_max force l'appel a la methode hors classe (version pour les ints)
-  nb_bulles_reelles_ = ::mp_max(loc_max) + 1; // car les composantes connexes commencent a 0.
+  nb_bulles_reelles_ = Process::mp_max(loc_max) + 1; // car les composantes connexes commencent a 0.
   // On est en mesure de redimensionner le tableau (uniquement s'il n'est pas lu
   // en param:
   if (compo_to_group_.size_array() == 0)
@@ -1014,9 +1015,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   // Si on commence de suivre les couleurs mais qu'on ne les reprends pas d'un
   // calcul precedent, il faut dimensionner le tableau et l'initaliser a 0 :
   if ((follow_colors_) && (through_yminus_.size_array() == 0))
-    {
-      through_yminus_.resize(nb_bulles_reelles_);
-    }
+    through_yminus_.resize(nb_bulles_reelles_);
 
   DoubleTab centre_gravite;
   ArrOfDouble volume_bulles;
@@ -1098,9 +1097,10 @@ void IJK_Interfaces::associer_switch(const Switch_FT_double& ijk_ft_switch)
   ref_ijk_ft_switch_ = ijk_ft_switch;
 }
 
-// Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
-// Elle ajoute a la liste tous les noms de champs postraitables par
-// IJK_Interfaces
+/*! Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
+ * Elle ajoute a la liste tous les noms de champs postraitables par
+ * IJK_Interfaces
+ */
 void IJK_Interfaces::posttraiter_tous_champs(Motcles& liste) const
 {
   liste.add("INTERFACES");
@@ -1121,7 +1121,7 @@ void IJK_Interfaces::posttraiter_tous_champs(Motcles& liste) const
   liste.add("DISTANCE_AUTRES_INTERFACES");
   if (follow_colors_)
     liste.add("COLOR_Y");
-  int size = RK3_G_store_vi_.size_array();
+  trustIdType size = RK3_G_store_vi_.size_array();
   size = Process::mp_sum(size);
   if (size)
     {
@@ -4140,7 +4140,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
                 }
             }
         }
-      reste_a_faire = ::mp_max(reste_a_faire);
+      reste_a_faire = Process::mp_max(reste_a_faire);
       if (reste_a_faire == 0)
         {
           // plus aucune bulle a dupliquer, on sort de la boucle
@@ -4216,7 +4216,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
 
   // Si le maillage temporaire contient des facettes, on les deplace :
   int nbf = maillage_temporaire.nb_facettes();
-  const int max_nbf = ::mp_max(nbf);
+  const int max_nbf = Process::mp_max(nbf);
   if (max_nbf)
     {
       DoubleTab deplacement;
@@ -8523,7 +8523,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
               flag = 1;
               iproc = Process::me();
             }
-          const int sumflag = Process::mp_sum(flag);
+          const int sumflag = Process::check_int_overflow(Process::mp_sum(flag));
           if (sumflag != 1)
             {
               Cerr << "Warning. There were equalities ("

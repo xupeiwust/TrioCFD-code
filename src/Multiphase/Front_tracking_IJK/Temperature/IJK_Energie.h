@@ -31,15 +31,8 @@
 #include <Corrige_flux_FT_base.h>
 #include <Corrige_flux_FT_temperature_conv.h>
 #include <Operateur_IJK_elem_diff_base.h>
-// #include <Corrige_flux_FT_temperature_conv.h>
 
 class IJK_FT_base;
-
-/*! @brief : class IJK_Energie
- *
- */
-class IJK_FT_base;
-
 
 class IJK_Energie : public Objet_U
 {

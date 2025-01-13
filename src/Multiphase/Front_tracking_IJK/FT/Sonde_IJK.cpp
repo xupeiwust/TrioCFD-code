@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Sonde_IJK.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Sonde_IJK.h>
 
@@ -823,7 +817,7 @@ void Sonde_IJK::initialiser()
         comp++;
       }
   int test=nbre_points;
-  test=mp_sum(test);
+  test=Process::check_int_overflow(mp_sum(test));
   assert(test==nbre_points_tot);
   elem_=new_elem;
   les_positions_=new_positions;

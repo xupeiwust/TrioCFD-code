@@ -68,7 +68,7 @@ void Mass_Redistribution_Phase_Field::impose_mass_redistribution(const Domaine_V
           if(c_present(iElem, nbcomp)<maxX(nbcomp)-0.01 && c_present(iElem, nbcomp)>minX(nbcomp)+0.01)
             transitionValsElems++;
         }
-      const int transitionValsElems_parallel = Process::mp_sum(transitionValsElems);
+      const int transitionValsElems_parallel = Process::check_int_overflow(Process::mp_sum(transitionValsElems));
 
       for(int iElem=0; iElem<c_present.dimension(0); iElem++)
         {

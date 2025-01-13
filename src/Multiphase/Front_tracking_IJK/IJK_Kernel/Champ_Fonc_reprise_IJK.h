@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Champ_Fonc_reprise_IJK.h
-// Directory:   $TRUST_ROOT/src/Kernel/VF/Champs
-// Version:     /main/12
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #ifndef Champ_Fonc_reprise_IJK_included
 #define Champ_Fonc_reprise_IJK_included
@@ -42,10 +35,9 @@ public :
   const Domaine_dis_base& domaine_dis_base() const override;
   void mettre_a_jour(double ) override;
 
-
   using Champ_Fonc_base::valeurs;
   inline const DoubleTab& valeurs() const override;
-  inline  DoubleTab& valeurs() override ;
+  inline DoubleTab& valeurs() override ;
   inline DoubleTab& valeur_aux_elems(const DoubleTab& positions,
                                      const IntVect& les_polys,
                                      DoubleTab& les_valeurs) const override;
@@ -58,7 +50,7 @@ public :
                                               DoubleVect&, int) const override;
   inline DoubleTab& remplir_coord_noeuds(DoubleTab& ) const override;
   inline int remplir_coord_noeuds_et_polys(DoubleTab&, IntVect&) const override;
-  inline  DoubleVect& valeur_aux_compo(const DoubleTab& tab,DoubleVect& les_valeurs, int comp) const override;
+  inline DoubleVect& valeur_aux_compo(const DoubleTab& tab,DoubleVect& les_valeurs, int comp) const override;
 
 protected:
   void reprendre_IJK(Entree& fich, Champ_base& chp);

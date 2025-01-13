@@ -73,10 +73,10 @@ bool KerasLayerActivation::LoadLayer(std::ifstream* file) {
         activation_type_ = kTanh;
         break;
     default:
-#ifndef INT_is_64_
-        KASSERT(false, "Unsupported activation type %d", activation);
-#else
+#if INT_is_64_ == 1
         KASSERT(false, "Unsupported activation type %ld", activation);
+#else
+        KASSERT(false, "Unsupported activation type %d", activation);
 #endif
     }
 
@@ -176,11 +176,11 @@ bool KerasLayerDense::Apply(Tensor* in, Tensor* out) {
     KASSERT(in->dims_.size() <= 2, "Invalid input dimensions");
 
     if (in->dims_.size() == 2) {
-#ifndef INT_is_64_
-        KASSERT(in->dims_[1] == weights_.dims_[0], "Dimension mismatch %d %d",
+#if INT_is_64_ == 1
+        KASSERT(in->dims_[1] == weights_.dims_[0], "Dimension mismatch %ld %ld",
                 in->dims_[1], weights_.dims_[0]);
 #else
-        KASSERT(in->dims_[1] == weights_.dims_[0], "Dimension mismatch %ld %ld",
+        KASSERT(in->dims_[1] == weights_.dims_[0], "Dimension mismatch %d %d",
                 in->dims_[1], weights_.dims_[0]);
 #endif
     }
@@ -666,17 +666,17 @@ bool KerasModel::LoadModel(const std::string& filename) {
         default:
             break;
         }
-#ifndef INT_is_64_
-        KASSERT(layer, "Unknown layer type %d", layer_type);
-#else
+#if INT_is_64_ == 1
         KASSERT(layer, "Unknown layer type %ld", layer_type);
+#else
+        KASSERT(layer, "Unknown layer type %d", layer_type);
 #endif
         bool result = layer->LoadLayer(&file);
         if (!result) {
-#ifndef INT_is_64_
-            printf("Failed to load layer %d", i);
-#else
+#if INT_is_64_ == 1
             printf("Failed to load layer %ld", i);
+#else
+            printf("Failed to load layer %d", i);
 #endif
             delete layer;
             return false;
@@ -696,12 +696,12 @@ bool KerasModel::Apply(Tensor* in, Tensor* out) {
             temp_in = *in;
         }
 
-#ifndef INT_is_64_
-        KASSERT(layers_[i]->Apply(&temp_in, &temp_out),
-                "Failed to apply layer %d", i);
-#else
+#if INT_is_64_ == 1
         KASSERT(layers_[i]->Apply(&temp_in, &temp_out),
                 "Failed to apply layer %ld", i);
+#else
+        KASSERT(layers_[i]->Apply(&temp_in, &temp_out),
+                "Failed to apply layer %d", i);
 #endif
         temp_in = temp_out;
     }

@@ -249,10 +249,11 @@ int Postraitement_ft_lata::ecrire_maillage_ft_disc()
     {
       IntTab real_fa7;
       filter_out_virtual_fa7(real_fa7);
-      return fpl.ecrire_domaine_low_level(id_domaine_, sommets, real_fa7, type_elem);
+      fpl.ecrire_domaine_low_level(id_domaine_, sommets, real_fa7, type_elem);
     }
   else
-    return  fpl.ecrire_domaine_low_level(id_domaine_, sommets, fa7, type_elem);
+    fpl.ecrire_domaine_low_level(id_domaine_, sommets, fa7, type_elem);
+  return 1;
 }
 
 /*! @brief Override. Add the interfaces to the LATA output

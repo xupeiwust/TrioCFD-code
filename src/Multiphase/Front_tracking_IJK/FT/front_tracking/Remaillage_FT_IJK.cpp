@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Remaillage_FT_IJK.cpp
-// Directory : $IJK_ROOT/src/FT/front_tracking
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Remaillage_FT_IJK.h>
 #include <Param.h>
@@ -706,7 +700,7 @@ int Remaillage_FT_IJK::diviser_grandes_aretes(Maillage_FT_IJK& maillage) const
   if (!surfactant.get_disable_surfactant())
     surfactant.echange_espace_virtuel(maillage);
 
-  int nb_aretes_divis_tot = Process::mp_sum(nb_aretes_divis);
+  int nb_aretes_divis_tot = Process::check_int_overflow(Process::mp_sum(nb_aretes_divis));
   Process::Journal()<<"FIN Remaillage_FT::diviser_grandes_aretes "<<temps_<<"  nb_som="<<maillage.nb_sommets()
                     <<"  nb_aretes_divisees_on_proc="<< nb_aretes_divis;
   Process::Journal()<< "  nb_aretes_divisees_tot="<< nb_aretes_divis_tot<<finl;
@@ -940,7 +934,7 @@ int Remaillage_FT_IJK::supprimer_petites_aretes(Maillage_FT_IJK& maillage,
             n++;
           }
         longueur_cara_fa7= Process::mp_sum(longueur_cara_fa7);
-        n= Process::mp_sum(n);
+        n= Process::check_int_overflow(Process::mp_sum(n));
         if (n>0)
           {
             longueur_cara_fa7 /= n ;
@@ -1134,9 +1128,8 @@ int Remaillage_FT_IJK::supprimer_petites_aretes(Maillage_FT_IJK& maillage,
           }
       }
 
-
       nb_sommets_supprimes = remplacement_ilocal.dimension(0);
-      nb_sommets_supprimes = Process::mp_sum(nb_sommets_supprimes);
+      nb_sommets_supprimes = Process::check_int_overflow(Process::mp_sum(nb_sommets_supprimes));
       nb_sommets_supprimes_tot += nb_sommets_supprimes;
       maillage.corriger_proprietaires_facettes();
       surfactant.echange_espace_virtuel(maillage);

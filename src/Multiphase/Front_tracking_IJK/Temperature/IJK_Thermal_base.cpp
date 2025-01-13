@@ -2015,7 +2015,7 @@ void IJK_Thermal_base::calculer_source_temperature_ana()
       const int ni = source_temperature_.ni();
       const int nj = source_temperature_.nj();
       const int nk = source_temperature_.nk();
-      const int ntot=Process::mp_sum(ni*nj*nk);
+      const trustIdType ntot=Process::mp_sum(ni*nj*nk);
       // La temperature est definie a une constante pres:
       // const double cst_temp = temperature_ana_(0,0,0) - curseur->temperature_(0,0,0);
       for (int k = 0; k < nk; k++)
@@ -2027,7 +2027,7 @@ void IJK_Thermal_base::calculer_source_temperature_ana()
               err += val*val;
             }
       err=Process::mp_sum(err);
-      err=sqrt(err/ntot);
+      err=sqrt(err/static_cast<double>(ntot));
       Cerr << " " << err ;
       if (!Process::je_suis_maitre())
         {
@@ -2155,7 +2155,7 @@ void IJK_Thermal_base::calculer_ecart_T_ana()
       const int ni = temperature.ni();
       const int nj = temperature.nj();
       const int nk = temperature.nk();
-      const int ntot=Process::mp_sum(ni*nj*nk);
+      const trustIdType ntot=Process::mp_sum(ni*nj*nk);
       // La temperature est definie a une constante pres:
       // const double cst_temp = temperature_ana_(0,0,0) - curseur->temperature_(0,0,0);
       for (int k = 0; k < nk; k++)
@@ -2167,7 +2167,7 @@ void IJK_Thermal_base::calculer_ecart_T_ana()
               err += val*val;
             }
       err=Process::mp_sum(err);
-      err=sqrt(err/ntot);
+      err=sqrt(err/static_cast<double>(ntot));
       Cerr << " " << err ;
       if (!Process::je_suis_maitre())
         {

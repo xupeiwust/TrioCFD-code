@@ -12,13 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Champ_Fonc_reprise_IJK.cpp
-// Directory:   $TRUST_ROOT/src/Kernel/VF/Champs
-// Version:     /main/29
-//
-//////////////////////////////////////////////////////////////////////////////
 
 #include <Champ_Fonc_reprise_IJK.h>
 #include <Probleme_base.h>
@@ -38,17 +31,11 @@
 extern void convert_to(const char *s, double& ob);
 Implemente_instanciable(Champ_Fonc_reprise_IJK,"Champ_Fonc_reprise_IJK",Champ_Fonc_base);
 
-
-//     printOn()
-/////
-
 Sortie& Champ_Fonc_reprise_IJK::printOn(Sortie& s) const
 {
   return s << que_suis_je() << " " << le_nom();
 }
 
-//// readOn
-//
 Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
 {
   Cerr<<"Usage : Champ_Fonc_reprise_IJK fichier.xyz nom_pb nom_inco"<<finl;
@@ -125,15 +112,14 @@ Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
   return s ;
 }
 
-/*! @brief Reciproque de la methode ecrit(.
+/*! @brief Reciproque de la methode ecrit(...), lit uniquement les items sequentiels (donc pas les items communs recus d'un autre processeur)
  *
- * ..), lit uniquement les items sequentiels (donc pas les items communs recus d'un autre processeur)
- *    On verifie a la fin qu'on a bien lu exactement le nombre d'items attendus, s'il en manque
- *    c'est que le epsilon n'est pas bon (ou qu'on a change le maillage...)
- *  Valeur de retour: nombre total d'items sequentiels lus (sur tous les procs)
+ * On verifie a la fin qu'on a bien lu exactement le nombre d'items attendus, s'il en manque
+ * c'est que le epsilon n'est pas bon (ou qu'on a change le maillage...)
  *
+ * Valeur de retour: nombre total d'items sequentiels lus (sur tous les procs)
  */
-static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, const double epsilon)
+static trustIdType lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, const double epsilon)
 {
   const int dim = coords.dimension(1);
   const int nb_dim = val.nb_dim();
@@ -155,7 +141,7 @@ static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, c
   const ArrOfInt& floor_elements = octree.floor_elements();
 
   // Le fichier contient ce nombre de lignes pour cette partie du tableau (nombre total d'items sequentiels)
-  const int ntot = Process::mp_sum(n_to_read);
+  const trustIdType ntot = Process::mp_sum(n_to_read);
 
   // On lit dans le fichier par blocs de buflines_max parce qu'il y a
   //  un broadcast reseau a chaque comm:
@@ -173,10 +159,10 @@ static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, c
   int count_items_read = 0;
 
   // Boucle sur les items sequentiels du fichier:
-  int pourcent=0;
-  for (int i = 0; i < ntot; i++)
+  trustIdType pourcent=0;
+  for (trustIdType i = 0; i < ntot; i++)
     {
-      int tmp=(i*10)/(ntot-1);
+      trustIdType tmp=(i*10)/(ntot-1);
       if (tmp>pourcent || i==0)
         {
           pourcent=tmp;
@@ -185,7 +171,7 @@ static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, c
       if (bufptr == buflines_max)
         {
           bufptr = 0;
-          int n = std::min(buflines_max, ntot - i) * (dim + nb_comp);
+          trustIdType n = std::min<trustIdType>(buflines_max, ntot - i) * (dim + nb_comp);
           assert(n <= buffer.size_array());
           fich.get(buffer.addr(), n);
         }
@@ -272,13 +258,13 @@ static int lire_special(Entree& fich, const DoubleTab& coords, DoubleTab& val, c
     }
   Cerr << finl;
   // Erreurs ?
-  int err = (count_items_read != n_to_read) || (error_too_many_matches > 0) || (error_duplicate_read > 0);
-  err = Process::mp_sum(err);
+  bool err = (count_items_read != n_to_read) || (error_too_many_matches > 0) || (error_duplicate_read > 0);
+  err = Process::mp_or(err);
   if (err)
     {
-      error_too_many_matches = Process::mp_sum(error_too_many_matches);
-      error_duplicate_read = Process::mp_sum(error_duplicate_read);
-      max_epsilon_needed = Process::mp_min(max_epsilon_needed);
+      error_too_many_matches = static_cast<int>(Process::mp_sum(error_too_many_matches));
+      error_duplicate_read = static_cast<int>(Process::mp_sum(error_duplicate_read));
+      max_epsilon_needed = static_cast<int>(Process::mp_min(max_epsilon_needed));
       if (Process::je_suis_maitre())
         {
           if (error_too_many_matches)
@@ -323,14 +309,14 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
    */
 
   const MD_Vector& md = val.get_md_vector();
-  int ntot = 0;
+  trustIdType ntot = 0;
 
   if (!md.non_nul())
     {
       Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: error, cannot read intno an array with no metadata" << finl;
       Process::exit();
     }
-  const int nb_items_seq = md->nb_items_seq_tot();
+  const trustIdType nb_items_seq = md->nb_items_seq_tot();
   if (nb_items_seq == 0)
     return;
 

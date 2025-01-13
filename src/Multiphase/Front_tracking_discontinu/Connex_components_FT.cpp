@@ -129,8 +129,8 @@ int compute_global_connex_components_FT(const Maillage_FT_Disc& mesh, ArrOfInt& 
 
   // Transformation des indices locaux de composantes connexes en un indice global
   // (on ajoute un decalage aux indices globaux avec mppartial_sum())
-  const int decalage = mppartial_sum(nb_local_components);
-  const int nb_total_components = Process::mp_sum(nb_local_components);
+  const int decalage = Process::check_int_overflow(Process::mppartial_sum(nb_local_components));  // nb of compo should remain relatively small!
+  const int nb_total_components = Process::check_int_overflow(Process::mp_sum(nb_local_components));
   for (i = 0; i < nbelem_tot; i++)
     if (num_compo[i] >= 0)
       num_compo[i] += decalage;

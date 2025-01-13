@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblems.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblems.h>
 #include <IJK_Field_vector.h>
@@ -108,7 +102,7 @@ void IJK_One_Dimensional_Subproblems::complete_subproblems()
       // int total_subproblems = subproblems_counter_;
       int total_subproblems = subproblems_counter_;
       if (!(ref_ijk_ft_->get_disable_convection_qdm() && ref_ijk_ft_->get_disable_diffusion_qdm()))
-        total_subproblems = Process::mp_sum(total_subproblems);
+        total_subproblems = Process::check_int_overflow(Process::mp_sum(total_subproblems));
       max_subproblems_ = (int) (pre_factor_subproblems_number_ * total_subproblems);
       if (effective_subproblems_counter_ < max_subproblems_)//
         {
@@ -147,7 +141,7 @@ void IJK_One_Dimensional_Subproblems::add_subproblems(int n)
 void IJK_One_Dimensional_Subproblems::compute_global_indices()
 {
   global_subproblems_counter_ = subproblems_counter_;
-  global_subproblems_counter_ = Process::mp_sum(global_subproblems_counter_);
+  global_subproblems_counter_ = Process::check_int_overflow(Process::mp_sum(global_subproblems_counter_));
   const int proc_number = Process::nproc();
   ArrOfInt indices(proc_number);
   const int my_process_number = Process::me();
@@ -464,7 +458,7 @@ void IJK_One_Dimensional_Subproblems::share_boundary_previous_values()
         {
           const int size_array = index_ij_subproblems_local_perio_[0][k].size_array();
           int size_array_global = size_array;
-          size_array_global = mp_sum(size_array_global);
+          size_array_global = Process::check_int_overflow(mp_sum(size_array_global));
           ArrOfInt overall_numerotation(nb_procs);
           ArrOfInt start_indices(nb_procs);
           overall_numerotation(proc_num) = size_array;
@@ -710,7 +704,7 @@ void IJK_One_Dimensional_Subproblems::share_interfacial_heat_flux_correction_on_
     {
       const int size_array = thermal_flux_out.size_array();
       int size_array_global = size_array;
-      size_array_global = mp_sum(size_array_global);
+      size_array_global = Process::check_int_overflow(mp_sum(size_array_global));
 
       ArrOfInt overall_numerotation(nb_procs);
       ArrOfInt start_indices(nb_procs);
