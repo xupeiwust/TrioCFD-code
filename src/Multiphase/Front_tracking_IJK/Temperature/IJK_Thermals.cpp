@@ -26,7 +26,7 @@
 
 Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(IJK_Thermal) ) ;
 
-IJK_Thermals::IJK_Thermals(const IJK_FT_double& ijk_ft) : IJK_Thermals()
+IJK_Thermals::IJK_Thermals(const IJK_FT_base& ijk_ft) : IJK_Thermals()
 {
   ref_ijk_ft_ = ijk_ft;
 }
@@ -46,17 +46,18 @@ Entree& IJK_Thermals::readOn( Entree& is )
 
 void IJK_Thermals::set_fichier_reprise(const char *lataname)
 {
-  for (auto& itr : *this)
-    itr->set_fichier_reprise(lataname);
+  if (!est_vide())
+    for (auto& itr : *this)
+      itr->set_fichier_reprise(lataname);
 }
 
-const Nom& IJK_Thermals::get_fichier_reprise()
+const Nom IJK_Thermals::get_fichier_reprise()
 {
   assert(!est_vide());
   return (*this)[0]->get_fichier_reprise();
 }
 
-void IJK_Thermals::associer(const IJK_FT_double& ijk_ft)
+void IJK_Thermals::associer(const IJK_FT_base& ijk_ft)
 {
   associer_post(ijk_ft.get_post());
   associer_interface_intersections(ijk_ft.itfce().get_intersection_ijk_cell(), ijk_ft.itfce().get_intersection_ijk_face());
@@ -74,7 +75,8 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
 {
   int compute_distance = 1;
   int compute_curvature = 1;
-  int n_iter_distance = 6;
+  int n_iter_distance = 3;
+  int avoid_gfm_parallel_calls = 0;
   IJK_Field_local_double boundary_flux_kmin;
   IJK_Field_local_double boundary_flux_kmax;
   assert(!est_vide());
@@ -82,10 +84,12 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
   for (auto& itr : *this)
     itr->retrieve_ghost_fluid_params(compute_distance,
                                      compute_curvature,
-                                     n_iter_distance);
+                                     n_iter_distance,
+                                     avoid_gfm_parallel_calls);
   ghost_fluid_fields_.retrieve_ghost_fluid_params(compute_distance,
                                                   compute_curvature,
                                                   n_iter_distance,
+                                                  avoid_gfm_parallel_calls,
                                                   boundary_flux_kmin,
                                                   boundary_flux_kmax);
 }
@@ -115,16 +119,27 @@ void IJK_Thermals::associer_interface_intersections(const Intersection_Interface
 
 double IJK_Thermals::get_modified_time()
 {
-  double modified_time = ref_ijk_ft_->get_current_time();
+  double modified_time;
+  if (est_vide())
+    modified_time = ref_ijk_ft_->get_current_time();
+  else
+    modified_time = 0.;
   for (auto& itr : *this)
     modified_time = std::max(modified_time, itr->get_modified_time());
   return modified_time;
 }
 
-void IJK_Thermals::get_rising_velocities_parameters(int& compute_rising_velocities, int& fill_rising_velocities)
+void IJK_Thermals::get_rising_velocities_parameters(int& compute_rising_velocities,
+                                                    int& fill_rising_velocities,
+                                                    int& use_bubbles_velocities_from_interface,
+                                                    int& use_bubbles_velocities_from_barycentres)
 {
-  for (auto& itr : *this)
-    itr->get_rising_velocities_parameters(compute_rising_velocities, fill_rising_velocities);
+  if (!est_vide())
+    for (auto& itr : *this)
+      itr->get_rising_velocities_parameters(compute_rising_velocities,
+                                            fill_rising_velocities,
+                                            use_bubbles_velocities_from_interface,
+                                            use_bubbles_velocities_from_barycentres);
 }
 
 void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
@@ -132,8 +147,10 @@ void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
 {
   int idth = 0;
   for (auto& itr : *this)
-    itr->sauvegarder_temperature(lata_name, idth, stop);
-  idth++;
+    {
+      itr->sauvegarder_temperature(lata_name, idth, stop);
+      idth++;
+    }
 }
 
 void IJK_Thermals::sauvegarder_thermals(SFichier& fichier)
@@ -169,31 +186,39 @@ void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
 
 void IJK_Thermals::initialize(const IJK_Splitting& splitting, int& nalloc)
 {
-  ghost_fluid_fields_.initialize(nalloc, splitting);
-  int idth =0;
-  Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
-  const int max_digit = 3;
-  for (auto& itr : (*this))
+  if (!est_vide())
     {
-      nalloc += itr->initialize(splitting, idth);
-      if (!ref_ijk_ft_->disable_diphasique())
-        itr->update_thermal_properties();
-      const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
-      thermal_rank_folder_.add(thermal_outputs_rank_base
-                               + Nom(std::string(max_digit - max_rank_digit, '0')) + Nom(idth));
-      idth++;
-    }
-  if (!ref_ijk_ft_->get_disable_diphasique())
-    {
-      overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
-      interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
-      local_quantities_thermal_probes_folder_ = Nom("local_quantities_thermal_probes");
-      local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
-    }
-  for (auto& itr : (*this))
-    {
-      lata_step_reprise_.push_back(itr->get_latastep_reprise());
-      lata_step_reprise_ini_.push_back(itr->get_latastep_reprise_ini());
+      ghost_fluid_fields_.initialize(nalloc, splitting);
+      int idth =0;
+      Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
+      const int max_digit = 3;
+      for (auto& itr : (*this))
+        {
+          nalloc += itr->initialize(splitting, idth);
+          if (!ref_ijk_ft_->disable_diphasique())
+            itr->update_thermal_properties();
+          const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
+          thermal_rank_folder_.add(thermal_outputs_rank_base
+                                   + Nom(std::string(max_digit - max_rank_digit, '0')) + Nom(idth));
+          idth++;
+        }
+      if (!ref_ijk_ft_->get_disable_diphasique())
+        {
+          overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
+          interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
+          shell_quantities_thermal_probes_folder_ = Nom("shell_quantities_thermal_probes");
+          local_quantities_thermal_probes_folder_ = Nom("local_quantities_thermal_probes");
+          local_quantities_thermal_probes_time_index_folder_ = Nom("local_quantities_thermal_probes_time_index_");
+          local_quantities_thermal_slices_folder_ = Nom("local_quantities_thermal_slices");
+          local_quantities_thermal_slices_time_index_folder_ = Nom("local_quantities_thermal_slices_time_index_");
+          local_quantities_thermal_lines_folder_ = Nom("local_quantities_thermal_lines");
+          local_quantities_thermal_lines_time_index_folder_ = Nom("local_quantities_thermal_lines_time_index_");
+        }
+      for (auto& itr : (*this))
+        {
+          lata_step_reprise_.push_back(itr->get_latastep_reprise());
+          lata_step_reprise_ini_.push_back(itr->get_latastep_reprise_ini());
+        }
     }
 }
 
@@ -261,6 +286,10 @@ void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, 
         case 3:
           Cerr << "RK3 Time scheme is not implemented  with" << itr.get_thermal_words()[thermal_rank] << finl;
           break;
+        case 4:
+          itr->rk3_sub_step(rk_step, total_timestep, time);
+          Cerr << "RK3 Time scheme is implemented with" << itr.get_thermal_words()[thermal_rank] << finl;
+          break;
         default:
           Process::exit();
         }
@@ -280,6 +309,16 @@ void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_ti
             itr->rk3_rustine_sub_step(rk_step, total_timestep, fractionnal_timestep, time, dE);
           }
       }
+}
+
+void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface)
+{
+  int idx_th = 0;
+  for (auto &itr : (*this))
+    {
+      itr.ecrire_statistiques_bulles(reset, nom_cas, current_time, surface, idx_th);
+      ++idx_th;
+    }
 }
 
 void IJK_Thermals::posttraiter_tous_champs_thermal(Motcles& liste_post_instantanes_)
@@ -429,10 +468,11 @@ void IJK_Thermals::compute_eulerian_curvature_from_interface()
 void IJK_Thermals::compute_eulerian_distance_curvature()
 {
   if (!est_vide())
-    {
-      compute_eulerian_distance();
-      compute_eulerian_curvature_from_interface();
-    }
+    if (ghost_fluid_flag())
+      {
+        compute_eulerian_distance();
+        compute_eulerian_curvature_from_interface();
+      }
 }
 
 int IJK_Thermals::get_disable_post_processing_probes_out_files() const
@@ -466,19 +506,34 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
           const int last_time = ref_ijk_ft_->get_tstep() + lata_step_reprise_ini_[rank];
           const int max_digit_time = 8;
           const int nb_digit_tstep = last_time < 1 ? 1 : (int) (log10(last_time) + 1);
-          Nom local_quantities_thermal_probes_time_index_folder = thermal_rank_folder_[rank] + "/"
+          Nom prefix_local_quantities = thermal_rank_folder_[rank] + "/";
+          Nom suffix_local_quantities = Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time);
+          Nom local_quantities_thermal_probes_time_index_folder = prefix_local_quantities
                                                                   + local_quantities_thermal_probes_folder_ + "/"
                                                                   + local_quantities_thermal_probes_time_index_folder_
-                                                                  + Nom(std::string(max_digit_time - nb_digit_tstep, '0')) + Nom(last_time);
+                                                                  + suffix_local_quantities;
           Nom overall_bubbles_quantities = thermal_rank_folder_[rank] + "/" + overall_bubbles_quantities_folder_;
           Nom interfacial_quantities_thermal_probes = thermal_rank_folder_[rank] + "/" + interfacial_quantities_thermal_probes_folder_;
+          Nom shell_quantities_thermal_probes = thermal_rank_folder_[rank] + "/" + shell_quantities_thermal_probes_folder_;
+          Nom local_quantities_thermal_slices_time_index_folder = prefix_local_quantities
+                                                                  + local_quantities_thermal_slices_folder_ + "/"
+                                                                  + local_quantities_thermal_slices_time_index_folder_
+                                                                  + suffix_local_quantities;
+          Nom local_quantities_thermal_lines_time_index_folder = prefix_local_quantities
+                                                                 + local_quantities_thermal_lines_folder_ + "/"
+                                                                 + local_quantities_thermal_lines_time_index_folder_
+                                                                 + suffix_local_quantities;
 
           create_folders(local_quantities_thermal_probes_time_index_folder);
-
+          create_folders(local_quantities_thermal_slices_time_index_folder);
+          create_folders(local_quantities_thermal_lines_time_index_folder);
 
           itr.thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
+                                            shell_quantities_thermal_probes,
                                             overall_bubbles_quantities,
-                                            local_quantities_thermal_probes_time_index_folder);
+                                            local_quantities_thermal_probes_time_index_folder,
+                                            local_quantities_thermal_slices_time_index_folder,
+                                            local_quantities_thermal_lines_time_index_folder);
           // .sauv written before the post-processing on probes
           int latastep_reprise = lata_step_reprise_ini_[rank] + ref_ijk_ft_->get_tstep() + 2;
           const int nb_dt_max = ref_ijk_ft_->get_nb_timesteps();
@@ -498,7 +553,10 @@ void IJK_Thermals::create_folders_for_probes()
       create_folders(thermal_rank_folder_[idth]);
       create_folders(thermal_rank_folder_[idth] + "/" + overall_bubbles_quantities_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + interfacial_quantities_thermal_probes_folder_);
+      create_folders(thermal_rank_folder_[idth] + "/" + shell_quantities_thermal_probes_folder_);
       create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_probes_folder_);
+      create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_slices_folder_);
+      create_folders(thermal_rank_folder_[idth] + "/" + local_quantities_thermal_lines_folder_);
     }
 }
 
@@ -556,7 +614,7 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
   int idth = 0;
   for (auto& itr : (*this))
     {
-      switch_double_ft.switch_scalar_field(itr->get_temperature(),
+      switch_double_ft.switch_scalar_field(*itr->get_temperature(),
                                            new_thermal_field,
                                            coeff_i, Indice_i,
                                            coeff_j ,Indice_j,
@@ -565,5 +623,43 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
       Cout << "Writing " << Nom("TEMPERATURE_") + Nom(idth) << " into " << lata_name << finl;
       dumplata_scalar(lata_name, Nom("TEMPERATURE_") + Nom(idth), new_thermal_field, 0 /*we store a 0 */);
       ++idth;
+    }
+}
+
+void IJK_Thermals::copy_previous_interface_state()
+{
+  for (auto& itr : (*this))
+    itr->copy_previous_interface_state();
+}
+
+void IJK_Thermals::remplir_cellules_diphasiques()
+{
+  for (auto& itr : (*this))
+    {
+      itr->remplir_cellules_diphasiques();
+    }
+}
+
+void IJK_Thermals::remplir_cellules_devenant_diphasiques()
+{
+  for (auto& itr : (*this))
+    {
+      itr->remplir_cellules_devenant_diphasiques();
+    }
+}
+
+void IJK_Thermals::remplir_cellules_maintenant_pures()
+{
+  for (auto& itr : (*this))
+    {
+      itr->remplir_cellules_maintenant_pures();
+    }
+}
+
+void IJK_Thermals::transfert_diphasique_vers_pures()
+{
+  for (auto& itr : (*this))
+    {
+      itr->transfert_diphasique_vers_pures();
     }
 }

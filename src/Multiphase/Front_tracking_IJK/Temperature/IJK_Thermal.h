@@ -23,18 +23,12 @@
 #define IJK_Thermal_included
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <TRUST_Deriv.h>
 #include <IJK_Ghost_Fluid_Fields.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Thermal
-//
-// <Description of class IJK_Thermal>
-//
-/////////////////////////////////////////////////////////////////////////////
 
-class IJK_FT_double;
+class IJK_FT_base;
 class Switch_FT_double;
 
 class IJK_Thermal: public OWN_PTR(IJK_Thermal_base)
@@ -48,26 +42,29 @@ public:
   inline Motcles& get_thermal_words() { return thermal_words_; }
   inline Motcles& get_thermal_suffix() { return lata_suffix_; }
 
-  inline void associer(const IJK_FT_double &ijk_ft);
+  inline void associer(const IJK_FT_base &ijk_ft);
   inline void associer_post(const IJK_FT_Post &ijk_ft_post);
   inline void associer_switch(const Switch_FT_double &ijk_ft_switch);
   inline void associer_interface_intersections(const Intersection_Interface_ijk_cell &intersection_ijk_cell, const Intersection_Interface_ijk_face &intersection_ijk_face);
 
+  void ecrire_statistiques_bulles(int reset, const Nom &nom_cas, const double current_time, const ArrOfDouble &surface, const int idx);
   void posttraiter_tous_champs_thermal(Motcles &liste, const int idx) const;
+  void post_process_std_thermal_field(const Motcles &liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx, const Motcles &tested_names, const Nom &name_field, const Motcle &lata_suffix, const IJK_Field_double &field, std::ostringstream &oss, int &counter, const int& first_thermal_rank = 0);
   int posttraiter_champs_instantanes_thermal(const Motcles &liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
   int posttraiter_champs_instantanes_thermal_interface(const Motcles &liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
   int posttraiter_champs_instantanes_thermal_interface_ref(const Motcles &liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
   Entree& typer_thermal(Entree &is);
-  void thermal_subresolution_outputs(const Nom &interfacial_quantities_thermal_probes, const Nom &overall_bubbles_quantities, const Nom &local_quantities_thermal_probes_time_index_folder);
+  void thermal_subresolution_outputs(const Nom &interfacial_quantities_thermal_probes, const Nom &shell_quantities_thermal_probes, const Nom &overall_bubbles_quantities, const Nom &local_quantities_thermal_probes_time_index_folder, const Nom &local_quantities_thermal_slices_time_index_folder, const Nom &local_quantities_thermal_lines_time_index_folder);
 
 protected:
-  int thermal_rank_;
-  Nom thermal_problem_type_;
-  Nom prefix_;
+  int thermal_rank_ = 0;
+  Nom thermal_problem_type_ = "subresolution";
+  Nom prefix_ = "IJK_Thermal_";
   Motcles thermal_words_;
   Motcles lata_suffix_;
+  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE, CUTCELL};
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
@@ -75,7 +72,7 @@ protected:
 
 };
 
-inline void IJK_Thermal::associer(const IJK_FT_double& ijk_ft)
+inline void IJK_Thermal::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   valeur().associer(ijk_ft);

@@ -37,15 +37,15 @@ public:
   double fraction_surface_intersection_;
 #endif
   double contrib_volume_phase1_;
+  double contrib_barycentre_phase1_[3]; // Coordinate of the barycenter of phase 1 in the cell. En 2D, on a barycentre_phase1_[2] = 0.;
+  double contrib_aire_faces_phase1_[3];
+  double contrib_barycentre_faces_phase1_[3][2];
   // Coordonnees barycentriques du centre de gravite de l'intersection
   // par rapport aux trois sommets de la facette. On a toujours
   // barycentre[0] + barycentre[1] + barycentre[2] = 1.
   // En 2D, on a barycentre_[2] = 0.;
   double barycentre_[3];
 
-  // Coordinate of the barycenter of phase 1 in the cell
-  // En 2D, on a barycentre_phase1_[2] = 0.;
-  double barycentre_phase1_[3];
 
   int index_element_suivant_;  // -1 si dernier element de la liste
   int index_facette_suivante_; // idem.
@@ -90,7 +90,9 @@ public:
                            int num_element,
                            double surface_intersection,
                            double contrib_volume_phase1,
-                           double barycentre_phase1[3],
+                           double contrib_barycentre_phase1[3],
+                           double contrib_aire_faces_phase1[3],
+                           double contrib_barycentre_faces_phase1[3][2],
                            double barycentre_u,
                            double barycentre_v,
                            double barycentre_w);

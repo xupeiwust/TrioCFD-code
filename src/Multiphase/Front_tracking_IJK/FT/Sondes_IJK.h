@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Sondes_IJK.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Sondes_IJK_included
 #define Sondes_IJK_included
@@ -29,10 +23,6 @@
 
 /*! @brief : class Sondes_IJK
  *
- *  <Description of class Sondes_IJK>
- *
- *
- *
  */
 class Sondes_IJK : public LIST(Sonde_IJK)
 {
@@ -42,17 +32,17 @@ class Sondes_IJK : public LIST(Sonde_IJK)
 public :
   inline void ouvrir_fichiers();
   inline void fermer_fichiers();
-  inline void completer_IJK(const IJK_FT_double& ijk_ft);
+  inline void completer_IJK(const IJK_FT_base& ijk_ft);
   //  void associer_post(const Postraitement&);
   void postraiter();
   void mettre_a_jour(double temps, double tinit);
 
 protected :
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
 
 };
 
-inline void Sondes_IJK::completer_IJK(const IJK_FT_double& ijk_ft)
+inline void Sondes_IJK::completer_IJK(const IJK_FT_base& ijk_ft)
 {
   for(auto& itr : *this) itr.completer_IJK(ijk_ft);
 }

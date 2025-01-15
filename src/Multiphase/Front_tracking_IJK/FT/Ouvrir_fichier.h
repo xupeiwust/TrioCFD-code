@@ -34,5 +34,6 @@ SFichier Open_file_folder(const Nom& folder,
                           const Nom& suffix,
                           const Nom& head,
                           const int reset,
+                          const int sep = 1,
                           const int prec = 8) ;
 #endif

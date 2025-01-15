@@ -41,33 +41,7 @@
 Implemente_instanciable_sans_constructeur(Remaillage_FT,"Remaillage_FT",Objet_U);
 
 
-Remaillage_FT::Remaillage_FT() :
-  // Values initialized:
-  temps_(0),
-  temps_dernier_remaillage_(-1.e40),
-  temps_dernier_lissage_(-1.e40),
-  // Values initialized but which can be set in the data file:
-  dt_remaillage_(-1),
-  dt_lissage_(-1),
-  nb_iter_remaillage_(1),
-  nb_iter_barycentrage_(1),
-  nb_iter_bary_volume_seul_(3),
-  seuil_dvolume_residuel_(0.),
-  relax_barycentrage_(1.),
-  critere_arete_(0.35),
-  impr_(-1),
-  valeur_longueur_fixe_(-1.),
-  facteur_longueur_ideale_(-1.),
-  equilateral_(0), // Par defaut, on regarde
-  //                  l'orientation de la facette pour ajuster sa taille a l'element eulerien.
-  //                  alors que equilateral=1 utilise la diagonal de l'element comme longueur de reference.
-  //                  Avec equilateral_ = 0, les facettes sont etirees comme le maillage et facteur_longueur vaut
-  //                  1. si l'arete traverse tout l'element dans la direction donnee par l'arrete.
-  lissage_courbure_coeff_(-0.05), // valeur typique pour stabilite
-  lissage_courbure_iterations_systematique_(0),
-  lissage_courbure_iterations_si_remaillage_(0),
-  lissage_courbure_iterations_old_(-1),
-  lissage_critere_(0) // Default value to 0, when lissage is applied, it is for the whole mesh
+Remaillage_FT::Remaillage_FT()
 {
 }
 
@@ -84,9 +58,8 @@ Entree& Remaillage_FT::readOn(Entree& is)
   facteur_longueur_ideale_ = -1.;
   valeur_longueur_fixe_ = -1.;
   if ( critere_remaillage_compat!=-1)
-    {
-      Cerr<<"Warning : critere_remaillage is obsolete "<<finl;
-    }
+    Cerr<<"Warning : critere_remaillage is obsolete "<<finl;
+
   p.lire_avec_accolades_depuis(is);
 
   if (lissage_courbure_iterations_old_>=0)
@@ -212,12 +185,8 @@ int Remaillage_FT::a_remailler(double temps, const Maillage_FT_Disc& maillage) c
 {
   int res = 0;
   if (dt_remaillage_ > 0.)
-    {
-      if (temps > (temps_dernier_remaillage_ + dt_remaillage_) * (1.-1e-15))
-        {
-          res = 1;
-        }
-    }
+    if (temps > (temps_dernier_remaillage_ + dt_remaillage_) * (1.-1e-15))
+      res = 1;
   return res;
 }
 
@@ -225,9 +194,7 @@ int Remaillage_FT::a_lisser(double temps) const
 {
   int res = 0;
   if ((dt_lissage_ > 0.) && (temps > (temps_dernier_lissage_ + dt_lissage_) * (1.-1e-15)))
-    {
-      res = 1;
-    }
+    res = 1;
   return res;
 }
 
@@ -346,13 +313,9 @@ int Remaillage_FT::calculer_connectivites_sommetFacettes(const Maillage_FT_Disc&
                 {
                   index0 = index;
                   if (fa7VoisinesSom_data(index,1) == fa7)
-                    {
-                      trouve = index;
-                    }
+                    trouve = index;
                   else
-                    {
-                      index = fa7VoisinesSom_data(index,0);
-                    }
+                    index = fa7VoisinesSom_data(index,0);
                 }
               if (trouve==-1)
                 {

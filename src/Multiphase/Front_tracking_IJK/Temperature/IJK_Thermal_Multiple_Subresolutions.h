@@ -23,6 +23,7 @@
 #define IJK_Thermal_Multiple_Subresolutions_included
 
 #include <IJK_Thermal_Subresolution.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
 #include <IJK_Splitting.h>
@@ -67,7 +68,7 @@ protected :
 
   IJK_Field_double temperature_vapour_;
   IJK_Field_double div_coeff_grad_T_vapour_volume_;
-  FixedVector<IJK_Field_double, 3> grad_T_vapour_;
+  IJK_Field_vector3_double grad_T_vapour_;
 
   void correct_temperature_vapour_for_eulerian_fluxes();
 

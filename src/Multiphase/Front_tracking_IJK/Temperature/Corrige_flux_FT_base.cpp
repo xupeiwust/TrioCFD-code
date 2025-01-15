@@ -45,15 +45,6 @@ Implemente_base_sans_constructeur(Corrige_flux_FT_base, "Corrige_flux_FT_base", 
 
 Corrige_flux_FT_base::Corrige_flux_FT_base()
 {
-  interfaces_ = nullptr;
-  field_ = nullptr;
-  splitting_ = nullptr;
-  rhocp_l_=0.;
-  rhocp_v_=0.;
-  lda_l_=0.;
-  lda_v_=0.;
-  intersection_ijk_face_ = nullptr;
-  intersection_ijk_cell_ = nullptr;
 }
 
 
@@ -72,7 +63,7 @@ Entree& Corrige_flux_FT_base::readOn( Entree& is )
 void Corrige_flux_FT_base::initialize(const IJK_Splitting& splitting,
                                       const IJK_Field_double& field,
                                       const IJK_Interfaces& interfaces,
-                                      const IJK_FT_double& ijk_ft,
+                                      const IJK_FT_base& ijk_ft,
                                       Intersection_Interface_ijk_face& intersection_ijk_face,
                                       Intersection_Interface_ijk_cell& intersection_ijk_cell)
 {
@@ -92,10 +83,10 @@ void Corrige_flux_FT_base::initialize(const IJK_Splitting& splitting,
 void Corrige_flux_FT_base::initialize_with_subproblems(const IJK_Splitting& splitting,
                                                        const IJK_Field_double& field,
                                                        const IJK_Interfaces& interfaces,
-                                                       const IJK_FT_double& ijk_ft,
+                                                       const IJK_FT_base& ijk_ft,
                                                        Intersection_Interface_ijk_face& intersection_ijk_face,
                                                        Intersection_Interface_ijk_cell& intersection_ijk_cell,
-                                                       const IJK_One_Dimensional_Subproblems& thermal_local_subproblems)
+                                                       IJK_One_Dimensional_Subproblems& thermal_local_subproblems)
 {
   initialize(splitting, field, interfaces, ijk_ft, intersection_ijk_face, intersection_ijk_cell);
 }

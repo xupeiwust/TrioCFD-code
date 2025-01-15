@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Force_ph.h>
+#include <IJK_Field_vector.h>
 #include <fstream>
 #include <math.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -28,7 +29,7 @@
 
 // #include <fftw3.h>
 
-Implemente_instanciable_sans_constructeur_ni_destructeur( Force_ph, "Force_ph", Objet_U ) ;
+Implemente_instanciable( Force_ph, "Force_ph", Objet_U ) ;
 
 Sortie& Force_ph::printOn( Sortie& os ) const
 {
@@ -40,18 +41,6 @@ Entree& Force_ph::readOn( Entree& is )
 {
   Objet_U::readOn( is );
   return is;
-}
-
-
-
-Force_ph::Force_ph() : ni(0),nj(0),nk(0),n_ijk(ni*nj*nk),nl(0),nm(0),nn(0),n_lmn(nl*nn*nm),kmin(0),kmax(0),energie(0)
-{
-
-}
-
-Force_ph::~Force_ph()
-{
-
 }
 
 void Force_ph::initialise(int a_nproc_tot, int a_ni,int a_nj,int a_nk,int a_nl,int a_nm, int a_nn,
@@ -302,7 +291,7 @@ void Force_ph::from_spect_to_phys_opti2(ArrOfDouble& coeff_force )
          a une dimension, on reconstruit l'indice a aller chercher.
        - coefficients de la force physique recopies dans un tableau
          a trois dimensions (a changer, facile a changer), mais aussi stockes dans un
-         FixedVector<IJK_Field_double, 3>
+         IJK_Field_vector3_double
   */
   //////////////////////////////////////////////////////////////////////////////
 
@@ -437,7 +426,7 @@ void Force_ph::from_spect_to_phys_opti2_advection(ArrOfDouble& coeff_force, cons
          a une dimension, on reconstruit l'indice a aller chercher.
        - coefficients de la force physique recopies dans un tableau
          a trois dimensions (a changer, facile a changer), mais aussi stockes dans un
-         FixedVector<IJK_Field_double, 3>
+         IJK_Field_vector3_double
   */
   //////////////////////////////////////////////////////////////////////////////
 
@@ -681,12 +670,12 @@ void Force_ph::write_separate(std::string nom_fichier_sortie, double t)
     }
 }
 
-FixedVector<IJK_Field_double, 3> Force_ph::get_force_attribute()
+IJK_Field_vector3_double Force_ph::get_force_attribute()
 {
   return force_;
 }
 
-FixedVector<IJK_Field_double, 3>& Force_ph::get_force_attribute2()
+IJK_Field_vector3_double& Force_ph::get_force_attribute2()
 {
   return force_;
 }

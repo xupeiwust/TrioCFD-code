@@ -39,7 +39,6 @@ Sortie& Couplage_Tubes_IBC::printOn(Sortie& os) const
 {
   return os;
 }
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
 
 // Lecture de l'objet dans le jeu de donnees
 Entree& Couplage_Tubes_IBC::readOn(Entree& is)

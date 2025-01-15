@@ -19,6 +19,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 #include <DNS.h>
+#include <IJK_Field_vector.h>
 #include <Param.h>
 #include <Interprete_bloc.h>
 #include <SFichier.h>
@@ -1020,7 +1021,7 @@ void filtrer_champ_face(const int flag_add,
 }
 
 static inline void calculer_g(int i, int j, int k,
-                              const FixedVector<IJK_Field_double, 3>& velocity,
+                              const IJK_Field_vector3_double& velocity,
                               const ArrOfDouble_with_ghost& delta_z_maillage,
                               const double dx_delta,
                               const double dy_delta,
@@ -1129,7 +1130,7 @@ static inline void calculer_g(int i, int j, int k,
 }
 
 static inline void calculer_tau(int i, int j, int k,
-                                const FixedVector<IJK_Field_double, 3>& velocity,
+                                const IJK_Field_vector3_double& velocity,
                                 const IJK_Field_double& turbulent_mu_xx,
                                 const IJK_Field_double& turbulent_mu_xy,
                                 const IJK_Field_double& turbulent_mu_xz,
@@ -1316,7 +1317,7 @@ static inline void calculer_tau(int i, int j, int k,
 }
 
 static inline void calculer_q(int i, int j, int k,
-                              const FixedVector<IJK_Field_double, 3>& velocity,
+                              const IJK_Field_vector3_double& velocity,
                               const IJK_Field_double& champ_scalar,
                               double scalar_kmin, double scalar_kmax,
                               const ArrOfDouble_with_ghost& delta_z_maillage,
@@ -1371,7 +1372,7 @@ static inline void calculer_q(int i, int j, int k,
 }
 
 static inline void calculer_pi(int i, int j, int k,
-                               const FixedVector<IJK_Field_double, 3>& velocity,
+                               const IJK_Field_vector3_double& velocity,
                                const IJK_Field_double& champ_scalar,
                                double scalar_kmin, double scalar_kmax,
                                const IJK_Field_double& turbulent_mu_x,
@@ -1460,7 +1461,7 @@ void calculer_turbulent_mu(const bool anisotropic,
                            const double pond_ch_,
                            const double center_constant_,
                            const double Lz_tot_,
-                           const FixedVector<IJK_Field_double, 3>& velocity,
+                           const IJK_Field_vector3_double& velocity,
                            const IJK_Field_double& champ_rho,
                            const IJK_Field_double& champ_scalar,
                            double scalar_kmin, double scalar_kmax,
@@ -1573,8 +1574,8 @@ void calculer_turbulent_mu(const bool anisotropic,
 template<class T>
 void calculer_ml_dynamic_uu_tensor(const bool anisotropic,
                                    const bool tensorial,
-                                   const FixedVector<IJK_Field_double, 3>& velocity,
-                                   const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                   const IJK_Field_vector3_double& velocity,
+                                   const IJK_Field_vector3_double& velocity_filtre,
                                    const int turbulent_viscosity,
                                    const IJK_Field_double& turbulent_mu_xx,
                                    const IJK_Field_double& turbulent_mu_xy,
@@ -2362,7 +2363,7 @@ void calculer_constante_direct(const bool global,
                                const ArrOfDouble& moy_lij_0,
                                const bool flag_mixte,
                                const ArrOfDouble& moy_hij_0,
-                               const FixedVector<IJK_Field_double, 3>& velocity,
+                               const IJK_Field_vector3_double& velocity,
                                const ArrOfDouble_with_ghost& delta_z,
                                ArrOfDouble_with_ghost& constante_modele)
 {
@@ -2455,7 +2456,7 @@ void calculer_constante_lilly(const bool global,
                               const ArrOfDouble& moy_mijlij_0,
                               const bool flag_mixte,
                               const ArrOfDouble& moy_mijhij_0,
-                              const FixedVector<IJK_Field_double, 3>& velocity,
+                              const IJK_Field_vector3_double& velocity,
                               const ArrOfDouble_with_ghost& delta_z,
                               ArrOfDouble_with_ghost& constante_modele)
 {
@@ -2544,7 +2545,7 @@ void calculer_constante_twoparameters(const bool global,
                                       const ArrOfDouble& moy_mijlij_0,
                                       const ArrOfDouble& moy_hijlij_0,
                                       const ArrOfDouble& moy_mijhij_0,
-                                      const FixedVector<IJK_Field_double, 3>& velocity,
+                                      const IJK_Field_vector3_double& velocity,
                                       const ArrOfDouble_with_ghost& delta_z,
                                       ArrOfDouble_with_ghost& constante_modele)
 {
@@ -2635,7 +2636,7 @@ void calculer_constante_twonoerror(const bool global,
                                    const ArrOfDouble& moy_mijlij_0,
                                    const ArrOfDouble& moy_hijlij_0,
                                    const ArrOfDouble& moy_mijhij_0,
-                                   const FixedVector<IJK_Field_double, 3>& velocity,
+                                   const IJK_Field_vector3_double& velocity,
                                    const ArrOfDouble_with_ghost& delta_z,
                                    ArrOfDouble_with_ghost& constante_modele)
 {
@@ -2732,7 +2733,7 @@ void calculer_constante_twonoerror(const bool global,
 
 void multiplier_par_constante(const bool face,
                               ArrOfDouble_with_ghost& constante_modele,
-                              const FixedVector<IJK_Field_double, 3>& velocity,
+                              const IJK_Field_vector3_double& velocity,
                               IJK_Field_double& turbulent_mu)
 {
   const IJK_Field_double& vitesse_k = velocity[2];
@@ -2782,7 +2783,7 @@ bool calculer_constante_modele(const Nom& turbulent_viscosity_dynamic_type,
                                const ArrOfDouble& moy_mijlij,
                                const ArrOfDouble& moy_hijlij,
                                const ArrOfDouble& moy_mijhij,
-                               const FixedVector<IJK_Field_double, 3>& velocity,
+                               const IJK_Field_vector3_double& velocity,
                                const ArrOfDouble_with_ghost& delta_z,
                                ArrOfDouble_with_ghost& constante_modele)
 {
@@ -2849,8 +2850,8 @@ bool calculer_constante_modele(const Nom& turbulent_viscosity_dynamic_type,
 template<class T>
 void calculer_ml_dynamic_uscalar_vector(const bool anisotropic,
                                         const bool vectorial,
-                                        const FixedVector<IJK_Field_double, 3>& velocity,
-                                        const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                        const IJK_Field_vector3_double& velocity,
+                                        const IJK_Field_vector3_double& velocity_filtre,
                                         const IJK_Field_double& champ_scalar,
                                         const IJK_Field_double& champ_scalar_filtre,
                                         double scalar_kmin, double scalar_kmax,
@@ -2862,8 +2863,8 @@ void calculer_ml_dynamic_uscalar_vector(const bool anisotropic,
                                         const IJK_Field_double& turbulent_mu_filtre_y,
                                         const IJK_Field_double& turbulent_mu_filtre_z,
                                         const int structural_uscalar,
-                                        const FixedVector<IJK_Field_double, 3>& structural_uscalar_vector,
-                                        const FixedVector<IJK_Field_double, 3>& structural_uscalar_filtre_vector,
+                                        const IJK_Field_vector3_double& structural_uscalar_vector,
+                                        const IJK_Field_vector3_double& structural_uscalar_filtre_vector,
                                         const ArrOfDouble_with_ghost& delta_z,
                                         const double facteur_delta_x,
                                         const double facteur_delta_y,
@@ -3410,8 +3411,8 @@ void calculer_turbulent_mu_scalar(const bool anisotropic,
                                   const double pond_ch_,
                                   const double center_constant_,
                                   const double Lz_tot_,
-                                  FixedVector<IJK_Field_double, 3>& velocity,
-                                  FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                  IJK_Field_vector3_double& velocity,
+                                  IJK_Field_vector3_double& velocity_filtre,
                                   IJK_Field_double& rho,
                                   IJK_Field_double& rho_filtre,
                                   double rho_kmin, double rho_kmax,
@@ -3448,8 +3449,8 @@ void calculer_turbulent_mu_scalar(const bool anisotropic,
   if (flag_turbulent_mu_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
-      ghost_size_scalar = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -3498,8 +3499,8 @@ void calculer_turbulent_mu_tensor(const bool anisotropic,
                                   const double pond_ch_,
                                   const double center_constant_,
                                   const double Lz_tot_,
-                                  FixedVector<IJK_Field_double, 3>& velocity,
-                                  FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                  IJK_Field_vector3_double& velocity,
+                                  IJK_Field_vector3_double& velocity_filtre,
                                   IJK_Field_double& rho,
                                   IJK_Field_double& rho_filtre,
                                   double rho_kmin, double rho_kmax,
@@ -3598,8 +3599,8 @@ void calculer_turbulent_mu_vector(const bool anisotropic,
                                   const double pond_ch_,
                                   const double center_constant_,
                                   const double Lz_tot_,
-                                  FixedVector<IJK_Field_double, 3>& velocity,
-                                  FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                  IJK_Field_vector3_double& velocity,
+                                  IJK_Field_vector3_double& velocity_filtre,
                                   IJK_Field_double& rho,
                                   IJK_Field_double& rho_filtre,
                                   double rho_kmin, double rho_kmax,
@@ -3617,8 +3618,8 @@ void calculer_turbulent_mu_vector(const bool anisotropic,
                                   FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                   FixedVector<IJK_Field_local_double, 18>& tmp_a,
                                   const bool flag_turbulent_mu_filtre,
-                                  FixedVector<IJK_Field_double, 3>& turbulent_mu_filtre_vector,
-                                  FixedVector<IJK_Field_double, 3>& turbulent_mu_vector,
+                                  IJK_Field_vector3_double& turbulent_mu_filtre_vector,
+                                  IJK_Field_vector3_double& turbulent_mu_vector,
                                   const IJK_Splitting& splitting)
 {
   Turbulent_viscosity_base* model = nullptr;
@@ -3671,7 +3672,7 @@ void calculer_turbulent_mu_vector(const bool anisotropic,
 
 void calculer_structural_uu_gradient(const double structural_uu_model_constant,
                                      const ArrOfDouble& structural_uu_tensor_coefficients,
-                                     const FixedVector<IJK_Field_double, 3>& velocity,
+                                     const IJK_Field_vector3_double& velocity,
                                      const ArrOfDouble_with_ghost& delta_z_maillage,
                                      const double facteur_x_pour_delta,
                                      const double facteur_y_pour_delta,
@@ -3891,12 +3892,12 @@ void calculer_structural_uu_gradient(const double structural_uu_model_constant,
     }
 }
 
-void calculer_laplacien_u(const FixedVector<IJK_Field_double, 3>& velocity,
+void calculer_laplacien_u(const IJK_Field_vector3_double& velocity,
                           const ArrOfDouble_with_ghost& delta_z_maillage,
                           const double facteur_x_pour_delta,
                           const double facteur_y_pour_delta,
                           const ArrOfDouble_with_ghost& delta_z_pour_delta,
-                          FixedVector<IJK_Field_double, 3>& laplacien_velocity)
+                          IJK_Field_vector3_double& laplacien_velocity)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
   const IJK_Field_double& vitesse_j = velocity[1];
@@ -4011,8 +4012,8 @@ void calculer_laplacien_u(const FixedVector<IJK_Field_double, 3>& velocity,
 
 void calculer_structural_uu_su_laplacien_u(const double structural_uu_model_constant,
                                            const ArrOfDouble& structural_uu_tensor_coefficients,
-                                           const FixedVector<IJK_Field_double, 3>& velocity,
-                                           const FixedVector<IJK_Field_double, 3>& laplacien_velocity,
+                                           const IJK_Field_vector3_double& velocity,
+                                           const IJK_Field_vector3_double& laplacien_velocity,
                                            FixedVector<IJK_Field_double, 6>& structural_uu_tensor)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
@@ -4134,7 +4135,7 @@ void calculer_structural_uu_su_laplacien_u(const double structural_uu_model_cons
 
 void calculer_structural_uu_convection(const double structural_uu_model_constant,
                                        const ArrOfDouble& structural_uu_tensor_coefficients,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
+                                       const IJK_Field_vector3_double& velocity,
                                        FixedVector<IJK_Field_double, 6>& structural_uu_tensor)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
@@ -4217,8 +4218,8 @@ template<class T>
 void calculer_structural_uu_similarity_comp(const double structural_uu_model_constant,
                                             const ArrOfDouble& structural_uu_tensor_coefficients,
                                             const IJK_Field_double& rho,
-                                            const FixedVector<IJK_Field_double, 3>& velocity,
-                                            const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                            const IJK_Field_vector3_double& velocity,
+                                            const IJK_Field_vector3_double& velocity_filtre,
                                             const ArrOfDouble_with_ghost& delta_z,
                                             const double facteur_delta_x,
                                             const double facteur_delta_y,
@@ -4597,8 +4598,8 @@ void calculer_structural_uu_similarity_comp(const double structural_uu_model_con
 template<class T>
 void calculer_structural_uu_similarity(const double structural_uu_model_constant,
                                        const ArrOfDouble& structural_uu_tensor_coefficients,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
-                                       const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                       const IJK_Field_vector3_double& velocity,
+                                       const IJK_Field_vector3_double& velocity_filtre,
                                        const ArrOfDouble_with_ghost& delta_z,
                                        const double facteur_delta_x,
                                        const double facteur_delta_y,
@@ -4916,7 +4917,7 @@ void calculer_structural_uu_similarity(const double structural_uu_model_constant
 
 template<class T>
 void calculer_structural_uu_similarity_Streher(const double structural_uu_model_constant,
-                                               const FixedVector<IJK_Field_double, 3>& velocity,
+                                               const IJK_Field_vector3_double& velocity,
                                                T& kernel,
                                                FixedVector<IJK_Field_double, 6>& structural_uu_tensor)
 {
@@ -5001,8 +5002,8 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                             const double structural_uu_model_constant,
                             const ArrOfDouble& structural_uu_tensor_coefficients,
                             IJK_Field_double& rho,
-                            FixedVector<IJK_Field_double, 3>& velocity,
-                            FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                            IJK_Field_vector3_double& velocity,
+                            IJK_Field_vector3_double& velocity_filtre,
                             const ArrOfDouble_with_ghost& delta_z,
                             const double facteur_delta_x,
                             const double facteur_delta_y,
@@ -5039,7 +5040,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                       structural_uu_tmp_tensor);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uu_tmp = max((int)2, ghost_size_filter);
+      ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
       structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5090,7 +5091,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                         structural_uu_tmp_tensor);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uu_tmp = max((int)2, ghost_size_filter);
+      ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
       structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5109,7 +5110,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5133,7 +5134,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity_comp") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5158,7 +5159,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   else if ( structural_uu_model == Nom("similarity_streher") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5186,7 +5187,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
   if (flag_structural_uu_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -5218,7 +5219,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                           structural_uu_tmp_tensor);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uu_tmp = max((int)2, ghost_size_filter);
+          ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
           structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5264,7 +5265,7 @@ void calculer_structural_uu(const Nom& structural_uu_model,
                                             structural_uu_tmp_tensor);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uu_tmp = max((int)2, ghost_size_filter);
+          ghost_size_structural_uu_tmp = max((int) 2, ghost_size_filter);
           structural_uu_tmp_tensor[0].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[1].echange_espace_virtuel(ghost_size_structural_uu_tmp);
           structural_uu_tmp_tensor[2].echange_espace_virtuel(ghost_size_structural_uu_tmp);
@@ -5289,14 +5290,14 @@ void calculer_structural_uu(const Nom& structural_uu_model,
 
 void calculer_structural_uscalar_gradient(const double structural_uscalar_model_constant,
                                           const ArrOfDouble& structural_uscalar_vector_coefficients,
-                                          const FixedVector<IJK_Field_double, 3>& velocity,
+                                          const IJK_Field_vector3_double& velocity,
                                           const IJK_Field_double& champ_scalar,
                                           double scalar_kmin, double scalar_kmax,
                                           const ArrOfDouble_with_ghost& delta_z_maillage,
                                           const double facteur_x_pour_delta,
                                           const double facteur_y_pour_delta,
                                           const ArrOfDouble_with_ghost& delta_z_pour_delta,
-                                          FixedVector<IJK_Field_double, 3>& structural_uscalar_vector)
+                                          IJK_Field_vector3_double& structural_uscalar_vector)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
   const IJK_Field_double& vitesse_j = velocity[1];
@@ -5469,8 +5470,8 @@ template<class T>
 void calculer_structural_uscalar_similarity_comp(const double structural_uscalar_model_constant,
                                                  const ArrOfDouble& structural_uscalar_vector_coefficients,
                                                  const IJK_Field_double& rho,
-                                                 const FixedVector<IJK_Field_double, 3>& velocity,
-                                                 const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                                 const IJK_Field_vector3_double& velocity,
+                                                 const IJK_Field_vector3_double& velocity_filtre,
                                                  const IJK_Field_double& champ_scalar,
                                                  const IJK_Field_double& champ_scalar_filtre,
                                                  double scalar_kmin, double scalar_kmax,
@@ -5481,7 +5482,7 @@ void calculer_structural_uscalar_similarity_comp(const double structural_uscalar
                                                  T& kernel,
                                                  FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                                  FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                                 FixedVector<IJK_Field_double, 3>& structural_uscalar_vector)
+                                                 IJK_Field_vector3_double& structural_uscalar_vector)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
   const IJK_Field_double& vitesse_j = velocity[1];
@@ -5780,8 +5781,8 @@ void calculer_structural_uscalar_similarity_comp(const double structural_uscalar
 template<class T>
 void calculer_structural_uscalar_similarity(const double structural_uscalar_model_constant,
                                             const ArrOfDouble& structural_uscalar_vector_coefficients,
-                                            const FixedVector<IJK_Field_double, 3>& velocity,
-                                            const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                            const IJK_Field_vector3_double& velocity,
+                                            const IJK_Field_vector3_double& velocity_filtre,
                                             const IJK_Field_double& champ_scalar,
                                             const IJK_Field_double& champ_scalar_filtre,
                                             double scalar_kmin, double scalar_kmax,
@@ -5792,7 +5793,7 @@ void calculer_structural_uscalar_similarity(const double structural_uscalar_mode
                                             T& kernel,
                                             FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                             FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                            FixedVector<IJK_Field_double, 3>& structural_uscalar_vector)
+                                            IJK_Field_vector3_double& structural_uscalar_vector)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
   const IJK_Field_double& vitesse_j = velocity[1];
@@ -6028,10 +6029,10 @@ void calculer_structural_uscalar_similarity(const double structural_uscalar_mode
 
 void calculer_structural_uscalar_similarity_Streher(const double structural_uscalar_model_constant,
                                                     const ArrOfDouble& structural_uscalar_vector_coefficients,
-                                                    const FixedVector<IJK_Field_double, 3>& velocity,
+                                                    const IJK_Field_vector3_double& velocity,
                                                     const IJK_Field_double& champ_scalar,
                                                     double scalar_kmin, double scalar_kmax,
-                                                    FixedVector<IJK_Field_double, 3>& structural_uscalar_vector)
+                                                    IJK_Field_vector3_double& structural_uscalar_vector)
 {
   const IJK_Field_double& vitesse_i = velocity[0];
   const IJK_Field_double& vitesse_j = velocity[1];
@@ -6108,8 +6109,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                  const double structural_uscalar_model_constant,
                                  const ArrOfDouble& structural_uscalar_vector_coefficients,
                                  IJK_Field_double& rho,
-                                 FixedVector<IJK_Field_double, 3>& velocity,
-                                 FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                 IJK_Field_vector3_double& velocity,
+                                 IJK_Field_vector3_double& velocity_filtre,
                                  IJK_Field_double& scalar,
                                  IJK_Field_double& scalar_filtre,
                                  double scalar_kmin, double scalar_kmax,
@@ -6123,10 +6124,10 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                  T& kernel,
                                  FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                  FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                 FixedVector<IJK_Field_double, 3>& structural_uscalar_tmp_vector,
+                                 IJK_Field_vector3_double& structural_uscalar_tmp_vector,
                                  const bool flag_structural_uscalar_filtre,
-                                 FixedVector<IJK_Field_double, 3>& structural_uscalar_filtre_vector,
-                                 FixedVector<IJK_Field_double, 3>& structural_uscalar_vector)
+                                 IJK_Field_vector3_double& structural_uscalar_filtre_vector,
+                                 IJK_Field_vector3_double& structural_uscalar_vector)
 {
   int ghost_size_filter;
   int ghost_size_velocity;
@@ -6151,7 +6152,7 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                            structural_uscalar_tmp_vector);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_structural_uscalar_tmp = max((int)2, ghost_size_filter);
+      ghost_size_structural_uscalar_tmp = max((int) 2, ghost_size_filter);
       structural_uscalar_tmp_vector[0].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector[1].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector[2].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
@@ -6164,8 +6165,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
-      ghost_size_scalar = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6193,8 +6194,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity_comp") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
-      ghost_size_scalar = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6223,8 +6224,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   else if ( structural_uscalar_model == Nom("similarity_streher") )
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
-      ghost_size_scalar = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6256,8 +6257,8 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
   if (flag_structural_uscalar_filtre)
     {
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_velocity = max((int)2, ghost_size_filter);
-      ghost_size_scalar = max((int)2, ghost_size_filter);
+      ghost_size_velocity = max((int) 2, ghost_size_filter);
+      ghost_size_scalar = max((int) 2, ghost_size_filter);
       velocity[0].echange_espace_virtuel(ghost_size_velocity);
       velocity[1].echange_espace_virtuel(ghost_size_velocity);
       velocity[2].echange_espace_virtuel(ghost_size_velocity);
@@ -6291,7 +6292,7 @@ void calculer_structural_uscalar(const Nom& structural_uscalar_model,
                                                structural_uscalar_tmp_vector);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_structural_uscalar_tmp = max((int)2, ghost_size_filter);
+          ghost_size_structural_uscalar_tmp = max((int) 2, ghost_size_filter);
           structural_uscalar_tmp_vector[0].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
           structural_uscalar_tmp_vector[1].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
           structural_uscalar_tmp_vector[2].echange_espace_virtuel(ghost_size_structural_uscalar_tmp);
@@ -6312,8 +6313,8 @@ template<class T>
 void modification_modele_dynamic_uu_scalar(const bool anisotropic,
                                            const Nom& turbulent_viscosity_dynamic_type,
                                            const Nom& structural_uu_dynamic_type,
-                                           const FixedVector<IJK_Field_double, 3>& velocity,
-                                           const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                           const IJK_Field_vector3_double& velocity,
+                                           const IJK_Field_vector3_double& velocity_filtre,
                                            const IJK_Field_double& scalar,
                                            const IJK_Field_double& scalar_filtre,
                                            double scalar_kmin, double scalar_kmax,
@@ -6349,7 +6350,7 @@ void modification_modele_dynamic_uu_scalar(const bool anisotropic,
       if (turbulent_viscosity)
         {
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_turbulent_mu = max((int)2, ghost_size_filter);
+          ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
           turbulent_mu.echange_espace_virtuel(ghost_size_turbulent_mu);
           turbulent_mu_filtre.echange_espace_virtuel(2);
         }
@@ -6359,7 +6360,7 @@ void modification_modele_dynamic_uu_scalar(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max((int)2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uu_tensor[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6523,8 +6524,8 @@ template<class T>
 void modification_modele_dynamic_uu_tensor(const bool anisotropic,
                                            const Nom& turbulent_viscosity_dynamic_type,
                                            const Nom& structural_uu_dynamic_type,
-                                           const FixedVector<IJK_Field_double, 3>& velocity,
-                                           const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                           const IJK_Field_vector3_double& velocity,
+                                           const IJK_Field_vector3_double& velocity_filtre,
                                            const IJK_Field_double& scalar,
                                            const IJK_Field_double& scalar_filtre,
                                            double scalar_kmin, double scalar_kmax,
@@ -6575,7 +6576,7 @@ void modification_modele_dynamic_uu_tensor(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_turbulent_mu = max((int)2, ghost_size_filter);
+              ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
               turbulent_mu_tensor[j].echange_espace_virtuel(ghost_size_turbulent_mu);
               turbulent_mu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6586,7 +6587,7 @@ void modification_modele_dynamic_uu_tensor(const bool anisotropic,
           for (int j=0 ; j<6 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max((int)2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uu_tensor[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uu_filtre_tensor[j].echange_espace_virtuel(2);
             }
@@ -6782,8 +6783,8 @@ template<class T>
 void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
                                                 const Nom& turbulent_viscosity_dynamic_type,
                                                 const Nom& structural_uscalar_dynamic_type,
-                                                const FixedVector<IJK_Field_double, 3>& velocity,
-                                                const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                                const IJK_Field_vector3_double& velocity,
+                                                const IJK_Field_vector3_double& velocity_filtre,
                                                 const IJK_Field_double& scalar,
                                                 const IJK_Field_double& scalar_filtre,
                                                 double scalar_kmin, double scalar_kmax,
@@ -6803,8 +6804,8 @@ void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
                                                 IJK_Field_double& turbulent_mu,
                                                 IJK_Field_double& turbulent_mu_filtre,
                                                 const int structural_uscalar,
-                                                FixedVector<IJK_Field_double, 3>& structural_uscalar_vector,
-                                                FixedVector<IJK_Field_double, 3>& structural_uscalar_filtre_vector)
+                                                IJK_Field_vector3_double& structural_uscalar_vector,
+                                                IJK_Field_vector3_double& structural_uscalar_filtre_vector)
 {
   int ghost_size_filter, ghost_size_turbulent_mu, ghost_size_structural_uu;
   if ( turbulent_viscosity_dynamic_type == Nom("not_dynamic")
@@ -6817,7 +6818,7 @@ void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
       if (turbulent_viscosity)
         {
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_turbulent_mu = max((int)2, ghost_size_filter);
+          ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
           turbulent_mu.echange_espace_virtuel(ghost_size_turbulent_mu);
           turbulent_mu_filtre.echange_espace_virtuel(2);
         }
@@ -6827,7 +6828,7 @@ void modification_modele_dynamic_uscalar_scalar(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max((int)2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uscalar_vector[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uscalar_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -6986,8 +6987,8 @@ template<class T>
 void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
                                                 const Nom& turbulent_viscosity_dynamic_type,
                                                 const Nom& structural_uscalar_dynamic_type,
-                                                const FixedVector<IJK_Field_double, 3>& velocity,
-                                                const FixedVector<IJK_Field_double, 3>& velocity_filtre,
+                                                const IJK_Field_vector3_double& velocity,
+                                                const IJK_Field_vector3_double& velocity_filtre,
                                                 const IJK_Field_double& scalar,
                                                 const IJK_Field_double& scalar_filtre,
                                                 double scalar_kmin, double scalar_kmax,
@@ -7004,11 +7005,11 @@ void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
                                                 ArrOfDouble_with_ghost& constante_modele,
                                                 FixedVector<FixedVector<ArrOfDouble, 7>, 8>& ml,
                                                 const int turbulent_viscosity,
-                                                FixedVector<IJK_Field_double, 3>& turbulent_mu_vector,
-                                                FixedVector<IJK_Field_double, 3>& turbulent_mu_filtre_vector,
+                                                IJK_Field_vector3_double& turbulent_mu_vector,
+                                                IJK_Field_vector3_double& turbulent_mu_filtre_vector,
                                                 const int structural_uscalar,
-                                                FixedVector<IJK_Field_double, 3>& structural_uscalar_vector,
-                                                FixedVector<IJK_Field_double, 3>& structural_uscalar_filtre_vector)
+                                                IJK_Field_vector3_double& structural_uscalar_vector,
+                                                IJK_Field_vector3_double& structural_uscalar_filtre_vector)
 {
   IJK_Field_double& turbulent_mu_x = turbulent_mu_vector[0];
   IJK_Field_double& turbulent_mu_y = turbulent_mu_vector[1];
@@ -7031,7 +7032,7 @@ void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_turbulent_mu = max((int)2, ghost_size_filter);
+              ghost_size_turbulent_mu = max((int) 2, ghost_size_filter);
               turbulent_mu_vector[j].echange_espace_virtuel(ghost_size_turbulent_mu);
               turbulent_mu_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -7042,7 +7043,7 @@ void modification_modele_dynamic_uscalar_vector(const bool anisotropic,
           for (int j=0 ; j<3 ; j++)
             {
               ghost_size_filter = 1 + kernel->ghost_size();
-              ghost_size_structural_uu = max((int)2, ghost_size_filter);
+              ghost_size_structural_uu = max((int) 2, ghost_size_filter);
               structural_uscalar_vector[j].echange_espace_virtuel(ghost_size_structural_uu);
               structural_uscalar_filtre_vector[j].echange_espace_virtuel(2);
             }
@@ -8567,8 +8568,8 @@ void DNS_QC_double::ecrire_fichier_sauv(const char *fichier_sauvegarde, const ch
               << " p_thermo_init " << P_thermodynamique_ << "\n"
               << " fichier_reprise_vitesse " << lata_name << "\n";
       fichier << " fichier_reprise_rho " << lata_name << "\n"
-              << " timestep_reprise_vitesse " << (int)1 << "\n"
-              << " timestep_reprise_rho " << (int)1 << "\n";
+              << " timestep_reprise_vitesse " << (int) 1 << "\n"
+              << " timestep_reprise_rho " << (int) 1 << "\n";
       if (statistiques_.t_integration() > 0.)
         fichier << " statistiques " << statistiques_;
       fichier << "}\n";
@@ -9543,10 +9544,10 @@ void DNS_QC_double::run()
       ghost_size_filter = 1 + kernel_->ghost_size();
     }
 
-  int ghost_size_velocity = flag_u_filtre_ ? max((int)2, ghost_size_filter) : 2;
-  int ghost_size_rho = flag_rho_filtre_ ? max((int)2, ghost_size_filter) : 2;
-  int ghost_size_temperature = flag_temperature_filtre_ ? max((int)2, ghost_size_filter) : 2;
-  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max((int)1, ghost_size_filter) : 1;
+  int ghost_size_velocity = flag_u_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_rho = flag_rho_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_temperature = flag_temperature_filtre_ ? max((int) 2, ghost_size_filter) : 2;
+  int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max((int) 1, ghost_size_filter) : 1;
 
   /* allocation des tableaux */
   allocate_velocity(velocity_, splitting_, ghost_size_velocity);
@@ -9681,7 +9682,7 @@ void DNS_QC_double::run()
   // DD,2017-04-27: diffusion modifie en vue de l'ajout de modeles
   if (turbulent_viscosity_)
     {
-      int ghost_size_turbulent_mu = flag_turbulent_mu_filtre_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_turbulent_mu = flag_turbulent_mu_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       if (flag_nu_tensorial_)
         {
@@ -9706,7 +9707,7 @@ void DNS_QC_double::run()
     }
   if (turbulent_diffusivity_)
     {
-      int ghost_size_turbulent_kappa = flag_turbulent_kappa_filtre_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_turbulent_kappa = flag_turbulent_kappa_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       if (flag_kappa_vectorial_)
         {
@@ -9733,7 +9734,7 @@ void DNS_QC_double::run()
     }
   if (structural_uu_)
     {
-      int ghost_size_structural_uu = flag_structural_uu_filtre_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_structural_uu = flag_structural_uu_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uu_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
       structural_uu_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
@@ -9761,7 +9762,7 @@ void DNS_QC_double::run()
     }
   if (structural_uscalar_)
     {
-      int ghost_size_structural_uscalar = flag_structural_uscalar_filtre_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_structural_uscalar = flag_structural_uscalar_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uscalar_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
       structural_uscalar_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
@@ -9839,7 +9840,7 @@ void DNS_QC_double::run()
 
   if (flag_structural_uu_tmp_)
     {
-      int ghost_size_structural_uu_tmp = flag_structural_uu_tmp_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_structural_uu_tmp = flag_structural_uu_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uu_tmp_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
@@ -9856,7 +9857,7 @@ void DNS_QC_double::run()
     }
   if (flag_structural_uscalar_tmp_)
     {
-      int ghost_size_structural_uscalar_tmp = flag_structural_uscalar_tmp_ ? max((int)2, ghost_size_filter) : 2;
+      int ghost_size_structural_uscalar_tmp = flag_structural_uscalar_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       structural_uscalar_tmp_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
@@ -9867,7 +9868,7 @@ void DNS_QC_double::run()
     }
   if (flag_d_velocity_tmp_)
     {
-      ghost_size_d_velocity_tmp = flag_d_velocity_tmp_ ? max((int)2, ghost_size_filter) : 2;
+      ghost_size_d_velocity_tmp = flag_d_velocity_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
       allocate_velocity(d_velocity_tmp_, splitting_, ghost_size_d_velocity_tmp);
       d_velocity_tmp_[0].data() = 0.;
@@ -10836,8 +10837,8 @@ static void force_2d(IJK_Field_double& f)
 }
 
 template<class T>
-void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>& rho_v,
-                                                FixedVector<IJK_Field_double, 3>& velocity,
+void DNS_QC_double::calculer_convection_vitesse(IJK_Field_vector3_double& rho_v,
+                                                IJK_Field_vector3_double& velocity,
                                                 const ArrOfDouble_with_ghost& delta_z,
                                                 const double facteur_delta_x,
                                                 const double facteur_delta_y,
@@ -10845,8 +10846,8 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
                                                 T& kernel,
                                                 FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                                 FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                                FixedVector<IJK_Field_double, 3>& d_velocity_tmp,
-                                                FixedVector<IJK_Field_double, 3>& d_velocity,
+                                                IJK_Field_vector3_double& d_velocity_tmp,
+                                                IJK_Field_vector3_double& d_velocity,
                                                 IJK_Field_double& u_div_rho_u)
 {
   int ghost_size_filter;
@@ -10866,7 +10867,7 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
           multiplier_champ_rho_face_k(false, u_div_rho_u, 1., 0., velocity[2], d_velocity_tmp[2]);
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_d_velocity_tmp = max((int)2, ghost_size_filter);
+          ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
           d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -10923,7 +10924,7 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
             }
 
           ghost_size_filter = 1 + kernel->ghost_size();
-          ghost_size_d_velocity_tmp = max((int)2, ghost_size_filter);
+          ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
           d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
           d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -10967,7 +10968,7 @@ void DNS_QC_double::calculer_convection_vitesse(FixedVector<IJK_Field_double, 3>
 }
 
 template<class T>
-void DNS_QC_double::calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_double, 3>& velocity,
+void DNS_QC_double::calculer_turbulent_diffusion_vitesse(IJK_Field_vector3_double& velocity,
                                                          const IJK_Field_double& turbulent_mu_xx,
                                                          const IJK_Field_double& turbulent_mu_xy,
                                                          const IJK_Field_double& turbulent_mu_xz,
@@ -10981,8 +10982,8 @@ void DNS_QC_double::calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_d
                                                          T& kernel,
                                                          FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                                          FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                                         FixedVector<IJK_Field_double, 3>& d_velocity_tmp,
-                                                         FixedVector<IJK_Field_double, 3>& d_velocity)
+                                                         IJK_Field_vector3_double& d_velocity_tmp,
+                                                         IJK_Field_vector3_double& d_velocity)
 {
   const IJK_Field_double& turbulent_mu_yx = turbulent_mu_xy;
   const IJK_Field_double& turbulent_mu_zx = turbulent_mu_xz;
@@ -11094,7 +11095,7 @@ void DNS_QC_double::calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_d
         }
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_d_velocity_tmp = max((int)2, ghost_size_filter);
+      ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
       d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);
@@ -11211,7 +11212,7 @@ void DNS_QC_double::calculer_turbulent_diffusion_vitesse(FixedVector<IJK_Field_d
 }
 
 template<class T>
-void DNS_QC_double::calculer_structural_diffusion_vitesse(FixedVector<IJK_Field_double, 3>& velocity,
+void DNS_QC_double::calculer_structural_diffusion_vitesse(IJK_Field_vector3_double& velocity,
                                                           const FixedVector<IJK_Field_double, 6>& structural_uu_tensor,
                                                           const ArrOfDouble_with_ghost& delta_z,
                                                           const double facteur_delta_x,
@@ -11220,8 +11221,8 @@ void DNS_QC_double::calculer_structural_diffusion_vitesse(FixedVector<IJK_Field_
                                                           T& kernel,
                                                           FixedVector<IJK_Field_local_double, 18>& tmp_b,
                                                           FixedVector<IJK_Field_local_double, 18>& tmp_a,
-                                                          FixedVector<IJK_Field_double, 3>& d_velocity_tmp,
-                                                          FixedVector<IJK_Field_double, 3>& d_velocity)
+                                                          IJK_Field_vector3_double& d_velocity_tmp,
+                                                          IJK_Field_vector3_double& d_velocity)
 {
   const IJK_Field_double& structural_uu_xx = structural_uu_tensor[0];
   const IJK_Field_double& structural_uu_xy = structural_uu_tensor[1];
@@ -11249,7 +11250,7 @@ void DNS_QC_double::calculer_structural_diffusion_vitesse(FixedVector<IJK_Field_
                                                            d_velocity_tmp[0], d_velocity_tmp[1], d_velocity_tmp[2]);
 
       ghost_size_filter = 1 + kernel->ghost_size();
-      ghost_size_d_velocity_tmp = max((int)2, ghost_size_filter);
+      ghost_size_d_velocity_tmp = max((int) 2, ghost_size_filter);
       d_velocity_tmp[0].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[1].echange_espace_virtuel(ghost_size_d_velocity_tmp);
       d_velocity_tmp[2].echange_espace_virtuel(ghost_size_d_velocity_tmp);

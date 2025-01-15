@@ -776,6 +776,16 @@ void Desc_Structure_FT::echange_espace_virtuel(ArrOfDouble& x) const
   collecter_espace_virtuel(x, MD_Vector_tools::ECHANGE_EV);
 }
 
+void Desc_Structure_FT::echange_espace_virtuel(ArrOfInt& x, MD_Vector_tools::Operations_echange op) const
+{
+  collecter_espace_virtuel(x, op);
+}
+
+void Desc_Structure_FT::echange_espace_virtuel(ArrOfDouble& x, MD_Vector_tools::Operations_echange op) const
+{
+  collecter_espace_virtuel(x, op);
+}
+
 void Desc_Structure_FT::collecter_espace_virtuel(ArrOfInt& x, MD_Vector_tools::Operations_echange op) const
 {
   assert(status_md_ == OK);

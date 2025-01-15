@@ -26,7 +26,7 @@
 #include <IJK_Field.h>
 #include <IJK_Interfaces.h>
 #include <Linear_algebra_tools.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <TRUSTArrays.h>
 #include <TRUSTTab.h>
 #include <Vecteur3.h>
@@ -43,6 +43,7 @@
 #define INVALID_SOURCE_TERM 1e-20
 #define NEIGHBOURS_FIRST_DIR {-1., -1., 1., 1.}
 #define NEIGHBOURS_SECOND_DIR {-1., 1., -1., 1.}
+#define NEIGHBOURS_SIGN {1, 0, 1, 0, 1, 0}
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
@@ -52,17 +53,14 @@
 #define LIQUID_INDICATOR_TEST 1.-1.e-12
 #define VAPOUR_INDICATOR_TEST 1.e-12
 #define FACES_DIR {0, 0, 1, 1, 2, 2}
+#define FLUXES_OUT {-1, 1, -1, 1, -1, 1}
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
+#define INVALID_INDEX -100
+#define MAX_FLUX_TEST 1.e16
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_One_Dimensional_Subproblem
-//
-// <Description of class IJK_One_Dimensional_Subproblem>
-//
-/////////////////////////////////////////////////////////////////////////////
-class IJK_FT_double;
+
+class IJK_FT_base;
 class IJK_Thermal_base;
 class IJK_Thermal_Subresolution;
 class IJK_One_Dimensional_Subproblems;
@@ -70,10 +68,10 @@ class IJK_One_Dimensional_Subproblems;
 class IJK_One_Dimensional_Subproblem : public Objet_U
 {
   Declare_instanciable( IJK_One_Dimensional_Subproblem ) ;
-
+  // friend class Corrige_flux_FT_temperature_subresolution;
 public :
-  IJK_One_Dimensional_Subproblem(const IJK_FT_double& ijk_ft);
-  void associer(const IJK_FT_double& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
+  IJK_One_Dimensional_Subproblem(const IJK_FT_base& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
   void associate_sub_problem_to_inputs(IJK_Thermal_Subresolution& ref_thermal_subresolution,
                                        IJK_One_Dimensional_Subproblems& ref_one_dimensional_subproblems,
                                        int i, int j, int k,
@@ -92,8 +90,8 @@ public :
                                        ArrOfDouble bubble_barycentre,
                                        const double& indicator,
                                        const IJK_Interfaces& interfaces,
-                                       const FixedVector<IJK_Field_double, 3>& velocity,
-                                       const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                       const IJK_Field_vector3_double& velocity,
+                                       const IJK_Field_vector3_double& velocity_ft,
                                        const IJK_Field_double& pressure);
 
   void interpolate_indicator_on_probes();
@@ -197,7 +195,14 @@ public :
                                     const int weak_gradient_variable,
                                     const int interp_eulerian) const;
   double get_temperature_profile_at_point(const double& dist) const;
-  double get_temperature_times_velocity_profile_at_point(const double& dist, const int& dir) const;
+  double get_temperature_times_velocity_profile_at_point(const double& dist,
+                                                         const int& dir,
+                                                         bool& valid_val,
+                                                         const int& l,
+                                                         const int& index_i=INVALID_INDEX,
+                                                         const int& index_j=INVALID_INDEX,
+                                                         const int& index_k=INVALID_INDEX,
+                                                         const int& temperature=0);
   DoubleVect get_field_discrete_integral_velocity_weighting_at_point(const double& dist,
                                                                      const int& levels,
                                                                      const int& dir,
@@ -206,13 +211,15 @@ public :
                                                                      const IJK_Field_double& eulerian_field,
                                                                      const int temp_bool,
                                                                      const int weak_gradient_variable,
-                                                                     const int vel) const;
+                                                                     const int vel,
+                                                                     const int& l=-1);
   DoubleVect get_field_times_velocity_discrete_integral_at_point(const double& dist,
                                                                  const int& levels,
                                                                  const int& dir,
                                                                  const DoubleVect& field,
                                                                  const DoubleVect& field_weak_gradient,
-                                                                 const IJK_Field_double& eulerian_field) const;
+                                                                 const IJK_Field_double& eulerian_field,
+                                                                 const int& l);
   DoubleVect get_field_discrete_integral_at_point(const double& dist,
                                                   const int& levels,
                                                   const int& dir,
@@ -220,12 +227,12 @@ public :
                                                   const DoubleVect& field_weak_gradient,
                                                   const IJK_Field_double& eulerian_field,
                                                   const int weak_gradient_variable,
-                                                  const int temp_bool) const;
+                                                  const int temp_bool);
   double get_velocity_weighting(const double& dist, const int& dir, const int vel) const;
-  DoubleVect get_temperature_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
-  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir) const;
+  DoubleVect get_temperature_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
+  DoubleVect get_temperature_times_velocity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir, const int& l);
+  DoubleVect get_temperature_gradient_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
+  DoubleVect get_temperature_gradient_times_conductivity_profile_discrete_integral_at_point(const double& dist, const int& levels, const int& dir);
   void get_field_discrete_value_recursive(const int& ilevel, const int& max_level,
                                           const int& dir, const double& dist,
                                           const int& vel,
@@ -240,27 +247,66 @@ public :
                                           Vecteur3& point_coords_parent,
                                           DoubleVect& discrete_values,
                                           int& value_counter) const;
-  double get_velocity_component_at_point(const double& dist, const int& dir) const;
+  double get_velocity_component_at_point(const double& dist,
+                                         const int& dir,
+                                         const int& index_i=-100,
+                                         const int& index_j=-100,
+                                         const int& index_k=-100) const;
+  double get_velocity_cartesian_grid_value(const double& dist,
+                                           const int& dir,
+                                           const int& sign_dir,
+                                           const int& index_i,
+                                           const int& index_j,
+                                           const int& index_k) const;
   double get_temperature_gradient_profile_at_point(const double& dist, const int& dir) const;
-  double get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir) const;
+  double get_temperature_gradient_times_conductivity_profile_at_point(const double& dist, const int& dir, bool& valid_val) const;
   void get_discrete_two_dimensional_spacing(const int& dir, const int& level,
                                             const double& first_dir, const double& second_dir,
                                             double& dl1, double& dl2, Vecteur3& point_coords) const;
   double get_discrete_surface_at_level(const int& dir, const int& level) const;
   void compute_bubble_related_quantities();
-  void thermal_subresolution_outputs(SFichier& fic, const int rank, const Nom& local_quantities_thermal_probes_time_index_folder);
+  void thermal_subresolution_outputs(SFichier& fic,
+                                     SFichier& fic_shell,
+                                     const int rank,
+                                     const Nom& local_quantities_thermal_probes_time_index_folder);
   void thermal_subresolution_outputs_parallel(const int rank, const Nom& local_quantities_thermal_probes_time_index_folder);
+  void retrieve_shell_quantities(const int rank,
+                                 const int& itr,
+                                 std::vector<std::string> key_results_int,
+                                 std::vector<std::string> key_results_double,
+                                 std::map<std::string, ArrOfInt>& results_probes_int,
+                                 std::map<std::string, ArrOfDouble>& results_probes_double);
   void retrieve_interfacial_quantities(const int rank,
                                        const int& itr,
                                        std::vector<std::string> key_results_int,
                                        std::vector<std::string> key_results_double,
                                        std::map<std::string, ArrOfInt>& results_probes_int,
-                                       std::map<std::string, ArrOfDouble>& results_probes_double);
+                                       std::map<std::string, ArrOfDouble>& results_probes_double,
+                                       const int& coord=0);
 
   double get_min_temperature() const;
   double get_max_temperature() const;
   double get_min_temperature_domain_ends() const;
   double get_max_temperature_domain_ends() const;
+
+  void dispatch_interfacial_heat_flux_correction(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
+                                                 FixedVector<ArrOfInt, 4>& ijk_indices_out,
+                                                 ArrOfDouble& thermal_flux_out,
+                                                 IJK_Field_vector3_double& interfacial_heat_flux_current);
+  void dispatch_interfacial_heat_flux(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
+                                      FixedVector<ArrOfInt, 3>& ijk_indices_out,
+                                      FixedVector<ArrOfDouble, 3>& thermal_flux_out);
+
+  void add_interfacial_heat_flux_neighbours_correction(IJK_Field_vector3_double& interfacial_heat_flux_dispatched,
+                                                       IJK_Field_vector3_double& interfacial_heat_flux_current);
+  void add_interfacial_heat_flux_neighbours(IJK_Field_vector3_double& interfacial_heat_flux_dispatched);
+
+  void compute_pure_liquid_neighbours();
+  void locate_pure_mixed_neighbours_without_pure_liquid_faces();
+  void compare_fluxes_thermal_subproblems(const IJK_Field_vector3_double& convective_diffusive_fluxes_raw,
+                                          const int flux_type,
+                                          const int inv_sign=0);
+
   void set_subproblem_index(const int& sub_problem_index)
   {
     sub_problem_index_ = sub_problem_index;
@@ -311,11 +357,17 @@ public :
   };
   const double& get_dist_cell() const
   {
-    return cell_centre_distance_;
+    if (compute_radial_displacement_)
+      return cell_centre_distance_corrected_;
+    else
+      return cell_centre_distance_;
   };
   const FixedVector<double,6>& get_dist_faces() const
   {
-    return face_centres_distance_;
+    if (compute_radial_displacement_)
+      return face_centres_distance_corrected_;
+    else
+      return face_centres_distance_;
   };
   const Vecteur3& get_bary_facet() const
   {
@@ -388,6 +440,30 @@ public :
   {
     return thermal_flux_[0];
   }
+  const double& get_interfacial_thermal_flux_raw() const
+  {
+    return thermal_flux_raw_;
+  }
+  const double& get_interfacial_thermal_flux_gfm() const
+  {
+    return thermal_flux_gfm_;
+  }
+  const double& get_interfacial_thermal_flux_lrs() const
+  {
+    return thermal_flux_lrs_;
+  }
+  const double& get_interfacial_thermal_flux_max() const
+  {
+    return thermal_flux_max_;
+  }
+  const double& get_interfacial_thermal_flux_max_raw() const
+  {
+    return thermal_flux_max_raw_;
+  }
+  const double& get_interfacial_thermal_flux_max_gfm() const
+  {
+    return thermal_flux_max_gfm_;
+  }
   const double& get_local_surface_area() const
   {
     return surface_;
@@ -428,6 +504,84 @@ public :
   {
     return normal_vector_compo_;
   }
+  const double& get_sum_convective_diffusive_flux_op_value(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_;
+    else
+      return sum_diffusive_flux_op_value_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_vap(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_vap_;
+    else
+      return sum_diffusive_flux_op_value_vap_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_mixed(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_mixed_;
+    else
+      return sum_diffusive_flux_op_value_mixed_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_normal(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_value_normal_contrib_;
+    else
+      return sum_diffusive_flux_op_value_normal_contrib_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_leaving(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_leaving_value_;
+    else
+      return sum_diffusive_flux_op_leaving_value_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_entering(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_entering_value_;
+    else
+      return sum_diffusive_flux_op_entering_value_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_leaving_lrs(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_leaving_lrs_;
+    else
+      return sum_diffusive_flux_op_leaving_lrs_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_entering_lrs(const int flux_type) const
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_entering_lrs_;
+    else
+      return sum_diffusive_flux_op_entering_lrs_;
+  }
+  const double& get_sum_convective_diffusive_flux_op_value_lrs(const int flux_type)
+  {
+    if (flux_type==0)
+      return sum_convective_flux_op_lrs_;
+    else
+      return sum_diffusive_flux_op_lrs_;
+  }
+  void complete_frame_of_reference_lrs_fluxes_eval();
+
+  double get_corrective_flux_from_neighbours(const int& l)
+  {
+    return corrective_flux_from_neighbours_[l];
+  }
+  double get_corrective_flux_from_current(const int& l)
+  {
+    return corrective_flux_current_[l];
+  }
+  void set_pure_flux_corrected(const double& flux_face, const int& l, const int flux_type);
+  void compute_error_flux_interface();
+  void compute_weighting_coefficient(const int& l, double& weight, const int& weight_type=0);
+  void compare_flux_interface(std::vector<double>& radial_flux_error);
+  double get_value_from_index(const int& index_val);
 protected :
   void clear_vectors();
   void reset_counters();
@@ -444,7 +598,14 @@ protected :
   void associate_thermal_subproblem_sparse_matrix(FixedVector<ArrOfInt,6>& first_indices_sparse_matrix);
   void associate_flux_correction_parameters(const int& correct_fluxes,
                                             const int& distance_cell_faces_from_lrs,
-                                            const int& interp_eulerian);
+                                            const int& interp_eulerian,
+                                            const int& use_corrected_velocity_convection,
+                                            const int& use_velocity_cartesian_grid,
+                                            const int& compute_radial_displacement,
+                                            const int& fluxes_correction_conservations,
+                                            const int& conserve_max_interfacial_fluxes,
+                                            const int& fluxes_corrections_weighting,
+                                            const int& use_normal_gradient_for_flux_corr);
   void associate_source_terms_parameters(const int& source_terms_type,
                                          const int& correct_tangential_temperature_gradient,
                                          const int& correct_tangential_temperature_hessian,
@@ -490,6 +651,7 @@ protected :
     bubble_rising_vector_ = Vecteur3(bubble_rising_vector);
     bubble_barycentre_ = Vecteur3(bubble_barycentre);
     bubble_rising_velocity_compo_ =  bubble_rising_vector_;
+    // bubble_rising_velocity_ is an absolute value
     bubble_rising_velocity_compo_ *= bubble_rising_velocity_;
   };
 
@@ -497,19 +659,22 @@ protected :
                                             const IJK_Field_double *  eulerian_distance,
                                             const IJK_Field_double * eulerian_curvature,
                                             const IJK_Field_double * eulerian_interfacial_area,
-                                            const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect,
-                                            const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre,
+                                            const IJK_Field_vector3_double * eulerian_normal_vect,
+                                            const IJK_Field_vector3_double * eulerian_facets_barycentre,
                                             const IJK_Field_double& temperature,
                                             const IJK_Field_double& temperature_ft,
                                             const IJK_Field_double& temperature_before_extrapolation,
-                                            const FixedVector<IJK_Field_double, 3>& velocity,
-                                            const FixedVector<IJK_Field_double, 3>& velocity_ft,
+                                            const IJK_Field_vector3_double& velocity,
+                                            const IJK_Field_vector3_double& velocity_ft,
                                             const IJK_Field_double& pressure,
-                                            const FixedVector<IJK_Field_double, 3>& grad_T_elem,
-                                            const FixedVector<IJK_Field_double, 3>& hess_diag_T_elem,
-                                            const FixedVector<IJK_Field_double, 3>& hess_cross_T_elem,
+                                            const IJK_Field_vector3_double& grad_T_elem,
+                                            const IJK_Field_vector3_double& grad_T_elem_smooth,
+                                            const IJK_Field_vector3_double& hess_diag_T_elem,
+                                            const IJK_Field_vector3_double& hess_cross_T_elem,
                                             const IJK_Field_double& eulerian_grad_T_interface_ns,
-                                            IJK_Field_double& probe_collision_debug_field);
+                                            IJK_Field_double& probe_collision_debug_field,
+                                            IJK_Field_int& zero_liquid_neighbours,
+                                            const int& smooth_grad_T_elem);
   void associate_flags_neighbours_correction(const int& correct_temperature_cell_neighbours,
                                              const int& correct_neighbours_rank,
                                              const int& neighbours_corrected_rank,
@@ -524,6 +689,7 @@ protected :
                                              const int& compute_reachable_fluxes,
                                              const int& find_cell_neighbours_for_fluxes_spherical_correction);
   void associate_probe_parameters(const int& points_per_thermal_subproblem,
+                                  const double& cp_liquid,
                                   const double& alpha,
                                   const double& lambda,
                                   const double& prandtl_number,
@@ -623,7 +789,7 @@ protected :
   void correct_tangential_temperature_hessian(DoubleVect& tangential_diffusion_source_terms);
   void find_interval(const double& dist, int& left_interval, int& right_interval) const;
 
-  void post_process_interfacial_quantities(SFichier& fic, const int rank);
+  void post_process_interfacial_quantities(SFichier& fic, const int rank, const int& coord=0);
   void post_process_radial_quantities(const int rank, const Nom& local_quantities_thermal_probes_time_index_folder);
 
   void compute_temperature_integral_subproblem_probe();
@@ -631,36 +797,37 @@ protected :
 
   enum Boundary_conditions { default_bc=-1, dirichlet, neumann, flux_jump, implicit };
 
-  int disable_probe_because_collision_;
-  int disable_find_cell_centre_probe_tip_;
-  int enable_probe_collision_detection_;
-  int enable_resize_probe_collision_;
-  int debug_probe_collision_;
-  int resize_probe_collision_;
-  int resize_probe_collision_index_;
-  double modified_probe_length_from_collision_;
+  int disable_probe_because_collision_ = 0;
+  int disable_find_cell_centre_probe_tip_ = 0;
+  int enable_probe_collision_detection_ = 0;
+  int enable_resize_probe_collision_ = 0;
+  int debug_probe_collision_ = 0;
+  int resize_probe_collision_ = 0;
+  int resize_probe_collision_index_ = 0;
+  double modified_probe_length_from_collision_ = 0.;
 
-  int disable_probe_weak_gradient_;
-  int disable_probe_weak_gradient_gfm_;
-  int disable_probe_weak_gradient_local_;
+  int disable_probe_weak_gradient_ = 0;
+  int disable_probe_weak_gradient_gfm_ = 0;
+  int disable_probe_weak_gradient_local_ = 0;
 
-  int reconstruct_previous_probe_field_;
-  int implicit_solver_from_previous_probe_field_;
+  int reconstruct_previous_probe_field_= 0;
+  int implicit_solver_from_previous_probe_field_ = 0;
 
-  const std::map<int, std::map<int, std::map<int, int>>> * subproblem_to_ijk_indices_previous_;
-  const std::vector<DoubleVect> * temperature_probes_previous_;
-  const std::vector<double> * indicator_probes_previous_;
-  const std::vector<Vecteur3> * velocities_probes_previous_;
-  const std::vector<Vecteur3> * normal_vector_compo_probes_previous_;
+  const std::map<int, std::map<int, std::map<int, int>>> * subproblem_to_ijk_indices_previous_ = nullptr;
+  const std::vector<DoubleVect> * temperature_probes_previous_ = nullptr;
+  const std::vector<double> * indicator_probes_previous_ = nullptr;
+  const std::vector<Vecteur3> * velocities_probes_previous_ = nullptr;
+  const std::vector<Vecteur3> * normal_vector_compo_probes_previous_ = nullptr;
 
   int reference_gfm_on_probes_ = 0;
   int compute_normal_derivative_on_reference_probes_ = 0;
   int compute_tangential_variables_ = 1;
   int pure_thermal_diffusion_ = 0;
-  int debug_;
-  int init_;
+  int debug_ = 0;
+  int init_ = 1;
   int advected_frame_of_reference_=0;
   int neglect_frame_of_reference_radial_advection_=0;
+  int use_normal_gradient_for_flux_corr_=0;
   /*
    * FIXME: Should I use only references or just for IJK_Field_double ?
    * Should I use IJK_Field_local_double or IJK_Field_double as pointers ?
@@ -703,8 +870,8 @@ protected :
   Vecteur3 azymuthal_vector_compo_;
 
   bool tangential_from_rising_vel_ = false;
-  Vecteur3 * first_tangential_vector_compo_solver_;
-  Vecteur3 * second_tangential_vector_compo_solver_;
+  Vecteur3 * first_tangential_vector_compo_solver_ = nullptr;
+  Vecteur3 * second_tangential_vector_compo_solver_ = nullptr;
 
   Vecteur3 interfacial_temperature_gradient_compo_;
   Matrice33 interfacial_temperature_hessian_compo_;
@@ -719,15 +886,16 @@ protected :
   // FIXME: Should each probes have their own number of points ?
   bool global_probes_characteristics_ = true;
 
-  const int * points_per_thermal_subproblem_base_;
-  const int * points_per_thermal_subproblem_;
+  const int * points_per_thermal_subproblem_base_ = nullptr;
+  const int * points_per_thermal_subproblem_ = nullptr;
   int increased_point_numbers_ = 32;
   // FIXME: Should alpha_liq be constant, or a reference ?
-  const double * alpha_;
-  const double * prandtl_number_;
-  const double * lambda_;
-  const double * coeff_distance_diagonal_;
-  const double * cell_diagonal_;
+  const double * cp_liquid_ = nullptr;
+  const double * alpha_ = nullptr;
+  const double * prandtl_number_ = nullptr;
+  const double * lambda_ = nullptr;
+  const double * coeff_distance_diagonal_ = nullptr;
+  const double * cell_diagonal_ = nullptr;
   double probe_length_ = 0.;
   double surface_ = 0.;
 
@@ -742,41 +910,45 @@ protected :
    * References to IJK_Field_double to avoid copy of large fields
    * Similar to operators !
    */
-  const IJK_Interfaces * interfaces_;
+  const IJK_Interfaces * interfaces_ = nullptr;
   double indicator_=0.5;
   double temperature_cell_=0.;
   Vecteur3 xyz_velocity_cell_;
-  const IJK_Field_double * eulerian_distance_;
-  const IJK_Field_double * eulerian_curvature_;
-  const IJK_Field_double * eulerian_interfacial_area_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_normal_vect_;
-  const FixedVector<IJK_Field_double, 3> * eulerian_facets_barycentre_;
+  const IJK_Field_double * eulerian_distance_ = nullptr;
+  const IJK_Field_double * eulerian_curvature_ = nullptr;
+  const IJK_Field_double * eulerian_interfacial_area_ = nullptr;
+  const IJK_Field_vector3_double * eulerian_normal_vect_ = nullptr;
+  const IJK_Field_vector3_double * eulerian_facets_barycentre_ = nullptr;
 
-  const IJK_Field_double * temperature_;
-  const IJK_Field_double * temperature_ft_;
-  const IJK_Field_double * temperature_before_extrapolation_;
-  const FixedVector<IJK_Field_double, 3> * velocity_;
-  const FixedVector<IJK_Field_double, 3> * velocity_ft_;
-  const IJK_Field_double * pressure_;
-  const IJK_Field_double * eulerian_grad_T_interface_ns_;
-  IJK_Field_double * probe_collision_debug_field_;
+  const IJK_Field_double * temperature_ = nullptr;
+  const IJK_Field_double * temperature_ft_ = nullptr;
+  const IJK_Field_double * temperature_before_extrapolation_ = nullptr;
+  const IJK_Field_vector3_double * velocity_ = nullptr;
+  const IJK_Field_vector3_double * velocity_ft_ = nullptr;
+  const IJK_Field_double * pressure_ = nullptr;
+  const IJK_Field_double * eulerian_grad_T_interface_ns_ = nullptr;
+  IJK_Field_double * probe_collision_debug_field_ = nullptr;
+  IJK_Field_int * zero_liquid_neighbours_ = nullptr;
 
-  const FixedVector<IJK_Field_double, 3> * grad_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_diag_T_elem_;
-  const FixedVector<IJK_Field_double, 3> * hess_cross_T_elem_;
+  int smooth_grad_T_elem_ = 0;
+  const IJK_Field_vector3_double * grad_T_elem_ = nullptr;
+  const IJK_Field_vector3_double * grad_T_elem_smooth_ = nullptr;
+  const IJK_Field_vector3_double * grad_T_elem_solver_ = nullptr;
+  const IJK_Field_vector3_double * hess_diag_T_elem_ = nullptr;
+  const IJK_Field_vector3_double * hess_cross_T_elem_ = nullptr;
 
-  const double * dr_base_ = 0;
+  const double * dr_base_ = nullptr;
   // FIXME: Should I use DoubleTab instead ?
-  const DoubleVect* radial_coordinates_base_;
+  const DoubleVect* radial_coordinates_base_ = nullptr;
 
-  const Matrice *identity_matrix_explicit_implicit_base_;
-  const Matrice *radial_first_order_operator_raw_base_;
-  const Matrice *radial_second_order_operator_raw_base_;
-  const Matrice *radial_first_order_operator_base_;
-  const Matrice *radial_second_order_operator_base_;
-  const Matrice *radial_first_order_operator_;
-  const Matrice *radial_second_order_operator_;
-  const Matrice *identity_matrix_explicit_implicit_;
+  const Matrice *identity_matrix_explicit_implicit_base_ = nullptr;
+  const Matrice *radial_first_order_operator_raw_base_ = nullptr;
+  const Matrice *radial_second_order_operator_raw_base_ = nullptr;
+  const Matrice *radial_first_order_operator_base_ = nullptr;
+  const Matrice *radial_second_order_operator_base_ = nullptr;
+  const Matrice *radial_first_order_operator_ = nullptr;
+  const Matrice *radial_second_order_operator_ = nullptr;
+  const Matrice *identity_matrix_explicit_implicit_ = nullptr;
   Matrice identity_matrix_explicit_implicit_local_;
   Matrice radial_first_order_operator_local_;
   Matrice radial_second_order_operator_local_;
@@ -785,16 +957,16 @@ protected :
    * Pointers to non-constant matrice
    * FIXME: Should I declare constant pointers ?
    */
-  Matrice *identity_matrix_subproblems_;
-  Matrice *radial_diffusion_matrix_base_;
-  Matrice *radial_convection_matrix_base_;
-  const Matrice *radial_velocity_convection_matrix_base_;
+  Matrice *identity_matrix_subproblems_ = nullptr;
+  Matrice *radial_diffusion_matrix_base_ = nullptr;
+  Matrice *radial_convection_matrix_base_ = nullptr;
+  const Matrice *radial_velocity_convection_matrix_base_ = nullptr;
   //  const Matrice * tangential_velocity_convection_matrix_base_;
   //  const Matrice * azymuthal_velocity_convection_matrix_base_;
 
   double dr_=0.;
   double dr_inv_=0.;
-  const DoubleVect * radial_coordinates_;
+  const DoubleVect * radial_coordinates_ = nullptr;
   DoubleVect radial_coordinates_modified_;
   DoubleVect osculating_radial_coordinates_;
   DoubleVect osculating_radial_coordinates_inv_;
@@ -831,8 +1003,10 @@ protected :
   DoubleVect azymuthal_velocity_advected_frame_;
   DoubleVect azymuthal_velocity_static_frame_;
   DoubleVect azymuthal_velocity_corrected_;
-  DoubleVect * first_tangential_velocity_solver_;
-  DoubleVect * second_tangential_velocity_solver_;
+  DoubleVect * first_tangential_velocity_not_corrected_ = nullptr;
+  DoubleVect * second_tangential_velocity_not_corrected_ = nullptr;
+  DoubleVect * first_tangential_velocity_solver_ = nullptr;
+  DoubleVect * second_tangential_velocity_solver_ = nullptr;
   DoubleVect radial_convection_prefactor_;
   DoubleVect temperature_previous_;
   DoubleVect normal_temperature_gradient_previous_;
@@ -891,8 +1065,8 @@ protected :
   DoubleVect tangential_temperature_gradient_second_;
   DoubleVect tangential_temperature_gradient_first_from_rising_dir_;
   DoubleVect azymuthal_temperature_gradient_;
-  DoubleVect * tangential_temperature_gradient_first_solver_;
-  DoubleVect * tangential_temperature_gradient_second_solver_;
+  DoubleVect * tangential_temperature_gradient_first_solver_ = nullptr;
+  DoubleVect * tangential_temperature_gradient_second_solver_ = nullptr;
   DoubleVect tangential_hessian_contribution_;
   DoubleVect tangential_convection_source_terms_first_;
   DoubleVect tangential_convection_source_terms_second_;
@@ -900,23 +1074,23 @@ protected :
   DoubleVect tangential_diffusion_source_terms_;
   DoubleVect source_terms_;
 
-  int correct_radial_velocity_;
-  int correct_tangential_temperature_gradient_;
-  int correct_tangential_temperature_hessian_;
+  int correct_radial_velocity_ = 1;
+  int correct_tangential_temperature_gradient_ = 0;
+  int correct_tangential_temperature_hessian_ = 0;
 
-  FixedVector<ArrOfInt,6> * first_indices_sparse_matrix_;
+  FixedVector<ArrOfInt,6> * first_indices_sparse_matrix_ = nullptr;
   int operators_reinitialisation_=1;
 
-  IJK_Finite_Difference_One_Dimensional_Matrix_Assembler * finite_difference_assembler_;
-  Matrice * thermal_subproblems_matrix_assembly_;
-  DoubleVect * thermal_subproblems_rhs_assembly_;
-  DoubleVect * thermal_subproblems_temperature_solution_;
-  DoubleVect * thermal_subproblems_temperature_solution_ini_;
+  IJK_Finite_Difference_One_Dimensional_Matrix_Assembler * finite_difference_assembler_ = nullptr;
+  Matrice * thermal_subproblems_matrix_assembly_ = nullptr;
+  DoubleVect * thermal_subproblems_rhs_assembly_ = nullptr;
+  DoubleVect * thermal_subproblems_temperature_solution_ = nullptr;
+  DoubleVect * thermal_subproblems_temperature_solution_ini_ = nullptr;
   DoubleVect rhs_assembly_;
-  double interfacial_boundary_condition_value_;
-  double end_boundary_condition_value_;
-  int start_index_;
-  int end_index_;
+  double interfacial_boundary_condition_value_ = 0.;
+  double end_boundary_condition_value_ = 0.;
+  int start_index_ = 0;
+  int end_index_ = 0;
   DoubleVect temperature_solution_;
   FixedVector<DoubleVect, 3> temperature_gradient_solution_;
   DoubleVect normal_temperature_gradient_solution_;
@@ -925,23 +1099,34 @@ protected :
   DoubleVect temperature_y_gradient_solution_;
   DoubleVect temperature_z_gradient_solution_;
   DoubleVect thermal_flux_;
+  DoubleVect thermal_flux_interp_gfm_;
   DoubleVect nusselt_number_;
   DoubleVect nusselt_number_liquid_temperature_;
   DoubleVect nusselt_number_integrand_;
   DoubleVect nusselt_number_liquid_temperature_integrand_;
+  double thermal_flux_total_ = 0.;
+  double thermal_flux_abs_ = 0.;
+  double thermal_flux_gfm_ = 0.;
+  double thermal_flux_raw_ = 0.;
+  double thermal_flux_lrs_ = 0.;
+  double thermal_flux_max_ = 0.;
+  double thermal_flux_max_raw_ = 0.;
+  double thermal_flux_max_gfm_ = 0.;
+
+  FixedVector<double,3> thermal_flux_dir_;
 
   DoubleVect radial_scale_factor_interp_;
   DoubleVect radial_scale_factor_solution_;
   DoubleVect radial_convection_interp_;
   DoubleVect radial_convection_solution_;
 
-  const double * delta_temperature_;
-  const double * mean_liquid_temperature_;
-  const ArrOfDouble * bubbles_volume_;
-  const ArrOfDouble * bubbles_surface_;
-  const ArrOfDouble * radius_from_surfaces_per_bubble_;
-  const ArrOfDouble * radius_from_volumes_per_bubble_;
-  const DoubleTab * bubbles_rising_vectors_per_bubble_;
+  const double * delta_temperature_ = nullptr;
+  const double * mean_liquid_temperature_ = nullptr;
+  const ArrOfDouble * bubbles_volume_ = nullptr;
+  const ArrOfDouble * bubbles_surface_ = nullptr;
+  const ArrOfDouble * radius_from_surfaces_per_bubble_ = nullptr;
+  const ArrOfDouble * radius_from_volumes_per_bubble_ = nullptr;
+  const DoubleTab * bubbles_rising_vectors_per_bubble_ = nullptr;
 
   DoubleVect normal_velocity_normal_gradient_;
   DoubleVect first_tangential_velocity_normal_gradient_;
@@ -962,7 +1147,7 @@ protected :
   int order_approx_temperature_ext_=1;
   int avoid_post_processing_all_terms_=0;
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   bool is_updated_ = false;
   bool is_post_processed_local_ = false;
 
@@ -971,7 +1156,7 @@ protected :
    */
   DoubleVect temperature_ini_temporal_schemes_;
   bool is_first_time_step_ = false;
-  int * first_time_step_temporal_;
+  int * first_time_step_temporal_ = nullptr;
   int first_time_step_explicit_ = 1;
   double current_time_ = 0.;
   double global_dt_cfl_ = 0.;
@@ -983,7 +1168,7 @@ protected :
   double local_fourier_ = 1.;
   double local_cfl_ = 1.;
   double min_delta_xyz_=0.;
-  double max_u_;
+  double max_u_ = 0.9 * INVALID_VELOCITY_CFL;
   double local_time_step_round_ = 0.;
   double local_time_step_overall_ = 0.;
   double local_fourier_time_step_probe_length_ = 0.;
@@ -1008,18 +1193,25 @@ protected :
   int temperature_probe_condition_ = 0;
   int max_u_radial_=0;
   double cell_centre_distance_ = 0;
+  double cell_centre_radius_difference_ = 0.;
+  double cell_centre_osculating_radius_difference_ = 0.;
   double cell_centre_tangential_distance_ = 0.;
   Vecteur3 tangential_distance_vector_;
   FixedVector<bool,6> pure_liquid_neighbours_;
+  FixedVector<bool,6> pure_vapour_neighbours_;
   FixedVector<double,6> face_centres_distance_;
+  FixedVector<double,6> face_centres_radius_difference_;
   FixedVector<double,6> face_centres_tangential_distance_;
   FixedVector<Vecteur3,6> face_tangential_distance_vector_;
   FixedVector<FixedVector<double,4>,6> vertices_centres_distance_;
   FixedVector<FixedVector<double,4>,6> vertices_centres_tangential_distance_;
   FixedVector<FixedVector<Vecteur3,4>,6> vertices_tangential_distance_vector_;
   double modified_probe_length_from_vertices_ = 0.;
-  bool has_computed_cell_centre_distance_;
-  bool has_computed_cell_faces_distance_;
+
+  bool has_computed_cell_centre_distance_ = false;
+  bool has_computed_cell_faces_distance_ = false;
+  bool has_computed_liquid_neighbours_ = false;
+
   int correct_fluxes_ = 0;
   double cell_temperature_ = 0.;
 
@@ -1064,7 +1256,64 @@ protected :
   int interp_eulerian_= 0;
   int n_iter_distance_ = 0;
 
-  const int * latastep_reprise_;
+  const int * latastep_reprise_ = nullptr;
+
+  int use_corrected_velocity_convection_ = 0;
+  int use_velocity_cartesian_grid_ = 0;
+  int compute_radial_displacement_ = 0;
+  double radial_displacement_over_time_step_ = 0.;
+  double cell_centre_distance_corrected_ = 0.;
+  FixedVector<double,6> face_centres_distance_corrected_;
+
+  FixedVector<double,6> convective_flux_op_value_;
+  FixedVector<double,6> convective_flux_op_value_vap_;
+  FixedVector<double,6> convective_flux_op_value_mixed_;
+  FixedVector<double,6> convective_flux_op_value_normal_contrib_;
+  FixedVector<double,6> convective_flux_op_leaving_value_;
+  FixedVector<double,6> convective_flux_op_entering_value_;
+
+  double sum_convective_flux_op_value_ = 0.;
+  double sum_convective_flux_op_value_vap_ = 0.;
+  double sum_convective_flux_op_value_mixed_ = 0.;
+  double sum_convective_flux_op_value_normal_contrib_ = 0.;
+  double sum_convective_flux_op_leaving_value_ = 0.;
+  double sum_convective_flux_op_entering_value_ = 0.;
+
+  FixedVector<double,6> diffusive_flux_op_value_;
+  FixedVector<double,6> diffusive_flux_op_value_vap_;
+  FixedVector<double,6> diffusive_flux_op_value_mixed_;
+  FixedVector<double,6> diffusive_flux_op_value_normal_contrib_;
+  FixedVector<double,6> diffusive_flux_op_leaving_value_;
+  FixedVector<double,6> diffusive_flux_op_entering_value_;
+
+  double sum_diffusive_flux_op_value_ = 0.;
+  double sum_diffusive_flux_op_value_vap_ = 0.;
+  double sum_diffusive_flux_op_value_mixed_ = 0.;
+  double sum_diffusive_flux_op_value_normal_contrib_ = 0.;
+  double sum_diffusive_flux_op_leaving_value_ = 0.;
+  double sum_diffusive_flux_op_entering_value_ = 0.;
+
+  FixedVector<double,6> convective_flux_op_lrs_;
+  FixedVector<double,6> diffusive_flux_op_lrs_;
+  double sum_convective_flux_op_lrs_ = 0.;
+  double sum_convective_flux_op_leaving_lrs_ = 0.;
+  double sum_convective_flux_op_entering_lrs_ = 0.;
+  double sum_diffusive_flux_op_lrs_ = 0.;
+  double sum_diffusive_flux_op_leaving_lrs_ = 0.;
+  double sum_diffusive_flux_op_entering_lrs_ = 0.;
+  double sum_convective_diffusive_flux_op_lrs_ = 0.;
+  double radial_flux_error_lrs_ = 0.;
+  bool has_computed_lrs_flux_frame_of_ref_terms_=false;
+
+  FixedVector<double,6> corrective_flux_current_;
+  FixedVector<double,6> corrective_flux_to_neighbours_;
+  FixedVector<double,6> corrective_flux_from_neighbours_;
+
+  FixedVector<double, 6> temperature_interp_conv_flux_;
+  int disable_relative_velocity_energy_balance_ = 0;
+  int fluxes_correction_conservations_ = 0;
+  int conserve_max_interfacial_fluxes_ = 0;
+  int fluxes_corrections_weighting_ = 0;
 };
 
 #endif /* IJK_One_Dimensional_Subproblem_included */

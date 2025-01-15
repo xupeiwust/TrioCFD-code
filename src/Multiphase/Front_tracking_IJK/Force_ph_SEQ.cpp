@@ -529,7 +529,7 @@
 //          à une dimension, on reconstruit l'indice à aller chercher.
 //        - coefficients de la force physique recopiés dans un tableau
 //          à trois dimensions (à changer, facile à changer), mais aussi stockés dans un
-//          FixedVector<IJK_Field_double, 3>
+//          IJK_Field_vector3_double
 //   */
 //   //////////////////////////////////////////////////////////////////////////////
 //
@@ -748,7 +748,7 @@
 //   }
 // }
 //
-// FixedVector<IJK_Field_double, 3> Force_ph::get_force_attribute()
+// IJK_Field_vector3_double Force_ph::get_force_attribute()
 // {
 //   return force_;
 // }

@@ -20,11 +20,7 @@
 #include <Force_sp.h>
 
 
-Implemente_instanciable_sans_constructeur(Switch_FT_double, "Switch_FT_double", Switch_double);
-
-Switch_FT_double::Switch_FT_double() :
-    old_ijk_splitting_ft_extension_(0)
-{}
+Implemente_instanciable(Switch_FT_double, "Switch_FT_double", Switch_double);
 
 Sortie & Switch_FT_double::printOn(Sortie&s) const
 {
@@ -51,7 +47,7 @@ void Switch_FT_double::set_param(Param& param)
   /*
    * GAB : gabriel.ramirez@cea.fr
    * Parametres pour le forcage spectral
-   * Voir reprendre probleme dans IJK_FT.cpp
+   * Voir reprendre probleme dans IJK_FT_base.cpp
    */
   param.ajouter("forcage", &old_forcage_);
   // Parametres pour la correction de qdm 
@@ -73,7 +69,7 @@ void Switch_FT_double::prepare_run()
 
 void Switch_FT_double::initialise()
 {
-  Cout << que_suis_je() <<"::initialise() Pb of type IJK_FT detected." << finl;
+  Cout << que_suis_je() <<"::initialise() Pb of type IJK_FT_base detected." << finl;
 
   // Probleme of type FT:
   // old_mesh_ and new_mesh_ are acutally splittings...
@@ -100,11 +96,11 @@ void Switch_FT_double::initialise()
   const Domaine_dis_base& domaine_dis = refprobleme_ft_disc.domaine_dis();
 
   interfaces_.initialize(splitting_ft /* splitting_FT */,
-  											 new_mesh_ /* splitting_NS */,
-												 domaine_dis,
-												 0,
-												 false,
-												 true);
+                         new_mesh_ /* splitting_NS */,
+                         domaine_dis,
+                         0,
+                         false,
+                         true);
   //interfaces_.associer_switch(*this);
   interfaces_.set_reprise(1);
   interfaces_.lire_maillage_ft_dans_lata();
@@ -258,7 +254,7 @@ void Switch_FT_double::set_param_reprise(Param& param)
   param.ajouter("thermique", & thermique_);
   param.ajouter("thermals", & thermals_);
   // GAB : gabriel.rmairez@cea.fr
-  /* Voir reprendre probleme dans IJK_FT.cpp */
+  /* Voir reprendre probleme dans IJK_FT_base.cpp */
   param.ajouter("forcage", &new_forcage_);
   param.ajouter("corrections_qdm", &new_qdm_corrections_);
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_);

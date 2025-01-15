@@ -160,9 +160,9 @@ protected:
   OBS_PTR(IJK_Splitting) ref_splitting_;
 
 // Taille du domaine IJK sur chaque proc:
-  int nbmailles_euler_i_;
-  int nbmailles_euler_j_;
-  int nbmailles_euler_k_;
+  int nbmailles_euler_i_ = 0;
+  int nbmailles_euler_j_ = 0;
+  int nbmailles_euler_k_ = 0;
 // Tableaux des processeurs voisins :
   ArrOfInt voisinage_processeur_;
   ArrOfInt liste_processeurs_voisins_faces_;

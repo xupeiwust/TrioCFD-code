@@ -32,13 +32,7 @@
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-Implemente_instanciable_sans_constructeur( consigne_initiale, "consigne_initiale", Objet_U ) ;
-
-consigne_initiale::consigne_initiale()
-{
-  time_iteration_=0;
-  qdm_cible_=0;
-}
+Implemente_instanciable( consigne_initiale, "consigne_initiale", Objet_U ) ;
 
 Sortie& consigne_initiale::printOn( Sortie& os ) const
 {

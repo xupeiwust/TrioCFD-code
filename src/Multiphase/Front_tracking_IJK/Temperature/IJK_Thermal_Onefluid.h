@@ -23,6 +23,7 @@
 #define IJK_Thermal_Onefluid_included
 
 #include <IJK_Thermal_base.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
 #include <IJK_Splitting.h>
@@ -77,7 +78,7 @@ protected :
   //Rustine
   double E0_;//volumique
   IJK_Field_double T_rust_;
-  void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   int deprecated_rho_cp_;
   int rho_cp_moy_harmonic_;

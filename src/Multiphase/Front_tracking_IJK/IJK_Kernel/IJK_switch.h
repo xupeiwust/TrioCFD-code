@@ -17,7 +17,7 @@
 #define IJK_SWITCH_H
 
 #include <IJK_Splitting.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <Interprete.h>
 #include <Linear_algebra_tools.h>
 #include <Param.h>
@@ -97,13 +97,13 @@ protected:
 
   // direct_write_ = 1 => ecrit les fichiers a la volee sans alouer la memoire
   // direct_write_ = 0 => ancien algo avec allocation de new_velocity_
-  int direct_write_;
+  int direct_write_ = 1;
 
-  int perio_k_;
+  int perio_k_ = 1;
 
   // vitesses
-  FixedVector<IJK_Field_double, 3> new_velocity_;
-  FixedVector<IJK_Field_double, 3> old_velocity_;
+  IJK_Field_vector3_double new_velocity_;
+  IJK_Field_vector3_double old_velocity_;
 
   // masse volumiques
   IJK_Field_double new_rho_;
@@ -118,13 +118,17 @@ protected:
   ArrOfDouble_with_ghost new_z_;
 
   // Pour alleger le code.
-  int old_ni_, old_nj_, old_nk_;
+  int old_ni_ = 0;
+  int old_nj_ = 0;
+  int old_nk_ = 0;
 
-  int new_ni_, new_nj_, new_nk_;
+  int new_ni_ = 0;
+  int new_nj_ = 0;
+  int new_nk_ = 0;
 
   // pour compatibiliter des fonctions.
-  double current_time_;
-  double terme_source_acceleration_;
+  double current_time_ = 0.;
+  double terme_source_acceleration_ = 0.;
 
   // nom des fichiers.
   Nom nom_sauvegarde_;
@@ -152,7 +156,7 @@ protected:
   Nom fichier_old_vitesse_;
   Nom fichier_new_vitesse_;
 
-  int timestep_reprise_vitesse_;
+  int timestep_reprise_vitesse_ = 0;
 };
 
 #endif

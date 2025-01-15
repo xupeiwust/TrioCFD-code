@@ -33,8 +33,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <DebogIJK.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Energie.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <Param.h>
 #include <stat_counters.h>
@@ -264,7 +265,7 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
   return nalloc;
 }
 
-void IJK_Energie::associer(const IJK_FT_double& ijk_ft)
+void IJK_Energie::associer(const IJK_FT_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.get_post().get_liste_post_instantanes();
@@ -321,7 +322,7 @@ double IJK_Energie::compute_timestep(const double timestep,
 }
 
 void IJK_Energie::euler_time_step(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   calculer_dT(velocity);
   // Update the temperature :
@@ -341,7 +342,7 @@ void IJK_Energie::euler_time_step(
 
 // Mettre rk_step = -1 si schema temps different de rk3.
 void IJK_Energie::calculer_dT(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   const double current_time = ref_ijk_ft_->get_current_time();
   const double ene_ini = compute_global_energy(d_temperature_);
@@ -382,7 +383,7 @@ void IJK_Energie::calculer_dT(
 // Convect energy field by velocity.
 // The output is stored in d_temperature_ (it is a volume integral over the CV)
 void IJK_Energie::compute_energy_convection(
-  const FixedVector<IJK_Field_double, 3>& velocity)
+  const IJK_Field_vector3_double& velocity)
 {
   static Stat_Counter_Id cnt_conv_temp =
     statistiques().new_counter(1, "FT convection rho");
@@ -743,7 +744,7 @@ void IJK_Energie::calculer_ecart_T_ana()
 
 void IJK_Energie::calculer_gradient_temperature(
   const IJK_Field_double& temperature,
-  FixedVector<IJK_Field_double, 3>& grad_T)
+  IJK_Field_vector3_double& grad_T)
 {
   // Remise a zero :
   for (int dir = 0; dir < 3; dir++)
@@ -819,7 +820,7 @@ void IJK_Energie::compute_interfacial_temperature2(
 
 double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
 {
-  global_energy_ = 0.;
+  double global_energy = 0.;
   const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
   const int nx = temperature.ni();
   const int ny = temperature.nj();
@@ -833,7 +834,7 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
         {
           double chi_l = indic(i, j, k);
           // double cp = cp_(i,j,k) ;
-          global_energy_ += rho_cp_(chi_l) * temperature(i, j, k);
+          global_energy += rho_cp_(chi_l) * temperature(i, j, k);
         }
   const int ntot =
     temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
@@ -842,8 +843,8 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
                                                     DIRECTION_J) *
     temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
                                                     DIRECTION_K);
-  global_energy_ = mp_sum(global_energy_) / (double)(ntot);
-  return global_energy_;
+  global_energy = mp_sum(global_energy) / (double)(ntot);
+  return global_energy;
 }
 
 /*

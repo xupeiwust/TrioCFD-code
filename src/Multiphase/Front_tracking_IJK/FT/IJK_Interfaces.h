@@ -23,7 +23,7 @@
 #define IJK_Interfaces_included
 
 #include <Connectivite_frontieres.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h> // est-ce que j'en ai vraiment besoin ?
 #include <Linear_algebra_tools_impl.h>
 #include <Maillage_FT_IJK.h>
@@ -38,9 +38,11 @@
 #include <TRUST_Ref.h>
 #include <Intersection_Interface_ijk.h>
 #include <IJK_Composantes_Connex.h>
+#include <Champ_diphasique.h>
+#include <Cut_cell_surface_efficace.h>
+#include <Domaine_dis.h>
 
-
-class IJK_FT_double;
+class IJK_FT_base;
 class Switch_FT_double;
 
 #define VERIF_INDIC 0
@@ -56,31 +58,63 @@ class Switch_FT_double;
 class IJK_Interfaces : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur(IJK_Interfaces);
-
+  Declare_instanciable(IJK_Interfaces);
+  friend class IJK_Composantes_Connex;
 public :
-  IJK_Interfaces();
   int initialize(const IJK_Splitting& splitting_FT,
                  const IJK_Splitting& splitting_NS,
                  const Domaine_dis_base& domaine_dis,
                  const int thermal_probes_ghost_cells=0,
                  const bool compute_vint=true,
                  const bool is_switch=false);
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
                                      const char *lata_name,
                                      const int lata_step) const;
-  void sauvegarder_interfaces(const char *lata_name); // const;
+  void sauvegarder_interfaces(const char *lata_name, const Nom& interf_name="??"); // const;
   void calculer_color(ArrOfInt& color) const;
   void postraiter_colors(Sortie& os, const double current_time) const;
 
-  void transporter_maillage(const double dt_tot,
-                            ArrOfDouble& dvol,
-                            const int rk_step,
-                            const double temps,
-                            const int first_step_interface_smoothing = 0);
+  void calculer_var_volume_remaillage(double timestep,
+                                      const DoubleTab& vitesses_translation_bulles,
+                                      const DoubleTab& mean_bubble_rotation_vector,
+                                      const DoubleTab& centre_gravite,
+                                      ArrOfDouble& var_volume);
+  void calculer_vecteurs_de_deplacement_rigide(DoubleTab& vitesses_translation_bulles,
+                                               DoubleTab& mean_bubble_rotation_vector,
+                                               DoubleTab& centre_gravite,
+                                               const int first_step_interface_smoothing = 0);
+  void transporter_maillage_deformation(const int correction_semi_locale_volume_bulle,
+                                        const DoubleTab& vitesses_translation_bulles,
+                                        const DoubleTab& mean_bubble_rotation_vector,
+                                        const DoubleTab& centre_gravite,
+                                        const double dt_tot,
+                                        ArrOfDouble& dvol,
+                                        const int rk_step,
+                                        const int first_step_interface_smoothing = 0);
+  void transporter_maillage_remaillage(int correction_semi_locale_volume_bulle,
+                                       const DoubleTab& vitesses_translation_bulles,
+                                       const DoubleTab& mean_bubble_rotation_vector,
+                                       const DoubleTab& centre_gravite,
+                                       double dt_tot,
+                                       ArrOfDouble& dvol,
+                                       const int rk_step,
+                                       const double temps);
+  void transporter_maillage_rigide(const double dt_tot,
+                                   const DoubleTab& vitesses_translation_bulles,
+                                   const DoubleTab& mean_bubble_rotation_vector,
+                                   const DoubleTab& centre_gravite,
+                                   const int rk_step,
+                                   const int first_step_interface_smoothing = 0);
+  void calculer_vitesse_de_deformation(int compo,
+                                       const DoubleTab& bounding_box_bulles,
+                                       const Cut_field_vector3_double& cut_field_velocity,
+                                       const DoubleTab& vitesses_translation_bulles,
+                                       const DoubleTab& mean_bubble_rotation_vector,
+                                       const DoubleTab& positions_bulles);
+
   void calculer_bounding_box_bulles(DoubleTab& bounding_box, int option_shear = 0) const;
   void preparer_duplicata_bulles(const DoubleTab& bounding_box_of_bubbles,
                                  const DoubleTab& bounding_box_offsetp,
@@ -102,9 +136,9 @@ public :
 
   void compute_vinterp();
   // methode pour bulles fixes
-  void compute_external_forces_(FixedVector<IJK_Field_double, 3>& rappel_ft,
-                                FixedVector<IJK_Field_double, 3>& rappel,
-                                const FixedVector<IJK_Field_double, 3>& vitesse,
+  void compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
+                                IJK_Field_vector3_double& rappel,
+                                const IJK_Field_vector3_double& vitesse,
                                 const IJK_Field_double& indic_ns,
                                 const IJK_Field_double& indic_ft,
                                 const double coef_immo,
@@ -115,13 +149,13 @@ public :
                                 double compteur,
                                 double coef_mean_force,
                                 double coef_force_time_n);
-  void compute_external_forces_parser(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_parser(IJK_Field_vector3_double& rappel,
                                       const IJK_Field_double& indic_ns,
                                       const DoubleTab& individual_forces,
                                       const ArrOfDouble& volume_reel,
                                       const DoubleTab& position,
                                       const double coef_rayon_force_rappel);
-  void compute_external_forces_color_function(FixedVector<IJK_Field_double, 3>& rappel,
+  void compute_external_forces_color_function(IJK_Field_vector3_double& rappel,
                                               const IJK_Field_double& indic_ns,
                                               const IJK_Field_double& indic_ft,
                                               DoubleTab& individual_forces,
@@ -134,10 +168,25 @@ public :
                                         const DoubleTab& position) const;
 
   int lire_motcle_non_standard(const Motcle& un_mot, Entree& is) override;
+
+  void activate_cut_cell();
+  void imprime_bilan_indicatrice();
+
+  void calcul_vitesse_remaillage(double timestep, Cut_field_vector3_double& remeshing_velocity);
+  void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity);
+  void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector3_double& velocity);
+  void calcul_surface_efficace_face_initial(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face);
+  void calcul_surface_efficace_interface_initial(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface);
+
   // fin de methode pour bulles fixes
   const Domaine_dis_base& get_domaine_dis() const
   {
     return refdomaine_dis_.valeur();
+  };
+
+  int get_dt_impression_bilan_indicatrice() const
+  {
+    return dt_impression_bilan_indicatrice_;
   };
 
   int get_nb_bulles_reelles() const
@@ -218,6 +267,11 @@ public :
   void set_fichier_reprise(const char *lataname)
   {
     fichier_reprise_interface_ = lataname;
+  };
+
+  void set_seuil_indicatrice_petite(double seuil_indicatrice_petite)
+  {
+    seuil_indicatrice_petite_ = seuil_indicatrice_petite;
   };
 
   Nom get_fichier_reprise()
@@ -304,7 +358,7 @@ public :
 
   void calculer_normales_et_aires_interfaciales(IJK_Field_double& ai,
                                                 IJK_Field_double& kappa_ai,
-                                                FixedVector<IJK_Field_double, 3>& normale_cell,
+                                                IJK_Field_vector3_double& normale_cell,
                                                 const int igroup) const;
 
   int compute_list_compo_connex_in_element(const Maillage_FT_IJK& mesh,
@@ -322,13 +376,25 @@ public :
 
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
   void compute_surface_average_per_bubble(const ArrOfDouble& surfaces, const ArrOfDouble& in, ArrOfDouble& out) const;
-  void calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite) const;
+  void read_bubbles_barycentres_old_new(const Nom& interf_name);
+  bool read_bubbles_barycentres_vel(const Nom& interf_name,
+                                    FixedVector<ArrOfDouble,3>& bubbles_rising_dir,
+                                    FixedVector<ArrOfDouble,3>& bubbles_rising_vel,
+                                    ArrOfDouble& bubbles_rising_vel_mag);
+  bool read_bubbles_barycentres(const Nom& interf_name, const Nom& suffix, FixedVector<ArrOfDouble,3>& bubbles_bary);
+  void store_bubbles_barycentres(const Nom& interf_name);
+  void compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes,
+                                              DoubleTab& barycentres,
+                                              const int& store_values);
+  void calculer_volume_bulles(ArrOfDouble& volumes,
+                              DoubleTab& centre_gravite) const;
+
   void calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const;
   void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
                                              IJK_Field_double& kappa_ai,
-                                             FixedVector<IJK_Field_double, 3>& normale_cell) const;
+                                             IJK_Field_vector3_double& normale_cell) const;
 
   void compute_drapeaux_vapeur_v2(const IntVect& vecteur_composantes,
                                   ArrOfInt& drapeau_liquide) const;
@@ -342,9 +408,9 @@ public :
   void convert_to_IntVect(const ArrOfInt& in, IntVect& out) const;
 
   void ajouter_terme_source_interfaces(
-    FixedVector<IJK_Field_double, 3>& vpoint,
-    FixedVector<IJK_Field_double, 3>& vrepul,
-    FixedVector<IJK_Field_double, 3>& vabsrepul
+    IJK_Field_vector3_double& vpoint,
+    IJK_Field_vector3_double& vrepul,
+    IJK_Field_vector3_double& vabsrepul
   ) const;
 
   void remailler_interface(const double temps,
@@ -363,25 +429,263 @@ public :
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
 
+  const IJK_Field_double& get_surface_interface_old_ft() const
+  {
+    return surface_interface_ft_[old()];
+  }
+  const IJK_Field_double& get_surface_interface_old() const
+  {
+    return surface_interface_ns_[old()];
+  }
+
+  const IJK_Field_double& get_surface_interface_next_ft() const
+  {
+    return surface_interface_ft_[next()];
+  }
+  const IJK_Field_double& get_surface_interface_next() const
+  {
+    return surface_interface_ns_[next()];
+  }
+
+  const IJK_Field_vector3_double& get_barycentre_phase1_old_ft() const
+  {
+    return barycentre_phase1_ft_[old()];
+  }
+  const IJK_Field_vector3_double& get_barycentre_phase1_old() const
+  {
+    return barycentre_phase1_ns_[old()];
+  }
+
+  const IJK_Field_vector3_double& get_barycentre_phase1_next_ft() const
+  {
+    return barycentre_phase1_ft_[next()];
+  }
+  const IJK_Field_vector3_double& get_barycentre_phase1_next() const
+  {
+    return barycentre_phase1_ns_[next()];
+  }
+  double get_barycentre(bool next_time, int dir, int phase, int i, int j, int k, double old_indicatrice, double next_indicatrice) const
+  {
+    int current_time = next_time ? next() : old();
+    int other_time = next_time ? old() : next();
+
+    double current_indicatrice = next_time ? next_indicatrice : old_indicatrice;
+    double other_time_indicatrice = next_time ? old_indicatrice : next_indicatrice;
+
+    if ((old_indicatrice == 0.) && (next_indicatrice == 0.))
+      {
+        return .5;
+      }
+    else if ((old_indicatrice == 1.) && (next_indicatrice == 1.))
+      {
+        return .5;
+      }
+    else if (current_indicatrice == 0.)
+      {
+        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
+        if (phase == 0)
+          {
+            return .5;
+          }
+        else
+          {
+            double other_time_bary_compo = barycentre_phase1_ns_[other_time][dir](i,j,k);
+            if (other_time_bary_compo > .5)
+              {
+                return 1;
+              }
+            else
+              {
+                return 0;
+              }
+          }
+      }
+    else if (current_indicatrice == 1.)
+      {
+        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
+        if (phase == 1)
+          {
+            return .5;
+          }
+        else
+          {
+            double other_time_bary_compo = barycentre_phase1_ns_[other_time][dir](i,j,k);
+            other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice);
+            if (other_time_bary_compo > .5)
+              {
+                return 1;
+              }
+            else
+              {
+                return 0;
+              }
+          }
+      }
+    else
+      {
+        double bary = barycentre_phase1_ns_[current_time][dir](i,j,k);
+
+        if (phase == 0)
+          {
+            bary = opposing_barycentre(bary, current_indicatrice);
+          }
+        return bary;
+      }
+  }
+  double get_barycentre_face(bool next_time, int face_dir, int dir, int phase, int i, int j, int k, double old_indicatrice_surfacique, double next_indicatrice_surfacique) const
+  {
+    int current_time = next_time ? next() : old();
+    int other_time = next_time ? old() : next();
+
+    double current_indicatrice_surfacique = next_time ? next_indicatrice_surfacique : old_indicatrice_surfacique;
+    double other_time_indicatrice_surfacique = next_time ? old_indicatrice_surfacique : next_indicatrice_surfacique;
+
+    if (face_dir == dir)
+      {
+        return 0.;
+      }
+    else
+      {
+        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
+                        -1));
+        assert(dir2D >= 0);
+        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+        {
+            return .5;
+          }
+        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+          {
+            return .5;
+          }
+        else if (current_indicatrice_surfacique == 0.)
+          {
+            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 0)
+              {
+                return .5;
+              }
+            else
+              {
+                double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
+                if (other_time_bary_compo > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else if (current_indicatrice_surfacique == 1.)
+          {
+            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
+            if (phase == 1)
+              {
+                return .5;
+              }
+            else
+              {
+                double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
+                other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice_surfacique);
+                if (other_time_bary_compo > .5)
+                  {
+                    return 1;
+                  }
+                else
+                  {
+                    return 0;
+                  }
+              }
+          }
+        else
+          {
+            double bary = barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k);
+
+            if (phase == 0)
+              {
+                bary = opposing_barycentre(bary, current_indicatrice_surfacique);
+              }
+            return bary;
+          }
+      }
+  }
+
   // Getter des surfaces par face
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face_ft() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const
   {
     return surface_vapeur_par_face_[old()];
   }
-  const FixedVector<IJK_Field_double, 3>& get_surface_vapeur_par_face() const
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face() const
   {
     return surface_vapeur_par_face_ns_[old()];
   }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_ft() const
+  {
+    return indicatrice_surfacique_face_ft_[old()];
+  }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_old() const
+  {
+    return indicatrice_surfacique_face_ns_[old()];
+  }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_next() const
+  {
+    return indicatrice_surfacique_face_ns_[next()];
+  }
+  const DoubleTabFT_cut_cell_vector3& get_indicatrice_surfacique_efficace_face() const
+  {
+    return indicatrice_surfacique_efficace_face_;
+  }
+  const DoubleTabFT_cut_cell_scalar& get_surface_efficace_interface() const
+  {
+    return surface_efficace_interface_;
+  }
+  const DoubleTabFT_cut_cell_vector3& get_vitesse_deplacement_interface() const
+  {
+    return vitesse_deplacement_interface_;
+  }
+  const DoubleTabFT_cut_cell_vector3& get_normale_deplacement_interface() const
+  {
+    return normale_deplacement_interface_;
+  }
+  const DoubleTabFT_cut_cell_vector3& get_coord_deplacement_interface() const
+  {
+    return coord_deplacement_interface_;
+  }
   // Getter des surfaces par face
-  // void get_surface_vapeur_par_face_ns(FixedVector<IJK_Field_double, 3> &surfs) const ;
+  // void get_surface_vapeur_par_face_ns(IJK_Field_vector3_double &surfs) const ;
   // Getter des barycentres par face
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face_ft() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face_ft() const
   {
     return barycentre_vapeur_par_face_[old()];
   }
-  const FixedVector<FixedVector<IJK_Field_double, 3>, 3>& get_barycentre_vapeur_par_face() const
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face() const
   {
     return barycentre_vapeur_par_face_ns_[old()];
+  }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face_ft() const
+  {
+    return barycentre_phase1_face_ft_[old()];
+  }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face() const
+  {
+    return barycentre_phase1_face_ns_[old()];
+  }
+  static inline double opposing_barycentre(double initial_barycentre, double initial_area)
+  {
+    double weighted_barycentre = initial_barycentre*initial_area;
+    double opposing_area = 1 - initial_area;
+    double opposing_barycentre = ((opposing_area == 0.) || (opposing_area == 1.)) ? 1./2. : (1./2. - weighted_barycentre)/opposing_area;
+    //if (opposing_barycentre == .5 && (opposing_area > 0. && opposing_area < 1.))
+    //  {
+    //    assert(false);
+    //  }
+    return opposing_barycentre;
   }
 
   int get_nb_face_mouillees() const { return n_faces_mouilles_[old()]; }
@@ -415,7 +719,7 @@ public :
   static void mean_over_compo(
     const FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& field_for_compo,
     const IJK_Field_int& nb_compo_traversante,
-    FixedVector<IJK_Field_double, 3>& mean_par_compo_field
+    IJK_Field_vector3_double& mean_par_compo_field
   )
   {
     const int ni = nb_compo_traversante.ni();
@@ -481,11 +785,66 @@ public :
   const IJK_Field_double& I_ft() const { return indicatrice_ft_[old()]; }
   const double& I_ft(const int i, const int j, const int k) const { return indicatrice_ft_[old()](i, j, k); }
   const IJK_Field_double& In_ft() const { return indicatrice_ft_[next()]; }
+  const double& In_ft(const int i, const int j, const int k) const { return indicatrice_ft_[next()](i, j, k); }
+
+  const IJK_Field_vector3_double& BoI() const { return bary_of_interf_ns_[old()]; }
+  const IJK_Field_vector3_double& BoIn() const { return bary_of_interf_ns_[next()]; }
 
   const IJK_Field_double& I() const { return indicatrice_ns_[old()]; }
   const IJK_Field_double& In() const { return indicatrice_ns_[next()]; }
-  const double& I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
-  const double& In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
+  inline double I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
+  inline double In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
+
+  // Indicatrice non-zero : Cette indicatrice est utilisee pour calculer l'energie vol*indicatrice*T d'une cellule coupee en IJK_FT_cut_cell.
+  // Pour ne pas perdre d'information, le volume de l'autre temps est utilise si le volume est zero pour le temps consideree.
+  inline double I_nonzero(const int phase, const int i, const int j, const int k) const
+  {
+    double current_indic = (phase == 0) ? 1 - I(i, j, k) : I(i, j, k);
+    if (current_indic == 0)
+      {
+        double other_indic = (phase == 0) ? 1 - In(i, j, k) : In(i, j, k);
+        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+      }
+    else
+      {
+        return current_indic;
+      }
+  }
+  inline double In_nonzero(const int phase, const int i, const int j, const int k) const
+  {
+    double current_indic = (phase == 0) ? 1 - In(i, j, k) : In(i, j, k);
+    if (current_indic == 0)
+      {
+        double other_indic = (phase == 0) ? 1 - I(i, j, k) : I(i, j, k);
+        return other_indic; // Guaranteed non-zero if the cell is not pure; could be zero too if the cell is pure
+      }
+    else
+      {
+        return current_indic;
+      }
+  }
+
+  static inline int est_pure(double indicatrice) { return ((indicatrice == 0.) || (indicatrice == 1.)); }
+  static inline int devient_pure(double old_indicatrice, double next_indicatrice) { return ((!est_pure(old_indicatrice)) && (est_pure(next_indicatrice))); }
+  static inline int devient_diphasique(double old_indicatrice, double next_indicatrice) { return ((est_pure(old_indicatrice)) && (!est_pure(next_indicatrice))); }
+  static inline int phase_mourrante(int phase, double old_indicatrice, double next_indicatrice) { return devient_pure(old_indicatrice, next_indicatrice) && ((int)(1 - next_indicatrice) == phase); }
+  static inline int phase_naissante(int phase, double old_indicatrice, double next_indicatrice) { return devient_diphasique(old_indicatrice, next_indicatrice) && ((int)(1 - old_indicatrice) == phase); }
+  inline double devient_pure(const int i, const int j, const int k) const { return devient_pure(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double devient_diphasique(const int i, const int j, const int k) const { return devient_diphasique(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double phase_mourrante(const int phase, const int i, const int j, const int k) const { return phase_mourrante(phase, indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+  inline double phase_naissante(const int phase, const int i, const int j, const int k) const { return phase_naissante(phase, indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
+
+  inline int est_reguliere(double old_indicatrice, double next_indicatrice) const { return ((old_indicatrice >= seuil_indicatrice_petite_) && (old_indicatrice <= 1-seuil_indicatrice_petite_) && (next_indicatrice >= seuil_indicatrice_petite_) && (next_indicatrice <= 1-seuil_indicatrice_petite_)); }
+
+  inline int est_desequilibre(double indicatrice) const { return (((indicatrice < seuil_indicatrice_petite_) || (indicatrice > 1-seuil_indicatrice_petite_)) && (!est_pure(indicatrice))); }
+  inline int a_desequilibre_final(double old_indicatrice, double next_indicatrice) const { return est_desequilibre(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
+  inline int a_desequilibre_initial_uniquement(double old_indicatrice, double next_indicatrice) const { return est_desequilibre(old_indicatrice) && (!a_desequilibre_final(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
+
+  inline int below_small_threshold(double indicatrice) const { return ((indicatrice < seuil_indicatrice_petite_) && (!est_pure(indicatrice))); }
+  inline int next_below_small_threshold(double old_indicatrice, double next_indicatrice) const { return below_small_threshold(next_indicatrice) && (!devient_diphasique(old_indicatrice, next_indicatrice)); }
+  inline int only_old_below_small_threhshold(double old_indicatrice, double next_indicatrice) const { return below_small_threshold(old_indicatrice) && (!next_below_small_threshold(old_indicatrice, next_indicatrice)) && (!devient_pure(old_indicatrice, next_indicatrice)); }
+  inline int next_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) const { return (phase ==0) ? next_below_small_threshold(1 - old_indicatrice, 1 - next_indicatrice) : next_below_small_threshold(old_indicatrice, next_indicatrice); }
+  inline int only_old_below_small_threshold_for_phase(int phase, double old_indicatrice, double next_indicatrice) const { return (phase ==0) ? only_old_below_small_threhshold(1 - old_indicatrice, 1 - next_indicatrice) : only_old_below_small_threhshold(old_indicatrice, next_indicatrice); }
 
   const double& SI(const int compo, const int i, const int j, const int k) const
   {
@@ -497,19 +856,19 @@ public :
     return res;
   }
 
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
   {
     return groups_indicatrice_ft_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
   {
     return groups_indicatrice_ns_[old()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
   {
     return groups_indicatrice_ft_[next()];
   }
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
   {
     return groups_indicatrice_ns_[next()];
   }
@@ -523,6 +882,7 @@ public :
   // }
 
   // Les composantes (dir) du vecteur normal moyen pour chaque compo comnnexe
+  // (c) de bulle dans le maille (compo = max_nb_of_compo_ * c + dir)
   const double& nI(const int compo, const int i, const int j, const int k) const
   {
     return normal_of_interf_ns_[old()][compo](i, j, k);
@@ -587,6 +947,7 @@ public :
     return (surface_vapeur_par_face_ns_[old()][compo](i, j, k) + surface_vapeur_par_face_ns_[next()][compo](i, j, k)) * 0.5;
   }
 
+  void update_old_intersections(); // Copie de l'interface et des intersections associees au pas de temps precedent
   void switch_indicatrice_next_old();
   void calculer_indicatrice_next(
     IJK_Field_double& field_repulsion,
@@ -597,6 +958,33 @@ public :
     const int itstep,
     const bool parcourir = true
   );
+  void calculer_indicatrice_intermediaire(
+    IJK_Field_double& indicatrice_intermediaire_ft_,
+    IJK_Field_double& indicatrice_intermediaire_ns_,
+    IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ft_,
+    IJK_Field_vector3_double& indicatrice_surfacique_intermediaire_face_ns_,
+    const bool parcourir = true
+  );
+  void calculer_indicatrice_avant_remaillage(const bool parcourir = true)
+  {
+    calculer_indicatrice_intermediaire(
+      indicatrice_avant_remaillage_ft_,
+      indicatrice_avant_remaillage_ns_,
+      indicatrice_surfacique_avant_remaillage_face_ft_,
+      indicatrice_surfacique_avant_remaillage_face_ns_,
+      parcourir
+    );
+  }
+  void calculer_indicatrice_apres_remaillage(const bool parcourir = true)
+  {
+    calculer_indicatrice_intermediaire(
+      indicatrice_apres_remaillage_ft_,
+      indicatrice_apres_remaillage_ns_,
+      indicatrice_surfacique_apres_remaillage_face_ft_,
+      indicatrice_surfacique_apres_remaillage_face_ns_,
+      parcourir
+    );
+  }
   void set_compute_surfaces_mouillees() { surface_vapeur_par_face_computation_.set_compute_surfaces_mouillees(); }
 
   const int& nb_compo_traversantes(const int i, const int j, const int k) const
@@ -646,15 +1034,26 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
+  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& allocate_compo_fields)
+  {
+    if (!is_diphasique_)
+      return 0;
+    return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
+  }
+
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities)
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres)
   {
     if (!is_diphasique_)
       return 0;
     return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
                                                                     compute_rising_velocities,
-                                                                    fill_rising_velocities);
+                                                                    fill_rising_velocities,
+                                                                    use_bubbles_velocities_from_interface,
+                                                                    use_bubbles_velocities_from_barycentres);
   }
 
   void compute_rising_velocities_from_compo()
@@ -663,6 +1062,36 @@ public :
       return;
     ijk_compo_connex_.compute_rising_velocities();
   }
+
+  const DoubleTab& get_bubble_barycentres_old_new(const int& get_new) const
+  {
+    if (get_new)
+      return bubbles_bary_new_;
+    else
+      return bubbles_bary_old_;
+  }
+
+  const DoubleTab& get_bubble_velocities_from_interface() const
+  {
+    return bubbles_velocities_;
+  }
+
+  const DoubleTab& get_bubble_velocities_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
+  const DoubleTab& get_bubble_rising_vectors_from_barycentres() const
+  {
+    return bubbles_rising_vectors_bary_;
+  }
+
+  const ArrOfDouble& get_bubbles_velocities_magnitude_from_barycentres() const
+  {
+    return bubbles_velocities_bary_;
+  }
+
+  void reset_flags_and_counters();
 
 protected:
   // Met a jour les valeurs de surface_vapeur_par_face_ et barycentre_vapeur_par_face_
@@ -695,8 +1124,8 @@ protected:
 
   void calculer_indicatrice(IJK_Field_double& indic);
   void calculer_indicatrice_optim(IJK_Field_double& indic);
-  void calculer_indicatrices(FixedVector<IJK_Field_double, 3>& indic);
-  void calculer_indicatrices_optim(FixedVector<IJK_Field_double, 3>& indic);
+  void calculer_indicatrices(IJK_Field_vector3_double& indic);
+  void calculer_indicatrices_optim(IJK_Field_vector3_double& indic);
 
   // Methode qui parcourt tous les elements de indic et met a jour uniquement
   // ceux qui etaient traverses par l'interface a l'iteration precedente et qui
@@ -704,20 +1133,35 @@ protected:
   // prealable
   int update_indicatrice(IJK_Field_double& indic);
 
+  void calculer_surface_interface(IJK_Field_double& surf_interface, IJK_Field_double& indic);
+  void calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Field_double& indic);
+  void calculer_indicatrice_surfacique_face(IJK_Field_vector3_double& indic_surfacique_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme);
+  void calculer_indicatrice_surfacique_barycentre_face(IJK_Field_vector3_double& indic_surfacique_face, FixedVector<FixedVector<IJK_Field_double, 2>, 3>& baric_face, IJK_Field_double& indic, IJK_Field_vector3_double& norme);
+
 
   // Cette methode appelle la methode statique get_maillage_MED_from_IJK_FT sur
   // ses propres membres. Elle met donc a jour le maillage maillage_bulles_med_.
 
   // TODO: utiliser le allocate de allocate_velocity dans IJK_Navier_Stokes_tools.cpp utiliser le pslitting de NS, pas le FT
 
-  void calculer_vmoy_composantes_connexes(const Maillage_FT_IJK& maillage,
-                                          const ArrOfDouble& surface_facette,
-                                          const ArrOfDouble& surface_par_bulle,
-                                          const ArrOfInt& compo_connexes_facettes,
-                                          const int nbulles_reelles,
-                                          const int nbulles_ghost,
-                                          const DoubleTab& vitesse_sommets,
-                                          DoubleTab& vitesses) const;
+  void calculer_vmoy_translation_composantes_connexes(const Maillage_FT_IJK& maillage,
+                                                      const ArrOfDouble& surface_facette,
+                                                      const ArrOfDouble& surface_par_bulle,
+                                                      const ArrOfInt& compo_connexes_facettes,
+                                                      const int nbulles_reelles,
+                                                      const int nbulles_ghost,
+                                                      const DoubleTab& vitesse_sommets,
+                                                      DoubleTab& vitesses_translation_sommets) const;
+  void calculer_vmoy_rotation_composantes_connexes(const Maillage_FT_IJK& maillage,
+                                                   const ArrOfDouble& surface_facette,
+                                                   const ArrOfDouble& surface_par_bulle,
+                                                   const ArrOfInt& compo_connexes_facettes,
+                                                   const int nbulles_reelles,
+                                                   const int nbulles_ghost,
+                                                   const DoubleTab& centre_gravite,
+                                                   const DoubleTab& vitesse_sommets,
+                                                   const DoubleTab& vitesse_translation_sommets,
+                                                   DoubleTab& mean_bubble_rotation_vector) const;
   void recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tmp,
                                              int dir,
                                              const Maillage_FT_IJK& mesh,
@@ -747,7 +1191,7 @@ protected:
 // reference vers le splitting_ft_ pour les interfaces :
   OBS_PTR(IJK_Splitting) ref_splitting_;
   OBS_PTR(Domaine_dis_base) refdomaine_dis_;
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres
@@ -766,7 +1210,7 @@ protected:
   // On peut reprendre un fichier lata ou sauv.lata :
 
   IntVect num_compo_;
-  int nb_compo_in_num_compo_;
+  int nb_compo_in_num_compo_ = 0;
   // variales pour calcul a bulles fixes
   DoubleTab mean_force_;
   DoubleTab force_time_n_;
@@ -774,11 +1218,11 @@ protected:
   int flag_positions_reference_ = 0; // Pas de position de reference imposee
 
   Nom fichier_reprise_interface_;
-  int timestep_reprise_interface_;
+  int timestep_reprise_interface_ = 1;
   Nom lata_interfaces_meshname_;
 
   // Pour ecrire dans le fichier sauv :
-  Nom fichier_sauvegarde_interface_;
+  Nom fichier_sauvegarde_interface_ = "??";
   int timestep_sauvegarde_interface_ = 1;
 
   // Activation du suivi des couleurs des bulles
@@ -786,23 +1230,45 @@ protected:
 
   // Activer la repulsion aux parois :
   int active_repulsion_paroi_ = 0;
+  // La repulsion paroi est desactive par defaut,
+  // meme si l'inter-bulles l'est
 
+  // Pour calculer le terme source comme grad(potentiel*I) au lieu de
+  // potentiel_face*gradI
   // Modification de l'evaluation du potentiel :
   int correction_gradient_potentiel_ = 0;
 
-  int compute_distance_autres_interfaces_;
+  int compute_distance_autres_interfaces_ = 0;
+  //  recompute_indicator_ = 1; // doit-on calculer l'indicatrice avec une methode
+  //  de debug (1) ou optimisee (0) ?
+
   // Nombres de bulles reeles :
   int nb_bulles_reelles_ = 0;
   int nb_bulles_ghost_ = 0;
-  int nb_bulles_ghost_before_;
-  int recompute_indicator_;
-  int parser_;
+  int nb_bulles_ghost_before_ = 0;
+  int recompute_indicator_ = 1;
+  int parser_ = 0;
+  // doit-on calculer le forcage avec une methode de parser (1,
+  // lente) ou optimisee basee sur le num_compo_ (0) ?
+  //             Dans le cas ou parser_ est a zero, il faut que
+  //             recompute_indicator_ soit a 1, car c'est cette methode qui
+  //             rempli num_compo_
+
   // Stockage du maillage:
   Maillage_FT_IJK maillage_ft_ijk_;
 
   // Tableau intermediaire pour le deplacement des marqueurs en RK3 :
   DoubleTab RK3_G_store_vi_;
   DoubleTab vinterp_;
+
+  int disable_rigid_translation_ = 0; // Desactive la partie translation du mouvement rigide
+  int disable_rigid_rotation_ = 1;    // Desactive la partie rotation du mouvement rigide
+
+  ArrOfDouble var_volume_deformation_;  // Variation de volume observee sur chaque sommet lors de la deformation de la bulle
+  ArrOfDouble var_volume_remaillage_;   // Variation de volume cible pour l'operation de remaillage
+  ArrOfDouble var_volume_correction_globale_;  // Variation de volume cible pour la correction globale de volume
+
+  IJK_Field_vector3_double deformation_velocity_;
 
   // Algorithmes de parcours de l'interface (intersections Eulerien/Lagrangien)
   Parcours_interface parcours_;
@@ -819,9 +1285,14 @@ protected:
   // Domaine autorise pour les bulles :
   // c'est le geom du splitting_FT reduit de ncells_forbidden_
   // dans toutes les direction ou le domaine NS est perio.
-  int ncells_forbidden_;
-  int ncells_deleted_;
-  int frozen_ = 0; // flag to disable the interfaces motion.
+  // ncells_forbidden_ est le nombre de mailles au bord du domaine etendu ou on
+  // interdit a des bulles d'entrer (bulles detruites et remplacees par leur
+  // duplicata de l'autre cote)
+  int ncells_forbidden_ = 3; // Valeur recommandee par defaut.
+  // Suppression des bulles sur le pourtour du domaine lors de la sauvegarde
+  // finale.
+  int ncells_deleted_ = -1; // Valeur recommandee par defaut. On ne veut pas supprimer de bulles.
+  int frozen_ = 0; // flag to disable the interfaces motion. By default, we want the motion of the interfaces.
   DoubleTab bounding_box_forbidden_criteria_;
   DoubleTab bounding_box_delete_criteria_;
 
@@ -830,13 +1301,13 @@ protected:
 
   // Distance max en metres a laquelle agit la force de repulsion entre les
   // bulles
-  double portee_force_repulsion_;
+  double portee_force_repulsion_ = 1.e-8;
   // delta de pression maxi cree par la force de repulsion
   // (pour l'instant lineaire, valeur max quand la distance est nulle)
   double delta_p_max_repulsion_ = 0.; // desactive par defaut
 
   // Si souhaite, une valeur differente pour les parois :
-  double portee_wall_repulsion_;
+  double portee_wall_repulsion_ = 1.e-8;
   double delta_p_wall_max_repulsion_ = 0.; // desactive par defaut
   int no_octree_method_ = 0;    // to use the IJK-discretization to search for closest faces of vertices instead of the octree method (disabled by default)
 
@@ -849,11 +1320,11 @@ protected:
 
   ArrOfInt ghost_compo_converter_;
 
-  int reprise_; // Flag indiquant si on fait une reprise
+  int reprise_ = 0; // Flag indiquant si on fait une reprise
 
   enum Terme_Gravite { GRAVITE_RHO_G, GRAVITE_GRAD_I };
   // Terme_Gravite terme_gravite_;
-  int terme_gravite_ = 0;
+  int terme_gravite_ = GRAVITE_RHO_G; // Par defaut terme gravite ft sans courants parasites
 
   int nb_groups_ = 1;           // Nombre de groupes/classes de bulles. Par defaut toutes les bulles sont dans le meme group.
   ArrOfInt compo_to_group_; // Tableau de conversion: numero_de_groupe =
@@ -863,46 +1334,80 @@ protected:
   // Tableau des valeurs aux faces mouillees (calcules avec med) //
   /////////////////////////////////////////////////////////////////
 
-  bool compute_surf_mouillees_; // active seulement dans le cas
+  bool compute_surf_mouillees_ = false; // active seulement dans le cas
   // ou il y a des champs thermique ou d energie.
   // attention, ca desactive seulement le calcul, pas l'allocation.
   FixedVector<int,2> n_faces_mouilles_;
 
-  bool is_diphasique_;
+  bool is_diphasique_ = true;
 
   // Surfaces vapeur des faces du maillage IJK
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> surface_vapeur_par_face_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_;
+  FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_ns_;
 
   // Normale de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> normal_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> normal_of_interf_ns_;
   // Barycentre de l'interface par maille ijk sur domaine NS
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_;
-  FixedVector<FixedVector<IJK_Field_double, 3>, 2> bary_of_interf_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_;
+  FixedVector<IJK_Field_vector3_double, 2> bary_of_interf_ns_;
 
   // Barycentres vapeur des faces du maillage IJK
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_;
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, 3>, 3>, 2> barycentre_vapeur_par_face_ns_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_;
+  FixedVector<FixedVector<IJK_Field_vector3_double, 3>, 2> barycentre_vapeur_par_face_ns_;
 
   /////////////////////////////////////
   // indicatrice et var moy par cell //
   /////////////////////////////////////
 
-  int n_cell_diph_;
+  int n_cell_diph_ = 0;
   bool old_en_premier_ = true;
 
   FixedVector<IJK_Field_double, 2> indicatrice_ns_;
   FixedVector<IJK_Field_double, 2> indicatrice_ft_;
 
+  // Indicatrice apres la deformation de l'interface mais avant le remaillage/lissage de l'interface
+  IJK_Field_double indicatrice_avant_remaillage_ns_;
+  IJK_Field_double indicatrice_avant_remaillage_ft_;
+
+  // Indicatrice apres le remaillage/lissage de l'interface mais avant le deplacement rigide
+  IJK_Field_double indicatrice_apres_remaillage_ns_;
+  IJK_Field_double indicatrice_apres_remaillage_ft_;
+
+  // Indicatrice cible apres le remaillage. Le remaillage vise a atteindre cette indicatrice.
+  IJK_Field_double delta_volume_theorique_bilan_ns_;
+
+  FixedVector<IJK_Field_double, 2> surface_interface_ns_;
+  FixedVector<IJK_Field_double, 2> surface_interface_ft_;
+
+  FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ft_;
+
+  // Indicatrice surfacique aux faces du maillage cartesien,
+  // indiquant la fraction de la surface de chaque face associee a la phase.
+  // Note : similaire a surface_vapeur_par_face_, mais sans medcoupling.
+  FixedVector<IJK_Field_vector3_double, 2> indicatrice_surfacique_face_ns_;
+  FixedVector<IJK_Field_vector3_double, 2> indicatrice_surfacique_face_ft_;
+
+  // Indicatrice surfacique apres la deformation de l'interface mais avant le remaillage/lissage de l'interface
+  IJK_Field_vector3_double indicatrice_surfacique_avant_remaillage_face_ns_;
+  IJK_Field_vector3_double indicatrice_surfacique_avant_remaillage_face_ft_;
+
+  // Indicatrice surfacique apres le remaillage/lissage de l'interface mais avant le deplacement rigide (pas utilisee)
+  IJK_Field_vector3_double indicatrice_surfacique_apres_remaillage_face_ns_;
+  IJK_Field_vector3_double indicatrice_surfacique_apres_remaillage_face_ft_;
+
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ns_;
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, 2>, 3>, 2> barycentre_phase1_face_ft_;
+
   // On prevoie un tableau assez grand pour contenir tous les groupes.
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ft_;
+  FixedVector<IJK_Field_vector<double, max_authorized_nb_of_groups_>, 2> groups_indicatrice_ns_;
 
 #if VERIF_INDIC
   // pour verifier le calcul optimise de l'indicatrice
   IJK_Field_double indicatrice_ft_test_;
-  FixedVector<IJK_Field_double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
+  IJK_Field_vector<double, max_authorized_nb_of_groups_> groups_indicatrice_ft_test_;
 #endif
 
   // Vecteur des composantes normale dans chaque cellule par composante connexe
@@ -920,7 +1425,34 @@ protected:
   Intersection_Interface_ijk_face intersection_ijk_face_;
 
   IJK_Composantes_Connex ijk_compo_connex_;
+  DoubleTab bubbles_velocities_;
+  DoubleTab bubbles_velocities_bary_;
+  DoubleTab bubbles_rising_vectors_bary_;
+  ArrOfDouble bubbles_velocities_bary_magnitude_;
+  DoubleTab bubbles_bary_old_;
+  DoubleTab bubbles_bary_new_;
+  int read_barycentres_velocity_ = 0;
+  int use_barycentres_velocity_ = 0;
+  bool has_computed_bubble_barycentres_ = false;
+  bool has_readen_barycentres_prev_ = false;
 
+  int dt_impression_bilan_indicatrice_ = -1;
+  int verbosite_surface_efficace_face_ = 1;
+  int verbosite_surface_efficace_interface_ = 1;
+  double seuil_indicatrice_petite_ = -1;
+
+  // Pour le calcul des champs cut-cell
+  int cut_cell_activated_;
+  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_;
+  DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
+  DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;
+  DoubleTabFT_cut_cell_scalar indicatrice_surfacique_efficace_face_absolute_error_;
+  IJK_Field_vector3_double indicatrice_surfacique_efficace_deformation_face_; // ne peut etre sur la structure diphasique, car cree et utilisee avant
+  DoubleTabFT_cut_cell_scalar surface_efficace_interface_;
+  DoubleTabFT_cut_cell_scalar surface_efficace_interface_initial_;
+  DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;
+  DoubleTabFT_cut_cell_vector3 vitesse_deplacement_interface_;
+  DoubleTabFT_cut_cell_vector3 normale_deplacement_interface_;
 };
 
 #endif /* IJK_Interfaces_included */

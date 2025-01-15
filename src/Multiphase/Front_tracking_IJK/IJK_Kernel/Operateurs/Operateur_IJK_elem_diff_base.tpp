@@ -101,7 +101,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
   switch(_DIR_)
     {
     case DIRECTION::X:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_x() * 0.5;
           d1 = d0;
@@ -111,7 +111,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_x() * channel_data_.get_delta_x());
       break;
     case DIRECTION::Y:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_y() * 0.5;
           d1 = d0;
@@ -121,7 +121,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
         surface = 1 / (channel_data_.get_delta_y() * channel_data_.get_delta_y());
       break;
     case DIRECTION::Z:
-      if (!is_hess_)
+      if (!is_hess_ || is_flux_)
         {
           d0 = channel_data_.get_delta_z()[k_layer-1] * 0.5;
           d1 = channel_data_.get_delta_z()[k_layer] * 0.5;
@@ -154,7 +154,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
               Simd_double oneVec = 1.;
               Simd_double minVec = DMINFLOAT;
               Simd_double d = 1.;
-              if (!is_hess_)
+              if (!is_hess_ || is_flux_)
                 {
                   // Fetch conductivity on neighbour cells:
                   if (!is_uniform_)
@@ -182,6 +182,376 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
       if(is_structural_)
         structural_model.next_j();
       resu_ptr.next_j();
+    }
+}
+
+template <DIRECTION _DIR_>
+double Operateur_IJK_elem_diff_base_double::compute_flux_local_(int i, int j, int k)
+{
+  const int dir_i = (_DIR_ == DIRECTION::X);
+  const int dir_j = (_DIR_ == DIRECTION::Y);
+  const int dir_k = (_DIR_ == DIRECTION::Z);
+
+  const IJK_Field_local_double& input_field = *input_field_;
+  /*
+   *  M.G: lambda point toward the input field just to initialise *structural_model without error
+   *  May not work in further configurations (may be handled in IJK_Thermal classes) when operators
+   *  are cast.
+   */
+  if (is_uniform_)
+    lambda_=input_field_;
+
+
+  /*
+   * Gives lambda field as a dummy field (Avoid the creation of a IJK_Field_local_double
+   * field in the current scope)
+   */
+  const IJK_Field_local_double& lambda = is_vectorial_? get_model(_DIR_) : *lambda_;
+  const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
+
+  BOUNDARY_FLUX type_boundary_flux = flux_determined_by_boundary_condition_<_DIR_>(k);
+  if (type_boundary_flux != BOUNDARY_FLUX::NOT_DETERMINED_BY_BOUNDARY)
+    {
+      double flux = compute_flux_local_boundary_condition_<_DIR_>(type_boundary_flux, i, j);
+      return flux;
+    }
+  else
+    {
+      Vecteur3 surface_d0_d1 = compute_surface_d0_d1_<_DIR_>(k);
+      double surface = surface_d0_d1[0];
+      double d0 = surface_d0_d1[1];
+      double d1 = surface_d0_d1[2];
+
+      double input_left = input_field(i-dir_i,j-dir_j,k-dir_k);
+      double input_centre = input_field(i,j,k);
+      double lambda_left = lambda(i-dir_i,j-dir_j,k-dir_k);
+      double lambda_centre = lambda(i,j,k);
+      double struct_model = is_structural_ ? structural_model(i,j,k) : -1;
+      double flux = Operateur_IJK_elem_diff_base_double::compute_flux_local_<_DIR_>(d0, d1, surface, input_left, input_centre, lambda_left, lambda_centre, struct_model);
+      return flux;
+    }
+}
+
+template <DIRECTION _DIR_>
+double Operateur_IJK_elem_diff_base_double::compute_flux_local_(double d0, double d1, double surface, double input_left, double input_centre, double lambda_left, double lambda_centre, double structural_model)
+{
+  double uniform_lambda = 1.;
+  double avg_lambda = 1.;
+  if (is_uniform_ and uniform_lambda_!=0)
+    uniform_lambda = *uniform_lambda_;
+
+  double lambda_m1 = uniform_lambda;
+  double lambda_m2 = uniform_lambda;
+  double flux = 0.;
+  if (is_structural_)
+    {
+      double s_mo = structural_model;
+      flux = (-1.) * s_mo * surface;
+    }
+  else
+    {
+      double d = 1.;
+      if (!is_hess_)
+        {
+          // Fetch conductivity on neighbour cells:
+          if (!is_uniform_)
+            {
+              lambda_m1 = lambda_left;
+              lambda_m2 = lambda_centre;
+            }
+          // geometric avg: (d0+d1) / ( d0 / lambda_m1 + d1 / lambda_m2 ), optimized with only 1 division:
+          double dsabs = (0. < d0 * lambda_m2 + d1 * lambda_m1) ? d0 * lambda_m2 + d1 * lambda_m1 : (-1) * (d0 * lambda_m2 + d1 * lambda_m1);
+          double ds = (dsabs < DMINFLOAT) ? 1. : d0 * lambda_m2 + d1 * lambda_m1;
+          if(is_anisotropic_)
+            d = d0 + d1;
+          avg_lambda = (dsabs < DMINFLOAT) ? 0. : (d * lambda_m1 * lambda_m2)/ds;
+        }
+      // thermal flux is positive if going from left to right => -grad(T)
+      flux = (input_left - input_centre) * avg_lambda * surface;
+    }
+  return flux;
+}
+
+template <DIRECTION _DIR_>
+BOUNDARY_FLUX Operateur_IJK_elem_diff_base_double::flux_determined_by_boundary_condition_(int k)
+{
+  if(_DIR_ == DIRECTION::Z)
+    {
+      // Are we on the wall ?
+      const int global_k_layer = k + channel_data_.offset_to_global_k_layer();
+      // global index of the layer of flux of the wall
+      //  (assume one walls at zmin and zmax)
+      const int first_global_k_layer = 0; // index of k when we are on the wall
+      // Fluxes in direction k are on the faces, hence, index of last flux is equal to number of elements
+      const int last_global_k_layer =  channel_data_.nb_elem_k_tot();
+
+      if (!perio_k_)
+        {
+          if (global_k_layer == first_global_k_layer)
+            {
+              return BOUNDARY_FLUX::KMIN_WALL;
+            }
+          else if (global_k_layer == last_global_k_layer)
+            {
+              return BOUNDARY_FLUX::KMAX_WALL;
+            }
+        }
+    }
+  return BOUNDARY_FLUX::NOT_DETERMINED_BY_BOUNDARY;
+}
+
+template <DIRECTION _DIR_>
+double Operateur_IJK_elem_diff_base_double::compute_flux_local_boundary_condition_(BOUNDARY_FLUX type_boundary_flux, int i, int j)
+{
+  if (type_boundary_flux == BOUNDARY_FLUX::KMIN_WALL)
+    {
+      // We are on wall at kmin, copy boundary condition fluxes to "resu"
+      if (boundary_flux_kmin_) // boundary condition is not zero flux
+        return (*boundary_flux_kmin_)(i,j,0);
+      else
+        return 0.;
+    }
+  else if (type_boundary_flux == BOUNDARY_FLUX::KMAX_WALL)
+    {
+      if (boundary_flux_kmax_) // boundary condition is not zero flux
+        return (*boundary_flux_kmax_)(i,j,0);
+      else
+        return 0.;
+    }
+  else
+    {
+      Cerr << "Unexpected situation in compute_flux_local_boundary_condition_" << finl;
+      Process::exit();
+      return -1;
+    }
+}
+
+template <DIRECTION _DIR_>
+Vecteur3 Operateur_IJK_elem_diff_base_double::compute_surface_d0_d1_(int k)
+{
+  double d0 = 0., d1 = 0.;
+  double surface = 1.;
+  switch(_DIR_)
+    {
+    case DIRECTION::X:
+      if (!is_hess_)
+        {
+          d0 = channel_data_.get_delta_x() * 0.5;
+          d1 = d0;
+          surface = channel_data_.get_delta_y() * channel_data_.get_delta_z()[k];
+        }
+      else
+        surface = 1 / (channel_data_.get_delta_x() * channel_data_.get_delta_x());
+      break;
+    case DIRECTION::Y:
+      if (!is_hess_)
+        {
+          d0 = channel_data_.get_delta_y() * 0.5;
+          d1 = d0;
+          surface = channel_data_.get_delta_x() * channel_data_.get_delta_z()[k];
+        }
+      else
+        surface = 1 / (channel_data_.get_delta_y() * channel_data_.get_delta_y());
+      break;
+    case DIRECTION::Z:
+      if (!is_hess_)
+        {
+          d0 = channel_data_.get_delta_z()[k-1] * 0.5;
+          d1 = channel_data_.get_delta_z()[k] * 0.5;
+          surface = channel_data_.get_delta_x() * channel_data_.get_delta_y();
+        }
+      break;
+    }
+  return {surface, d0, d1};
+}
+
+template <DIRECTION _DIR_>
+void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *const flux, int k_layer)
+{
+  int dir = static_cast<int>(_DIR_);
+
+  const Cut_field_double& input_cut_field = static_cast<const Cut_field_double&>(*input_field_);
+  const IJK_Field_local_double& structural_model = is_structural_ ? get_model(_DIR_) : *lambda_;
+  assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[1].get_cut_cell_disc());
+  assert(&(*cut_cell_flux_)[0].get_cut_cell_disc() == &(*cut_cell_flux_)[2].get_cut_cell_disc());
+  const Cut_cell_FT_Disc& cut_cell_disc = (*cut_cell_flux_)[0].get_cut_cell_disc();
+
+  IJK_Field_int& treatment_count = *treatment_count_;
+  int& new_treatment = *new_treatment_;
+  new_treatment += 1;
+
+  int backward_receptive_stencil = 0;
+  int forward_receptive_stencil = 1;
+  assert(backward_receptive_stencil <= cut_cell_disc.get_ghost_size());
+  assert(forward_receptive_stencil <= cut_cell_disc.get_ghost_size());
+
+  if (_DIR_ == DIRECTION::Z)
+    {
+      if (cut_cell_disc.get_splitting().get_grid_geometry().get_periodic_flag(dir))
+        {
+          const int kmax = cut_cell_disc.get_interfaces().I().nk();
+          int n_dir = cut_cell_disc.get_splitting().get_nb_elem_local(dir);
+          int n_dir_tot = cut_cell_disc.get_splitting().get_grid_geometry().get_nb_elem_tot(dir);
+
+          // Le processeur contient deux fois les valeurs sur les bords
+          if (n_dir == n_dir_tot)
+            {
+              if (k_layer == kmax)
+                {
+                  k_layer = 0;
+                }
+            }
+        }
+    }
+
+  int min_k = (_DIR_ == DIRECTION::Z) ? k_layer-forward_receptive_stencil : k_layer;
+  int max_k = (_DIR_ == DIRECTION::Z) ? k_layer+backward_receptive_stencil : k_layer;
+  for (int k_c = min_k; k_c <= max_k; k_c++)
+    {
+      for (int index = cut_cell_disc.get_k_value_index(k_c); index < cut_cell_disc.get_k_value_index(k_c+1); index++)
+        {
+          int n = cut_cell_disc.get_n_from_k_index(index);
+
+          Int3 ijk_no_per = cut_cell_disc.get_ijk(n);
+          assert(k_c == ijk_no_per[2]);
+
+          int min_decalage = (_DIR_ == DIRECTION::Z) ? (k_layer - k_c) : -backward_receptive_stencil;
+          int max_decalage = (_DIR_ == DIRECTION::Z) ? (k_layer - k_c) : forward_receptive_stencil;
+          for (int decalage = min_decalage; decalage <= max_decalage; decalage++)
+            {
+              int i = ijk_no_per[0] + (_DIR_ == DIRECTION::X)*decalage;
+              int j = ijk_no_per[1] + (_DIR_ == DIRECTION::Y)*decalage;
+              int k = ijk_no_per[2] + (_DIR_ == DIRECTION::Z)*decalage;
+              assert(k_layer == k);
+
+              if (!cut_cell_disc.within_ghost_<_DIR_>(i, j, k, 0, 1))
+                continue;
+
+              if (treatment_count(i,j,k) == new_treatment)
+                continue;
+
+              {
+                int index_ijk_per = 0;
+                while (index_ijk_per >= 0)
+                  {
+                    Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
+                    index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
+
+                    treatment_count(ijk[0],ijk[1],ijk[2]) = new_treatment;
+                  }
+              }
+
+              double indicatrice_centre = cut_cell_disc.get_interfaces().In(i,j,k);
+              int n_centre = cut_cell_disc.get_n(i, j, k);
+
+              BOUNDARY_FLUX type_boundary_flux = flux_determined_by_boundary_condition_<_DIR_>(k);
+              if (type_boundary_flux != BOUNDARY_FLUX::NOT_DETERMINED_BY_BOUNDARY)
+                {
+                  // Le flux est dans ce cas determine par la condition aux limites
+                  // Aucune correction n'est donc necessaire
+                  assert(n_centre < 0); // Le cas d'une cellule diphasique avec flux condition aux limites n'est pas traite
+                }
+              else
+                {
+                  assert((n_centre >= 0) || ((indicatrice_centre == 0.) || (indicatrice_centre == 1.)));
+                  int phase_min = (n_centre < 0) ? (int)indicatrice_centre : 0;
+                  int phase_max = (n_centre < 0) ? (int)indicatrice_centre : 1;
+
+                  for (int phase = phase_min ; phase <= phase_max ; phase++)
+                    {
+                      const DoubleTabFT_cut_cell& diph_input = (phase == 0) ? input_cut_field.diph_v_ : input_cut_field.diph_l_;
+                      DoubleTabFT_cut_cell& diph_flux = (phase == 0) ? (*cut_cell_flux_)[dir].diph_v_ : (*cut_cell_flux_)[dir].diph_l_;
+
+                      const int dir_i = (_DIR_ == DIRECTION::X);
+                      const int dir_j = (_DIR_ == DIRECTION::Y);
+                      const int dir_k = (_DIR_ == DIRECTION::Z);
+
+                      int n_left = cut_cell_disc.get_n(i-dir_i,j-dir_j,k-dir_k);
+
+                      double indicatrice_left = cut_cell_disc.get_interfaces().In(i-dir_i,j-dir_j,k-dir_k);
+
+                      double old_indicatrice_left = cut_cell_disc.get_interfaces().I(i-dir_i,j-dir_j,k-dir_k);
+                      double old_indicatrice_centre = cut_cell_disc.get_interfaces().I(i,j,k);
+
+                      double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k, old_indicatrice_left, indicatrice_left);
+                      assert((n_left >= 0) || (bar_dir_left == .5));
+
+                      double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k, old_indicatrice_centre, indicatrice_centre);
+                      assert((n_centre >= 0) || (bar_dir_centre == .5));
+
+                      Vecteur3 surface_d0_d1 = compute_surface_d0_d1_<_DIR_>(k);
+
+                      const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
+                      double indicatrice_surface = (n_centre < 0) ? 1. : ((phase == 0) ? 1 - indicatrice_surfacique(n_centre,dir) : indicatrice_surfacique(n_centre,dir));
+                      assert((n_centre >= 0) || (indicatrice_surface == 1.));
+
+                      const double surface = surface_d0_d1[0] * indicatrice_surface;
+                      double d0 = surface_d0_d1[1] * 2*(1 - bar_dir_left);
+                      double d1 = surface_d0_d1[2] * 2*(bar_dir_centre);
+
+                      int phase_left = (n_left < 0) ? (int)indicatrice_left : phase;
+                      assert((phase_left == phase) || (indicatrice_surface == 0.));
+
+                      double input_left = (n_left < 0) ? input_cut_field.pure_(i-dir_i,j-dir_j,k-dir_k) : diph_input(n_left);
+                      double input_centre = (n_centre < 0) ? input_cut_field.pure_(i,j,k) : diph_input(n_centre);
+
+                      double lambda_value = (phase == 0) ? *uniform_lambda_vapour_ : *uniform_lambda_liquid_;
+
+                      double struct_model = is_structural_ ? structural_model(i,j,k) : -1;
+
+                      int phase_mourrante_left = cut_cell_disc.get_interfaces().phase_mourrante(phase, old_indicatrice_left, indicatrice_left);
+                      int phase_mourrante_centre = cut_cell_disc.get_interfaces().phase_mourrante(phase, old_indicatrice_centre, indicatrice_centre);
+                      int phase_naissante_left = cut_cell_disc.get_interfaces().phase_naissante(phase, old_indicatrice_left, indicatrice_left);
+                      int phase_naissante_centre = cut_cell_disc.get_interfaces().phase_naissante(phase, old_indicatrice_centre, indicatrice_centre);
+                      int petit_left = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_left, indicatrice_left);
+                      int petit_centre = cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, old_indicatrice_centre, indicatrice_centre);
+
+                      double flux_value;
+                      if (phase_mourrante_centre || phase_mourrante_left)
+                        {
+                          flux_value = 0.;
+                        }
+                      else if (ignore_small_cells_ && (petit_centre || petit_left || phase_naissante_centre || phase_naissante_left))
+                        {
+                          flux_value = 0.;
+                        }
+                      else
+                        {
+                          assert(input_left != 0.);
+                          assert(input_centre != 0.);
+                          flux_value = Operateur_IJK_elem_diff_base_double::compute_flux_local_<_DIR_>(d0, d1, surface, input_left, input_centre, lambda_value, lambda_value, struct_model);
+                        }
+
+                      if (n_centre < 0) // Si la cellule est pure
+                        {
+                          int index_ijk_per = 0;
+                          while (index_ijk_per >= 0)
+                            {
+                              Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
+                              index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
+
+                              (*flux)(ijk[0],ijk[1],0) = flux_value;
+                            }
+                        }
+                      else
+                        {
+                          diph_flux(n_centre) = flux_value;
+                          if ((n_left < 0) && (phase == phase_left))
+                            {
+                              int index_ijk_per = 0;
+                              while (index_ijk_per >= 0)
+                                {
+                                  Int3 ijk = cut_cell_disc.ijk_per_of_index(i, j, k, index_ijk_per);
+                                  index_ijk_per = cut_cell_disc.next_index_ijk_per(i, j, k, index_ijk_per, 0, 1);
+
+                                  (*flux)(ijk[0],ijk[1],0) = flux_value;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

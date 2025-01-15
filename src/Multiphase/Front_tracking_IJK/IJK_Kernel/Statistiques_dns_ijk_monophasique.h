@@ -15,7 +15,7 @@
 
 #ifndef Statistiques_dns_ijk_monophasique_H
 #define Statistiques_dns_ijk_monophasique_H
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
 
@@ -29,7 +29,7 @@ class Statistiques_dns_ijk_monophasique : public Statistiques_dns_ijk
 public:
   using Statistiques_dns_ijk::initialize;
   void initialize(const IJK_Grid_Geometry&) override;
-  void update_stat(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void update_stat(const IJK_Field_vector3_double& vitesse,
                    const IJK_Field_double& pression,
                    const IJK_Field_double& temperature,
                    double dt);

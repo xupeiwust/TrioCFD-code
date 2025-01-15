@@ -41,8 +41,6 @@ Entree& forcage_spectral::readOn( Entree& is )
   return is;
 }
 
-
-
 double my_function_d_2(const int i, const int j, const int k)
 {
   double b(2.9);

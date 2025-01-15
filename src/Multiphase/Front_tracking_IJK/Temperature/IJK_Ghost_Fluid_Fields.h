@@ -12,27 +12,15 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Ghost_Fluid_Fields.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Ghost_Fluid_Fields_included
 #define IJK_Ghost_Fluid_Fields_included
 
 #include <Objet_U.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Ghost_Fluid_Fields
-//
-// <Description of class IJK_Ghost_Fluid_Fields>
-//
-/////////////////////////////////////////////////////////////////////////////
-class IJK_FT_double;
+class IJK_FT_base;
 
 class IJK_Ghost_Fluid_Fields : public Objet_U
 {
@@ -41,7 +29,7 @@ class IJK_Ghost_Fluid_Fields : public Objet_U
 
 public :
 
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void initialize(int& nalloc, const IJK_Splitting& splitting);
 
   void compute_eulerian_distance();
@@ -62,12 +50,16 @@ public :
   void retrieve_ghost_fluid_params(const int& compute_distance,
                                    const int& compute_curvature,
                                    const int& n_iter_distance,
+                                   const int& avoid_gfm_parallel_calls,
                                    const IJK_Field_local_double& boundary_flux_kmin,
                                    const IJK_Field_local_double& boundary_flux_kmax)
   {
     compute_distance_ = compute_distance;
     compute_curvature_ = compute_curvature;
     n_iter_distance_ = n_iter_distance;
+    avoid_gfm_parallel_calls_ = avoid_gfm_parallel_calls;
+    use_n_iter_distance_ = 0;
+    nb_cells_gfm_parallel_calls_ = 2;
     boundary_flux_kmin_ = boundary_flux_kmin;
     boundary_flux_kmax_ = boundary_flux_kmax;
   }
@@ -81,23 +73,23 @@ public :
     return eulerian_distance_ns_;
   }
 
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ft() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ft() const
   {
     return eulerian_normal_vectors_ft_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_facets_barycentre_ft() const
+  const IJK_Field_vector3_double& get_eulerian_facets_barycentre_ft() const
   {
     return eulerian_facets_barycentre_ft_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ns() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ns() const
   {
     return eulerian_normal_vectors_ns_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_normal_vectors_ns_normed() const
+  const IJK_Field_vector3_double& get_eulerian_normal_vectors_ns_normed() const
   {
     return eulerian_normal_vectors_ns_normed_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_eulerian_facets_barycentre_ns() const
+  const IJK_Field_vector3_double& get_eulerian_facets_barycentre_ns() const
   {
     return eulerian_facets_barycentre_ns_;
   }
@@ -124,11 +116,11 @@ public :
     return eulerian_rising_velocities_;
   }
 
-  const FixedVector<IJK_Field_int, 3>& get_dummy_int_vect() const
+  const IJK_Field_vector3_int& get_dummy_int_vect() const
   {
     return dummy_int_vect_;
   }
-  const FixedVector<IJK_Field_double, 3>& get_dummy_double_vect() const
+  const IJK_Field_vector3_double& get_dummy_double_vect() const
   {
     return dummy_double_vect_;
   }
@@ -145,11 +137,25 @@ protected :
   IJK_Field_double eulerian_distance_ft_;
   IJK_Field_double eulerian_distance_ns_;
 
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ft_;
-  FixedVector<IJK_Field_double, 3> eulerian_facets_barycentre_ft_;
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ns_;
-  FixedVector<IJK_Field_double, 3> eulerian_normal_vectors_ns_normed_;
-  FixedVector<IJK_Field_double, 3> eulerian_facets_barycentre_ns_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ft_;
+  IJK_Field_vector3_double eulerian_facets_barycentre_ft_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ns_;
+  IJK_Field_vector3_double eulerian_normal_vectors_ns_normed_;
+  IJK_Field_vector3_double eulerian_facets_barycentre_ns_;
+
+  IJK_Field_vector3_double tmp_old_vector_val_;
+  IJK_Field_vector3_double tmp_new_vector_val_;
+
+  IJK_Field_int tmp_interf_cells_;
+  IJK_Field_int tmp_propagated_cells_;
+  FixedVector<ArrOfInt,3> interf_cells_indices_;
+  FixedVector<ArrOfInt,3> gfm_first_cells_indices_;
+  FixedVector<ArrOfInt,3> propagated_cells_indices_;
+
+  IJK_Field_double tmp_old_dist_val_;
+  IJK_Field_double tmp_new_dist_val_;
+  IJK_Field_double tmp_old_curv_val_;
+  IJK_Field_double tmp_new_curv_val_;
 
   IJK_Field_double eulerian_curvature_ft_;
   IJK_Field_double eulerian_curvature_ns_;
@@ -158,15 +164,18 @@ protected :
 
   IJK_Field_double eulerian_rising_velocities_;
 
-  FixedVector<IJK_Field_int,3> dummy_int_vect_;
-  FixedVector<IJK_Field_double,3> dummy_double_vect_;
+  IJK_Field_vector3_int dummy_int_vect_;
+  IJK_Field_vector3_double dummy_double_vect_;
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   int compute_distance_ = 1;
   int compute_curvature_ = 1;
-  int n_iter_distance_ = 6;
+  int n_iter_distance_ = 8;
+  int avoid_gfm_parallel_calls_ = 0;
+  int use_n_iter_distance_ = 0;
+  int nb_cells_gfm_parallel_calls_ = 2;
   IJK_Field_local_double boundary_flux_kmin_;
   IJK_Field_local_double boundary_flux_kmax_;
 

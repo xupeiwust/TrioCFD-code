@@ -15,7 +15,7 @@
 
 #ifndef Fourier_trans_H
 #define Fourier_trans_H
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Objet_U.h>
 #include <TRUSTArrays.h>
@@ -37,7 +37,7 @@ public:
   void sauvegarde() const;
   void reprise();
   void postraiter(Nom&) const;
-  void update(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void update(const IJK_Field_vector3_double& vitesse,
               const IJK_Field_double& pression,
               //const IJK_Field_double &temperature,
               const IJK_Field_double& masse_vol,
@@ -100,7 +100,7 @@ protected:
   FixedVector <IJK_Field_double, 86> Avant_TF ;
   FixedVector <IJK_Field_double, 86> Reel_TF ;
   FixedVector <IJK_Field_double, 86> Imag_TF ;
-  FixedVector<IJK_Field_double, 3> vitesse ;
+  IJK_Field_vector3_double vitesse ;
   IJK_Field_double champ_mu ;
   IJK_Field_double masse_vol ;
   IJK_Field_double pression ;

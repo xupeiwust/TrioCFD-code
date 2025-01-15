@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblem_Geometry.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_One_Dimensional_Subproblem_Geometry_included
 #define IJK_One_Dimensional_Subproblem_Geometry_included
@@ -49,15 +43,8 @@
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_One_Dimensional_Subproblem_Geometry
-//
-// <Description of class IJK_One_Dimensional_Subproblem_Geometry>
-//
-/////////////////////////////////////////////////////////////////////////////
 
-class IJK_FT_double;
+class IJK_FT_base;
 class IJK_One_Dimensional_Subproblem_Geometry : public Objet_U
 {
 
@@ -116,7 +103,7 @@ protected :
                                double& tangential_distance_vertex_centre,
                                Vecteur3& tangential_distance_vector_vertex_centre);
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   const IJK_Interfaces * interfaces_;
   int debug_ = 0;
 

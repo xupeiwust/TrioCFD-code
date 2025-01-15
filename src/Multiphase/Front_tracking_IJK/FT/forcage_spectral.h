@@ -22,7 +22,7 @@
 #ifndef Chouippe_included
 #define Chouippe_included
 
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Objet_U.h>
 #include <fftw3.h>
@@ -76,12 +76,13 @@ public :
   void set_a_force();
 
 protected :
-  //void compute_inital_velocity_spectral(FixedVector<IJK_Field_double, 3>);
+  //void compute_inital_velocity_spectral(IJK_Field_vector3_double);
 private:
 
-  double k_max,k_min;
-  int nk;
-  int nk_tot;
+  double k_max = 0.;
+  double k_min= 0.;
+  int nk = 0;
+  int nk_tot = 0;
   // std::vector<double> kx(), ky(),kz();
   ArrOfDouble kx, ky,kz;
   // std::vector<double> fx(),fy(),fz();

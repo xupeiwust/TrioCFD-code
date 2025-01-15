@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Statistiques_dns_ijk_monophasique.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Grid_Geometry.h>
 #include <TRUSTTab.h>
 #include <communications.h>
@@ -175,7 +176,7 @@ Statistiques_dns_ijk_monophasique::Statistiques_dns_ijk_monophasique()
   for (int i=0; i<nval_; i++)
     noms_moyennes_[i]=noms_moyennes_prov[i];
 }
-void Statistiques_dns_ijk_monophasique::update_stat(const FixedVector<IJK_Field_double, 3>& vitesse,
+void Statistiques_dns_ijk_monophasique::update_stat(const IJK_Field_vector3_double& vitesse,
                                                     const IJK_Field_double& pression,
                                                     const IJK_Field_double& temperature,
                                                     double dt)

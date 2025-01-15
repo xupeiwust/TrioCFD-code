@@ -17,7 +17,10 @@
 #define Operateur_IJK_elem_conv_base_included
 
 #include <IJK_Splitting.h>
+#include <IJK_Field_vector.h>
 #include <Operateur_IJK_base.h>
+#include <Cut_cell_FT_Disc.h>
+#include <Cut_cell_convection_auxiliaire.h>
 #include <Corrige_flux_FT_base.h>
 #include <TRUST_Deriv.h>
 
@@ -28,7 +31,7 @@ public:
   void initialize(const IJK_Splitting& splitting) override;
   virtual void set_indicatrice(const IJK_Field_double& indicatrice) { indicatrice_= &indicatrice; };
   virtual void set_corrige_flux(OWN_PTR(Corrige_flux_FT_base)& corrige_flux) { corrige_flux_ = &corrige_flux; };
-
+  virtual void set_velocity_frame_of_reference(const Vecteur3& velocity_frame_of_reference) { velocity_frame_of_reference_ = velocity_frame_of_reference; };
   virtual void calculer(const IJK_Field_double& field,
                         const IJK_Field_double& vx,
                         const IJK_Field_double& vy,
@@ -40,11 +43,12 @@ public:
                        const IJK_Field_double& vy,
                        const IJK_Field_double& vz,
                        IJK_Field_double& result);
+
 protected:
 
   void compute_curv_fram(DIRECTION _DIR_, int k_layer);
   void shift_curv_fram(IJK_Field_local_double& tmp_curv_fram);
-  inline const IJK_Field_local_double& get_input_velocity(DIRECTION _DIR_)
+  inline const IJK_Field_double& get_input_velocity(DIRECTION _DIR_)
   {
     switch(_DIR_)
       {
@@ -65,10 +69,11 @@ protected:
   Operateur_IJK_data_channel channel_data_;
 
   // Pointers to input data (set by calculer, used by compute_flux_...)
-  const IJK_Field_local_double *input_field_;
-  const IJK_Field_local_double *input_velocity_x_;
-  const IJK_Field_local_double *input_velocity_y_;
-  const IJK_Field_local_double *input_velocity_z_;
+  const IJK_Field_double *input_field_;
+
+  const IJK_Field_double *input_velocity_x_;
+  const IJK_Field_double *input_velocity_y_;
+  const IJK_Field_double *input_velocity_z_;
   bool perio_k_;
 
   // Temporary array to store curvature and fram coefficients
@@ -83,6 +88,9 @@ protected:
 
   bool is_corrected_;
   bool is_grad_;
+  bool is_flux_;
+  Vecteur3 velocity_frame_of_reference_ = {0.,0.,0.};
+  IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed_ = nullptr;
 
 private:
 

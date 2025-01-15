@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Init_spectral.h>
+#include <IJK_Field_vector.h>
 #include <string>
 
 Implemente_instanciable( Init_spectral, "Init_spectral", Objet_U ) ;
@@ -41,11 +42,11 @@ double randInRange(double min, double max)
   return min + ((double)(rand())/(double)(RAND_MAX)) * (max-min);
 }
 
-void compute_inital_velocity_spectral(FixedVector<IJK_Field_double, 3>& velocity)
+void compute_inital_velocity_spectral(IJK_Field_vector3_double& velocity)
 {
-  cout << endl;
-  cout << " = Initialisation du champ de vitesse =" << endl;
-  cout << endl;
+  Cout << finl;
+  Cout << " = Initialisation du champ de vitesse =" << finl;
+  Cout << finl;
 
   fftw_plan plan_ux;
   fftw_plan plan_uy;

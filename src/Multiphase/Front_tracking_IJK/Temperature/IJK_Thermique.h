@@ -23,6 +23,7 @@
 #define IJK_Thermique_included
 
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <Objet_U.h>
 #include <Boundary_Conditions_Thermique.h>
 #include <IJK_Splitting.h>
@@ -53,13 +54,15 @@
  *
  *
  */
-class IJK_FT_double;
+class IJK_FT_base;
 
 class IJK_Thermique : public Objet_U
 {
 
   friend class IJK_FT_Post;
-  friend class IJK_FT_double;
+  friend class IJK_FT_base;
+  friend class IJK_FT;
+  friend class IJK_FT_cut_cell;
   Declare_instanciable( IJK_Thermique ) ;
 
 public :
@@ -68,7 +71,7 @@ public :
   void update_thermal_properties();
   double compute_timestep(const double timestep,
                           const double dxmin) const;
-  void associer(const IJK_FT_double& ijk_ft);
+  void associer(const IJK_FT_base& ijk_ft);
   void euler_time_step(const double timestep);
   void euler_rustine_step(const double timestep, const double dE);
   void rk3_sub_step(const int rk_step, const double total_timestep,
@@ -105,7 +108,7 @@ public :
   {
     return temperature_ ;
   }
-  FixedVector<IJK_Field_double, 3>& get_gradient_temperature()
+  IJK_Field_vector3_double& get_gradient_temperature()
   {
     return grad_T_ ;
   }
@@ -134,11 +137,7 @@ public :
   {
     return compute_global_energy(temperature_); // changes the attribute global_energy [J/m3]
   }
-  double& get_global_energy()
-  {
-    return global_energy_ ;
-  };
-  FixedVector<IJK_Field_double, 3>& get_storage()
+  IJK_Field_vector3_double& get_storage()
   {
     return storage_;
   };
@@ -150,11 +149,11 @@ public :
   double get_rhocp_v() const;
 
 protected :
-  void calculer_dT(const FixedVector<IJK_Field_double, 3>& velocity);
+  void calculer_dT(const IJK_Field_vector3_double& velocity);
   void compute_dT_rustine(const double dE);
   void add_temperature_diffusion();
-  void compute_temperature_convection(const FixedVector<IJK_Field_double, 3>& velocity);
-  void compute_temperature_convection_conservative(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_temperature_convection(const IJK_Field_vector3_double& velocity);
+  void compute_temperature_convection_conservative(const IJK_Field_vector3_double& velocity);
   void add_temperature_source();
   void source_callback();
   void calculer_temperature_physique_T(const IJK_Field_double&  vx, const double dTm);
@@ -170,16 +169,16 @@ protected :
 
   void calculer_ecart_T_ana();
   void calculer_source_temperature_ana();
-  void calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T);
+  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
   void compute_interfacial_temperature(ArrOfDouble& interfacial_temperature, ArrOfDouble& interfacial_phin_ai,
-                                       FixedVector<IJK_Field_double, 3> storage_) const ;
+                                       IJK_Field_vector3_double storage_) const ;
   // This method calls to the Correction_flux_FT static method to build and interfacial temperature
   // and heat flux field at the interface.
   void compute_interfacial_temperature2(
     ArrOfDouble& interfacial_temperature,
     ArrOfDouble& flux_normal_interp); //const ;
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   int rang_;
 
   Boundary_Conditions_Thermique boundary_conditions_;
@@ -218,7 +217,6 @@ protected :
   int depracated_rho_cp_;
   int rho_cp_inv_;
   int conserv_energy_global_;
-  double global_energy_;
   IJK_Field_double div_lambda_grad_T_volume_;
 
   // Thermal heat flux on the boundary (intergal per boundary face)
@@ -235,7 +233,7 @@ protected :
   IJK_Field_double rho_cp_;
   IJK_Field_double rho_cp_T_;
   IJK_Field_double div_rho_cp_T_;
-  FixedVector<IJK_Field_double, 3> storage_; // // Temporary storage for fluxes calculations for instance.
+  IJK_Field_vector3_double storage_; // // Temporary storage for fluxes calculations for instance.
   IJK_Field_double temperature_ft_;
 
   IJK_Field_double source_temperature_;
@@ -256,7 +254,7 @@ protected :
   //Rustine
   double E0_;//volumique
   IJK_Field_double T_rust_;
-  void compute_T_rust(const FixedVector<IJK_Field_double, 3>& velocity);
+  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   //forme de l'equation de la tempetature
   int type_temperature_convection_form_; // 1 : non conservative, 2 : conservative
@@ -275,7 +273,7 @@ protected :
 
   IJK_Field_double temperature_ana_, ecart_t_ana_;
 
-  FixedVector<IJK_Field_double, 3> grad_T_;
+  IJK_Field_vector3_double grad_T_;
 
 //  IJK_Field_double source_temperature_ana_, ecart_source_t_ana_;
 

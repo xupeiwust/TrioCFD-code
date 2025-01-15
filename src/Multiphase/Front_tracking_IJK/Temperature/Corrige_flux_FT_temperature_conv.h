@@ -42,7 +42,7 @@ public:
   void initialize(const IJK_Splitting& splitting,
                   const IJK_Field_double& field,
                   const IJK_Interfaces& interfaces,
-                  const IJK_FT_double& ijk_ft,
+                  const IJK_FT_base& ijk_ft,
                   Intersection_Interface_ijk_face& intersection_ijk_face,
                   Intersection_Interface_ijk_cell& intersection_ijk_cell) override;
 

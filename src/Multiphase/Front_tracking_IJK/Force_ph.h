@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 #include <Force_sp.h>
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 // #include <fftw3.h>
 #include <IJK_Splitting.h>
 #include <communications.h>
@@ -38,12 +38,9 @@
 class Force_ph : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur_ni_destructeur( Force_ph ) ;
+  Declare_instanciable( Force_ph ) ;
 
 public:
-
-  Force_ph();
-  ~Force_ph();
 
   // void initialise(int nproc_tot, int ni, int nj, int nk, int nl,int nm,int nn,
   // 		double Lx, double Ly, double Lz, double Ox,double Oy,double Oz, int momin, int momax, double kmin, double kmax,
@@ -66,35 +63,49 @@ public:
   void write_offset_index_position( const IJK_Splitting& my_splitting);
   void compute_energie();
   double get_energie();
-  FixedVector<IJK_Field_double, 3> get_force_attribute();
-  FixedVector<IJK_Field_double, 3>& get_force_attribute2();
+  IJK_Field_vector3_double get_force_attribute();
+  IJK_Field_vector3_double& get_force_attribute2();
 
-  void gbz_gather(FixedVector<IJK_Field_double, 3> force_);
+  void gbz_gather(IJK_Field_vector3_double force_);
 
 private:
-  int nproc_tot;
+  int nproc_tot = 0;
 
-  int ni,nj,nk,n_ijk;
-  int nl,nm,nn,n_lmn;
-  double Lx, Ly, Lz;
-  double Ox, Oy, Oz;
-  double kmin,kmax;
-  int momin,momax;
-  FixedVector<IJK_Field_double, 3> force_;
+  int ni = 0;
+  int nj = 0;
+  int nk = 0;
+  int n_ijk = 0;
+  int nl = 0;
+  int nm = 0;
+  int nn = 0;
+  int n_lmn = 0;
+  double Lx = 0.;
+  double Ly = 0.;
+  double Lz = 0.;
+  double Ox = 0.;
+  double Oy = 0.;
+  double Oz = 0.;
+  double kmin = 0.;
+  double kmax = 0.;
+  int momin = 0;
+  int momax = 0;
+  IJK_Field_vector3_double force_;
   std::vector<std::vector< std:: vector < double > > > force;
-  double energie;
+  double energie = 0.;
 
-  int nproc_i,nproc_j,nproc_k;
-  int i_offset;
-  int j_offset;
-  int k_offset;
+  int nproc_i = 0;
+  int nproc_j = 0;
+  int nproc_k = 0;
+  int i_offset = 0;
+  int j_offset = 0;
+  int k_offset = 0;
 
 
 };
 
 std::vector< std::vector< std:: vector <double >>> set_dimensions(std::vector< std::vector< std:: vector <double >>> the_vector, int dim_one, int dim_two, int dim_three);
 
-// FixedVector<IJK_Field_double, 3> set_to_zero(FixedVector<IJK_Field_double, 3> vector)
+// IJK_Field_vector3_double set_to_zero(IJK_Field_vector3_double vector)
 // {
 // 		for (int dir=0; dir<3; dir++)
 // 			for (int i=0; i<vector[0].ni(); i++)

@@ -24,6 +24,7 @@
 #define IJK_FT_Post_included
 
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <Motcle.h>
 #include <TRUST_Vector.h>
 #include <Statistiques_dns_ijk_FT.h>
@@ -32,7 +33,7 @@
 #include <IJK_Interfaces.h>
 #include <Multigrille_Adrien.h>
 
-class IJK_FT;
+class IJK_FT_base;
 class IJK_Splitting;
 
 /*
@@ -43,7 +44,7 @@ class IJK_Energie;
 class IJK_Thermals;
 
 /**
- * All the post-processing stuff of IJK_FT delegated into this helper class:
+ * All the post-processing stuff of IJK_FT_base delegated into this helper class:
  */
 class IJK_FT_Post
 {
@@ -51,7 +52,7 @@ class IJK_FT_Post
   friend class Statistiques_dns_ijk_FT;
 
 public:
-  IJK_FT_Post(IJK_FT_double& ijk_ft);
+  IJK_FT_Post(IJK_FT_base& ijk_ft);
   void complete_interpreter(Param& param, Entree& e);
   int initialise(int reprise);
   void complete(int reprise);
@@ -66,6 +67,7 @@ public:
   void update_stat_ft(const double dt);
   void get_update_lambda2();
   void get_update_lambda2_and_rot_and_curl();
+  void activate_cut_cell() { cut_cell_activated_ = 1; };
 
   IJK_Field_double& rebuilt_indic()
   {
@@ -75,7 +77,7 @@ public:
   {
     return potentiel_;
   }
-  FixedVector<IJK_Field_double, 3>& coords()
+  IJK_Field_vector3_double& coords()
   {
     return coords_;
   }
@@ -86,6 +88,44 @@ public:
   bool postraiter_sous_pas_de_temps() const
   {
     return postraiter_sous_pas_de_temps_;
+  }
+  double get_timestep_simu_post(double current_time, double max_simu_time) const
+  {
+    // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
+    // Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
+    double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
+    double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
+    double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
+    double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
+    double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
+    double max_post_stats_cisaillement_timestep     = ((std::floor(current_time/time_interval_post_stats_cisaillement_) + 1)*time_interval_post_stats_cisaillement_ - current_time)*(1+1e-12);
+    double max_post_stats_rmf_timestep     = ((std::floor(current_time/time_interval_post_stats_rmf_) + 1)*time_interval_post_stats_rmf_ - current_time)*(1+1e-12);
+    if (max_post_timestep == 0)
+      {
+        max_post_timestep = max_simu_timestep;
+      }
+    if (max_post_thermals_probes_timestep == 0)
+      {
+        max_post_thermals_probes_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_bulles_timestep == 0)
+      {
+        max_post_stats_bulles_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_plans_timestep == 0)
+      {
+        max_post_stats_plans_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_cisaillement_timestep == 0)
+      {
+        max_post_stats_cisaillement_timestep = max_simu_timestep;
+      }
+    if (max_post_stats_rmf_timestep == 0)
+      {
+        max_post_stats_rmf_timestep = max_simu_timestep;
+      }
+
+    return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, std::min(max_post_stats_bulles_timestep, std::min(max_post_stats_cisaillement_timestep, max_post_stats_rmf_timestep))))));
   }
   int dt_post() const
   {
@@ -107,9 +147,9 @@ public:
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   const int& get_IJK_flag(const Nom& nom) const;
 
-  const FixedVector<IJK_Field_double, 3>& get_IJK_vector_field(const Nom& nom) const;
+  const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
 
-  inline FixedVector<IJK_Field_double, 3>& get_grad_I_ns()
+  inline IJK_Field_vector3_double& get_grad_I_ns()
   {
     return grad_I_ns_;
   }
@@ -119,20 +159,20 @@ public:
   void reprendre_post(Param& param);
 
   void fill_op_conv();
-  void fill_surface_force(FixedVector<IJK_Field_double, 3>& the_field_you_know);//const Nom lata_name, double instant, int iteration);
+  void fill_surface_force(IJK_Field_vector3_double& the_field_you_know);//const Nom lata_name, double instant, int iteration);
   void fill_surface_force_bis(const char * lata_name, double time, int time_iteration);
-  FixedVector<IJK_Field_double, 3> get_rho_Ssigma();
+  IJK_Field_vector3_double get_rho_Ssigma();
 
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
-  // Part of the run() method in IJK_FT:
+  // Part of the run() method in IJK_FT_base:
   int alloc_fields();
   int alloc_velocity_and_co(bool flag_variable_source);
   void completer_sondes();
   void postraiter_sondes();
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
-  void postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name,
+  void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
                       const ArrOfDouble& gravite, const Nom& nom_cas);
   //void ijk_interpolate_implementation_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
   //                                        int skip_unknown_points, double value_for_bad_points,const IJK_Field_double& indic);
@@ -170,7 +210,7 @@ public:
                                                           const int lata_step, const double current_time,
                                                           IJK_Energie& ,  const int idx);
 
-//  void calculer_gradient_temperature(const IJK_Field_double& temperature, FixedVector<IJK_Field_double, 3>& grad_T);
+//  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
 
   Motcles get_liste_post_instantanes() const
   {
@@ -179,26 +219,37 @@ public:
 protected:
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
-  int dt_post_;
-  int dt_post_thermals_probes_;
-  int dt_post_stats_plans_; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
-  int dt_post_stats_bulles_; // intervalle de posttraitement des donnees par bulles
-  int dt_post_stats_cisaillement_; // intervalle de posttraitement des données liés au cisaillement
-  int dt_post_stats_rmf_; // intervalle de posttraitement des données liés au au rmf
+
+  // Post-traitement selon un nombre de pas de temps
+  int dt_post_ = 100;
+  int dt_post_thermals_probes_ = 100;
+  int dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
+  int dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
+  int dt_post_stats_cisaillement_ = 100; // intervalle de posttraitement des données liés au cisaillement
+  int dt_post_stats_rmf_ = 100; // intervalle de posttraitement des données liés au au rmf
+
+  // Post-traitement selon un intervale de temps (en secondes)
+  double time_interval_post_ = DMAXFLOAT;
+  double time_interval_post_thermals_probes_ = DMAXFLOAT;
+  double time_interval_post_stats_bulles_ = DMAXFLOAT;
+  double time_interval_post_stats_plans_ = DMAXFLOAT;
+  double time_interval_post_stats_cisaillement_ = DMAXFLOAT;
+  double time_interval_post_stats_rmf_ = DMAXFLOAT;
+
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   // Pour numeroter les fichiers .lata il faut compter combien on en a ecrit:
-  int compteur_post_instantanes_;
-  int postraiter_sous_pas_de_temps_; // drapeau 0 ou 1
+  int compteur_post_instantanes_ = 0;
+  int postraiter_sous_pas_de_temps_ = 0; // drapeau 0 ou 1
   // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
-  int post_par_paires_; // drapeau 0 ou 1
+  int post_par_paires_ = 0; // drapeau 0 ou 1
 
   // Pour des fiches de validation, on post-traite le champ analytique attendu dans le lata pour calcul de l'erreur:
   Noms expression_vitesse_analytique_; // on attend trois expressions
-  Nom expression_pression_analytique_; // on attend une expression
+  Nom expression_pression_analytique_ = "??"; // par defaut, invalide, on attend une expression
   Noms expression_dvitesse_analytique_; // on attend trois expressions
 
   // Pour check_stats (and_grads)
-  int check_stats_;
+  int check_stats_ = 0;
   Noms expression_gradP_analytique_; // on attend trois expressions
   Noms expression_gradU_analytique_; // on attend trois expressions
   Noms expression_gradV_analytique_; // on attend trois expressions
@@ -219,40 +270,40 @@ protected:
   // 2020.03.12. CHOIX : Meme en disable_diphasique, on fait appel a la classe fille stats FT.
   // La classe de stats monophasique n'est plus maintenue. Suppression du membre.
   // Statistiques_dns_ijk_monophasique statistiques_;
-  double t_debut_statistiques_;
+  double t_debut_statistiques_ = 1.e20;
   // -------------------------------------------------
 
   // Pour les cas a bulles fixes
-  FixedVector<IJK_Field_double, 3> integrated_velocity_;
+  IJK_Field_vector3_double integrated_velocity_;
   IJK_Field_double integrated_pressure_;
   IJK_Field_double indicatrice_non_perturbe_;
   IJK_Field_double integrated_timescale_;
   // Pour la reprise bulles fixes, parametres de lecture de champ de condition initiale pour variables de post-tt:
-  Nom fichier_reprise_integrated_velocity_;
-  Nom fichier_reprise_integrated_pressure_;
-  Nom fichier_reprise_indicatrice_non_perturbe_;
-  Nom fichier_reprise_integrated_timescale_;
+  Nom fichier_reprise_integrated_velocity_ = "??";
+  Nom fichier_reprise_integrated_pressure_ = "??";
+  Nom fichier_reprise_indicatrice_non_perturbe_ = "??";
+  Nom fichier_reprise_integrated_timescale_ = "??";
 
   // Temporary storage for the coords (for postprocessing) :
-  FixedVector<IJK_Field_double, 3> coords_;
-  FixedVector<IJK_Field_double, 3> velocity_ana_;
-  FixedVector<IJK_Field_double, 3> ecart_ana_;
-  FixedVector<IJK_Field_double, 3> op_conv_;
-  FixedVector<IJK_Field_double, 3> cell_op_conv_;
-  FixedVector<IJK_Field_double, 3> rho_Ssigma_;
-  FixedVector<IJK_Field_double, 3> cell_rho_Ssigma_;
+  IJK_Field_vector3_double coords_;
+  IJK_Field_vector3_double velocity_ana_;
+  IJK_Field_vector3_double ecart_ana_;
+  IJK_Field_vector3_double op_conv_;
+  IJK_Field_vector3_double cell_op_conv_;
+  IJK_Field_vector3_double rho_Ssigma_;
+  IJK_Field_vector3_double cell_rho_Ssigma_;
 
-  FixedVector<IJK_Field_double, 3> d_velocity_ana_;
+  IJK_Field_vector3_double d_velocity_ana_;
   IJK_Field_double pressure_ana_,ecart_p_ana_;
 
   // Celui la est discretise sur le maillage etendu:
-  FixedVector<IJK_Field_double, 3> grad_I_ft_;
+  IJK_Field_vector3_double grad_I_ft_;
 
   // Pour postraitement :
   IJK_Field_double rebuilt_indic_;
   IJK_Field_double potentiel_;
   IJK_Field_double ai_ft_;
-  int extended_pressure_computed_;
+  int extended_pressure_computed_ = 0;
   IJK_Field_double pressure_ft_;
   IJK_Field_double extended_pl_ft_;
   IJK_Field_double extended_pv_ft_;
@@ -263,10 +314,10 @@ protected:
   // FixedVector<IJK_Field_double 3> dP_;
   // Pour le calcul des stats  :
   IJK_Field_double kappa_ai_ft_;
-  FixedVector<IJK_Field_double, 3> normale_cell_ft_;
+  IJK_Field_vector3_double normale_cell_ft_;
   IJK_Field_double ai_ns_;
   IJK_Field_double kappa_ai_ns_;
-  FixedVector<IJK_Field_double, 3> normale_cell_ns_;
+  IJK_Field_vector3_double normale_cell_ns_;
   // The following three fields are needed too for the gradient extension
 // /IJK_Field_double dudy_;
   //IJK_Field_double dvdx_;//
@@ -279,35 +330,35 @@ protected:
   IJK_Field_double dvdz_;
   IJK_Field_double dwdz_;
   IJK_Field_double critere_Q_;
-  FixedVector<IJK_Field_double, 3> rot_;
-  FixedVector<IJK_Field_double, 3> grad_I_ns_;
-  FixedVector<IJK_Field_double, 3> grad_P_;
-  //  FixedVector<IJK_Field_double, 3> grad_U_ns_;
-  //  FixedVector<IJK_Field_double, 3> grad_V_ns_;
-  //  FixedVector<IJK_Field_double, 3> grad_W_ns_;
+  IJK_Field_vector3_double rot_;
+  IJK_Field_vector3_double grad_I_ns_;
+  IJK_Field_vector3_double grad_P_;
+  //  IJK_Field_vector3_double grad_U_ns_;
+  //  IJK_Field_vector3_double grad_V_ns_;
+  //  IJK_Field_vector3_double grad_W_ns_;
   IJK_Field_double num_compo_ft_;
 
   // Pour la verification des stats :
   // Le gradient de pression aux faces :
-  //  FixedVector<IJK_Field_double, 3> gradP_;
+  //  IJK_Field_vector3_double gradP_;
   // Les gradients des compo de vitesses aux elems : (sont finalement stockes dans statistiques_FT_ si besoin)
-  //FixedVector<IJK_Field_double, 3> dUd_;
-  //FixedVector<IJK_Field_double, 3> dVd_;
-  //FixedVector<IJK_Field_double, 3> dWd_;
+  //IJK_Field_vector3_double dUd_;
+  //IJK_Field_vector3_double dVd_;
+  //IJK_Field_vector3_double dWd_;
   // Et leurs solutions analytiques :
-  FixedVector<IJK_Field_double, 3> ana_gradP_;
-  FixedVector<IJK_Field_double, 3> ana_dUd_;
-  FixedVector<IJK_Field_double, 3> ana_dVd_;
-  FixedVector<IJK_Field_double, 3> ana_dWd_;
+  IJK_Field_vector3_double ana_gradP_;
+  IJK_Field_vector3_double ana_dUd_;
+  IJK_Field_vector3_double ana_dVd_;
+  IJK_Field_vector3_double ana_dWd_;
   // Pour les deriv secondes :
-  FixedVector<IJK_Field_double, 3> ana_grad2Pi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Pc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Ui_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Uc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Vi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Vc_; // contient les deriv croisees
-  FixedVector<IJK_Field_double, 3> ana_grad2Wi_; // Partie diagonale de la jacobienne
-  FixedVector<IJK_Field_double, 3> ana_grad2Wc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Pi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Pc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Ui_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Uc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Vi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Vc_; // contient les deriv croisees
+  IJK_Field_vector3_double ana_grad2Wi_; // Partie diagonale de la jacobienne
+  IJK_Field_vector3_double ana_grad2Wc_; // contient les deriv croisees
 
   // GAB
   IJK_Field_double IFd_source_spectraleX_;
@@ -316,34 +367,34 @@ protected:
   IJK_Field_double source_spectraleZ_;
   // Pour post-traitement :
   IJK_Field_double lambda2_, dudy_, dvdx_, dwdy_;
-  FixedVector<IJK_Field_double, 3> cell_velocity_;
-  FixedVector<IJK_Field_double, 3> cell_source_spectrale_;
-  FixedVector<IJK_Field_double, 3> cell_bk_tsi_ns_;
-  //  FixedVector<IJK_Field_double, 3> cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> cell_grad_p_;
-  FixedVector<IJK_Field_double, 3> cell_source_interface_; // toujours en _ns_
-  FixedVector<IJK_Field_double, 3> cell_backup_source_interface_; // toujours en _ns_
-  FixedVector<IJK_Field_double, 3> cell_repulsion_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_velocity_;
+  IJK_Field_vector3_double cell_source_spectrale_;
+  IJK_Field_vector3_double cell_bk_tsi_ns_;
+  //  IJK_Field_vector3_double cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double cell_grad_p_;
+  IJK_Field_vector3_double cell_source_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_backup_source_interface_; // toujours en _ns_
+  IJK_Field_vector3_double cell_repulsion_interface_; // toujours en _ns_
 
 
-  int sondes_demande_;
+  int sondes_demande_ = 0;
   Sondes_IJK les_sondes_;  // Sondes a traiter
 
   /*
-   * References to various members of IJK_FT_double that are heavily used in the post:
+   * References to various members of IJK_FT_base that are heavily used in the post:
    */
-  IJK_FT_double& ref_ijk_ft_;
+  IJK_FT_base& ref_ijk_ft_;
 
   const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;
   IJK_Field_double& pressure_;                   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& velocity_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& source_spectrale_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3>& bk_tsi_ns_;
-  FixedVector<IJK_Field_double, 3> source_interface_ft_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> source_interface_ns_;   // non-const because some echange_espace_virtuel()
-  FixedVector<IJK_Field_double, 3> repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
-  const FixedVector<IJK_Field_double, 3>& d_velocity_;
+  IJK_Field_vector3_double& velocity_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double& source_spectrale_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double& bk_tsi_ns_;
+  IJK_Field_vector3_double source_interface_ft_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double source_interface_ns_;   // non-const because some echange_espace_virtuel()
+  IJK_Field_vector3_double repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
+  const IJK_Field_vector3_double& d_velocity_;
 
   IJK_Splitting& splitting_;
   IJK_Splitting& splitting_ft_;
@@ -355,9 +406,12 @@ protected:
   /* IJK_Field_double temperature_ana_, ecart_t_ana_;
     Nom expression_T_ana_;
     IJK_Field_double source_temperature_ana_, ecart_source_t_ana_; */
-  // FixedVector<IJK_Field_double, 3> grad_T_;
+  // IJK_Field_vector3_double grad_T_;
 
   Multigrille_Adrien poisson_solver_post_;
+
+  // Pour le post-traitement des champs cut-cell
+  int cut_cell_activated_;
 };
 
 

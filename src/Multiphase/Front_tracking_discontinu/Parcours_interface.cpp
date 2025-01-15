@@ -28,6 +28,8 @@
 #include <Param.h>
 #include <Scatter.h>
 #include <Debog.h>
+#include <FTd_tools.h>
+#include <IJK_Navier_Stokes_tools.h>
 //#define EXTENSION_TRIANGLE_POUR_CALCUL_INDIC_AVEC_CONSERVATION_FACETTE_COIN
 Implemente_instanciable_sans_constructeur(Parcours_interface,"Parcours_interface",Objet_U);
 
@@ -39,6 +41,7 @@ Entree& Parcours_interface::readOn(Entree& is)
 {
   Param param(que_suis_je());
   param.ajouter_flag("correction_parcours_thomas", &correction_parcours_thomas_);
+  param.ajouter_flag("parcours_sans_tolerance", &parcours_sans_tolerance_);
   param.lire_avec_accolades_depuis(is);
   return is;
 }
@@ -59,6 +62,7 @@ Parcours_interface::Parcours_interface()
   Valeur_max_coordonnees_ = 0.;
   Erreur_max_coordonnees_ = 0.;
   correction_parcours_thomas_ = 0;
+  parcours_sans_tolerance_ = 0;
 }
 
 /*! @brief La construction par copie est interdite !
@@ -525,8 +529,11 @@ int Parcours_interface::calcul_intersection_facelem_2D(
 
   // Estimation de l'incertitude sur l'evaluation de la fonction plan
   double Zero = - Erreur_max_coordonnees_;
+  double tolerance_comparaisons = Objet_U::precision_geom;
   if (correction_parcours_thomas_)
     Zero = 0.;
+  if (parcours_sans_tolerance_)
+    tolerance_comparaisons = 0.;
   // Extension du segment si un sommet au bord
   {
     const double dx = x1 - x0;
@@ -567,8 +574,8 @@ int Parcours_interface::calcul_intersection_facelem_2D(
       // Calcul de la fonction aux extremites du segment tronque.
       const double f0 = f_0 * u0 + f_1 * (1. - u0);
       const double f1 = f_0 * u1 + f_1 * (1. - u1);
-      const int s0_dehors = inf_strict(f0,Zero) ? 1 : 0;
-      const int s1_dehors = inf_strict(f1,Zero) ? 1 : 0;
+      const int s0_dehors = inf_strict(f0,Zero,tolerance_comparaisons) ? 1 : 0;
+      const int s1_dehors = inf_strict(f1,Zero,tolerance_comparaisons) ? 1 : 0;
 
       if (s0_dehors + s1_dehors == 1)
         {
@@ -611,6 +618,9 @@ int Parcours_interface::calcul_intersection_facelem_2D(
   if (inf_strict(surface,0.)) surface = 0.;
   // Contribution de volume :
   double volume = 0.;
+  // Contribution d'aire et de barycentre aux faces :
+  double aire_faces[3] = {0., 0., 0.};
+  double barycentre_faces[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
   // Computation of barycenter in phase 1 :
   double barycentre_phase1[3] = {0.,0.,0.};
 
@@ -654,6 +664,8 @@ int Parcours_interface::calcul_intersection_facelem_2D(
                                                             surface,
                                                             volume,
                                                             barycentre_phase1,
+                                                            aire_faces,
+                                                            barycentre_faces,
                                                             u_centre,
                                                             1. - u_centre,
                                                             0.);
@@ -1007,6 +1019,18 @@ inline double Parcours_interface::volume_triangle(const Domaine_VF& domaine_vf,
   return vol;
 }
 
+struct CutCell_Properties
+{
+  double volume;
+  double barycentre[3];
+};
+
+struct CutFace_Properties
+{
+  double area;
+  double barycentre[2];
+};
+
 /*! @brief Cette methode permet de calculer l'intersection entre une facette et un element du maillage eulerien
  *
  * Precondition: dimension = 3
@@ -1080,8 +1104,11 @@ int Parcours_interface::calcul_intersection_facelem_3D(
   }
   // Estimation de l'incertitude sur l'evaluation de la fonction plan
   double Zero = - Erreur_max_coordonnees_;
+  double tolerance_comparaisons = Objet_U::precision_geom;
   if (correction_parcours_thomas_)
     Zero = 0.;
+  if (parcours_sans_tolerance_)
+    tolerance_comparaisons = 0.;
 
   // polygone_plan_coupe contient pour chaque segment du polygone
   // le numero du plan de l'element qui a genere ce segment.
@@ -1119,7 +1146,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
       double w = poly_(i,2);
       // Calcul de la "fonction plan" au sommet du polygone
       double f = f0 * u + f1 * v + f2 * w;
-      int sommet_dehors = inf_strict(f,Zero) ? 1 : 0;
+      int sommet_dehors = inf_strict(f,Zero,tolerance_comparaisons) ? 1 : 0;
 
       for (i = 0; i < nb_sommets_poly; i++)
         {
@@ -1132,7 +1159,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
           w = poly_(i,2);
           // Calcul de la "fonction plan" au sommet du polygone
           f = f0 * u + f1 * v + f2 * w;
-          sommet_dehors = inf_strict(f,Zero) ? 1 : 0;
+          sommet_dehors = inf_strict(f,Zero,tolerance_comparaisons) ? 1 : 0;
           if (sommet_dehors + sommet_precedent_dehors == 1)
             {
               // Le dernier segment du polygone coupe le plan.
@@ -1178,6 +1205,9 @@ int Parcours_interface::calcul_intersection_facelem_3D(
     }
   // *********************************************************************
   const int nb_sommets_poly = poly_.dimension(0);
+  // Contribution d'aire et de barycentre aux faces :
+  double aire_faces[3] = {0., 0., 0.};
+  double barycentre_faces[3][2] = {{0., 0.}, {0., 0.}, {0., 0.}};
   // Calcul du centre de gravite et de la surface de l'intersection
   double volume = 0.;
   double surface = 0.;
@@ -1240,6 +1270,7 @@ int Parcours_interface::calcul_intersection_facelem_3D(
           }
       }
   }
+
   // En cas d'erreur d'arrondi ...
   if (surface < 0.) surface = 0.;
 
@@ -1247,8 +1278,8 @@ int Parcours_interface::calcul_intersection_facelem_3D(
   double barycentre_phase1[3] = {0.,0.,0.};
   if (correction_parcours_thomas_ || (sqrt(surface) > 5. * Erreur_max_coordonnees_))
     {
-      //normalisation du centre de gravite
-      if (sup_strict(surface,0.))
+      // normalisation du centre de gravite
+      if (sup_strict(surface,0.,tolerance_comparaisons))
         {
           u_centre /= surface;
           v_centre /= surface;
@@ -1300,18 +1331,33 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                     Erreur_max_coordonnees_);
           break;
         case HEXA:
-          if (flag_warning_code_missing)
-            {
-              Cerr << "WARNING : barycentre_phase1 not filled properly!!" << finl;
-              Cerr << "WARNING : Calculation of barycentre_phase1 not implemented yet for HEXA." << finl;
-              flag_warning_code_missing=0;
-            }
           maillage.calcul_normale_3D(num_facette,norme);
-          volume = volume_hexaedre(domaine_vf, num_element,
-                                   poly_reelles_,
-                                   norme, centre_de_gravite,
-                                   polygone_plan_coupe_,
-                                   Erreur_max_coordonnees_);
+          {
+            CutCell_Properties cut_cell_properties = volume_barycentre_hexaedre(domaine_vf, num_element,
+                                                                                poly_reelles_,
+                                                                                norme, centre_de_gravite,
+                                                                                polygone_plan_coupe_,
+                                                                                Erreur_max_coordonnees_);
+            volume = cut_cell_properties.volume;
+            barycentre_phase1[0] = cut_cell_properties.barycentre[0];
+            barycentre_phase1[1] = cut_cell_properties.barycentre[1];
+            barycentre_phase1[2] = cut_cell_properties.barycentre[2];
+          }
+
+          for (int i_face = 0; i_face < 3; i_face++)
+            {
+              // 0 = NUM_FACE_GAUCHE;
+              // 1 = NUM_FACE_BAS;
+              // 2 = NUM_FACE_ARRIERE;
+              CutFace_Properties cut_face_properties = coupe_face_rectangulaire(domaine_vf, num_element, i_face,
+                                                                                poly_reelles_,
+                                                                                norme,
+                                                                                polygone_plan_coupe_,
+                                                                                Erreur_max_coordonnees_);
+              aire_faces[i_face] = cut_face_properties.area;
+              barycentre_faces[i_face][0] = cut_face_properties.barycentre[0];
+              barycentre_faces[i_face][1] = cut_face_properties.barycentre[1];
+            }
           break;
         default:
           // qu'est-ce qu'on fout la ?
@@ -1326,6 +1372,8 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                                                 surface * 2.,
                                                                 volume,
                                                                 barycentre_phase1,
+                                                                aire_faces,
+                                                                barycentre_faces,
                                                                 u_centre,
                                                                 v_centre,
                                                                 1. - u_centre - v_centre);
@@ -1339,6 +1387,8 @@ int Parcours_interface::calcul_intersection_facelem_3D(
                                                                 0.,
                                                                 0.,
                                                                 barycentre_phase1,
+                                                                aire_faces,
+                                                                barycentre_faces,
                                                                 0., 0., 0.);
     }
 
@@ -1793,13 +1843,13 @@ double Parcours_interface::volume_tetraedre_reference(const DoubleTab& poly_reel
  * @param (epsilon) erreur relative
  * @return (double) contribution du volume engendre par la surface dans l'element
  */
-double Parcours_interface::volume_hexaedre(const Domaine_VF& domaine_vf,
-                                           int num_element,
-                                           const DoubleTab& poly_reelles,
-                                           const FTd_vecteur3& norme,
-                                           const FTd_vecteur3& centre_de_gravite,
-                                           const ArrOfInt& polygone_plan_coupe,
-                                           double epsilon) const
+CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_VF& domaine_vf,
+                                                                  int num_element,
+                                                                  const DoubleTab& poly_reelles,
+                                                                  const FTd_vecteur3& norme,
+                                                                  const FTd_vecteur3& centre_de_gravite,
+                                                                  const ArrOfInt& polygone_plan_coupe,
+                                                                  double epsilon) const
 {
   // Conventions TRUST VDF :
   static const int NUM_FACE_GAUCHE = 0;
@@ -1877,10 +1927,92 @@ double Parcours_interface::volume_hexaedre(const Domaine_VF& domaine_vf,
       aire_projetee += contrib_aire_projetee;
       i_prec = i;
     }
-  double v = 0.;
 
   // Volume de la partie "projection sur la face face_bas"
-  v = signe_princ * std::fabs(aire_projetee) * (centre_de_gravite[1] - y_bas);
+  double volume = 0.;
+
+  volume += signe_princ * std::fabs(aire_projetee) * (centre_de_gravite[1] - y_bas);
+
+  // Barycentre (pondere par le volume) de la partie "projection sur la face face_bas"
+  double volume_verification = 0.;
+  double barycentre[3] = {0};
+  assert(nb_sommets_poly >=2);
+  int i_min = 0;
+  for (i = 1; i < nb_sommets_poly; i++)
+    {
+      i_min = poly_reelles(i,1) < poly_reelles(i_min,1) ? i : i_min;
+    }
+  double y_min = poly_reelles(i_min,1);
+
+  // Volume et barycentre de la partie 'prisme'
+  double volume_prisme = std::fabs(aire_projetee * (y_min - y_bas));
+  double barycentre_prisme[3] =
+  {
+    (centre_de_gravite[0] - x_gauche)/(x_droite - x_gauche),
+    (0.5*y_min - 0.5*y_bas)/(y_haut - y_bas),
+    (centre_de_gravite[2] - z_arriere)/(z_avant - z_arriere)
+  };
+
+  assert(volume_prisme >= 0.);
+
+  volume_verification += signe_princ * volume_prisme;
+  barycentre[0] += signe_princ * volume_prisme*barycentre_prisme[0];
+  barycentre[1] += signe_princ * volume_prisme*barycentre_prisme[1];
+  barycentre[2] += signe_princ * volume_prisme*barycentre_prisme[2];
+
+  // Volume et barycentre de la partie 'chapeau'
+  // Le chapeau est un polyedre, union d'un certain nombre de tetraedres (deux par segment)
+  for (i = 0; i < nb_sommets_poly; i++)
+    {
+      const int i_precedent = (i-1) < 0 ? nb_sommets_poly-1 : (i-1);
+
+      // On n'inclue pas les tetraedres incluant i_min, car ils ne contribuent pas au volume
+      if ((i == i_min) || (i_precedent == i_min))
+        continue;
+
+      double tetraedre1_sommet1[3] = {poly_reelles(i,0),           poly_reelles(i,1),           poly_reelles(i,2)};
+      double tetraedre1_sommet2[3] = {poly_reelles(i_precedent,0), poly_reelles(i_precedent,1), poly_reelles(i_precedent,2)};
+      double tetraedre1_sommet3[3] = {poly_reelles(i_precedent,0), y_min,                       poly_reelles(i_precedent,2)};
+      double tetraedre1_sommet4[3] = {poly_reelles(i_min,0),       poly_reelles(i_min,1),       poly_reelles(i_min,2)};
+      double volume_tetraedre1 = std::fabs(FTd_calculer_volume_tetraedre(tetraedre1_sommet1, tetraedre1_sommet2, tetraedre1_sommet3, tetraedre1_sommet4));
+      double barycentre_tetraedre1[3] =
+      {
+        (0.25*(tetraedre1_sommet1[0] + tetraedre1_sommet2[0] + tetraedre1_sommet3[0]+ tetraedre1_sommet4[0]) - x_gauche)/(x_droite - x_gauche),
+        (0.25*(tetraedre1_sommet1[1] + tetraedre1_sommet2[1] + tetraedre1_sommet3[1]+ tetraedre1_sommet4[1]) - y_bas)/(y_haut - y_bas),
+        (0.25*(tetraedre1_sommet1[2] + tetraedre1_sommet2[2] + tetraedre1_sommet3[2]+ tetraedre1_sommet4[2]) - z_arriere)/(z_avant - z_arriere)
+      };
+
+      double tetraedre2_sommet1[3] = {poly_reelles(i,0),           poly_reelles(i,1),           poly_reelles(i,2)};
+      double tetraedre2_sommet2[3] = {poly_reelles(i_precedent,0), y_min,                       poly_reelles(i_precedent,2)};
+      double tetraedre2_sommet3[3] = {poly_reelles(i,0),           y_min,                       poly_reelles(i,2)};
+      double tetraedre2_sommet4[3] = {poly_reelles(i_min,0),       poly_reelles(i_min,1),       poly_reelles(i_min,2)};
+      double volume_tetraedre2 = std::fabs(FTd_calculer_volume_tetraedre(tetraedre2_sommet1, tetraedre2_sommet2, tetraedre2_sommet3, tetraedre2_sommet4));
+      double barycentre_tetraedre2[3] =
+      {
+        (0.25*(tetraedre2_sommet1[0] + tetraedre2_sommet2[0] + tetraedre2_sommet3[0]+ tetraedre2_sommet4[0]) - x_gauche)/(x_droite - x_gauche),
+        (0.25*(tetraedre2_sommet1[1] + tetraedre2_sommet2[1] + tetraedre2_sommet3[1]+ tetraedre2_sommet4[1]) - y_bas)/(y_haut - y_bas),
+        (0.25*(tetraedre2_sommet1[2] + tetraedre2_sommet2[2] + tetraedre2_sommet3[2]+ tetraedre2_sommet4[2]) - z_arriere)/(z_avant - z_arriere)
+      };
+
+      assert(volume_tetraedre1 >= 0.);
+      assert(volume_tetraedre2 >= 0.);
+
+      // Volume et barycentre (pondere par le volume) de la partie 'projection = chapeau + prisme'
+      volume_verification += signe_princ * (volume_tetraedre1 + volume_tetraedre2);
+      barycentre[0] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[0] + volume_tetraedre2*barycentre_tetraedre2[0]);
+      barycentre[1] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[1] + volume_tetraedre2*barycentre_tetraedre2[1]);
+      barycentre[2] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[2] + volume_tetraedre2*barycentre_tetraedre2[2]);
+    }
+
+  if (volume!=0)
+    {
+      // Les deux methodes devraient donner un volume proche, au moins dans le
+      // cas ou le volume n'est pas petit
+      //if (std::fabs(volume - volume_verification)/std::fabs(volume) > 1e-7)
+      //  {
+      //    assert(std::fabs(volume/v_elem) < 1e-7);
+      //  }
+    }
 
   // Recherche d'un segment coupant la face du haut
   for (i = 0; i < nb_sommets_poly; i++)
@@ -1906,7 +2038,59 @@ double Parcours_interface::volume_hexaedre(const Domaine_VF& domaine_vf,
             * (y_haut - y_bas)
             * (poly_reelles(coupe_face_haut,2) - poly_reelles(coupe_face_haut_p1,2));
 
-          v += signe_compl0 * std::fabs(vol_compl0);
+          volume += signe_compl0 * std::fabs(vol_compl0);
+
+          double min_x_coupe_face_haut;
+          double max_x_coupe_face_haut;
+          double z_coupe_face_haut_min_x;
+          double z_coupe_face_haut_max_x;
+          if (poly_reelles(coupe_face_haut,0) > poly_reelles(coupe_face_haut_p1,0))
+            {
+              min_x_coupe_face_haut = poly_reelles(coupe_face_haut_p1,0);
+              max_x_coupe_face_haut = poly_reelles(coupe_face_haut,0);
+              z_coupe_face_haut_min_x = poly_reelles(coupe_face_haut_p1,2);
+              z_coupe_face_haut_max_x = poly_reelles(coupe_face_haut,2);
+            }
+          else
+            {
+              min_x_coupe_face_haut = poly_reelles(coupe_face_haut,0);
+              max_x_coupe_face_haut = poly_reelles(coupe_face_haut_p1,0);
+              z_coupe_face_haut_min_x = poly_reelles(coupe_face_haut,2);
+              z_coupe_face_haut_max_x = poly_reelles(coupe_face_haut_p1,2);
+            }
+
+          // Volume et barycentre de la partie 'prisme rectangulaire'
+          double volume_prectangle = (min_x_coupe_face_haut - x_gauche) * (y_haut - y_bas) * std::fabs(poly_reelles(coupe_face_haut,2) - poly_reelles(coupe_face_haut_p1,2));
+          double barycentre_prectangle[3] =
+          {
+            (0.5*min_x_coupe_face_haut - 0.5*x_gauche)/(x_droite - x_gauche),
+            0.5,
+            (0.5*(poly_reelles(coupe_face_haut,2) + poly_reelles(coupe_face_haut_p1,2)) - z_arriere)/(z_avant - z_arriere)
+          };
+
+          // Volume et barycentre de la partie 'prisme triangulaire'
+          double volume_ptriangle = .5*(max_x_coupe_face_haut - min_x_coupe_face_haut) * (y_haut - y_bas) * std::fabs(poly_reelles(coupe_face_haut,2) - poly_reelles(coupe_face_haut_p1,2));
+          double barycentre_ptriangle[3] =
+          {
+            (min_x_coupe_face_haut + 1./3.*(max_x_coupe_face_haut - min_x_coupe_face_haut) - x_gauche)/(x_droite - x_gauche),
+            0.5,
+            (z_coupe_face_haut_max_x + 1./3.*(z_coupe_face_haut_min_x - z_coupe_face_haut_max_x) - z_arriere)/(z_avant - z_arriere)
+          };
+
+          volume_verification += signe_compl0 * std::fabs(volume_prectangle) + signe_compl0 * std::fabs(volume_ptriangle);
+          barycentre[0] += signe_compl0 * (volume_prectangle*barycentre_prectangle[0] + volume_ptriangle*barycentre_ptriangle[0]);
+          barycentre[1] += signe_compl0 * (volume_prectangle*barycentre_prectangle[1] + volume_ptriangle*barycentre_ptriangle[1]);
+          barycentre[2] += signe_compl0 * (volume_prectangle*barycentre_prectangle[2] + volume_ptriangle*barycentre_ptriangle[2]);
+
+          if (volume!=0)
+            {
+              // Les deux methodes devraient donner un volume proche, au moins dans le
+              // cas ou le volume n'est pas petit
+              //if (std::fabs(volume - volume_verification)/std::fabs(volume) > 1e-7)
+              //  {
+              //    assert(std::fabs(volume/v_elem) < 1e-7);
+              //  }
+            }
 
           if (coupe_face_droite >= 0)
             {
@@ -1917,25 +2101,275 @@ double Parcours_interface::volume_hexaedre(const Domaine_VF& domaine_vf,
                 * (y_haut - y_bas)
                 * (poly_reelles(coupe_face_droite,2) - z_arriere);
 
-              v += signe_compl1 * std::fabs(vol_compl1);
+              volume += signe_compl1 * std::fabs(vol_compl1);
+              barycentre[0] += signe_compl1 * std::fabs(vol_compl1) * .5;
+              barycentre[1] += signe_compl1 * std::fabs(vol_compl1) * .5;
+              barycentre[2] += signe_compl1 * std::fabs(vol_compl1) * (.5*poly_reelles(coupe_face_droite,2) - 0.5*z_arriere)/(z_avant - z_arriere);
             }
         }
     }
 
-  //normalisation par le volume de l'element
-  v /= v_elem;
+  // Normalisation par le volume de l'element
+  volume /= v_elem;
+  barycentre[0] /= v_elem;
+  barycentre[1] /= v_elem;
+  barycentre[2] /= v_elem;
+
+  assert((volume >= -2) && (volume <= 2));
+
+  if (volume == 0.)
+    {
+      barycentre[0] = 1./2.;
+      barycentre[1] = 1./2.;
+      barycentre[2] = 1./2.;
+    }
+  else
+    {
+      // Division par le volume pour calcul du barycentre
+      barycentre[0] /= abs(volume);
+      barycentre[1] /= abs(volume);
+      barycentre[2] /= abs(volume);
+    }
+
+  if (std::abs(volume) > 1e-11)
+    {
+      assert(barycentre[0] != 0);
+      assert(barycentre[1] != 0);
+      assert(barycentre[2] != 0);
+      assert(barycentre[0] != 1);
+      assert(barycentre[1] != 1);
+      assert(barycentre[2] != 1);
+    }
 
   // On force la valeur entre 0 et 1 strictement.
 #if 0
   // B.Math 10/09/2004: il faut corriger le calcul pour que les
   // contributions soient entre 0 et 1, ensuite on pourra faire ca:
-  if (v < Erreur_relative_maxi_)
-    v = Erreur_relative_maxi_;
-  else if (v > 1. - Erreur_relative_maxi_)
-    v = 1. - Erreur_relative_maxi_;
+  if (volume < Erreur_relative_maxi_)
+    volume = Erreur_relative_maxi_;
+  else if (volume > 1. - Erreur_relative_maxi_)
+    volume = 1. - Erreur_relative_maxi_;
 #endif
 
-  return v;
+  return {volume, {barycentre[0], barycentre[1], barycentre[2]}};
+}
+
+/*! @brief Calcul de la contribution d'une facette a l'indicatrice surfacique et au barycentre sur une face d'un element.
+ *
+ * Precondition: dimension = 3
+ *
+ * @param (domaine_vf) domaine du calcul
+ * @param (num_element) indice de l'element intersecte
+ * @param (num_face) indice de la face, au sein de l'element
+ * @param (poly_reelles) coordonnees (reelles) des sommets definissant une surface contenue dans l'element (en pratique : surface d'intersection entre une facette d'interface et l'element)
+ * @param (norme) normale a la facette
+ * @param (epsilon) erreur relative
+ * @return (CutFace_Properties) contribution de la surface engendre par le segment sur la face, et au barycentre de cette surface
+ */
+CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF& domaine_vf,
+                                                                int num_element,
+                                                                int num_face,
+                                                                const DoubleTab& poly_reelles,
+                                                                const FTd_vecteur3& norme,
+                                                                const ArrOfInt& polygone_plan_coupe,
+                                                                double epsilon) const
+{
+  // Conventions TRUST VDF :
+  //static const int NUM_FACE_GAUCHE = 0;
+  //static const int NUM_FACE_DROITE = 3;
+  //static const int NUM_FACE_BAS = 1;
+  //static const int NUM_FACE_HAUT = 4;
+  //static const int NUM_FACE_ARRIERE = 2;
+  //static const int NUM_FACE_AVANT = 5;
+
+  // Directions de projection :
+  //  * Si FACE_GAUCHE  (plan zy), on projete sur z_arriere
+  //  * Si FACE_DROITE  (plan zy), on projete sur z_arriere
+  //  * Si FACE_BAS     (plan xz), on projete sur x_gauche
+  //  * Si FACE_HAUT    (plan xz), on projete sur x_gauche
+  //  * Si FACE_ARRIERE (plan yx), on projete sur y_bas
+  //  * Si FACE_AVANT   (plan yx), on projete sur y_bas
+  // Pour un plan xy par exemple, la direction dir1 correspond a x et la
+  // direction dir2 correspond a y.
+
+  // Directions du plan de la face
+  int dir1 = select(num_face, 2, 0, 1);
+  int dir2 = select(num_face, 1, 2, 0);
+
+  // Coordonnees maximale et minimale dans la direction 1
+  double min1 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir1), dir1);
+  double max1 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir1+3), dir1);
+
+  // Coordonnees maximale et minimale dans la direction 2
+  double min2 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir2), dir2);
+  double max2 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir2+3), dir2);
+
+  // Determination des signes pour les differentes composantes :
+  double signe1, signe2;
+  if (norme[dir1]>0.)
+    {
+      signe1 = -1;
+    }
+  else if (norme[dir1]<0.)
+    {
+      signe1 = 1;
+    }
+  else
+    {
+      signe1 = 0;
+    }
+  if (norme[dir2]>0.)
+    {
+      signe2 = +1;
+    }
+  else if (norme[dir2]<0.)
+    {
+      signe2 = -1;
+    }
+  else
+    {
+      signe2 = 0;
+    }
+
+  // Surface de la face
+  double aire_face = (max1 - min1) * (max2 - min2);
+  assert(aire_face>0.);
+
+  const int nb_sommets_poly = poly_reelles.dimension(0);
+
+  double aire = 0.;
+  double barycentre[2] = {0};
+  for (int i = 0; i < nb_sommets_poly; i++)
+    {
+      // On ne considere que les segments sur la face consideree
+      // Normalement, il ne peut y en avoir qu'un par facette
+      if (polygone_plan_coupe[i] == num_face)
+        {
+          // Calcul de la contribution de l'arete a l'aire projetee dans le plan (dir1,dir2)
+          // par la somme algebrique des aires des trapezes generes par la projection de l'arete sur l'axe dir1=min1
+          // Le signe de l'aire indique la phase correspondante (positive pour la phase disperse).
+          //
+          // Representation graphique de la methode :
+          // /  Segment
+          // +  Points du segment
+          // =  Aire associee au segment (partie rectangle)
+          // .  Aire associee au segment (partie triangle)
+          // -  Aire associee au segment (partie coupe_max1)
+          // :  Separation entre le rectangle et le triangle
+          //
+          //     dir2                       dir2
+          // max2 .------------.        max2 .------------.
+          //      |            |             |------------|
+          //      |====...+B   |             |------------|
+          //      |====../     |             |------------|
+          //      |====./      |             |=========...+D
+          //      |====+A      |             |=========../|
+          //      |            |             |=========./ |
+          // min2 '------------' dir1   min2 '========C+--' dir1
+          //     min1        max1           min1        max1
+          //           (a)                        (b)
+          //
+          //     dir2                       dir2
+          // max2 .------------.H       max2 .======G+----.H
+          //      |------------|             |=======.\   |
+          //      |--------F+--|             |=======+F+  |
+          //      |         :\-|             |            |
+          //      |         : \|             |            |
+          //      |         +  +E            |            |
+          //      |            |             |            |
+          // min2 '------------' dir1   min2 '------------' dir1
+          //     min1        max1           min1        max1
+          //           (c)                        (d)
+          //
+          // Note : Dans le cas (c), l'aire du triangle et du rectangle
+          // sont compenses par une partie de l'aire de coupe_max1.
+          // En sommant algebriquement les surfaces des cas (c) et (d),
+          // on doit retrouver l'aire du triangle EGH (au signe pres)
+
+          const int i_moins_1 = (i == 0) ? (nb_sommets_poly - 1) : (i-1);
+          const int i_plus_1 = (i == (nb_sommets_poly-1)) ? 0 : (i+1);
+
+          int i_long_side = poly_reelles(i,dir1) < poly_reelles(i_moins_1,dir1) ? i_moins_1 : i;
+          int i_short_side = poly_reelles(i,dir1) < poly_reelles(i_moins_1,dir1) ? i : i_moins_1;
+
+          // Aire et barycentre de la partie 'rectangle'
+          double area_rectangle = abs(poly_reelles(i,dir2) - poly_reelles(i_moins_1,dir2)) * abs(poly_reelles(i_short_side,dir1) - min1);
+          double barycentre_rectangle[2] =
+          {
+            (.5*(poly_reelles(i_short_side,dir1) - min1))/(max1 - min1),
+            (.5*(poly_reelles(i,dir2) + poly_reelles(i_moins_1,dir2)) - min2)/(max2 - min2)
+          };
+
+          // Aire et barycentre de la partie 'triangle'
+          double area_triangle = abs(poly_reelles(i,dir2) - poly_reelles(i_moins_1,dir2)) * .5*(poly_reelles(i_long_side,dir1) - poly_reelles(i_short_side,dir1));
+          double barycentre_triangle[2] =
+          {
+            (poly_reelles(i_short_side,dir1) - min1 + 1./3.*(poly_reelles(i_long_side,dir1) - poly_reelles(i_short_side,dir1)))/(max1 - min1),
+            (poly_reelles(i_long_side,dir2) - min2 + 1./3.*(poly_reelles(i_short_side,dir2) - poly_reelles(i_long_side,dir2)))/(max2 - min2)
+          };
+
+          assert(area_rectangle + area_triangle >= 0.);
+
+          // Aire et barycentre (pondere par l'aire) de la partie 'projection = triangle + rectangle'
+          aire += signe1 * (area_rectangle + area_triangle);
+          barycentre[0] += signe1 * (area_triangle*barycentre_triangle[0] + area_rectangle*barycentre_rectangle[0]);
+          barycentre[1] += signe1 * (area_triangle*barycentre_triangle[1] + area_rectangle*barycentre_rectangle[1]);
+
+          // Un segment voisin est-il sur dir1=max1
+          int coupe_max1 = -1;
+          if (polygone_plan_coupe[i_moins_1] == dir1+3)
+            coupe_max1 = i_moins_1;
+          else if (polygone_plan_coupe[i_plus_1] == dir1+3)
+            coupe_max1 = i;//_suivant;
+
+          if (coupe_max1 >= 0)
+            {
+              // Aire et barycentre de la partie 'coupe_max1'
+              double area_coupe_max1 = (max1 - min1) * abs(max2 - poly_reelles(coupe_max1,dir2));
+              double barycentre_coupe_max1[2] =
+              {
+                .5,
+                (.5*(poly_reelles(coupe_max1,dir2) + max2) - min2)/(max2 - min2)
+              };
+
+              assert(area_coupe_max1 >= 0.);
+
+              // Ajout de la contribution de 'coupe_max1' a l'aire et au barycentre (pondere par l'aire)
+              aire += signe2 * area_coupe_max1;
+              barycentre[0] += barycentre_coupe_max1[0] * signe2 * area_coupe_max1;
+              barycentre[1] += barycentre_coupe_max1[1] * signe2 * area_coupe_max1;
+            }
+
+        }
+    }
+
+  // Normalisation par l'aire de la face
+  aire /= aire_face;
+  barycentre[0] /= aire_face;
+  barycentre[1] /= aire_face;
+
+
+  if (aire == 0.)
+    {
+      barycentre[0] = 1./2.;
+      barycentre[1] = 1./2.;
+    }
+  else
+    {
+      // Division par l'aire pour calcul du barycentre
+      barycentre[0] /= abs(aire);
+      barycentre[1] /= abs(aire);
+    }
+
+  // On force la valeur entre 0 et 1 strictement.
+#if 0
+  if (aire < Erreur_relative_maxi_)
+    aire = Erreur_relative_maxi_;
+  else if (aire > 1. - Erreur_relative_maxi_)
+    aire = 1. - Erreur_relative_maxi_;
+#endif
+
+  return {aire, {barycentre[0], barycentre[1]}};
 }
 
 /*! @brief Pour un point P0 (x0, y0, z0) a l'INTERIEUR de l'element num_element et un autre point P1 (x1, y1, z1), calcule l'intersection du segment (P0,P1)

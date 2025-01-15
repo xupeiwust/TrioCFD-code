@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Sonde_IJK.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Sonde_IJK_included
 #define Sonde_IJK_included
@@ -27,14 +21,9 @@
 #include <IJK_Field.h>
 #include <TRUST_Ref.h>
 
-class IJK_FT_double;
+class IJK_FT_base;
 
 /*! @brief : class Sonde_IJK
- *
- *  <Description of class Sonde_IJK>
- *
- *
- *
  */
 class Sonde_IJK : public Sonde
 {
@@ -43,7 +32,7 @@ class Sonde_IJK : public Sonde
 
 public :
   inline Sonde_IJK(const Nom& );
-  void completer_IJK(const IJK_FT_double& ijk_ft);
+  void completer_IJK(const IJK_FT_base& ijk_ft);
   void initialiser();
   void nommer(const Nom& nom) override
   {
@@ -53,7 +42,7 @@ public :
   void postraiter();
 protected :
 
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   OBS_PTR(IJK_Field_double) ref_ijk_field_;
   Postraitement post_bidon_;
   Nom nom_;                                // le nom de la sonde

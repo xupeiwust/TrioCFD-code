@@ -46,11 +46,13 @@ SFichier Open_file_folder(const Nom& folder,
                           const Nom& suffix,
                           const Nom& head,
                           const int reset,
+                          const int sep,
                           const int prec)
 {
 
   Nom s(folder);
-  s+= "/";
+  if (sep)
+    s+= "/";
   s+= Nom(Objet_U::nom_du_cas());
   s+= suffix;
   IOS_OPEN_MODE mode = (reset) ? ios::out : ios::app;

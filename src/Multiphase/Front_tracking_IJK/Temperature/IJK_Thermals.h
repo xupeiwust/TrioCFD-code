@@ -27,15 +27,8 @@
 #include <TRUST_List.h>
 #include <System.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Thermals
-//
-// <Description of class IJK_Thermals>
-//
-/////////////////////////////////////////////////////////////////////////////
 
-class IJK_FT_double;
+class IJK_FT_base;
 class Switch_FT_double;
 
 class IJK_Thermals : public LIST(IJK_Thermal)
@@ -44,10 +37,10 @@ class IJK_Thermals : public LIST(IJK_Thermal)
   Declare_instanciable( IJK_Thermals ) ;
 
 public :
-  IJK_Thermals(const IJK_FT_double& ijk_ft);
+  IJK_Thermals(const IJK_FT_base& ijk_ft);
   void set_fichier_reprise(const char *lataname);
-  const Nom& get_fichier_reprise();
-  void associer(const IJK_FT_double& ijk_ft);
+  const Nom get_fichier_reprise();
+  void associer(const IJK_FT_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell_,
@@ -58,6 +51,10 @@ public :
   void compute_timestep(double& dt_thermals, const double dxmin);
   void initialize(const IJK_Splitting& splitting, int& nalloc);
   void recompute_temperature_init();
+  void remplir_cellules_diphasiques();
+  void remplir_cellules_devenant_diphasiques();
+  void remplir_cellules_maintenant_pures();
+  void transfert_diphasique_vers_pures();
   int size_thermal_problem(Nom thermal_problem);
   void update_thermal_properties();
   void euler_time_step(const double timestep);
@@ -65,6 +62,7 @@ public :
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time);
   void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
                             const double fractionnal_timestep, const double time);
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface);
   void posttraiter_tous_champs_thermal(Motcles& liste_post_instantanes_);
   void posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes,
                                               const char *lata_name,
@@ -91,7 +89,9 @@ public :
   int get_disable_post_processing_probes_out_files() const;
   double get_modified_time();
   void get_rising_velocities_parameters(int& compute_rising_velocities,
-                                        int& fill_rising_velocities);
+                                        int& fill_rising_velocities,
+                                        int& use_bubbles_velocities_from_interface,
+                                        int& use_bubbles_velocities_from_barycentres);
   void create_folders_for_probes();
   void create_folders(Nom folder_name_base);
   void set_first_step_thermals_post(int& first_step_thermals_post);
@@ -107,10 +107,10 @@ public :
                                  IntTab Indice_j,
                                  DoubleTab& coeff_k,
                                  IntTab Indice_k);
-
+  void copy_previous_interface_state();
 
 protected :
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
@@ -124,8 +124,13 @@ protected :
   LIST(Nom) thermal_rank_folder_;
   Nom overall_bubbles_quantities_folder_;
   Nom interfacial_quantities_thermal_probes_folder_;
+  Nom shell_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_folder_;
   Nom local_quantities_thermal_probes_time_index_folder_;
+  Nom local_quantities_thermal_slices_folder_;
+  Nom local_quantities_thermal_slices_time_index_folder_;
+  Nom local_quantities_thermal_lines_folder_;
+  Nom local_quantities_thermal_lines_time_index_folder_;
   int ini_folder_out_files_ = 0;
 
   bool is_diphasique_=false;

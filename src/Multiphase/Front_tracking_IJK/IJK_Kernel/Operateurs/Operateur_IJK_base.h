@@ -18,9 +18,12 @@
 
 #include <IJK_Field.h>
 #include <IJK_ptr.h>
+#include <IJK_Field_vector.h>
+#include <IJK_Field_simd_tools.h>
 #include <IJK_Splitting.h>
 #include <Operateur_IJK_data_channel.h>
 #include <Corrige_flux_FT_base.h>
+#include <IJK_Navier_Stokes_tools.h>
 
 inline void putzero(IJK_Field_local_double& flux)
 {
@@ -85,9 +88,10 @@ class Operateur_IJK_elem_base_double : public Objet_U
 
 public:
   virtual void initialize(const IJK_Splitting& splitting)=0;
+  void set_runge_kutta(int rk_step, double dt_tot, IJK_Field_vector3_double& current_fluxes, IJK_Field_vector3_double& RK3_F_fluxes);
   virtual void compute_set(IJK_Field_double& dx);
   virtual void compute_add(IJK_Field_double& dx);
-  virtual void compute_grad(FixedVector<IJK_Field_double, 3>& dx);
+  virtual void compute_grad(IJK_Field_vector3_double& dx);
   virtual void compute_grad_x(IJK_Field_double& dx);
   virtual void compute_grad_y(IJK_Field_double& dx);
   virtual void compute_grad_z(IJK_Field_double& dx);
@@ -95,21 +99,30 @@ protected:
   // The derived class must implement the computation of fluxes (3 fluxes, one per direction)
   virtual void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
                                 const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
-                                IJK_Field_local_double& resu, int k_layer, bool add);
-  virtual void correct_flux(IJK_Field_local_double *const flux,	const int k_layer, const int dir) { ; };
+                                IJK_Field_double& resu, int k_layer, bool add);
+  virtual void correct_flux(IJK_Field_local_double *const flux,	const int k_layer, const int dir);
   virtual void correct_flux_spherical(Simd_double& a, Simd_double& b, const int& i, const int& j, int k_layer, int dir) { ; };
 
   virtual void compute_flux_x(IJK_Field_local_double& resu, const int k_layer) = 0;
   virtual void compute_flux_y(IJK_Field_local_double& resu, const int k_layer) = 0;
   virtual void compute_flux_z(IJK_Field_local_double& resu, const int k_layer) = 0;
+  virtual double compute_flux_local_x(int i, int j, int k) { return -DMINFLOAT; };
+  virtual double compute_flux_local_y(int i, int j, int k) { return -DMINFLOAT; };
+  virtual double compute_flux_local_z(int i, int j, int k) { return -DMINFLOAT; };
+
+  bool runge_kutta_flux_correction_ = false;
+  int rk_step_ = -1;
+  double dt_tot_ = 0.;
+  IJK_Field_vector3_double *current_fluxes_;
+  IJK_Field_vector3_double *RK3_F_fluxes_;
 
 private:
   void compute_(IJK_Field_double& dx, bool add);
   virtual void fill_grad_field_x_y_(IJK_Field_local_double& flux, IJK_Field_double& resu, int k, int dir) { ; };
   virtual void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_double& resu, int k) { ; };
-  void fill_grad_field_x_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k);
-  void fill_grad_field_y_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k);
-  void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, FixedVector<IJK_Field_double, 3>& resu, int k);
+  void fill_grad_field_x_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k);
+  void fill_grad_field_y_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k);
+  void fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_vector3_double& resu, int k);
 };
 
 #endif

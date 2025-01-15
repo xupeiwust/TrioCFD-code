@@ -135,6 +135,8 @@ public:
   // Echange des espaces virtuels pour differents types de tableaux
   void echange_espace_virtuel(ArrOfDouble& tab) const;
   void echange_espace_virtuel(ArrOfInt& tab) const;
+  void echange_espace_virtuel(ArrOfDouble& tab, MD_Vector_tools::Operations_echange op) const;
+  void echange_espace_virtuel(ArrOfInt& tab, MD_Vector_tools::Operations_echange op) const;
 
   // Collection des donnees virtuelles (sommation des valeurs virtuelles
   // sur les differents processeurs et collection sur le noeud reel,

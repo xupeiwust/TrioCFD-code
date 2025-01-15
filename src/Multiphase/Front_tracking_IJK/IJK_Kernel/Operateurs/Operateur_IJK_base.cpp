@@ -14,6 +14,8 @@
 *****************************************************************************/
 
 #include <Operateur_IJK_base.h>
+#include <IJK_Field_vector.h>
+#include <Cut_cell_FT_Disc.h>
 // Definition of the fluxes
 //
 //  control volumes for velocity in x direction:
@@ -51,7 +53,7 @@ static inline void swap_data(IJK_Field_local_double*& a, IJK_Field_local_double*
 //  resu(i,j,k) += ...
 static void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
                              const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
-                             IJK_Field_local_double& resu, int k_layer, bool add)
+                             IJK_Field_double& resu, int k_layer, bool add)
 {
   ConstIJK_double_ptr fx(flux_x, 0, 0, 0);
   ConstIJK_double_ptr fy(flux_y, 0, 0, 0);
@@ -275,6 +277,26 @@ Entree& Operateur_IJK_elem_base_double::readOn(Entree& is)
   return is;
 }
 
+void Operateur_IJK_elem_base_double::set_runge_kutta(int rk_step, double dt_tot, IJK_Field_vector3_double& current_fluxes, IJK_Field_vector3_double& RK3_F_fluxes)
+{
+  if (rk_step == -1)
+    {
+      runge_kutta_flux_correction_ = false;
+      rk_step_ = -1;
+      dt_tot_ = 0;
+      current_fluxes_ = nullptr;
+      RK3_F_fluxes_ = nullptr;
+    }
+  else
+    {
+      runge_kutta_flux_correction_ = true;
+      rk_step_ = rk_step;
+      dt_tot_ = dt_tot;
+      current_fluxes_ = &current_fluxes;
+      RK3_F_fluxes_ = &RK3_F_fluxes;
+    }
+}
+
 void Operateur_IJK_elem_base_double::compute_set(IJK_Field_double& dx)
 {
   compute_(dx, 0);
@@ -284,7 +306,6 @@ void Operateur_IJK_elem_base_double::compute_add(IJK_Field_double& dx)
 {
   compute_(dx, 1);
 }
-
 
 void Operateur_IJK_elem_base_double::compute_(IJK_Field_double& dx, bool add)
 {
@@ -326,7 +347,7 @@ void Operateur_IJK_elem_base_double::compute_(IJK_Field_double& dx, bool add)
 
 void Operateur_IJK_elem_base_double::Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
                                                       const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
-                                                      IJK_Field_local_double& resu, int k_layer, bool add)
+                                                      IJK_Field_double& resu, int k_layer, bool add)
 {
   ConstIJK_double_ptr fx(flux_x, 0, 0, 0);
   ConstIJK_double_ptr fy(flux_y, 0, 0, 0);
@@ -375,7 +396,39 @@ void Operateur_IJK_elem_base_double::Operator_IJK_div(const IJK_Field_local_doub
 
 }
 
-void Operateur_IJK_elem_base_double::compute_grad(FixedVector<IJK_Field_double, 3>& dx)
+void Operateur_IJK_elem_base_double::correct_flux(IJK_Field_local_double *const flux,	const int k_layer, const int dir)
+{
+  if (runge_kutta_flux_correction_)
+    {
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                (*current_fluxes_)[dir](i,j,k_layer) = (*flux)(i,j,0);
+              }
+          }
+      }
+
+      runge_kutta3_update_surfacic_fluxes((*current_fluxes_)[dir], (*RK3_F_fluxes_)[dir], rk_step_, k_layer, dt_tot_);
+
+      {
+        int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
+        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        for (int j = 0; j < nj; j++)
+          {
+            for (int i = 0; i < ni; i++)
+              {
+                (*flux)(i,j,0) = (*current_fluxes_)[dir](i,j,k_layer);
+              }
+          }
+      }
+    }
+}
+
+void Operateur_IJK_elem_base_double::compute_grad(IJK_Field_vector3_double& dx)
 {
   IJK_Field_local_double storage;
   storage.allocate(dx[0].ni()+1, dx[0].nj()+1, 4, 0);
@@ -451,17 +504,17 @@ void Operateur_IJK_elem_base_double::compute_grad_z(IJK_Field_double& dx)
     }
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_x_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_x_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_x_y_(flux, resu[0], k, 0);
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_y_(IJK_Field_local_double& flux, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_y_(IJK_Field_local_double& flux, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_x_y_(flux, resu[1], k, 1);
 }
 
-void Operateur_IJK_elem_base_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, FixedVector<IJK_Field_double, 3>& resu, int k)
+void Operateur_IJK_elem_base_double::fill_grad_field_z_(IJK_Field_local_double& flux_min, IJK_Field_local_double& flux_max, IJK_Field_vector3_double& resu, int k)
 {
   fill_grad_field_z_(flux_min, flux_max, resu[2], k);
 }

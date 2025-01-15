@@ -37,6 +37,7 @@
 
 #include <Objet_U.h>
 #include <IJK_Field.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Splitting.h>
 #include <IJK_Field_forward.h>
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
@@ -59,15 +60,8 @@ class IJK_Interfaces;
 
 class Intersection_Interface_ijk : public Objet_U
 {
-  Declare_base_sans_constructeur(Intersection_Interface_ijk);
+  Declare_base(Intersection_Interface_ijk);
 public:
-  Intersection_Interface_ijk()
-  {
-    projected_on_interface_flag_ = false;
-    n_diph_ = 1;
-    interfaces_=nullptr;
-    splitting_=nullptr;
-  };
   virtual int initialize(const IJK_Splitting& splitting,
                          const IJK_Interfaces& interfaces) = 0;
 
@@ -108,15 +102,15 @@ public:
 protected:
   // Intersection_Interface_ijk_face n'est pas propriétaire de ces objets, pas
   // de gestion de la mémoire.
-  const IJK_Interfaces *interfaces_;
+  const IJK_Interfaces *interfaces_ = nullptr;
   /*
    * TODO: create pointers that point to object
    * shared with IJK_Interfaces ?
    */
-  const IJK_Splitting *splitting_;
+  const IJK_Splitting *splitting_ = nullptr;
 
   // Le nombre de cellules diphasiques.
-  int n_diph_;
+  int n_diph_ = 1;
   // La projection de chaque bary de face mouille sur l'interface
   DoubleTab positions_on_interf_;
   // La distance a l'interface
@@ -125,7 +119,7 @@ protected:
   DoubleTab normal_on_interf_;
   // Flag qui est remis a 0 a chaque maj des projections des barys des
   // faces mouillées sur l'interface
-  bool projected_on_interface_flag_;
+  bool projected_on_interface_flag_ = true;
 
   // Ici on recupere l'interface moyenne sur une cellule telle quelle etait au debut du
   // pas de temps.
@@ -155,7 +149,7 @@ protected:
   IntTab ijkf_interfaces_;
   // Le tableau qui donne pour un triplet ijk le numéro de la cellule diphasique
   // correspondante (-1. si la cellule n'est pas diphasique).
-  FixedVector<IJK_Field_int, 3> idiph_ijk_;
+  IJK_Field_vector3_int idiph_ijk_;
 
   // Calcul les positions des points sur l'interface.
   // Les centres de grav des faces mouillées sont projecté

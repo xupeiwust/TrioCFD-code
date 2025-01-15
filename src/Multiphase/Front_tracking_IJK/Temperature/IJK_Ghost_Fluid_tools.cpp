@@ -20,6 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Ghost_Fluid_tools.h>
+#include <IJK_Field_vector.h>
 #include <Probleme_base.h>
 #include <DebogIJK.h>
 #include <stat_counters.h>
@@ -129,16 +130,20 @@ static void extrapolate_with_elem_faces_connectivity(const Domaine_VF& domaine_v
 static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
                                          const IJK_Field_double& indicator,
                                          IJK_Field_double& field,
-                                         const int stencil_width,
-                                         const int recompute_field_ini,
-                                         const int zero_neighbour_value_mean,
-                                         const int vapour_mixed_only)
+                                         const int& stencil_width,
+                                         const int& recompute_field_ini,
+                                         const int& zero_neighbour_value_mean,
+                                         const int& vapour_mixed_only,
+                                         const int& smooth_factor)
 {
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "GFM - Extrapolate gfm temperature values");
+  statistiques().begin_count(stat_counter);
+
   int neighbours_i[6] = NEIGHBOURS_I;
   int neighbours_j[6] = NEIGHBOURS_J;
   int neighbours_k[6] = NEIGHBOURS_K;
   const double invalid_test = INVALID_TEST;
-  const double n_iterations = zero_neighbour_value_mean ? 20 * stencil_width : stencil_width;
+  const double n_iterations = zero_neighbour_value_mean ? smooth_factor * stencil_width : stencil_width;
   const int ni = field.ni();
   const int nj = field.nj();
   const int nk = field.nk();
@@ -187,6 +192,7 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
             }
       field.echange_espace_virtuel(field.ghost());
     }
+  statistiques().end_count(stat_counter);
 }
 
 /*
@@ -194,15 +200,25 @@ static void extrapolate_with_ijk_indices(const IJK_Field_double& distance,
  */
 void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interfaces& interfaces, //  ref_problem_ft_disc,
                                                              IJK_Field_double& distance_field,
-                                                             FixedVector<IJK_Field_double, 3>& normal_vect,
-                                                             FixedVector<IJK_Field_double, 3>& facets_barycentre,
-                                                             const int& n_iter)
+                                                             IJK_Field_vector3_double& normal_vect,
+                                                             IJK_Field_vector3_double& facets_barycentre,
+                                                             IJK_Field_vector3_double& tmp_old_vector_val,
+                                                             IJK_Field_vector3_double& tmp_new_vector_val,
+                                                             IJK_Field_double& tmp_old_val,
+                                                             IJK_Field_double& tmp_new_val,
+                                                             IJK_Field_int& tmp_interf_cells,
+                                                             IJK_Field_int& tmp_propagated_cells,
+                                                             FixedVector<ArrOfInt,3>& interf_cells_indices,
+                                                             FixedVector<ArrOfInt,3>& gfm_first_cells_indices_,
+                                                             FixedVector<ArrOfInt,3>& propagated_cells_indices,
+                                                             const int& n_iter,
+                                                             const int& avoid_gfm_parallel_calls)
 {
   /*
    * Compute the normal distance to the interface
    */
   const bool use_ijk = true;
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "compute_eulerian_normal_distance_field");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "GFM - Compute Eulerian normal distance field");
   statistiques().begin_count(stat_counter);
 
   static const double invalid_distance_value = INVALID_TEST;
@@ -226,6 +242,15 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   const IJK_Splitting& splitting_distance = distance_field.get_splitting();
   const IJK_Grid_Geometry& geom = splitting_distance.get_grid_geometry();
 
+  for (int l=0; l<dim; l++)
+    {
+      interf_cells_indices[l].reset();
+      gfm_first_cells_indices_[l].reset();
+      propagated_cells_indices[l].reset();
+    }
+  tmp_interf_cells.data() = 0;
+  tmp_propagated_cells.data() = 0;
+
   /*
    * M.G: Copy of B.M from Transport_Interfaces_FT_Disc::calculer_distance_interface
    * Distance calculation for the thickness 0 (vertices of the elements crossed by
@@ -242,6 +267,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
     const IntTab& facettes = maillage.facettes();
     const DoubleTab& sommets = maillage.sommets();
     // Loop on the elements
+
     for (int elem = 0; elem < nb_elem; elem++)
       {
         int index = index_elem[elem];
@@ -280,6 +306,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
               }
             index = data.index_facette_suivante_;
           }
+        const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
         if (surface_tot > 0.)
           {
             /*
@@ -292,10 +319,10 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
             for (j = 0; j < dim; j++)
               {
                 norme += normale[j] * normale[j];
-                const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
                 normal_vect[j](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = normale[j];
                 centre[j] *= inverse_surface_tot;
               }
+
             if (norme > 0)
               {
                 double i_norme = 1./sqrt(norme);
@@ -305,23 +332,50 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                     double n_j = normale[j] * i_norme; // normal vector normed
                     distance += (centre_element(elem, j) - centre[j]) * n_j;
                   }
-                const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
                 distance_field(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = distance;
               }
+
+            if (avoid_gfm_parallel_calls)
+              tmp_interf_cells(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = 1;
+
           }
-        const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
         for (int j = 0; j < dim; j++)
           facets_barycentre[j](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) = centre[j];
       }
     distance_field.echange_espace_virtuel(distance_field.ghost());
     normal_vect.echange_espace_virtuel();
+    tmp_interf_cells.echange_espace_virtuel(tmp_interf_cells.ghost());
     for (int dir = 0; dir < dim; dir++)
       DebogIJK::verifier("IJK_Ghost_Fluid_tools::compute_eulerian_normal_distance_field", normal_vect[dir]);
     DebogIJK::verifier("IJK_Ghost_Fluid_tools::compute_eulerian_normal_distance_field", distance_field);
   }
 
-  FixedVector<IJK_Field_double, 3> terme_src(normal_vect);
-  FixedVector<IJK_Field_double, 3> tmp(normal_vect);
+  if (avoid_gfm_parallel_calls)
+    {
+      const int ni = tmp_interf_cells.ni();
+      const int nj = tmp_interf_cells.nj();
+      const int nk = tmp_interf_cells.nk();
+      const int nb_ghost = tmp_interf_cells.ghost();
+      for (int k = - nb_ghost; k < nk + nb_ghost; k++)
+        for (int j = - nb_ghost; j < nj + nb_ghost; j++)
+          for (int i = - nb_ghost; i < ni + nb_ghost; i++)
+            if (tmp_interf_cells(i,j,k))
+              for (int l=0; l<dim; l++)
+                {
+                  const int index = select(l, i, j, k);
+                  interf_cells_indices[l].append_array(index);
+                }
+    }
+
+  //  IJK_Field_vector3_double terme_src(normal_vect);
+  //  IJK_Field_vector3_double tmp(normal_vect);
+  IJK_Field_vector3_double& terme_src = tmp_old_vector_val;
+  IJK_Field_vector3_double& tmp = tmp_new_vector_val;
+  for (int l=0; l<dim; l++)
+    {
+      terme_src[l].data() = normal_vect[l].data();
+      tmp[l].data() = normal_vect[l].data();
+    }
 
   const IntTab& face_voisins = domaine_vf.face_voisins();
   const IntTab& elem_faces   = domaine_vf.elem_faces();
@@ -331,7 +385,15 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
    */
+  tmp_propagated_cells.data() = tmp_interf_cells.data();
+  propagated_cells_indices = interf_cells_indices;
+  FixedVector<ArrOfInt,3> propagated_cells_indices_tmp;
+  for (int l=0; l<dim; l++)
+    propagated_cells_indices_tmp[l].resize_array(1);
+
   int iteration;
+  const int n_iter_tmp = avoid_gfm_parallel_calls ? n_iter + 1: n_iter;
+
   if (use_ijk)
     {
       int neighbours_i[6] = NEIGHBOURS_I;
@@ -340,8 +402,9 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int ni = normal_vect[0].ni();
       const int nj = normal_vect[0].nj();
       const int nk = normal_vect[0].nk();
+      const int nghost = normal_vect[0].ghost();
       int m;
-      for (iteration = 0; iteration < n_iter; iteration++)
+      for (iteration = 0; iteration < n_iter_tmp; iteration++)
         {
           /*
            * Smoothing iterator, in theory:
@@ -352,10 +415,16 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
            */
 
           const double un_sur_ncontrib = 1. / (1. + nb_elem_voisins);
-          for (int k = 0; k < nk; k++)
-            for (int j = 0; j < nj; j++)
-              for (int i = 0; i < ni; i++)
+          if (avoid_gfm_parallel_calls)
+            {
+              propagated_cells_indices_tmp = propagated_cells_indices;
+
+              for (int ielem = 0; ielem < propagated_cells_indices_tmp[0].size_array(); ielem++)
                 {
+                  const int i = propagated_cells_indices_tmp[DIRECTION_I](ielem);
+                  const int j = propagated_cells_indices_tmp[DIRECTION_J](ielem);
+                  const int k = propagated_cells_indices_tmp[DIRECTION_K](ielem);
+
                   // Averaging the normal vector on the neighbours
                   double n[3] = {0., 0., 0.};
                   for (m = 0; m < dim; m++)
@@ -365,14 +434,57 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                       const int ii = neighbours_i[l];
                       const int jj = neighbours_j[l];
                       const int kk = neighbours_k[l];
-                      for (m = 0; m < dim; m++)
-                        n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+
+                      const int is_outside_proc = (i + ii < -nghost || j + jj < -nghost || k + kk < -nghost)
+                                                  || (i + ii >= ni + nghost || j + jj >= nj + nghost || k + kk >= nk + nghost);
+                      if (!is_outside_proc)
+                        {
+                          for (m = 0; m < dim; m++)
+                            n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+
+                          if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
+                            {
+                              const Int3 ijk_index(i+ii, j+jj, k+kk);
+                              for (m=0; m<dim; m++)
+                                propagated_cells_indices[m].append_array(ijk_index[m]);
+                              tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
+                              if (!iteration)
+                                for (m=0; m<dim; m++)
+                                  gfm_first_cells_indices_[m].append_array(ijk_index[m]);
+                            }
+                        }
                     }
                   for (m = 0; m < dim; m++)
                     tmp[m](i,j,k) = terme_src[m](i,j,k) + n[m] * un_sur_ncontrib;
                 }
-          normal_vect = tmp;
-          normal_vect.echange_espace_virtuel();
+              for (int l=0; l<dim; l++)
+                normal_vect[l].data() = tmp[l].data();
+            }
+          else
+            {
+              for (int k = 0; k < nk; k++)
+                for (int j = 0; j < nj; j++)
+                  for (int i = 0; i < ni; i++)
+                    {
+                      // Averaging the normal vector on the neighbours
+                      double n[3] = {0., 0., 0.};
+                      for (m = 0; m < dim; m++)
+                        n[m] = normal_vect[m](i,j,k);
+                      for (int l=0; l<6; l++)
+                        {
+                          const int ii = neighbours_i[l];
+                          const int jj = neighbours_j[l];
+                          const int kk = neighbours_k[l];
+                          for (m = 0; m < dim; m++)
+                            n[m] += normal_vect[m](i+ii,j+jj,k+kk);
+                        }
+                      for (m = 0; m < dim; m++)
+                        tmp[m](i,j,k) = terme_src[m](i,j,k) + n[m] * un_sur_ncontrib;
+                    }
+              for (int l=0; l<dim; l++)
+                normal_vect[l].data() = tmp[l].data();
+              normal_vect.echange_espace_virtuel();
+            }
         }
     }
   else
@@ -445,14 +557,24 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
     }
   else
     {
-      normal_vect.echange_espace_virtuel(); // This swap is essential ?
+      if (!avoid_gfm_parallel_calls)
+        normal_vect.echange_espace_virtuel(); // This swap is essential ?
     }
   // Distance calculation at the interface
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
    */
-  IJK_Field_double terme_src_dist(distance_field);
-  IJK_Field_double tmp_dist(distance_field);
+  // IJK_Field_double terme_src_dist(distance_field);
+  // IJK_Field_double tmp_dist(distance_field);
+  IJK_Field_double& terme_src_dist = tmp_old_val;
+  IJK_Field_double& tmp_dist = tmp_new_val;
+  terme_src_dist.data() = distance_field.data();
+  tmp_dist.data() = distance_field.data();
+
+  tmp_propagated_cells.data() = tmp_interf_cells.data();
+  propagated_cells_indices = gfm_first_cells_indices_;
+  for (int l=0; l<dim; l++)
+    propagated_cells_indices_tmp[l].reset();
 
   if (use_ijk)
     {
@@ -462,17 +584,28 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       const int ni = normal_vect[0].ni();
       const int nj = normal_vect[0].nj();
       const int nk = normal_vect[0].nk();
+      const int nghost = normal_vect[0].ghost();
+      int m;
       for (iteration = 0; iteration < n_iter; iteration++)
         {
-          for (int k = 0; k < nk; k++)
-            for (int j = 0; j < nj; j++)
-              for (int i = 0; i < ni; i++)
+          if (avoid_gfm_parallel_calls)
+            {
+              propagated_cells_indices_tmp = propagated_cells_indices;
+              for (int l=0; l<dim; l++)
+                propagated_cells_indices[l].reset();
+              for (int ielem = 0; ielem < propagated_cells_indices_tmp[0].size_array(); ielem++)
                 {
+                  const int i = propagated_cells_indices_tmp[DIRECTION_I](ielem);
+                  const int j = propagated_cells_indices_tmp[DIRECTION_J](ielem);
+                  const int k = propagated_cells_indices_tmp[DIRECTION_K](ielem);
+
                   // For all the element already crossed by the interface, the value is not computed again
                   if (terme_src_dist(i,j,k) > invalid_distance_value)
                     tmp_dist(i,j,k) = distance_field(i,j,k);
                   else
                     {
+                      if (!tmp_propagated_cells(i,j,k))
+                        tmp_propagated_cells(i,j,k) = 1;
                       // For the others, we compute a distance value per neighbour
                       double ncontrib = 0.;
                       double somme_distances = 0.;
@@ -482,28 +615,42 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                           const int ii = neighbours_i[l];
                           const int jj = neighbours_j[l];
                           const int kk = neighbours_k[l];
-                          const double distance_voisin = distance_field(i+ii, j+jj, k+kk);
-                          if (distance_voisin > invalid_distance_value)
+
+                          const int is_outside_proc = (i + ii < -nghost || j + jj < -nghost || k + kk < -nghost)
+                                                      || (i + ii >= ni + nghost || j + jj >= nj + nghost || k + kk >= nk + nghost);
+                          if (!is_outside_proc)
                             {
-                              // Average normal distance between an element and its neighbours
-                              double nx = normal_vect[0](i,j,k) + normal_vect[0](i+ii, j+jj, k+kk);
-                              double ny = normal_vect[1](i,j,k) + normal_vect[1](i+ii, j+jj, k+kk);
-                              double nz = normal_vect[2](i,j,k) + normal_vect[2](i+ii, j+jj, k+kk);
-                              double norm2 = nx*nx + ny*ny + nz*nz;
-                              if (norm2 > 0.)
+                              const Int3 ijk_index(i+ii, j+jj, k+kk);
+                              if (!tmp_propagated_cells(i+ii,j+jj,k+kk))
                                 {
-                                  double i_norm = 1./sqrt(norm2);
-                                  nx *= i_norm;
-                                  ny *= i_norm;
-                                  nz *= i_norm;
+                                  for (m=0; m<dim; m++)
+                                    propagated_cells_indices[m].append_array(ijk_index[m]);
+                                  tmp_propagated_cells(i+ii,j+jj,k+kk) = 1;
                                 }
-                              // Element to neighbour vector calculation
-                              double dx = - geom.get_constant_delta(DIRECTION_I) * ii;
-                              double dy = - geom.get_constant_delta(DIRECTION_J) * jj;
-                              double dz = - geom.get_constant_delta(DIRECTION_K) * kk;
-                              double d = nx * dx + ny * dy + nz * dz + distance_voisin;
-                              somme_distances += d;
-                              ncontrib++;
+
+                              const double distance_voisin = distance_field(i+ii, j+jj, k+kk);
+                              if (distance_voisin > invalid_distance_value)
+                                {
+                                  // Average normal distance between an element and its neighbours
+                                  double nx = normal_vect[0](i,j,k) + normal_vect[0](i+ii, j+jj, k+kk);
+                                  double ny = normal_vect[1](i,j,k) + normal_vect[1](i+ii, j+jj, k+kk);
+                                  double nz = normal_vect[2](i,j,k) + normal_vect[2](i+ii, j+jj, k+kk);
+                                  double norm2 = nx*nx + ny*ny + nz*nz;
+                                  if (norm2 > 0.)
+                                    {
+                                      double i_norm = 1./sqrt(norm2);
+                                      nx *= i_norm;
+                                      ny *= i_norm;
+                                      nz *= i_norm;
+                                    }
+                                  // Element to neighbour vector calculation
+                                  double dx = - geom.get_constant_delta(DIRECTION_I) * ii;
+                                  double dy = - geom.get_constant_delta(DIRECTION_J) * jj;
+                                  double dz = - geom.get_constant_delta(DIRECTION_K) * kk;
+                                  double d = nx * dx + ny * dy + nz * dz + distance_voisin;
+                                  somme_distances += d;
+                                  ncontrib++;
+                                }
                             }
                         }
                       // Averaging the distances obtained from neighbours
@@ -512,11 +659,65 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                           double d = somme_distances / ncontrib;
                           tmp_dist(i,j,k) = d;
                         }
-
                     }
                 }
-          distance_field = tmp_dist;
-          distance_field.echange_espace_virtuel(distance_field.ghost());
+              distance_field.data() = tmp_dist.data();
+            }
+          else
+            {
+              for (int k = 0; k < nk; k++)
+                for (int j = 0; j < nj; j++)
+                  for (int i = 0; i < ni; i++)
+                    {
+                      // For all the element already crossed by the interface, the value is not computed again
+                      if (terme_src_dist(i,j,k) > invalid_distance_value)
+                        tmp_dist(i,j,k) = distance_field(i,j,k);
+                      else
+                        {
+                          // For the others, we compute a distance value per neighbour
+                          double ncontrib = 0.;
+                          double somme_distances = 0.;
+                          for (int l = 0; l < 6; l++)
+                            {
+                              // Look for a neighbour
+                              const int ii = neighbours_i[l];
+                              const int jj = neighbours_j[l];
+                              const int kk = neighbours_k[l];
+                              const double distance_voisin = distance_field(i+ii, j+jj, k+kk);
+                              if (distance_voisin > invalid_distance_value)
+                                {
+                                  // Average normal distance between an element and its neighbours
+                                  double nx = normal_vect[0](i,j,k) + normal_vect[0](i+ii, j+jj, k+kk);
+                                  double ny = normal_vect[1](i,j,k) + normal_vect[1](i+ii, j+jj, k+kk);
+                                  double nz = normal_vect[2](i,j,k) + normal_vect[2](i+ii, j+jj, k+kk);
+                                  double norm2 = nx*nx + ny*ny + nz*nz;
+                                  if (norm2 > 0.)
+                                    {
+                                      double i_norm = 1./sqrt(norm2);
+                                      nx *= i_norm;
+                                      ny *= i_norm;
+                                      nz *= i_norm;
+                                    }
+                                  // Element to neighbour vector calculation
+                                  double dx = - geom.get_constant_delta(DIRECTION_I) * ii;
+                                  double dy = - geom.get_constant_delta(DIRECTION_J) * jj;
+                                  double dz = - geom.get_constant_delta(DIRECTION_K) * kk;
+                                  double d = nx * dx + ny * dy + nz * dz + distance_voisin;
+                                  somme_distances += d;
+                                  ncontrib++;
+                                }
+                            }
+                          // Averaging the distances obtained from neighbours
+                          if (ncontrib > 0.)
+                            {
+                              double d = somme_distances / ncontrib;
+                              tmp_dist(i,j,k) = d;
+                            }
+                        }
+                    }
+              distance_field.data() = tmp_dist.data();
+              distance_field.echange_espace_virtuel(distance_field.ghost());
+            }
         }
     }
   else
@@ -604,6 +805,12 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
           distance_field.echange_espace_virtuel(distance_field.ghost());
         }
     }
+  if (avoid_gfm_parallel_calls)
+    {
+      normal_vect.echange_espace_virtuel();
+      distance_field.echange_espace_virtuel(distance_field.ghost());
+    }
+
   statistiques().end_count(stat_counter);
 }
 
@@ -615,6 +822,8 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
   /*
    * Compute the divergence of the normal vector field or the laplacian of the eulerian distance field
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "GFM - Compute Eulerian curvature dield from distance field");
+  statistiques().begin_count(stat_counter);
 
   // Laplacian operator
   Operateur_IJK_elem_diff laplacian_distance;
@@ -638,18 +847,22 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
       for (int i=0; i < nx; i++)
         curvature(i,j,k) /= vol;
   curvature.echange_espace_virtuel(curvature.ghost());
+
+  statistiques().end_count(stat_counter);
 }
 
-void compute_eulerian_curvature_field_from_normal_vector_field(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_normal_vector_field(const IJK_Field_vector3_double& normal_vect,
                                                                IJK_Field_double& curvature)
 {
 
 }
 
-void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field_double, 3>& normal_vect,
+void compute_eulerian_curvature_field_from_interface(const IJK_Field_vector3_double& normal_vect,
                                                      const IJK_Interfaces& interfaces,
                                                      IJK_Field_double& interfacial_area,
                                                      IJK_Field_double& curvature,
+                                                     IJK_Field_double& tmp_old_val,
+                                                     IJK_Field_double& tmp_new_val,
                                                      const int& n_iter,
                                                      const int igroup)
 {
@@ -662,7 +875,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
   interfacial_area.echange_espace_virtuel(interfacial_area.ghost());
   curvature.echange_espace_virtuel(curvature.ghost());
 
-  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "compute_eulerian_curvature_field_from_interface");
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(2, "GFM - Compute Eulerian Curvature field from interface");
   statistiques().begin_count(stat_counter);
 
   static const double invalid_curvature_value = INVALID_TEST;
@@ -685,7 +898,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
   const int n_fa7 = maillage.nb_facettes();
   // Calculate the curvature in the cells crossed by the interface
   const ArrOfInt& compo_facette = maillage.compo_connexe_facettes();
-  ArrOfInt compo_to_group = interfaces.get_compo_to_group();
+  const ArrOfInt& compo_to_group = interfaces.get_compo_to_group();
   for (int fa7 = 0; fa7 < n_fa7; fa7++)
     {
       int icompo = compo_facette[fa7];
@@ -770,9 +983,15 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
             liste_elements.append_array(elem);
         }
     }
+
   // Curvature calculation at the interface
-  IJK_Field_double terme_src_curv(curvature);
-  IJK_Field_double tmp_curv(curvature);
+  // IJK_Field_double terme_src_curv(curvature);
+  // IJK_Field_double tmp_curv(curvature);
+
+  IJK_Field_double& terme_src_curv = tmp_old_val;
+  IJK_Field_double& tmp_curv = tmp_new_val;
+  terme_src_curv.data() = curvature.data();
+  tmp_curv.data() = curvature.data();
 
   /*
    * TODO: Check the how fast it is compared to using elem_faces matrix
@@ -790,36 +1009,38 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
-                // For all the element already crossed by the interface, the value is not computed again
-                if (terme_src_curv(i,j,k) > invalid_curvature_value)
-                  tmp_curv(i,j,k) = curvature(i,j,k);
-                else
-                  {
-                    // For the others, we compute a distance value per neighbour
-                    double ncontrib = 0.;
-                    double sum_kappa = 0.;
-                    for (int l = 0; l < 6; l++)
-                      {
-                        // Look for a neighbour
-                        const int ii = neighbours_i[l];
-                        const int jj = neighbours_j[l];
-                        const int kk = neighbours_k[l];
-                        const double curvature_voisin = curvature(i+ii,j+jj,k+kk);
-                        if (curvature_voisin > invalid_curvature_value)
-                          {
-                            // Average normal distance between an element and its neighbours
-                            sum_kappa += curvature_voisin;
-                            ncontrib++;
-                          }
-                      }
-                    // Averaging the distances obtained from neighbours
-                    if (ncontrib > 0.)
-                      {
-                        double kappa = sum_kappa / ncontrib;
-                        tmp_curv(i,j,k) = kappa;
-                      }
-                  }
-          curvature = tmp_curv;
+                {
+                  // For all the element already crossed by the interface, the value is not computed again
+                  if (terme_src_curv(i,j,k) > invalid_curvature_value)
+                    tmp_curv(i,j,k) = curvature(i,j,k);
+                  else
+                    {
+                      // For the others, we compute a distance value per neighbour
+                      double ncontrib = 0.;
+                      double sum_kappa = 0.;
+                      for (int l = 0; l < 6; l++)
+                        {
+                          // Look for a neighbour
+                          const int ii = neighbours_i[l];
+                          const int jj = neighbours_j[l];
+                          const int kk = neighbours_k[l];
+                          const double curvature_voisin = curvature(i+ii,j+jj,k+kk);
+                          if (curvature_voisin > invalid_curvature_value)
+                            {
+                              // Average normal distance between an element and its neighbours
+                              sum_kappa += curvature_voisin;
+                              ncontrib++;
+                            }
+                        }
+                      // Averaging the distances obtained from neighbours
+                      if (ncontrib > 0.)
+                        {
+                          double kappa = sum_kappa / ncontrib;
+                          tmp_curv(i,j,k) = kappa;
+                        }
+                    }
+                }
+          curvature.data() = tmp_curv.data();
           curvature.echange_espace_virtuel(curvature.ghost());
         }
     }
@@ -880,6 +1101,7 @@ void compute_eulerian_curvature_field_from_interface(const FixedVector<IJK_Field
           curvature.echange_espace_virtuel(curvature.ghost());
         }
     }
+  statistiques().end_count(stat_counter);
 }
 
 void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_double& distance,
@@ -888,12 +1110,16 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                                                             const IJK_Field_double& curvature,
                                                             const	IJK_Field_double& temperature,
                                                             IJK_Field_double& grad_T_interface,
-                                                            const int& spherical_approx)
+                                                            const int& spherical_approx,
+                                                            const double& temperature_interf)
 {
   /*
    * Compute the normal temperature gradient at the bubble interface
    * Write in the ijk manner !
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "GFM - Compute Eulerian normal temperature gradient interface");
+  statistiques().begin_count(stat_counter);
+
   int neighbours_i[6] = NEIGHBOURS_I;
   int neighbours_j[6] = NEIGHBOURS_J;
   int neighbours_k[6] = NEIGHBOURS_K;
@@ -925,7 +1151,7 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
                   if ((indic > liquid_indicator) && (d > invalid_value) && grad_T_interface(i+ii,j+jj,k+kk) == 0)
                     {
                       const double temperature_liquid = temperature(i+ii,j+jj,k+kk);
-                      const double second_order_gradient = temperature_liquid / d;
+                      const double second_order_gradient = (temperature_liquid - temperature_interf) / d;
                       const double kappa = curvature(i+ii,j+jj,k+kk);
                       double grad_T_modified = 0.;
                       // TODO: Check sign kappa
@@ -942,6 +1168,7 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
             }
         }
   grad_T_interface.echange_espace_virtuel(grad_T_interface.ghost());
+  statistiques().end_count(stat_counter);
   /*
    * Check if indicatrice of the neighbours is zero + interfacial_area to locate the mixed cells
    */
@@ -950,10 +1177,11 @@ void compute_eulerian_normal_temperature_gradient_interface(const IJK_Field_doub
 void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfaces& interfaces,
                                                               const IJK_Field_double& distance,
                                                               IJK_Field_double& grad_T_interface,
-                                                              const int stencil_width,
-                                                              const int recompute_field_ini,
-                                                              const int zero_neighbour_value_mean,
-                                                              const int vapour_mixed_only)
+                                                              const int& stencil_width,
+                                                              const int& recompute_field_ini,
+                                                              const int& zero_neighbour_value_mean,
+                                                              const int& vapour_mixed_only,
+                                                              const int& smooth_factor)
 {
   /*
    * Propagate value of grad_T_int stored in pure liquid phase towards the vapour phase and mixed cells
@@ -962,7 +1190,14 @@ void propagate_eulerian_normal_temperature_gradient_interface(const IJK_Interfac
   if (use_ijk)
     {
       // Using the ijk indices
-      extrapolate_with_ijk_indices(distance, interfaces.I_ft(), grad_T_interface, stencil_width, recompute_field_ini, zero_neighbour_value_mean, vapour_mixed_only);
+      extrapolate_with_ijk_indices(distance,
+                                   interfaces.I_ft(),
+                                   grad_T_interface,
+                                   stencil_width,
+                                   recompute_field_ini,
+                                   zero_neighbour_value_mean,
+                                   vapour_mixed_only,
+                                   smooth_factor);
     }
   else
     {
@@ -978,11 +1213,15 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
                                            const IJK_Field_double& curvature,
                                            IJK_Field_double& grad_T_interface,
                                            IJK_Field_double& temperature,
-                                           const int& spherical_approx)
+                                           const int& spherical_approx,
+                                           const double& temperature_interf)
 {
   /*
    * Compute the extended temperature field using propagated values of the temperature gradient
    */
+  static const Stat_Counter_Id stat_counter = statistiques().new_counter(3, "GFM - Compute Eulerian ghost fluid temperature extension");
+  statistiques().begin_count(stat_counter);
+
   const double invalid_test = INVALID_TEST;
   const int ni = temperature.ni();
   const int nj = temperature.nj();
@@ -1000,14 +1239,236 @@ void compute_eulerian_extended_temperature(const IJK_Field_double& indicator,
               const double kappa = curvature(i,j,k);
               double temperature_ghost = 0.;
               if (spherical_approx)
-                temperature_ghost = d * grad_T * (1. + 0.5 * kappa * d + kappa * kappa * d * d / 6.);
+                temperature_ghost = temperature_interf + d * grad_T * (1. + 0.5 * kappa * d + kappa * kappa * d * d / 6.);
               else
                 {
                   const double kappa_non_zero = kappa + 1.e-16;
-                  temperature_ghost = grad_T * (- 2 / kappa_non_zero) * (1 - (- 2 / kappa_non_zero) / ((d - (2 / kappa_non_zero)) + 1e-16));
+                  temperature_ghost = temperature_interf + grad_T * (- 2 / kappa_non_zero) * (1 - (- 2 / kappa_non_zero) / ((d - (2 / kappa_non_zero)) + 1e-16));
                 }
               temperature(i,j,k) = temperature_ghost;
             }
         }
   temperature.echange_espace_virtuel(temperature.ghost());
+
+  statistiques().end_count(stat_counter);
+}
+
+void smooth_vector_field(IJK_Field_vector3_double& vector_field,
+                         IJK_Field_vector3_double& vector_field_init,
+                         const IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed,
+                         const IJK_Interfaces& interfaces,
+                         const double (&direct_smoothing_factors) [7],
+                         const double (&gaussian_smoothing_factors) [3][3][3],
+                         const int& smooth_numbers,
+                         const int& remove_normal_compo,
+                         const int& direct_neighbours,
+                         const int& use_field_init,
+                         const int& use_unique_phase)
+{
+  for (int c=0; c<3; c++)
+    {
+      IJK_Field_double& field = vector_field[c];
+      IJK_Field_double& field_init = vector_field_init[c];
+      smooth_eulerian_field(field,
+                            field_init,
+                            c,
+                            vector_field_init,
+                            eulerian_normal_vectors_ns_normed,
+                            interfaces,
+                            direct_smoothing_factors,
+                            gaussian_smoothing_factors,
+                            smooth_numbers,
+                            remove_normal_compo,
+                            direct_neighbours,
+                            use_field_init,
+                            use_unique_phase);
+    }
+}
+
+void smooth_eulerian_field(IJK_Field_double& field,
+                           IJK_Field_double& field_init,
+                           const int& dir,
+                           IJK_Field_vector3_double& vector_field_init,
+                           const IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed,
+                           const IJK_Interfaces& interfaces,
+                           const double (&direct_smoothing_factors) [7],
+                           const double (&gaussian_smoothing_factors) [3][3][3],
+                           const int& smooth_numbers,
+                           const int& remove_normal_compo,
+                           const int& direct_neighbours,
+                           const int& use_field_init,
+                           const int& use_unique_phase)
+{
+  const IJK_Field_double& indicator = interfaces.I();
+  const int smooth_numbers_end = (smooth_numbers < 1) ? 1: smooth_numbers;
+  const int use_field_init_usr = use_field_init && (smooth_numbers_end == 1);
+  IJK_Field_double field_copy;
+  for (int m=0; m<smooth_numbers_end; m++)
+    {
+      const int ni = field.ni();
+      const int nj = field.nj();
+      const int nk = field.nk();
+      IJK_Field_double& field_raw = use_field_init_usr ? field_init : field_copy;
+      if (!use_field_init_usr)
+        {
+          if (m == 0)
+            field_copy = field_init;
+          else
+            field_copy.data() = field.data();
+          field_copy.echange_espace_virtuel(field_copy.ghost());
+        }
+      const int neighbours_i[6] = NEIGHBOURS_I;
+      const int neighbours_j[6] = NEIGHBOURS_J;
+      const int neighbours_k[6] = NEIGHBOURS_K;
+
+      double sum_factors = 0;
+      double sum_factors_phase = 0;
+      double sum_direct_smoothing_factors = 0.;
+      double sum_gaussian_smoothing_factors = 0.;
+
+      for (int c=0; c<7; c++)
+        sum_direct_smoothing_factors += direct_smoothing_factors[c];
+      for (int c=0; c<3; c++)
+        for (int l=0; l<3; l++)
+          for (int n=0; n<3; n++)
+            sum_gaussian_smoothing_factors += gaussian_smoothing_factors[n][l][c];
+
+      sum_factors = (direct_neighbours) ? sum_direct_smoothing_factors : sum_gaussian_smoothing_factors;
+      sum_factors_phase = sum_factors;
+      Cerr << "Sum of smoothing factors: " << sum_factors << finl;
+      for (int k = 0; k < nk; k++)
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            {
+              if (direct_neighbours)
+                {
+                  field(i,j,k) = direct_smoothing_factors[6] * field_raw(i,j,k);
+                  for (int l=0; l<6; l++)
+                    {
+                      const int ii = neighbours_i[l];
+                      const int jj = neighbours_j[l];
+                      const int kk = neighbours_k[l];
+                      if (!remove_normal_compo)
+                        field(i,j,k) += direct_smoothing_factors[l] * field_raw(i+ii,j+jj,k+kk);
+                      else
+                        {
+                          const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+                          const double normal_compo = (field_raw(i+ii,j+jj,k+kk) *
+                                                       direct_smoothing_factors[l] *
+                                                       normal_vect);
+                          // const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk);
+                          // const double normal_compo = (field_raw(i+ii,j+jj,k+kk) *
+                          //                              direct_smoothing_factors[l] *
+                          //                              (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk));
+                          field(i,j,k) += (direct_smoothing_factors[l] * field_raw(i+ii,j+jj,k+kk) - normal_compo);
+                        }
+                    }
+                }
+              else
+                {
+                  sum_factors_phase = use_unique_phase ? 0 : sum_factors;
+                  bool test_indicator;
+                  field(i,j,k) = 0.;
+                  // for (int c=0; c<3; c++)
+                  for (int c=-1; c<=1; c++)
+                    for (int l=-1; l<=1; l++)
+                      for (int n=-1; n<=1; n++)
+                        {
+                          test_indicator=true;
+                          // const int ii = select(c, l, 0, 0);
+                          // const int jj = select(c, 0, l, 0);
+                          // const int kk = select(c, 0, 0, l);
+                          const int ii = n;
+                          const int jj = l;
+                          const int kk = c;
+                          const double indic = indicator(i+ii,j+jj,k+kk);
+                          if (use_unique_phase && indic < VAPOUR_INDICATOR_TEST)
+                            test_indicator = false;
+                          if (test_indicator)
+                            {
+                              const double smoothing_factor_index = gaussian_smoothing_factors[n+1][l+1][c+1];
+                              if (!remove_normal_compo)
+                                field(i,j,k) += smoothing_factor_index * field_raw(i+ii,j+jj,k+kk);
+                              else
+                                {
+                                  const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+//                                  const double normal_compo = (smoothing_factor_index *
+//                                                               field_raw(i+ii,j+jj,k+kk) *
+//                                                               normal_vect * normal_vect);
+                                  double normal_compo_tot = 0;
+                                  for (int cc=0; cc<3; cc++)
+                                    {
+                                      const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+                                      normal_compo_tot += (smoothing_factor_index *
+                                                           vector_field_init[cc](i+ii,j+jj,k+kk) *
+                                                           normal_vect_dir * normal_vect);
+                                    }
+                                  // normal_compo_tot = normal_compo;
+                                  // const double sign_projection = signbit(normal_vect) ? -1.: 1.;
+                                  // const double normal_compo = (smoothing_factor_index *
+                                  //                             field_raw(i+ii,j+jj,k+kk) *
+                                  //                             (*eulerian_normal_vectors_ns_normed)[dir](i+ii,j+jj,k+kk));
+                                  field(i,j,k) += (smoothing_factor_index * field_raw(i+ii,j+jj,k+kk) - normal_compo_tot);
+                                  if (use_unique_phase)
+                                    sum_factors_phase += smoothing_factor_index;
+                                }
+                            }
+                        }
+                }
+              if (sum_factors_phase != 0)
+                {
+                  field(i,j,k) /= sum_factors_phase;
+
+                  if (remove_normal_compo)
+                    {
+                      const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+                      double normal_compo_tot = 0;
+                      for (int cc=0; cc<3; cc++)
+                        {
+                          const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+                          normal_compo_tot += vector_field_init[cc](i,j,k) * normal_vect_dir;
+                        }
+                      // normal_compo_tot = field_raw(i,j,k) * normal_vect;
+                      const double normal_compo = normal_compo_tot * normal_vect;
+                      field(i,j,k) += normal_compo;
+                    }
+                }
+            }
+    }
+}
+
+void fill_tangential_gradient(const IJK_Field_vector3_double& vector_field,
+                              const IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed,
+                              IJK_Field_vector3_double& tangential_vector_field)
+{
+  for (int c=0; c<3; c++)
+    {
+      IJK_Field_double& field = tangential_vector_field[c];
+      fill_tangential_gradient_compo(vector_field,
+                                     eulerian_normal_vectors_ns_normed,
+                                     field, c);
+    }
+}
+
+void fill_tangential_gradient_compo(const IJK_Field_vector3_double& vector_field,
+                                    const IJK_Field_vector3_double * eulerian_normal_vectors_ns_normed,
+                                    IJK_Field_double& tangential_field,
+                                    const int& dir)
+{
+  const int ni = tangential_field.ni();
+  const int nj = tangential_field.nj();
+  const int nk = tangential_field.nk();
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          const double normal_vect = (*eulerian_normal_vectors_ns_normed)[dir](i,j,k);
+          double normal_compo_tot = 0;
+          for (int cc=0; cc<3; cc++)
+            {
+              const double normal_vect_dir = (*eulerian_normal_vectors_ns_normed)[cc](i,j,k);
+              normal_compo_tot += vector_field[cc](i,j,k) * normal_vect_dir * normal_vect;
+            }
+          tangential_field(i,j,k) = vector_field[dir](i,j,k) - normal_compo_tot;
+        }
 }

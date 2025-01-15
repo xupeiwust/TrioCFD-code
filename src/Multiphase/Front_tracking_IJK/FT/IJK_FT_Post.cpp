@@ -20,22 +20,26 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <Param.h>
+#include <IJK_Field_vector.h>
 #include <EFichier.h>
 #include <SFichier.h>
 #include <IJK_FT_Post.h>
-#include <IJK_FT.h>
+#include <IJK_FT_base.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Splitting.h>
 #include <Process.h>    // Process::Journal()
 #include <stat_counters.h>
+#include <Cut_cell_FT_Disc.h>
+#include <IJK_FT_cut_cell.h>
 #include <sstream>
 #include <IJK_Thermals.h>
+#include <IJK_Thermal_cut_cell.h>
 
 /*
  * Take as main parameter reference to FT to be able to use its members.
  */
-IJK_FT_Post::IJK_FT_Post(IJK_FT_double& ijk_ft) :
+IJK_FT_Post::IJK_FT_Post(IJK_FT_base& ijk_ft) :
   statistiques_FT_(ijk_ft),
   ref_ijk_ft_(ijk_ft),
   disable_diphasique_(ijk_ft.disable_diphasique_),
@@ -56,24 +60,6 @@ IJK_FT_Post::IJK_FT_Post(IJK_FT_double& ijk_ft) :
 
 void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
 {
-  t_debut_statistiques_ = 1.e20;
-  check_stats_ = 0;
-  expression_pression_analytique_ = "??"; // par defaut, invalide
-  fichier_reprise_integrated_velocity_ = "??"; // par defaut, invalide
-
-  fichier_reprise_integrated_pressure_ = "??"; // par defaut, invalide
-  fichier_reprise_indicatrice_non_perturbe_ = "??"; // par defaut, invalide
-  fichier_reprise_integrated_timescale_ = "??"; // par defaut, invalide
-  compteur_post_instantanes_ = 0;
-  dt_post_ = 100;
-  dt_post_thermals_probes_ = 100;
-  dt_post_stats_plans_ = 1;
-  dt_post_stats_bulles_ = 1;
-  dt_post_stats_cisaillement_ = 100;
-  dt_post_stats_rmf_ = 100;
-  //poisson_solver_post_ = xxxx;
-  postraiter_sous_pas_de_temps_ = 0;
-  post_par_paires_ = 0;
   param.ajouter_flag("check_stats", &check_stats_);
   param.ajouter("dt_post", &dt_post_);
   param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
@@ -81,6 +67,12 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("dt_post_stats_plans", &dt_post_stats_plans_);
   param.ajouter("dt_post_stats_cisaillement", &dt_post_stats_cisaillement_);
   param.ajouter("dt_post_stats_rmf", &dt_post_stats_rmf_);
+  param.ajouter("time_interval_post", &time_interval_post_);
+  param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
+  param.ajouter("time_interval_post_stats_bulles", &time_interval_post_stats_bulles_);
+  param.ajouter("time_interval_post_stats_plans", &time_interval_post_stats_plans_);
+  param.ajouter("time_interval_post_stats_cisaillement", &time_interval_post_stats_cisaillement_);
+  param.ajouter("time_interval_post_stats_rmf", &time_interval_post_stats_rmf_);
   param.ajouter("champs_a_postraiter", &liste_post_instantanes_);
   param.ajouter_flag("postraiter_sous_pas_de_temps", &postraiter_sous_pas_de_temps_);
   // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
@@ -131,7 +123,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("expression_ddUdxdy_ana", &expression_grad2U_analytique_[3]);
   param.ajouter("expression_ddUdxdz_ana", &expression_grad2U_analytique_[4]);
   param.ajouter("expression_ddUdydz_ana", &expression_grad2U_analytique_[5]);
-  //
+
   expression_grad2V_analytique_.dimensionner_force(6);
   param.ajouter("expression_ddVdxdx_ana", &expression_grad2V_analytique_[0]);
   param.ajouter("expression_ddVdydy_ana", &expression_grad2V_analytique_[1]);
@@ -139,7 +131,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("expression_ddVdxdy_ana", &expression_grad2V_analytique_[3]);
   param.ajouter("expression_ddVdxdz_ana", &expression_grad2V_analytique_[4]);
   param.ajouter("expression_ddVdydz_ana", &expression_grad2V_analytique_[5]);
-  //
+
   expression_grad2W_analytique_.dimensionner_force(6);
   param.ajouter("expression_ddWdxdx_ana", &expression_grad2W_analytique_[0]);
   param.ajouter("expression_ddWdydy_ana", &expression_grad2W_analytique_[1]);
@@ -150,7 +142,7 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
 
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
 
-  //param.ajouter("multigrid_solver_post", &poisson_solver_post_);
+  // param.ajouter("multigrid_solver_post", &poisson_solver_post_);
   // Lecture des sondes :
   param.ajouter("Sondes", &les_sondes_);
 }
@@ -160,6 +152,7 @@ int IJK_FT_Post::initialise(int reprise)
   int nalloc = 0;
 
   //poisson_solver_post_.initialize(splitting_);
+
   // pour relire les champs de temps integres:
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
     {
@@ -383,7 +376,7 @@ void IJK_FT_Post::init_indicatrice_non_perturbe()
 }
 
 // GAB
-static void interpolate_to_center(FixedVector<IJK_Field_double, 3>& cell_center_field, const FixedVector<IJK_Field_double, 3>& face_field)
+static void interpolate_to_center(IJK_Field_vector3_double& cell_center_field, const IJK_Field_vector3_double& face_field)
 {
   /* Interpole le champ face_field aux centres des elements et le stocke dans cell_center_field */
   const int kmax = cell_center_field[0].nk();
@@ -604,11 +597,11 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
     {
       double ct = current_time;
-      if (ref_ijk_ft_.get_time_scheme() == IJK_FT_double::EULER_EXPLICITE)
+      if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::EULER_EXPLICITE)
         {
           ct -= ref_ijk_ft_.timestep_;
         }
-      else if (ref_ijk_ft_.get_time_scheme() == IJK_FT_double::RK3_FT)
+      else if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::RK3_FT)
         {
           Cerr << "rkstep " << ref_ijk_ft_.rk_step_ << finl;
           int rk_step_before = ref_ijk_ft_.rk_step_;
@@ -764,8 +757,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
         }
       if (liste_post_instantanes_.contient_("GRAD2_P"))
         {
-          const FixedVector<IJK_Field_double, 3>& grad2Pi = statistiques_FT_.get_IJK_vector_field("grad2Pi");
-          const FixedVector<IJK_Field_double, 3>& grad2Pc = statistiques_FT_.get_IJK_vector_field("grad2Pc");
+          const IJK_Field_vector3_double& grad2Pi = statistiques_FT_.get_IJK_vector_field("grad2Pi");
+          const IJK_Field_vector3_double& grad2Pc = statistiques_FT_.get_IJK_vector_field("grad2Pc");
           n--, dumplata_cellvector(lata_name, "ddPdd", grad2Pi, latastep);
           dumplata_scalar(lata_name, "ddPdxdy", grad2Pc[0], latastep);
           dumplata_scalar(lata_name, "ddPdxdz", grad2Pc[1], latastep);
@@ -773,8 +766,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
         }
       if (liste_post_instantanes_.contient_("GRAD2_U"))
         {
-          const FixedVector<IJK_Field_double, 3>& grad2Ui = statistiques_FT_.get_IJK_vector_field("grad2Ui");
-          const FixedVector<IJK_Field_double, 3>& grad2Uc = statistiques_FT_.get_IJK_vector_field("grad2Uc");
+          const IJK_Field_vector3_double& grad2Ui = statistiques_FT_.get_IJK_vector_field("grad2Ui");
+          const IJK_Field_vector3_double& grad2Uc = statistiques_FT_.get_IJK_vector_field("grad2Uc");
           n--, dumplata_cellvector(lata_name, "ddUdd", grad2Ui, latastep);
           dumplata_scalar(lata_name, "ddUdxdy", grad2Uc[0], latastep);
           dumplata_scalar(lata_name, "ddUdxdz", grad2Uc[1], latastep);
@@ -782,8 +775,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
         }
       if (liste_post_instantanes_.contient_("GRAD2_V"))
         {
-          const FixedVector<IJK_Field_double, 3>& grad2Vi = statistiques_FT_.get_IJK_vector_field("grad2Vi");
-          const FixedVector<IJK_Field_double, 3>& grad2Vc = statistiques_FT_.get_IJK_vector_field("grad2Vc");
+          const IJK_Field_vector3_double& grad2Vi = statistiques_FT_.get_IJK_vector_field("grad2Vi");
+          const IJK_Field_vector3_double& grad2Vc = statistiques_FT_.get_IJK_vector_field("grad2Vc");
           n--, dumplata_cellvector(lata_name, "ddVdd", grad2Vi, latastep);
           dumplata_scalar(lata_name, "ddVdxdy", grad2Vc[0], latastep);
           dumplata_scalar(lata_name, "ddVdxdz", grad2Vc[1], latastep);
@@ -791,8 +784,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
         }
       if (liste_post_instantanes_.contient_("GRAD2_W"))
         {
-          const FixedVector<IJK_Field_double, 3>& grad2Wi = statistiques_FT_.get_IJK_vector_field("grad2Wi");
-          const FixedVector<IJK_Field_double, 3>& grad2Wc = statistiques_FT_.get_IJK_vector_field("grad2Wc");
+          const IJK_Field_vector3_double& grad2Wi = statistiques_FT_.get_IJK_vector_field("grad2Wi");
+          const IJK_Field_vector3_double& grad2Wc = statistiques_FT_.get_IJK_vector_field("grad2Wc");
           n--, dumplata_cellvector(lata_name, "ddWdd", grad2Wi, latastep);
           dumplata_scalar(lata_name, "ddWdxdy", grad2Wc[0], latastep);
           dumplata_scalar(lata_name, "ddWdxdz", grad2Wc[1], latastep);
@@ -820,17 +813,17 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   //
   if (liste_post_instantanes_.contient_("GRAD_U"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
+      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
       n--, dumplata_cellvector(lata_name, "dUd", gradU, latastep);
     }
   if (liste_post_instantanes_.contient_("GRAD_V"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
+      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
       n--, dumplata_cellvector(lata_name, "dVd", gradV, latastep);
     }
   if (liste_post_instantanes_.contient_("GRAD_W"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
+      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
       n--, dumplata_cellvector(lata_name, "dWd", gradW, latastep);
     }
 
@@ -934,6 +927,16 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
     {
       interfaces_.update_surface_normale(); // necessaire avant posttraiter_champs_instantanes_thermique_interfaciaux
       n -= interfaces_.posttraiter_champs_instantanes(liste_post_instantanes_, lata_name, latastep);
+    }
+
+
+  // Post-traitement des champs cut-cell
+  // Dans le cas cut-cell, on sauvegarde toujours les coordonnees.
+  if (cut_cell_activated_)
+    {
+      dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_X"), interfaces_.get_barycentre_phase1_old()[0], latastep);
+      dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_Y"), interfaces_.get_barycentre_phase1_old()[1], latastep);
+      dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_Z"), interfaces_.get_barycentre_phase1_old()[2], latastep);
     }
 
   {
@@ -1136,6 +1139,8 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
           ++idx_th;
         }
     }
+
+  thermals_.ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
 
   if (Process::je_suis_maitre())
     {
@@ -1509,7 +1514,7 @@ void IJK_FT_Post::get_update_lambda2_and_rot_and_curl()
         }
 }
 
-const FixedVector<IJK_Field_double, 3>& IJK_FT_Post::get_IJK_vector_field(const Nom& nom) const
+const IJK_Field_vector3_double& IJK_FT_Post::get_IJK_vector_field(const Nom& nom) const
 {
   //int idx_th = 0;
   for (const auto &itr : ref_ijk_ft_.thermique_)
@@ -1735,7 +1740,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
 
   if (nom.debute_par("dU"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
+      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
       if (nom == "DUDX")
         return gradU[0];
       if (nom == "DUDY")
@@ -1745,7 +1750,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
     }
   if (nom.debute_par("dV"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
+      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
       if (nom == "DVDX")
         return gradV[0];
       if (nom == "DVDY")
@@ -1755,7 +1760,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
     }
   if (nom.debute_par("dW"))
     {
-      const FixedVector<IJK_Field_double, 3>& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
+      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
       if (nom == "DWDX")
         return gradW[0];
       if (nom == "DWDY")
@@ -1774,7 +1779,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
           Cerr << "A probe is attempting to access a field FORCE_PH while it has not been computed in the post-processed fields" << endl;
           Process::exit();
         }
-//      FixedVector<IJK_Field_double, 3>& source_spectrale = ref_ijk_ft_.forcage_.get_force_ph2();
+//      IJK_Field_vector3_double& source_spectrale = ref_ijk_ft_.forcage_.get_force_ph2();
       if (nom == "FORCE_PH_X")
         return source_spectrale_[0];
       if (nom == "FORCE_PH_Y")
@@ -1952,7 +1957,7 @@ void IJK_FT_Post::fill_op_conv()
     }
 }
 
-void IJK_FT_Post::fill_surface_force(FixedVector<IJK_Field_double, 3>& the_field_you_know)
+void IJK_FT_Post::fill_surface_force(IJK_Field_vector3_double& the_field_you_know)
 {
   double volume = 1.;
   for (int i = 0; i < 3; i++)
@@ -2271,39 +2276,52 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
     }
 }
 
-void IJK_FT_Post::postraiter_fin(bool stop, int tstep, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
+void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
 {
+  const int tstep_sauv = tstep + tstep_init;
   thermals_.set_first_step_thermals_post(first_step_thermals_post_);
-  if (tstep % dt_post_ == dt_post_ - 1 || stop || first_step_thermals_post_)
+  if (stop || first_step_thermals_post_
+      || (dt_post_ >= 0 && tstep_sauv % dt_post_ == dt_post_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
     {
       if (post_par_paires_ ==1) { cout << "tstep : " << tstep << endl;}
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
-  // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
-  if ((post_par_paires_ == 1 && tstep % dt_post_ == 0) ) // si stop==1 il ne faut pas entrer dans cette boucle
+  else if ((post_par_paires_ == 1 && dt_post_ >= 0 && tstep_sauv % dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
     {
       cout << "deuxieme de la paire, tstep : " << tstep << endl;
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
-  if (tstep % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1 || stop || first_step_thermals_post_)
+
+  if (stop || first_step_thermals_post_
+      || (dt_post_thermals_probes_ >= 0 && tstep_sauv % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
     {
       Cout << "tstep : " << tstep << finl;
       thermals_.thermal_subresolution_outputs(dt_post_thermals_probes_);
     }
-  if (tstep % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_bulles_ >= 0 && tstep_sauv % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_bulles_) < std::floor(current_time/time_interval_post_stats_bulles_)))
     {
       ecrire_statistiques_bulles(0, nom_cas, gravite, current_time);
     }
-  if (tstep % dt_post_stats_plans_ == dt_post_stats_plans_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_plans_ >= 0 && tstep_sauv % dt_post_stats_plans_ == dt_post_stats_plans_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_plans_) < std::floor(current_time/time_interval_post_stats_plans_)))
     {
       if (current_time >= t_debut_statistiques_)
         posttraiter_statistiques_plans(current_time);
     }
-  if (tstep % dt_post_stats_cisaillement_ == dt_post_stats_cisaillement_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_cisaillement_ >= 0 && tstep_sauv % dt_post_stats_cisaillement_ == dt_post_stats_cisaillement_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_cisaillement_) < std::floor(current_time/time_interval_post_stats_cisaillement_)))
     {
       ecrire_statistiques_cisaillement(0, nom_cas, current_time);
     }
-  if (tstep % dt_post_stats_rmf_ == dt_post_stats_rmf_ - 1 || stop)
+  if (stop
+      || (dt_post_stats_rmf_ >= 0 && tstep_sauv % dt_post_stats_rmf_ == dt_post_stats_rmf_ - 1)
+      || (std::floor((current_time-timestep)/time_interval_post_stats_rmf_) < std::floor(current_time/time_interval_post_stats_rmf_)))
     {
       ecrire_statistiques_rmf(0, nom_cas, current_time);
     }
@@ -2929,7 +2947,7 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
   ref_ijk_ft_.disable_diphasique_ = true;
 
   ref_ijk_ft_.calculer_dv(virtual_timestep, ref_ijk_ft_.current_time_, -1 /* rk_step -> not in RK3 */);
-  FixedVector<IJK_Field_double, 3>& dvdt = ref_ijk_ft_.d_velocity_; //
+  IJK_Field_vector3_double& dvdt = ref_ijk_ft_.d_velocity_; //
   IJK_Field_double& rhs = ref_ijk_ft_.pressure_rhs_;
 
   // Poisson solver applied to the calculated projection field
@@ -3023,6 +3041,15 @@ int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_p
     {
       n++, dumplata_scalar(lata_name, nom_temp, itr.temperature_, latastep);
     }
+
+  oss.str("");
+  oss << "D_TEMPERATURE_" << idx;
+  Nom nom_dtemp(oss.str().c_str());
+  if ((liste_post_instantanes_.contient_("D_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_dtemp)))
+    {
+      n++, dumplata_scalar(lata_name, nom_dtemp, itr.d_temperature_, latastep);
+    }
+
   oss.str("");
   if (liste_post_instantanes.contient_("CP"))
     n++, dumplata_scalar(lata_name, "CP", itr.cp_, latastep);
@@ -3045,12 +3072,12 @@ int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_p
 
   if (liste_post_instantanes_.contient_("GRAD_T") || (liste_post_instantanes.contient_(nom1)))
     {
-      const FixedVector<IJK_Field_double, 3>& grad_T = itr.grad_T_;
+      const IJK_Field_vector3_double& grad_T = itr.grad_T_;
       n++, dumplata_vector(lata_name, "GRADT", grad_T[0], grad_T[1], grad_T[2], latastep);
       //  IJK_Field_double& grad_T0 = itr.grad_T_[0];
       //  IJK_Field_double& grad_T1 = itr.grad_T_[1];
       // IJK_Field_double& grad_T2 = itr.grad_T_[2];
-      //FixedVector<IJK_Field_double, 3>& grad_T = [grad_T0, grad_T1, grad_T2];
+      //IJK_Field_vector3_double& grad_T = [grad_T0, grad_T1, grad_T2];
       // n++,dumplata_scalar(lata_name,"dTd", grad_T2, latastep);
     }
   oss.str("");
@@ -3165,12 +3192,12 @@ int IJK_FT_Post::posttraiter_champs_instantanes_energie(const Motcles& liste_pos
 
   if (liste_post_instantanes_.contient_("GRAD_T") || (liste_post_instantanes.contient_(nom1)))
     {
-      const FixedVector<IJK_Field_double, 3>& grad_T = itr.grad_T_;
+      const IJK_Field_vector3_double& grad_T = itr.grad_T_;
       n++, dumplata_vector(lata_name, "GRADT", grad_T[0], grad_T[1], grad_T[2], latastep);
       //  IJK_Field_double& grad_T0 = itr.grad_T_[0];
       //  IJK_Field_double& grad_T1 = itr.grad_T_[1];
       // IJK_Field_double& grad_T2 = itr.grad_T_[2];
-      //FixedVector<IJK_Field_double, 3>& grad_T = [grad_T0, grad_T1, grad_T2];
+      //IJK_Field_vector3_double& grad_T = [grad_T0, grad_T1, grad_T2];
       // n++,dumplata_scalar(lata_name,"dTd", grad_T2, latastep);
     }
   oss.str("");

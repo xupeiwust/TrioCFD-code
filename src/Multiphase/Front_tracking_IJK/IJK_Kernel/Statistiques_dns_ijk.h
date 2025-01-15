@@ -15,7 +15,7 @@
 
 #ifndef Statistiques_dns_ijk_H
 #define Statistiques_dns_ijk_H
-#include <FixedVector.h>
+#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
 #include <Objet_U.h>
@@ -41,7 +41,7 @@ public:
   };
   void postraiter(Sortie&, int flag_valeur_instantanee = 0) const;
   void postraiter_k(Sortie&, int flag_valeur_instantanee = 0) const; //modif AT 20/06/2013
-  void update_stat(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void update_stat(const IJK_Field_vector3_double& vitesse,
                    const IJK_Field_double& pression,
                    const IJK_Field_double& temperature,
                    const IJK_Field_double& masse_vol,
@@ -64,14 +64,14 @@ public:
                    const int flag_structural_uu,
                    const FixedVector<IJK_Field_double, 6>& structural_uu_tensor,
                    const int flag_structural_uscalar,
-                   const FixedVector<IJK_Field_double, 3>& structural_uscalar_vector,
+                   const IJK_Field_vector3_double& structural_uscalar_vector,
                    const int flag_formulation_favre,
                    const int flag_formulation_velocity,
                    const double cp_gaz,
                    const double pression_thermodynamique,
                    double dt);
   //modif AT 20/06/2013
-  void update_stat_k(const FixedVector<IJK_Field_double, 3>& vitesse,
+  void update_stat_k(const IJK_Field_vector3_double& vitesse,
                      const IJK_Field_double& pression,
                      //const IJK_Field_double &temperature,
                      const IJK_Field_double& masse_vol,
@@ -185,7 +185,7 @@ public:
     const IJK_Field_double& v2_i,
     const IJK_Field_double& v2_j,
     const IJK_Field_double& v2_k);
-  void compute_vecA_minus_vecB_in_vecA(FixedVector<IJK_Field_double, 3>& vecA, const FixedVector<IJK_Field_double, 3>& vecB);
+  void compute_vecA_minus_vecB_in_vecA(IJK_Field_vector3_double& vecA, const IJK_Field_vector3_double& vecB);
 protected:
   // Z coordinates of statistics points
   ArrOfDouble elem_coord_;

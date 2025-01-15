@@ -32,22 +32,19 @@
 #include <string>
 #include <iostream>
 #include <math.h>
-// #include <fftw3.h>
 #include <Force_ph.h>
 #include <Random_process.h>
-
 #include <IJK_Field.h>
+// #include <fftw3.h>
 // #include <init_forcage_THI.h>
 
 class Force_sp : public Objet_U
 {
 
-  Declare_instanciable_sans_constructeur_ni_destructeur( Force_sp ) ;
+  Declare_instanciable( Force_sp ) ;
 
 public:
 
-  Force_sp();
-  ~Force_sp();
   void initialise(int nl, int nn, int nm, int momin, int momax, double kmin, double kmax,std::string nom_fichier);
   void initialise(int nl, int nn, int nm, int momin, int momax, double kmin, double kmax, double amplitude, std::string nom_fichier);
   // void initialise(int nl, int nn, int nm, double kmin, double kmax, double amplitude);
@@ -78,11 +75,16 @@ public:
   ArrOfDouble& get_coeff_flt();
 private:
 
-  int nl,nm,nn,n_lmn;
-  int momin,momax;
-  double amplitude;
-  double kmin,kmax;
-  double energie;
+  int nl = 0;
+  int nm = 0;
+  int nn = 0;
+  int n_lmn = 0;
+  int momin = 0;
+  int momax = 0;
+  double amplitude = 0.;
+  double kmin = 0.;
+  double kmax = 0.;
+  double energie = 0.;
 
   std::vector< std::vector< std:: vector <double >>> force;
   ArrOfDouble force_flt;

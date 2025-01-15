@@ -33,6 +33,9 @@ class Zone_VF;
 class Maillage_FT_Disc;
 class Connectivite_frontieres;
 
+struct CutCell_Properties;
+struct CutFace_Properties;
+
 class Parcours_interface : public Objet_U
 {
   Declare_instanciable_sans_constructeur(Parcours_interface);
@@ -58,6 +61,18 @@ public:
   int get_correction_parcours_thomas() const
   {
     return correction_parcours_thomas_ ;
+  };
+  int get_parcours_sans_tolerance() const
+  {
+    return parcours_sans_tolerance_ ;
+  };
+  void set_correction_parcours_thomas()
+  {
+    correction_parcours_thomas_ = 1;
+  };
+  void set_parcours_sans_tolerance()
+  {
+    parcours_sans_tolerance_ = 1;
   };
   void projeter_vecteur_sur_face(const int num_face, double& x_, double& y_, double& z_) const;
 
@@ -121,12 +136,19 @@ protected:
                                     const FTd_vecteur3& centre_de_gravite_ref,
                                     double epsilon) const;
 
-  double volume_hexaedre(const Domaine_VF& domaine_vf, int num_element,
-                         const DoubleTab& poly_reelles,
-                         const FTd_vecteur3& norme,
-                         const FTd_vecteur3& centre_de_gravite,
-                         const ArrOfInt& polygone_plan_coupe,
-                         double epsilon) const;
+  CutCell_Properties volume_barycentre_hexaedre(const Domaine_VF& domaine_vf, int num_element,
+                                                const DoubleTab& poly_reelles,
+                                                const FTd_vecteur3& norme,
+                                                const FTd_vecteur3& centre_de_gravite,
+                                                const ArrOfInt& polygone_plan_coupe,
+                                                double epsilon) const;
+
+  CutFace_Properties coupe_face_rectangulaire(const Domaine_VF& domaine_vf, int num_element,
+                                              int num_face,
+                                              const DoubleTab& poly_reelles,
+                                              const FTd_vecteur3& norme,
+                                              const ArrOfInt& polygone_plan_coupe,
+                                              double epsilon) const;
 
   void matrice_triangle(int num_element,
                         FTd_vecteur2& origine,
@@ -189,6 +211,9 @@ protected:
   int eloigner_sommets_des_faces(Maillage_FT_Disc& maillage) const;
   double uzawa2(const Domaine_VF& domaine_vf, const int elem,
                 double& x, double& y, double& z) const;
+
+  // Drapeau de suppression de la tolerance sur la position dedans/dehors des points
+  int parcours_sans_tolerance_;
 };
 
 #endif

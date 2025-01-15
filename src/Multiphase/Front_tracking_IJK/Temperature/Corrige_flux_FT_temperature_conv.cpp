@@ -44,7 +44,7 @@ Entree& Corrige_flux_FT_temperature_conv::readOn( Entree& is )
 
 void Corrige_flux_FT_temperature_conv::initialize(
   const IJK_Splitting& splitting, const IJK_Field_double& field,
-  const IJK_Interfaces& interfaces, const IJK_FT_double& ijk_ft,
+  const IJK_Interfaces& interfaces, const IJK_FT_base& ijk_ft,
   Intersection_Interface_ijk_face& intersection_ijk_face,
   Intersection_Interface_ijk_cell& intersection_ijk_cell)
 {
@@ -354,9 +354,9 @@ void Corrige_flux_FT_temperature_conv::calcul_temperature_flux_interface(
   // TODO mettre une valeur acceptable dans le cas ou la temperature n est pas
   // connue
   temp_liqu.resize_array(coo_liqu.dimension(0));
-  ijk_interpolate_skip_unknown_points(temperature, coo_liqu, temp_liqu, 1.e10);
+  ijk_interpolate_skip_unknown_points(temperature, coo_liqu, temp_liqu, 1.e31);
   temp_vap.resize(coo_vap.dimension(0));
-  ijk_interpolate_skip_unknown_points(temperature, coo_vap, temp_vap, 1.e10);
+  ijk_interpolate_skip_unknown_points(temperature, coo_vap, temp_vap, 1.e31);
   const int n_point_interp = positions.dimension(0);
   temperature_interp.resize_array(n_point_interp);
   flux_normal_interp.resize_array(n_point_interp);

@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Composantes_Connex.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Composantes_Connex_included
 #define IJK_Composantes_Connex_included
@@ -34,14 +28,7 @@
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Composantes_Connex
-//
-// <Description of class IJK_Composantes_Connex>
-//
-/////////////////////////////////////////////////////////////////////////////
-class IJK_FT_double;
+class IJK_FT_base;
 class IJK_Interfaces;
 class IJK_Composantes_Connex : public Objet_U
 {
@@ -49,14 +36,17 @@ class IJK_Composantes_Connex : public Objet_U
   Declare_instanciable( IJK_Composantes_Connex ) ;
 
 public :
-  int initialize(const IJK_Splitting& splitting,
-                 const IJK_Interfaces& interfaces,
+  int initialize(IJK_Interfaces& interfaces,
                  const bool is_switch);
-  void associer(const IJK_FT_double& ijk_ft);
+  int allocate_fields(const IJK_Splitting& splitting,
+                      const int& compute_compo_fields);
+  void associer(const IJK_FT_base& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities);
+                                             const int& fill_rising_velocities,
+                                             const int& use_bubbles_velocities_from_interface,
+                                             const int& use_bubbles_velocities_from_barycentres);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
   void compute_rising_velocities();
@@ -125,6 +115,10 @@ public :
   {
     return rising_vectors_;
   }
+  const Vecteur3& get_rising_velocity_overall() const
+  {
+    return rising_velocity_overall_;
+  }
   const Vecteur3& get_liquid_velocity() const
   {
     return liquid_velocity_;
@@ -133,11 +127,23 @@ public :
   {
     return min_max_larger_box_;
   }
+  const int& get_compute_from_bounding_box() const
+  {
+    return compute_from_bounding_box_;
+  }
+  const int& get_compute_compo_fields() const
+  {
+    return compute_compo_fields_;
+  }
 
 protected :
   void fill_mixed_cell_compo();
-  OBS_PTR(IJK_FT_double) ref_ijk_ft_;
+
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   const IJK_Interfaces * interfaces_ = nullptr;
+  bool is_switch_=false;
+  int compute_compo_fields_=0;
+  int compute_from_bounding_box_=0;
 
   IJK_Field_double eulerian_compo_connex_ft_;
   IJK_Field_double eulerian_compo_connex_ns_;
@@ -162,11 +168,15 @@ protected :
 
   IJK_Field_double eulerian_rising_velocities_;
   ArrOfDouble rising_velocities_;
+  Vecteur3 rising_velocity_overall_ = {0., 0., 0.};
   DoubleTab rising_vectors_;
-  Vecteur3 liquid_velocity_;
+  Vecteur3 liquid_velocity_ = {0., 0., 0.};
 
   int compute_rising_velocities_ = 0;
   int fill_rising_velocities_ = 0;
+
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
 
   bool is_updated_ = false;
 };
