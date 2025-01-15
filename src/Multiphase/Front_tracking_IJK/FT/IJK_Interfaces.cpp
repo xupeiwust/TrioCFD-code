@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Interfaces.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Connex_components.h>
 #include <IJK_Field_vector.h>
@@ -28,6 +22,7 @@
 #include <IJK_Interfaces.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
+#include <Cut_cell_tools.h>
 #include <LataDB.h>
 #include <LecFicDiffuse_JDD.h>
 #include <Linear_algebra_tools.h>
@@ -2574,7 +2569,7 @@ void IJK_Interfaces::calculer_var_volume_remaillage(double timestep,
   DoubleVect delta_volume_theorique_bilan_ns_vdf;
 
   {
-    const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur().valeur());
+    const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, refdomaine_dis_.valeur());
     const Domaine& domaine = domaine_vf.domaine();
     domaine.creer_tableau_elements(delta_volume_theorique_bilan_ns_vdf);
 

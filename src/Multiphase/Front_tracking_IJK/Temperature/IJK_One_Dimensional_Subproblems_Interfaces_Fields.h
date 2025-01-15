@@ -63,7 +63,7 @@ public :
                                      const char *lata_name,
                                      const int lata_step);
 protected :
-  REF(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
 
   IJK_One_Dimensional_Subproblems * thermal_local_subproblems_ = nullptr;

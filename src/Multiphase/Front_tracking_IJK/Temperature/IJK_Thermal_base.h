@@ -455,6 +455,8 @@ public:
   virtual void remplir_cellules_maintenant_pures();
   virtual void transfert_diphasique_vers_pures();
 
+  virtual void compare_fluxes_thermal_subproblems() { }
+
 protected:
 
   void compute_cell_volume();

@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_base.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal_base.h>
 #include <IJK_Field_vector.h>
@@ -2484,12 +2478,12 @@ void IJK_Thermal_base::compute_interfacial_temperature2(ArrOfDouble& interfacial
 }
 
 void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
-                                                  const double& T_imposed,
+                                                  double T_imposed,
                                                   const IJK_Interfaces& interfaces,
-                                                  double& nb_diam,
-                                                  const int& upstream_dir,
-                                                  const int& gravity_dir,
-                                                  const int& upstream_stencil)
+                                                  double nb_diam,
+                                                  int upstream_dir,
+                                                  int gravity_dir,
+                                                  int upstream_stencil)
 {
   int dir = 0;
   if (upstream_dir == -1)

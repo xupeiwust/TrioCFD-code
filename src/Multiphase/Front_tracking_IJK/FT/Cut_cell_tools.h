@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2022, CEA
+* Copyright (c) 2015 - 2016, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -13,7 +13,30 @@
 *
 *****************************************************************************/
 
-#ifndef IJK_Field_simd_tools_included
-#define IJK_Field_simd_tools_included
-#include <ConstIJK_ptr.h>
-#endif
+#ifndef Cut_cell_tools_included
+#define Cut_cell_tools_included
+
+#include <Champ_diphasique.h>
+#include <memory>
+
+class IJK_Splitting;
+class Cut_cell_FT_Disc;
+
+void dumplata_scalar_cut_cell(int cut_cell_activated,
+                              const char *filename, const char *fieldname,
+                              const std::shared_ptr<IJK_Field_double>& f,
+                              int step);
+
+
+
+void lire_dans_lata_cut_cell(int cut_cell_activated,
+                             const char *filename, int tstep, const char *geometryname, const char *fieldname,
+                             std::shared_ptr<IJK_Field_double>& f);
+
+void allocate_velocity(Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_persistant(Cut_cell_FT_Disc& cut_cell_disc, Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_ephemere(Cut_cell_FT_Disc& cut_cell_disc,   Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity_paresseux(Cut_cell_FT_Disc& cut_cell_disc,  Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+
+
+#endif /* Cut_cell_tools_included */

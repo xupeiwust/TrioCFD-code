@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Interfaces.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Interfaces_included
 #define IJK_Interfaces_included
@@ -40,7 +34,7 @@
 #include <IJK_Composantes_Connex.h>
 #include <Champ_diphasique.h>
 #include <Cut_cell_surface_efficace.h>
-#include <Domaine_dis.h>
+#include <Domaine_dis_base.h>
 
 class IJK_FT_base;
 class Switch_FT_double;

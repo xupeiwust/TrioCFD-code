@@ -71,7 +71,7 @@ public:
                                Facettes_data& interfacial_temperature,
                                DoubleTabFT& interfacial_phin_ai,
                                const Cut_field_double& cut_field_temperature,
-                               REF(IJK_FT_cut_cell)& ref_ijk_ft,
+                               OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft,
                                const IJK_Field_double& temperature_ns,
                                IJK_Field_double& temperature_ft);
   void calculer_flux_interface_next(double lambda_liquid,
@@ -80,7 +80,7 @@ public:
                                     Facettes_data& interfacial_temperature,
                                     DoubleTabFT& interfacial_phin_ai,
                                     const Cut_field_double& cut_field_temperature,
-                                    REF(IJK_FT_cut_cell)& ref_ijk_ft,
+                                    OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft,
                                     const IJK_Field_double& temperature_ns,
                                     IJK_Field_double& temperature_ft);
   void calculer_flux_interface_old(double lambda_liquid,
@@ -89,7 +89,7 @@ public:
                                    Facettes_data& interfacial_temperature,
                                    DoubleTabFT& interfacial_phin_ai,
                                    const Cut_field_double& cut_field_temperature,
-                                   REF(IJK_FT_cut_cell)& ref_ijk_ft,
+                                   OBS_PTR(IJK_FT_cut_cell)& ref_ijk_ft,
                                    const IJK_Field_double& temperature_ns,
                                    IJK_Field_double& temperature_ft);
   void calculer_flux_interface_efficace();

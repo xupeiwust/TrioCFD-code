@@ -194,7 +194,7 @@ protected :
 
   int type_temperature_convection_form_ = 0;
 
-  REF(IJK_FT_cut_cell) ref_ijk_ft_cut_cell_;
+  OBS_PTR(IJK_FT_cut_cell) ref_ijk_ft_cut_cell_;
   IJK_Splitting::Localisation localisation_ = IJK_Splitting::ELEM;
 
   IJK_Field_double div_rho_cp_T_;

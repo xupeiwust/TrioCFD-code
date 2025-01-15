@@ -140,7 +140,7 @@ protected :
   void fill_mixed_cell_compo();
 
   OBS_PTR(IJK_FT_base) ref_ijk_ft_;
-  const IJK_Interfaces * interfaces_ = nullptr;
+  IJK_Interfaces * interfaces_ = nullptr;
   bool is_switch_=false;
   int compute_compo_fields_=0;
   int compute_from_bounding_box_=0;

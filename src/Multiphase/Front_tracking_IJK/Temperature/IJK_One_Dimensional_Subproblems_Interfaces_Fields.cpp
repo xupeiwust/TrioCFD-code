@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblems_Interfaces_Fields.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
 #include <IJK_FT.h>
@@ -226,7 +220,7 @@ bool IJK_One_Dimensional_Subproblems_Interfaces_Fields::retrieve_interfacial_sur
       const IJK_Interfaces& interfaces = ref_ijk_ft_->itfce();
       const IJK_Splitting& splitting = ref_ijk_ft_->get_splitting_ft();
 
-      const Domaine_dis_base& mon_dom_dis = interfaces.get_domaine_dis().valeur();
+      const Domaine_dis_base& mon_dom_dis = interfaces.get_domaine_dis();
       const Maillage_FT_IJK& maillage = interfaces.maillage_ft_ijk();
       const Intersections_Elem_Facettes& intersections = maillage.intersections_elem_facettes();
       const ArrOfInt& index_elem = intersections.index_elem();

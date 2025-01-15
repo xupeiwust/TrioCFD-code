@@ -20,6 +20,7 @@
 #include <Maillage_FT_Disc.h>
 #include <IJK_Field.h>
 #include <IJK_Splitting.h>
+#include <ConstIJK_ptr.h>
 #include <Champ_diphasique.h>
 #include <IJK_Field_simd_tools.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -167,8 +168,8 @@ protected:
   Schema_Comm_FT schema_comm_;
   Desc_Structure_FT desc_;
 
-  REF(IJK_Interfaces) ref_interfaces_;
-  REF(IJK_Splitting) ref_splitting_;
+  OBS_PTR(IJK_Interfaces) ref_interfaces_;
+  OBS_PTR(IJK_Splitting) ref_splitting_;
   IJK_Splitting::Localisation localisation_;
   int ghost_size_;
 
@@ -218,16 +219,16 @@ protected:
   DoubleTabFT_cut_cell_vector3 coord_;
 
   // Tableau des champs diphasiques (persistant, avec reordonnement a chaque pas de temps)
-  LIST(REF(DoubleTabFT_cut_cell)) persistent_double_data_;
-  LIST(REF(IntTabFT_cut_cell)) persistent_int_data_;
+  LIST(OBS_PTR(DoubleTabFT_cut_cell)) persistent_double_data_;
+  LIST(OBS_PTR(IntTabFT_cut_cell)) persistent_int_data_;
 
   // Tableau des champs diphasiques (ephemeres, avec reinitilisation a chaque pas de temps)
-  LIST(REF(DoubleTabFT_cut_cell)) transient_double_data_;
-  LIST(REF(IntTabFT_cut_cell)) transient_int_data_;
+  LIST(OBS_PTR(DoubleTabFT_cut_cell)) transient_double_data_;
+  LIST(OBS_PTR(IntTabFT_cut_cell)) transient_int_data_;
 
   // Tableau des champs diphasiques (paresseux, sans modifications entre chaque pas de temps)
-  LIST(REF(DoubleTabFT_cut_cell)) lazy_double_data_;
-  LIST(REF(IntTabFT_cut_cell)) lazy_int_data_;
+  LIST(OBS_PTR(DoubleTabFT_cut_cell)) lazy_double_data_;
+  LIST(OBS_PTR(IntTabFT_cut_cell)) lazy_int_data_;
 };
 
 inline void Cut_cell_FT_Disc::add_to_persistent_double_data(DoubleTabFT_cut_cell& field, int dimension)

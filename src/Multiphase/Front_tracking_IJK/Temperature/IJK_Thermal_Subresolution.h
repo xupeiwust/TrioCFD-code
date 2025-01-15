@@ -43,14 +43,6 @@
 #include <IJK_SolveSys_FD_thermal.h>
 #include <MD_Vector_tools.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Thermal_Subresolution
-//
-// <Description of class IJK_Thermal_Subresolution>
-//
-/////////////////////////////////////////////////////////////////////////////
-
 
 class IJK_Thermal_Subresolution : public IJK_Thermal_base
 {

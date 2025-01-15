@@ -18,7 +18,7 @@
 
 #include <IJK_Field.h>
 #include <Cut_cell_convection_auxiliaire.h>
-
+#include <simd_tools.h>
 
 template <DIRECTION _DIR_>
 void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double& resu, const int k_layer)
@@ -69,6 +69,7 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double&
   const int imax = nx;
   const int jmax = ny;
   const int vsize = Simd_double::size();
+  const Simd_double zero = 0.;
   for (int j = 0; ; j++)
     {
       for (int i = 0; i < imax; i += vsize)
@@ -82,8 +83,8 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double&
           fram_values.get_left_center(_DIR_, i, fram0, fram1);
           curv_values.get_left_center(_DIR_, i, curv0, curv1);
           Simd_double fram = max(fram0, fram1);
-          Simd_double curv	   = select_double(velocity, 0., curv1, curv0);
-          Simd_double T_amont = select_double(velocity, 0., T1 /* if velocity < 0 */, T0 /* if velocity > 0 */);
+          Simd_double curv	   = select_double(velocity, zero, curv1, curv0);
+          Simd_double T_amont = select_double(velocity, zero, T1 /* if velocity < 0 */, T0 /* if velocity > 0 */);
           Simd_double flux	   = (T0 + T1) * 0.5 - delta_xyz_squared_over_8 * curv;
           flux		   = ((1. - fram) * flux + fram * T_amont) * velocity * surface;
           resu_ptr.put_val(i, flux);
