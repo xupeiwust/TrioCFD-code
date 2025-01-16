@@ -57,7 +57,7 @@ void Variation_rho::dimensionner_blocs(matrices_t matrices, const tabs_t& semi_i
         const DoubleTab& dep = equation().probleme().get_champ(n_m.first.c_str()).valeurs();
         int nc = dep.dimension_tot(0),
             M  = dep.line_size();
-        IntTrav sten(0, 2);
+        IntTab sten(0, 2);
         if (n_m.first == "interfacial_area" || n_m.first == "temperature") // N <= M
           for (int e = 0; e < ne; e++)
             for (int n = 0; n < N; n++) sten.append_line(N * e + n, M * e + n);

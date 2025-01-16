@@ -32,6 +32,7 @@
 #include <math.h>
 #include <Sources.h>
 #include <Flux_interfacial_PolyMAC_P0P1NC.h>
+#include <Domaine_PolyMAC_P0.h>
 
 Implemente_instanciable(Nucleation_paroi_PolyMAC_P0, "Nucleation_paroi_Elem_PolyMAC_P0", Source_base);
 

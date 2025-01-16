@@ -29,6 +29,7 @@
 #include <Matrix_tools.h>
 #include <Array_tools.h>
 #include <Coalescence_bulles_1groupe_base.h>
+#include <Domaine_PolyMAC_P0.h>
 #include <math.h>
 
 Implemente_instanciable(Coalescence_bulles_1groupe_PolyMAC_P0, "Coalescence_bulles_1groupe_PolyMAC_P0", Source_base);
@@ -70,7 +71,7 @@ void Coalescence_bulles_1groupe_PolyMAC_P0::dimensionner_blocs(matrices_t matric
         const DoubleTab& dep = equation().probleme().get_champ(n_m.first.c_str()).valeurs();
         int nc = dep.dimension_tot(0),
             M  = dep.line_size();
-        IntTrav sten(0, 2);
+        IntTab sten(0, 2);
         if (n_m.first == "alpha")
           for (int e = 0; e < ne; e++)
             for (int n = 0; n < N; n++) sten.append_line(N * e + n, N * e + n);

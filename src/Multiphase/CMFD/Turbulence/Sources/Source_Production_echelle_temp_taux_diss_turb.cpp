@@ -73,7 +73,7 @@ void Source_Production_echelle_temp_taux_diss_turb::dimensionner_blocs(matrices_
         const DoubleTab& dep = equation().probleme().get_champ(n_m.first.c_str()).valeurs();
         int nc = dep.dimension_tot(0),
             M  = dep.line_size();
-        IntTrav sten(0, 2);
+        IntTab sten(0, 2);
         for (int e = 0; e < ne; e++)
           for (int n = 0; n < Nk; n++)
             if (n < M) sten.append_line(Nk * e + n, M * e + n);
