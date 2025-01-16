@@ -487,6 +487,6 @@ protected:
   bool flag_oscillating_boundary;
 
   // Saving each delta_t time
-  bool flag_save_each_delta_t_;
+  bool flag_save_each_delta_t_ = false;
 };
 #endif
