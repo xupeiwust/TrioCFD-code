@@ -123,11 +123,11 @@ public:
     std::cout << "Point3D(" << x << ", " << y <<  ", " << z << ")" << std::endl;
   }
   // Comparison operator for sorting Point3D
-  bool operator==(const Point3D& rhs)
+  bool operator==(const Point3D& rhs) const
   {
     return abs(x-rhs.x)<tol && abs(y-rhs.y)<tol && abs(z-rhs.z)<tol;
   }
-  bool operator<(const Point3D& rhs)
+  bool operator<(const Point3D& rhs) const
   {
     if (x != rhs.x) return x < rhs.x;
     if (y != rhs.y) return y < rhs.y;

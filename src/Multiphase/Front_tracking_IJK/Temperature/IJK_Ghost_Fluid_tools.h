@@ -31,7 +31,7 @@
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
+#define select_dir(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
 #define selectxy(a,x,y) ((a==0)?(x):(y))
 
 /////////////////////////////////////////////////////////////////////////////

@@ -2528,7 +2528,7 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
 
   const double x2 = (dirobj-origin_dir)/ ddir;
   int index_dir = (int)(floor(x2)) - offset_dir; // C'est l'index local, donc potentiellement negatif...
-  const int& ndir = select(dir, temperature.ni(), temperature.nj(), temperature.nk());
+  const int& ndir = select_dir(dir, temperature.ni(), temperature.nj(), temperature.nk());
 
   // Cerr << "index_dir " << index_dir << finl;
   if ((index_dir >=0) && (index_dir < ndir))
@@ -2542,12 +2542,12 @@ void IJK_Thermal_base::force_upstream_temperature(IJK_Field_double& temperature,
     return;
 
   const double imposed = T_imposed;
-  const int& imin = select(dir, index_dir, 0, 0);
-  const int& jmin = select(dir, 0, index_dir, 0);
-  const int& kmin = select(dir, 0, 0, index_dir);
-  const int& imax = select(dir, imin + upstream_stencil, temperature.nj(), temperature.nk());
-  const int& jmax = select(dir, temperature.ni(), jmin + upstream_stencil, temperature.nk());
-  const int& kmax = select(dir, temperature.ni(), temperature.nj(), kmin + upstream_stencil);
+  const int& imin = select_dir(dir, index_dir, 0, 0);
+  const int& jmin = select_dir(dir, 0, index_dir, 0);
+  const int& kmin = select_dir(dir, 0, 0, index_dir);
+  const int& imax = select_dir(dir, imin + upstream_stencil, temperature.nj(), temperature.nk());
+  const int& jmax = select_dir(dir, temperature.ni(), jmin + upstream_stencil, temperature.nk());
+  const int& kmax = select_dir(dir, temperature.ni(), temperature.nj(), kmin + upstream_stencil);
   for (int k = kmin; k < kmax; k++)
     for (int j = jmin; j < jmax; j++)
       for (int i = imin; i < imax; i++)

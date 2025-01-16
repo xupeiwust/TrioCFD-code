@@ -403,7 +403,7 @@ double Cut_cell_diffusion_auxiliaire::dying_cells_flux(int num_face, int phase, 
   double normal_z = cut_cell_disc.get_interfaces().get_normale_deplacement_interface()(n,2);
   int sign_flux_interf = (flux_interface_efficace_(n) == 0.) ? 0 : (1 - 2*phase)*(2*(flux_interface_efficace_(n) > 0) - 1);
 
-  double normal_to_face = sign*select(dir, normal_x, normal_y, normal_z);
+  double normal_to_face = sign*select_dir(dir, normal_x, normal_y, normal_z);
 
   int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
   if (n_face >= 0)
@@ -455,7 +455,7 @@ double Cut_cell_diffusion_auxiliaire::small_nascent_cells_flux(int num_face, int
   double normal_z = cut_cell_disc.get_interfaces().get_normale_deplacement_interface()(n,2);
   int sign_flux_interf = (flux_interface_efficace_(n) == 0.) ? 0 : (1 - 2*phase)*(2*(flux_interface_efficace_(n) > 0) - 1);
 
-  double normal_to_face = sign*select(dir, normal_x, normal_y, normal_z);
+  double normal_to_face = sign*select_dir(dir, normal_x, normal_y, normal_z);
 
   int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
   if (n_face >= 0)

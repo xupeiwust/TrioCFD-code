@@ -205,7 +205,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
           assert((bary_depl_interf >= 0) && (bary_depl_interf <= 1));
 
           // Passage a un systeme de coordonnees dimensionel et absolue
-          const int i_dir = select(dir, i, j, k);
+          const int i_dir = select_dir(dir, i, j, k);
           const int offset_dir = cut_cell_disc.get_splitting().get_offset_local(dir);
           const double origin_dir = geom.get_origin(dir);
           const double delta_dir = geom.get_constant_delta(dir);
@@ -550,7 +550,7 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_iteratif(
               int dj = decalage*(dir == 1);
               int dk = decalage*(dir == 2);
 
-              double f = select(dir, fx, fy, fz);
+              double f = select_dir(dir, fx, fy, fz);
 
               int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
               if (n_face >= 0)
@@ -945,7 +945,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
           int dj = decalage*(dir == 1);
           int dk = decalage*(dir == 2);
 
-          double f = select(dir, fx, fy, fz);
+          double f = select_dir(dir, fx, fy, fz);
 
           int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
           if (n_face >= 0)
@@ -1128,7 +1128,6 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
               double area_dt_free = 0;
               double area_dt_total = 0;
               double delta_volume_total = 0;
-              double delta_volume_free = 0;
               for (int num_face = 0; num_face < 6; num_face++)
                 {
                   int dir = num_face%3;
@@ -1146,7 +1145,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
 
                   double indic_decale_fin_pas_de_temps = (phase == 0) ? 1 - indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale) : indicatrice_fin_pas_de_temps(i+di_decale,j+dj_decale,k+dk_decale);
 
-                  double f = select(dir, fx, fy, fz);
+                  double f = select_dir(dir, fx, fy, fz);
 
                   int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
                   int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
@@ -1158,7 +1157,6 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                       area_dt_free += (decale_smaller) ? 0. : f*surface_efficace;
                       area_dt_total += f*surface_efficace;
                       delta_volume_total -= sign*f*surface_efficace*remeshing_diph_velocity(n_face);
-                      delta_volume_free  -= (decale_smaller) ? 0. : sign*f*surface_efficace*remeshing_diph_velocity(n_face);
                       if (!decale_smaller)
                         {
                           assert((pass != 0.) || (remeshing_diph_velocity(n_face) == 0.));
@@ -1172,7 +1170,6 @@ void Cut_cell_surface_efficace::calcul_vitesse_remaillage(double timestep,
                       area_dt_free += f*surface_efficace;
                       area_dt_total += f*surface_efficace;
                       delta_volume_total -= sign*f*surface_efficace*remeshing_velocity[dir].pure_(i+di,j+dj,k+dk);
-                      delta_volume_free  -= sign*f*surface_efficace*remeshing_velocity[dir].pure_(i+di,j+dj,k+dk);
                       if (surface_efficace > 0)
                         {
                           assert((pass != 0.) || (remeshing_velocity[dir].pure_(i+di,j+dj,k+dk) == 0.));
@@ -1348,7 +1345,7 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
 
                           double surface_efficace = (phase == 0) ? 1 - indicatrice_surfacique_efficace_deformation_face[dir](i+di,j+dj,k+dk) : indicatrice_surfacique_efficace_deformation_face[dir](i+di,j+dj,k+dk);
 
-                          double f = select(dir, fx, fy, fz);
+                          double f = select_dir(dir, fx, fy, fz);
 
                           int n = cut_cell_disc.get_n(i, j, k);
                           int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);

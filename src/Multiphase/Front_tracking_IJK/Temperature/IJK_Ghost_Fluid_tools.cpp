@@ -362,7 +362,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
             if (tmp_interf_cells(i,j,k))
               for (int l=0; l<dim; l++)
                 {
-                  const int index = select(l, i, j, k);
+                  const int index = select_dir(l, i, j, k);
                   interf_cells_indices[l].append_array(index);
                 }
     }
@@ -1375,9 +1375,9 @@ void smooth_eulerian_field(IJK_Field_double& field,
                       for (int n=-1; n<=1; n++)
                         {
                           test_indicator=true;
-                          // const int ii = select(c, l, 0, 0);
-                          // const int jj = select(c, 0, l, 0);
-                          // const int kk = select(c, 0, 0, l);
+                          // const int ii = select_dir(c, l, 0, 0);
+                          // const int jj = select_dir(c, 0, l, 0);
+                          // const int kk = select_dir(c, 0, 0, l);
                           const int ii = n;
                           const int jj = l;
                           const int kk = c;

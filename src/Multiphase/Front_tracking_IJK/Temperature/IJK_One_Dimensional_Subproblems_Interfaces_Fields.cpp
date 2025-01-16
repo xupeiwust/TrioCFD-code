@@ -346,9 +346,9 @@ void IJK_One_Dimensional_Subproblems_Interfaces_Fields::get_surrounding_value(co
       for (int c=0; c<3; c++)
         for (int l=-1; l<=1; l++)
           {
-            const int ii = select(c, l, 0, 0);
-            const int jj = select(c, 0, l, 0);
-            const int kk = select(c, 0, 0, l);
+            const int ii = select_dir(c, l, 0, 0);
+            const int jj = select_dir(c, 0, l, 0);
+            const int kk = select_dir(c, 0, 0, l);
             const double local_val = tmp_ft_field_val_(i+ii, j+jj, k+kk);
             if (local_val > INVALID_TEST)
               {

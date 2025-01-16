@@ -354,7 +354,7 @@ void FT_Field::update_Field_sommets(const Maillage_FT_IJK& FTmesh, const ArrOfDo
   // les sommets reels sont mis a jour
   // il reste a mettre a jour les sommets virtuels
   desc_sommets.echange_espace_virtuel(field_sommet);
-};
+}
 
 void FT_Field::echange_espace_virtuel(const Maillage_FT_Disc& mesh)
 {

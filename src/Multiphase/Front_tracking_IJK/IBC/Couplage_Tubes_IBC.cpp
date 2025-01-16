@@ -448,7 +448,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity(IJK_Field_double& vx, IJK_Field_doub
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -612,7 +612,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_frac_vol(IJK_Field_double& vx, IJK_F
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -792,7 +792,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_anticipe_cube(IJK_Field_double& vx, 
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -1002,7 +1002,7 @@ void Couplage_Tubes_IBC::ibc0_velocity_cube(IJK_Field_double& vx, IJK_Field_doub
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -1174,7 +1174,7 @@ void Couplage_Tubes_IBC::ibc0_force_cube(IJK_Field_double& vx, IJK_Field_double&
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -1326,7 +1326,7 @@ void Couplage_Tubes_IBC::ibc_diffuse_velocity_cube(IJK_Field_double& vx, IJK_Fie
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -1520,7 +1520,7 @@ void Couplage_Tubes_IBC::ibc_diffuse_force_cube(IJK_Field_double& vx, IJK_Field_
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -1699,7 +1699,7 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube(IJK_Field_double& vx, IJK_F
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -2023,7 +2023,7 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube_qdm(IJK_Field_double& vx, I
           const int kvoisin = (direction == 2) ? -1 : 0;
 
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -2416,7 +2416,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_symetrie_plane(IJK_Field_double& vx,
           const int jvoisin = (direction == 1) ? -1 : 0;
           const int kvoisin = (direction == 2) ? -1 : 0;
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;
@@ -2644,7 +2644,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_miroir(IJK_Field_double& vx, IJK_Fie
           const double volume_maille = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2); //donne le volume de la maille
           const double inv_delta_x = 1. / geom.get_constant_delta(0); // inverse de la taille de la maille selon x
           const double inv_delta_z = 1. / geom.get_constant_delta(2);
-          IJK_Field_double& velocity = select(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
+          IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);  // velocity est egale a la vitesse selon la direction 0,1 ou 2
           int imin = 0;
           int jmin = 0;
           int kmin = 0;

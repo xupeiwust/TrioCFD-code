@@ -1666,7 +1666,6 @@ bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
       bubbles_rising_dir[c].reset();
       bubbles_rising_vel[c].reset();
     }
-  int ibubble = 0;
   if (bubbles_bary_computed)
     {
       int line_counter = 0;
@@ -1723,8 +1722,6 @@ bool IJK_Interfaces::read_bubbles_barycentres_vel(const Nom& interf_name,
                     }
                 }
               var_index = 0;
-              if(line_counter)
-                ibubble++;
               line_counter++;
             }
           fic_bary_vel.close();
@@ -1743,7 +1740,6 @@ bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom&
     {
       bubbles_bary[c].reset();
     }
-  int ibubble = 0;
   if (bubbles_bary_computed)
     {
       int line_counter = 0;
@@ -1790,8 +1786,6 @@ bool IJK_Interfaces::read_bubbles_barycentres(const Nom& interf_name, const Nom&
                     }
                 }
               var_index = 0;
-              if(line_counter)
-                ibubble++;
               line_counter++;
             }
           fic_bary.close();
@@ -8076,7 +8070,7 @@ void IJK_Interfaces::calculer_indicatrice_next(
   //                  double face_bary_z = origin_z + dz*(k + offset_z + (get_barycentre_face(1, dir, 2, phase, i,j,k, old_indicatrice_surfacique, next_indicatrice_surfacique)));
   //
   //
-  //                  double f_dir = select(dir, dy*dz, dx*dz, dx*dy);
+  //                  double f_dir = select_dir(dir, dy*dz, dx*dz, dx*dy);
   //                  surface_vapeur_par_face_ns_[next()][dir](i,j,k) = (1 - next_indicatrice_surfacique)*f_dir;
   //
   //                  barycentre_vapeur_par_face_ns_[next()][dir][0](i,j,k) = face_bary_x;

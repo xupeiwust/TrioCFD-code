@@ -132,8 +132,8 @@ double OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_(int i, int j, i
   const int dir_j = (_DIR_ == DIRECTION::Y);
   const int dir_k = (_DIR_ == DIRECTION::Z);
 
-  IJK_Field_local_double& velocity_dir = get_input_velocity(_DIR_);
-  IJK_Field_local_double& input_field = *input_field_;
+  const IJK_Field_local_double& velocity_dir = get_input_velocity(_DIR_);
+  const IJK_Field_local_double& input_field = *input_field_;
 
   const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k-1] + channel_data_.get_delta_z()[k]) * 0.5 : channel_data_.get_delta((int)_DIR_);
   const double surface = channel_data_.get_surface(k, 1, (int)_DIR_);

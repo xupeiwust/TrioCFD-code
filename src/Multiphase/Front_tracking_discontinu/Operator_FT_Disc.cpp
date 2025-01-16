@@ -298,7 +298,7 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
     }
 
   desc_sommets.echange_espace_virtuel(Grad_Phi_Sommet);
-};
+}
 
 
 void Operator_FT_Disc::produit_vectoriel(const ArrOfDouble& a, const ArrOfDouble& b, ArrOfDouble& resu)

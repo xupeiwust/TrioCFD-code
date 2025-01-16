@@ -29,7 +29,7 @@
 
 #define MIN_SURFACE 1.e-30
 #define INVALID_TEST -1.e30
-#define select(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
+#define select_dir(a,x,y,z) ((a==0)?(x):((a==1)?(y):(z)))
 
 // #include <IJK_FT.h>
 /////////////////////////////////////////////////////////////////////////////

@@ -486,7 +486,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
               if (n_dir_1 == n_dir_tot_1)
                 {
-                  int i_dir_1 = select(dir_1, i, j, k);
+                  int i_dir_1 = select_dir(dir_1, i, j, k);
 
                   if (i_dir_1 < positive_ghost_size)
                     {
@@ -512,7 +512,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                               if (n_dir_2 == n_dir_tot_2)
                                 {
-                                  int i_dir_2 = select(dir_2, i, j, k);
+                                  int i_dir_2 = select_dir(dir_2, i, j, k);
 
                                   if (i_dir_2 < positive_ghost_size)
                                     {
@@ -538,7 +538,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
-                                                  int i_dir_3 = select(dir_3, i, j, k);
+                                                  int i_dir_3 = select_dir(dir_3, i, j, k);
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
@@ -592,7 +592,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
-                                                  int i_dir_3 = select(dir_3, i, j, k);
+                                                  int i_dir_3 = select_dir(dir_3, i, j, k);
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
@@ -650,7 +650,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                               if (n_dir_2 == n_dir_tot_2)
                                 {
-                                  int i_dir_2 = select(dir_2, i, j, k);
+                                  int i_dir_2 = select_dir(dir_2, i, j, k);
 
                                   if (i_dir_2 < positive_ghost_size)
                                     {
@@ -676,7 +676,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
-                                                  int i_dir_3 = select(dir_3, i, j, k);
+                                                  int i_dir_3 = select_dir(dir_3, i, j, k);
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
@@ -730,7 +730,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
-                                                  int i_dir_3 = select(dir_3, i, j, k);
+                                                  int i_dir_3 = select_dir(dir_3, i, j, k);
 
                                                   if (i_dir_3 < positive_ghost_size)
                                                     {
@@ -861,7 +861,7 @@ inline bool Cut_cell_FT_Disc::within_ghost_(int i, int j, int k, int negative_gh
   bool case_j_outside = (i_local && j_within_ghost && k_local);
   bool case_k_outside = (i_local && j_local && k_within_ghost);
 
-  return select(dir, case_i_outside, case_j_outside, case_k_outside);
+  return select_dir(dir, case_i_outside, case_j_outside, case_k_outside);
 }
 
 inline int Cut_cell_FT_Disc::get_k_value_index(int k) const

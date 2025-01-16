@@ -151,7 +151,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
           int dj_decale = sign*(dir == 1);
           int dk_decale = sign*(dir == 2);
 
-          double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+          double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
           double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
           bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
@@ -185,7 +185,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
               int dj_decale = sign*(dir == 1);
               int dk_decale = sign*(dir == 2);
 
-              double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+              double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
               double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
               bool decale_also_dying = (cut_cell_disc.get_interfaces().phase_mourrante(phase, i+di_decale,j+dj_decale,k+dk_decale));
@@ -271,7 +271,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
           int dj_decale = sign*(dir == 1);
           int dk_decale = sign*(dir == 2);
 
-          double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+          double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
           double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
           double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
@@ -307,7 +307,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
               int dj_decale = sign*(dir == 1);
               int dk_decale = sign*(dir == 2);
 
-              double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+              double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
               double old_indicatrice_decale = cut_cell_disc.get_interfaces().I(i+di_decale,j+dj_decale,k+dk_decale);
               double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
@@ -429,7 +429,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
           int dj_decale = sign*(dir == 1);
           int dk_decale = sign*(dir == 2);
 
-          double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+          double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
           double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
@@ -484,7 +484,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
               int dj_decale = sign*(dir == 1);
               int dk_decale = sign*(dir == 2);
 
-              double f_dir = select(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
+              double f_dir = select_dir(dir, delta_y*delta_z, delta_x*delta_z, delta_x*delta_y);
 
               double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
@@ -590,7 +590,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
           double ecart_y = std::abs(next_bary_deplace_y/dy - std::round(next_bary_deplace_y/dy));
           double ecart_z = std::abs(next_bary_deplace_z/dz - std::round(next_bary_deplace_z/dz));
           int direction_a_modifier = (ecart_x <= ecart_y && ecart_x <= ecart_z) ? 0 : ((ecart_y <= ecart_x && ecart_y <= ecart_z) ? 1 : 2);
-          double next_bary_deplace_normalise = select(direction_a_modifier, next_bary_deplace_x/dx, next_bary_deplace_y/dy, next_bary_deplace_z/dz);
+          double next_bary_deplace_normalise = select_dir(direction_a_modifier, next_bary_deplace_x/dx, next_bary_deplace_y/dy, next_bary_deplace_z/dz);
           bool ajout_positif = std::floor(next_bary_deplace_normalise) > .5;
 
           if (direction_a_modifier == 0)

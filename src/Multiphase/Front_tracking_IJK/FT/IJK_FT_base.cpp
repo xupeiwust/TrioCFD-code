@@ -874,7 +874,7 @@ const IJK_Field_double& IJK_FT_base::get_IJK_field(const Nom& nom) const
   }
   */
   // IJK_Field_vector3_double velocity_;
-  // IJK_Field_double & velocity = select(direction, vx, vy, vz);
+  // IJK_Field_double & velocity = select_dir(direction, vx, vy, vz);
 
   // Dans ce cas, le champ velocity_ft_ n'est pas utilise :
   if (disable_diphasique_)
@@ -915,7 +915,7 @@ void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx,
                                        const int& compo,
                                        const int& stencil)
 {
-  const IJK_Splitting& splitting = select(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
+  const IJK_Splitting& splitting = select_dir(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
   const int offset_ijk = splitting.get_offset_local(dir);
   if (offset_ijk > 0)
     return;
@@ -925,13 +925,13 @@ void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx,
     const int direction_max = (compo == -1) ? 3 : dir + 1;
     for (int direction = direction_min; direction < direction_max; direction++)
       {
-        IJK_Field_double& velocity = select(direction, vx, vy, vz);
-        const int imin = select(direction, 0, 0, 0);
-        const int jmin = select(direction, 0, 0, 0);
-        const int kmin = select(direction, 0, 0, 0);
-        const int imax = select(direction, stencil, velocity.ni(), velocity.ni());
-        const int jmax = select(direction, velocity.nj(), stencil, velocity.nj());
-        const int kmax = select(direction, velocity.nk(), velocity.nk(), stencil);
+        IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);
+        const int imin = select_dir(direction, 0, 0, 0);
+        const int jmin = select_dir(direction, 0, 0, 0);
+        const int kmin = select_dir(direction, 0, 0, 0);
+        const int imax = select_dir(direction, stencil, velocity.ni(), velocity.ni());
+        const int jmax = select_dir(direction, velocity.nj(), stencil, velocity.nj());
+        const int kmax = select_dir(direction, velocity.nk(), velocity.nk(), stencil);
         for (int k = kmin; k < kmax; k++)
           for (int j = jmin; j < jmax; j++)
             for (int i = imin; i < imax; i++)
@@ -1011,7 +1011,7 @@ void IJK_FT_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_
   {
     for (int direction = 0; direction < 3; direction++)
       {
-        IJK_Field_double& velocity = select(direction, vx, vy, vz);
+        IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);
         for (int k = 0; k < velocity.nk(); k++)
           {
             for (int j = 0; j < velocity.nj(); j++)
@@ -1257,7 +1257,7 @@ void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double
     imposed[dir] = v_imposed;
     for (int direction = 0; direction < 3; direction++)
       {
-        IJK_Field_double& velocity = select(direction, vx, vy, vz);
+        IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);
         int imin;
         int jmin;
         int kmin;
@@ -1919,7 +1919,8 @@ int IJK_FT_base::initialise()
   post_.complete(reprise_);
 
   // On la met a jour 2 fois, une fois next et une fois old
-  update_twice_indicator_field();
+  if (!disable_diphasique_)
+    update_twice_indicator_field();
 
   // Maj des grandeurs shear perio
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)

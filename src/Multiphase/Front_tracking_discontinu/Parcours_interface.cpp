@@ -1934,7 +1934,6 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
   volume += signe_princ * std::fabs(aire_projetee) * (centre_de_gravite[1] - y_bas);
 
   // Barycentre (pondere par le volume) de la partie "projection sur la face face_bas"
-  double volume_verification = 0.;
   double barycentre[3] = {0};
   assert(nb_sommets_poly >=2);
   int i_min = 0;
@@ -1955,7 +1954,6 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
 
   assert(volume_prisme >= 0.);
 
-  volume_verification += signe_princ * volume_prisme;
   barycentre[0] += signe_princ * volume_prisme*barycentre_prisme[0];
   barycentre[1] += signe_princ * volume_prisme*barycentre_prisme[1];
   barycentre[2] += signe_princ * volume_prisme*barycentre_prisme[2];
@@ -1998,7 +1996,6 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
       assert(volume_tetraedre2 >= 0.);
 
       // Volume et barycentre (pondere par le volume) de la partie 'projection = chapeau + prisme'
-      volume_verification += signe_princ * (volume_tetraedre1 + volume_tetraedre2);
       barycentre[0] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[0] + volume_tetraedre2*barycentre_tetraedre2[0]);
       barycentre[1] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[1] + volume_tetraedre2*barycentre_tetraedre2[1]);
       barycentre[2] += signe_princ * (volume_tetraedre1*barycentre_tetraedre1[2] + volume_tetraedre2*barycentre_tetraedre2[2]);
@@ -2077,7 +2074,6 @@ CutCell_Properties Parcours_interface::volume_barycentre_hexaedre(const Domaine_
             (z_coupe_face_haut_max_x + 1./3.*(z_coupe_face_haut_min_x - z_coupe_face_haut_max_x) - z_arriere)/(z_avant - z_arriere)
           };
 
-          volume_verification += signe_compl0 * std::fabs(volume_prectangle) + signe_compl0 * std::fabs(volume_ptriangle);
           barycentre[0] += signe_compl0 * (volume_prectangle*barycentre_prectangle[0] + volume_ptriangle*barycentre_ptriangle[0]);
           barycentre[1] += signe_compl0 * (volume_prectangle*barycentre_prectangle[1] + volume_ptriangle*barycentre_ptriangle[1]);
           barycentre[2] += signe_compl0 * (volume_prectangle*barycentre_prectangle[2] + volume_ptriangle*barycentre_ptriangle[2]);
@@ -2193,8 +2189,8 @@ CutFace_Properties Parcours_interface::coupe_face_rectangulaire(const Domaine_VF
   // direction dir2 correspond a y.
 
   // Directions du plan de la face
-  int dir1 = select(num_face, 2, 0, 1);
-  int dir2 = select(num_face, 1, 2, 0);
+  int dir1 = select_dir(num_face, 2, 0, 1);
+  int dir2 = select_dir(num_face, 1, 2, 0);
 
   // Coordonnees maximale et minimale dans la direction 1
   double min1 = domaine_vf.xv(domaine_vf.elem_faces(num_element, dir1), dir1);

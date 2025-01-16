@@ -646,9 +646,9 @@ int Cut_cell_FT_Disc::initialise_communications()
                             continue;
 
 
-                          int ni_dir = select(direction, ni, nj, nk);
-                          int ni_dir2 = (direction_2 == 3) ? 0 : select(direction_2, ni, nj, nk);
-                          int ni_dir3 = (direction_3 == 3) ? 0 : select(direction_3, ni, nj, nk);
+                          int ni_dir = select_dir(direction, ni, nj, nk);
+                          int ni_dir2 = (direction_2 == 3) ? 0 : select_dir(direction_2, ni, nj, nk);
+                          int ni_dir3 = (direction_3 == 3) ? 0 : select_dir(direction_3, ni, nj, nk);
 
                           Sortie& send_buffer = schema_comm_.send_buffer(dest_pe);
 
@@ -1229,9 +1229,9 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
                           if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
                             continue;
 
-                          int ni_dir = select(direction, ni, nj, nk);
-                          int ni_dir2 = (direction_2 == 3) ? 0 : select(direction_2, ni, nj, nk);
-                          int ni_dir3 = (direction_3 == 3) ? 0 : select(direction_3, ni, nj, nk);
+                          int ni_dir = select_dir(direction, ni, nj, nk);
+                          int ni_dir2 = (direction_2 == 3) ? 0 : select_dir(direction_2, ni, nj, nk);
+                          int ni_dir3 = (direction_3 == 3) ? 0 : select_dir(direction_3, ni, nj, nk);
 
                           for (int n = 0; n < n_loc_; n++)
                             {

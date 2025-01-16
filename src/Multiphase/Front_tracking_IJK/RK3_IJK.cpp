@@ -245,7 +245,7 @@ void force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_
     imposed[0] = v_imposed;
     for (int direction = 0; direction < 3; direction++)
       {
-        IJK_Field_double& velocity = select(direction, vx, vy, vz);
+        IJK_Field_double& velocity = select_dir(direction, vx, vy, vz);
         const int imin = 0;
         const int jmin = 0;
         const int kmin = 0;
