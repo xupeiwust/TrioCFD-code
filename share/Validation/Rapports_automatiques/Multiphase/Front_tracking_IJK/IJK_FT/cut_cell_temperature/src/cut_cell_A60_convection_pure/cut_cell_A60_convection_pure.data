@@ -83,7 +83,7 @@ IJK_FT_cut_cell
   disable_convection_qdm
   disable_solveur_poisson
 
-  type_surface_efficace_face conservation_volume
+  type_surface_efficace_face conservation_volume_iteratif
   type_surface_efficace_interface algebrique_simple
   deactivate_remeshing_velocity
 
@@ -106,15 +106,16 @@ IJK_FT_cut_cell
     cut_cell_schema_convection quick_ou_amont_perpendicular_distance
     convection_auxiliaire {
       methode_temperature_remplissage ponderation_voisin
-      convection_petites_cellules correction_symetrique
+      correction_petites_cellules correction_symetrique
     }
     
     diffusion_auxiliaire {
       methode_flux_interface interp_cut_cell
-      diffusion_petites_cellules correction_directe
+      correction_petites_cellules correction_directe
       scaled_distance_flux_interface 1.0
     }
   }
  }
 }
+Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
 Fin 

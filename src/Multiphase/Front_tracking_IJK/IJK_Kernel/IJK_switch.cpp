@@ -185,9 +185,6 @@ void Switch_double::lire_fichier_reprise(const char *fichier_reprise)
   Param param(que_suis_je());
   set_param_reprise(param);
   param.lire_avec_accolades(fichier);
-
-  // Cout << "hahahah" <<  forcage_.get_b_flt() << finl;
-  // Cout << "hehehe" << forcage_.get_semi_gen() << finl;
   // Appeler ensuite initialize() pour lire les fichiers lata etc...
 }
 

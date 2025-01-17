@@ -1,0 +1,10 @@
+# ./cut_cell_A30_convection_diffusion/cut_cell_A30_convection_diffusion.data
+./baseline_A30_convection_diffusion/baseline_A30_convection_diffusion.data
+# ./cut_cell_A60_diffusion_pure/cut_cell_A60_diffusion_pure.data
+# ./cut_cell_A60_convection_pure/cut_cell_A60_convection_pure.data
+# ./cut_cell_C30_convection_diffusion/cut_cell_C30_convection_diffusion.data
+# ./baseline_C30_convection_diffusion/baseline_C30_convection_diffusion.data
+# ./baseline_A60_convection_diffusion/baseline_A60_convection_diffusion.data
+./baseline_A60_convection_pure/baseline_A60_convection_pure.data
+# ./cut_cell_A60_convection_diffusion/cut_cell_A60_convection_diffusion.data
+# ./baseline_A60_diffusion_pure/baseline_A60_diffusion_pure.data

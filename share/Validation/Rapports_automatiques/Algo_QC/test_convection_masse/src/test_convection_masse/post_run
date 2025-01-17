@@ -1,5 +1,10 @@
-#!/bin/sh
+#!/bin/bash
+fic=create_lml.data
+echo "Dimension 3" > $fic
+echo "Lata_to_other lml $1_lata_1.sauv.lata ../$1" >> $fic
+echo "Fin" >> $fic
 
+trust create_lml.data
 sed 's/__EXPRESSION_TO_PLOT__/simu_d_rho/g' instructions2.py > instructions_simu_d_rho.py
 
 rm -f simu_d_rho????.curve && visit -nowin -cli -s instructions_simu_d_rho.py 

@@ -76,6 +76,8 @@ protected:
   double liq_velocity_tmoy_ = 0.;
   double qdm_source_ = 0.;
   double last_source_qdm_update_time_ = 0.;
+  double vitesse_upstream_reprise_ = 0.;
+  double velocity_bubble_old_ = 0.;
   int offset_list_index_ = 0.;
   int size_listes_source_ = 0;
   ArrOfDouble liste_instants_;

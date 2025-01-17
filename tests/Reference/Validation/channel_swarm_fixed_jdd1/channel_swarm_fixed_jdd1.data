@@ -42,7 +42,6 @@ IJK_FT_double
   dt_post_stats_bulles 5
   dt_post_stats_plans 50
   t_debut_statistiques 0.0
-
   champs_a_postraiter 9 INTERFACES COURBURE COMPO_CONNEXE DISTANCE_AUTRES_INTERFACES 
                         VELOCITY CURL PRESSURE_LIQ PRESSURE INDICATRICE
   check_stop_file stop.txt
@@ -65,6 +64,8 @@ IJK_FT_double
   check_divergence
   gravite 3 -0.1 0.0 0.0
  interfaces {
+   compute_distance_autres_interfaces
+   portee_force_repulsion 0.02
    terme_gravite rho_g
    fichier_reprise_interface init_canal.lata
    timestep_reprise_interface       1

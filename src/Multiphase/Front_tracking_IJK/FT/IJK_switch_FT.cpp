@@ -54,6 +54,8 @@ void Switch_FT_double::set_param(Param& param)
   param.ajouter("corrections_qdm", &old_qdm_corrections_);
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_);
   param.ajouter("reprise_liq_velocity_tmoy", &liq_velocity_tmoy_);
+  param.ajouter("vitesse_upstream_reprise", &vitesse_upstream_reprise_);
+  param.ajouter("velocity_bubble_old", &velocity_bubble_old_);
 }
 
 void Switch_FT_double::prepare_run()
@@ -189,6 +191,8 @@ void Switch_FT_double::ecrire_fichier_reprise(const char *fichier_sauvegarde, co
           << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
           << " reprise_vap_velocity_tmoy " << vap_velocity_tmoy_ << "\n"
           << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
+		  << " velocity_bubble_old " << velocity_bubble_old_ << "\n"
+		  << " vitesse_upstream_reprise " << vitesse_upstream_reprise_ << "\n"
           << " fichier_reprise_vitesse " << lata_name << "\n"
           << " timestep_reprise_vitesse 1\n";
 
@@ -260,6 +264,8 @@ void Switch_FT_double::set_param_reprise(Param& param)
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_);
   param.ajouter("reprise_liq_velocity_tmoy", &liq_velocity_tmoy_);
   // fin GAB : gabriel.ramirez@cea.fr
+  param.ajouter("vitesse_upstream_reprise", &vitesse_upstream_reprise_);
+  param.ajouter("velocity_bubble_old", &velocity_bubble_old_);
 }
 
 void Switch_FT_double::compute_and_write_extra_fields(const Nom& lata_name,

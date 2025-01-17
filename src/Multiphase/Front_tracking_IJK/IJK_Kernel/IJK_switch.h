@@ -134,7 +134,6 @@ protected:
   Nom nom_sauvegarde_;
   Nom nom_reprise_;
 
-
   // GAB : gabriel.ramirez@cea.fr
   /*
   	init_forcage_THI forcage_;

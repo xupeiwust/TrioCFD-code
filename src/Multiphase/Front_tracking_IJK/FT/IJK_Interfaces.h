@@ -1447,7 +1447,7 @@ protected:
   double seuil_indicatrice_petite_ = -1;
 
   // Pour le calcul des champs cut-cell
-  int cut_cell_activated_;
+  int cut_cell_activated_ = 0;
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_;
   DoubleTabFT_cut_cell_vector3 indicatrice_surfacique_efficace_face_initial_;
   DoubleTabFT_cut_cell_vector6 indicatrice_surfacique_efficace_face_correction_;

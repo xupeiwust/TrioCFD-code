@@ -128,6 +128,7 @@ Lire pb
             relax_barycentrage 1
             facteur_longueur_ideale 0.5
         }
+        parcours_interface { Correction_Parcours_Thomas parcours_sans_tolerance }
 
         boundary_conditions
         {
@@ -168,6 +169,7 @@ Lire pb
             fond 	paroi_ft_disc symetrie
             bord 	paroi_ft_disc symetrie
         }
+        parcours_interface { Correction_Parcours_Thomas parcours_sans_tolerance }
         methode_transport vitesse_imposee
         0.0
         0.0
@@ -235,6 +237,10 @@ Lire pb
             {
                 courant_maille		elem
                 reynolds_maille		elem
+		vitesse elem
+		pressure elem
+		indicatrice_cuve elem
+		indicatrice_agit elem
             }
         }
         postraitement_ft_lata ancre {
@@ -243,10 +249,20 @@ Lire pb
             champs dt_post .06250000000000000000
             {
                 indicatrice_agit elem
+		vitesse faces
             }
             interfaces agit {
                 courbure som
             }
+	}
+        postraitement_ft_lata cuve {
+            format Lata
+            fichier cuve
+            champs dt_post .5
+	    { }
+	    interfaces cuve {
+		courbure som
+	    }
         }
 
     }

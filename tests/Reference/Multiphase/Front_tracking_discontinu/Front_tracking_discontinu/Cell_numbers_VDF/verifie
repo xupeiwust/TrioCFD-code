@@ -7,3 +7,7 @@ do
       compare_sonde ${file#PAR_} $file 1>>compare_sonde.log 2>&1 || exit -1
    fi
 done
+
+# Compare_lata to ref: 
+tar xzf ref.tgz
+compare_lata ancre.lata ref/ancre.lata 1>>compare_lata.log 2>&1 || exit -1

@@ -1,3 +1,4 @@
+# PARALLEL ONLY 8 #
 IJK_Grid_Geometry DOM
 
 Lire DOM
@@ -46,7 +47,8 @@ IJK_FT_double
 
   # les champs INTERFACES EXTERNAL_FORCE INTEGRATED_VELOCITY INTEGRATED_PRESSURE INTEGRATED_TIMESCALE INDICATRICE_PERTURBE doivent etre post-traiter sans quoi les calculs à bulles fixes ne tournent pas #
    # champs_a_postraiter 13 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES CONCENTRATION_INTERFACE GRADX_CONCENTRATION_INTERFACE GRADY_CONCENTRATION_INTERFACE GRADZ_CONCENTRATION_INTERFACE INDICATRICE_NS VELOCITY_FT LAPLACIAN_CONCENTRATION_INTERFACE #
-  champs_a_postraiter 17 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES INDICATRICE_NS VELOCITY_FT VI CONCENTRATION_INTERFACE GRADX_CONCENTRATION_INTERFACE GRADY_CONCENTRATION_INTERFACE GRADZ_CONCENTRATION_INTERFACE LAPLACIAN_CONCENTRATION_INTERFACE NX_SOMMET NY_SOMMET NZ_SOMMET
+champs_a_postraiter 17 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES INDICATRICE_NS VELOCITY_FT VI CONCENTRATION_INTERFACE GRADX_CONCENTRATION_INTERFACE GRADY_CONCENTRATION_INTERFACE GRADZ_CONCENTRATION_INTERFACE LAPLACIAN_CONCENTRATION_INTERFACE NX_SOMMET NY_SOMMET NZ_SOMMET
+   
   check_stop_file stop.txt
   dt_sauvegarde 5000
   tinit 0
@@ -73,13 +75,6 @@ IJK_FT_double
    fichier_reprise_interface init.lata
    timestep_reprise_interface       1
    lata_meshname   INTERFACES 
-   print_debug_surfactant 0
-   only_remaillage 0
-   patch_conservation_surfactant_locale 0
-   patch_conservation_surfactant_globale 0
-   Diff_coeff_surfactant 1.e-7
-   Surfactant_theoric_case 1
-   Concentration_surfactant_init 0.
    remaillage_ft_ijk {
      pas_remaillage 1e-6
      nb_iter_barycentrage 1 # 1 #
@@ -93,8 +88,23 @@ IJK_FT_double
      lissage_courbure_iterations_systematique 5 # 1 #
      lissage_courbure_iterations_si_remaillage 10 # 10 #
    }
+   parcours_interface { Correction_Parcours_Thomas parcours_sans_tolerance }
+   maillage_ft_ijk {
+     FT_Field {
+       print_debug_surfactant 0
+       only_remaillage 0
+       patch_conservation_surfactant_locale 0
+       patch_conservation_surfactant_globale 0
+       Diff_coeff_surfactant 1.e-7
+       Surfactant_theoric_case 1
+       Concentration_surfactant_init 0.
+     }
+   }
   # follow_colors #
   }
+  
+
+  
   # terme pour maintenir le champ de vitesse liquide et le cisaillement a peu pres constant #
   terme_force_init 0.
 
@@ -146,6 +156,5 @@ IJK_FT_double
 } 
 }
 
-Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
 
 Fin

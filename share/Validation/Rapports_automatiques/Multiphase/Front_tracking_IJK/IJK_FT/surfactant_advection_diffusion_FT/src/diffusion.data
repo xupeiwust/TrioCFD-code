@@ -1,3 +1,4 @@
+# PARALLEL ONLY 8 #
 IJK_Grid_Geometry DOM
 
 Lire DOM
@@ -87,6 +88,7 @@ champs_a_postraiter 17 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTE
      lissage_courbure_iterations_systematique 5 # 1 #
      lissage_courbure_iterations_si_remaillage 10 # 10 #
    }
+   parcours_interface { Correction_Parcours_Thomas parcours_sans_tolerance }
    maillage_ft_ijk {
      FT_Field {
        print_debug_surfactant 0
@@ -154,6 +156,5 @@ champs_a_postraiter 17 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTE
 } 
 }
 
-Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
 
 Fin

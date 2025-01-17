@@ -1,5 +1,11 @@
 #!/bin/bash
 # Generates timesteps file
+fic=create_lml.data
+echo "Dimension 3" > $fic
+echo "Lata_to_other lml $1_lata_3.sauv.lata $1" >> $fic
+echo "Fin" >> $fic
+
+trust create_lml.data
 
 grep tinit test_save_each_dt_lata*.sauv | awk '{print $3}' | python -c "
 import sys; 
