@@ -15,7 +15,7 @@ def getValue(key, fic, pre="^", default=None):
             return val
             break
     if (default != None): return default
-    print("On a rien trouve dans ", fic)
+    print(("On a rien trouve dans ", fic))
     raise Exception("Etonnant, non?")
     return -1
 
@@ -33,7 +33,7 @@ def getValues(key, fic, pre=""):
             val.append(float(match.group("value")))
         if len(val):
             return np.array(val)
-    print("On a rien trouve dans ", fic)
+    print(("On a rien trouve dans ", fic))
     raise Exception("Etonnant, non?")
     return np.array([])
 
@@ -176,8 +176,8 @@ for i, db in enumerate(dbs):
    ReplaceDatabase("localhost:"+db, 0)
    fold = os.path.dirname(db)
    cas = db.split('/')[0][5:]
-   print fold
-   print cas
+   print(fold)
+   print(cas)
    f = open("%s/%s.dat"%(fold,cas),'w')
    f.write(sth)
    st = "# %s\n"%db
@@ -205,7 +205,7 @@ for i, db in enumerate(dbs):
       _ = ChangeActivePlotsVar("AIRE_INTERF_ELEM_DOM_EXT")
       Query("Volume"); vol_ext = GetQueryOutputValue()
       _ = Query("Weighted Variable Sum"); ai[j] = GetQueryOutputValue()/vol_tranche # For 3D, it will weight by volume
-      print "zf_g zf_d j aij = ",zf_g, zf_d,  j, ai[j], vol_ext, vol_tranche
+      print("zf_g zf_d j aij = ",zf_g, zf_d,  j, ai[j], vol_ext, vol_tranche)
       # Il ne faut pas faire de variable sum car ca fait comme si la maille etait globalement incluse dans le domaine retenu apres le clip.
       # C'est donc tres sensible selon la position du plan, ca retient ou jete toute la cellule.
       # FAUX = Query("Variable Sum"); ai[j] = GetQueryOutputValue() / (nx*ny)
@@ -213,19 +213,19 @@ for i, db in enumerate(dbs):
       # On passe aux grandeurs surfaciques : 
       #
       if (ai[j] >1.):
-	 print "ai[j]", ai[j]
-	 # _ = ChangeActivePlotsVar("ai")
+         print("ai[j]", ai[j])
+         # _ = ChangeActivePlotsVar("ai")
          # FAUX = Query("Variable Sum"); ai3[j] = GetQueryOutputValue() / vol_tranche
-	 if (cas=='hemisphere'):
-	    _ = ChangeActivePlotsVar("COURBURE_SOM_INTERFACES"); _ = Query("MinMax", use_actual_data=1); kmin, kmax= GetQueryOutputValue() 
-	    pass
-	 _ = ChangeActivePlotsVar("unit")
-	 #
-	 # Seuillage pour supprimer les mailles virtuelles : 
-	 #_ = ChangeActivePlotsVar("virtuelle")
-	 if 1:
+         if (cas=='hemisphere'):
+            _ = ChangeActivePlotsVar("COURBURE_SOM_INTERFACES"); _ = Query("MinMax", use_actual_data=1); kmin, kmax= GetQueryOutputValue() 
+            pass
+         _ = ChangeActivePlotsVar("unit")
+         #
+         # Seuillage pour supprimer les mailles virtuelles : 
+         #_ = ChangeActivePlotsVar("virtuelle")
+         if 1:
             #import pdb; pdb.set_trace()
-	    AddOperator("Threshold", 2)
+            AddOperator("Threshold", 2)
             ThresholdAtts = ThresholdAttributes()
             ThresholdAtts.outputMeshType = 0
             ThresholdAtts.listedVarNames = ("virtuelle")
@@ -235,30 +235,27 @@ for i, db in enumerate(dbs):
             ThresholdAtts.defaultVarName = "virtuelle"
             ThresholdAtts.defaultVarIsScalar = 1
             SetOperatorOptions(ThresholdAtts, 2, 1)
-	    # import pdb; pdb.set_trace()
             DrawPlots()
-	    pass
-	 #_ = ChangeActivePlotsVar("unit")
-	 # Fin du Seuillage pour supprimer les mailles virtuelles.
-	 #
+            pass
+         #_ = ChangeActivePlotsVar("unit")
+         # Fin du Seuillage pour supprimer les mailles virtuelles.
+         #
          _ = Query("3D surface area"); ai2[j] = GetQueryOutputValue() / vol_tranche
          _ = Query("Weighted Variable Sum"); ai3[j] = GetQueryOutputValue() / vol_tranche
          # Ai * Normale : 
          _ = ChangeActivePlotsVar("Nx")
          _ = Query("Weighted Variable Sum"); aiNx[j] = GetQueryOutputValue() / vol_tranche
          # _ = ChangeActivePlotsVar("aiNx")
-         # FAUX _ = Query("Variable Sum"); aiNx2[j] = GetQueryOutputValue() / vol_tranche
          # kappa * Ai * Normale : 
          #_ = ChangeActivePlotsVar("kaiNx")
-         # FAUX _ = Query("Variable Sum"); kaiNx[j] = GetQueryOutputValue() / vol_tranche
          _ = ChangeActivePlotsVar("kNx")
          _ = Query("Weighted Variable Sum"); kaiNx[j] = GetQueryOutputValue() / vol_tranche
          SetActivePlots((1, 4))
          # Nouveau bloc pour supprimer la partie courbe:
-	 courbure_lower_bound = -600.# -800 -1000
-	 courbure_upper_bound = -400.# -200 0
-	 if ((cas=='hemisphere') and (kmax>courbure_lower_bound)):
-            print "Thresholding on curvature!!!!!!!"
+         courbure_lower_bound = -600.# -800 -1000
+         courbure_upper_bound = -400.# -200 0
+         if ((cas=='hemisphere') and (kmax>courbure_lower_bound)):
+            print("Thresholding on curvature!!!!!!!")
             # AddOperator("Threshold", 2)
             ThAtts = ThresholdAttributes()
             ThAtts.outputMeshType = 0
@@ -270,14 +267,11 @@ for i, db in enumerate(dbs):
             ThAtts.defaultVarIsScalar = 1
             SetOperatorOptions(ThAtts, 2, 1)
             DrawPlots()
-	    #  GetQueryParameters("MinMax") >>> {'use_actual_data': 0}
-	    #  GetQueryParameters("Weighted Variable Sum") >>> "Nothing" meaning no input parameters. I suppose it only uses actual data then.
             _ = Query("Weighted Variable Sum"); kaiNx2[j] = GetQueryOutputValue() / vol_tranche
-	    # 
             _ = ChangeActivePlotsVar("kNz")
             _ = Query("Weighted Variable Sum"); kaiNz2[j] = GetQueryOutputValue() / vol_tranche
             # RemoveLastOperator(1, 0)
-	    # Reset threshold to former options:
+            # Reset threshold to former options:
             SetOperatorOptions(ThresholdAtts, 2, 1)
             DrawPlots()
             pass
@@ -291,10 +285,9 @@ for i, db in enumerate(dbs):
          _ = Query("Weighted Variable Sum"); aiNz[j] = GetQueryOutputValue() / vol_tranche
          _ = ChangeActivePlotsVar("kNz")
          _ = Query("Weighted Variable Sum"); kaiNz[j] = GetQueryOutputValue() / vol_tranche
-      #except:
       else:
-         print "Skipping the %dth slice because there is no interface in it."%j
-	 pass
+         print("Skipping the %dth slice because there is no interface in it."%j)
+         pass
       st = "%0.7f\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\t%10.5g\n"%(z, ai[j], aiNx[j], aiNy[j], aiNz[j], kaiNx[j], kaiNy[j], kaiNz[j], ai2[j], ai3[j], kaiNx2[j])
       f.write(st)
       RemoveAllOperators()
@@ -304,5 +297,4 @@ for i, db in enumerate(dbs):
    pass
 
 exit(0)
-
 
