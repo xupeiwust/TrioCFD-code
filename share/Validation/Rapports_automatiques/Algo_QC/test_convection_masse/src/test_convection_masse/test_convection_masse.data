@@ -73,6 +73,4 @@ dns_qc_double
   gamma               1.4 
   debit_massique      0.011109385
 }
-# Lata_to_other lml NOM_DU_CAS NOM_DU_CAS #
-Lata_to_other lml test_convection_masse_lata_1.sauv.lata NOM_DU_CAS 
 Fin

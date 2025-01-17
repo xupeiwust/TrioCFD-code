@@ -67,6 +67,5 @@ dns_qc_double
   gamma               1.4
   debit_massique      1.0
 }
-Lata_to_other lml dns_1.sauv.lata NOM_DU_CAS
 
 Fin
