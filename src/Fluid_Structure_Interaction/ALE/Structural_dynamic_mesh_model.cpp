@@ -837,7 +837,6 @@ void Structural_dynamic_mesh_model::checkElemOrientation(int elnodes[4], const i
       DoubleTab Jac(dimension, dimension) ;
       double Det, Vol, Xlong ;
       int nbn=0 ;
-      DoubleTab xl ;
 
       switch (dimension)
         {

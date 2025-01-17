@@ -2869,7 +2869,6 @@ void IJK_Interfaces::transporter_maillage_deformation(const int correction_semi_
   //  const DoubleTab& normale_facettes = mesh.get_update_normale_facettes();
   ArrOfIntFT compo_connex_som;
   mesh.calculer_compo_connexe_sommets(compo_connex_som);
-  ArrOfDouble volume_par_bulle(nbulles_tot);
 
 
   // Calcul des normales (non-unitaire, espace virtuel pas a jour) aux sommets :

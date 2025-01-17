@@ -46,9 +46,6 @@ IJK_Thermal_cut_cell::IJK_Thermal_cut_cell()
 
 Sortie& IJK_Thermal_cut_cell::printOn( Sortie& os ) const
 {
-  Nom front_space = "    ";
-  Nom end_space = " ";
-  Nom escape = "\n";
 
   IJK_Thermal_base::printOn( os );
 

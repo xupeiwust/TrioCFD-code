@@ -112,7 +112,6 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
               DoubleTab var = inco;
               var *= coeff;
               const Champ_Inc_base& vitesse = eq.vitesse();
-              DoubleTab diff = resu;
               ajouter_conv_term(vitesse ,var, resu, flux_b);
             }
 
