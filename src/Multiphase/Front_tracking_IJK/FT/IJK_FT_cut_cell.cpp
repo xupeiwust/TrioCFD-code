@@ -22,6 +22,7 @@
 #include <EFichier.h>
 #include <IJK_Splitting.h>
 #include <Cut_cell_tools.h>
+#include <Cut_cell_diffusion_flux_interface.h>
 
 
 Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
@@ -43,8 +44,48 @@ Entree& IJK_FT_cut_cell::interpreter(Entree& is)
 {
   IJK_FT_base::interpreter(is);
 
+  // Determination pour le seuil des petites cellules en cut-cell
+  if ((seuil_indicatrice_petite_fixe_ == -1) && (seuil_indicatrice_petite_facsec_ == -1))
+    {
+      seuil_indicatrice_petite_facsec_ = 0.125; // Default value = facsec/8. -- Note: The value facsec/20. = 0.01 would often work but not always be stable
+    }
+
+  double seuil_indicatrice_petite;
+  if (seuil_indicatrice_petite_facsec_ != -1)
+    {
+      seuil_indicatrice_petite = timestep_facsec_*seuil_indicatrice_petite_facsec_;
+    }
+  else
+    {
+      seuil_indicatrice_petite = seuil_indicatrice_petite_fixe_;
+    }
+  interfaces_.set_seuil_indicatrice_petite(seuil_indicatrice_petite);
+  Cerr << "Le seuil pour l'indicatrice des petites cellules est : " << seuil_indicatrice_petite << finl;
+
   run();
   return is;
+}
+
+void IJK_FT_cut_cell::set_param(Param& param)
+{
+  IJK_FT_base::set_param(param);
+
+  param.ajouter("seuil_indicatrice_petite_fixe", &seuil_indicatrice_petite_fixe_);
+  param.ajouter("seuil_indicatrice_petite_facsec", &seuil_indicatrice_petite_facsec_);
+
+  param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
+  param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
+
+  param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
+  param.ajouter("facettes_interpolation", &cut_cell_facettes_interpolation_);
 }
 
 void IJK_FT_cut_cell::run()
@@ -53,7 +94,7 @@ void IJK_FT_cut_cell::run()
   cut_cell_disc_.initialise(interfaces_, splitting_, IJK_Splitting::ELEM);
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
-
+  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, splitting_ft_, interfaces_.maillage_ft_ijk());
 
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
@@ -286,15 +327,20 @@ void IJK_FT_cut_cell::run()
   else
     Cout << "Schema temps de type : euler_explicite" << finl;
 
-
   velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
   velocity_diffusion_op_->set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(splitting_);
+
+  treatment_count_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  nalloc += 1;
+
 
   // Economise la memoire si pas besoin
   if (!disable_solveur_poisson_)
     poisson_solver_.initialize(splitting_);
 
+
+  nalloc += initialise_interfaces();
 
   // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();
@@ -821,6 +867,10 @@ void IJK_FT_cut_cell::run()
                       || (std::floor((current_time_-timestep_)/post_.get_timestep_simu_post(current_time_, max_simu_time_)) < std::floor(current_time_/post_.get_timestep_simu_post(current_time_, max_simu_time_))))
                   && (rk_step_ != 2))
                 {
+                  cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+                  cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+                  cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
+
                   post_.posttraiter_champs_instantanes(lata_name, current_time_at_rk3_step, tstep_);
                 }
             }
@@ -1002,6 +1052,11 @@ void IJK_FT_cut_cell::run()
       // interfaces_.parcourir_maillage();
       if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")))
         interfaces_.compute_vinterp();
+
+      cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
+      cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
+      cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
+
       post_.postraiter_fin(stop, tstep_, tstep_init_, current_time_, timestep_, lata_name,
                            gravite_, nom_du_cas());
       statistiques().end_count(timestep_counter_);
@@ -1063,6 +1118,12 @@ void IJK_FT_cut_cell::update_twice_indicator_field()
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
 
+  // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+  cut_cell_perform_interpolation_facettes();
+
+  // Calcul pour le temps old() egalement, de telle maniere a ce que les coefficients next() et old() sont initialises
+  cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_old(interfaces_.old());
+
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
@@ -1089,6 +1150,9 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+
+  // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+  cut_cell_perform_interpolation_facettes();
 
   thermals_.echange_pure_vers_diph_cellules_initialement_pures();
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
@@ -1134,6 +1198,9 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+
+  // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+  cut_cell_perform_interpolation_facettes();
 
   thermals_.echange_pure_vers_diph_cellules_initialement_pures();
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();

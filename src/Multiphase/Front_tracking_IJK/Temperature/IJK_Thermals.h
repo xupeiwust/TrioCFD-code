@@ -55,7 +55,7 @@ public :
   void echange_pure_vers_diph_cellules_initialement_pures();
   void echange_diph_vers_pure_cellules_finalement_pures();
   void vide_phase_invalide_cellules_diphasiques();
-  void remplir_tableau_pure_cellules_diphasiques(int next_time);
+  void remplir_tableau_pure_cellules_diphasiques(bool next_time);
   int size_thermal_problem(Nom thermal_problem);
   void update_thermal_properties();
   void euler_time_step(const double timestep);

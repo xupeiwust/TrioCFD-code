@@ -16,24 +16,33 @@
 #ifndef IJK_Navier_Stokes_tools_cut_cell_included
 #define IJK_Navier_Stokes_tools_cut_cell_included
 
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
+#include <IJK_Interfaces.h>
 
 void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_double& field, const DoubleTab& coordinates, ArrOfDouble& result);
-
 void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_field_double& field, const DoubleTab& coordinates, ArrOfDouble& result, const double value_for_bad_points);
 
-double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status);
+void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient);
+void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points);
 
-double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status);
+
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
+
+void ijk_interpolate(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient);
+void ijk_interpolate_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points);
 
 void cut_cell_switch_field_time(Cut_field_double& v);
 
 void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_double& dv, Cut_field_double& v);
-void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
+void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const Cut_field_int& cellule_rk_restreint);
 
 void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_double& dv, Cut_field_double& v);
-void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const Cut_field_int& cellule_rk_restreint);
 
-void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l);
+void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const Cut_field_int& cellule_rk_restreint);
+
+void add_flux_times_vol_over_dt_surface(double fractional_timestep, const Cut_field_vector3_double& cut_field_current_fluxes, Cut_field_vector3_double& cut_field_RK3_F_fluxes);
+void set_rk_restreint(int rk_step, int rk_restriction_leniency, const Cut_cell_FT_Disc& cut_cell_disc, Cut_field_int& cellule_rk_restreint);
 
 #endif /* IJK_Navier_Stokes_tools_cut_cell_included */

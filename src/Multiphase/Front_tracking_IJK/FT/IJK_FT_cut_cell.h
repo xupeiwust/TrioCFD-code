@@ -26,8 +26,9 @@
 #include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_Post.h>
-#include <Champ_diphasique.h>
-
+#include <Cut_field.h>
+#include <Cut_cell_convection_auxiliaire.h>
+#include <Cut_cell_diffusion_auxiliaire.h>
 
 /*! @brief : class IJK_FT_cut_cell
  *
@@ -47,6 +48,7 @@ class IJK_FT_cut_cell : public IJK_FT_base
 public :
   IJK_FT_cut_cell();
   Entree& interpreter(Entree&) override;
+  void set_param(Param& param) override;
   void run() override;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
@@ -79,6 +81,23 @@ public :
     const Cut_field_vector3_double& cut_field_total_velocity = static_cast<const Cut_field_vector3_double&>(total_velocity_);
     return cut_field_total_velocity;
   }
+  // Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+  const Facettes_Interp_FT& get_cut_cell_facettes_interpolation() const
+  {
+    return cut_cell_facettes_interpolation_;
+  }
+  void cut_cell_perform_interpolation_facettes()
+  {
+    cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_next(interfaces_.next());
+  }
+
+  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
+  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
+  // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
+  IJK_Field_int treatment_count_;
+
+  // Compteur du dernier traitement effectue dans treatment_count_
+  int new_treatment_ = 0;
 
 protected :
   friend class IJK_FT_Post;
@@ -88,6 +107,16 @@ protected :
   IJK_Field_vector3_double total_velocity_;
 
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
+
+  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
+  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
+  int deactivate_remeshing_velocity_ = 0;
+
+  double seuil_indicatrice_petite_fixe_ = -1;   // Valeur predefinie du seuil
+  double seuil_indicatrice_petite_facsec_ = -1; // Valeur du seuil exprimee relativement au facsec
+
+  // Stockage des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+  Facettes_Interp_FT cut_cell_facettes_interpolation_;
 };
 
 #endif /* IJK_FT_cut_cell_included */

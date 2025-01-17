@@ -106,6 +106,9 @@ protected:
       return g_compo_z_dir_z_(k_layer, g_index);
   }
 
+  void calcul_g(const double& dxam, const double& dx, const double& dxav, double& g1, double& g2, double& g3, double& g4);
+  void fill_g_compo(DoubleTab& g, int nb_values, int offset, int istart, int iend, const ArrOfDouble_with_ghost& delta_z, bool is_z_component, bool is_z_periodic);
+
   // order 4 filtering coefficients for direction z fluxes
   //  (when non uniform mesh in z).
   DoubleTab g_compo_xy_dir_z_;

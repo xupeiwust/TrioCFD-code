@@ -303,9 +303,9 @@ void Cut_cell_FT_Disc::set_coord()
           coord_(n,2) = (k + ref_splitting_->get_offset_local(2) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(2) + ref_splitting_->get_grid_geometry().get_origin(2);
 
           // Verification de la fonction function get_ijk_from_independent_index
-          assert(i == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2))[0]);
-          assert(j == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2))[1]);
-          assert(k == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2))[2]);
+          assert(i == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[0]);
+          assert(j == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[1]);
+          assert(k == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[2]);
         }
     }
 }
@@ -389,7 +389,7 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_
   int n_deletion = 0;
   for (int n = 0; n < n_initial; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2));
+      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -524,7 +524,7 @@ void Cut_cell_FT_Disc::compute_virtual_independent_index()
   // Verification de l'indice lineaire pour les elements locaux
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2));
+      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -537,7 +537,7 @@ void Cut_cell_FT_Disc::compute_virtual_independent_index()
   // Calcul de l'indice lineaire pour les elements virtuels
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2));
+      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -550,36 +550,40 @@ void Cut_cell_FT_Disc::compute_virtual_independent_index()
 
 void Cut_cell_FT_Disc::initialise_schema_comm()
 {
+  int left_neighbour_x = (ref_splitting_->get_neighbour_processor(0, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 0);
+  int left_neighbour_y = (ref_splitting_->get_neighbour_processor(0, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 1);
+  int left_neighbour_z = (ref_splitting_->get_neighbour_processor(0, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 2);
+  int right_neighbour_x = (ref_splitting_->get_neighbour_processor(1, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 0);
+  int right_neighbour_y = (ref_splitting_->get_neighbour_processor(1, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 1);
+  int right_neighbour_z = (ref_splitting_->get_neighbour_processor(1, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 2);
+
+  int shift_x_min = - (left_neighbour_x != ref_splitting_->me());
+  int shift_y_min = - (left_neighbour_y != ref_splitting_->me());
+  int shift_z_min = - (left_neighbour_z != ref_splitting_->me());
+  int shift_x_max = + (right_neighbour_x != ref_splitting_->me())*(right_neighbour_x != left_neighbour_x);
+  int shift_y_max = + (right_neighbour_y != ref_splitting_->me())*(right_neighbour_y != left_neighbour_y);
+  int shift_z_max = + (right_neighbour_z != ref_splitting_->me())*(right_neighbour_z != left_neighbour_z);
+
   ArrOfIntFT pe_list;
-  for (int next = 0; next < 2; next++)
+  for (int shift_x = shift_x_min; shift_x <= shift_x_max; shift_x++)
     {
-      for (int direction = 0; direction < 3; direction++)
+      for (int shift_y = shift_y_min; shift_y <= shift_y_max; shift_y++)
         {
-          for (int next_2 = 0; next_2 < 2; next_2++)
+          for (int shift_z = shift_z_min; shift_z <= shift_z_max; shift_z++)
             {
-              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+              int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + shift_x;
+              int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + shift_y;
+              int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + shift_z;
+              int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+              if (dest_pe == ref_splitting_->me())
                 {
-                  for (int next_3 = 0; next_3 < 2; next_3++)
-                    {
-                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
-                        {
-                          if ((direction_2 == 3) && (next_2 == 1))
-                            continue;
-                          if ((direction_3 == 3) && (next_3 == 1))
-                            continue;
-
-                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
-                          int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
-                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
-                            continue;
-
-                          pe_list.append_array(dest_pe);
-                        }
-                    }
+                  assert(shift_x == 0);
+                  assert(shift_y == 0);
+                  assert(shift_z == 0);
+                  continue;
                 }
+
+              pe_list.append_array(dest_pe);
             }
         }
     }
@@ -589,9 +593,9 @@ void Cut_cell_FT_Disc::initialise_schema_comm()
 
 int Cut_cell_FT_Disc::initialise_communications()
 {
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  int ni = ref_splitting_->get_nb_elem_local(0);
+  int nj = ref_splitting_->get_nb_elem_local(1);
+  int nk = ref_splitting_->get_nb_elem_local(2);
 
   Descripteur_FT& espace_distant = desc_.espace_distant();
 
@@ -605,80 +609,68 @@ int Cut_cell_FT_Disc::initialise_communications()
   // next indique la direction du processeur :
   //   0    voisin vers les petits indices
   //   1    voisin vers les grands indices
-  for (int next = 0; next < 2; next++)
+
+  int left_neighbour_x = (ref_splitting_->get_neighbour_processor(0, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 0);
+  int left_neighbour_y = (ref_splitting_->get_neighbour_processor(0, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 1);
+  int left_neighbour_z = (ref_splitting_->get_neighbour_processor(0, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 2);
+  int right_neighbour_x = (ref_splitting_->get_neighbour_processor(1, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 0);
+  int right_neighbour_y = (ref_splitting_->get_neighbour_processor(1, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 1);
+  int right_neighbour_z = (ref_splitting_->get_neighbour_processor(1, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 2);
+
+  int shift_x_min = - (left_neighbour_x != ref_splitting_->me());
+  int shift_y_min = - (left_neighbour_y != ref_splitting_->me());
+  int shift_z_min = - (left_neighbour_z != ref_splitting_->me());
+  int shift_x_max = + (right_neighbour_x != ref_splitting_->me())*(right_neighbour_x != left_neighbour_x);
+  int shift_y_max = + (right_neighbour_y != ref_splitting_->me())*(right_neighbour_y != left_neighbour_y);
+  int shift_z_max = + (right_neighbour_z != ref_splitting_->me())*(right_neighbour_z != left_neighbour_z);
+
+  ArrOfIntFT pe_list;
+  for (int shift_x = shift_x_min; shift_x <= shift_x_max; shift_x++)
     {
-      for (int direction = 0; direction < 3; direction++)
+      for (int shift_y = shift_y_min; shift_y <= shift_y_max; shift_y++)
         {
-          for (int next_2 = 0; next_2 < 2; next_2++)
+          for (int shift_z = shift_z_min; shift_z <= shift_z_max; shift_z++)
             {
-              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+              int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + shift_x;
+              int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + shift_y;
+              int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + shift_z;
+              int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+              if (dest_pe == ref_splitting_->me())
                 {
-                  for (int next_3 = 0; next_3 < 2; next_3++)
+                  assert(shift_x == 0);
+                  assert(shift_y == 0);
+                  assert(shift_z == 0);
+                  continue;
+                }
+
+              Sortie& send_buffer = schema_comm_.send_buffer(dest_pe);
+
+              int left_bnd_x = (shift_x < 0);
+              int left_bnd_y = (shift_y < 0);
+              int left_bnd_z = (shift_z < 0);
+              int right_bnd_x = ((shift_x > 0) || ((shift_x_max == 0) && (shift_x < 0) && (right_neighbour_x != ref_splitting_->me())));
+              int right_bnd_y = ((shift_y > 0) || ((shift_y_max == 0) && (shift_y < 0) && (right_neighbour_y != ref_splitting_->me())));
+              int right_bnd_z = ((shift_z > 0) || ((shift_z_max == 0) && (shift_z < 0) && (right_neighbour_z != ref_splitting_->me())));
+
+              for (int n = 0; n < n_loc; n++)
+                {
+                  int i_selon_x = ref_splitting_->get_i_along_dir_no_perio(0, coord_(n,0), IJK_Splitting::ELEM);
+                  int i_selon_y = ref_splitting_->get_i_along_dir_no_perio(1, coord_(n,1), IJK_Splitting::ELEM);
+                  int i_selon_z = ref_splitting_->get_i_along_dir_no_perio(2, coord_(n,2), IJK_Splitting::ELEM);
+
+                  bool is_within_a_ghost_distance_of_boundary = ((i_selon_x < ghost_size_) || (i_selon_y < ghost_size_) || (i_selon_z < ghost_size_) || (i_selon_x >= ni - ghost_size_) || (i_selon_y >= nj - ghost_size_) || (i_selon_z >= nk - ghost_size_));
+                  if (is_within_a_ghost_distance_of_boundary
+                      && ((left_bnd_x == (i_selon_x < ghost_size_)) || (right_bnd_x == (i_selon_x >= ni - ghost_size_)))
+                      && ((left_bnd_y == (i_selon_y < ghost_size_)) || (right_bnd_y == (i_selon_y >= nj - ghost_size_)))
+                      && ((left_bnd_z == (i_selon_z < ghost_size_)) || (right_bnd_z == (i_selon_z >= nk - ghost_size_))))
                     {
-                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
-                        {
-                          if ((direction_2 == 3) && (next_2 == 1))
-                            continue;
-                          if ((direction_3 == 3) && (next_3 == 1))
-                            continue;
+                      assert(! espace_distant.contient_element(dest_pe, n));
 
-                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
-                          int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
-                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
-                            continue;
-
-                          // On verifie que le processeur est bien different avec le deplacement
-                          int dest_pe3a_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe3a_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe3a_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_3-1)*(direction_3 == 2);
-                          int dest_pe3a = ref_splitting_->periodic_get_processor_by_ijk(dest_pe3a_position_x, dest_pe3a_position_y, dest_pe3a_position_z);
-                          if ((direction_2 != 3) && (dest_pe == dest_pe3a))
-                            continue;
-
-                          int dest_pe3b_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0);
-                          int dest_pe3b_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1);
-                          int dest_pe3b_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2);
-                          int dest_pe3b = ref_splitting_->periodic_get_processor_by_ijk(dest_pe3b_position_x, dest_pe3b_position_y, dest_pe3b_position_z);
-                          if ((direction_3 != 3) && (dest_pe == dest_pe3b))
-                            continue;
-
-
-                          int ni_dir = select_dir(direction, ni, nj, nk);
-                          int ni_dir2 = (direction_2 == 3) ? 0 : select_dir(direction_2, ni, nj, nk);
-                          int ni_dir3 = (direction_3 == 3) ? 0 : select_dir(direction_3, ni, nj, nk);
-
-                          Sortie& send_buffer = schema_comm_.send_buffer(dest_pe);
-
-                          for (int n = 0; n < n_loc; n++)
-                            {
-                              int i_selon_dir = ref_splitting_->get_i_along_dir_no_perio(direction, coord_(n,direction));
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : ref_splitting_->get_i_along_dir_no_perio(direction_2, coord_(n,direction_2));
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : ref_splitting_->get_i_along_dir_no_perio(direction_3, coord_(n,direction_3));
-                              if ((!next) && (i_selon_dir >= ghost_size_))
-                                continue;
-                              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
-                                continue;
-                              if ((direction_2 != 3) && (!next_2) && (i_selon_dir2 >= ghost_size_))
-                                continue;
-                              if ((direction_2 != 3) && (next_2) && (i_selon_dir2 < ni_dir2 - ghost_size_))
-                                continue;
-                              if ((direction_3 != 3) && (!next_3) && (i_selon_dir3 >= ghost_size_))
-                                continue;
-                              if ((direction_3 != 3) && (next_3) && (i_selon_dir3 < ni_dir3 - ghost_size_))
-                                continue;
-
-                              assert(! espace_distant.contient_element(dest_pe, n));
-
-                              espace_distant.ajoute_element(dest_pe, n);
-                              double x = coord_(n,0);
-                              double y = coord_(n,1);
-                              double z = coord_(n,2);
-                              send_buffer << n << x << y << z;
-                            }
-                        }
+                      espace_distant.ajoute_element(dest_pe, n);
+                      double x = coord_(n,0);
+                      double y = coord_(n,1);
+                      double z = coord_(n,2);
+                      send_buffer << n << x << y << z;
                     }
                 }
             }
@@ -1100,7 +1092,7 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_independent_index()
   // Verifie la coherence entre les tableaux coord_ et independent_index_
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2));
+      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
@@ -1115,7 +1107,7 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_independent_index()
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2));
+      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
@@ -1214,64 +1206,63 @@ void Cut_cell_FT_Disc::imprime_elements_distants()
   const int nj = ref_splitting_->get_nb_elem_local(1);
   const int nk = ref_splitting_->get_nb_elem_local(2);
 
-  // next indique la direction du processeur :
-  //   0    voisin vers les petits indices
-  //   1    voisin vers les grands indices
-  for (int next = 0; next < 2; next++)
+  int left_neighbour_x = (ref_splitting_->get_neighbour_processor(0, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 0);
+  int left_neighbour_y = (ref_splitting_->get_neighbour_processor(0, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 1);
+  int left_neighbour_z = (ref_splitting_->get_neighbour_processor(0, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 2);
+  int right_neighbour_x = (ref_splitting_->get_neighbour_processor(1, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 0);
+  int right_neighbour_y = (ref_splitting_->get_neighbour_processor(1, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 1);
+  int right_neighbour_z = (ref_splitting_->get_neighbour_processor(1, 2) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(1, 2);
+
+  int shift_x_min = - (left_neighbour_x != ref_splitting_->me());
+  int shift_y_min = - (left_neighbour_y != ref_splitting_->me());
+  int shift_z_min = - (left_neighbour_z != ref_splitting_->me());
+  int shift_x_max = + (right_neighbour_x != ref_splitting_->me())*(right_neighbour_x != left_neighbour_x);
+  int shift_y_max = + (right_neighbour_y != ref_splitting_->me())*(right_neighbour_y != left_neighbour_y);
+  int shift_z_max = + (right_neighbour_z != ref_splitting_->me())*(right_neighbour_z != left_neighbour_z);
+  for (int shift_x = shift_x_min; shift_x <= shift_x_max; shift_x++)
     {
-      for (int direction = 0; direction < 3; direction++)
+      for (int shift_y = shift_y_min; shift_y <= shift_y_max; shift_y++)
         {
-          for (int next_2 = 0; next_2 < 2; next_2++)
+          for (int shift_z = shift_z_min; shift_z <= shift_z_max; shift_z++)
             {
-              for (int direction_2 = direction + 1; direction_2 < 4; direction_2++) // Le case direction_2 = 3 correspond a aucun effet de next_2
+              int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + shift_x;
+              int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + shift_y;
+              int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + shift_z;
+              int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
+              if (dest_pe == ref_splitting_->me())
                 {
-                  for (int next_3 = 0; next_3 < 2; next_3++)
+                  assert(shift_x == 0);
+                  assert(shift_y == 0);
+                  assert(shift_z == 0);
+                  continue;
+                }
+
+              int left_bnd_x = (shift_x < 0);
+              int left_bnd_y = (shift_y < 0);
+              int left_bnd_z = (shift_z < 0);
+              int right_bnd_x = ((shift_x > 0) || ((shift_x_max == 0) && (shift_x < 0) && (right_neighbour_x != ref_splitting_->me())));
+              int right_bnd_y = ((shift_y > 0) || ((shift_y_max == 0) && (shift_y < 0) && (right_neighbour_y != ref_splitting_->me())));
+              int right_bnd_z = ((shift_z > 0) || ((shift_z_max == 0) && (shift_z < 0) && (right_neighbour_z != ref_splitting_->me())));
+
+              for (int n = 0; n < n_loc_; n++)
+                {
+                  int i_selon_x = ref_splitting_->get_i_along_dir_no_perio(0, coord_(n,0), IJK_Splitting::ELEM);
+                  int i_selon_y = ref_splitting_->get_i_along_dir_no_perio(1, coord_(n,1), IJK_Splitting::ELEM);
+                  int i_selon_z = ref_splitting_->get_i_along_dir_no_perio(2, coord_(n,2), IJK_Splitting::ELEM);
+
+                  if ((left_bnd_x && (i_selon_x < ghost_size_))
+                      || (right_bnd_x && (i_selon_x >= ni - ghost_size_))
+                      || (left_bnd_y && (i_selon_y < ghost_size_))
+                      || (right_bnd_y && (i_selon_y >= nj - ghost_size_))
+                      || (left_bnd_z && (i_selon_z < ghost_size_))
+                      || (right_bnd_z && (i_selon_z >= nk - ghost_size_)))
                     {
-                      for (int direction_3 = std::min(3, direction_2 + 1); direction_3 < 4; direction_3++) // Le case direction_3 = 3 correspond a aucun effet de next_3
-                        {
-                          if ((direction_2 == 3) && (next_2 == 1))
-                            continue;
-                          if ((direction_3 == 3) && (next_3 == 1))
-                            continue;
+                      Int3 ijk = get_ijk(n);
+                      int i = ijk[0];
+                      int j = ijk[1];
+                      int k = ijk[2];
 
-                          int dest_pe_position_x = ref_splitting_->get_local_slice_index(0) + (2*next-1)*(direction == 0) + (2*next_2-1)*(direction_2 == 0) + (2*next_3-1)*(direction_3 == 0);
-                          int dest_pe_position_y = ref_splitting_->get_local_slice_index(1) + (2*next-1)*(direction == 1) + (2*next_2-1)*(direction_2 == 1) + (2*next_3-1)*(direction_3 == 1);
-                          int dest_pe_position_z = ref_splitting_->get_local_slice_index(2) + (2*next-1)*(direction == 2) + (2*next_2-1)*(direction_2 == 2) + (2*next_3-1)*(direction_3 == 2);
-                          int dest_pe = ref_splitting_->periodic_get_processor_by_ijk(dest_pe_position_x, dest_pe_position_y, dest_pe_position_z);
-                          assert((direction_2 != 3 || direction_3 != 3) || (dest_pe == ref_splitting_->get_neighbour_processor(next, direction)));
-                          if ((dest_pe == ref_splitting_->me()) || (dest_pe == -1))
-                            continue;
-
-                          int ni_dir = select_dir(direction, ni, nj, nk);
-                          int ni_dir2 = (direction_2 == 3) ? 0 : select_dir(direction_2, ni, nj, nk);
-                          int ni_dir3 = (direction_3 == 3) ? 0 : select_dir(direction_3, ni, nj, nk);
-
-                          for (int n = 0; n < n_loc_; n++)
-                            {
-                              int i_selon_dir = ref_splitting_->get_i_along_dir_no_perio(direction, coord_(n,direction));
-                              int i_selon_dir2 = (direction_2 == 3) ? 0 : ref_splitting_->get_i_along_dir_no_perio(direction_2, coord_(n,direction_2));
-                              int i_selon_dir3 = (direction_3 == 3) ? 0 : ref_splitting_->get_i_along_dir_no_perio(direction_3, coord_(n,direction_3));
-                              if ((!next) && (i_selon_dir >= ghost_size_))
-                                continue;
-                              if ((next) && (i_selon_dir < ni_dir - ghost_size_))
-                                continue;
-                              if ((direction_2 != 3) && (!next_2) && (i_selon_dir2 >= ghost_size_))
-                                continue;
-                              if ((direction_2 != 3) && (next_2) && (i_selon_dir2 < ni_dir2 - ghost_size_))
-                                continue;
-                              if ((direction_3 != 3) && (!next_3) && (i_selon_dir3 >= ghost_size_))
-                                continue;
-                              if ((direction_3 != 3) && (next_3) && (i_selon_dir3 < ni_dir3 - ghost_size_))
-                                continue;
-
-                              Int3 ijk = get_ijk(n);
-                              int i = ijk[0];
-                              int j = ijk[1];
-                              int k = ijk[2];
-
-                              Cerr << n << " " << dest_pe << " " << i << " " << j << " " << k << " " << coord_(n,0) << " " << coord_(n,1) << " " << coord_(n,2) << finl;
-                            }
-                        }
+                      Cerr << n << " " << dest_pe << " " << i << " " << j << " " << k << " " << coord_(n,0) << " " << coord_(n,1) << " " << coord_(n,2) << finl;
                     }
                 }
             }
@@ -1293,6 +1284,17 @@ const IJK_Splitting& Cut_cell_FT_Disc::get_splitting() const
 const Desc_Structure_FT& Cut_cell_FT_Disc::get_desc_structure() const
 {
   return desc_;
+}
+
+double Cut_cell_FT_Disc::indic_pure(const int i, const int j, const int k) const
+{
+  // When n is known to be negative, this function provides an access to the indicatrice that
+  // neither require specifying a localisation or a time (old/next).
+  assert(get_n(i, j, k) < 0);
+
+  double indic = ref_interfaces_->I(i, j, k);
+  assert(indic == ref_interfaces_->In(i, j, k));
+  return indic;
 }
 
 // Recherche d'une valeur dans un tableau non trie.

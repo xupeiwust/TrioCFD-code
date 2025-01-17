@@ -41,6 +41,7 @@ public:
                                const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz,
                                IJK_Field_double& dvx, IJK_Field_double& dvy, IJK_Field_double& dvz,
                                IJK_Field_double& div_rho_u) override;
+
 protected:
   inline void compute_flux_x_vx(IJK_Field_local_double& resu, const int k_layer) override
   {
@@ -104,6 +105,9 @@ protected:
     else
       return g_compo_z_dir_z_(k_layer, g_index);
   }
+
+  void calcul_g(const double& dxam, const double& dx, const double& dxav, double& g1, double& g2, double& g3, double& g4);
+  void fill_g_compo(DoubleTab& g, int nb_values, int offset, int istart, int iend, const ArrOfDouble_with_ghost& delta_z, bool is_z_component, bool is_z_periodic);
 
   // order 4 filtering coefficients for direction z fluxes
   //  (when non uniform mesh in z).

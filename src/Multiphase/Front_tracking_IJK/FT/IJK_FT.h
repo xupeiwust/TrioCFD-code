@@ -31,6 +31,7 @@ class IJK_FT : public IJK_FT_base
 
 public :
   Entree& interpreter(Entree&) override;
+  void set_param(Param& param) override;
   void run() override;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;

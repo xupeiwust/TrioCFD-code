@@ -36,7 +36,7 @@
 #include <iostream>
 #include <memory>
 #include <stat_counters.h>
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
 #include <Transport_Interfaces_FT_Disc.h>
 #include <vector>
 #include <map>
@@ -379,6 +379,7 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("dt_impression_bilan_indicatrice", &dt_impression_bilan_indicatrice_);
   param.ajouter("verbosite_surface_efficace_face", &verbosite_surface_efficace_face_);
   param.ajouter("verbosite_surface_efficace_interface", &verbosite_surface_efficace_interface_);
+  param.ajouter("seuil_indicatrice_negligeable", &seuil_indicatrice_negligeable_);
 
   param.ajouter_flag("use_barycentres_velocity", &use_barycentres_velocity_);
   param.ajouter_flag("read_barycentres_velocity", &read_barycentres_velocity_);
@@ -806,12 +807,12 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   allocate_cell_vector(barycentre_phase1_ns_[next()], splitting_NS, nb_ghost_cells);
   nalloc += 4;
 
-  for (int d = 0; d < 3; d++)
+  for (int bary_compo = 0; bary_compo < 3; bary_compo++)
     {
-      barycentre_phase1_ft_[old()][d].data() = 0.;
-      barycentre_phase1_ft_[next()][d].data() = 0.;
-      barycentre_phase1_ns_[old()][d].data() = 0.;
-      barycentre_phase1_ns_[next()][d].data() = 0.;
+      barycentre_phase1_ft_[old()][bary_compo].data() = 0.;
+      barycentre_phase1_ft_[next()][bary_compo].data() = 0.;
+      barycentre_phase1_ns_[old()][bary_compo].data() = 0.;
+      barycentre_phase1_ns_[next()][bary_compo].data() = 0.;
     }
 
   allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
@@ -820,12 +821,12 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, nb_ghost_cells);
   nalloc += 12;
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      indicatrice_surfacique_face_ft_[old()][d].data() = 0.;
-      indicatrice_surfacique_face_ft_[next()][d].data() = 0.;
-      indicatrice_surfacique_face_ns_[old()][d].data() = 0.;
-      indicatrice_surfacique_face_ns_[next()][d].data() = 0.;
+      indicatrice_surfacique_face_ft_[old()][face_dir].data() = 0.;
+      indicatrice_surfacique_face_ft_[next()][face_dir].data() = 0.;
+      indicatrice_surfacique_face_ns_[old()][face_dir].data() = 0.;
+      indicatrice_surfacique_face_ns_[next()][face_dir].data() = 0.;
     }
 
   allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ft_, splitting_FT, 2);
@@ -834,34 +835,34 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
   nalloc += 12;
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      indicatrice_surfacique_avant_remaillage_face_ft_[d].data() = 0.;
-      indicatrice_surfacique_avant_remaillage_face_ns_[d].data() = 0.;
-      indicatrice_surfacique_apres_remaillage_face_ft_[d].data() = 0.;
-      indicatrice_surfacique_apres_remaillage_face_ns_[d].data() = 0.;
+      indicatrice_surfacique_avant_remaillage_face_ft_[face_dir].data() = 0.;
+      indicatrice_surfacique_avant_remaillage_face_ns_[face_dir].data() = 0.;
+      indicatrice_surfacique_apres_remaillage_face_ft_[face_dir].data() = 0.;
+      indicatrice_surfacique_apres_remaillage_face_ns_[face_dir].data() = 0.;
     }
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      for (int dir = 0; dir < 2; dir++)
+      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          barycentre_phase1_face_ft_[old()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ft_[next()][d][dir].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ns_[old()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-          barycentre_phase1_face_ns_[next()][d][dir].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+          barycentre_phase1_face_ft_[old()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+          barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+          barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
           nalloc += 4;
         }
     }
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      for (int dir = 0; dir < 2; dir++)
+      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          barycentre_phase1_face_ft_[old()][d][dir].data() = 0.;
-          barycentre_phase1_face_ft_[next()][d][dir].data() = 0.;
-          barycentre_phase1_face_ns_[old()][d][dir].data() = 0.;
-          barycentre_phase1_face_ns_[next()][d][dir].data() = 0.;
+          barycentre_phase1_face_ft_[old()][face_dir][bary_compo].data() = 0.;
+          barycentre_phase1_face_ft_[next()][face_dir][bary_compo].data() = 0.;
+          barycentre_phase1_face_ns_[old()][face_dir][bary_compo].data() = 0.;
+          barycentre_phase1_face_ns_[next()][face_dir][bary_compo].data() = 0.;
         }
     }
 
@@ -4855,18 +4856,26 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
                     index = data.index_facette_suivante_;
                   };
 
+                int nb_increment_somme_contrib = 0;
                 while (somme_contrib > 1.)
-                  somme_contrib -= 1.;
+                  {
+                    somme_contrib -= 1.;
+                    nb_increment_somme_contrib++;
+                  }
                 while (somme_contrib < 0.)
-                  somme_contrib += 1.;
+                  {
+                    somme_contrib += 1.;
+                    nb_increment_somme_contrib++;
+                  }
+
+                assert(nb_increment_somme_contrib <= 1);
 
                 // GB Fix 2022: tolerance play:
                 // Si l'on est proche de 0 ou de 1, on ne sait pas vraiment si on a bien fait nos calculs
                 // (les modulos et les sommes peuvent avoir conduit a une imprecision).
                 // On fait le choix de le considerer comme non-traverser, et on laisse le soin au calcul
                 // des compos connexes de determiner si c'est 0 ou 1 :
-                double tolerance = 1e-6;
-                if ((somme_contrib<tolerance) || (1.-somme_contrib)<tolerance)
+                if ((somme_contrib < seuil_indicatrice_negligeable_) || ((1.-somme_contrib) < seuil_indicatrice_negligeable_))
                   {
                     somme_contrib = 0.; // L'elem retourne dans la liste des elements "non traverses"
                   }
@@ -5056,10 +5065,21 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
                     somme_contrib += data.contrib_volume_phase1_;
                     index = data.index_facette_suivante_;
                   };
+
+                int nb_increment_somme_contrib = 0;
                 while (somme_contrib > 1.)
-                  somme_contrib -= 1.;
+                  {
+                    somme_contrib -= 1.;
+                    nb_increment_somme_contrib++;
+                  }
                 while (somme_contrib < 0.)
-                  somme_contrib += 1.;
+                  {
+                    somme_contrib += 1.;
+                    nb_increment_somme_contrib++;
+                  }
+
+                assert(nb_increment_somme_contrib <= 1);
+
                 if (somme_contrib > 0.)
                   {
                     // if(somme_contrib == 1.)
@@ -5876,12 +5896,14 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                         index = data.index_facette_suivante_;
                       };
 
+                    int nb_increment_somme_contrib = 0;
                     while (somme_contrib > 1.)
                       {
                         somme_contrib -= 1.;
                         somme_contrib_baryc[0] -= 1./2.;
                         somme_contrib_baryc[1] -= 1./2.;
                         somme_contrib_baryc[2] -= 1./2.;
+                        nb_increment_somme_contrib++;
                       }
                     while (somme_contrib < 0.)
                       {
@@ -5889,7 +5911,10 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                         somme_contrib_baryc[0] += 1./2.;
                         somme_contrib_baryc[1] += 1./2.;
                         somme_contrib_baryc[2] += 1./2.;
+                        nb_increment_somme_contrib++;
                       }
+
+                    assert(nb_increment_somme_contrib <= 1);
 
                     // Note : On recalcule l'indicatrice, c'est un peu dommage
                     if (indic(i, j, k) != somme_contrib)
@@ -8103,20 +8128,20 @@ void IJK_Interfaces::calculer_indicatrice_next(
 
   // Calcul du barycentre de la phase
   calculer_barycentre(barycentre_phase1_ft_[next()], indicatrice_ft_[next()]);
-  for (int d = 0; d < 3; d++)
+  for (int bary_compo = 0; bary_compo < 3; bary_compo++)
     {
-      barycentre_phase1_ft_[next()][d].echange_espace_virtuel(barycentre_phase1_ft_[next()][d].ghost());
+      barycentre_phase1_ft_[next()][bary_compo].echange_espace_virtuel(barycentre_phase1_ft_[next()][bary_compo].ghost());
     }
 
   // Calcul de l'indicatrice surfacique et du barycentre correspondant
   calculer_indicatrice_surfacique_barycentre_face(indicatrice_surfacique_face_ft_[next()], barycentre_phase1_face_ft_[next()], indicatrice_ft_[next()], normal_of_interf_[next()]);
   indicatrice_surfacique_face_ft_[next()].echange_espace_virtuel();
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      for (int dir = 0; dir < 2; dir++)
+      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          barycentre_phase1_face_ft_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ft_[next()][d][dir].ghost());
+          barycentre_phase1_face_ft_[next()][face_dir][bary_compo].echange_espace_virtuel(barycentre_phase1_face_ft_[next()][face_dir][bary_compo].ghost());
         }
     }
 
@@ -8135,12 +8160,12 @@ void IJK_Interfaces::calculer_indicatrice_next(
     indicatrice_surfacique_face_ns_[next()]);
   indicatrice_surfacique_face_ns_[next()].echange_espace_virtuel();
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      for (int dir = 0; dir < 2; dir++)
+      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][d][dir], barycentre_phase1_face_ns_[next()][d][dir]);
-          barycentre_phase1_face_ns_[next()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ns_[next()][d][dir].ghost());
+          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][face_dir][bary_compo], barycentre_phase1_face_ns_[next()][face_dir][bary_compo]);
+          barycentre_phase1_face_ns_[next()][face_dir][bary_compo].echange_espace_virtuel(barycentre_phase1_face_ns_[next()][face_dir][bary_compo].ghost());
         }
     }
 
@@ -8259,6 +8284,162 @@ void IJK_Interfaces::verif_indic()
 }
 #endif
 
+double IJK_Interfaces::get_barycentre(bool next_time, int bary_compo, int phase, int i, int j, int k) const
+{
+  int current_time = next_time ? next() : old();
+  int other_time = next_time ? old() : next();
+
+  double current_indicatrice = next_time ? In(i,j,k) : I(i,j,k);
+  double other_time_indicatrice = next_time ? I(i,j,k) : In(i,j,k);
+
+  if ((I(i,j,k) == 0.) && (In(i,j,k) == 0.))
+    {
+      return .5;
+    }
+  else if ((I(i,j,k) == 1.) && (In(i,j,k) == 1.))
+    {
+      return .5;
+    }
+  else if (current_indicatrice == 0.)
+    {
+      assert(barycentre_phase1_ns_[current_time][bary_compo](i,j,k) == .5);
+      if (phase == 0)
+        {
+          return .5;
+        }
+      else
+        {
+          double other_time_bary_compo = barycentre_phase1_ns_[other_time][bary_compo](i,j,k);
+          if (other_time_bary_compo > .5)
+            {
+              return 1;
+            }
+          else
+            {
+              return 0;
+            }
+        }
+    }
+  else if (current_indicatrice == 1.)
+    {
+      assert(barycentre_phase1_ns_[current_time][bary_compo](i,j,k) == .5);
+      if (phase == 1)
+        {
+          return .5;
+        }
+      else
+        {
+          double other_time_bary_compo = barycentre_phase1_ns_[other_time][bary_compo](i,j,k);
+          other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice);
+          if (other_time_bary_compo > .5)
+            {
+              return 1;
+            }
+          else
+            {
+              return 0;
+            }
+        }
+    }
+  else
+    {
+      double bary = barycentre_phase1_ns_[current_time][bary_compo](i,j,k);
+
+      if (phase == 0)
+        {
+          bary = opposing_barycentre(bary, current_indicatrice);
+        }
+      assert(bary >= 0 && bary <= 1.);
+      return bary;
+    }
+}
+double IJK_Interfaces::get_barycentre_face(bool next_time, int face_dir, int bary_compo, int phase, int i, int j, int k) const
+{
+  int current_time = next_time ? next() : old();
+  int other_time = next_time ? old() : next();
+
+  double old_indicatrice_surfacique  = get_indicatrice_surfacique_face_old()[face_dir](i,j,k);
+  double next_indicatrice_surfacique = get_indicatrice_surfacique_face_next()[face_dir](i,j,k);
+  double current_indicatrice_surfacique = next_time ? next_indicatrice_surfacique : old_indicatrice_surfacique;
+  double other_time_indicatrice_surfacique = next_time ? old_indicatrice_surfacique : next_indicatrice_surfacique;
+
+  if (face_dir == bary_compo)
+    {
+      return 0.;
+    }
+  else
+    {
+      // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
+      // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
+      // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
+      int compo2D = (face_dir == 0) ? ((bary_compo == 2) ? 0 : ((bary_compo == 1) ? 1 : -1)) :
+                      ((face_dir == 1) ? ((bary_compo == 0) ? 0 : ((bary_compo == 2) ? 1 : -1)) :
+                       ((face_dir == 2) ? ((bary_compo == 1) ? 0 : ((bary_compo == 0) ? 1 : -1)) :
+                        -1));
+      assert(compo2D >= 0);
+      if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
+      {
+          return .5;
+        }
+      else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
+        {
+          return .5;
+        }
+      else if (current_indicatrice_surfacique == 0.)
+        {
+          //assert(barycentre_phase1_face_ns_[current_time][face_dir][compo2D](i,j,k) == .5);
+          if (phase == 0)
+            {
+              return .5;
+            }
+          else
+            {
+              double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][compo2D](i,j,k);
+              if (other_time_bary_compo > .5)
+                {
+                  return 1;
+                }
+              else
+                {
+                  return 0;
+                }
+            }
+        }
+      else if (current_indicatrice_surfacique == 1.)
+        {
+          //assert(barycentre_phase1_face_ns_[current_time][face_dir][compo2D](i,j,k) == .5);
+          if (phase == 1)
+            {
+              return .5;
+            }
+          else
+            {
+              double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][compo2D](i,j,k);
+              other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice_surfacique);
+              if (other_time_bary_compo > .5)
+                {
+                  return 1;
+                }
+              else
+                {
+                  return 0;
+                }
+            }
+        }
+      else
+        {
+          double bary = barycentre_phase1_face_ns_[current_time][face_dir][compo2D](i,j,k);
+
+          if (phase == 0)
+            {
+              bary = opposing_barycentre(bary, current_indicatrice_surfacique);
+            }
+          assert(bary >= 0 && bary <= 1.);
+          return bary;
+        }
+    }
+}
+
 // Copie de l'interface et des intersections associees au pas de temps precedent
 void IJK_Interfaces::update_old_intersections()
 {
@@ -8287,21 +8468,21 @@ void IJK_Interfaces::switch_indicatrice_next_old()
   surface_interface_ft_[old()].echange_espace_virtuel(surface_interface_ft_[old()].ghost());
   surface_interface_ns_[old()].echange_espace_virtuel(surface_interface_ns_[old()].ghost());
 
-  for (int d = 0; d < 3; d++)
+  for (int bary_compo = 0; bary_compo < 3; bary_compo++)
     {
-      barycentre_phase1_ft_[old()][d].echange_espace_virtuel(barycentre_phase1_ft_[old()][d].ghost());
-      barycentre_phase1_ns_[old()][d].echange_espace_virtuel(barycentre_phase1_ns_[old()][d].ghost());
+      barycentre_phase1_ft_[old()][bary_compo].echange_espace_virtuel(barycentre_phase1_ft_[old()][bary_compo].ghost());
+      barycentre_phase1_ns_[old()][bary_compo].echange_espace_virtuel(barycentre_phase1_ns_[old()][bary_compo].ghost());
     }
 
   indicatrice_surfacique_face_ft_[old()].echange_espace_virtuel();
   indicatrice_surfacique_face_ns_[old()].echange_espace_virtuel();
 
-  for (int d = 0; d < 3; d++)
+  for (int face_dir = 0; face_dir < 3; face_dir++)
     {
-      for (int dir = 0; dir < 2; dir++)
+      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          barycentre_phase1_face_ft_[old()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ft_[old()][d][dir].ghost());
-          barycentre_phase1_face_ns_[old()][d][dir].echange_espace_virtuel(barycentre_phase1_face_ns_[old()][d][dir].ghost());
+          barycentre_phase1_face_ft_[old()][face_dir][bary_compo].echange_espace_virtuel(barycentre_phase1_face_ft_[old()][face_dir][bary_compo].ghost());
+          barycentre_phase1_face_ns_[old()][face_dir][bary_compo].echange_espace_virtuel(barycentre_phase1_face_ns_[old()][face_dir][bary_compo].ghost());
         }
     }
 

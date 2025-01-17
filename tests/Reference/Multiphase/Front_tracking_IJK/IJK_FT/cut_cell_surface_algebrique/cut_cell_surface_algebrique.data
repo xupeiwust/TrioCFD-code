@@ -104,6 +104,10 @@ IJK_FT_cut_cell
   type_surface_efficace_interface algebrique_simple
   deactivate_remeshing_velocity
 
+  facettes_interpolation {
+    scaled_distance_interpolation_1 1.0
+  }
+
  thermals {
   cut_cell {
     verbosite 10
@@ -120,14 +124,13 @@ IJK_FT_cut_cell
 
     cut_cell_schema_convection quick_ou_amont_perpendicular_distance
     convection_auxiliaire {
-      methode_temperature_remplissage ponderation_voisin
+      methode_valeur_remplissage ponderation_voisin
       correction_petites_cellules correction_symetrique
     }
     
+    methode_flux_interface interp_cut_cell
     diffusion_auxiliaire {
-      methode_flux_interface interp_cut_cell
       correction_petites_cellules correction_directe
-      scaled_distance_flux_interface 1.0
     }
   }
  }

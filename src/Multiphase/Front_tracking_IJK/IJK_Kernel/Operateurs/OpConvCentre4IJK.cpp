@@ -33,7 +33,7 @@ Entree& OpConvCentre4IJK_double::readOn(Entree& is)
   return is;
 }
 
-inline void calcul_g(const double& dxam, const double& dx, const double& dxav, double& g1, double& g2, double& g3, double& g4)
+void OpConvCentre4IJK_double::calcul_g(const double& dxam, const double& dx, const double& dxav, double& g1, double& g2, double& g3, double& g4)
 {
   g1 = -dx*dx*(dx/2+dxav)/(4*(dx+dxam+dxav)*(dx+dxam)*dxam);
   g2 =  (dx+2*dxam)*(dx+2*dxav)/(8*dxam*(dx+dxav));
@@ -45,16 +45,17 @@ inline void calcul_g(const double& dxam, const double& dx, const double& dxav, d
 // The first flux at index 0 is juste before the first face owned by the processor.
 // offset is the index in the global mesh of the first element on this processor in direction z
 // istart, iend: index of the first and last fluxes computed with 4-th order, others are 2-nd order.
-// is_z_component: shall we compute coefficients for interpolation for velocity_z or for velocity_x and velocity_y ?
+// is_z_component: shall we compute coefficients for interpolation for velocity_z or for velocity_x and velocity_y?
+// is_z_periodic: is the mesh periodic in the z direction?
 // delta_z is the size of the cells on this processor, we need 2 ghost cells
-static void fill_g_compo(DoubleTab& g, int nb_values, int offset,
-                         int istart, int iend,
-                         const ArrOfDouble_with_ghost& delta_z, bool is_z_component)
+void OpConvCentre4IJK_double::fill_g_compo(DoubleTab& g, int nb_values, int offset,
+                                           int istart, int iend,
+                                           const ArrOfDouble_with_ghost& delta_z, bool is_z_component, bool is_z_periodic)
 {
   g.resize(nb_values, 4);
   for (int i = 0; i < nb_values; i++)
     {
-      if (i + offset < istart || i + offset > iend)
+      if ((!is_z_periodic) && (i + offset < istart || i + offset > iend))
         {
           // We are in the wall or in the first layer: degenerate coefficients for 2nd order interpolation
           g(i,0) = 0.;
@@ -97,16 +98,18 @@ void OpConvCentre4IJK_double::initialize(const IJK_Splitting& splitting) //, con
   const int offset_to_global_k_layer = channel_data_.offset_to_global_k_layer();
   const ArrOfDouble_with_ghost& delta_z = channel_data_.get_delta_z();
 
+  bool perio_k = channel_data_.is_k_periodic();
+
   // first flux computed with 4th order is 1 layer after the first non zero flux, after the wall.
   // SPECIFIC FOR CHANNEL WITH WALLS IN K DIRECTION !
   int istart, iend;
   istart = channel_data_.first_global_k_layer_flux(0 /* compo */, 2 /* dir */) + 1;
   iend = channel_data_.last_global_k_layer_flux(0 /* compo */, 2 /* dir */) - 1;
-  fill_g_compo(g_compo_xy_dir_z_, nb_xfaces + 1, offset_to_global_k_layer, istart, iend, delta_z, false);
+  fill_g_compo(g_compo_xy_dir_z_, nb_xfaces + 1, offset_to_global_k_layer, istart, iend, delta_z, false, perio_k);
 
   istart = channel_data_.first_global_k_layer_flux(2 /* compo */, 2 /* dir */) + 1;
   iend = channel_data_.last_global_k_layer_flux(2 /* compo */, 2 /* dir */) - 1;
-  fill_g_compo(g_compo_z_dir_z_, nb_zfaces + 1, offset_to_global_k_layer, istart, iend, delta_z, true);
+  fill_g_compo(g_compo_z_dir_z_, nb_zfaces + 1, offset_to_global_k_layer, istart, iend, delta_z, true, perio_k);
 
 //  ref_bc_ = bc;
 }

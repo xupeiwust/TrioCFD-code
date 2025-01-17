@@ -45,61 +45,6 @@ static inline void swap_data(IJK_Field_local_double*& a, IJK_Field_local_double*
   b=tmp;
 }
 
-// Compute the "- divergence" of the given flux, integrated over control volume
-// We assume than flux contain the integral of the flux on the faces of the control volumes
-// For "div_set" method:
-//  resu(i,j,k) = flux_x(i,j) - flux_x(i+1,j) + flux_y(i,j) - flux_y(i,j+1) + flux_zmin(i,j) - flux_zmax(i,j)
-// For "div_add" method: same but
-//  resu(i,j,k) += ...
-static void Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
-                             const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
-                             IJK_Field_double& resu, int k_layer, bool add)
-{
-  ConstIJK_double_ptr fx(flux_x, 0, 0, 0);
-  ConstIJK_double_ptr fy(flux_y, 0, 0, 0);
-  ConstIJK_double_ptr fzmin(flux_zmin, 0, 0, 0);
-  ConstIJK_double_ptr fzmax(flux_zmax, 0, 0, 0);
-  IJK_double_ptr resu_ptr(resu, 0, 0, k_layer);
-
-
-  const int imax = resu.ni();
-  const int jmax = resu.nj();
-  const int vsize = Simd_double::size();
-  for (int j = 0; ; j++)
-    {
-      for (int i = 0; i < imax; i += vsize)
-        {
-          Simd_double r, a, b;
-          fx.get_center_right(DIRECTION::X, i, a, b);
-          r = a-b;
-
-          fy.get_center_right(DIRECTION::Y,i, a, b);
-          r += a-b;
-
-          fzmin.get_center(i, a);
-          fzmax.get_center(i, b);
-          r += a-b;
-
-          if(add)
-            {
-              resu_ptr.get_center(i, a);
-              r += a;
-            }
-          resu_ptr.put_val(i, r);
-        }
-      // do not execute end_iloop at last iteration (because of assert on valid j+1)
-      if (j+1==jmax)
-        break;
-      fx.next_j();
-      fy.next_j();
-      fzmin.next_j();
-      fzmax.next_j();
-      resu_ptr.next_j();
-    }
-
-}
-
-
 /*
  * Operateur_IJK_faces_base
  */
@@ -201,9 +146,9 @@ void Operateur_IJK_faces_base_double::compute_(IJK_Field_double& dvx, IJK_Field_
   compute_flux_z_vy(*flux_vy_zmin, 0);
   compute_flux_z_vz(*flux_vz_zmin, 0);
 
-//  correct_flux(flux_zmin, -1, 0);
-//  correct_flux(flux_zmin, -1, 1);
-//  correct_flux(flux_zmin, -1, 2);
+  correct_flux(flux_vx_zmin, 0, 2, 0);
+  correct_flux(flux_vy_zmin, 0, 2, 1);
+  correct_flux(flux_vz_zmin, 0, 2, 2);
 
   // At the bottom end of the domain, there is more layer of unknowns for vz:
   const int kmax = std::max(std::max(dvx.nk(), dvy.nk()), dvz.nk());
@@ -216,9 +161,9 @@ void Operateur_IJK_faces_base_double::compute_(IJK_Field_double& dvx, IJK_Field_
           compute_flux_y_vz(*flux_y, k);
           compute_flux_z_vz(*flux_zmax, k+1);
 
-//          correct_flux(flux_x, k, 2);
-//          correct_flux(flux_y, k, 2);
-//          correct_flux(flux_zmax, k, 2);
+          correct_flux(flux_x, k, 0, 2);
+          correct_flux(flux_y, k, 1, 2);
+          correct_flux(flux_zmax, k+1, 2, 2);
 
           Operator_IJK_div(*flux_x, *flux_y, *flux_vz_zmin, *flux_zmax, dvz, k, add);
 
@@ -231,9 +176,9 @@ void Operateur_IJK_faces_base_double::compute_(IJK_Field_double& dvx, IJK_Field_
           compute_flux_y_vx(*flux_y, k);
           compute_flux_z_vx(*flux_zmax, k+1);
 
-//          correct_flux(flux_x, k, 0);
-//          correct_flux(flux_y, k, 0);
-//          correct_flux(flux_zmax, k, 0);
+          correct_flux(flux_x, k, 0, 0);
+          correct_flux(flux_y, k, 1, 0);
+          correct_flux(flux_zmax, k+1, 2, 0);
 
           Operator_IJK_div(*flux_x, *flux_y, *flux_vx_zmin, *flux_zmax, dvx, k, add);
 
@@ -246,9 +191,9 @@ void Operateur_IJK_faces_base_double::compute_(IJK_Field_double& dvx, IJK_Field_
           compute_flux_y_vy(*flux_y, k);
           compute_flux_z_vy(*flux_zmax, k+1);
 
-//          correct_flux(flux_x, k, 1);
-//          correct_flux(flux_y, k, 1);
-//          correct_flux(flux_zmax, k, 1);
+          correct_flux(flux_x, k, 0, 1);
+          correct_flux(flux_y, k, 1, 1);
+          correct_flux(flux_zmax, k+1, 2, 1);
 
           Operator_IJK_div(*flux_x, *flux_y, *flux_vy_zmin, *flux_zmax, dvy, k, add);
 
@@ -256,6 +201,64 @@ void Operateur_IJK_faces_base_double::compute_(IJK_Field_double& dvx, IJK_Field_
           swap_data(flux_vy_zmin, flux_zmax); // conserve le flux en z pour la couche z suivante
         }
     }
+}
+
+// Compute the "- divergence" of the given flux, integrated over control volume
+// We assume than flux contain the integral of the flux on the faces of the control volumes
+// For "div_set" method:
+//  resu(i,j,k) = flux_x(i,j) - flux_x(i+1,j) + flux_y(i,j) - flux_y(i,j+1) + flux_zmin(i,j) - flux_zmax(i,j)
+// For "div_add" method: same but
+//  resu(i,j,k) += ...
+void Operateur_IJK_faces_base_double::Operator_IJK_div(const IJK_Field_local_double& flux_x, const IJK_Field_local_double& flux_y,
+                                                       const IJK_Field_local_double& flux_zmin, const IJK_Field_local_double& flux_zmax,
+                                                       IJK_Field_double& resu, int k_layer, bool add)
+{
+  ConstIJK_double_ptr fx(flux_x, 0, 0, 0);
+  ConstIJK_double_ptr fy(flux_y, 0, 0, 0);
+  ConstIJK_double_ptr fzmin(flux_zmin, 0, 0, 0);
+  ConstIJK_double_ptr fzmax(flux_zmax, 0, 0, 0);
+  IJK_double_ptr resu_ptr(resu, 0, 0, k_layer);
+
+
+  const int imax = resu.ni();
+  const int jmax = resu.nj();
+  const int vsize = Simd_double::size();
+  for (int j = 0; ; j++)
+    {
+      for (int i = 0; i < imax; i += vsize)
+        {
+          Simd_double r, a, b;
+          fx.get_center_right(DIRECTION::X, i, a, b);
+          r = a-b;
+
+          fy.get_center_right(DIRECTION::Y,i, a, b);
+          r += a-b;
+
+          fzmin.get_center(i, a);
+          fzmax.get_center(i, b);
+          r += a-b;
+
+          if (add)
+            {
+              resu_ptr.get_center(i, a);
+              r += a;
+            }
+          resu_ptr.put_val(i, r);
+        }
+      // do not execute end_iloop at last iteration (because of assert on valid j+1)
+      if (j+1==jmax)
+        break;
+      fx.next_j();
+      fy.next_j();
+      fzmin.next_j();
+      fzmax.next_j();
+      resu_ptr.next_j();
+    }
+
+}
+
+void Operateur_IJK_faces_base_double::correct_flux(IJK_Field_local_double *const flux,	const int k_layer, const int dir, const int compo)
+{
 }
 
 
@@ -377,7 +380,7 @@ void Operateur_IJK_elem_base_double::Operator_IJK_div(const IJK_Field_local_doub
           // correct_flux_spherical(a, b, i, j, k_layer, 2);
           r += a-b;
 
-          if(add)
+          if (add)
             {
               resu_ptr.get_center(i, a);
               r += a;
@@ -402,7 +405,7 @@ void Operateur_IJK_elem_base_double::correct_flux(IJK_Field_local_double *const 
     {
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)
@@ -416,7 +419,7 @@ void Operateur_IJK_elem_base_double::correct_flux(IJK_Field_local_double *const 
 
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)

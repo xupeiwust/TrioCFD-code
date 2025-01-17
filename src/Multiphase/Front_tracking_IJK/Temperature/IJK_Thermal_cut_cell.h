@@ -50,8 +50,6 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-struct CutCell_GlobalInfo;
-
 class IJK_Thermal_cut_cell : public IJK_Thermal_base
 {
 
@@ -68,15 +66,11 @@ public :
   void compute_temperature_init() override;
   void recompute_temperature_init() override;
 
-  void add_flux_times_vol_over_dt_surface(double fractional_timestep, const Cut_field_vector3_double& cut_field_current_fluxes, Cut_field_vector3_double& cut_field_RK3_F_fluxes);
-  void set_rk_restreint(int rk_step, int rk_restriction_leniency, const Cut_cell_FT_Disc& cut_cell_disc, IJK_Field_int& cellule_rk_restreint_v, IJK_Field_int& cellule_rk_restreint_l);
   void perform_thermal_step(double total_timestep, int flag_rk, int rk_step);
   void euler_time_step(const double timestep) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double time) override;
   void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0) override;
 
-  CutCell_GlobalInfo compute_global_energy_cut_cell(Cut_field_double& cut_field_temperature, bool next);
-  CutCell_GlobalInfo compute_d_global_energy_cut_cell(Cut_field_double& cut_field_d_temperature, bool next);
   double compute_global_energy() override
   {
     Cerr << "I want to make sure the function compute_global_energy is not used." << finl;
@@ -84,8 +78,6 @@ public :
     return 0.;
   }
   void print_Tmin_Tmax_cut_cell(const Cut_field_double& cut_field_temperature, bool next, double current_time, const std::string& heading);
-  CutCell_GlobalInfo compute_Tmin_cut_cell(const Cut_field_double& cut_field_temperature, bool next);
-  CutCell_GlobalInfo compute_Tmax_cut_cell(const Cut_field_double& cut_field_temperature, bool next);
   void calculer_flux_interface();
 
   void copie_pure_vers_diph_sans_interpolation() override
@@ -95,19 +87,20 @@ public :
 
     if (runge_kutta_fluxes_convection_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].copie_pure_vers_diph_sans_interpolation();
-        cut_field_RK3_F_fluxes_conv[1].copie_pure_vers_diph_sans_interpolation();
-        cut_field_RK3_F_fluxes_conv[2].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_conv_[0].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_conv_[1].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_conv_[2].copie_pure_vers_diph_sans_interpolation();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].copie_pure_vers_diph_sans_interpolation();
-        cut_field_RK3_F_fluxes_diff[1].copie_pure_vers_diph_sans_interpolation();
-        cut_field_RK3_F_fluxes_diff[2].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_diff_[0].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_diff_[1].copie_pure_vers_diph_sans_interpolation();
+        RK3_F_fluxes_diff_[2].copie_pure_vers_diph_sans_interpolation();
       }
+
+    cellule_rk_restreint_conv_.copie_pure_vers_diph_sans_interpolation();
+    cellule_rk_restreint_diff_.copie_pure_vers_diph_sans_interpolation();
   }
   void echange_pure_vers_diph_cellules_initialement_pures() override
   {
@@ -116,19 +109,20 @@ public :
 
     if (runge_kutta_fluxes_convection_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].echange_pure_vers_diph_cellules_initialement_pures();
-        cut_field_RK3_F_fluxes_conv[1].echange_pure_vers_diph_cellules_initialement_pures();
-        cut_field_RK3_F_fluxes_conv[2].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_conv_[0].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_conv_[1].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_conv_[2].echange_pure_vers_diph_cellules_initialement_pures();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].echange_pure_vers_diph_cellules_initialement_pures();
-        cut_field_RK3_F_fluxes_diff[1].echange_pure_vers_diph_cellules_initialement_pures();
-        cut_field_RK3_F_fluxes_diff[2].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_diff_[0].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_diff_[1].echange_pure_vers_diph_cellules_initialement_pures();
+        RK3_F_fluxes_diff_[2].echange_pure_vers_diph_cellules_initialement_pures();
       }
+
+    cellule_rk_restreint_conv_.echange_pure_vers_diph_cellules_initialement_pures();
+    cellule_rk_restreint_diff_.echange_pure_vers_diph_cellules_initialement_pures();
   }
   void echange_diph_vers_pure_cellules_finalement_pures() override
   {
@@ -137,19 +131,20 @@ public :
 
     if (runge_kutta_fluxes_convection_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].echange_diph_vers_pure_cellules_finalement_pures();
-        cut_field_RK3_F_fluxes_conv[1].echange_diph_vers_pure_cellules_finalement_pures();
-        cut_field_RK3_F_fluxes_conv[2].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_conv_[0].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_conv_[1].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_conv_[2].echange_diph_vers_pure_cellules_finalement_pures();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].echange_diph_vers_pure_cellules_finalement_pures();
-        cut_field_RK3_F_fluxes_diff[1].echange_diph_vers_pure_cellules_finalement_pures();
-        cut_field_RK3_F_fluxes_diff[2].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_diff_[0].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_diff_[1].echange_diph_vers_pure_cellules_finalement_pures();
+        RK3_F_fluxes_diff_[2].echange_diph_vers_pure_cellules_finalement_pures();
       }
+
+    cellule_rk_restreint_conv_.echange_diph_vers_pure_cellules_finalement_pures();
+    cellule_rk_restreint_diff_.echange_diph_vers_pure_cellules_finalement_pures();
   }
   void vide_phase_invalide_cellules_diphasiques() override
   {
@@ -158,40 +153,42 @@ public :
 
     if (runge_kutta_fluxes_convection_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].vide_phase_invalide_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_conv[1].vide_phase_invalide_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_conv[2].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_conv_[0].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_conv_[1].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_conv_[2].vide_phase_invalide_cellules_diphasiques();
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].vide_phase_invalide_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_diff[1].vide_phase_invalide_cellules_diphasiques();
-        cut_field_RK3_F_fluxes_diff[2].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_diff_[0].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_diff_[1].vide_phase_invalide_cellules_diphasiques();
+        RK3_F_fluxes_diff_[2].vide_phase_invalide_cellules_diphasiques();
       }
+
+    cellule_rk_restreint_conv_.vide_phase_invalide_cellules_diphasiques();
+    cellule_rk_restreint_diff_.vide_phase_invalide_cellules_diphasiques();
   }
-  void remplir_tableau_pure_cellules_diphasiques(int next_time) override
+  void remplir_tableau_pure_cellules_diphasiques(bool next_time) override
   {
     Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
     cut_field_temperature.remplir_tableau_pure_cellules_diphasiques(next_time);
 
     if (runge_kutta_fluxes_convection_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_conv = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_conv_);
-        cut_field_RK3_F_fluxes_conv[0].remplir_tableau_pure_cellules_diphasiques(next_time);
-        cut_field_RK3_F_fluxes_conv[1].remplir_tableau_pure_cellules_diphasiques(next_time);
-        cut_field_RK3_F_fluxes_conv[2].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_conv_[0].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_conv_[1].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_conv_[2].remplir_tableau_pure_cellules_diphasiques(next_time);
       }
 
     if (runge_kutta_fluxes_diffusion_)
       {
-        Cut_field_vector3_double& cut_field_RK3_F_fluxes_diff = static_cast<Cut_field_vector3_double&>(RK3_F_fluxes_diff_);
-        cut_field_RK3_F_fluxes_diff[0].remplir_tableau_pure_cellules_diphasiques(next_time);
-        cut_field_RK3_F_fluxes_diff[1].remplir_tableau_pure_cellules_diphasiques(next_time);
-        cut_field_RK3_F_fluxes_diff[2].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_diff_[0].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_diff_[1].remplir_tableau_pure_cellules_diphasiques(next_time);
+        RK3_F_fluxes_diff_[2].remplir_tableau_pure_cellules_diphasiques(next_time);
       }
+
+    cellule_rk_restreint_conv_.remplir_tableau_pure_cellules_diphasiques_max(next_time);
+    cellule_rk_restreint_diff_.remplir_tableau_pure_cellules_diphasiques_max(next_time);
   }
 
 protected :
@@ -201,22 +198,15 @@ protected :
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 
-  void calculer_dT_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity);
   void compute_temperature_convection_cut_cell(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_d_temperature);
   void add_temperature_diffusion() override;
-  void compute_diffusion_increment() override;
+  void compute_diffusion_increment() override { ; }; // Unused function in the cut-cell case
   void correct_temperature_for_eulerian_fluxes() override { ; };
-  double get_temperature_interfaciale_moyenne() const { return temperature_interfaciale_moyenne_ ; }
 
-  //Rustine
-  double E0_ = 0;//volumique
-  IJK_Field_double T_rust_;
-  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   int type_temperature_convection_form_ = 0;
 
   OBS_PTR(IJK_FT_cut_cell) ref_ijk_ft_cut_cell_;
-  IJK_Splitting::Localisation localisation_ = IJK_Splitting::ELEM;
 
   IJK_Field_double div_rho_cp_T_;
   IJK_Field_double lambda_;
@@ -226,31 +216,33 @@ protected :
 
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
 
-  double flux_interfacial_moyen_;
-  double temperature_interfaciale_moyenne_;
-  Facettes_data coord_facettes_;
-  Facettes_data interfacial_temperature_;
+  METHODE_FLUX_INTERFACE methode_flux_interface_ = METHODE_FLUX_INTERFACE::INTERP_CUT_CELL;
+  IJK_Field_double flux_interface_ns_scalar_old_;
+  IJK_Field_double flux_interface_ft_scalar_old_;
+  IJK_Field_double flux_interface_ns_scalar_next_;
+  IJK_Field_double flux_interface_ft_scalar_next_;
+  DoubleTabFT_cut_cell_scalar flux_interface_efficace_scalar_;
+
+  DoubleTabFT interfacial_temperature_;
   DoubleTabFT interfacial_phin_ai_;
 
-  IJK_Field_vector3_double current_fluxes_conv_;
-  IJK_Field_vector3_double current_fluxes_diff_;
-  IJK_Field_vector3_double RK3_F_fluxes_conv_;
-  IJK_Field_vector3_double RK3_F_fluxes_diff_;
+  Cut_field_vector3_double current_fluxes_conv_;
+  Cut_field_vector3_double current_fluxes_diff_;
+  Cut_field_vector3_double RK3_F_fluxes_conv_;
+  Cut_field_vector3_double RK3_F_fluxes_diff_;
   int runge_kutta_fluxes_convection_ = 0;
   int runge_kutta_fluxes_diffusion_ = 0;
   int runge_kutta_fluxes_pas_de_correction_convection_ = 0;
   int runge_kutta_fluxes_pas_de_correction_diffusion_ = 0;
-  IJK_Field_int cellule_rk_restreint_conv_l_;
-  IJK_Field_int cellule_rk_restreint_conv_v_;
-  IJK_Field_int cellule_rk_restreint_diff_l_;
-  IJK_Field_int cellule_rk_restreint_diff_v_;
+  Cut_field_int cellule_rk_restreint_conv_;
+  Cut_field_int cellule_rk_restreint_diff_;
 
   // Temporary fields, to inspect each step of the time advance
   int postraiter_champs_intermediaires_ = 0;
-  std::shared_ptr<IJK_Field_double> temperature_post_dying_;
-  std::shared_ptr<IJK_Field_double> temperature_post_regular_;
-  std::shared_ptr<IJK_Field_double> temperature_post_convection_;
-  std::shared_ptr<IJK_Field_double> temperature_post_diff_regular_;
+  Cut_field_double temperature_post_dying_;
+  Cut_field_double temperature_post_regular_;
+  Cut_field_double temperature_post_convection_;
+  Cut_field_double temperature_post_diff_regular_;
 
   Cut_cell_convection_auxiliaire convective_correction_;
   Cut_cell_diffusion_auxiliaire diffusive_correction_;
@@ -260,12 +252,6 @@ protected :
   int runge_kutta_restriction_leniency_convection_ = 0;
   int runge_kutta_restriction_leniency_diffusion_ = 0;
 
-  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
-  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
-  IJK_Field_int treatment_count_;
-
-  // Compteur du dernier traitement effectue dans treatment_count_
-  int new_treatment_ = 0;
 
   int verbosite_ = 2;
 };

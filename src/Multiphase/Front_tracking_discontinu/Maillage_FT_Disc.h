@@ -21,6 +21,7 @@
 #include <Descripteur_FT.h>
 #include <Intersections_Elem_Facettes_Data.h>
 #include <TRUSTTabs_forward.h>
+#include <Vecteur3.h>
 
 #include <TRUST_Deriv.h>
 #include <TRUST_Ref.h>
@@ -157,6 +158,9 @@ public:
   virtual const ArrOfDouble& get_surface_facettes_old() const;
   virtual const DoubleTab& get_normale_facettes() const;
   virtual const DoubleTab& get_normale_facettes_old() const;
+
+  Vecteur3 coords_fa7(int fa7) const;
+  Vecteur3 coords_fa7_old(int fa7) const;
 
   const IntTabFT& get_liste_facette_supprimees_et_voisines() const
   {

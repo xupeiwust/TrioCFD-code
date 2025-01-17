@@ -25,12 +25,10 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Param.h>
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
 #include <Cut_cell_correction_petites_cellules.h>
 #include <Cut_cell_schema_auxiliaire.h>
 #include <Maillage_FT_IJK.h>
-
-class IJK_FT_cut_cell;
 
 enum class CUT_CELL_SCHEMA_CONVECTION : int
 {
@@ -58,10 +56,9 @@ class Cut_cell_convection_auxiliaire : public Cut_cell_schema_auxiliaire
 public:
   void set_param(Param& param);
 
-  double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
-  double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature) override;
-
 protected:
+  double dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field) override;
+  double small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field) override;
 };
 
 #endif /* Cut_cell_convection_auxiliaire_included */

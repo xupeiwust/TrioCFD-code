@@ -24,7 +24,7 @@
 
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
 
 enum class TYPE_SURFACE_EFFICACE_FACE : int
 {

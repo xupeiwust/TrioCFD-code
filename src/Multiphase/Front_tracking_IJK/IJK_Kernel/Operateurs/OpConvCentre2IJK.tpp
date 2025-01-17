@@ -24,7 +24,7 @@ void OpConvCentre2IJK_double::exec_after_divergence_flux_(IJK_Field_double& resu
   if (div_rho_u_ == 0)
     return;
 
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       const int global_k_layer = k_layer + channel_data_.offset_to_global_k_layer();
       // global index of the layer of flux of the wall
@@ -131,19 +131,17 @@ void OpConvCentre2IJK_double::compute_flux_(IJK_Field_local_double& resu, const 
   constant_factor0 *= 0.5;
   constant_factor1 *= 0.5;
 
-  if(_DIR_ != DIRECTION::Z)
+  if (_DIR_ != DIRECTION::Z || channel_data_.is_k_uniform_and_periodic())
     {
-      // Specific coding for uniform mesh in i and j, variable mesh in k,
-      //  periodic in i and j, walls at bottom and top of k
-      // Uniform mesh periodic everywhere so no special case.
-      // We always have enough data for order 4:
+      // Specific coding for an uniform _and_ periodic grid along a given direction.
+      // An uniform but non-periodic grid may have different g coefficients near walls, thus is not included.
       g1 = g4 = 0.0;
       g2 = g3 = 0.5;
     }
   else
     {
-      // Specific coding for uniform mesh in i and j, variable mesh in k,
-      //  periodic in i and j, walls at bottom and top of k
+      // Specific coding for non-uniform or non-periodic grid.
+      // This only concerns the Z direction, as X and Y directions are always assumed to be uniform and periodic.
       g1 = get_g(k_layer,icompo,idir,0);
       g2 = get_g(k_layer,icompo,idir,1);
       g3 = get_g(k_layer,icompo,idir,2);

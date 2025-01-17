@@ -51,7 +51,7 @@ Entree& Cut_cell_schema_auxiliaire::readOn(Entree& is)
 
 void Cut_cell_schema_auxiliaire::set_param(Param& param)
 {
-  param.ajouter("methode_temperature_remplissage", (int*)&methode_temperature_remplissage_);
+  param.ajouter("methode_valeur_remplissage", (int*)&methode_valeur_remplissage_);
   param.dictionnaire("non_initialise",(int)METHODE_TEMPERATURE_REMPLISSAGE::NON_INITIALISE);
   param.dictionnaire("copie_directe", (int)METHODE_TEMPERATURE_REMPLISSAGE::COPIE_DIRECTE);
   param.dictionnaire("ponderation_voisin", (int)METHODE_TEMPERATURE_REMPLISSAGE::PONDERATION_VOISIN);
@@ -77,31 +77,31 @@ void Cut_cell_schema_auxiliaire::initialise(Cut_cell_FT_Disc& cut_cell_disc)
   flux_naive_.associer_ephemere(cut_cell_disc);
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
 {
-  if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::COPIE_DIRECTE)
+  if (methode_valeur_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::COPIE_DIRECTE)
     {
-      calcule_temperature_remplissage_copie_directe(cut_field_temperature);
+      calcule_valeur_remplissage_copie_directe(cut_field_temperature, temperature_remplissage_);
     }
-  else if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::PONDERATION_VOISIN)
+  else if (methode_valeur_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::PONDERATION_VOISIN)
     {
-      calcule_temperature_remplissage_ponderation_voisin(false, cut_field_total_velocity, cut_field_temperature);
+      calcule_valeur_remplissage_ponderation_voisin(false, cut_field_total_velocity, cut_field_temperature, temperature_remplissage_);
     }
-  else if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::PONDERATION_DIRECTIONNELLE_VOISIN)
+  else if (methode_valeur_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::PONDERATION_DIRECTIONNELLE_VOISIN)
     {
-      calcule_temperature_remplissage_ponderation_voisin(true, cut_field_total_velocity, cut_field_temperature);
+      calcule_valeur_remplissage_ponderation_voisin(true, cut_field_total_velocity, cut_field_temperature, temperature_remplissage_);
     }
-  else if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::SEMI_LAGRANGIEN)
+  else if (methode_valeur_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::SEMI_LAGRANGIEN)
     {
-      calcule_temperature_remplissage_semi_lagrangien(timestep, lambda_liquid, lambda_vapour, flux_interface_ns, cut_field_temperature);
+      calcule_valeur_remplissage_semi_lagrangien(timestep, lambda_liquid, lambda_vapour, flux_interface_ns, cut_field_temperature, temperature_remplissage_);
     }
-  else if (methode_temperature_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::SEMI_LAGRANGIEN_INTERPOLATE)
+  else if (methode_valeur_remplissage_ == METHODE_TEMPERATURE_REMPLISSAGE::SEMI_LAGRANGIEN_INTERPOLATE)
     {
-      calcule_temperature_remplissage_semi_lagrangien_interpolate(timestep, interfacial_temperature, temperature_ft, cut_field_temperature);
+      calcule_valeur_remplissage_semi_lagrangien_interpolate(timestep, interfacial_temperature, temperature_ft, cut_field_temperature, temperature_remplissage_);
     }
   else
     {
-      Cerr << "Methode non reconnue pour le calcul de la temperature de remplissage." << finl;
+      Cerr << "Methode non reconnue pour le calcul de la valeur de remplissage." << finl;
       Process::exit();
     }
 }
@@ -118,7 +118,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int statut_diphasique = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::MOURRANT);
+  int statut_diphasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
   for (int index = index_min; index < index_max; index++)
@@ -136,7 +136,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       assert(cut_cell_disc.get_interfaces().est_pure(next_indicatrice));
-      int phase = 1 - (int)next_indicatrice; // phase de la cellule mourrante
+      int phase = 1 - IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice); // phase de la cellule mourrante
 
 
 
@@ -170,7 +170,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
         }
 
       // Correction du flux si aucun flux non-nul
-      if ((flux[0] == 0) && (flux[1] == 0) && (flux[2] == 0) && (flux[3] == 0) && (flux[4] == 0) && (flux[5] == 0))
+      if ((std::abs(flux[0]) + std::abs(flux[1]) + std::abs(flux[2]) + std::abs(flux[3]) + std::abs(flux[4]) + std::abs(flux[5])) == 0)
         {
           for (int num_face = 0; num_face < 6; num_face++)
             {
@@ -228,15 +228,15 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
   const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
-  const double delta_x = geom.get_constant_delta(0);
-  const double delta_y = geom.get_constant_delta(1);
-  const double delta_z = geom.get_constant_delta(2);
+  const double delta_x = geom.get_constant_delta(DIRECTION_I);
+  const double delta_y = geom.get_constant_delta(DIRECTION_J);
+  const double delta_z = geom.get_constant_delta(DIRECTION_K);
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -255,7 +255,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
-      int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(old_indicatrice) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
       assert(est_naissant || cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice));
 
 
@@ -292,7 +292,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
         }
 
       // Correction du flux si aucun flux non-nul
-      if ((flux[0] == 0) && (flux[1] == 0) && (flux[2] == 0) && (flux[3] == 0) && (flux[4] == 0) && (flux[5] == 0))
+      if ((std::abs(flux[0]) + std::abs(flux[1]) + std::abs(flux[2]) + std::abs(flux[3]) + std::abs(flux[4]) + std::abs(flux[5])) == 0)
         {
           for (int num_face = 0; num_face < 6; num_face++)
             {
@@ -347,12 +347,12 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(const Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_copie_directe(const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -371,13 +371,13 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_copie_directe(c
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
-      int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(old_indicatrice) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
 
-      temperature_remplissage_(n) = (phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n);
+      valeur_remplissage(n) = (phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n);
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -389,8 +389,8 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -409,7 +409,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
-      int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(old_indicatrice) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
       assert(est_naissant || cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice));
 
 
@@ -433,18 +433,23 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
 
           double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
-          double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+          double temperature_decale = -1e37;
           int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
           if (n_decale >= 0)
             {
               temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
             }
+          else
+            {
+              temperature_decale = (phase == (IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale)))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+            }
+
+          total_velocity[num_face] = cut_field_total_velocity[dir].from_ijk_and_phase(i+di,j+dj,k+dk, phase);
 
           int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
           if (n_face >= 0)
             {
               double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir) : cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir);
-              total_velocity[num_face] = (phase == 0) ? cut_field_total_velocity[dir].diph_v_(n_face) : cut_field_total_velocity[dir].diph_l_(n_face);
               double temperature = temperature_decale;
               flux[num_face] = -sign*f_dir*surface_efficace*temperature*total_velocity[num_face];
               if (est_directionnel)
@@ -457,7 +462,6 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
             {
               double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk) : cut_cell_disc.get_interfaces().In(i+di,j+dj,k+dk);
               assert((surface_efficace == 0) || (surface_efficace == 1));
-              total_velocity[num_face] = cut_field_total_velocity[dir].pure_(i+di,j+dj,k+dk);
               double temperature = temperature_decale;
               flux[num_face] = -sign*f_dir*surface_efficace*temperature*total_velocity[num_face];
               if (est_directionnel)
@@ -469,7 +473,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
         }
 
       // Correction du flux si aucun flux non-nul
-      if ((flux[0] == 0) && (flux[1] == 0) && (flux[2] == 0) && (flux[3] == 0) && (flux[4] == 0) && (flux[5] == 0))
+      if ((std::abs(flux[0]) + std::abs(flux[1]) + std::abs(flux[2]) + std::abs(flux[3]) + std::abs(flux[4]) + std::abs(flux[5])) == 0)
         {
           for (int num_face = 0; num_face < 6; num_face++)
             {
@@ -488,11 +492,15 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
 
               double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
-              double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+              double temperature_decale = -1e37;
               int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
               if (n_decale >= 0)
                 {
                   temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
+                }
+              else
+                {
+                  temperature_decale = (phase == (IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale)))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
                 }
 
               int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
@@ -514,21 +522,27 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_ponderation_voi
             }
         }
 
-      if (((total_velocity[0] == 0) && (total_velocity[1] == 0) && (total_velocity[2] == 0) && (total_velocity[3] == 0) && (total_velocity[4] == 0) && (total_velocity[5] == 0)))
+      if ((std::abs(total_velocity[0]) + std::abs(total_velocity[1]) + std::abs(total_velocity[2]) + std::abs(total_velocity[3]) + std::abs(total_velocity[4]) + std::abs(total_velocity[5])) == 0)
         {
-          temperature_remplissage_(n) = DMINFLOAT+1; // Dummy value to indicate that no filling should be made.
+          // All velocities are zero
+          valeur_remplissage(n) = DMINFLOAT+1; // Dummy value to indicate that no filling should be made.
+        }
+      if ((std::abs(temp[0]) + std::abs(temp[1]) + std::abs(temp[2]) + std::abs(temp[3]) + std::abs(temp[4]) + std::abs(temp[5])) < 1e-37)
+        {
+          // It looks like the input field is constant zero. In that case, the filling value should be zero as well.
+          valeur_remplissage(n) = 0;
         }
       else
         {
           double somme_T_flux = (temp[0]*std::abs(flux[0]) != 0.)*std::abs(flux[0]) + (temp[1]*std::abs(flux[1]) != 0.)*std::abs(flux[1]) + (temp[2]*std::abs(flux[2]) != 0.)*std::abs(flux[2]) + (temp[3]*std::abs(flux[3]) != 0.)*std::abs(flux[3]) + (temp[4]*std::abs(flux[4]) != 0.)*std::abs(flux[4]) + (temp[5]*std::abs(flux[5]) != 0.)*std::abs(flux[5]);
           assert(somme_T_flux != 0.);
-          double temperature_remplissage = (temp[0]*std::abs(flux[0]) + temp[1]*std::abs(flux[1]) + temp[2]*std::abs(flux[2]) + temp[3]*std::abs(flux[3]) + temp[4]*std::abs(flux[4]) + temp[5]*std::abs(flux[5]))/somme_T_flux;
-          temperature_remplissage_(n) = temperature_remplissage;
+          double val_remplissage = (temp[0]*std::abs(flux[0]) + temp[1]*std::abs(flux[1]) + temp[2]*std::abs(flux[2]) + temp[3]*std::abs(flux[3]) + temp[4]*std::abs(flux[4]) + temp[5]*std::abs(flux[5]))/somme_T_flux;
+          valeur_remplissage(n) = val_remplissage;
         }
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
   const IJK_Field_double& surface_interface_old = cut_cell_disc.get_interfaces().get_surface_interface_old();
@@ -537,8 +551,8 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
   double dy = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(1);
   double dz = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(2);
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -556,7 +570,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I(i,j,k));
-      int phase = est_naissant ? 1 - (int)cut_cell_disc.get_interfaces().I(i,j,k) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.get_interfaces().I(i,j,k)) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
 
       double normal_x = cut_cell_disc.get_interfaces().get_normale_deplacement_interface()(n,0);
       double normal_y = cut_cell_disc.get_interfaces().get_normale_deplacement_interface()(n,1);
@@ -615,7 +629,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
 
       if (n_old < 0)
         {
-          Cerr << "Dans Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien, on a n_old < 0." << finl;
+          Cerr << "Dans Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien, on a n_old < 0." << finl;
           Cerr << "Ce cas est normalement pas possible mais pourrait peut-etre survenir a cause de la correction avec 'est_naissant && (i_old == i) && (j_old == j) && (k_old == k)'" << finl;
           Cerr << "Verification : est_naissant=" << est_naissant << " i=" << i << " j=" << j << " k=" << k << " i_old=" << i_old << " j_old=" << j_old << " k_old=" << k_old << finl;
           //Process::exit();
@@ -633,11 +647,11 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       double lambda = (phase == 0) ? lambda_vapour : lambda_liquid;
       double dTdn = (flux_interface_ns(i,j,k) == 0.) ? 0. : flux_interface_ns(i,j,k)/(lambda * surface_interface_old(i,j,k));
       assert((flux_interface_ns(i,j,k) == 0.) || (surface_interface_old(i,j,k) != 0));
-      temperature_remplissage_(n) = temperature_old + dTdn * ((next_bary_deplace_x - old_bary_x)*normal_x + (next_bary_deplace_y - old_bary_y)*normal_y + (next_bary_deplace_z - old_bary_z)*normal_z);
+      valeur_remplissage(n) = temperature_old + dTdn * ((next_bary_deplace_x - old_bary_x)*normal_x + (next_bary_deplace_y - old_bary_y)*normal_y + (next_bary_deplace_z - old_bary_z)*normal_z);
     }
 }
 
-void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature)
+void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
@@ -654,8 +668,8 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
   double dy = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(1);
   double dz = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(2);
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -673,7 +687,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I(i,j,k));
-      int phase = est_naissant ? 1 - (int)cut_cell_disc.get_interfaces().I(i,j,k) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.get_interfaces().I(i,j,k)) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
 
       double velocity_x = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,0);
       double velocity_y = cut_cell_disc.get_interfaces().get_vitesse_deplacement_interface()(n,1);
@@ -687,19 +701,19 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
       double next_bary_deplace_y = next_bary_y - velocity_y*timestep;
       double next_bary_deplace_z = next_bary_z - velocity_z*timestep;
 
-      double coordinates_x = next_bary_deplace_x + (i + cut_cell_disc.get_splitting().get_offset_local(DIRECTION_I))*dx + cut_cell_disc.get_splitting().get_grid_geometry().get_origin(DIRECTION_I);
-      double coordinates_y = next_bary_deplace_y + (j + cut_cell_disc.get_splitting().get_offset_local(DIRECTION_J))*dy + cut_cell_disc.get_splitting().get_grid_geometry().get_origin(DIRECTION_J);
-      double coordinates_z = next_bary_deplace_z + (k + cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K))*dz + cut_cell_disc.get_splitting().get_grid_geometry().get_origin(DIRECTION_K);
-      double coordinates[3] = {coordinates_x, coordinates_y, coordinates_z};
+      double coordinates_x = next_bary_deplace_x + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_I, i, IJK_Splitting::NODES);
+      double coordinates_y = next_bary_deplace_y + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_J, j, IJK_Splitting::NODES);
+      double coordinates_z = next_bary_deplace_z + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_K, k, IJK_Splitting::NODES);
+      Vecteur3 coordinates(coordinates_x, coordinates_y, coordinates_z);
 
       int status = -2;
       const int tolerate_not_within_tetrahedron = std::max(1, tolerate_not_within_tetrahedron_);
       double temperature_interpolate = ijk_interpolate_cut_cell_using_interface(false, phase, temperature_ft, cut_field_temperature, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, status);
-      temperature_remplissage_(n) = temperature_interpolate;
+      valeur_remplissage(n) = temperature_interpolate;
 
       if (status == -1)
         {
-          Cerr << "DEBUG status=-1 T_remplissage=" << temperature_remplissage_(n) << finl;
+          Cerr << "DEBUG status=-1 T_remplissage=" << valeur_remplissage(n) << finl;
         }
 
       assert(status > -2);
@@ -742,7 +756,7 @@ void Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien
         }
     }
 
-  Cerr << "Bilan des statuts pour Cut_cell_schema_auxiliaire::calcule_temperature_remplissage_semi_lagrangien_interpolate : " << finl;
+  Cerr << "Bilan des statuts pour Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_interpolate : " << finl;
   Cerr << "    -1      " << count_status_not_found  << finl;
   Cerr << "   <10      " << count_status_below_10   << finl;
   Cerr << "  <100      " << count_status_below_100  << finl;
@@ -761,7 +775,7 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int statut_diphasique = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::MOURRANT);
+  int statut_diphasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
   for (int index = index_min; index < index_max; index++)
@@ -778,7 +792,7 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       assert(cut_cell_disc.get_interfaces().est_pure(next_indicatrice));
-      int phase = 1 - (int)next_indicatrice; // phase de la cellule mourrante
+      int phase = 1 - IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice); // phase de la cellule mourrante
 
       // Cette variable next_nonzero_indicatrice est utilisee plutot que old_indicatrice,
       // par coherence avec l'indicatrice des cellules voisines, qui peut-etre est next mais
@@ -902,8 +916,8 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
   assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
 
-  int statut_diphasique_naissant = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::NAISSANT);
-  int statut_diphasique_petit = static_cast<int>(cut_cell_disc.STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
   assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
   int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
@@ -922,29 +936,35 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
       int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
-      int phase = est_naissant ? 1 - (int)old_indicatrice : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+      int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(old_indicatrice) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
       assert(est_naissant || cut_cell_disc.get_interfaces().next_below_small_threshold_for_phase(phase, cut_cell_disc.get_interfaces().I(i,j,k), next_indicatrice));
 
 
       double temperature_centre = (phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n);
-      double temperature_remplissage = temperature_remplissage_(n);
-      double quantite_totale = (phase == 0) ? (1 - next_indicatrice)*(temperature_remplissage - temperature_centre) : next_indicatrice*(temperature_remplissage - temperature_centre);
+      double val_remplissage = temperature_remplissage_(n);
+      double quantite_totale = (phase == 0) ? (1 - next_indicatrice)*(val_remplissage - temperature_centre) : next_indicatrice*(val_remplissage - temperature_centre);
 
       // The dummy value DMINFLOAT+1 indicates that no filling should be made.
-      if (temperature_remplissage == DMINFLOAT+1)
+      if (val_remplissage == DMINFLOAT+1)
         {
           if (phase == 0)
             {
-              assert((cut_field_total_velocity[0].diph_v_(n) == 0) && (cut_field_total_velocity[1].diph_v_(n) == 0) && (cut_field_total_velocity[2].diph_v_(n) == 0));
+              assert((cut_field_total_velocity[0].from_ijk_and_phase(i,j,k, 0) == 0) && (cut_field_total_velocity[1].from_ijk_and_phase(i,j,k, 0) == 0) && (cut_field_total_velocity[2].from_ijk_and_phase(i,j,k, 0) == 0));
             }
           else
             {
-              assert((cut_field_total_velocity[0].diph_l_(n) == 0) && (cut_field_total_velocity[1].diph_l_(n) == 0) && (cut_field_total_velocity[2].diph_l_(n) == 0));
+              assert((cut_field_total_velocity[0].from_ijk_and_phase(i,j,k, 1) == 0) && (cut_field_total_velocity[1].from_ijk_and_phase(i,j,k, 1) == 0) && (cut_field_total_velocity[2].from_ijk_and_phase(i,j,k, 1) == 0));
             }
           continue;
         }
 
-      if ((std::abs(temperature_centre - temperature_remplissage)/temperature_remplissage) < 1e-24)
+      if (std::abs(temperature_centre - val_remplissage) < 1e-24)
+        {
+          continue;
+        }
+
+      // Note: std::abs(val_remplissage) is compared to std::numeric_limits<double>::min(), as a naive std::abs(val_remplissage) > 0 does not prevent arithmetic errors upon division.
+      if ((std::abs(val_remplissage) > std::numeric_limits<double>::min()) && (std::abs(temperature_centre - val_remplissage)/val_remplissage) < 1e-24)
         {
           continue;
         }
@@ -979,12 +999,18 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
             }
           else
             {
-              double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+              double temperature_decale = -1e37;
               int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
               if (n_decale >= 0)
                 {
                   temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
                 }
+              else
+                {
+                  temperature_decale = (phase == (IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale)))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+                }
+
+              total_velocity[num_face] = cut_field_total_velocity[dir].from_ijk_and_phase(i+di,j+dj,k+dk, phase);
 
               int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
               if (n_face >= 0)
@@ -997,7 +1023,6 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
                       flux_max[num_face] = (temperature_decale - temperature_centre)/(1/next_volume_decale + 1/next_volume);
                       flux_max[num_face] = flux[num_face] >= 0 ? std::max(0., flux_max[num_face]) : std::max(0., -flux_max[num_face]);
                     }
-                  total_velocity[num_face] = (phase == 0) ? cut_field_total_velocity[dir].diph_v_(n_face) : cut_field_total_velocity[dir].diph_l_(n_face);
                 }
               else
                 {
@@ -1010,14 +1035,13 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
                       flux_max[num_face] = (temperature_decale - temperature_centre)/(1/next_volume_decale + 1/next_volume);
                       flux_max[num_face] = flux[num_face] >= 0 ? std::max(0., flux_max[num_face]) : std::max(0., -flux_max[num_face]);
                     }
-                  total_velocity[num_face] = cut_field_total_velocity[dir].pure_(i+di,j+dj,k+dk);
                 }
             }
         }
 
       if (no_static_update_)
         {
-          if (((total_velocity[0] == 0) && (total_velocity[1] == 0) && (total_velocity[2] == 0) && (total_velocity[3] == 0) && (total_velocity[4] == 0) && (total_velocity[5] == 0)))
+          if ((std::abs(total_velocity[0]) + std::abs(total_velocity[1]) + std::abs(total_velocity[2]) + std::abs(total_velocity[3]) + std::abs(total_velocity[4]) + std::abs(total_velocity[5])) == 0)
             {
               continue;
             }
@@ -1065,7 +1089,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
               else
                 {
                   assert((int)next_indicatrice_decale == 1 - (int)(1 - next_indicatrice_decale));
-                  assert(phase == (int)next_indicatrice_decale);
+                  assert(phase == IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale));
                   cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale) -= (flux[num_face]/somme_flux)*quantite_totale;
                   if (phase == 0)
                     {
@@ -1087,7 +1111,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
                           cut_field_current_fluxes[dir].diph_v_(n) += (flux[num_face]/somme_flux)*quantite_totale;
                           if (n_decale < 0)
                             {
-                              assert(phase == (int)next_indicatrice_decale);
+                              assert(phase == IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale));
                               cut_field_current_fluxes[dir].pure_(i,j,k) += (flux[num_face]/somme_flux)*quantite_totale;
                             }
                         }
@@ -1096,7 +1120,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
                           cut_field_current_fluxes[dir].diph_l_(n) += (flux[num_face]/somme_flux)*quantite_totale;
                           if (n_decale < 0)
                             {
-                              assert(phase == (int)next_indicatrice_decale);
+                              assert(phase == IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale));
                               cut_field_current_fluxes[dir].pure_(i,j,k) += (flux[num_face]/somme_flux)*quantite_totale;
                             }
                         }

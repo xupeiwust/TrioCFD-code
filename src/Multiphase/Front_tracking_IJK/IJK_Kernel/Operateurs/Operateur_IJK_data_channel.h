@@ -196,6 +196,16 @@ public:
       }
   }
 
+  bool is_k_uniform_and_periodic()
+  {
+    return uniform_k_ && perio_k_;
+  }
+
+  bool is_k_periodic()
+  {
+    return perio_k_;
+  }
+
 protected:
   // Total number of mesh cells in the k direction (in global mesh)
   int nb_elem_k_tot_;
@@ -213,5 +223,8 @@ protected:
   // inverse of distance between element centers (and distance to wall at boundaries)
   // at index k we have the distance between elements k-1 and k
   ArrOfDouble_with_ghost inv_dist_z_elemcenter_;
+
+  bool uniform_k_;
+  bool perio_k_;
 };
 #endif

@@ -66,7 +66,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *
 
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)
@@ -84,7 +84,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *
 
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)
@@ -102,11 +102,11 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *
           }
       }
 
-      runge_kutta3_update_surfacic_fluxes(cut_field_current_fluxes[dir], cut_field_RK3_F_fluxes[dir], rk_step_, k_layer, dir, dt_tot_, *cellule_rk_restreint_conv_main_v_, *cellule_rk_restreint_conv_main_l_);
+      runge_kutta3_update_surfacic_fluxes(cut_field_current_fluxes[dir], cut_field_RK3_F_fluxes[dir], rk_step_, k_layer, dir, dt_tot_, *cellule_rk_restreint_conv_main_);
 
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)
@@ -124,7 +124,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *
 
       {
         int ni = (dir == 0) ? flux->ni() : flux->ni() - 1;
-        int nj = (dir == 0) ? flux->nj() : flux->nj() - 1;
+        int nj = (dir == 1) ? flux->nj() : flux->nj() - 1;
         for (int j = 0; j < nj; j++)
           {
             for (int i = 0; i < ni; i++)
@@ -187,26 +187,22 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_cut_cell_divergence(const Fix
 
               int n_ip1 = cut_cell_disc.get_n(i+1,j,k);
               int n_jp1 = cut_cell_disc.get_n(i,j+1,k);
-              int n_kp1 = cut_cell_disc.get_n(i,j,k+1); // ???k
-
-              double indicatrice_ip1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i+1,j,k) : cut_cell_disc.get_interfaces().I(i+1,j,k);
-              double indicatrice_jp1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i,j+1,k) : cut_cell_disc.get_interfaces().I(i,j+1,k);
-              double indicatrice_kp1 = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().I(i,j,k+1) : cut_cell_disc.get_interfaces().I(i,j,k+1);
+              int n_kp1 = cut_cell_disc.get_n(i,j,k+1);
 
               double fx_centre = diph_flux_x(n);
               double fy_centre = diph_flux_y(n);
               double fz_centre = diph_flux_z(n);
 
-              double fx_right  = (n_ip1 < 0) ? indicatrice_ip1*flux_x(i+1,j,0)  : diph_flux_x(n_ip1);
-              double fy_right  = (n_jp1 < 0) ? indicatrice_jp1*flux_y(i,j+1,0)  : diph_flux_y(n_jp1);
-              double fz_right  = (n_kp1 < 0) ? indicatrice_kp1*flux_zmax(i,j,0) : diph_flux_z(n_kp1);
+              double fx_right  = (n_ip1 < 0) ? (cut_cell_disc.indic_pure(i+1,j,k) == phase)*flux_x(i+1,j,0)  : diph_flux_x(n_ip1);
+              double fy_right  = (n_jp1 < 0) ? (cut_cell_disc.indic_pure(i,j+1,k) == phase)*flux_y(i,j+1,0)  : diph_flux_y(n_jp1);
+              double fz_right  = (n_kp1 < 0) ? (cut_cell_disc.indic_pure(i,j,k+1) == phase)*flux_zmax(i,j,0) : diph_flux_z(n_kp1);
 
               double r = 0;
               r += fx_centre - fx_right;
               r += fy_centre - fy_right;
               r += fz_centre - fz_right;
 
-              if(add)
+              if (add)
                 {
                   r += diph_resu(n);
                 }

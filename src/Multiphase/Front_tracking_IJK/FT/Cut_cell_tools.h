@@ -16,8 +16,17 @@
 #ifndef Cut_cell_tools_included
 #define Cut_cell_tools_included
 
-#include <Champ_diphasique.h>
 #include <memory>
+#include <IJK_Field.h>
+
+class Cut_cell_FT_Disc;
+
+template<class T, int N>
+class Cut_field_vector;
+
+using Cut_field_vector3_int = Cut_field_vector<int, 3>;
+using Cut_field_vector3_double = Cut_field_vector<double, 3>;
+
 
 class IJK_Splitting;
 class Cut_cell_FT_Disc;

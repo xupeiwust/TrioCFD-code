@@ -32,7 +32,8 @@
 #include <TRUST_Ref.h>
 #include <Intersection_Interface_ijk.h>
 #include <IJK_Composantes_Connex.h>
-#include <Champ_diphasique.h>
+#include <TRUSTTabFT_cut_cell.h>
+#include <Cut_field.h>
 #include <Cut_cell_surface_efficace.h>
 #include <Domaine_dis_base.h>
 
@@ -266,6 +267,12 @@ public :
   void set_seuil_indicatrice_petite(double seuil_indicatrice_petite)
   {
     seuil_indicatrice_petite_ = seuil_indicatrice_petite;
+
+    if (seuil_indicatrice_petite_ <= seuil_indicatrice_negligeable_)
+      {
+        Cerr << "Erreur IJK_Interfaces: Incoherence parametres jeu de donnees, seuil_indicatrice_petite_ <= seuil_indicatrice_negligeable_." << finl;
+        Process::exit();
+      }
   };
 
   Nom get_fichier_reprise()
@@ -464,159 +471,9 @@ public :
   {
     return barycentre_phase1_ns_[next()];
   }
-  double get_barycentre(bool next_time, int dir, int phase, int i, int j, int k) const
-  {
-    int current_time = next_time ? next() : old();
-    int other_time = next_time ? old() : next();
 
-    double current_indicatrice = next_time ? In(i,j,k) : I(i,j,k);
-    double other_time_indicatrice = next_time ? I(i,j,k) : In(i,j,k);
-
-    if ((I(i,j,k) == 0.) && (In(i,j,k) == 0.))
-      {
-        return .5;
-      }
-    else if ((I(i,j,k) == 1.) && (In(i,j,k) == 1.))
-      {
-        return .5;
-      }
-    else if (current_indicatrice == 0.)
-      {
-        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
-        if (phase == 0)
-          {
-            return .5;
-          }
-        else
-          {
-            double other_time_bary_compo = barycentre_phase1_ns_[other_time][dir](i,j,k);
-            if (other_time_bary_compo > .5)
-              {
-                return 1;
-              }
-            else
-              {
-                return 0;
-              }
-          }
-      }
-    else if (current_indicatrice == 1.)
-      {
-        assert(barycentre_phase1_ns_[current_time][dir](i,j,k) == .5);
-        if (phase == 1)
-          {
-            return .5;
-          }
-        else
-          {
-            double other_time_bary_compo = barycentre_phase1_ns_[other_time][dir](i,j,k);
-            other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice);
-            if (other_time_bary_compo > .5)
-              {
-                return 1;
-              }
-            else
-              {
-                return 0;
-              }
-          }
-      }
-    else
-      {
-        double bary = barycentre_phase1_ns_[current_time][dir](i,j,k);
-
-        if (phase == 0)
-          {
-            bary = opposing_barycentre(bary, current_indicatrice);
-          }
-        return bary;
-      }
-  }
-  double get_barycentre_face(bool next_time, int face_dir, int dir, int phase, int i, int j, int k) const
-  {
-    int current_time = next_time ? next() : old();
-    int other_time = next_time ? old() : next();
-
-    double old_indicatrice_surfacique  = get_indicatrice_surfacique_face_old()[face_dir](i,j,k);
-    double next_indicatrice_surfacique = get_indicatrice_surfacique_face_next()[face_dir](i,j,k);
-    double current_indicatrice_surfacique = next_time ? next_indicatrice_surfacique : old_indicatrice_surfacique;
-    double other_time_indicatrice_surfacique = next_time ? old_indicatrice_surfacique : next_indicatrice_surfacique;
-
-    if (face_dir == dir)
-      {
-        return 0.;
-      }
-    else
-      {
-        // Pour la face x      dir1=z -> (2->0)   dir2=y -> (1->1)
-        // Pour la face y      dir1=x -> (0->0)   dir2=z -> (2->1)
-        // Pour la face z      dir1=y -> (1->0)   dir2=x -> (0->1)
-        int dir2D = (face_dir == 0) ? ((dir == 2) ? 0 : ((dir == 1) ? 1 : -1)) :
-                      ((face_dir == 1) ? ((dir == 0) ? 0 : ((dir == 2) ? 1 : -1)) :
-                       ((face_dir == 2) ? ((dir == 1) ? 0 : ((dir == 0) ? 1 : -1)) :
-                        -1));
-        assert(dir2D >= 0);
-        if ((old_indicatrice_surfacique == 0.) && (next_indicatrice_surfacique == 0.))
-        {
-            return .5;
-          }
-        else if ((old_indicatrice_surfacique == 1.) && (next_indicatrice_surfacique == 1.))
-          {
-            return .5;
-          }
-        else if (current_indicatrice_surfacique == 0.)
-          {
-            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 0)
-              {
-                return .5;
-              }
-            else
-              {
-                double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
-                if (other_time_bary_compo > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else if (current_indicatrice_surfacique == 1.)
-          {
-            //assert(barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k) == .5);
-            if (phase == 1)
-              {
-                return .5;
-              }
-            else
-              {
-                double other_time_bary_compo = barycentre_phase1_face_ns_[other_time][face_dir][dir2D](i,j,k);
-                other_time_bary_compo = opposing_barycentre(other_time_bary_compo, other_time_indicatrice_surfacique);
-                if (other_time_bary_compo > .5)
-                  {
-                    return 1;
-                  }
-                else
-                  {
-                    return 0;
-                  }
-              }
-          }
-        else
-          {
-            double bary = barycentre_phase1_face_ns_[current_time][face_dir][dir2D](i,j,k);
-
-            if (phase == 0)
-              {
-                bary = opposing_barycentre(bary, current_indicatrice_surfacique);
-              }
-            return bary;
-          }
-      }
-  }
+  double get_barycentre(bool next_time, int bary_compo, int phase, int i, int j, int k) const;
+  double get_barycentre_face(bool next_time, int face_dir, int bary_compo, int phase, int i, int j, int k) const;
 
   // Getter des surfaces par face
   const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const
@@ -797,6 +654,13 @@ public :
   inline double I(const int i, const int j, const int k) const { return indicatrice_ns_[old()](i, j, k); }
   inline double In(const int i, const int j, const int k) const { return indicatrice_ns_[next()](i, j, k); }
 
+  static int convert_indicatrice_to_phase(double indicatrice)
+  {
+    assert(est_pure(indicatrice));
+    int phase = (int)indicatrice;
+    return phase;
+  }
+
   // Indicatrice non-zero : Cette indicatrice est utilisee pour calculer l'energie vol*indicatrice*T d'une cellule coupee en IJK_FT_cut_cell.
   // Pour ne pas perdre d'information, le volume de l'autre temps est utilise si le volume est zero pour le temps consideree.
   inline double I_nonzero(const int phase, const int i, const int j, const int k) const
@@ -829,8 +693,8 @@ public :
   static inline int est_pure(double indicatrice) { return ((indicatrice == 0.) || (indicatrice == 1.)); }
   static inline int devient_pure(double old_indicatrice, double next_indicatrice) { return ((!est_pure(old_indicatrice)) && (est_pure(next_indicatrice))); }
   static inline int devient_diphasique(double old_indicatrice, double next_indicatrice) { return ((est_pure(old_indicatrice)) && (!est_pure(next_indicatrice))); }
-  static inline int phase_mourrante(int phase, double old_indicatrice, double next_indicatrice) { return devient_pure(old_indicatrice, next_indicatrice) && ((int)(1 - next_indicatrice) == phase); }
-  static inline int phase_naissante(int phase, double old_indicatrice, double next_indicatrice) { return devient_diphasique(old_indicatrice, next_indicatrice) && ((int)(1 - old_indicatrice) == phase); }
+  static inline int phase_mourrante(int phase, double old_indicatrice, double next_indicatrice) { return devient_pure(old_indicatrice, next_indicatrice) && (IJK_Interfaces::convert_indicatrice_to_phase(1 - next_indicatrice) == phase); }
+  static inline int phase_naissante(int phase, double old_indicatrice, double next_indicatrice) { return devient_diphasique(old_indicatrice, next_indicatrice) && (IJK_Interfaces::convert_indicatrice_to_phase(1 - old_indicatrice) == phase); }
   inline double devient_pure(const int i, const int j, const int k) const { return devient_pure(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
   inline double devient_diphasique(const int i, const int j, const int k) const { return devient_diphasique(indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
   inline double phase_mourrante(const int phase, const int i, const int j, const int k) const { return phase_mourrante(phase, indicatrice_ns_[old()](i, j, k), indicatrice_ns_[next()](i, j, k)); }
@@ -1447,6 +1311,7 @@ protected:
   int verbosite_surface_efficace_face_ = 1;
   int verbosite_surface_efficace_interface_ = 1;
   double seuil_indicatrice_petite_ = -1;
+  double seuil_indicatrice_negligeable_ = 1e-6;
 
   // Pour le calcul des champs cut-cell
   int cut_cell_activated_ = 0;

@@ -34,7 +34,7 @@ Implemente_instanciable_sans_constructeur(Cut_cell_convection_auxiliaire, "Cut_c
 
 Cut_cell_convection_auxiliaire::Cut_cell_convection_auxiliaire()
 {
-  methode_temperature_remplissage_ = METHODE_TEMPERATURE_REMPLISSAGE::NON_INITIALISE;
+  methode_valeur_remplissage_ = METHODE_TEMPERATURE_REMPLISSAGE::NON_INITIALISE;
   correction_petites_cellules_ = CORRECTION_PETITES_CELLULES::CORRECTION_SYMETRIQUE;
 
   no_static_update_ = true;
@@ -59,9 +59,9 @@ void Cut_cell_convection_auxiliaire::set_param(Param& param)
   Cut_cell_schema_auxiliaire::set_param(param);
 }
 
-double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field)
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field.get_cut_cell_disc();
 
   Int3 ijk = cut_cell_disc.get_ijk(n);
   int i = ijk[0];
@@ -81,14 +81,20 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
 
   double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
-  double temperature_centre = (phase == 0) ? cut_field_temperature.diph_v_(n) : cut_field_temperature.diph_l_(n);
+  double valeur_centre = (phase == 0) ? cut_field.diph_v_(n) : cut_field.diph_l_(n);
 
-  double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+  double valeur_decale = -1e37;
   int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
   if (n_decale >= 0)
     {
-      temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
+      valeur_decale = (phase == 0) ? cut_field.diph_v_(n_decale) : cut_field.diph_l_(n_decale);
     }
+  else
+    {
+      valeur_decale = (phase == (IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale)))*cut_field.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+    }
+
+  double total_velocity = cut_field_total_velocity[dir].from_ijk_and_phase(i+di,j+dj,k+dk, phase);
 
   int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
   if (n_face >= 0)
@@ -96,9 +102,8 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir) : cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir);
       if (surface_efficace > 0)
         {
-          double total_velocity = (phase == 0) ? cut_field_total_velocity[dir].diph_v_(n_face) : cut_field_total_velocity[dir].diph_l_(n_face);
-          double temperature = (sign*total_velocity < 0) ? temperature_decale : temperature_centre;
-          return -sign*surface_efficace*temperature*total_velocity;
+          double valeur = (sign*total_velocity < 0) ? valeur_decale : valeur_centre;
+          return -sign*surface_efficace*valeur*total_velocity;
         }
       else
         {
@@ -111,9 +116,8 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
       assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
-          double total_velocity = cut_field_total_velocity[dir].pure_(i+di,j+dj,k+dk);
-          double temperature = (sign*total_velocity < 0) ? temperature_decale : temperature_centre;
-          return -sign*surface_efficace*temperature*total_velocity;
+          double valeur = (sign*total_velocity < 0) ? valeur_decale : valeur_centre;
+          return -sign*surface_efficace*valeur*total_velocity;
         }
       else
         {
@@ -122,9 +126,9 @@ double Cut_cell_convection_auxiliaire::dying_cells_flux(int num_face, int phase,
     }
 }
 
-double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature)
+double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, int phase, int n, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field)
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
+  const Cut_cell_FT_Disc& cut_cell_disc = cut_field.get_cut_cell_disc();
 
   Int3 ijk = cut_cell_disc.get_ijk(n);
   int i = ijk[0];
@@ -144,12 +148,18 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
 
   double next_indicatrice_decale = cut_cell_disc.get_interfaces().In(i+di_decale,j+dj_decale,k+dk_decale);
 
-  double temperature_decale = (phase == ((int)next_indicatrice_decale))*cut_field_temperature.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+  double valeur_decale = -1e37;
   int n_decale = cut_cell_disc.get_n(i+di_decale, j+dj_decale, k+dk_decale);
   if (n_decale >= 0)
     {
-      temperature_decale = (phase == 0) ? cut_field_temperature.diph_v_(n_decale) : cut_field_temperature.diph_l_(n_decale);
+      valeur_decale = (phase == 0) ? cut_field.diph_v_(n_decale) : cut_field.diph_l_(n_decale);
     }
+  else
+    {
+      valeur_decale = (phase == (IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice_decale)))*cut_field.pure_(i+di_decale,j+dj_decale,k+dk_decale);
+    }
+
+  double total_velocity = cut_field_total_velocity[dir].from_ijk_and_phase(i+di,j+dj,k+dk, phase);
 
   int n_face = cut_cell_disc.get_n_face(num_face, n, i, j, k);
   if (n_face >= 0)
@@ -157,9 +167,8 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
       double surface_efficace = (phase == 0) ? 1 - cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir) : cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face()(n_face, dir);
       if (surface_efficace > 0)
         {
-          double total_velocity = (phase == 0) ? cut_field_total_velocity[dir].diph_v_(n_face) : cut_field_total_velocity[dir].diph_l_(n_face);
-          double temperature = temperature_decale;
-          return -sign*surface_efficace*temperature*total_velocity;
+          double valeur = valeur_decale;
+          return -sign*surface_efficace*valeur*total_velocity;
         }
       else
         {
@@ -172,9 +181,8 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
       assert((surface_efficace == 0) || (surface_efficace == 1));
       if (surface_efficace > 0)
         {
-          double total_velocity = cut_field_total_velocity[dir].pure_(i+di,j+dj,k+dk);
-          double temperature = temperature_decale;
-          return -sign*surface_efficace*temperature*total_velocity;
+          double valeur = valeur_decale;
+          return -sign*surface_efficace*valeur*total_velocity;
         }
       else
         {
@@ -182,5 +190,4 @@ double Cut_cell_convection_auxiliaire::small_nascent_cells_flux(int num_face, in
         }
     }
 }
-
 

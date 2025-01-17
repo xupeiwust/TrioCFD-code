@@ -70,6 +70,9 @@ public:
   // normale. Ensuite on interpolera le field à ces positions de manière
   // monophasique car on sera loin de l'interface (et on ne prend pas en compte
   // le cas ou les bulles sont proches).
+  static Vecteur3 get_position_interpolation_normal_interf(
+    const Vecteur3& position_on_interf, const Vecteur3& normal_on_interf,
+    const double dist);
   static void get_position_interpolation_normal_interf(
     const DoubleTab& position_on_interf, const DoubleTab& normal_on_interf,
     const double dist, DoubleTab& positions);

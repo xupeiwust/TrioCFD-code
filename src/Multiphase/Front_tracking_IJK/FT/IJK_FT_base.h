@@ -65,6 +65,7 @@ class IJK_FT_base : public Interprete
 public :
   enum TimeScheme { EULER_EXPLICITE, RK3_FT };
   Entree& interpreter(Entree&) override;
+  virtual void set_param(Param& param);
 
   // Methodes d'acces :
   TimeScheme get_time_scheme() const;
@@ -356,6 +357,9 @@ protected :
   void update_v_ghost_from_rho_v();
   void update_pressure_phase();
   int initialise();
+  int initialise_interfaces();
+  virtual void initialise_velocity_using_expression(const Noms& expression_vitesse_initiale);
+  virtual void initialise_velocity_from_file(const Nom& fichier_reprise_vitesse);
   void terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const;
   void calculer_dv(const double timestep, const double time, const int rk_step);
 
@@ -535,6 +539,7 @@ protected :
   Nom fichier_post_ = "??"; // Nom du fichier post
   int dt_sauvegarde_ = 2000000000;
   int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
+  Nom ijk_splitting_name_;
   Nom nom_sauvegarde_;
   Nom nom_reprise_;
   int reprise_ = 0;// flag pour indiquer si on fait une reprise
@@ -804,11 +809,6 @@ protected :
   int fill_rising_velocities_ = 0;
   int use_bubbles_velocities_from_interface_ = 0;
   int use_bubbles_velocities_from_barycentres_ = 0;
-
-  // Options for the cut-cell computation of effective surfaces
-  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
-  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
-  int deactivate_remeshing_velocity_ = 0;
 
   DoubleTab vitesses_translation_bulles_; // Vecteur de translation rigide pour chaque bulle
   DoubleTab mean_bubble_rotation_vector_; // Vecteur de rotation rigide pour chaque bulle

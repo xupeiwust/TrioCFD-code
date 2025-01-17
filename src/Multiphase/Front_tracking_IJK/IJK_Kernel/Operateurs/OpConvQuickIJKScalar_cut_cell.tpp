@@ -23,7 +23,7 @@
 template <DIRECTION _DIR_>
 void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double& resu, const int k_layer)
 {
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       // The previous layer of curv and fram values might have been computed already
       if (stored_curv_fram_layer_z_ != k_layer-1)
@@ -44,7 +44,7 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double&
 
   const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k_layer-1] + channel_data_.get_delta_z()[k_layer]) * 0.5 : channel_data_.get_delta((int)_DIR_);
   const double surface = channel_data_.get_surface(k_layer, 1, (int)_DIR_);
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       // Are we on the wall ?
       const int global_k_layer = k_layer + channel_data_.offset_to_global_k_layer();
@@ -99,7 +99,7 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_flux_(IJK_Field_local_double&
       resu_ptr.next_j();
     }
 
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       // store curv and fram for next layer of fluxes in z direction
       shift_curv_fram(tmp_curv_fram_);
@@ -188,7 +188,7 @@ double OpConvQuickIJKScalar_cut_cell_double::compute_flux_local_(double surface,
 template <DIRECTION _DIR_>
 bool OpConvQuickIJKScalar_cut_cell_double::flux_determined_by_wall_(int k)
 {
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       // Are we on the wall ?
       const int global_k_layer = k + channel_data_.offset_to_global_k_layer();
@@ -213,7 +213,7 @@ bool OpConvQuickIJKScalar_cut_cell_double::flux_determined_by_wall_(int k)
 template <DIRECTION _DIR_>
 Vecteur3 OpConvQuickIJKScalar_cut_cell_double::compute_curv_fram_local_(int k_layer, double input_left, double input_centre, double input_right)
 {
-  if(_DIR_ == DIRECTION::Z)
+  if (_DIR_ == DIRECTION::Z)
     {
       // Are we on the wall ?
       const int global_k_layer = k_layer + channel_data_.offset_to_global_k_layer();
@@ -232,21 +232,21 @@ Vecteur3 OpConvQuickIJKScalar_cut_cell_double::compute_curv_fram_local_(int k_la
 
   double factor01 = -1.0;
   double factor12 = -1.0;
-  if(_DIR_==DIRECTION::X)
+  if (_DIR_==DIRECTION::X)
     {
       // Compute invd1 and invd2 factors:
       const double inv_dx = 1./channel_data_.get_delta_x();
       factor01 = inv_dx * inv_dx;
       factor12 = factor01;
     }
-  if(_DIR_==DIRECTION::Y)
+  if (_DIR_==DIRECTION::Y)
     {
       // Compute invd1 and invd2 factors:
       const double inv_dy = 1. / channel_data_.get_delta_y();
       factor01 = inv_dy * inv_dy;
       factor12 = factor01;
     }
-  if(_DIR_==DIRECTION::Z)
+  if (_DIR_==DIRECTION::Z)
     {
       // Compute invd1 and invd2 factors:
       const double dz0 = channel_data_.get_delta_z()[k_layer-1];
@@ -361,9 +361,9 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                 {
                   assert((n_centre >= 0) || ((indicatrice_centre == 0.) || (indicatrice_centre == 1.)));
                   bool centre_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_centre + next_indicatrice_centre));
-                  int phase_min = centre_monophasique ? (int)indicatrice_centre : 0;
-                  int phase_max = centre_monophasique ? (int)indicatrice_centre : 1;
 
+                  int phase_min = (int)std::floor(.5*(indicatrice_centre + next_indicatrice_centre));
+                  int phase_max = (int)std::ceil(.5*(indicatrice_centre + next_indicatrice_centre));
                   for (int phase = phase_min ; phase <= phase_max ; phase++)
                     {
                       const DoubleTabFT_cut_cell& diph_input = (phase == 0) ? input_cut_field.diph_v_ : input_cut_field.diph_l_;
@@ -389,10 +389,10 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                       bool left_left_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_left_left + next_indicatrice_left_left));
                       bool left_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_left + next_indicatrice_left));
                       bool right_monophasique = IJK_Interfaces::est_pure(.5*(indicatrice_right + next_indicatrice_right));
-                      bool phase_invalide_left_left = (left_left_monophasique && (phase != (int)indicatrice_left_left));
-                      bool phase_invalide_left = (left_monophasique && (phase != (int)indicatrice_left));
-                      bool phase_invalide_centre = (centre_monophasique && (phase != (int)indicatrice_centre));
-                      bool phase_invalide_right = (right_monophasique && (phase != (int)indicatrice_right));
+                      bool phase_invalide_left_left = (left_left_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left_left)));
+                      bool phase_invalide_left = (left_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left)));
+                      bool phase_invalide_centre = (centre_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_centre)));
+                      bool phase_invalide_right = (right_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_right)));
 
                       const double delta_xyz = _DIR_==DIRECTION::Z ? (channel_data_.get_delta_z()[k-1] + channel_data_.get_delta_z()[k]) * 0.5 : channel_data_.get_delta((int)_DIR_);
 
@@ -403,9 +403,9 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
 
                       double velocity = (n_centre < 0) ? velocity_dir.pure_(i,j,k) : diph_velocity(n_centre);
 
-                      int phase_left_left = (n_left_left < 0) ? (int)indicatrice_left_left : phase;
-                      int phase_left = (n_left < 0) ? (int)indicatrice_left : phase;
-                      int phase_right = (n_right < 0) ? (int)indicatrice_right : phase;
+                      int phase_left_left = (n_left_left < 0) ? IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left_left) : phase;
+                      int phase_left = (n_left < 0) ? IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left) : phase;
+                      int phase_right = (n_right < 0) ? IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_right) : phase;
                       assert((phase_left == phase) || (indicatrice_surface == 0.));
 
                       double input_left_left = (n_left_left < 0) ? input_cut_field.pure_(i-2*dir_i,j-2*dir_j,k-2*dir_k) : diph_input(n_left_left);

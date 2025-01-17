@@ -40,6 +40,13 @@ Entree& IJK_FT::interpreter(Entree& is)
   return is;
 }
 
+void IJK_FT::set_param(Param& param)
+{
+  IJK_FT_base::set_param(param);
+
+}
+
+
 void IJK_FT::run()
 {
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
@@ -273,6 +280,8 @@ void IJK_FT::run()
   if (!disable_solveur_poisson_)
     poisson_solver_.initialize(splitting_);
 
+
+  nalloc += initialise_interfaces();
 
   // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();

@@ -454,7 +454,7 @@ public:
   virtual void echange_pure_vers_diph_cellules_initialement_pures();
   virtual void echange_diph_vers_pure_cellules_finalement_pures();
   virtual void vide_phase_invalide_cellules_diphasiques();
-  virtual void remplir_tableau_pure_cellules_diphasiques(int next_time);
+  virtual void remplir_tableau_pure_cellules_diphasiques(bool next_time);
 
   virtual void compare_fluxes_thermal_subproblems() { }
 

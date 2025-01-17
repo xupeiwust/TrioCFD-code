@@ -88,6 +88,25 @@ void Intersection_Interface_ijk::distance_point_point_signe(
     distance *= -1;
 }
 
+Vecteur3 Intersection_Interface_ijk::get_position_interpolation_normal_interf(
+  const Vecteur3& position_on_interf, const Vecteur3& normal_on_interf,
+  const double dist)
+{
+  double norm_normale = 0.;
+  for (int c = 0; c < 3; c++)
+    {
+      norm_normale += std::pow(normal_on_interf[c], 2.);
+    }
+  norm_normale = std::pow(norm_normale, 0.5);
+
+  Vecteur3 positions;
+  for (int c = 0; c < 3; c++)
+    {
+      positions[c] = position_on_interf[c] + dist * normal_on_interf[c] / norm_normale;
+    }
+  return positions;
+}
+
 void Intersection_Interface_ijk::get_position_interpolation_normal_interf(
   const DoubleTab& position_on_interf, const DoubleTab& normal_on_interf,
   const double dist, DoubleTab& positions)

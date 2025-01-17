@@ -53,4 +53,7 @@ void Operateur_IJK_data_channel::initialize(const IJK_Splitting& splitting)
           }
       }
   }
+
+  perio_k_ = grid_geom.get_periodic_flag(2);
+  uniform_k_ = grid_geom.is_uniform(2);
 }

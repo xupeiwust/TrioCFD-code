@@ -64,7 +64,7 @@ void Operateur_IJK_elem_diff_base_double::compute_flux_(IJK_Field_local_double& 
 
   IJK_double_ptr resu_ptr(resu, 0, 0, 0);
 
-  if(_DIR_ == DIRECTION::Z)
+  if (_DIR_ == DIRECTION::Z)
     {
       // Are we on the wall ?
       const int global_k_layer = k_layer + channel_data_.offset_to_global_k_layer();
@@ -235,13 +235,9 @@ double Operateur_IJK_elem_diff_base_double::compute_flux_local_(int i, int j, in
 template <DIRECTION _DIR_>
 double Operateur_IJK_elem_diff_base_double::compute_flux_local_(double d0, double d1, double surface, double input_left, double input_centre, double lambda_left, double lambda_centre, double structural_model)
 {
-  double uniform_lambda = 1.;
-  double avg_lambda = 1.;
-  if (is_uniform_ and uniform_lambda_!=0)
-    uniform_lambda = *uniform_lambda_;
-
-  double lambda_m1 = uniform_lambda;
-  double lambda_m2 = uniform_lambda;
+  assert(!is_uniform_);
+  assert(!is_anisotropic_);
+  assert(!is_hess_);
   double flux = 0.;
   if (is_structural_)
     {
@@ -250,22 +246,15 @@ double Operateur_IJK_elem_diff_base_double::compute_flux_local_(double d0, doubl
     }
   else
     {
-      double d = 1.;
-      if (!is_hess_)
-        {
-          // Fetch conductivity on neighbour cells:
-          if (!is_uniform_)
-            {
-              lambda_m1 = lambda_left;
-              lambda_m2 = lambda_centre;
-            }
-          // geometric avg: (d0+d1) / ( d0 / lambda_m1 + d1 / lambda_m2 ), optimized with only 1 division:
-          double dsabs = (0. < d0 * lambda_m2 + d1 * lambda_m1) ? d0 * lambda_m2 + d1 * lambda_m1 : (-1) * (d0 * lambda_m2 + d1 * lambda_m1);
-          double ds = (dsabs < DMINFLOAT) ? 1. : d0 * lambda_m2 + d1 * lambda_m1;
-          if(is_anisotropic_)
-            d = d0 + d1;
-          avg_lambda = (dsabs < DMINFLOAT) ? 0. : (d * lambda_m1 * lambda_m2)/ds;
-        }
+      double lambda_m1 = lambda_left;
+      double lambda_m2 = lambda_centre;
+
+      // geometric avg: (d0+d1) / ( d0 / lambda_m1 + d1 / lambda_m2 ), optimized with only 1 division:
+      double dsabs = (0. < d0 * lambda_m2 + d1 * lambda_m1) ? d0 * lambda_m2 + d1 * lambda_m1 : (-1) * (d0 * lambda_m2 + d1 * lambda_m1);
+      double ds = (dsabs < DMINFLOAT) ? 1. : d0 * lambda_m2 + d1 * lambda_m1;
+
+      double avg_lambda = (dsabs < DMINFLOAT) ? 0. : (lambda_m1 * lambda_m2)/ds;
+
       // thermal flux is positive if going from left to right => -grad(T)
       flux = (input_left - input_centre) * avg_lambda * surface;
     }
@@ -275,7 +264,7 @@ double Operateur_IJK_elem_diff_base_double::compute_flux_local_(double d0, doubl
 template <DIRECTION _DIR_>
 BOUNDARY_FLUX Operateur_IJK_elem_diff_base_double::flux_determined_by_boundary_condition_(int k)
 {
-  if(_DIR_ == DIRECTION::Z)
+  if (_DIR_ == DIRECTION::Z)
     {
       // Are we on the wall ?
       const int global_k_layer = k + channel_data_.offset_to_global_k_layer();
@@ -456,9 +445,9 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
                 {
                   assert((n_centre >= 0) || ((indicatrice_centre == 0.) || (indicatrice_centre == 1.)));
                   bool centre_monophasique = IJK_Interfaces::est_pure(.5*(old_indicatrice_centre + indicatrice_centre));
-                  int phase_min = centre_monophasique ? (int)indicatrice_centre : 0;
-                  int phase_max = centre_monophasique ? (int)indicatrice_centre : 1;
 
+                  int phase_min = (int)std::floor(.5*(old_indicatrice_centre + indicatrice_centre));
+                  int phase_max = (int)std::ceil(.5*(old_indicatrice_centre + indicatrice_centre));
                   for (int phase = phase_min ; phase <= phase_max ; phase++)
                     {
                       const DoubleTabFT_cut_cell& diph_input = (phase == 0) ? input_cut_field.diph_v_ : input_cut_field.diph_l_;
@@ -475,8 +464,8 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
                       double old_indicatrice_left = cut_cell_disc.get_interfaces().I(i-dir_i,j-dir_j,k-dir_k);
 
                       bool left_monophasique = IJK_Interfaces::est_pure(.5*(old_indicatrice_left + indicatrice_left));
-                      bool phase_invalide_centre = (centre_monophasique && (phase != (int)indicatrice_centre));
-                      bool phase_invalide_left = (left_monophasique && (phase != (int)indicatrice_left));
+                      bool phase_invalide_centre = (centre_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_centre)));
+                      bool phase_invalide_left = (left_monophasique && (phase != IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left)));
 
                       double bar_dir_left = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i-dir_i,j-dir_j,k-dir_k);
                       assert((n_left >= 0) || (bar_dir_left == .5));
@@ -493,7 +482,7 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
                       double d0 = surface_d0_d1[1] * 2*(1 - bar_dir_left);
                       double d1 = surface_d0_d1[2] * 2*(bar_dir_centre);
 
-                      int phase_left = (n_left < 0) ? (int)indicatrice_left : phase;
+                      int phase_left = (n_left < 0) ? IJK_Interfaces::convert_indicatrice_to_phase(indicatrice_left) : phase;
                       assert((phase_left == phase) || (indicatrice_surface == 0.));
 
                       double input_left = (n_left < 0) ? input_cut_field.pure_(i-dir_i,j-dir_j,k-dir_k) : diph_input(n_left);

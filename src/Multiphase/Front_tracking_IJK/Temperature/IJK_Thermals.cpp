@@ -664,7 +664,7 @@ void IJK_Thermals::vide_phase_invalide_cellules_diphasiques()
     }
 }
 
-void IJK_Thermals::remplir_tableau_pure_cellules_diphasiques(int next_time)
+void IJK_Thermals::remplir_tableau_pure_cellules_diphasiques(bool next_time)
 {
   for (auto& itr : (*this))
     {

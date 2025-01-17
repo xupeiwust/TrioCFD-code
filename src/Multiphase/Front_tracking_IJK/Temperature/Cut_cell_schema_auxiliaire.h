@@ -25,7 +25,7 @@
 #include <FixedVector.h>
 #include <IJK_Field.h>
 #include <Param.h>
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
 #include <Cut_cell_correction_petites_cellules.h>
 #include <Maillage_FT_IJK.h>
 #include <Objet_U.h>
@@ -58,21 +58,22 @@ public:
 
   void compute_flux_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature);
 
-  void calcule_temperature_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature);
-  void calcule_temperature_remplissage_copie_directe(const Cut_field_double& cut_field_temperature);
-  void calcule_temperature_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature);
-  void calcule_temperature_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature);
-  void calcule_temperature_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature);
+  void calcule_valeur_remplissage(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature);
 
   void add_dying_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes);
   void add_small_nascent_cells(const Cut_field_vector3_double& cut_field_total_velocity, Cut_field_double& cut_field_temperature, bool write_flux, Cut_field_vector3_double& cut_field_current_fluxes);
 
 protected:
+  void calcule_valeur_remplissage_copie_directe(const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage);
+  void calcule_valeur_remplissage_ponderation_voisin(bool est_directionnel, const Cut_field_vector3_double& cut_field_total_velocity, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage);
+  void calcule_valeur_remplissage_semi_lagrangien(double timestep, double lambda_liquid, double lambda_vapour, const IJK_Field_double& flux_interface_ns, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage);
+  void calcule_valeur_remplissage_semi_lagrangien_interpolate(double timestep, const ArrOfDouble& interfacial_temperature, const IJK_Field_double& temperature_ft, const Cut_field_double& cut_field_temperature, DoubleTabFT_cut_cell_scalar& valeur_remplissage);
+
   CORRECTION_PETITES_CELLULES correction_petites_cellules_;
 
   DoubleTabFT_cut_cell_vector6 flux_naive_;
   DoubleTabFT_cut_cell_scalar temperature_remplissage_;
-  METHODE_TEMPERATURE_REMPLISSAGE methode_temperature_remplissage_;
+  METHODE_TEMPERATURE_REMPLISSAGE methode_valeur_remplissage_;
 
   bool no_static_update_; // Disable the correction if there is no velocity
 

@@ -14,7 +14,8 @@
 *****************************************************************************/
 
 #include <Cut_cell_tools.h>
-#include <Champ_diphasique.h>
+#include <IJK_Field.h>
+#include <Cut_field.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_Lata_writer.h>
 

@@ -21,7 +21,7 @@
 #include <IJK_Field.h>
 #include <IJK_Splitting.h>
 #include <ConstIJK_ptr.h>
-#include <Champ_diphasique.h>
+#include <TRUSTTabFT_cut_cell.h>
 #include <IJK_Field_simd_tools.h>
 #include <IJK_Navier_Stokes_tools.h>
 
@@ -44,12 +44,12 @@ class Cut_cell_FT_Disc
 public:
   Cut_cell_FT_Disc();
 
-  void add_to_persistent_double_data(DoubleTabFT_cut_cell& field, int dimension);
-  void add_to_transient_double_data(DoubleTabFT_cut_cell& field, int dimension);
-  void add_to_lazy_double_data(DoubleTabFT_cut_cell& field, int dimension);
-  void add_to_persistent_int_data(IntTabFT_cut_cell& field, int dimension);
-  void add_to_transient_int_data(IntTabFT_cut_cell& field, int dimension);
-  void add_to_lazy_int_data(IntTabFT_cut_cell& field, int dimension);
+  void add_to_persistent_data(DoubleTabFT_cut_cell& field, int dimension);
+  void add_to_transient_data(DoubleTabFT_cut_cell& field, int dimension);
+  void add_to_lazy_data(DoubleTabFT_cut_cell& field, int dimension);
+  void add_to_persistent_data(IntTabFT_cut_cell& field, int dimension);
+  void add_to_transient_data(IntTabFT_cut_cell& field, int dimension);
+  void add_to_lazy_data(IntTabFT_cut_cell& field, int dimension);
 
   void initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc);
   void initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
@@ -118,6 +118,8 @@ public:
   inline Int3 get_ijk(int n) const;
   inline int get_n(int i, int j, int k) const;
   inline int get_n_face(int num_face, int n, int i, int j, int k) const;
+
+  double indic_pure(const int i, const int j, const int k) const;
 
   inline bool within_ghost(int n, int negative_ghost_size, int positive_ghost_size) const;
 
@@ -220,37 +222,37 @@ protected:
   LIST(OBS_PTR(IntTabFT_cut_cell)) lazy_int_data_;
 };
 
-inline void Cut_cell_FT_Disc::add_to_persistent_double_data(DoubleTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_persistent_data(DoubleTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   persistent_double_data_.add(field);
 }
 
-inline void Cut_cell_FT_Disc::add_to_transient_double_data(DoubleTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_transient_data(DoubleTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   transient_double_data_.add(field);
 }
 
-inline void Cut_cell_FT_Disc::add_to_lazy_double_data(DoubleTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_lazy_data(DoubleTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   lazy_double_data_.add(field);
 }
 
-inline void Cut_cell_FT_Disc::add_to_persistent_int_data(IntTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_persistent_data(IntTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   persistent_int_data_.add(field);
 }
 
-inline void Cut_cell_FT_Disc::add_to_transient_int_data(IntTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_transient_data(IntTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   transient_int_data_.add(field);
 }
 
-inline void Cut_cell_FT_Disc::add_to_lazy_int_data(IntTabFT_cut_cell& field, int dimension)
+inline void Cut_cell_FT_Disc::add_to_lazy_data(IntTabFT_cut_cell& field, int dimension)
 {
   field.resize(n_tot_, dimension);
   lazy_int_data_.add(field);

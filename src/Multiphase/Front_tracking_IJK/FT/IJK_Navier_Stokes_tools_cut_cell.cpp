@@ -14,9 +14,37 @@
  *****************************************************************************/
 
 #include <IJK_Navier_Stokes_tools_cut_cell.h>
-#include <Champ_diphasique.h>
+#include <Cut_field.h>
 #include <IJK_Interfaces.h>
 #include <Cut_cell_FT_Disc.h>
+
+extern "C" {
+  // LU decomoposition of a general matrix
+  void dgetrf_(int* M, int *N, double* A, int* lda, int* IPIV, int* INFO);
+
+  // generate inverse of a matrix given its LU decomposition
+  void dgetri_(int* N, double* A, int* lda, int* IPIV, double* WORK, int* lwork, int* INFO);
+}
+
+void inverse(double* A, int N)
+{
+  int *IPIV = new int[N];
+  int LWORK = N*N;
+  double *WORK = new double[LWORK];
+  int INFO;
+
+  dgetrf_(&N,&N,A,&N,IPIV,&INFO);
+  dgetri_(&N,A,&N,IPIV,WORK,&LWORK,&INFO);
+
+  delete[] IPIV;
+  delete[] WORK;
+}
+
+struct IndexCoefficient
+{
+  int index;
+  double coefficient;
+};
 
 struct Sommet
 {
@@ -71,7 +99,15 @@ struct Candidate
 {
   int index;
   double dist;
-  double coord[3];
+  Vecteur3 coord;
+  int signed_independent_index;
+};
+
+struct Candidate_with_direct_value
+{
+  int index;
+  double dist;
+  Vecteur3 coord;
   double value;
 };
 
@@ -87,26 +123,16 @@ int compare_value_candidate(const void *a, const void *b)
     return 0;
 }
 
-extern "C" {
-  // LU decomoposition of a general matrix
-  void dgetrf_(int* M, int *N, double* A, int* lda, int* IPIV, int* INFO);
-
-  // generate inverse of a matrix given its LU decomposition
-  void dgetri_(int* N, double* A, int* lda, int* IPIV, double* WORK, int* lwork, int* INFO);
-}
-
-void inverse(double* A, int N)
+int compare_value_candidate_with_direct_value(const void *a, const void *b)
 {
-  int *IPIV = new int[N];
-  int LWORK = N*N;
-  double *WORK = new double[LWORK];
-  int INFO;
-
-  dgetrf_(&N,&N,A,&N,IPIV,&INFO);
-  dgetri_(&N,A,&N,IPIV,WORK,&LWORK,&INFO);
-
-  delete[] IPIV;
-  delete[] WORK;
+  Candidate_with_direct_value *a1 = (Candidate_with_direct_value *)a;
+  Candidate_with_direct_value *a2 = (Candidate_with_direct_value *)b;
+  if ((*a1).dist < (*a2).dist)
+    return -1;
+  else if ((*a1).dist > (*a2).dist)
+    return 1;
+  else
+    return 0;
 }
 
 static const int max_number_of_involved_sommet = 512; // Note: Pour ce maximum, les sommets sont comptes une fois pour chaque facette et pour chaque cellule contenant cette facette
@@ -127,7 +153,8 @@ static const Int3 candidate_offset[max_number_of_cell_candidates] =
 
 static const int max_number_of_candidates = max_number_of_involved_sommet + max_number_of_cell_candidates;
 
-Vecteur3 compute_lambda(int index_vertex0, int index_vertex1, int index_vertex2, int index_vertex3, Candidate candidates[max_number_of_candidates], double xfact, double yfact, double zfact)
+template<typename T>
+Vecteur3 compute_lambda(int index_vertex0, int index_vertex1, int index_vertex2, int index_vertex3, T candidates[max_number_of_candidates], double xfact, double yfact, double zfact)
 {
   double x_0 = candidates[index_vertex0].coord[0];
   double y_0 = candidates[index_vertex0].coord[1];
@@ -182,29 +209,24 @@ Vecteur3 compute_lambda(int index_vertex0, int index_vertex1, int index_vertex2,
   return lambda_vec;
 }
 
-static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, const Cut_field_double& field, const double coordinates[3], ArrOfDouble& result, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IndexCoefficient tetrahedra_index_coefficient[4], int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
-  const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
-
-  //const int ghost = field.ghost();
   const int ghost = cut_cell_disc.get_ghost_size();
   const int reduced_ghost = ghost - 1;
-  assert(field.ghost() >= ghost);
 
   const double x = coordinates[0];
   const double y = coordinates[1];
   const double z = coordinates[2];
 
-  const int ni = field.ni();
-  const int nj = field.nj();
-  const int nk = field.nk();
+  const IJK_Splitting& splitting = cut_cell_disc.get_splitting();
+  const int ni = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
+  const int nj = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
+  const int nk = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
 
-  const IJK_Splitting& splitting = field.get_splitting();
   const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
-  //const IJK_Splitting::Localisation loc = field.pure_.get_localisation();
   // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
   double origin_x = geom.get_origin(DIRECTION_I);
   double origin_y = geom.get_origin(DIRECTION_J);
@@ -221,9 +243,9 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(0, x);
-  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(1, y);
-  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(2, z);
+  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
+  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
+  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -reduced_ghost && index_i < ni + reduced_ghost) && (index_j >= -reduced_ghost && index_j < nj + reduced_ghost) && (index_k >= -reduced_ghost && index_k < nk + reduced_ghost);
@@ -232,7 +254,11 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
     {
       if (skip_unknown_points)
         {
-          return value_for_bad_points;
+          tetrahedra_index_coefficient[0] = {-1,value_for_bad_points};
+          tetrahedra_index_coefficient[1] = {-1,value_for_bad_points};
+          tetrahedra_index_coefficient[2] = {-1,value_for_bad_points};
+          tetrahedra_index_coefficient[3] = {-1,value_for_bad_points};
+          return;
         }
       else
         {
@@ -254,9 +280,6 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
       int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
       int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
       int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
-      assert((i_candidate_aperio == i_candidate) || (close_to_edge));
-      assert((j_candidate_aperio == j_candidate) || (close_to_edge));
-      assert((k_candidate_aperio == k_candidate) || (close_to_edge));
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
@@ -282,15 +305,14 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
           int n_candidate = cut_cell_disc.get_n(i_candidate, j_candidate, k_candidate);
           if (n_candidate >= 0)
             {
-              candidates[number_of_candidates].value = (phase == 0) ? field.diph_v_(n_candidate) : field.diph_l_(n_candidate);
+              // Nothing to assert
             }
           else
             {
               assert((!next_time) || (cut_cell_disc.get_interfaces().In(i_candidate,j_candidate,k_candidate) == (double)phase));
               assert((next_time) || (cut_cell_disc.get_interfaces().I(i_candidate,j_candidate,k_candidate) == (double)phase));
-              candidates[number_of_candidates].value = field.pure_(i_candidate,j_candidate,k_candidate);
             }
-          assert(candidates[number_of_candidates].value != 0); // Suggests a bug, but not necessarily implies so
+          candidates[number_of_candidates].signed_independent_index = cut_cell_disc.get_splitting().get_signed_independent_index(phase, i_candidate, j_candidate, k_candidate);
           number_of_candidates += 1;
         }
 
@@ -336,19 +358,18 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
                   count++;
                   if (point_within_tetrahedron)
                     {
-                      double field_0 = candidates[index_vertex0].value;
-                      double field_1 = candidates[index_vertex1].value;
-                      double field_2 = candidates[index_vertex2].value;
-                      double field_3 = candidates[index_vertex3].value;
-                      assert(field_0 != 0); // Suggests a bug, but not necessarily implies so
-                      assert(field_1 != 0); //  .
-                      assert(field_2 != 0); //  .
-                      assert(field_3 != 0); //  .
+                      int signed_independent_index_0 = candidates[index_vertex0].signed_independent_index;
+                      int signed_independent_index_1 = candidates[index_vertex1].signed_independent_index;
+                      int signed_independent_index_2 = candidates[index_vertex2].signed_independent_index;
+                      int signed_independent_index_3 = candidates[index_vertex3].signed_independent_index;
 
-                      double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
+                      tetrahedra_index_coefficient[0] = {signed_independent_index_0, lambda_0};
+                      tetrahedra_index_coefficient[1] = {signed_independent_index_1, lambda_1};
+                      tetrahedra_index_coefficient[2] = {signed_independent_index_2, lambda_2};
+                      tetrahedra_index_coefficient[3] = {signed_independent_index_3, lambda_3};
 
                       status = count;
-                      return r;
+                      return;
                     }
                   else
                     {
@@ -386,15 +407,18 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
 
       assert(!(((lambda_0 >= 0) && (lambda_0 <= 1)) && ((lambda_1 >= 0) && (lambda_1 <= 1)) && ((lambda_2 >= 0) && (lambda_2 <= 1)) && ((lambda_3 >= 0) && (lambda_3 <= 1))));
 
-      double field_0 = candidates[closest_tetrahedron[0]].value;
-      double field_1 = candidates[closest_tetrahedron[1]].value;
-      double field_2 = candidates[closest_tetrahedron[2]].value;
-      double field_3 = candidates[closest_tetrahedron[3]].value;
+      int signed_independent_index_0 = candidates[closest_tetrahedron[0]].signed_independent_index;
+      int signed_independent_index_1 = candidates[closest_tetrahedron[1]].signed_independent_index;
+      int signed_independent_index_2 = candidates[closest_tetrahedron[2]].signed_independent_index;
+      int signed_independent_index_3 = candidates[closest_tetrahedron[3]].signed_independent_index;
 
-      double r = field_0*lambda_0 + field_1*lambda_1 + field_2*lambda_2 + field_3*lambda_3;
+      tetrahedra_index_coefficient[0] = {signed_independent_index_0, lambda_0};
+      tetrahedra_index_coefficient[1] = {signed_independent_index_1, lambda_1};
+      tetrahedra_index_coefficient[2] = {signed_independent_index_2, lambda_2};
+      tetrahedra_index_coefficient[3] = {signed_independent_index_3, lambda_3};
 
       status = -1;
-      return r;
+      return;
     }
   else
     {
@@ -405,11 +429,15 @@ static double ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase
       //  * the number of cells per particle diameter is too small <=3
       //  * ijk_splitting_ft_extension is not large enough
       Process::exit();
-      return -1;
+      tetrahedra_index_coefficient[0] = {-1,-1.};
+      tetrahedra_index_coefficient[1] = {-1,-1.};
+      tetrahedra_index_coefficient[2] = {-1,-1.};
+      tetrahedra_index_coefficient[3] = {-1,-1.};
+      return;
     }
 }
 
-static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
   if (Process::me() > 0)
     {
@@ -481,9 +509,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(0, x);
-  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(1, y);
-  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(2, z);
+  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
+  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
+  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -ghost && index_i < ni + ghost) && (index_j >= -ghost && index_j < nj + ghost) && (index_k >= -ghost && index_k < nk + ghost);
@@ -513,7 +541,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   int number_of_involved_sommet = 0;
 
   int number_of_candidates = 0;
-  Candidate candidates[max_number_of_candidates];
+  Candidate_with_direct_value candidates[max_number_of_candidates];
   for (int i = 0; i < max_number_of_cell_candidates; i++)
     {
       int i_candidate_aperio = index_i + candidate_offset[i][0];
@@ -524,9 +552,6 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
       int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
       int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
       int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
-      assert((i_candidate_aperio == i_candidate) || (close_to_edge));
-      assert((j_candidate_aperio == j_candidate) || (close_to_edge));
-      assert((k_candidate_aperio == k_candidate) || (close_to_edge));
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
@@ -683,7 +708,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
     }
 
   assert(number_of_candidates <= max_number_of_candidates);
-  qsort(candidates, number_of_candidates, sizeof(Candidate), compare_value_candidate);
+  qsort(candidates, number_of_candidates, sizeof(Candidate_with_direct_value), compare_value_candidate_with_direct_value);
 
   // On boucle d'abord sur n_neighbours, le nombre de points que l'on s'autorise a chercher
   // dans la liste des voisins. Par exemple, n_neighbours=6 veut dire que l'on cherche a former
@@ -784,7 +809,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   else
     {
       Cerr << "Value of close_to_edge: " << (int)close_to_edge << finl;
-      Cerr << "Error in ijk_interpolate_cut_cell_for_given_index: no tetrahedron containing the point " << x << " " << y << " " << z << " on processor " << Process::me() << finl;
+      Cerr << "Error in ijk_interpolate_cut_cell_using_interface_for_given_index: no tetrahedron containing the point " << x << " " << y << " " << z << " on processor " << Process::me() << finl;
       Cerr << "For information, closest_lambda_error=" << closest_lambda_error << finl;
       // Note: While maybe not most likely, I noticed this error could occur if
       //  * the number of cells per particle diameter is too small <=3
@@ -801,11 +826,43 @@ static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, c
   result.resize_array(nb_coords);
   for (int idx = 0; idx < nb_coords; idx++)
     {
-      double coordinates_for_given_index[3] = {coordinates(idx, 0), coordinates(idx, 1), coordinates(idx, 2)};
+      Vecteur3 coordinates_for_given_index(coordinates(idx,0), coordinates(idx,1), coordinates(idx,2));
       int tolerate_not_within_tetrahedron = 1;
       int status = -2;
-      double interpolated_value = ijk_interpolate_cut_cell_for_given_index(next_time, phase, field, coordinates_for_given_index, result, tolerate_not_within_tetrahedron, skip_unknown_points, value_for_bad_points, status);
+      IndexCoefficient tetrahedra_index_coefficient[4];
+      ijk_interpolate_cut_cell_for_given_index(next_time, phase, field.get_cut_cell_disc(), coordinates_for_given_index, tetrahedra_index_coefficient, tolerate_not_within_tetrahedron, skip_unknown_points, value_for_bad_points, status);
+
+      double field_0 = field.from_signed_independent_index(tetrahedra_index_coefficient[0].index);
+      double field_1 = field.from_signed_independent_index(tetrahedra_index_coefficient[1].index);
+      double field_2 = field.from_signed_independent_index(tetrahedra_index_coefficient[2].index);
+      double field_3 = field.from_signed_independent_index(tetrahedra_index_coefficient[3].index);
+
+      double interpolated_value = field_0*tetrahedra_index_coefficient[0].coefficient + field_1*tetrahedra_index_coefficient[1].coefficient + field_2*tetrahedra_index_coefficient[2].coefficient + field_3*tetrahedra_index_coefficient[3].coefficient;
       result[idx] = interpolated_value;
+    }
+}
+
+static void ijk_interpolate_cut_cell_implementation(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, int skip_unknown_points, double value_for_bad_points)
+{
+  const int nb_coords = coordinates.dimension(0);
+  signed_independent_index.resize(nb_coords, 4);
+  coefficient.resize(nb_coords, 4);
+  for (int idx = 0; idx < nb_coords; idx++)
+    {
+      Vecteur3 coordinates_for_given_index(coordinates(idx,0), coordinates(idx,1), coordinates(idx,2));
+      int tolerate_not_within_tetrahedron = 1;
+      int status = -2;
+      IndexCoefficient tetrahedra_index_coefficient[4];
+      ijk_interpolate_cut_cell_for_given_index(next_time, phase, cut_cell_disc, coordinates_for_given_index, tetrahedra_index_coefficient, tolerate_not_within_tetrahedron, skip_unknown_points, value_for_bad_points, status);
+
+      signed_independent_index(idx,0) = tetrahedra_index_coefficient[0].index;
+      signed_independent_index(idx,1) = tetrahedra_index_coefficient[1].index;
+      signed_independent_index(idx,2) = tetrahedra_index_coefficient[2].index;
+      signed_independent_index(idx,3) = tetrahedra_index_coefficient[3].index;
+      coefficient(idx,0) = tetrahedra_index_coefficient[0].coefficient;
+      coefficient(idx,1) = tetrahedra_index_coefficient[1].coefficient;
+      coefficient(idx,2) = tetrahedra_index_coefficient[2].coefficient;
+      coefficient(idx,3) = tetrahedra_index_coefficient[3].coefficient;
     }
 }
 
@@ -819,16 +876,223 @@ void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_field_double&
   ijk_interpolate_cut_cell_implementation(next_time, phase, field, coordinates, result, 0 /* skip unknown points=no */, 0.);
 }
 
-double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
+void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points)
+{
+  ijk_interpolate_cut_cell_implementation(next_time, phase, cut_cell_disc, coordinates, signed_independent_index, coefficient, 1 /* yes:skip unknown points */, value_for_bad_points);
+}
+
+void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient)
+{
+  ijk_interpolate_cut_cell_implementation(next_time, phase, cut_cell_disc, coordinates, signed_independent_index, coefficient, 0 /* skip unknown points=no */, 0.);
+}
+
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 1, value_for_bad_points, status);
   return interpolated_value;
 }
 
-double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const double coordinates[3], int tolerate_not_within_tetrahedron, int& status)
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 0, 0., status);
   return interpolated_value;
+}
+
+// Returns the indices and coefficients to interpolate the "field" at the requested coordinate
+static void ijk_interpolate_one_value(bool next_time, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, int skip_unknown_points, double value_for_bad_points)
+{
+  const int ghost = cut_cell_disc.get_ghost_size();
+  const IJK_Splitting& splitting = cut_cell_disc.get_splitting();
+  const int ni = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
+  const int nj = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
+  const int nk = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+
+  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const double dx = geom.get_constant_delta(DIRECTION_I);
+  const double dy = geom.get_constant_delta(DIRECTION_J);
+  const double dz = geom.get_constant_delta(DIRECTION_K);
+  // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
+  double origin_x = geom.get_origin(DIRECTION_I);
+  double origin_y = geom.get_origin(DIRECTION_J);
+  double origin_z = geom.get_origin(DIRECTION_K);
+  const double x = coordinates[0];
+  const double y = coordinates[1];
+  const double z = coordinates[2];
+  const double x2 = (x - origin_x) / dx;
+  const double y2 = (y - origin_y) / dy;
+  const double z2 = (z - origin_z) / dz;
+  const int index_i = (int) (floor(x2)) - splitting.get_offset_local(DIRECTION_I);
+  const int index_j = (int) (floor(y2)) - splitting.get_offset_local(DIRECTION_J);
+  const int index_k = (int) (floor(z2)) - splitting.get_offset_local(DIRECTION_K);
+  // Coordonnes barycentriques du points dans la cellule :
+  const double xfact = x2 - floor(x2);
+  const double yfact = y2 - floor(y2);
+  const double zfact = z2 - floor(z2);
+
+  // is point in the domain ? (ghost cells ok...)
+  bool ok = (index_i >= -ghost && index_i < ni + ghost - 1) && (index_j >= -ghost && index_j < nj + ghost - 1) && (index_k >= -ghost && index_k < nk + ghost - 1);
+  if (!ok)
+    {
+      if (skip_unknown_points)
+        {
+        }
+      else
+        {
+          // Error!
+          Cerr << "Error in ijk_interpolate_implementation: request interpolation of point " << x << " " << y << " " << z << " which is outside of the domain on processor " << Process::me()
+               << finl;
+          Process::exit();
+        }
+    }
+
+  // :integration(Dorian) FT mesh and NS mesh are assumed to be identical.
+  double indic_0  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j,   index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j,   index_k));
+  double indic_1  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j,   index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j,   index_k));
+  double indic_2  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j+1, index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j+1, index_k));
+  double indic_3  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j+1, index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j+1, index_k));
+  double indic_4  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j,   index_k+1)) : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j,   index_k+1));
+  double indic_5  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j,   index_k+1)) : (1 - cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j,   index_k+1));
+  double indic_6  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j+1, index_k+1)) : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j+1, index_k+1));
+  double indic_7  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j+1, index_k+1)) : (1 - cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j+1, index_k+1));
+  double indic_8  = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i,   index_j,   index_k)         : cut_cell_disc.get_interfaces().I_ft(index_i,   index_j,   index_k);
+  double indic_9  = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j,   index_k)         : cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j,   index_k);
+  double indic_10 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i,   index_j+1, index_k)         : cut_cell_disc.get_interfaces().I_ft(index_i,   index_j+1, index_k);
+  double indic_11 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j+1, index_k)         : cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j+1, index_k);
+  double indic_12 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i,   index_j,   index_k+1)       : cut_cell_disc.get_interfaces().I_ft(index_i,   index_j,   index_k+1);
+  double indic_13 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j,   index_k+1)       : cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j,   index_k+1);
+  double indic_14 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i,   index_j+1, index_k+1)       : cut_cell_disc.get_interfaces().I_ft(index_i,   index_j+1, index_k+1);
+  double indic_15 = next_time ? cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j+1, index_k+1)       : cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j+1, index_k+1);
+
+  int output_index = -1;
+
+  if (indic_0 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j,   index_k);
+      coefficient(output_index)               = indic_0  * (1.-xfact) * (1.-yfact) * (1.-zfact);
+    }
+
+  if (indic_1 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j,   index_k);
+      coefficient(output_index)               = indic_1  * (xfact)    * (1.-yfact) * (1.-zfact);
+    }
+
+  if (indic_2 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j+1, index_k);
+      coefficient(output_index)               = indic_2  * (1.-xfact) * (yfact)    * (1.-zfact);
+    }
+
+  if (indic_3 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j+1, index_k);
+      coefficient(output_index)               = indic_3  * (xfact)    * (yfact)    * (1.-zfact);
+    }
+
+  if (indic_4 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j,   index_k+1);
+      coefficient(output_index)               = indic_4  * (1.-xfact) * (1.-yfact) * (zfact);
+    }
+
+  if (indic_5 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j,   index_k+1);
+      coefficient(output_index)               = indic_5  * (xfact)    * (1.-yfact) * (zfact);
+    }
+
+  if (indic_6 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j+1, index_k+1);
+      coefficient(output_index)               = indic_6  * (1.-xfact) * (yfact)    * (zfact);
+    }
+
+  if (indic_7 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j+1, index_k+1);
+      coefficient(output_index)               = indic_7  * (xfact)    * (yfact)    * (zfact);
+    }
+
+  if (indic_8 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(1, index_i,   index_j,   index_k);
+      coefficient(output_index)               = indic_8  * (1.-xfact) * (1.-yfact) * (1.-zfact);
+    }
+
+  if (indic_9 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index)  = splitting.get_signed_independent_index(1, index_i+1, index_j,   index_k);
+      coefficient(output_index)               = indic_9  * (xfact)    * (1.-yfact) * (1.-zfact);
+    }
+
+  if (indic_10 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j+1, index_k);
+      coefficient(output_index)              = indic_10 * (1.-xfact) * (yfact)    * (1.-zfact);
+    }
+
+  if (indic_11 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j+1, index_k);
+      coefficient(output_index)              = indic_11 * (xfact)    * (yfact)    * (1.-zfact);
+    }
+
+  if (indic_12 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j,   index_k+1);
+      coefficient(output_index)              = indic_12 * (1.-xfact) * (1.-yfact) * (zfact);
+    }
+
+  if (indic_13 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j,   index_k+1);
+      coefficient(output_index)              = indic_13 * (xfact)    * (1.-yfact) * (zfact);
+    }
+
+  if (indic_14 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j+1, index_k+1);
+      coefficient(output_index)              = indic_14 * (1.-xfact) * (yfact)    * (zfact);
+    }
+
+  if (indic_15 != 0)
+    {
+      output_index += 1;
+      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j+1, index_k+1);
+      coefficient(output_index)              = indic_15 * (xfact)    * (yfact)    * (zfact);
+    }
+
+  signed_independent_index.resize(output_index+1);
+  coefficient.resize(output_index+1);
+}
+
+void ijk_interpolate_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points)
+{
+  signed_independent_index.resize(16);
+  coefficient.resize(16);
+  ijk_interpolate_one_value(next_time, cut_cell_disc, coordinates, signed_independent_index, coefficient, 1 /* yes:skip unknown points */, value_for_bad_points);
+}
+
+void ijk_interpolate(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient)
+{
+  signed_independent_index.resize(16);
+  coefficient.resize(16);
+  ijk_interpolate_one_value(next_time, cut_cell_disc, coordinates, signed_independent_index, coefficient, 0 /* skip unknown points=no */, 0.);
 }
 
 void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time, const Cut_field_double& dv, Cut_field_double& v)
@@ -869,7 +1133,7 @@ void euler_explicit_update_cut_cell_notransport(double timestep, bool next_time,
     }
 }
 
-void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
+void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const Cut_field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -934,9 +1198,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
-                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
-                      if (cellule_rk_restreint == 0)
+                      if (cellule_rk_restreint.pure_(i,j,k) == 0)
                         {
                           double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
                           double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
@@ -953,7 +1215,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                     }
                   else
                     {
-                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_v_(n) == 0)
                         {
                           double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -970,7 +1232,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                           v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
                         }
 
-                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_l_(n) == 0)
                         {
                           double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1005,9 +1267,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
-                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
-                      if (cellule_rk_restreint == 0)
+                      if (cellule_rk_restreint.pure_(i,j,k) == 0)
                         {
                           double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
                           double next_v_vol = v.pure_(i,j,k) + x * delta_t_divided_by_Fk;
@@ -1022,7 +1282,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                     }
                   else
                     {
-                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_v_(n) == 0)
                         {
                           double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -1037,7 +1297,7 @@ void runge_kutta3_update_cut_cell_notransport(bool next_time, const Cut_field_do
                           v.diph_v_(n) = next_v_vol_v/nonzero_indicatrice_v;
                         }
 
-                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_l_(n) == 0)
                         {
                           double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1103,7 +1363,7 @@ void euler_explicit_update_cut_cell_transport(double timestep, const Cut_field_d
     }
 }
 
-void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
+void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_field_double& F, Cut_field_double& v, const int step, double dt_tot, const Cut_field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1174,9 +1434,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
-                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
-                      if (cellule_rk_restreint == 0)
+                      if (cellule_rk_restreint.pure_(i,j,k) == 0)
                         {
                           double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
                           assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
@@ -1195,7 +1453,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                     }
                   else
                     {
-                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_v_(n) == 0)
                         {
                           double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -1214,7 +1472,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                           v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
                         }
 
-                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_l_(n) == 0)
                         {
                           double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1253,9 +1511,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                   int n = cut_cell_disc.get_n(i,j,k);
                   if (n < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k));
-                      int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k) : cellule_rk_restreint_l(i,j,k);
-                      if (cellule_rk_restreint == 0)
+                      if (cellule_rk_restreint.pure_(i,j,k) == 0)
                         {
                           double x = F.pure_(i, j, k) * facteurF + dv.pure_(i,j,k);
                           assert(old_nonzero_indicatrice_l == next_nonzero_indicatrice_l);
@@ -1272,7 +1528,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                     }
                   else
                     {
-                      if (cellule_rk_restreint_v(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_v_(n) == 0)
                         {
                           double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -1289,7 +1545,7 @@ void runge_kutta3_update_cut_cell_transport(const Cut_field_double& dv, Cut_fiel
                           v.diph_v_(n) = next_v_vol_v/next_nonzero_indicatrice_v;
                         }
 
-                      if (cellule_rk_restreint_l(i,j,k) == 0)
+                      if (cellule_rk_restreint.diph_l_(n) == 0)
                         {
                           double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1353,7 +1609,7 @@ void cut_cell_switch_field_time(Cut_field_double& v)
     }
 }
 
-void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const IJK_Field_int& cellule_rk_restreint_v, const IJK_Field_int& cellule_rk_restreint_l)
+void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double& F, const int step, const int k_layer, const int dir, double dt_tot, const Cut_field_int& cellule_rk_restreint)
 {
   const double coeff_a[3] = { 0., -5. / 9., -153. / 128. };
   // Fk[0] = 1; Fk[i+1] = Fk[i] * a[i+1] + 1
@@ -1398,7 +1654,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                   int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
                   if (n_decale < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      int phase = IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.indic_pure(i+di,j+dj,k_layer+dk));
                       dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
                       F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
                     }
@@ -1415,10 +1671,8 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
               int n = cut_cell_disc.get_n(i,j,k_layer);
               if (n < 0)
                 {
-                  int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k_layer));
-                  int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k_layer) : cellule_rk_restreint_l(i,j,k_layer);
-                  int cellule_rk_restreint_decale = (phase == 0) ? cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) : cellule_rk_restreint_l(i+di,j+dj,k_layer+dk);
-                  if ((cellule_rk_restreint == 0) && (cellule_rk_restreint_decale == 0))
+                  int phase = IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.indic_pure(i,j,k_layer));
+                  if ((cellule_rk_restreint.pure_(i,j,k_layer) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,phase) == 0))
                     {
                       double x = F.pure_(i, j, k_layer) * facteurF + dv.pure_(i,j,k_layer);
                       dv.pure_(i,j,k_layer) = x * one_divided_by_Fk;
@@ -1433,7 +1687,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                 }
               else
                 {
-                  if ((cellule_rk_restreint_v(i,j,k_layer) == 0) && (cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) == 0))
+                  if ((cellule_rk_restreint.diph_v_(n) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,0) == 0))
                     {
                       double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -1448,7 +1702,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                       F.diph_v_(n) = x_v;
                     }
 
-                  if ((cellule_rk_restreint_l(i,j,k_layer) == 0) && (cellule_rk_restreint_l(i+di,j+dj,k_layer+dk) == 0))
+                  if ((cellule_rk_restreint.diph_l_(n) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,1) == 0))
                     {
                       double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1466,7 +1720,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                   int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
                   if (n_decale < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      int phase = IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.indic_pure(i+di,j+dj,k_layer+dk));
                       dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
                       F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
                     }
@@ -1483,10 +1737,8 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
               int n = cut_cell_disc.get_n(i,j,k_layer);
               if (n < 0)
                 {
-                  int phase = (int)(cut_cell_disc.get_interfaces().In(i,j,k_layer));
-                  int cellule_rk_restreint = (phase == 0) ? cellule_rk_restreint_v(i,j,k_layer) : cellule_rk_restreint_l(i,j,k_layer);
-                  int cellule_rk_restreint_decale = (phase == 0) ? cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) : cellule_rk_restreint_l(i+di,j+dj,k_layer+dk);
-                  if ((cellule_rk_restreint == 0) && (cellule_rk_restreint_decale == 0))
+                  int phase = IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.indic_pure(i,j,k_layer));
+                  if ((cellule_rk_restreint.pure_(i,j,k_layer) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,phase) == 0))
                     {
                       double x = F.pure_(i, j, k_layer) * facteurF + dv.pure_(i,j,k_layer);
                       dv.pure_(i,j,k_layer) = x * one_divided_by_Fk;
@@ -1499,7 +1751,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                 }
               else
                 {
-                  if ((cellule_rk_restreint_v(i,j,k_layer) == 0) && (cellule_rk_restreint_v(i+di,j+dj,k_layer+dk) == 0))
+                  if ((cellule_rk_restreint.diph_v_(n) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,0) == 0))
                     {
                       double x_v = F.diph_v_(n) * facteurF + dv.diph_v_(n);
 
@@ -1512,7 +1764,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                       dv.diph_v_(n) = x_v;
                     }
 
-                  if ((cellule_rk_restreint_l(i,j,k_layer) == 0) && (cellule_rk_restreint_l(i+di,j+dj,k_layer+dk) == 0))
+                  if ((cellule_rk_restreint.diph_l_(n) == 0) && (cellule_rk_restreint.from_ijk_and_phase(i+di,j+dj,k_layer+dk,1) == 0))
                     {
                       double x_l = F.diph_l_(n) * facteurF + dv.diph_l_(n);
 
@@ -1528,7 +1780,7 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
                   int n_decale = cut_cell_disc.get_n(i+di,j+dj,k_layer+dk);
                   if (n_decale < 0)
                     {
-                      int phase = (int)(cut_cell_disc.get_interfaces().In(i+di,j+dj,k_layer+dk));
+                      int phase = IJK_Interfaces::convert_indicatrice_to_phase(cut_cell_disc.indic_pure(i+di,j+dj,k_layer+dk));
                       dv.pure_(i,j,k_layer) = (phase == 0) ? dv.diph_v_(n) : dv.diph_l_(n);
                       F.pure_(i,j,k_layer) = (phase == 0) ? F.diph_v_(n) : F.diph_l_(n);
                     }
@@ -1540,5 +1792,161 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
       Cerr << "Error in runge_kutta_update: wrong step" << finl;
       Process::exit();
     };
+}
+
+// Cette fonction sert ajouter la pente liee a la correction a la pente liee au schema principal
+// Le facteur vol_over_dt_surface existe car le flux calcule dans les routines de correction n'a
+// pas la bonne unite.
+void add_flux_times_vol_over_dt_surface(double fractional_timestep, const Cut_field_vector3_double& cut_field_current_fluxes, Cut_field_vector3_double& cut_field_RK3_F_fluxes)
+{
+  const IJK_Grid_Geometry& geom = cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry();
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(0));
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(1));
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(2));
+  const double dx = geom.get_constant_delta(DIRECTION_I);
+  const double dy = geom.get_constant_delta(DIRECTION_J);
+  const double dz = geom.get_constant_delta(DIRECTION_K);
+  double vol = dx*dy*dz;
+
+  for (int dir = 0; dir < 3; dir++)
+    {
+      const int ni = cut_field_current_fluxes[dir].ni();
+      const int nj = cut_field_current_fluxes[dir].nj();
+      const int nk = cut_field_current_fluxes[dir].nk();
+      for (int k = 0; k < nk; k++)
+        {
+          for (int j = 0; j < nj; j++)
+            {
+              for (int i = 0; i < ni; i++)
+                {
+                  double vol_over_dt = vol/fractional_timestep;
+
+                  cut_field_RK3_F_fluxes[dir].pure_(i,j,k) += cut_field_current_fluxes[dir].pure_(i,j,k)*vol_over_dt;
+                }
+            }
+        }
+
+      const Cut_cell_FT_Disc& cut_cell_disc = cut_field_current_fluxes[dir].get_cut_cell_disc();
+      for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+        {
+          double vol_over_dt = vol/fractional_timestep;
+
+          const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique = cut_cell_disc.get_interfaces().get_indicatrice_surfacique_efficace_face();
+          double indicatrice_surface = indicatrice_surfacique(n,dir);
+
+          cut_field_RK3_F_fluxes[dir].diph_l_(n) += (indicatrice_surface == 0.)       ? 0. : cut_field_current_fluxes[dir].diph_l_(n)*vol_over_dt/indicatrice_surface;
+          cut_field_RK3_F_fluxes[dir].diph_v_(n) += ((1 - indicatrice_surface) == 0.) ? 0. : cut_field_current_fluxes[dir].diph_v_(n)*vol_over_dt/(1 - indicatrice_surface);
+        }
+    }
+}
+
+void set_rk_restreint(int rk_step, int rk_restriction_leniency, const Cut_cell_FT_Disc& cut_cell_disc, Cut_field_int& cellule_rk_restreint)
+{
+  if (rk_step == 0)
+    {
+      cellule_rk_restreint.set_to_uniform_value(0.);
+    }
+
+  if (rk_restriction_leniency == 10)
+    {
+      cellule_rk_restreint.set_to_uniform_value(1.);
+    }
+
+  if (rk_restriction_leniency == 11)
+    {
+      for (int n = 0; n < cut_cell_disc.get_n_tot(); n++)
+        {
+          Int3 ijk = cut_cell_disc.get_ijk(n);
+          int i = ijk[0];
+          int j = ijk[1];
+          int k = ijk[2];
+
+          cellule_rk_restreint.pure_(i,j,k) = 1;
+          cellule_rk_restreint.diph_v_(n) = 1;
+          cellule_rk_restreint.diph_l_(n) = 1;
+        }
+    }
+
+  // Boucle sur les cellules qui disparaissent lors de ce sous pas de temps
+  {
+    int statut_diphasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);
+    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
+    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique+1);
+    for (int index = index_min; index < index_max; index++)
+      {
+        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
+
+        Int3 ijk = cut_cell_disc.get_ijk(n);
+        int i = ijk[0];
+        int j = ijk[1];
+        int k = ijk[2];
+
+        if ((rk_restriction_leniency == 4) || (rk_restriction_leniency == 5))
+          continue;
+
+        if ((rk_restriction_leniency == 1) || (rk_restriction_leniency == 3))
+          {
+            double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+            int phase = 1 - IJK_Interfaces::convert_indicatrice_to_phase(next_indicatrice); // phase de la cellule mourrante
+
+            if (phase == 0)
+              {
+                cellule_rk_restreint.diph_v_(n) = 1;
+              }
+            else
+              {
+                cellule_rk_restreint.diph_l_(n) = 1;
+              }
+          }
+        else if ((rk_restriction_leniency == 0) || (rk_restriction_leniency == 2))
+          {
+            cellule_rk_restreint.diph_v_(n) = 1;
+            cellule_rk_restreint.diph_l_(n) = 1;
+          }
+      }
+  }
+
+  // Boucle sur les cellules qui apparaissent ou bien qui sont petites lors de ce sous pas de temps
+  {
+    int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+    int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
+    assert(statut_diphasique_petit == statut_diphasique_naissant + 1);
+    int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_naissant);
+    int index_max = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique_petit+1);
+    for (int index = index_min; index < index_max; index++)
+      {
+        int n = cut_cell_disc.get_n_from_statut_diphasique_index(index);
+
+        Int3 ijk = cut_cell_disc.get_ijk(n);
+        int i = ijk[0];
+        int j = ijk[1];
+        int k = ijk[2];
+
+        if (rk_step == 0 && ((rk_restriction_leniency == 5) || (rk_restriction_leniency == 4) || (rk_restriction_leniency == 3) || (rk_restriction_leniency == 2)))
+          continue;
+
+        if ((rk_restriction_leniency == 1) || (rk_restriction_leniency == 3) || (rk_restriction_leniency == 5))
+          {
+            double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
+            double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
+            int est_naissant = cut_cell_disc.get_interfaces().est_pure(old_indicatrice);
+            int phase = est_naissant ? 1 - IJK_Interfaces::convert_indicatrice_to_phase(old_indicatrice) : ((cut_cell_disc.get_interfaces().below_small_threshold(next_indicatrice)) ? 1 : 0); // phase de la cellule petite ou naissante
+
+            if (phase == 0)
+              {
+                cellule_rk_restreint.diph_v_(n) = 1;
+              }
+            else
+              {
+                cellule_rk_restreint.diph_l_(n) = 1;
+              }
+          }
+        else if ((rk_restriction_leniency == 0) || (rk_restriction_leniency == 2) || (rk_restriction_leniency == 4))
+          {
+            cellule_rk_restreint.diph_v_(n) = 1;
+            cellule_rk_restreint.diph_l_(n) = 1;
+          }
+      }
+  }
 }
 

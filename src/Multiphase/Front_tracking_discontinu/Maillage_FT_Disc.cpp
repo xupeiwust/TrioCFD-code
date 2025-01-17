@@ -1700,6 +1700,42 @@ const DoubleTab& Maillage_FT_Disc::get_normale_facettes_old() const
   return data_cache.normale_facettes_old_;
 }
 
+Vecteur3 Maillage_FT_Disc::coords_fa7(int fa7) const
+{
+  Vecteur3 coords_fa7(0.,0.,0.);
+  for (int dir = 0; dir < 3; dir++)
+    {
+      for (int som = 0; som < 3; som++)
+        {
+          coords_fa7[dir] += sommets_(facettes_(fa7, som), dir);
+        }
+    }
+
+  for (int dir = 0; dir < 3; dir++)
+    {
+      coords_fa7[dir] /= 3.;
+    }
+  return coords_fa7;
+}
+
+Vecteur3 Maillage_FT_Disc::coords_fa7_old(int fa7) const
+{
+  Vecteur3 coords_fa7(0.,0.,0.);
+  for (int dir = 0; dir < 3; dir++)
+    {
+      for (int som = 0; som < 3; som++)
+        {
+          coords_fa7[dir] += sommets_old_(facettes_old_(fa7, som), dir);
+        }
+    }
+
+  for (int dir = 0; dir < 3; dir++)
+    {
+      coords_fa7[dir] /= 3.;
+    }
+  return coords_fa7;
+}
+
 /*! @brief Calcule la grandeur demandee, stocke le resultat dans un tableau interne a la classe et renvoie le resultat.
  *
  * Si le maillage

@@ -714,7 +714,7 @@ void IJK_Thermal_base::vide_phase_invalide_cellules_diphasiques()
   Process::exit();
 }
 
-void IJK_Thermal_base::remplir_tableau_pure_cellules_diphasiques(int next_time)
+void IJK_Thermal_base::remplir_tableau_pure_cellules_diphasiques(bool next_time)
 {
   Cerr << "Remplir_cellules_diphasiques est seulement possible dans le cas IJK_Thermal_cut_cell." << finl;
   Process::exit();
