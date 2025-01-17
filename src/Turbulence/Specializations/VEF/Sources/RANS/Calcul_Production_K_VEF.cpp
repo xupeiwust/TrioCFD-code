@@ -520,7 +520,6 @@ double Calcul_Production_K_VEF::get_turbulent_viscosity(const DoubleTab& visco_t
       Process::exit();
       return 1;
     }
-  return 0;
 }
 
 // Utilisée dans le bas Reynolds anisotherme

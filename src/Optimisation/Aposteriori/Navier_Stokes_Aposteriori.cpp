@@ -82,8 +82,6 @@ bool Navier_Stokes_Aposteriori::has_champ(const Motcle& nom, OBS_PTR(Champ_base)
     }
   else
     return Navier_Stokes_std::has_champ(nom, ref_champ);
-
-  return false; /* rien trouve */
 }
 
 bool Navier_Stokes_Aposteriori::has_champ(const Motcle& nom) const

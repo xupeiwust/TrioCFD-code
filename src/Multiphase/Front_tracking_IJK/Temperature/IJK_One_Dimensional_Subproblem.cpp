@@ -5074,26 +5074,19 @@ double IJK_One_Dimensional_Subproblem::get_value_from_index(const int& index_val
     case 0:
       return normal_temperature_gradient_solution_[0] * (*lambda_);
       // return thermal_flux_total_;
-      break;
     case 1:
       return velocity_magnitude_[0];
-      break;
     case 2:
       return temperature_solution_[0];
-      break;
     case 3:
       return normal_temperature_gradient_solution_[0];
-      break;
     case 4:
       return temperature_interp_[0];
-      break;
     case 5:
       return normal_temperature_gradient_interp_[0];
-      break;
     case 6:
       return normal_temperature_gradient_interp_[0] * (*lambda_);
       // return thermal_flux_total_;
-      break;
     }
   return 0.;
 }
