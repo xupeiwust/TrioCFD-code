@@ -1,6 +1,8 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+19/02/25 (TrioCFD) New feature : Keyword 'interface' may be used in 'postprocessing' block of a FT problem. See an example in FTD_reprise_xyz_vdf_3d
+19/02/25 (TrioCFD) New feature : Standard 'postprocessing' keyword can now be used to postprocess FT datasets with interfaces. If format is not LATA, interfaces are ignored.
 19/02/25 (TrioCFD) Change      : Warning, values printed in ...ustar_mean_only.out files are now surface-averaged values not mean values as before
 29/01/25 (TrioCFD) Minor change: Trust commit hash moved to file src/trust.commit
 21/01/25 (TrioCFD) New feature : FT IJK - Cut-cell solver for thermal equation.

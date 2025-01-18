@@ -154,10 +154,14 @@ Lire pb
         0.
     }
     Postraitement {
-        Champs dt_post 1. {
+        dt_post 1.
+        Champs  {
             indicatrice_interf elem
             indicatrice_body elem
             vitesse elem
+        }
+        interfaces interf {
+           courbure som
         }
     }
     liste_postraitements {

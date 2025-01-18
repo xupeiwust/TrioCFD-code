@@ -59,8 +59,11 @@ Entree& Postraitement_ft_lata::readOn(Entree& is)
 
   if (!sub_type(Format_Post_Lata, format_post.valeur()))
     {
-      Cerr << "ERROR: In Postraitement_ft_lata, only the LATA (V2) format is supported! Use directive 'format lata'." << finl;
-      Process::exit();
+      Cerr << "****************************************************************************" << finl;
+      Cerr << "   WARNING WARNING " << finl;
+      Cerr << "      You are processing a FT problem, but you did not use the 'LATA' format (directive 'format lata')." << finl;
+      Cerr << "      The interfaces will **not** be post-processed and will be ignored." << finl;
+      Cerr << "****************************************************************************" << finl;
     }
 
   return is;
@@ -137,6 +140,15 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
         }
 
       lire_champ_interface(is);
+
+      // This is put here to make sure we have read all keywords anyway:
+      if(Motcle(format) != "LATA")
+        {
+          Cerr << "**** Output format is not LATA, interfaces will be silently ignored." << finl;
+          // Nullify reference, this will skip interfaces in the rest of the process
+          refequation_interfaces.reset();
+        }
+
       return 1;
     }
   else
