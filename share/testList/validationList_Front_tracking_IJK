@@ -20,7 +20,6 @@
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/shear_boundary_conditions
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/stat_diph_AI
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/stat_diph_gradUP
-./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/stat_temperature
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/surfactant_advection_diffusion_FT
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/taylor_green_vortices_3D
 ./share/Validation/Rapports_automatiques/Multiphase/Front_tracking_IJK/IJK_FT/temperature_bulle_conv

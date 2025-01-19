@@ -29,6 +29,8 @@ ijk_ibc_mono
 channel_swarm_fixed_jdd1
 channel_swarm_fixed_jdd2
 channel_swarm_fixed_jdd3
+creeping_flow_jdd1
+creeping_flow_jdd3
 schemas_temps_jdd1
 shear_boundary_conditions_jdd1
 shear_boundary_conditions_jdd2
@@ -45,3 +47,7 @@ temperature_conv_canal_jdd3
 temperature_convergence_operateurs_thermiques_jdd1
 temperature_convergence_operateurs_thermiques_jdd2
 temperature_convergence_operateurs_thermiques_jdd3
+temperature_stat_jdd1
+temperature_stat_jdd2
+temperature_stat_jdd3
+temperature_stat_jdd4
