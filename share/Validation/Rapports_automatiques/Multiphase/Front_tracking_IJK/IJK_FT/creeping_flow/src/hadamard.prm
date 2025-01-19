@@ -7,7 +7,7 @@ Parameters {
 	Testcase REFINE single_Re01 8
 }
 Chapitre {
-        Titre ""
+        Titre "Hadamard"
         Description "Calcul Grossier." <<EOF
 Le calcul grossier se passe en deux temps, avec une reprise. Pour les besoins de la fiche de validation, le nombre de pas de temps
 est reduit a 600 au lieu de 6000. 

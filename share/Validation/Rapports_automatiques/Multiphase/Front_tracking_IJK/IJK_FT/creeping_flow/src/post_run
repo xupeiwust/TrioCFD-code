@@ -7,7 +7,8 @@ then
    exit 0
 fi
 
-python $project_directory/share/PyTools/follow_calcs/accplot.py fig 0. diph.sauv
+export PYTHONPATH=$PYTHONPATH:$project_directory/share/bin/PyTools/
+python $project_directory/share/bin/PyTools/follow_calcs/accplot.py fig 0. diph.sauv
 mkdir -p R
 \cp diph*sauv* R/
 [ ! -f R/single_Re01_acceleration.out ] && cp single_Re01*out R/
