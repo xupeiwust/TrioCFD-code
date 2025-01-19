@@ -1,3 +1,4 @@
+# PARALLEL ONLY 2 #
 IJK_Grid_Geometry DOM
 
 Lire DOM
@@ -19,7 +20,7 @@ Lire grid_splitting
   ijk_grid_geometry DOM
   nproc_i 1
   nproc_j 1
-  nproc_k 1
+  nproc_k 2
 }
 
 IJK_FT_double
@@ -44,7 +45,7 @@ IJK_FT_double
   check_stop_file stop.txt
   dt_sauvegarde 3000
   tinit 0
-  nb_pas_dt_max 100
+	nb_pas_dt_max 3
   disable_solveur_poisson
   multigrid_solver {
     solver_precision mixed

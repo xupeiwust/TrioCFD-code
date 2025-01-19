@@ -18,8 +18,15 @@ from matplotlib.pyplot import *
 from follow_calcs.thplot import get_list_of_files
 
 import readline
-
 readline.parse_and_bind('tab:complete')
+
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.font_manager as font_manager
+print(mpl.rcParams['font.family'])
+# mpl.rc('font', family='sans-serif') 
+# mpl.rc('font', serif='Helvetica Neue') 
+mpl.rc('text', usetex='false') 
 
 # regle un pb de mpl pour enregistrer des figures trop lourdes
 matplotlib.rcParams['agg.path.chunksize'] = 100000
@@ -172,7 +179,7 @@ if __name__ == "__main__":
     else:
         fig_dir = ""
 
-    disable_savefig = True
+    disable_savefig = False
     if not disable_savefig:
         f0.gca().grid(True)
         f0.savefig(os.path.join(fig_dir, fig + '_Retau.png'))

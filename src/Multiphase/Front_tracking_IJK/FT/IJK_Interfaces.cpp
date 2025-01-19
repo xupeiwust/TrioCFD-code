@@ -6230,15 +6230,20 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   // assert provisoir :
                                   assert(compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo);
                                   assert(indic_voisin > -0.5);
-                                  assert(surface_voisin > 0.);
-
-                                  // Il faut calculer le phi moyen a la face :
-                                  phi_face = (phi * surface + phi_voisin * surface_voisin) / (surface + surface_voisin);
-                                  grad_sigma_face = (grad_sigma * surface + grad_sigma_voisin * surface_voisin) / (surface + surface_voisin);
-
-                                  repul_face = (repul * surface + repul_voisin * surface_voisin) / (surface + surface_voisin);
+                                  if (est_egal(surface+surface_voisin,0.))
+                                    {
+                                      phi_face = 0.;
+                                      grad_sigma_face = 0.;
+                                      repul_face = 0.;
+                                    }
+                                  else
+                                    {
+                                      // Il faut calculer le phi moyen a la face :
+                                      phi_face = (phi * surface + phi_voisin * surface_voisin) / (surface + surface_voisin);
+                                      grad_sigma_face = (grad_sigma * surface + grad_sigma_voisin * surface_voisin) / (surface + surface_voisin);
+                                      repul_face = (repul * surface + repul_voisin * surface_voisin) / (surface + surface_voisin);
+                                    }
                                 }
-
                               // Calcul du gradient a la face :
                               double gradient_indic = (indic_voisin - indic) / delta_dir * signe;
 
