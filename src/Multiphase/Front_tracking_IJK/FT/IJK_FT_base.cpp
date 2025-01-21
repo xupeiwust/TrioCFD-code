@@ -1892,13 +1892,7 @@ int IJK_FT_base::initialise()
    * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
    */
   //  if ((energie_.size() > 0) or (thermique_.size() >0) or (thermal_subresolution_.size()>0))
-  if (energie_.size() > 0)
-    {
-      interfaces_.set_compute_surfaces_mouillees();
-      update_twice_indicator_field();
-    }
-
-  if (thermals_.size_thermal_problem(Nom("onefluidenergy")) > 0)
+  if ((energie_.size() > 0) or (thermals_.size_thermal_problem(Nom("onefluidenergy")) > 0))
     {
       interfaces_.set_compute_surfaces_mouillees();
       update_twice_indicator_field();

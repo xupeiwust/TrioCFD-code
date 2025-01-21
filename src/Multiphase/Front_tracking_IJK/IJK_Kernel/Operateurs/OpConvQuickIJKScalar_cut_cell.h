@@ -16,14 +16,14 @@
 #ifndef OpConvQuickScalarIJK_cut_cell_included
 #define OpConvQuickScalarIJK_cut_cell_included
 
-#include <Operateur_IJK_elem_conv_base.h>
+#include <OpConvQuickIJKScalar.h>
 
-class OpConvQuickIJKScalar_cut_cell_double : public Operateur_IJK_elem_conv_base_double
+class OpConvQuickIJKScalar_cut_cell_double : public OpConvQuickIJKScalar_double
 {
   Declare_instanciable_sans_constructeur(OpConvQuickIJKScalar_cut_cell_double);
 
 public:
-  OpConvQuickIJKScalar_cut_cell_double() : Operateur_IJK_elem_conv_base_double() { };
+  OpConvQuickIJKScalar_cut_cell_double() : OpConvQuickIJKScalar_double() { };
 
   void initialise_cut_cell(Cut_cell_conv_scheme cut_cell_conv_scheme,
                            bool ignore_small_cells,
@@ -128,14 +128,14 @@ private:
   template <DIRECTION _DIR_>
   inline void correct_flux_(IJK_Field_local_double *const flux, const int k_layer);
 
-  bool ignore_small_cells_;
+  bool ignore_small_cells_ = true;
   Cut_cell_conv_scheme cut_cell_conv_scheme_;
 
-  FixedVector<Cut_cell_double, 3> *cut_cell_flux_;
-  Cut_field_int *cellule_rk_restreint_conv_main_;
+  FixedVector<Cut_cell_double, 3> *cut_cell_flux_ = nullptr;
+  Cut_field_int *cellule_rk_restreint_conv_main_ = nullptr;
 
-  IJK_Field_int *treatment_count_;
-  int *new_treatment_;
+  IJK_Field_int *treatment_count_ = nullptr;
+  int *new_treatment_ = nullptr;
 
 };
 

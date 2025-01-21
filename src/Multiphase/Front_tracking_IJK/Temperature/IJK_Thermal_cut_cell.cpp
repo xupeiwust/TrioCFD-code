@@ -182,14 +182,21 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
   cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
-  temperature_diffusion_op_.typer("OpDiffIJKScalar_cut_cell_double");
-  temperature_diffusion_op_.initialize(splitting);
-  temperature_diffusion_op_->set_uniform_lambda_liquid(lambda_liquid_);
-  temperature_diffusion_op_->set_uniform_lambda_vapour(lambda_vapour_);
-  temperature_diffusion_op_->set_lambda(lambda_);
 
-  temperature_convection_op_.typer("OpConvQuickIJKScalar_cut_cell_double");
-  temperature_convection_op_.initialize(splitting);
+  if (temperature_diffusion_op_.non_nul())
+    {
+      temperature_diffusion_op_.typer("OpDiffIJKScalar_cut_cell_double");
+      temperature_diffusion_op_.initialize(splitting);
+      temperature_diffusion_op_->set_uniform_lambda_liquid(lambda_liquid_);
+      temperature_diffusion_op_->set_uniform_lambda_vapour(lambda_vapour_);
+      temperature_diffusion_op_->set_lambda(lambda_);
+    }
+
+  if (temperature_convection_op_.non_nul())
+    {
+      temperature_convection_op_.typer("OpConvQuickIJKScalar_cut_cell_double");
+      temperature_convection_op_.initialize(splitting);
+    }
 
   if (fichier_reprise_temperature_ == "??")   // si on ne fait pas une reprise on initialise V
     {
@@ -283,8 +290,10 @@ void IJK_Thermal_cut_cell::recompute_temperature_init()
 
 void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_rk, int rk_step)
 {
-  ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
-  ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, false, cut_cell_flux_convection_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
+  if (temperature_diffusion_op_.non_nul())
+    ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
+  if (temperature_convection_op_.non_nul())
+    ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, false, cut_cell_flux_convection_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
 
   double fractional_timestep = (flag_rk) ? compute_fractionnal_timestep_rk3(total_timestep, rk_step) : total_timestep;
 
