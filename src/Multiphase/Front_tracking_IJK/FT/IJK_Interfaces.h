@@ -329,6 +329,11 @@ public :
     return maillage_ft_ijk_;
   }
 
+  const Maillage_FT_IJK& old_maillage_ft_ijk() const
+  {
+    return old_maillage_ft_ijk_;
+  }
+
   const Remaillage_FT_IJK& remaillage_ft_ijk() const
   {
     return remaillage_ft_ijk_;
@@ -1123,6 +1128,7 @@ protected:
 
   // Stockage du maillage:
   Maillage_FT_IJK maillage_ft_ijk_;
+  Maillage_FT_IJK old_maillage_ft_ijk_;
 
   // Tableau intermediaire pour le deplacement des marqueurs en RK3 :
   DoubleTab RK3_G_store_vi_;

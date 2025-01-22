@@ -107,9 +107,9 @@ void calculer_flux_interface_sur_facettes(METHODE_FLUX_INTERFACE methode_flux_in
       Process::exit();
     }
 
-  const Maillage_FT_IJK& maillage = cut_cell_facettes_interpolation.maillage_ft_ijk();
-  const ArrOfDouble& surface_facettes = next_time ? maillage.get_update_surface_facettes() : maillage.get_surface_facettes_old();
-  const int nb_facettes = next_time ? maillage.nb_facettes() : maillage.nb_facettes_old();
+  const Maillage_FT_IJK& maillage = next_time ? cut_cell_facettes_interpolation.maillage_ft_ijk() : cut_cell_facettes_interpolation.old_maillage_ft_ijk();
+  const ArrOfDouble& surface_facettes = maillage.get_update_surface_facettes();
+  const int nb_facettes = maillage.nb_facettes();
   for (int fa7 = 0; fa7 < nb_facettes; fa7++)
     {
       interfacial_phin_ai(fa7) *= surface_facettes(fa7);
@@ -124,8 +124,8 @@ void calculer_flux_interface_sur_maillage_ft(bool next_time,
 {
   // Calcul des flux sur le maillage FT
   {
-    const Maillage_FT_IJK& mesh = cut_cell_disc.get_interfaces().maillage_ft_ijk();
-    const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
+    const Maillage_FT_IJK& mesh = next_time ? cut_cell_disc.get_interfaces().maillage_ft_ijk() : cut_cell_disc.get_interfaces().old_maillage_ft_ijk();
+    const Intersections_Elem_Facettes& intersec = mesh.intersections_elem_facettes();
 
     const int ni = flux_interface_ft.ni();
     const int nj = flux_interface_ft.nj();
@@ -310,9 +310,9 @@ void calcul_temperature_flux_interface(
   const FixedVector<IntTabFT, 4>& interpolation_signed_independent_index = next_time ? cut_cell_facettes_interpolation.get_signed_independent_index_next() : cut_cell_facettes_interpolation.get_signed_independent_index_old();
   const FixedVector<DoubleTabFT, 4>& interpolation_coefficient = next_time ? cut_cell_facettes_interpolation.get_coefficient_next() : cut_cell_facettes_interpolation.get_coefficient_old();
 
-  const Maillage_FT_IJK& maillage = cut_cell_facettes_interpolation.maillage_ft_ijk();
-  const int nb_facettes = next_time ? maillage.nb_facettes() : maillage.nb_facettes_old();
-  const DoubleTab& normale_facettes = next_time ? maillage.get_update_normale_facettes() : maillage.get_normale_facettes_old();
+  const Maillage_FT_IJK& maillage = next_time ? cut_cell_facettes_interpolation.maillage_ft_ijk() : cut_cell_facettes_interpolation.old_maillage_ft_ijk();
+  const int nb_facettes = maillage.nb_facettes();
+  const DoubleTab& normale_facettes = maillage.get_update_normale_facettes();
 
   int number_of_interpolation_points = cut_cell_facettes_interpolation.get_number_of_interpolation_points();
 
@@ -334,7 +334,7 @@ void calcul_temperature_flux_interface(
 
       if (!cut_cell)
         {
-          Vecteur3 coords_fa7 = next_time ? maillage.coords_fa7(fa7) : maillage.coords_fa7_old(fa7);
+          Vecteur3 coords_fa7 = maillage.coords_fa7(fa7);
           Vecteur3 normal(normale_facettes, fa7);
 
           Vecteur3 coord_1v = Intersection_Interface_ijk_face::get_position_interpolation_normal_interf(coords_fa7, normal, -dist_1);

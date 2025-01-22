@@ -87,9 +87,6 @@ void Maillage_FT_Disc_Data_Cache::clear()
   surface_facettes_.resize_array(0);
   normale_facettes_.resize(0,0);
   courbure_sommets_.resize_array(0);
-  surface_facettes_old_.resize_array(0);
-  normale_facettes_old_.resize(0,0);
-  courbure_sommets_old_.resize_array(0);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -661,15 +658,23 @@ void Maillage_FT_Disc::recopie(const Maillage_FT_Disc& source, Statut_Maillage n
   desc_facettes_ = source.desc_facettes_;
   drapeaux_sommets_ = source.drapeaux_sommets_;
 
-  maillage_modifie(MINIMAL);
-
   if (niveau_copie > MINIMAL)
     {
-      Cerr << "Erreur dans Maillage_FT_Disc::recopie\n";
-      Cerr << " le niveau de copie > MINIMAL n'est pas implemente" << finl;
-      assert(0);
-      exit();
+      // Attention : le niveau de copie > MINIMAL est partiellement implemente.
+      // Toutes les donnees du Maillage_FT_Disc source ne sont pas copiees.
+
+      intersections_elem_facettes_ = source.intersections_elem_facettes();
+
+      source.get_update_surface_facettes();
+      source.get_update_normale_facettes();
+      source.get_update_courbure_sommets();
+
+      mesh_data_cache().surface_facettes_ = mesh_data_cache().surface_facettes_;
+      mesh_data_cache().normale_facettes_ = mesh_data_cache().normale_facettes_;
+      mesh_data_cache().courbure_sommets_ = mesh_data_cache().courbure_sommets_;
     }
+
+  maillage_modifie(niveau_copie);
 }
 
 //Cette methode ajoute le maillage de l'interface passe en parametre
@@ -1532,30 +1537,6 @@ double Maillage_FT_Disc::calcul_normale_3D(int num_facette, double norme[3]) con
   return l*0.5;
 }
 
-/*! @brief Met a jour la copie des intersections au pas de temps precedent.
- *
- * Doit etre appele avant le deplacement de l'interface.
- *
- */
-void Maillage_FT_Disc::update_old_intersections()
-{
-  intersections_elem_facettes_old_ = intersections_elem_facettes_;
-
-  // Attention : ces operations realisent des copies.
-  sommets_old_ = sommets_;
-  facettes_old_ = facettes_;
-
-  sommet_elem_old_ = sommet_elem_;
-
-  get_update_surface_facettes();
-  get_update_normale_facettes();
-  get_update_courbure_sommets();
-
-  mesh_data_cache().surface_facettes_old_ = mesh_data_cache().surface_facettes_;
-  mesh_data_cache().normale_facettes_old_ = mesh_data_cache().normale_facettes_;
-  mesh_data_cache().courbure_sommets_old_ = mesh_data_cache().courbure_sommets_;
-}
-
 /*! @brief Calcule la grandeur demandee, stocke le resultat dans un tableau interne a la classe et renvoie le resultat.
  *
  * Si le maillage
@@ -1688,18 +1669,6 @@ const DoubleTab& Maillage_FT_Disc::get_normale_facettes() const
   return data_cache.normale_facettes_;
 }
 
-const ArrOfDouble& Maillage_FT_Disc::get_surface_facettes_old() const
-{
-  const Maillage_FT_Disc_Data_Cache& data_cache = mesh_data_cache();
-  return data_cache.surface_facettes_old_;
-}
-
-const DoubleTab& Maillage_FT_Disc::get_normale_facettes_old() const
-{
-  const Maillage_FT_Disc_Data_Cache& data_cache = mesh_data_cache();
-  return data_cache.normale_facettes_old_;
-}
-
 Vecteur3 Maillage_FT_Disc::coords_fa7(int fa7) const
 {
   Vecteur3 coords_fa7(0.,0.,0.);
@@ -1708,24 +1677,6 @@ Vecteur3 Maillage_FT_Disc::coords_fa7(int fa7) const
       for (int som = 0; som < 3; som++)
         {
           coords_fa7[dir] += sommets_(facettes_(fa7, som), dir);
-        }
-    }
-
-  for (int dir = 0; dir < 3; dir++)
-    {
-      coords_fa7[dir] /= 3.;
-    }
-  return coords_fa7;
-}
-
-Vecteur3 Maillage_FT_Disc::coords_fa7_old(int fa7) const
-{
-  Vecteur3 coords_fa7(0.,0.,0.);
-  for (int dir = 0; dir < 3; dir++)
-    {
-      for (int som = 0; som < 3; som++)
-        {
-          coords_fa7[dir] += sommets_old_(facettes_old_(fa7, som), dir);
         }
     }
 
@@ -1854,15 +1805,6 @@ const DoubleTab& Maillage_FT_Disc::sommets() const
   return sommets_;
 }
 
-/*! @brief renvoie le tableau des sommets (reels et virtuels) au pas de temps precedent
- *
- */
-const DoubleTab& Maillage_FT_Disc::sommets_old() const
-{
-  assert(statut_ >= MINIMAL);
-  return sommets_old_;
-}
-
 /*! @brief renvoie le nombre de sommets (reels et virtuels) (egal a sommets().
  *
  * dimension(0))
@@ -1876,17 +1818,6 @@ int Maillage_FT_Disc::nb_sommets() const
   return sommets_.dimension(0);
 }
 
-/*! @brief renvoie le nombre de sommets (reels et virtuels) du pas de temps precedent
- *
- */
-int Maillage_FT_Disc::nb_sommets_old() const
-{
-  if (statut_< MINIMAL)
-    return 0;
-
-  return sommets_old_.dimension(0);
-}
-
 /*! @brief renvoie le tableau des facettes (reelles et virtuelles) dimension(0) = nombre de facettes,
  *
  *  dimension(1) = nombre de sommets par facette (2 en 2D, 3 en 3D)
@@ -1897,15 +1828,6 @@ const IntTab& Maillage_FT_Disc::facettes() const
 {
   assert(statut_ >= MINIMAL);
   return facettes_;
-}
-
-/*! @brief renvoie le tableau des facettes (reelles et virtuelles) au pas de temps precedent
- *
- */
-const IntTab& Maillage_FT_Disc::facettes_old() const
-{
-  assert(statut_ >= MINIMAL);
-  return facettes_old_;
 }
 
 /*! @brief renvoie le nombre de facettes (reelles et virtuelles) (egal a facettes().
@@ -1933,17 +1855,6 @@ int Maillage_FT_Disc::nb_facettes_reelles() const
         }
     }
   return compt;
-}
-
-/*! @brief renvoie le nombre de facettes (reelles et virtuelles) au pas de temps precedent
- *
- */
-int Maillage_FT_Disc::nb_facettes_old() const
-{
-  if (statut_< MINIMAL)
-    return 0;
-
-  return facettes_old_.dimension(0);
 }
 
 int Maillage_FT_Disc::nb_facettes_reelle_totale() const
@@ -2213,15 +2124,6 @@ const ArrOfInt& Maillage_FT_Disc::sommet_elem() const
 {
   assert(statut_ >= MINIMAL);
   return sommet_elem_;
-}
-
-/*! @brief pour postraitement, renvoie sommet_elem_old_
- *
- */
-const ArrOfInt& Maillage_FT_Disc::sommet_elem_old() const
-{
-  assert(statut_ >= MINIMAL);
-  return sommet_elem_old_;
 }
 
 /*! @brief pour postraitement, renvoie sommet_face_bord_
@@ -6599,12 +6501,6 @@ const Intersections_Elem_Facettes& Maillage_FT_Disc::intersections_elem_facettes
 {
   assert(statut_ >= PARCOURU);
   return intersections_elem_facettes_;
-}
-
-const Intersections_Elem_Facettes& Maillage_FT_Disc::intersections_elem_facettes_old() const
-{
-  assert(statut_ >= PARCOURU);
-  return intersections_elem_facettes_old_;
 }
 
 Transport_Interfaces_FT_Disc& Maillage_FT_Disc::equation_transport()

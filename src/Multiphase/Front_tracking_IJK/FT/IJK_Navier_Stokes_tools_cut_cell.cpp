@@ -447,11 +447,11 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
 
   const Cut_cell_FT_Disc& cut_cell_disc = field.get_cut_cell_disc();
 
-  const Maillage_FT_IJK& mesh = cut_cell_disc.get_interfaces().maillage_ft_ijk();
-  const IntTab& facettes = next_time ? mesh.facettes() : mesh.facettes_old();
-  const DoubleTab& sommets = next_time ? mesh.sommets() : mesh.sommets_old();
-  const ArrOfDouble& surface_facettes = next_time ? mesh.get_update_surface_facettes() : mesh.get_surface_facettes_old();
-  const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
+  const Maillage_FT_IJK& mesh = next_time ? cut_cell_disc.get_interfaces().maillage_ft_ijk() : cut_cell_disc.get_interfaces().old_maillage_ft_ijk();
+  const IntTab& facettes = mesh.facettes();
+  const DoubleTab& sommets = mesh.sommets();
+  const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
+  const Intersections_Elem_Facettes& intersec = mesh.intersections_elem_facettes();
 
   //const int ghost = field.ghost();
   const int ghost = cut_cell_disc.get_ghost_size();
@@ -616,7 +616,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
               // car il semble difficile de prendre en compte les facettes que le PE ne connait pas
               // et je suppose que l'on connait toutes les facettes associees a un sommet reel.
               // Cela veut dire qu'il y aura une difference entre sequentiel et parallele.
-              if (!mesh.sommet_virtuel_old(facettes(fa7, som)))
+              if (!mesh.sommet_virtuel(facettes(fa7, som)))
                 {
                   assert(number_of_involved_sommet < max_number_of_involved_sommet);
                   involved_sommet[number_of_involved_sommet].sommet = facettes(fa7, som);

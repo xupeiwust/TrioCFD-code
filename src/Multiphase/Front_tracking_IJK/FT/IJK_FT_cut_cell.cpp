@@ -94,7 +94,7 @@ void IJK_FT_cut_cell::run()
   cut_cell_disc_.initialise(interfaces_, splitting_, IJK_Splitting::ELEM);
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
-  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, splitting_ft_, interfaces_.maillage_ft_ijk());
+  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, splitting_ft_, interfaces_.maillage_ft_ijk(), interfaces_.old_maillage_ft_ijk());
 
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);

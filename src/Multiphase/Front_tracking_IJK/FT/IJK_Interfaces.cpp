@@ -983,6 +983,11 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   parcours_.associer_connectivite_frontieres(connectivite_frontieres_);
 
   maillage_ft_ijk_.initialize(splitting_FT, domaine_dis, parcours_);
+  if (cut_cell_activated_)
+    {
+      old_maillage_ft_ijk_.initialize(splitting_FT, domaine_dis, parcours_);
+    }
+
   // Lecture du maillage initial:
   maillage_ft_ijk_.lire_maillage_ft_dans_lata(fichier_reprise_interface_,
                                               timestep_reprise_interface_,
@@ -8443,7 +8448,7 @@ double IJK_Interfaces::get_barycentre_face(bool next_time, int face_dir, int bar
 // Copie de l'interface et des intersections associees au pas de temps precedent
 void IJK_Interfaces::update_old_intersections()
 {
-  maillage_ft_ijk_.update_old_intersections();
+  old_maillage_ft_ijk_.recopie(maillage_ft_ijk_, Maillage_FT_Disc::COMPLET);
 }
 
 void IJK_Interfaces::switch_indicatrice_next_old()

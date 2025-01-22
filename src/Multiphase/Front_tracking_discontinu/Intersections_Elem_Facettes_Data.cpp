@@ -186,7 +186,11 @@ const Intersections_Elem_Facettes& Intersections_Elem_Facettes::operator=(const 
   if (&ief != this)
     {
       index_elem_facette_ = ief.index_elem();
-      assert(index_elem_facette_.size_array()>0);
+      if (ief.index_elem().size_array() > 0)
+        {
+          assert(index_elem_facette_.size_array() > 0);
+        }
+
       index_facette_element_ = ief.index_facette();
       data_allocated_size = ief.data_allocated_size;
       data_real_size = ief.data_real_size;

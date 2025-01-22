@@ -49,12 +49,13 @@ void Facettes_Interp_FT::set_param(Param& param)
   param.ajouter("scaled_distance_interpolation_2", &scaled_distance_interpolation_2_);
 }
 
-void Facettes_Interp_FT::associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting_ft, const Maillage_FT_IJK& maillage_ft_ijk)
+void Facettes_Interp_FT::associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting_ft, const Maillage_FT_IJK& maillage_ft_ijk, const Maillage_FT_IJK& old_maillage_ft_ijk)
 {
   ref_interfaces_ = interfaces;
   ref_cut_cell_disc_ = cut_cell_disc;
   ref_splitting_ = splitting_ft;
   ref_maillage_ft_ijk_ = maillage_ft_ijk;
+  ref_old_maillage_ft_ijk_ = old_maillage_ft_ijk;
 }
 
 void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes_next(int old_en_premier /* next() */)
@@ -81,7 +82,7 @@ void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes_old(bool not_ol
   cut_cell_perform_interpolation_facettes(false,
                                           ref_cut_cell_disc_,
                                           ref_splitting_->get_grid_geometry(),
-                                          ref_maillage_ft_ijk_.valeur(),
+                                          ref_old_maillage_ft_ijk_.valeur(),
                                           interpolation_coord_[old()],
                                           signed_independent_index_[old()],
                                           coefficient_[old()]);
@@ -97,7 +98,7 @@ void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes(bool next_time,
 {
   const double dist_1 = get_distance_interpolation_1();
   const double dist_2 = get_distance_interpolation_2();
-  const DoubleTab& normale_facettes = next_time ? maillage.get_update_normale_facettes() : maillage.get_normale_facettes_old();
+  const DoubleTab& normale_facettes = maillage.get_update_normale_facettes();
 
   if (number_of_interpolation_points_ == 1)
     {
@@ -139,12 +140,12 @@ void Facettes_Interp_FT::calcul_coefficient_interpolation_facette_cut_cell(
   FixedVector<IntTabFT, 4>& cut_cell_facettes_interpolation_signed_independent_index,
   FixedVector<DoubleTabFT, 4>& cut_cell_facettes_interpolation_coefficient)
 {
-  const int nb_facettes = next_time ? maillage.nb_facettes() : maillage.nb_facettes_old();
+  const int nb_facettes = maillage.nb_facettes();
   interpolation_coord[1].resize(nb_facettes, 3);
   interpolation_coord[0].resize(nb_facettes, 3);
   for (int fa7 = 0; fa7 < nb_facettes; fa7++)
     {
-      Vecteur3 coords_fa7 = next_time ? maillage.coords_fa7(fa7) : maillage.coords_fa7_old(fa7);
+      Vecteur3 coords_fa7 = maillage.coords_fa7(fa7);
       Vecteur3 normal(normal_on_interf, fa7);
 
       Vecteur3 interp_1 = Intersection_Interface_ijk_face::get_position_interpolation_normal_interf(coords_fa7, normal, dist);
@@ -178,14 +179,14 @@ void Facettes_Interp_FT::calcul_coefficient_interpolation_facette_cut_cell_secon
   FixedVector<IntTabFT, 4>& cut_cell_facettes_interpolation_signed_independent_index,
   FixedVector<DoubleTabFT, 4>& cut_cell_facettes_interpolation_coefficient)
 {
-  const int nb_facettes = next_time ? maillage.nb_facettes() : maillage.nb_facettes_old();
+  const int nb_facettes = maillage.nb_facettes();
   interpolation_coord[1].resize(nb_facettes, 3);
   interpolation_coord[0].resize(nb_facettes, 3);
   interpolation_coord[3].resize(nb_facettes, 3);
   interpolation_coord[2].resize(nb_facettes, 3);
   for (int fa7 = 0; fa7 < nb_facettes; fa7++)
     {
-      Vecteur3 coords_fa7 = next_time ? maillage.coords_fa7(fa7) : maillage.coords_fa7_old(fa7);
+      Vecteur3 coords_fa7 = maillage.coords_fa7(fa7);
       Vecteur3 normal(normal_on_interf, fa7);
 
       Vecteur3 interp_1 = Intersection_Interface_ijk_face::get_position_interpolation_normal_interf(coords_fa7, normal, dist_1);
