@@ -945,7 +945,6 @@ static void ijk_interpolate_one_value(bool next_time, const Cut_cell_FT_Disc& cu
         }
     }
 
-  // :integration(Dorian) FT mesh and NS mesh are assumed to be identical.
   double indic_0  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j,   index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j,   index_k));
   double indic_1  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i+1, index_j,   index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i+1, index_j,   index_k));
   double indic_2  = next_time ? (1 - cut_cell_disc.get_interfaces().In_ft(index_i,   index_j+1, index_k))   : (1 - cut_cell_disc.get_interfaces().I_ft(index_i,   index_j+1, index_k));

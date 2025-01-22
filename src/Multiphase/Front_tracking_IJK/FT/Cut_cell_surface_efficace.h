@@ -127,13 +127,6 @@ public:
     const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face,
     const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial);
 
-  static void calcul_vitesse_remaillage(double timestep,
-                                        const IJK_Field_double& indicatrice_avant_remaillage,
-                                        const IJK_Field_double& indicatrice_apres_remaillage,
-                                        const IJK_Field_double& indicatrice_fin_pas_de_temps,
-                                        DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_remaillage_face,
-                                        Cut_field_vector3_double& remeshing_velocity);
-
   static void calcul_delta_volume_theorique_bilan(int compo, const DoubleTab& bounding_box_bulles, double timestep,
                                                   const IJK_Field_double& indicatrice_avant_deformation,
                                                   const IJK_Field_double& indicatrice_apres_deformation,

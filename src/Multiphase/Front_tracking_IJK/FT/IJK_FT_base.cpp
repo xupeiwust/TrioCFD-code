@@ -3624,19 +3624,10 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
 
       interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
 
-      interfaces_.transferer_bulle_perio();
-      interfaces_.creer_duplicata_bulles();
-
-      update_pre_remeshing_indicator_field();
-
-      interfaces_.supprimer_duplicata_bulles();
-
       interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
 
       interfaces_.transferer_bulle_perio();
       interfaces_.creer_duplicata_bulles();
-
-      update_post_remeshing_indicator_field();
     }
 
   // On supprime les fragments de bulles.
@@ -3729,11 +3720,7 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
 
       interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
 
-      update_pre_remeshing_indicator_field();
-
       interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
-
-      update_post_remeshing_indicator_field();
     }
 
   statistiques().end_count(deplacement_interf_counter_);

@@ -71,16 +71,6 @@ public :
     const Cut_field_vector3_double& cut_field_velocity = static_cast<const Cut_field_vector3_double&>(velocity_);
     return cut_field_velocity;
   }
-  const Cut_field_vector3_double& get_cut_field_remeshing_velocity() const
-  {
-    const Cut_field_vector3_double& cut_field_remeshing_velocity = static_cast<const Cut_field_vector3_double&>(remeshing_velocity_);
-    return cut_field_remeshing_velocity;
-  }
-  const Cut_field_vector3_double& get_cut_field_total_velocity() const
-  {
-    const Cut_field_vector3_double& cut_field_total_velocity = static_cast<const Cut_field_vector3_double&>(total_velocity_);
-    return cut_field_total_velocity;
-  }
   // Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   const Facettes_Interp_FT& get_cut_cell_facettes_interpolation() const
   {
@@ -103,14 +93,10 @@ protected :
   friend class IJK_FT_Post;
   Cut_cell_FT_Disc cut_cell_disc_;
 
-  IJK_Field_vector3_double remeshing_velocity_;
-  IJK_Field_vector3_double total_velocity_;
-
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 
   TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
   TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
-  int deactivate_remeshing_velocity_ = 0;
 
   double seuil_indicatrice_petite_fixe_ = -1;   // Valeur predefinie du seuil
   double seuil_indicatrice_petite_facsec_ = -1; // Valeur du seuil exprimee relativement au facsec

@@ -167,7 +167,6 @@ public :
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
 
-  void calcul_vitesse_remaillage(double timestep, Cut_field_vector3_double& remeshing_velocity);
   void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity);
   void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector3_double& velocity);
   void calcul_surface_efficace_face_initial(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face);

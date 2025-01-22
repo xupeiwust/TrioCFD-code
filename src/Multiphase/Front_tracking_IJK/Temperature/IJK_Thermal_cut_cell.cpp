@@ -334,7 +334,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
 
   update_thermal_properties();
 
-  const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_total_velocity();
+  const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_velocity();
 
   const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
 

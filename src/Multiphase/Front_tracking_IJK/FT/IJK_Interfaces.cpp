@@ -554,19 +554,6 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
   Cerr << "     total    " << count_total  << finl;
 }
 
-void IJK_Interfaces::calcul_vitesse_remaillage(double timestep, Cut_field_vector3_double& remeshing_velocity)
-{
-  // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
-  // (Appel prealable a calcul_surface_efficace_face_initial())
-
-  Cut_cell_surface_efficace::calcul_vitesse_remaillage(timestep,
-                                                       indicatrice_avant_remaillage_ns_,
-                                                       indicatrice_apres_remaillage_ns_,
-                                                       indicatrice_ns_[next()],
-                                                       indicatrice_surfacique_efficace_face_initial_,
-                                                       remeshing_velocity);
-}
-
 void IJK_Interfaces::calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity)
 {
   // Attention : suppose que indicatrice_surfacique_efficace_face_/initial_ est correctement initialisee.
