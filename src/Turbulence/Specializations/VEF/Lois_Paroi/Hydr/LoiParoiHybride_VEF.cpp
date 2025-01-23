@@ -35,7 +35,7 @@ Sortie& LoiParoiHybride_VEF::printOn(Sortie& s) const
 
 Entree& LoiParoiHybride_VEF::readOn(Entree& s)
 {
-  const int nbord = le_dom_VEF->nb_front_Cl();
+  const int nbord = le_dom_dis_->nb_front_Cl();
   Noms noms(nbord);
   for (int ibord=0; ibord<nbord; ibord++)
     {
@@ -50,7 +50,7 @@ Entree& LoiParoiHybride_VEF::readOn(Entree& s)
 void LoiParoiHybride_VEF::associer(const Domaine_dis_base& zd, const Domaine_Cl_dis_base& zcl)
 {
   LoiParoiHybride::associer(zd,zcl);
-  le_dom_VEF = ref_cast(Domaine_VEF,zd);
+  le_dom_dis_ = ref_cast(Domaine_VEF,zd);
   le_dom_Cl_VEF = ref_cast(Domaine_Cl_VEF,zcl);
 }
 
@@ -59,27 +59,27 @@ int LoiParoiHybride_VEF::init_lois_paroi()
 {
   LoiParoiHybride::init_lois_paroi();
 
-  Cisaillement_paroi_.resize(le_dom_VEF->nb_faces_bord(),dimension);
+  Cisaillement_paroi_.resize(le_dom_dis_->nb_faces_bord(),dimension);
   return 1;
 }
 
 int LoiParoiHybride_VEF::calculer_hyd(DoubleTab& tab1)
 {
-  LoiParoiHybride::calculer_hyd(tab1, le_dom_VEF.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
+  LoiParoiHybride::calculer_hyd(tab1, le_dom_dis_.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
 
   return 1;
 }
 
 int LoiParoiHybride_VEF::calculer_hyd(DoubleTab& tab1, DoubleTab& tab2)
 {
-  LoiParoiHybride::calculer_hyd(tab1, tab2, le_dom_VEF.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
+  LoiParoiHybride::calculer_hyd(tab1, tab2, le_dom_dis_.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
 
   return 1;
 }
 
 int LoiParoiHybride_VEF::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
 {
-  LoiParoiHybride::calculer_hyd_BiK(tab_k, tab_eps, le_dom_VEF.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
+  LoiParoiHybride::calculer_hyd_BiK(tab_k, tab_eps, le_dom_dis_.valeur(), le_dom_Cl_VEF.valeur(), Cisaillement_paroi_);
 
   return 1;
 }

@@ -59,7 +59,7 @@ void Paroi_2couches_VDF::set_param(Param& param)
 
 int Paroi_2couches_VDF::init_lois_paroi()
 {
-  uplus_.resize(le_dom_VDF->nb_faces_bord());
+  uplus_.resize(le_dom_dis_->nb_faces_bord());
   init_lois_paroi_();
 
   return init_lois_paroi_hydraulique();
@@ -89,7 +89,7 @@ int Paroi_2couches_VDF::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
 int Paroi_2couches_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k_eps)
 {
   //Cerr << "Dans Paroi_2couches_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k) : Ok ! " << finl;
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
@@ -146,7 +146,7 @@ int Paroi_2couches_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k_eps)
       // On applique les lois de paroi uniquement
       // aux voisinages des parois
 
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       //      Cerr << "n = " << n_bord << " = " << la_cl.valeur() << finl;
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
@@ -684,7 +684,7 @@ int Paroi_2couches_VDF::calculer_u_star_sous_couche_log(double norm_vit,double d
 
 void Paroi_2couches_VDF::imprimer_ustar(Sortie& os) const
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   int ndeb,nfin;
   double upmoy,dpmoy,utaumoy;
   upmoy=0.;
@@ -697,7 +697,7 @@ void Paroi_2couches_VDF::imprimer_ustar(Sortie& os) const
 
   for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       if ( (sub_type(Dirichlet_paroi_fixe,la_cl.valeur())) ||
            (sub_type(Dirichlet_paroi_defilante,la_cl.valeur()) ))
         {

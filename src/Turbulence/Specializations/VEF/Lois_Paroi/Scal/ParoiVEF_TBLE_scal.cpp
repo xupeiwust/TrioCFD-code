@@ -101,7 +101,8 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
 
   // Pour passer a l'echange contact pour imposer la temperature a l'interface.
 
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
+
   const IntTab& face_voisins = domaine_VEF.face_voisins();
   const IntTab& elem_faces = domaine_VEF.elem_faces();
   const Domaine& domaine = domaine_VEF.domaine();
@@ -122,7 +123,7 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
     }
 
   Paroi_std_scal_hyd_VEF::init_lois_paroi();
-  Paroi_TBLE_QDM_Scal::init_lois_paroi(domaine_VEF, le_dom_Cl_VEF.valeur());
+  Paroi_TBLE_QDM_Scal::init_lois_paroi(domaine_VEF, le_dom_Cl_dis_.valeur());
 
   int compteur_faces_paroi = 0;
   int elem;
@@ -142,7 +143,7 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
 
   for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VEF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
           const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
@@ -259,7 +260,7 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
   // Boucle sur les bords:
   for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VEF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
       int size=le_bord.nb_faces_tot();
       for (int ind_face=0; ind_face<size; ind_face++)
@@ -288,7 +289,8 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
 
 int ParoiVEF_TBLE_scal::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 {
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
+
   const IntTab& face_voisins = domaine_VEF.face_voisins();
   const IntTab& elem_faces = domaine_VEF.elem_faces();
   const Domaine& domaine = domaine_VEF.domaine();
@@ -332,7 +334,7 @@ int ParoiVEF_TBLE_scal::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 
   for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VEF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -492,7 +494,8 @@ int ParoiVEF_TBLE_scal::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 
 int ParoiVEF_TBLE_scal::calculer_stats()
 {
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
+
   const DoubleTab& face_normale = domaine_VEF.face_normales();
 
   const Convection_Diffusion_std& eqn_temp = mon_modele_turb_scal->equation();
@@ -608,19 +611,20 @@ void ParoiVEF_TBLE_scal::imprimer_nusselt(Sortie& os) const
 
 int ParoiVEF_TBLE_scal::sauvegarder(Sortie& os) const
 {
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
+
   double tps =  mon_modele_turb_scal->equation().inconnue().temps();
-  return Paroi_TBLE_QDM_Scal::sauvegarder(os, domaine_VEF, le_dom_Cl_VEF.valeur(), tps);
+  return Paroi_TBLE_QDM_Scal::sauvegarder(os, domaine_VEF, le_dom_Cl_dis_.valeur(), tps);
 }
 
 
 int ParoiVEF_TBLE_scal::reprendre(Entree& is)
 {
-  if (le_dom_VEF.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
+  if (le_dom_dis_.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
     {
-      const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+      const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
       double tps_reprise = mon_modele_turb_scal->equation().schema_temps().temps_courant();
-      return Paroi_TBLE_QDM_Scal::reprendre(is, domaine_VEF, le_dom_Cl_VEF.valeur(), tps_reprise);
+      return Paroi_TBLE_QDM_Scal::reprendre(is, domaine_VEF, le_dom_Cl_dis_.valeur(), tps_reprise);
     }
   return 1;
 }

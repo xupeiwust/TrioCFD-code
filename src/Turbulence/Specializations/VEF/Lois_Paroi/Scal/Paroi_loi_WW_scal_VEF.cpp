@@ -52,8 +52,8 @@ Entree& Paroi_loi_WW_scal_VEF::readOn(Entree& s)
 
 void Paroi_loi_WW_scal_VEF::associer(const Domaine_dis_base& domaine_dis,const Domaine_Cl_dis_base& domaine_Cl_dis)
 {
-  le_dom_VEF = ref_cast(Domaine_VEF,domaine_dis);
-  le_dom_Cl_VEF = ref_cast(Domaine_Cl_VEF,domaine_Cl_dis);
+  le_dom_dis_ = ref_cast(Domaine_VF, domaine_dis);
+  le_dom_Cl_dis_ = domaine_Cl_dis;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ double FthparVEF_WW(double y_plus,double Pr,double Beta)
 
 int Paroi_loi_WW_scal_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 {
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
   DoubleTab& alpha_t = diffusivite_turb.valeurs();
   Equation_base& eqn_hydr = mon_modele_turb_scal->equation().probleme().equation(0);
   const Fluide_base& le_fluide = ref_cast(Fluide_base,eqn_hydr.milieu());
@@ -139,7 +139,7 @@ int Paroi_loi_WW_scal_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
       // Si l'on est a une paroi a flux impose, le flux est connu et il est
       // directement pris a la condition aux limites pour le calcul des flux diffusifs.
 
-      const Cond_lim& la_cl = le_dom_Cl_VEF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       if ( (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()))
            || (sub_type(Dirichlet_paroi_defilante,la_cl.valeur())) )
         {

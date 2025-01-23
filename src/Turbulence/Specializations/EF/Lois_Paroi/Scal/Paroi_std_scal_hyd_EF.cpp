@@ -90,7 +90,7 @@ int Paroi_std_scal_hyd_EF::init_lois_paroi()
 
 int Paroi_std_scal_hyd_EF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 {
-  const Domaine_EF& domaine_EF = le_dom_EF.valeur();
+  const Domaine_EF& domaine_EF = ref_cast(Domaine_EF, le_dom_dis_.valeur());
   const IntTab& face_voisins = domaine_EF.face_voisins();
   DoubleTab& alpha_t = diffusivite_turb.valeurs();
   Equation_base& eqn_hydr = mon_modele_turb_scal->equation().probleme().equation(0);
@@ -170,7 +170,7 @@ int Paroi_std_scal_hyd_EF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
       // pour chaque condition limite on regarde son type
       // On applique les lois de paroi uniquement
       // aux voisinages des parois
-      const Cond_lim& la_cl = le_dom_Cl_EF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
       if ( (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()))
            || (sub_type(Dirichlet_paroi_defilante,la_cl.valeur()))
            || (sub_type(Symetrie,la_cl.valeur()))

@@ -225,7 +225,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 //#################################################################
 {
 
-  Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const int nb_face = domaine_VDF.nb_faces();
 

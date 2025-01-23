@@ -102,7 +102,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
 {
   Cerr << "debut init_lois_paroi" << finl;
 
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
@@ -116,11 +116,11 @@ int ParoiVDF_TBLE::init_lois_paroi()
 
 
   init_lois_paroi_();
-  Paroi_TBLE_QDM::init_lois_paroi(domaine_VDF, le_dom_Cl_VDF.valeur());
+  Paroi_TBLE_QDM::init_lois_paroi(domaine_VDF, le_dom_Cl_dis_.valeur());
 
 
 
-  corresp.resize(le_dom_VDF->nb_faces_bord()); // Ce tableau ete introduit a l origine pour les termes convectifs
+  corresp.resize(le_dom_dis_->nb_faces_bord()); // Ce tableau ete introduit a l origine pour les termes convectifs
   // On le garde ?
   compteur_faces_paroi = 0; //Reinitialisation de compteur_faces_paroi
 
@@ -128,7 +128,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
 
   for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -156,7 +156,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
       // On applique les lois de paroi uniquement
       // aux voisinages des parois
 
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -349,7 +349,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
 {
 // on est dans le cas k-eps
 
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
@@ -443,7 +443,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
       // On applique les lois de paroi uniquement
       // aux voisinages des parois
 
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -459,7 +459,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
 
           if(dimension == 2)
             {
-              //eq_vit.dimensionner(2*le_dom_VDF->nb_faces_bord());
+              //eq_vit.dimensionner(2*le_dom_dis_->nb_faces_bord());
 
               //Boucle sur les faces des bords parietaux
 
@@ -896,7 +896,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
       }
   */
 
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
@@ -990,7 +990,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
       // On applique les lois de paroi uniquement
       // aux voisinages des parois
 
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -1006,7 +1006,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
 
           if(dimension == 2)
             {
-              //eq_vit.dimensionner(2*le_dom_VDF->nb_faces_bord());
+              //eq_vit.dimensionner(2*le_dom_dis_->nb_faces_bord());
 
               //Boucle sur les faces des bords parietaux
 
@@ -1466,7 +1466,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
 
 int ParoiVDF_TBLE::calculer_stats()
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
 
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
@@ -1544,7 +1544,7 @@ void ParoiVDF_TBLE::imprimer_ustar(Sortie& os) const
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const double tps = eqn_hydr.inconnue().temps();
 
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntVect& orientation = domaine_VDF.orientation();
 
   for(int j=0; j<nb_post_pts; j++)
@@ -1587,19 +1587,19 @@ void ParoiVDF_TBLE::imprimer_ustar(Sortie& os) const
 
 int ParoiVDF_TBLE::sauvegarder(Sortie& os) const
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   double tps =  mon_modele_turb_hyd->equation().inconnue().temps();
-  return Paroi_TBLE_QDM::sauvegarder(os, domaine_VDF, le_dom_Cl_VDF.valeur(), tps);
+  return Paroi_TBLE_QDM::sauvegarder(os, domaine_VDF, le_dom_Cl_dis_.valeur(), tps);
 }
 
 
 int ParoiVDF_TBLE::reprendre(Entree& is)
 {
-  if (le_dom_VDF.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
+  if (le_dom_dis_.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
     {
-      const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+      const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
       double tps_reprise = mon_modele_turb_hyd->equation().schema_temps().temps_courant();
-      return Paroi_TBLE_QDM::reprendre(is, domaine_VDF, le_dom_Cl_VDF.valeur(), tps_reprise);
+      return Paroi_TBLE_QDM::reprendre(is, domaine_VDF, le_dom_Cl_dis_.valeur(), tps_reprise);
     }
   else return 1;
 }
@@ -1612,7 +1612,7 @@ const Probleme_base& ParoiVDF_TBLE::getPbBase() const
 
 void ParoiVDF_TBLE::calculer_convection(int num_face, int face1, int face2, int face3, int face4, int elem, int ndeb, int nfin, int ori, double gradient_de_pression0, double ts0, double gradient_de_pression1, double ts1)
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
   double d0d0_1=0;

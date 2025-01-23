@@ -74,7 +74,7 @@ double norm_vit_lp(const ArrOfDouble& vit,int face,const Domaine_VEF& domaine,Ar
 
 int Paroi_std_hyd_VEF_diphasique::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
 {
-  const Domaine_VEF& domaine_VEF = le_dom_VEF.valeur();
+  const Domaine_VEF& domaine_VEF = ref_cast(Domaine_VEF, le_dom_dis_.valeur());
   const IntTab& face_voisins = domaine_VEF.face_voisins();
   const Equation_base& eqn_hydr = mon_modele_turb_hyd->equation();
   const DoubleTab& vitesse = eqn_hydr.inconnue().valeurs();
@@ -135,7 +135,7 @@ int Paroi_std_hyd_VEF_diphasique::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& ta
   int nb_bords=domaine_VEF.nb_front_Cl();
   for (int n_bord=0; n_bord<nb_bords; n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VEF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       // Only Dirichlet conditions:
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) || (sub_type(Dirichlet_paroi_defilante,la_cl.valeur())))

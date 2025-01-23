@@ -128,7 +128,8 @@ int Paroi_TBLE_scal_VDF::init_lois_paroi()
   int ndeb,nfin;
   int elem;
   double dist; //distance du premier centre de maille a la paroi
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   int nb_elems = domaine_VDF.nb_elem();
   const DoubleVect& volumes = domaine_VDF.volumes();
@@ -149,18 +150,18 @@ int Paroi_TBLE_scal_VDF::init_lois_paroi()
     }
 
   Paroi_std_scal_hyd_VDF::init_lois_paroi();
-  Paroi_TBLE_QDM_Scal::init_lois_paroi(domaine_VDF, le_dom_Cl_VDF.valeur());
+  Paroi_TBLE_QDM_Scal::init_lois_paroi(domaine_VDF, le_dom_Cl_dis_.valeur());
 
   int compteur_faces_paroi = 0;
 
-  corresp.resize(le_dom_VDF->nb_faces_bord());
+  corresp.resize(le_dom_dis_->nb_faces_bord());
 
   SFichier fic_corresp("corresp.dat",ios::app); // impression de la correspondance
 
 
   for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
 
@@ -191,7 +192,7 @@ int Paroi_TBLE_scal_VDF::init_lois_paroi()
 
   for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
@@ -250,7 +251,8 @@ int Paroi_TBLE_scal_VDF::init_lois_paroi()
 
 int Paroi_TBLE_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const int nb_elems = domaine_VDF.nb_elem();
   const IntVect& orientation = domaine_VDF.orientation();
@@ -306,7 +308,7 @@ int Paroi_TBLE_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 
   for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
     {
-      const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+      const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
       if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
         {
@@ -451,7 +453,8 @@ int Paroi_TBLE_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
 
 int Paroi_TBLE_scal_VDF::calculer_stats()
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
   const IntVect& orientation = domaine_VDF.orientation();
 
   const Convection_Diffusion_std& eqn_temp = mon_modele_turb_scal->equation();
@@ -543,19 +546,21 @@ void Paroi_TBLE_scal_VDF::imprimer_nusselt(Sortie& os) const
 
 int Paroi_TBLE_scal_VDF::sauvegarder(Sortie& os) const
 {
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
   double tps =  mon_modele_turb_scal->equation().inconnue().temps();
-  return Paroi_TBLE_QDM_Scal::sauvegarder(os, domaine_VDF, le_dom_Cl_VDF.valeur(), tps);
+  return Paroi_TBLE_QDM_Scal::sauvegarder(os, domaine_VDF, le_dom_Cl_dis_.valeur(), tps);
 }
 
 
 int Paroi_TBLE_scal_VDF::reprendre(Entree& is)
 {
-  if (le_dom_VDF.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
+  if (le_dom_dis_.non_nul()) // test pour ne pas planter dans "avancer_fichier(...)"
     {
-      const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+      const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
       double tps_reprise = mon_modele_turb_scal->equation().schema_temps().temps_courant();
-      return Paroi_TBLE_QDM_Scal::reprendre(is, domaine_VDF, le_dom_Cl_VDF.valeur(), tps_reprise);
+      return Paroi_TBLE_QDM_Scal::reprendre(is, domaine_VDF, le_dom_Cl_dis_.valeur(), tps_reprise);
     }
   return 1;
 }
@@ -569,7 +574,8 @@ void Paroi_TBLE_scal_VDF::calculer_convection(int compteur_faces_paroi, int elem
   const Modele_turbulence_hyd_base& mod_turb_hydr = ref_cast(Modele_turbulence_hyd_base,modele_turbulence_hydr.valeur());
   const Turbulence_paroi_base& loi = mod_turb_hydr.loi_paroi();
   ParoiVDF_TBLE& loi_tble_hyd = ref_cast_non_const(ParoiVDF_TBLE,loi);
-  const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
+  const Domaine_VDF& domaine_VDF = ref_cast(Domaine_VDF, le_dom_dis_.valeur());
+
   const IntTab& face_voisins = domaine_VDF.face_voisins();
   const IntTab& elem_faces = domaine_VDF.elem_faces();
   const IntVect& orientation = domaine_VDF.orientation();
@@ -748,7 +754,7 @@ Eq_couch_lim& Paroi_TBLE_scal_VDF::get_eq_couch_lim(int i)
 
    for (int n_bord=0; n_bord<domaine_VDF.nb_front_Cl(); n_bord++)
    {
-   const Cond_lim& la_cl = le_dom_Cl_VDF->les_conditions_limites(n_bord);
+   const Cond_lim& la_cl = le_dom_Cl_dis_->les_conditions_limites(n_bord);
 
    if (sub_type(Dirichlet_paroi_fixe,la_cl.valeur()) )
    {
