@@ -421,6 +421,8 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
   if (!conv_temperature_negligible_)
     {
       convective_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_convection_, current_fluxes_conv_);
+      cut_field_temperature.echange_diph_vers_pure_cellules_finalement_pures();
+      cut_field_temperature.remplir_tableau_pure_cellules_diphasiques(true /* next time */);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 
@@ -505,6 +507,8 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
   if (!diff_temperature_negligible_ && (!diffusive_correction_.deactivate_correction_petites_cellules_diffusion_))
     {
       diffusive_correction_.add_small_nascent_cells(cut_field_total_velocity, cut_field_temperature, runge_kutta_fluxes_diffusion_, current_fluxes_diff_);
+      cut_field_temperature.echange_diph_vers_pure_cellules_finalement_pures();
+      cut_field_temperature.remplir_tableau_pure_cellules_diphasiques(true /* next time */);
       cut_field_temperature.echange_espace_virtuel(temperature_->ghost());
     }
 

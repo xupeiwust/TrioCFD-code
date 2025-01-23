@@ -97,6 +97,41 @@ void Cut_field_template<_TYPE_,_TYPE_ARRAY_>::echange_pure_vers_diph_cellules_in
 }
 
 template<typename _TYPE_, typename _TYPE_ARRAY_>
+bool Cut_field_template<_TYPE_,_TYPE_ARRAY_>::check_agreement_diph_pure_cellules_initialement_pures() const
+{
+  int statut_diphasique_monophasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MONOPHASIQUE);
+  int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
+  assert(statut_diphasique_naissant == statut_diphasique_monophasique + 1);
+  int index_min = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_monophasique);
+  int index_max = cut_cell_disc_->get_statut_diphasique_value_index(statut_diphasique_naissant+1);
+  for (int index = index_min; index < index_max; index++)
+    {
+      int n = cut_cell_disc_->get_n_from_statut_diphasique_index(index);
+
+      Int3 ijk = cut_cell_disc_->get_ijk(n);
+      int i = ijk[0];
+      int j = ijk[1];
+      int k = ijk[2];
+
+      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+        continue;
+
+      double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
+      assert(cut_cell_disc_->get_interfaces().est_pure(indicatrice));
+      // On garde les donnees de la cellule diphasique pour pure
+      int phase_pure = IJK_Interfaces::convert_indicatrice_to_phase(indicatrice);
+      double diph_value = (phase_pure == 0) ? diph_v_(n) : diph_l_(n);
+      if (diph_value != pure_(i,j,k))
+        {
+          assert(0);
+          return 0;
+        }
+    }
+
+  return 1;
+}
+
+template<typename _TYPE_, typename _TYPE_ARRAY_>
 bool Cut_field_template<_TYPE_,_TYPE_ARRAY_>::check_agreement_diph_pure_cellules_finalement_pures() const
 {
   int statut_diphasique_mourrant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);

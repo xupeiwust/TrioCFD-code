@@ -60,6 +60,7 @@ public :
 
   void echange_pure_vers_diph_cellules_initialement_pures();
 
+  bool check_agreement_diph_pure_cellules_initialement_pures() const;
   bool check_agreement_diph_pure_cellules_finalement_pures() const;
   void echange_diph_vers_pure_cellules_finalement_pures();
 

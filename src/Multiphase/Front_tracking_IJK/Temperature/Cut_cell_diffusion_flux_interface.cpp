@@ -87,7 +87,15 @@ void calculer_flux_interface_sur_facettes(METHODE_FLUX_INTERFACE methode_flux_in
 
       if (!cut_cell)
         {
-          assert(cut_field_temperature.check_agreement_diph_pure_cellules_finalement_pures());
+          if (next_time)
+            {
+              assert(cut_field_temperature.check_agreement_diph_pure_cellules_finalement_pures());
+            }
+          else
+            {
+              assert(cut_field_temperature.check_agreement_diph_pure_cellules_initialement_pures());
+            }
+
           assert(cut_field_temperature.check_agreement_tableau_pure_cellules_diphasiques(next_time));
         }
 
