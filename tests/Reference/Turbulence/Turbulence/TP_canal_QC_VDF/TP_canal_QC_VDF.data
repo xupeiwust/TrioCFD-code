@@ -156,7 +156,8 @@ Fluide_Quasi_Compressible
                 modele_turbulence Prandtl
                 {
                         Turbulence_paroi loi_standard_hydr_scalaire
-                                dt_impr_nusselt 0.1
+                        dt_impr_nusselt 0.1
+                        dt_impr_nusselt_mean_only { dt_impr 0.1 }
                 }
         }
 

@@ -138,6 +138,7 @@ Read pb
 					{
 					turbulence_paroi loi_standard_hydr_scalaire
 					dt_impr_nusselt 20
+					dt_impr_nusselt_mean_only { dt_impr 20 boundaries 2 Haut Bas }
 					}
 		Sources			{
 						puissance_thermique champ_uniforme 1 1 ,
