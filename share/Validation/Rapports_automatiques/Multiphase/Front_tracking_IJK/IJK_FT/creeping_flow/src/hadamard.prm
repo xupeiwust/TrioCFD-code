@@ -1,10 +1,11 @@
+# DISABLE_PARALLEL_RUN #
 Parameters {
-	Title "Creeping flow around a bubble. Validation on Hadamard solution."
-	Author "Guillaume Bois"
-	Testcase . single_Re01
-	Testcase R single_Re01
-	Testcase REFINE switch
-	Testcase REFINE single_Re01 8
+    Title "Creeping flow around a bubble. Validation on Hadamard solution."
+    Author "Guillaume Bois"
+    Testcase . single_Re01
+    Testcase R single_Re01
+    Testcase REFINE switch
+    Testcase REFINE single_Re01 8
 }
 Chapitre {
         Titre "Hadamard"
@@ -27,8 +28,8 @@ EOF
                 mesh        single_Re01.lata DOM
                 mesh        single_Re01.lata INTERFACES
                 pseudocolor single_Re01.lata INTERFACES COURBURE SOM
-		pseudocolor single_Re01.lata DOM_dual VELOCITY_X FACES
-		Operator    Slice 0. 0. 0. 0. 0. 1. 
+        pseudocolor single_Re01.lata DOM_dual VELOCITY_X FACES
+        Operator    Slice 0. 0. 0. 0. 0. 1. 
         }
       figure {
                 titre "Position des bulles en x"
@@ -47,8 +48,8 @@ EOF
                      style points
                      Legende "Coarse"
                 }
-		Courbe {
-		   fichier REFINE/single_Re01_bulles_centre_x.out
+        Courbe {
+           fichier REFINE/single_Re01_bulles_centre_x.out
                      colonnes ($1) ($2)
                      style linespoints
                      Legende "refine"
@@ -107,7 +108,7 @@ EOF
 
 }
 Chapter {
-	Title Computer performance
-	Tableau_performance {
-	}
+    Title Computer performance
+    Tableau_performance {
+    }
 }
