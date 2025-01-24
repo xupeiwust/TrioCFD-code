@@ -196,7 +196,7 @@ const Intersections_Elem_Facettes& Intersections_Elem_Facettes::operator=(const 
       data_real_size = ief.data_real_size;
 
       if (data)
-        delete data;
+        delete [] data;
       data = new Intersections_Elem_Facettes_Data[data_allocated_size];
       int i;
       for (i=0 ; i<data_real_size; i++)
