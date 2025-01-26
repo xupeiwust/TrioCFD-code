@@ -66,13 +66,13 @@ Implemente_instanciable_sans_constructeur(Maillage_FT_Disc_Data_Cache,"Maillage_
 Entree& Maillage_FT_Disc_Data_Cache::readOn(Entree& is)
 {
   assert(0);
-  exit();
+  Process::exit();
   return is;
 }
 Sortie& Maillage_FT_Disc_Data_Cache::printOn(Sortie& os) const
 {
   assert(0);
-  exit();
+  Process::exit();
   return os;
 }
 Maillage_FT_Disc_Data_Cache::Maillage_FT_Disc_Data_Cache()
@@ -162,7 +162,7 @@ void Maillage_FT_Disc::calculer_costheta_minmax(DoubleTab& costheta) const
             default:
               Cerr << "Erreur dans Maillage_FT_Disc::calculer_costheta_minmax: condition aux limites non implementee"
                    << finl;
-              exit();
+              Process::exit();
             }
         }
       else
@@ -170,7 +170,7 @@ void Maillage_FT_Disc::calculer_costheta_minmax(DoubleTab& costheta) const
           Cerr << "Error in Maillage_FT_Disc::calculer_costheta_minmax:\n "
                << cl_base.que_suis_je() << " is not a valid boundary condition type."
                << finl;
-          exit();
+          Process::exit();
         }
       costheta(i, 0) = cos(theta1 * deg_to_rad);
       costheta(i, 1) = cos(theta2 * deg_to_rad);
@@ -241,7 +241,7 @@ void Maillage_FT_Disc::maillage_modifie(Statut_Maillage nouveau_statut)
 Maillage_FT_Disc::Maillage_FT_Disc(const Maillage_FT_Disc&): Ensemble_Lagrange_base()
 {
   assert(0);
-  exit();
+  Process::exit();
 }
 
 /*! @brief L'operateur = est interdit !
@@ -250,7 +250,7 @@ Maillage_FT_Disc::Maillage_FT_Disc(const Maillage_FT_Disc&): Ensemble_Lagrange_b
 const Maillage_FT_Disc& Maillage_FT_Disc::operator=(const Maillage_FT_Disc&)
 {
   assert(0);
-  exit();
+  Process::exit();
   return *this;
 }
 
@@ -281,7 +281,7 @@ Entree& Maillage_FT_Disc::readOn(Entree& is)
     {
       Cerr << "On attendait une { a la lecture d'une " << que_suis_je() << finl;
       Cerr << "et non : " << motlu << finl;
-      exit();
+      Process::exit();
     }
   is >> motlu;
 
@@ -300,7 +300,7 @@ Entree& Maillage_FT_Disc::readOn(Entree& is)
             if (!fic.ouvrir(nomfic))
               {
                 Cerr << " Erreur a l'ouverture du fichier." << finl;
-                exit();
+                Process::exit();
               }
             fic >> sommets_lu_;
 
@@ -332,7 +332,7 @@ Entree& Maillage_FT_Disc::readOn(Entree& is)
                           {
                             if (je_suis_maitre())
                               Cerr<<"Le nombre de marqueurs specifies dans chacune des "<<dim<<" directions doit etre strictement positif"<<finl;
-                            exit();
+                            Process::exit();
                           }
                         nb_marqs_sz(i) *=  nb_marqs_par_dir(i,k);
                       }
@@ -341,7 +341,7 @@ Entree& Maillage_FT_Disc::readOn(Entree& is)
                   {
                     Cerr<<"Les seules options disponibles pour la distribution de marqueurs sont aleatoire et uniforme"<<finl;
                     Cerr<<motlu<<" n est pas reconnu"<<finl;
-                    exit();
+                    Process::exit();
                   }
 
               }
@@ -357,7 +357,7 @@ Entree& Maillage_FT_Disc::readOn(Entree& is)
                 for (int i=0; i<les_mots.size(); i++)
                   Cerr<<les_mots[i]<<finl;
               }
-            exit();
+            Process::exit();
           }
         }
       is >> motlu;
@@ -467,7 +467,7 @@ void Maillage_FT_Disc::ecrire_plot(const Nom& nom,double un_temps, int niveau_re
         {
           Cerr << "Error in Maillage_FT_Disc::ecrire_plot." << finl;
           Cerr << "Contact TRUST support." << finl;
-          exit();
+          Process::exit();
         }
       nom_fic += Nom(str);
     }
@@ -1289,7 +1289,7 @@ void Maillage_FT_Disc::construire_noeuds(IntTab& def_noeud,const DoubleTab& soms
     {
       Cerr << "The maximum of particules that you can use in your datafile is equal to " << chunk_size/nbproc << " / processor" << finl;
       Cerr << "If you want to exceed this limitation, you must parallelize your calculation with an apropriate number of processor" << finl;
-      exit();
+      Process::exit();
     }
 
   while (i < nb_som_tot)
@@ -3863,7 +3863,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
         {
           Journal() << "Erreur Maillage_FT_Disc::check_sommets : maillage RESET invalide" << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
       return !ok;
     }
@@ -3881,7 +3881,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
         Cerr << "" << finl;
       }
@@ -3895,7 +3895,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
             if (error_is_fatal)
               {
                 assert(0);
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -3911,7 +3911,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
       }
     ArrOfIntFT num_owner(nbsommets);
@@ -3927,7 +3927,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
             if (error_is_fatal)
               {
                 assert(0);
-                exit();
+                Process::exit();
               }
           }
       }
@@ -3970,7 +3970,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
             if (copie_sommets(i,j) != sommets_(i,j))
@@ -3981,7 +3981,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
           }
@@ -3996,7 +3996,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
       }
     const Parcours_interface& parcours =refparcours_interface_.valeur();
@@ -4013,7 +4013,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
             if (error_is_fatal)
               {
                 assert(0);
-                exit();
+                Process::exit();
               }
           }
         if (pe == moi)
@@ -4025,7 +4025,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
             else
@@ -4048,7 +4048,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                       {
                         Cerr << "Trouble when checking mesh in Maillage_FT_Disc::check_sommets." << finl;
                         Cerr << "Contact TRUST support." << finl;
-                        exit();
+                        Process::exit();
                       }
                   }
               }
@@ -4062,7 +4062,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
           if (error_is_fatal)
             {
               assert(0);
-              exit();
+              Process::exit();
             }
         }
       const IntTab& face_voisins = domaine_vf.face_voisins();
@@ -4081,7 +4081,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                   if (error_is_fatal)
                     {
                       assert(0);
-                      exit();
+                      Process::exit();
                     }
                 }
               if (voisin0 != element && voisin1 != element)
@@ -4093,7 +4093,7 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                   if (error_is_fatal)
                     {
                       assert(0);
-                      exit();
+                      Process::exit();
                     }
                 }
             }
@@ -4155,7 +4155,7 @@ int Maillage_FT_Disc::check_mesh(int error_is_fatal, int skip_facette_pe, int sk
         {
           Journal() << "Erreur Maillage_FT_Disc::check_mesh : maillage RESET invalide" << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
       return_code = !ok;
     }
@@ -4193,7 +4193,7 @@ int Maillage_FT_Disc::check_mesh(int error_is_fatal, int skip_facette_pe, int sk
                   if (error_is_fatal)
                     {
                       assert(0);
-                      exit();
+                      Process::exit();
                     }
                   return_code = 0;
                 }
@@ -4328,7 +4328,7 @@ int Maillage_FT_Disc::check_mesh(int error_is_fatal, int skip_facette_pe, int sk
                   if (error_is_fatal)
                     {
                       assert(0);
-                      exit();
+                      Process::exit();
                     }
                   return_code = 0;
                 }
@@ -4347,7 +4347,7 @@ int Maillage_FT_Disc::check_mesh(int error_is_fatal, int skip_facette_pe, int sk
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
                 return_code = 0;
               }
@@ -6531,7 +6531,7 @@ int Maillage_FT_Disc::type_statut() const
   else
     {
       Cerr<<"Le type de statut n est pas fixe"<<finl;
-      exit();
+      Process::exit();
     }
   return -1;
 }
