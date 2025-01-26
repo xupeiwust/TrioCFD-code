@@ -17,7 +17,7 @@ EOF
 	CasTest . post_wall_par8.data 8
 	CasTest . switch_varDZ_wall.data
 	CasTest . precurseur_3D.data
-	Prerequisite python post.py 
+	Prerequisite PYTHONPATH=$PYTHONPATH:$project_directory/share/bin/PyTools/ python post.py 
         # DISABLE_PARALLEL_RUN #
 }
 

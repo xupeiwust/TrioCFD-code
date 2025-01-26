@@ -21,3 +21,10 @@ then
         -e "s/Fin//g" ${inp}.txt >> refine_${suff}_mod.sauv
 fi
 
+if [ $cas = "precurseur_3D.data" ]
+then
+    	# On pourrait faire le python la
+	# PYTHONPATH=$PYTHONPATH:$project_directory/share/bin/PyTools/ 
+	# python post.py
+fi
+

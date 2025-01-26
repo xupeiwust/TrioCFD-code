@@ -5,6 +5,14 @@ import glob, os
 
 import commons.DNSTools as dtool
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.font_manager as font_manager
+print(mpl.rcParams['font.family'])
+# mpl.rc('font', family='sans-serif') 
+# mpl.rc('font', serif='Helvetica Neue') 
+mpl.rc('text', usetex='false') 
+
 def getSondesCoords(fic):
     x=getValues("x=", fic)
     y=getValues("y=", fic)
@@ -16,7 +24,7 @@ for i, d in enumerate(["X", "Y", "Z"]):
    for case in ["perio", "wall"]:
       for subc in ["", "_par8"]:
          if ((case=="wall") and(d!="Z")):
-            print("skiping direction %s for case wall"%(d))
+            print(("skiping direction %s for case wall"%(d)))
             continue;
          case=case+subc # ajout du suffixe _par8 si //
          lfic=glob.glob("post_%s_S%s_T[0-9].son"%(case,d))
@@ -34,7 +42,7 @@ for i, d in enumerate(["X", "Y", "Z"]):
             mat=np.c_[x, T,Ta,E] # line 0 is time...
             out="%s_S%s_T%d"%(case,d,id_T)
             np.savetxt(out+".txt", mat)
-            print("file %s.txt created from info in %s"%(out,fic))
+            print(("file %s.txt created from info in %s"%(out,fic)))
             plt.figure(out)
             plt.plot(x,T, label="interp")
             plt.plot(x,Ta, label="ana")
@@ -57,7 +65,7 @@ for i, d in enumerate(["X", "Y", "Z"]):
             mat=np.c_[x, V,Va,Ev] # line 0 was time...
             out="%s_S%s_V%s"%(case,d,d)
             np.savetxt(out+".txt", mat)
-            print("file %s.txt created from info in %s"%(out,fic))
+            print(("file %s.txt created from info in %s"%(out,fic)))
             plt.figure(out)
             plt.plot(x,V, label="interp")
             plt.plot(x,Va, label="ana")
@@ -80,7 +88,7 @@ for i, d in enumerate(["X", "Y", "Z"]):
 out="compa-seq-par.txt"
 f = open(out, "w")
 l = glob.glob("*_par8_S*txt")
-print("Comparison of cases writen in %s : "%out,l)
+print(("Comparison of cases writen in %s : "%out,l))
 for fpar in l: 
    fseq=fpar.replace("par8_","")
    x, seq=np.loadtxt(fseq, usecols=(0,1)).T

@@ -701,198 +701,201 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   surface_vapeur_par_face_computation_.initialize(splitting_FT);
   val_par_compo_in_cell_computation_.initialize(splitting_FT, maillage_ft_ijk_);
 
-  const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
+  if ((not is_switch) || cut_cell_activated_)
+    {
+      const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
-  indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  indicatrice_ft_[old()].data() = 1.;
-  indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
-  indicatrice_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  indicatrice_ft_[next()].data() = 1.;
-  indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
-  indicatrice_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  indicatrice_ns_[old()].data() = 1.;
-  allocate_cell_vector(groups_indicatrice_ns_[old()], splitting_NS, 1);
-  allocate_cell_vector(groups_indicatrice_ns_[next()], splitting_NS, 1);
-  indicatrice_ns_[old()].echange_espace_virtuel(indicatrice_ns_[old()].ghost());
-  indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  indicatrice_ns_[next()].data() = 1.;
-  indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
-  nalloc += 4;
-  indicatrice_avant_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  indicatrice_avant_remaillage_ft_.data() = 1.;
-  indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
-  indicatrice_avant_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  indicatrice_avant_remaillage_ns_.data() = 1.;
-  indicatrice_avant_remaillage_ns_.echange_espace_virtuel(indicatrice_avant_remaillage_ns_.ghost());
-  indicatrice_apres_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  indicatrice_apres_remaillage_ft_.data() = 1.;
-  indicatrice_apres_remaillage_ft_.echange_espace_virtuel(indicatrice_apres_remaillage_ft_.ghost());
-  indicatrice_apres_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  indicatrice_apres_remaillage_ns_.data() = 1.;
-  indicatrice_apres_remaillage_ns_.echange_espace_virtuel(indicatrice_apres_remaillage_ns_.ghost());
-  delta_volume_theorique_bilan_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  delta_volume_theorique_bilan_ns_.data() = 0.;
-  delta_volume_theorique_bilan_ns_.echange_espace_virtuel(delta_volume_theorique_bilan_ns_.ghost());
-  nalloc += 5;
-  allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
-  allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
-  nalloc += 6;
+      indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_ft_[old()].data() = 1.;
+      indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
+      indicatrice_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_ft_[next()].data() = 1.;
+      indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
+      indicatrice_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_ns_[old()].data() = 1.;
+      allocate_cell_vector(groups_indicatrice_ns_[old()], splitting_NS, 1);
+      allocate_cell_vector(groups_indicatrice_ns_[next()], splitting_NS, 1);
+      indicatrice_ns_[old()].echange_espace_virtuel(indicatrice_ns_[old()].ghost());
+      indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_ns_[next()].data() = 1.;
+      indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
+      nalloc += 4;
+      indicatrice_avant_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_avant_remaillage_ft_.data() = 1.;
+      indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
+      indicatrice_avant_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_avant_remaillage_ns_.data() = 1.;
+      indicatrice_avant_remaillage_ns_.echange_espace_virtuel(indicatrice_avant_remaillage_ns_.ghost());
+      indicatrice_apres_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_apres_remaillage_ft_.data() = 1.;
+      indicatrice_apres_remaillage_ft_.echange_espace_virtuel(indicatrice_apres_remaillage_ft_.ghost());
+      indicatrice_apres_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_apres_remaillage_ns_.data() = 1.;
+      indicatrice_apres_remaillage_ns_.echange_espace_virtuel(indicatrice_apres_remaillage_ns_.ghost());
+      delta_volume_theorique_bilan_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      delta_volume_theorique_bilan_ns_.data() = 0.;
+      delta_volume_theorique_bilan_ns_.echange_espace_virtuel(delta_volume_theorique_bilan_ns_.ghost());
+      nalloc += 5;
+      allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
+      allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
+      nalloc += 6;
 #if VERIF_INDIC
-  indicatrice_ft_test_.allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-  allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
-  allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
-  nalloc += 7;
+      indicatrice_ft_test_.allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+      allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
+      allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
+      nalloc += 7;
 #endif
-  nb_compo_traversante_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
-  nb_compo_traversante_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
-  nalloc += 2;
-  for (int i = 0; i < max_authorized_nb_of_components_; i++)
-    {
-      compos_traversantes_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      surface_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      indicatrice_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      courbure_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      phi_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      for (int dir = 0; dir < 3; dir++)
-        grad_sigma_par_compo_[old()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      repuls_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      compos_traversantes_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      surface_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      indicatrice_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      phi_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      for (int dir = 0; dir < 3; dir++)
-        grad_sigma_par_compo_[next()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      repuls_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      courbure_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+      nb_compo_traversante_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
+      nb_compo_traversante_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
+      nalloc += 2;
+      for (int i = 0; i < max_authorized_nb_of_components_; i++)
+        {
+          compos_traversantes_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          surface_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          indicatrice_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          courbure_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          phi_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          for (int dir = 0; dir < 3; dir++)
+            grad_sigma_par_compo_[old()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          repuls_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          compos_traversantes_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          surface_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          indicatrice_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          phi_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          for (int dir = 0; dir < 3; dir++)
+            grad_sigma_par_compo_[next()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          repuls_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          courbure_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          nalloc += 12;
+          // Et pour les vecteurs :
+          for (int dir = 0; dir < 3; dir++)
+            {
+              const int idx = i * 3 + dir;
+              normale_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+              bary_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+              normale_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+              bary_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+              nalloc += 4;
+            }
+        }
+
+      surface_interface_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      surface_interface_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      surface_interface_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      surface_interface_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      nalloc += 4;
+
+      surface_interface_ft_[old()].data() = 0.;
+      surface_interface_ft_[next()].data() = 0.;
+      surface_interface_ns_[old()].data() = 0.;
+      surface_interface_ns_[next()].data() = 0.;
+
+      allocate_cell_vector(barycentre_phase1_ft_[old()], splitting_FT, 2);
+      allocate_cell_vector(barycentre_phase1_ft_[next()], splitting_FT, 2);
+      allocate_cell_vector(barycentre_phase1_ns_[old()], splitting_NS, nb_ghost_cells);
+      allocate_cell_vector(barycentre_phase1_ns_[next()], splitting_NS, nb_ghost_cells);
+      nalloc += 4;
+
+      for (int bary_compo = 0; bary_compo < 3; bary_compo++)
+        {
+          barycentre_phase1_ft_[old()][bary_compo].data() = 0.;
+          barycentre_phase1_ft_[next()][bary_compo].data() = 0.;
+          barycentre_phase1_ns_[old()][bary_compo].data() = 0.;
+          barycentre_phase1_ns_[next()][bary_compo].data() = 0.;
+        }
+
+      allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
+      allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 2);
+      allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, nb_ghost_cells);
       nalloc += 12;
-      // Et pour les vecteurs :
-      for (int dir = 0; dir < 3; dir++)
+
+      for (int face_dir = 0; face_dir < 3; face_dir++)
         {
-          const int idx = i * 3 + dir;
-          normale_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          bary_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          normale_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          bary_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          nalloc += 4;
+          indicatrice_surfacique_face_ft_[old()][face_dir].data() = 0.;
+          indicatrice_surfacique_face_ft_[next()][face_dir].data() = 0.;
+          indicatrice_surfacique_face_ns_[old()][face_dir].data() = 0.;
+          indicatrice_surfacique_face_ns_[next()][face_dir].data() = 0.;
         }
-    }
 
-  surface_interface_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  surface_interface_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-  surface_interface_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  surface_interface_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-  nalloc += 4;
-
-  surface_interface_ft_[old()].data() = 0.;
-  surface_interface_ft_[next()].data() = 0.;
-  surface_interface_ns_[old()].data() = 0.;
-  surface_interface_ns_[next()].data() = 0.;
-
-  allocate_cell_vector(barycentre_phase1_ft_[old()], splitting_FT, 2);
-  allocate_cell_vector(barycentre_phase1_ft_[next()], splitting_FT, 2);
-  allocate_cell_vector(barycentre_phase1_ns_[old()], splitting_NS, nb_ghost_cells);
-  allocate_cell_vector(barycentre_phase1_ns_[next()], splitting_NS, nb_ghost_cells);
-  nalloc += 4;
-
-  for (int bary_compo = 0; bary_compo < 3; bary_compo++)
-    {
-      barycentre_phase1_ft_[old()][bary_compo].data() = 0.;
-      barycentre_phase1_ft_[next()][bary_compo].data() = 0.;
-      barycentre_phase1_ns_[old()][bary_compo].data() = 0.;
-      barycentre_phase1_ns_[next()][bary_compo].data() = 0.;
-    }
-
-  allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
-  allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 2);
-  allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, nb_ghost_cells);
-  allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, nb_ghost_cells);
-  nalloc += 12;
-
-  for (int face_dir = 0; face_dir < 3; face_dir++)
-    {
-      indicatrice_surfacique_face_ft_[old()][face_dir].data() = 0.;
-      indicatrice_surfacique_face_ft_[next()][face_dir].data() = 0.;
-      indicatrice_surfacique_face_ns_[old()][face_dir].data() = 0.;
-      indicatrice_surfacique_face_ns_[next()][face_dir].data() = 0.;
-    }
-
-  allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ft_, splitting_FT, 2);
-  allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
-  allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ft_, splitting_FT, 2);
-  allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
-  nalloc += 12;
-
-  for (int face_dir = 0; face_dir < 3; face_dir++)
-    {
-      indicatrice_surfacique_avant_remaillage_face_ft_[face_dir].data() = 0.;
-      indicatrice_surfacique_avant_remaillage_face_ns_[face_dir].data() = 0.;
-      indicatrice_surfacique_apres_remaillage_face_ft_[face_dir].data() = 0.;
-      indicatrice_surfacique_apres_remaillage_face_ns_[face_dir].data() = 0.;
-    }
-
-  for (int face_dir = 0; face_dir < 3; face_dir++)
-    {
-      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
-        {
-          barycentre_phase1_face_ft_[old()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-          barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-          barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-          nalloc += 4;
-        }
-    }
-
-  for (int face_dir = 0; face_dir < 3; face_dir++)
-    {
-      for (int bary_compo = 0; bary_compo < 2; bary_compo++)
-        {
-          barycentre_phase1_face_ft_[old()][face_dir][bary_compo].data() = 0.;
-          barycentre_phase1_face_ft_[next()][face_dir][bary_compo].data() = 0.;
-          barycentre_phase1_face_ns_[old()][face_dir][bary_compo].data() = 0.;
-          barycentre_phase1_face_ns_[next()][face_dir][bary_compo].data() = 0.;
-        }
-    }
-
-  allocate_velocity(normal_of_interf_[old()], splitting_FT, 2);
-  allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
-  allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, nb_ghost_cells);
-  allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, nb_ghost_cells);
-  nalloc += 12;
-
-  allocate_velocity(bary_of_interf_[old()], splitting_FT, 1);
-  allocate_velocity(bary_of_interf_[next()], splitting_FT, 1);
-  allocate_velocity(bary_of_interf_ns_[old()], splitting_NS, 1);
-  allocate_velocity(bary_of_interf_ns_[next()], splitting_NS, 1);
-  nalloc += 12;
-
-  allocate_velocity(surface_vapeur_par_face_[old()], splitting_FT, 1);
-  allocate_velocity(surface_vapeur_par_face_[next()], splitting_FT, 1);
-  allocate_velocity(surface_vapeur_par_face_ns_[old()], splitting_NS, 1);
-  allocate_velocity(surface_vapeur_par_face_ns_[next()], splitting_NS, 1);
-  nalloc += 12;
-
-  for (int d = 0; d < 3; d++)
-    {
-      surface_vapeur_par_face_[old()][d].data() = 0.;
-      surface_vapeur_par_face_[next()][d].data() = 0.;
-      allocate_velocity(barycentre_vapeur_par_face_[old()][d], splitting_FT, 1);
-      allocate_velocity(barycentre_vapeur_par_face_[next()][d], splitting_FT, 1);
-      surface_vapeur_par_face_ns_[old()][d].data() = 0.;
-      surface_vapeur_par_face_ns_[next()][d].data() = 0.;
-      allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], splitting_NS, 1);
-      allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], splitting_NS, 1);
+      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ft_, splitting_FT, 2);
+      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ft_, splitting_FT, 2);
+      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
       nalloc += 12;
-    }
 
-  if (cut_cell_activated_)
-    {
-      Cut_field_vector3_double& cut_field_deformation_velocity = static_cast<Cut_field_vector3_double&>(deformation_velocity_);
-      allocate_velocity_ephemere(*ref_ijk_ft_->get_cut_cell_disc(), cut_field_deformation_velocity, splitting_NS, 2);
+      for (int face_dir = 0; face_dir < 3; face_dir++)
+        {
+          indicatrice_surfacique_avant_remaillage_face_ft_[face_dir].data() = 0.;
+          indicatrice_surfacique_avant_remaillage_face_ns_[face_dir].data() = 0.;
+          indicatrice_surfacique_apres_remaillage_face_ft_[face_dir].data() = 0.;
+          indicatrice_surfacique_apres_remaillage_face_ns_[face_dir].data() = 0.;
+        }
+
+      for (int face_dir = 0; face_dir < 3; face_dir++)
+        {
+          for (int bary_compo = 0; bary_compo < 2; bary_compo++)
+            {
+              barycentre_phase1_face_ft_[old()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+              barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+              barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+              barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+              nalloc += 4;
+            }
+        }
+
+      for (int face_dir = 0; face_dir < 3; face_dir++)
+        {
+          for (int bary_compo = 0; bary_compo < 2; bary_compo++)
+            {
+              barycentre_phase1_face_ft_[old()][face_dir][bary_compo].data() = 0.;
+              barycentre_phase1_face_ft_[next()][face_dir][bary_compo].data() = 0.;
+              barycentre_phase1_face_ns_[old()][face_dir][bary_compo].data() = 0.;
+              barycentre_phase1_face_ns_[next()][face_dir][bary_compo].data() = 0.;
+            }
+        }
+
+      allocate_velocity(normal_of_interf_[old()], splitting_FT, 2);
+      allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
+      allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, nb_ghost_cells);
+      allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, nb_ghost_cells);
+      nalloc += 12;
+
+      allocate_velocity(bary_of_interf_[old()], splitting_FT, 1);
+      allocate_velocity(bary_of_interf_[next()], splitting_FT, 1);
+      allocate_velocity(bary_of_interf_ns_[old()], splitting_NS, 1);
+      allocate_velocity(bary_of_interf_ns_[next()], splitting_NS, 1);
+      nalloc += 12;
+
+      allocate_velocity(surface_vapeur_par_face_[old()], splitting_FT, 1);
+      allocate_velocity(surface_vapeur_par_face_[next()], splitting_FT, 1);
+      allocate_velocity(surface_vapeur_par_face_ns_[old()], splitting_NS, 1);
+      allocate_velocity(surface_vapeur_par_face_ns_[next()], splitting_NS, 1);
+      nalloc += 12;
+
+      for (int d = 0; d < 3; d++)
+        {
+          surface_vapeur_par_face_[old()][d].data() = 0.;
+          surface_vapeur_par_face_[next()][d].data() = 0.;
+          allocate_velocity(barycentre_vapeur_par_face_[old()][d], splitting_FT, 1);
+          allocate_velocity(barycentre_vapeur_par_face_[next()][d], splitting_FT, 1);
+          surface_vapeur_par_face_ns_[old()][d].data() = 0.;
+          surface_vapeur_par_face_ns_[next()][d].data() = 0.;
+          allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], splitting_NS, 1);
+          allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], splitting_NS, 1);
+          nalloc += 12;
+        }
+
+      if (cut_cell_activated_)
+        {
+          Cut_field_vector3_double& cut_field_deformation_velocity = static_cast<Cut_field_vector3_double&>(deformation_velocity_);
+          allocate_velocity_ephemere(*ref_ijk_ft_->get_cut_cell_disc(), cut_field_deformation_velocity, splitting_NS, 2);
+          nalloc += 3;
+        }
+
+      allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, splitting_NS, nb_ghost_cells);
       nalloc += 3;
     }
-
-  allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, splitting_NS, nb_ghost_cells);
-  nalloc += 3;
 
   if (!is_diphasique_)
     return nalloc;
