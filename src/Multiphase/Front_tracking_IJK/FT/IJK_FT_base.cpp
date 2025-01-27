@@ -128,8 +128,8 @@ static void smoothing_field(IJK_Field_double& field,
               if (xmax/x > ratio_density_max || x/xmin > ratio_density_max )
                 {
                   ncells++;
-                  //	      Cerr << "   i,j,k,xmin,x,xmax " << i << " " << j << " "
-                  //		   << k << " " << xmin  << " " << x << " " << xmax << finl;
+                  //          Cerr << "   i,j,k,xmin,x,xmax " << i << " " << j << " "
+                  //           << k << " " << xmin  << " " << x << " " << xmax << finl;
                   smooth_rho(i,j,k) = sqrt(xmin*xmax);// prendre la moyenne geometrique du min et du max des voisins.
                 }
               else
@@ -1998,26 +1998,26 @@ void IJK_FT_base::initialise_velocity_using_expression(const Noms& expression_vi
       // permet de checker les espaces_virtuel
 //          for (int dir = 0; dir < 3; dir++)
 //          {
-//			  std::cout << std::endl;
-//			  std::cout << " ########### DIR = " << dir <<"  #############" << std::endl;
-//			  std::cout << std::endl;
-//        	  for (int j = -2; j < velocity_[dir].nj() + 2; j++)
-//        	  {
-//        		  std::cout << "j=" << j << std::endl;
-//    			  std::cout << std::endl;
+//            std::cout << std::endl;
+//            std::cout << " ########### DIR = " << dir <<"  #############" << std::endl;
+//            std::cout << std::endl;
+//            for (int j = -2; j < velocity_[dir].nj() + 2; j++)
+//            {
+//                std::cout << "j=" << j << std::endl;
+//                std::cout << std::endl;
 //
-//        		  for (int i = velocity_[dir].ni() + 1; i > -3; i--)
-//        		  {
-//        			  std::cout << "i=" << i << " : ";
-//        			  for (int k = -2; k < velocity_[dir].nk() + 2; k++)
-//        			  {
-//        				  std::cout << velocity_[dir](i,j,k) - 1. << " ";
-//        			  }
-//        			  std::cout << std::endl;
-//        		  }
+//                for (int i = velocity_[dir].ni() + 1; i > -3; i--)
+//                {
+//                    std::cout << "i=" << i << " : ";
+//                    for (int k = -2; k < velocity_[dir].nk() + 2; k++)
+//                    {
+//                        std::cout << velocity_[dir](i,j,k) - 1. << " ";
+//                    }
+//                    std::cout << std::endl;
+//                }
 //
-//    			  std::cout << std::endl;
-//        	  }
+//                std::cout << std::endl;
+//            }
 //          }
     }
 }
@@ -2695,8 +2695,8 @@ void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
          << rhov_moy[1] << " "
          << rhov_moy[2] << " "
          << tauw[0] << " " ;
-      fic	<< tauw[1] << " "
-          << tauw[2] << " ";
+      fic   << tauw[1] << " "
+            << tauw[2] << " ";
       switch (direction_gravite_)
         {
         case 0:
@@ -2728,9 +2728,9 @@ void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
          << integrated_residu_[0] << " "
          << integrated_residu_[1] << " "
          << integrated_residu_[2] << " ";
-      fic	<< terme_source_correction_[0] << " "
-          << terme_source_correction_[1] << " "
-          << terme_source_correction_[2] << " ";
+      fic   << terme_source_correction_[0] << " "
+            << terme_source_correction_[1] << " "
+            << terme_source_correction_[2] << " ";
       // GAB, qdm
       // fic << terme_interfaces[0] << " "
       // << terme_interfaces[1] << " "
@@ -2746,7 +2746,7 @@ void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
           << terme_pression_[2] << " ";
       //
 #ifdef COMPLEMENT_ANTI_DEVIATION_RESIDU
-      fic	<< moins_delta_Pwall_sur_h << " ";
+      fic   << moins_delta_Pwall_sur_h << " ";
 #endif
       fic<< finl;
       fic.close();
@@ -3322,7 +3322,7 @@ void IJK_FT_base::compute_add_external_forces(const int dir)
       // maxValue n'avait pas le mp_max
       double integration_time = max_ijk(post_.integrated_timescale());
       integration_time=std::max(1.,integration_time); // if integrated_timescale is missing, the value of integration will be -1.e30;
-      // 											The trick is to set it to 1, as it is in fact numbers ot timesteps stored (see dirty code)
+      //                                            The trick is to set it to 1, as it is in fact numbers ot timesteps stored (see dirty code)
       interfaces_.compute_external_forces_(force_rappel_ft_, force_rappel_, velocity_,interfaces_.I(),interfaces_.I_ft(),
                                            coef_immobilisation_, tstep_, current_time_,
                                            coef_ammortissement_, coef_rayon_force_rappel_,
@@ -4550,7 +4550,7 @@ void IJK_FT_base::write_qdm_corrections_information()
       fic << rho_vel[2] << " ";
       fic<<finl;
       fic.close();
-      //	 << finl;
+      //     << finl;
     }
 }
 
@@ -4565,11 +4565,23 @@ IJK_Field_double IJK_FT_base::scalar_product(const IJK_Field_vector3_double& V1,
   IJK_Field_double resu;
   resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
   int nk = V1[0].nk();
-  if (nk != V2[0].nk()) {Cerr << "scalar product of fields with different dimensions (nk)"<< finl;}
+  if (nk != V2[0].nk())
+    {
+      Cerr << "scalar product of fields with different dimensions (nk)"<< finl;
+      Process::exit();
+    }
   int nj = V1[0].nj();
-  if (nj != V2[0].nj()) {Cerr << "scalar product of fields with different dimensions (nj)"<< finl;}
+  if (nj != V2[0].nj())
+    {
+      Cerr << "scalar product of fields with different dimensions (nj)"<< finl;
+      Process::exit();
+    }
   int ni = V1[0].ni();
-  if (ni != V2[0].ni()) {Cerr << "scalar product of fields with different dimensions (ni)"<< finl;}
+  if (ni != V2[0].ni())
+    {
+      Cerr << "scalar product of fields with different dimensions (ni)"<< finl;
+      Process::exit();
+    }
 
   for (int k=0; k<nk; ++k)
     for (int j=0; j<nj; ++j)
@@ -4597,11 +4609,23 @@ IJK_Field_vector3_double IJK_FT_base::scalar_times_vector(const IJK_Field_double
   IJK_Field_vector3_double resu;
   allocate_velocity(resu,splitting_,3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
   int nk = Vec[0].nk();
-  if (nk != Sca.nk()) {Cerr << "scalar fields has different dimension from vector field  (nk)"<< finl;}
+  if (nk != Sca.nk())
+    {
+      Cerr << "scalar fields has different dimension from vector field  (nk)"<< finl;
+      Process::exit();
+    }
   int nj = Vec[0].nj();
-  if (nj != Sca.nj()) {Cerr << "scalar fields has different dimension from vector field  (nj)"<< finl;}
+  if (nj != Sca.nj())
+    {
+      Cerr << "scalar fields has different dimension from vector field  (nj)"<< finl;
+      Process::exit();
+    }
   int ni = Vec[0].ni();
-  if (ni != Sca.nk()) {Cerr << "scalar fields has different dimension from vector field  (ni)"<< finl;}
+  if (ni != Sca.ni())
+    {
+      Cerr << "scalar fields has different dimension from vector field  (ni)"<< finl;
+      Process::exit();
+    }
 
   for (int k=0; k<nk; ++k)
     for (int j=0; j<nj; ++j)
@@ -4625,11 +4649,23 @@ IJK_Field_double IJK_FT_base::scalar_fields_product(const IJK_Field_double& S1, 
   IJK_Field_double resu;
   resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
   int nk = S1.nk();
-  if (nk != S2.nk()) {Cerr << "scalar fields have different dimensions for the product (nk)"<< finl;}
+  if (nk != S2.nk())
+    {
+      Cerr << "scalar fields have different dimensions for the product (nk)"<< finl;
+      Process::exit();
+    }
   int nj = S1.nj();
-  if (nj != S2.nj()) {Cerr << "scalar fields have different dimensions for the product (nj)"<< finl;}
+  if (nj != S2.nj())
+    {
+      Cerr << "scalar fields have different dimensions for the product (nj)"<< finl;
+      Process::exit();
+    }
   int ni = S1.ni();
-  if (ni != S2.ni()) {Cerr << "scalar fields have different dimensions for the product (ni)"<< finl;}
+  if (ni != S2.ni())
+    {
+      Cerr << "scalar fields have different dimensions for the product (ni)"<< finl;
+      Process::exit();
+    }
 
   for (int k=0; k<nk; ++k)
     for (int j=0; j<nj; ++j)
