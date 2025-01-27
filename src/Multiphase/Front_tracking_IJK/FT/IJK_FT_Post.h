@@ -405,7 +405,7 @@ protected:
   Multigrille_Adrien poisson_solver_post_;
 
   // Pour le post-traitement des champs cut-cell
-  int cut_cell_activated_;
+  int cut_cell_activated_ = 0;
 };
 
 
