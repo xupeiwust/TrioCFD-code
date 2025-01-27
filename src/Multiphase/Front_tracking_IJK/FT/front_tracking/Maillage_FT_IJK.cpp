@@ -523,14 +523,19 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
         const LataDBField& db_field = db.get_field(tstep, geometryname, "COMPO_CONNEXE", "ELEM");
         BigIntTab tmp;
         db.read_data(db_field, tmp);
-        IntTab small_tmp;
-        tmp.ref_as_small(small_tmp); // Will check possible overflow issue
-        compo_connexe_facettes_ = small_tmp;
+        // TODO : fix ref_as_XXXX for tabs in TRUST:
+        assert(tmp.nb_dim() == 2);
+        compo_connexe_facettes_ = IntTab((int)tmp.dimension(0), tmp.dimension_int(1));
+        tmp.ref_as_small(compo_connexe_facettes_); // Will check possible overflow issue
       }
 
       BigIntTab tmp_fac;
       db.read_data(db_elem, tmp_fac);
-      tmp_fac.ref_as_small(facettes_); // Will check possible overflow issue
+      // TODO : fix ref_as_XXXX for tabs in TRUST:
+      assert(tmp_fac.nb_dim() == 2);
+      IntTab tmp_fac_small((int)tmp_fac.dimension(0), tmp_fac.dimension_int(1));
+      tmp_fac.ref_as_small(tmp_fac_small); // Will check possible overflow issue
+      facettes_ = tmp_fac_small; // deep copy
 
       // Il faut traduire les indices de sommets virtuels en indices reels avec le tableau INDEX_SOMMET_REEL
       // En meme temps on supprime les facettes virtuelles
@@ -541,9 +546,11 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
         {
           const LataDBField& db_index_sommet_reel = db.get_field(tstep, geometryname, "INDEX_SOMMET_REEL","");
 
-          IntTab index_sommet_reel_tab;
           BigIntTab big_idx;
           db.read_data(db_index_sommet_reel, big_idx);
+          // TODO : fix ref_as_XXXX for tabs in TRUST:
+          assert(big_idx.nb_dim() == 2);
+          IntTab index_sommet_reel_tab((int)big_idx.dimension(0), big_idx.dimension_int(1));
           big_idx.ref_as_small(index_sommet_reel_tab);
 
           // le tableau lu est dimensionne (nsom,1), on cast en arrofint pour ne pas avoir a donner 2 indices
