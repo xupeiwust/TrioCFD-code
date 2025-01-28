@@ -4567,19 +4567,19 @@ IJK_Field_double IJK_FT_base::scalar_product(const IJK_Field_vector3_double& V1,
   int nk = V1[0].nk();
   if (nk != V2[0].nk())
     {
-      Cerr << "scalar product of fields with different dimensions (nk)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (nk): " << nk << " and " << V2[0].nk() << finl;
       Process::exit();
     }
   int nj = V1[0].nj();
   if (nj != V2[0].nj())
     {
-      Cerr << "scalar product of fields with different dimensions (nj)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (nj): " << nj << " and " << V2[0].nj() << finl;
       Process::exit();
     }
   int ni = V1[0].ni();
   if (ni != V2[0].ni())
     {
-      Cerr << "scalar product of fields with different dimensions (ni)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (ni): " << ni << " and " << V2[0].ni() << finl;
       Process::exit();
     }
 
@@ -4609,21 +4609,21 @@ IJK_Field_vector3_double IJK_FT_base::scalar_times_vector(const IJK_Field_double
   IJK_Field_vector3_double resu;
   allocate_velocity(resu,splitting_,3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
   int nk = Vec[0].nk();
-  if (nk != Sca.nk())
+  if (nk != (Sca.nk()))
     {
-      Cerr << "scalar fields has different dimension from vector field  (nk)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (nk): " << nk << " and " << Sca.nk() << finl;
       Process::exit();
     }
   int nj = Vec[0].nj();
-  if (nj != Sca.nj())
+  if (nj != (Sca.nj()))
     {
-      Cerr << "scalar fields has different dimension from vector field  (nj)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (nj): " << nj << " and " << Sca.nj() << finl;
       Process::exit();
     }
   int ni = Vec[0].ni();
-  if (ni != Sca.ni())
+  if (ni != (Sca.ni()))
     {
-      Cerr << "scalar fields has different dimension from vector field  (ni)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (ni): " << ni << " and " << Sca.ni() << finl;
       Process::exit();
     }
 
@@ -4651,19 +4651,19 @@ IJK_Field_double IJK_FT_base::scalar_fields_product(const IJK_Field_double& S1, 
   int nk = S1.nk();
   if (nk != S2.nk())
     {
-      Cerr << "scalar fields have different dimensions for the product (nk)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (nk): " << nk << " and " << S2.nk() << finl;
       Process::exit();
     }
   int nj = S1.nj();
   if (nj != S2.nj())
     {
-      Cerr << "scalar fields have different dimensions for the product (nj)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (nj): " << nj << " and " << S2.nj() << finl;
       Process::exit();
     }
   int ni = S1.ni();
   if (ni != S2.ni())
     {
-      Cerr << "scalar fields have different dimensions for the product (ni)"<< finl;
+      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (ni): " << ni << " and " << S2.ni() << finl;
       Process::exit();
     }
 
