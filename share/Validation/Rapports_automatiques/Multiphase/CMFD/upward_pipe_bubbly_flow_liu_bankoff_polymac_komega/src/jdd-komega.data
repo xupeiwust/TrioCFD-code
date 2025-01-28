@@ -24,7 +24,7 @@ Scatter DOM.Zones dom
 END SCATTER #
 
 PolyMAC_P0  dis
-option_PolyMAC_P0 { traitement_axi }
+Option_PolyMAC { traitement_axi }
 
 Schema_euler_implicite sch
 Read sch

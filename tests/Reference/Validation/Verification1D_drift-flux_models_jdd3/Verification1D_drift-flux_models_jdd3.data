@@ -37,7 +37,7 @@ END PARTITION #
 Scatter DOM.Zones dom
 END SCATTER #
 
-polymac_p0  dis option_polymac_p0 {  }
+polymac_p0  dis Option_PolyMAC {  }
 
 
 Schema_euler_implicite sch
