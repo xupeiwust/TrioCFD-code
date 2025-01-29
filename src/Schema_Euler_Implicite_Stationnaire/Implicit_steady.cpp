@@ -91,7 +91,7 @@ void Implicit_steady::iterer_NS(Equation_base& eqn,DoubleTab& current,DoubleTab&
       Cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << finl;
       Cerr << "Implicit_steady solveur can be used only with the Implicit_Euler_Steady_Scheme or Schema_Euler_Implicite_Stationnaire scheme!" << finl;
       Cerr << "Please, contact TRUST support." << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -327,7 +327,7 @@ void Implicit_steady::test_periodic_solution(Navier_Stokes_std& eqnNS, DoubleTab
                       Cerr << "vit1("<<face<< ","<<comp<<")=" << current(face, comp) << finl;
                       Cerr << "vit2("<<face_associee<<","<<comp<<")=" << current(face_associee,comp) << finl;
                       Cerr << "Delta=" << current(face,comp)-current(face_associee,comp) << finl;
-                      exit();
+                      Process::exit();
                     }
                 }
             }

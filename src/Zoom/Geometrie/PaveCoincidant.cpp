@@ -91,7 +91,7 @@ Entree& PaveCoincidant::readOn(Entree& is)
   if (motlu!="{")
     {
       Cerr << "On attendait une { apres " << nom_ << finl;
-      exit();
+      Process::exit();
     }
 
   Motcles les_mots(14);
@@ -162,7 +162,7 @@ Entree& PaveCoincidant::readOn(Entree& is)
         default:
           Cerr << motlu << "  n'est pas compris " << finl;
           Cerr << les_mots;
-          exit();
+          Process::exit();
         }
     }
 

@@ -98,7 +98,7 @@ Entree& Navier_Stokes_phase_field::readOn(Entree& is)
       if (disc!="VDF")
         {
           Cerr<<"Only VDF discretization is allowed."<<finl;
-          exit();
+          Process::exit();
         }
 
       Nom type_so = "Source_Gravite_PF_VDF";
@@ -178,7 +178,7 @@ int Navier_Stokes_phase_field::lire_motcle_non_standard(const Motcle& mot, Entre
         {
           Cerr << "Error while reading approximation_de_boussinesq" << finl;
           Cerr << "We expected a { instead of " << motlu << finl;
-          exit();
+          Process::exit();
         }
       is >> motlu ;
       if (fonctionsALire)
@@ -223,7 +223,7 @@ int Navier_Stokes_phase_field::lire_motcle_non_standard(const Motcle& mot, Entre
         {
           Cerr << "Error while reading approximation_de_boussinesq" << finl;
           Cerr << "We expected a } instead of " << motlu << finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -306,7 +306,7 @@ const Champ_Don_base& Navier_Stokes_phase_field::diffusivite_pour_transport() co
           Cerr << "if the dynamical viscosity is constant or c dependent." << finl;
           Cerr << "This selection must be done before reading the diffusion term" << finl;
           Cerr << "of the Navier_Stokes_phase_field equation." << finl;
-          exit();
+          Process::exit();
         }
     }
   else if (boussi_==1)
@@ -317,7 +317,7 @@ const Champ_Don_base& Navier_Stokes_phase_field::diffusivite_pour_transport() co
       Cerr << "by the keyword approximation_de_boussinesq specification."<<finl;
       Cerr << "This selection must be done before reading the diffusion term" << finl;
       Cerr << "of the Navier_Stokes_phase_field equation." << finl;
-      exit();
+      Process::exit();
     }
   //Pour compilation
   return Navier_Stokes_phase_field::diffusivite_pour_transport();
@@ -355,7 +355,7 @@ void Navier_Stokes_phase_field::discretiser()
       break;
     default:
       Cerr <<"N_S_Phase_field : Problem with rho0 dimension:"<<dim<<finl;
-      exit();
+      Process::exit();
       break;
     }
 }
@@ -395,7 +395,7 @@ void Navier_Stokes_phase_field::creer_champ(const Motcle& motlu)
           if (boussi_ != 1)
             {
               Cerr << "Navier_Stokes_phase_field::creer_champ: should not be here (1)"<< finl;
-              exit();
+              Process::exit();
             }
           dis.discretiser_champ("CHAMP_ELEM",domaine_dis(),"masse_volumique","kg/m3",1,0.,rho_);
           champs_compris_.ajoute_champ(rho_);
@@ -407,7 +407,7 @@ void Navier_Stokes_phase_field::creer_champ(const Motcle& motlu)
           if (boussi_ == 1 && le_fluide->has_beta_c())
             {
               Cerr << "Navier_Stokes_phase_field::creer_champ: should not be here (2)"<< finl;
-              exit();
+              Process::exit();
             }
           dis.nommer_completer_champ_physique(domaine_dis(),"masse_volumique","kg/m3",rho_,probleme());
           champs_compris_.ajoute_champ(rho_);

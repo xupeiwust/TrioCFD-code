@@ -162,14 +162,14 @@ void Flux_radiatif_VEF::calculer_flux_radiatif(const Equation_base& eq_temp)
           else
             {
               Cerr <<"Coder pour les autres condition limites de l'equation de temperature 1 "<<finl;
-              exit();
+              Process::exit();
             }
         }
     }
   if(test_nom == 0)
     {
       Cerr<<"Erreur : il n'y a pas de condition limite sur une frontiere portant le nom : "<<frontiere_dis().le_nom()<<finl;
-      exit();
+      Process::exit();
     }
   //  Tb contient les temperatures de bord
   // Calcul du flux radiatif

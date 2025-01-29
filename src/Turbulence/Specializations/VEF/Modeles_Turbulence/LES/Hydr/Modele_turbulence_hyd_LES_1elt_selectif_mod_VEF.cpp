@@ -48,7 +48,7 @@ void Modele_turbulence_hyd_LES_1elt_selectif_mod_VEF::discretiser()
   if (dimension != 3)
     {
       Cerr << "The model sous_maille_1elt_selectif_mod has no sense if dimension is not 3." << finl;
-      exit();
+      Process::exit();
     }
   Modele_turbulence_hyd_LES_base::discretiser();
   const VEF_discretisation& dis = ref_cast(VEF_discretisation, mon_equation_->discretisation());

@@ -135,7 +135,7 @@ Entree& Sonde_IJK::readOn( Entree& is )
         {
           Cerr << "Error while reading the probe " << nom_ <<finl;
           Cerr << "The data of the probe were not defined" << finl;
-          exit();
+          Process::exit();
         }
       int rang=les_motcles.search(motlu);
       if (rang == -1)
@@ -143,7 +143,7 @@ Entree& Sonde_IJK::readOn( Entree& is )
           Cerr << "Error while reading the probe " << nom_ <<finl;
           Cerr << motlu << " is not understood; the keywords understood are : " << finl;
           Cerr << les_motcles;
-          exit();
+          Process::exit();
         }
 
       switch(rang)
@@ -393,7 +393,7 @@ Entree& Sonde_IJK::readOn( Entree& is )
                   if (m==-1)
                     {
                       Cerr<<" The probe name "<<autre_sonde<< " was not found"<<finl;
-                      exit();
+                      Process::exit();
                     }
                   // on recupere  les_positions_
                   const Sonde& la_sonde_ref=les_sondes(m);
@@ -403,13 +403,13 @@ Entree& Sonde_IJK::readOn( Entree& is )
                   rang=1;
             */
             Cerr<<"pas dispo"<<finl;
-            exit();
+            Process::exit();
             break;
           }
         default:
           {
             Cerr << motlu <<"is not yet understood!" << finl;
-            exit();
+            Process::exit();
           }
         }
       fait(rang) = 1;
@@ -418,7 +418,7 @@ Entree& Sonde_IJK::readOn( Entree& is )
     {
       Cerr << "Error while reading the probe " << nom_ << finl;
       Cerr << "The data of the probe have not been properly defined" << finl;
-      exit();
+      Process::exit();
     }
 
   // Construction du fichier associe a la sonde
@@ -562,7 +562,7 @@ void Sonde_IJK::initialiser()
       if (mp_max(elem_faces.size_array())==0)
         {
           Cerr << "Error: the domain " << domaineVF.domaine().le_nom() << " is not discretized." << finl;
-          exit();
+          Process::exit();
         }
       if (sub_type(Champ_Generique_Interpolation,mon_champ.valeur()))
         {
@@ -571,7 +571,7 @@ void Sonde_IJK::initialiser()
           Cerr << "Error in your probe : " << nom_ << finl;
           Cerr << "You can not project to nodes, the field " << nom_champ[0] << finl;
           Cerr << "which is interpolated on the domain " << dom_interp << finl;
-          exit();
+          Process::exit();
         }
       Cerr<<"The location of probes associated to "<<nom_champ[0]<<" are modified (to faces):"<<finl;
       const int nfaces_par_element = domaine.nb_faces_elem() ;
@@ -614,7 +614,7 @@ void Sonde_IJK::initialiser()
           Cerr << "Error in your probe : " << nom_ << finl;
           Cerr << "You can not project to vertexes, the field " << nom_champ[0] << finl;
           Cerr << "which is interpolated on the domain " << dom_interp << finl;
-          exit();
+          Process::exit();
         }
       Cerr<<"The location of probes associated to "<<nom_champ[0]<<" are modified (to vertexes):"<<finl;
       const IntTab& sommet_elem = domaine.les_elems();

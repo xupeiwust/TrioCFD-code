@@ -112,7 +112,7 @@ void Echange_contact_VDF_Zoom_fin::mettre_a_jour(double temps)
         {
           //POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!
           Cerr<<"POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!"<<finl;
-          exit();
+          Process::exit();
 
           // if (sub_type(Convection_Diffusion_Temperature_Turbulent,ch.equation()))
           //         {
@@ -347,7 +347,7 @@ void Echange_contact_VDF_Zoom_fin::mettre_a_jour(double temps)
             else
               {
                 Cerr << " L'equation " << eqG << " n'a pas de champs inconnu temperature !!" << finl;
-                exit();
+                Process::exit();
               }
           }
 
@@ -358,7 +358,7 @@ void Echange_contact_VDF_Zoom_fin::mettre_a_jour(double temps)
     {
       Cerr<<"Ce type de champ a la frontiere ne peux pas etre utilise"<<finl;
       Cerr<<"Il doit avoir acces au pb_MG et aux connectivites !!"<<finl;
-      exit();
+      Process::exit();
     }
   Echange_impose_base::mettre_a_jour(temps);
 }

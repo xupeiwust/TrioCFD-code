@@ -110,7 +110,7 @@ Entree& Paroi_ODVM_scal_VDF::readOn(Entree& is)
           {
             Cerr << mot_lu << " is not a valid keyword for ODVM scalar wall-model" << finl;
             Cerr << "Possible keywords are : " << les_mots << finl;
-            exit();
+            Process::exit();
           }
         }
       is >> mot_lu;
@@ -290,7 +290,7 @@ int Paroi_ODVM_scal_VDF::init_lois_paroi()
             {
               Cerr << "Problem while initializing ODVM: the boundary condition" << finl;
               Cerr << "can not be used with ODVM wall-model at the moment." << finl;
-              exit();
+              Process::exit();
             }
 
         }//Fin de paroi fixe
@@ -378,7 +378,7 @@ int Paroi_ODVM_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   // tab_visco+=DMINFLOAT;
 

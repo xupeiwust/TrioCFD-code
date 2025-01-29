@@ -93,7 +93,7 @@ void Pb_Couple_rayo_semi_transp::associer_sch_tps_base(Schema_Temps_base& sch)
       Cerr << "associe au probleme couple avant l'association du schema en temps avec le probleme couple." << finl;
       Cerr << "Voir la documentation des problemes thermohydrauliques avec modele de rayonnement" << finl;
       Cerr << "ou contacter le support TRUST pour plus de precisions." << finl;
-      exit();
+      Process::exit();
     }
   modele().associer_sch_tps_base(sch_clone); // association
 }
@@ -154,7 +154,7 @@ void Pb_Couple_rayo_semi_transp::le_modele_rayo_associe(const Modele_rayo_semi_t
   if (le_modele_.non_nul())
     {
       Cerr << "Attention : on ne peut associer qu'un modele de rayonnement a un Pb_Couple_rayo_semi_transp" << finl;
-      exit();
+      Process::exit();
     }
   le_modele_ = un_modele_de_rayonnement;
   int le_pb_a_associer=-1;
@@ -170,7 +170,7 @@ void Pb_Couple_rayo_semi_transp::le_modele_rayo_associe(const Modele_rayo_semi_t
   if (le_pb_a_associer==-1)
     {
       Cerr << "Attention : il n'y a aucun probleme fluide auquel associer le modele de rayonnement." << finl;
-      exit();
+      Process::exit();
     }
   Probleme_base& le_pb=ref_cast(Probleme_base,probleme(le_pb_a_associer));
   // Le probleme a associer est maintenant reference dans le_pb.

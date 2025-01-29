@@ -83,7 +83,7 @@ Entree& Remaillage_FT::readOn(Entree& is)
     {
       Cerr << "Error in Remaillage_FT::readOn: It is an error to specify both facteur_longueur_ideale"
            << " and critere_longueur_fixe parameters." << finl;
-      exit();
+      Process::exit();
     }
   return is;
 }
@@ -108,7 +108,7 @@ int Remaillage_FT::reprendre(Entree& is)
       Cerr << " On attendait le motcle " << que_suis_je();
       Cerr << "\n On a trouve " << motlu << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
   is >> temps_dernier_remaillage_;
   is >> temps_dernier_lissage_;
@@ -2305,7 +2305,7 @@ double Remaillage_FT::calculer_longueurIdeale2_arete(const Maillage_FT_Disc& mai
           Cerr << "Remaillage_FT::calculer_longueurIdeale2_arete non implemente pour les elements "
                << elem_geom.que_suis_je() << finl;
           assert(0==1);
-          exit();
+          Process::exit();
         }
 
       lgrId2 *= facteur_longueur_ideale_ * facteur_longueur_ideale_;
@@ -2319,7 +2319,7 @@ double Remaillage_FT::calculer_longueurIdeale2_arete(const Maillage_FT_Disc& mai
   else
     {
       Cerr << "Erreur Remaillage_FT::calculer_longueurIdeale2_arete" << finl;
-      exit();
+      Process::exit();
     }
   return lgrId2;
 }

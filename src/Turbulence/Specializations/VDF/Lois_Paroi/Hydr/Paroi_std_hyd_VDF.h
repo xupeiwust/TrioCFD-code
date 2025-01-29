@@ -114,7 +114,7 @@ inline double Paroi_std_hyd_VDF::tau_tang(int face, int k) const
       Cerr << "dimension : " << Cisaillement_paroi_.dimension(0) << finl;
       Cerr << "dimension_tot : " << Cisaillement_paroi_.dimension_tot(0) << finl;
       Cerr << "face : " << face << finl;
-      exit();
+      Process::exit();
     }
   return Cisaillement_paroi_(face, k);
 }

@@ -40,7 +40,7 @@ DoubleTab& Source_Portance::ajouter(DoubleTab& resu) const
   Cerr<<"Le terme source de type Portance n est actuellement pas code."<<finl;
   Cerr<<"Veuillez supprimer l activation de ce terme dans la liste"<<finl;
   Cerr<<"des sources de l equation "<<equation().le_nom()<<" de type Transport_Marqueur_FT"<<finl;
-  exit();
+  Process::exit();
 
   return resu;
 }
@@ -56,5 +56,5 @@ void Source_Portance::completer()
   Cerr<<"Le terme source de type Portance n est actuellement pas code."<<finl;
   Cerr<<"Veuillez supprimer l activation de ce terme dans la liste"<<finl;
   Cerr<<"des sources de l equation "<<equation().le_nom()<<" de type Transport_Marqueur_FT"<<finl;
-  exit();
+  Process::exit();
 }

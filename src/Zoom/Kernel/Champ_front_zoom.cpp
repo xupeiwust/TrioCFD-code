@@ -84,17 +84,17 @@ void Champ_front_zoom::creer(Nom& nom_pbMG,
   if(!sub_type(Pb_MG, ob1) )
     {
       Cerr << " Error in the type of problem " << nom_pbMG << finl;
-      exit();
+      Process::exit();
     }
   else if(!sub_type(Probleme_base, ob2) )
     {
       Cerr << " Error in the type of problem " << nom_pbF << finl;
-      exit();
+      Process::exit();
     }
   else if(!sub_type(Probleme_base, ob3) )
     {
       Cerr << " Error in the type of problem " << nom_pbG << finl;
-      exit();
+      Process::exit();
     }
   else
     {
@@ -119,7 +119,7 @@ void Champ_front_zoom::creer(Nom& nom_pbMG,
       else
         {
           Cerr << pbF.le_nom() << "does not have unknown field name" << nom_inco << finl;
-          exit();
+          Process::exit();
         }
       rch = pbG.get_champ(nom_inco);
       if (sub_type(Champ_Inc_base,rch.valeur()))
@@ -130,7 +130,7 @@ void Champ_front_zoom::creer(Nom& nom_pbMG,
       else
         {
           Cerr << pbG.le_nom() << "does not have unknown field name" << nom_inco << finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -292,6 +292,6 @@ const Frontiere_dis_base& Champ_front_zoom::front_dis_exterieure() const
     }
   Cerr << "Error in Champ_front_calc : we did not find a boundary with name : "
        << nom_bord << finl;
-  exit();
+  Process::exit();
   return zcl.les_conditions_limites(0)->frontiere_dis();
 }

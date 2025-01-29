@@ -160,7 +160,7 @@ DoubleTab& Modele_Fonc_Bas_Reynolds_Base::Calcul_Cmu_Paroi(DoubleTab& Cmu,
 bool Modele_Fonc_Bas_Reynolds_Base::calcul_tenseur_Re(const DoubleTab&, const DoubleTab&, DoubleTab& ) const
 {
   Cerr << "La viscosite anisotrope n'a pas ete developpe dans ce modele fonc" << finl;
-  exit();
+  Process::exit();
   return false;
 }
 
@@ -184,7 +184,7 @@ DoubleTab& Modele_Fonc_Bas_Reynolds_Base::Calcul_Cmu_Paroi_BiK(DoubleTab& Cmu,
 bool Modele_Fonc_Bas_Reynolds_Base::calcul_tenseur_Re_BiK(const DoubleTab&, const DoubleTab&, DoubleTab& ) const
 {
   Cerr << "La viscosite anisotrope n'a pas ete developpe dans ce modele fonc" << finl;
-  exit();
+  Process::exit();
   return false;
 }
 

@@ -409,6 +409,6 @@ double Echange_contact_VDF_FT_Disc::Ti_wall(int i) const
     return Ti_wall_->valeurs()(i, 0);
   else
     Cerr << "Echange_contact_VDF_FT_Disc::Ti_wall_ erreur" << finl;
-  exit();
+  Process::exit();
   return 0.;
 }

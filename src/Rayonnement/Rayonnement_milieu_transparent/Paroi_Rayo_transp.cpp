@@ -53,7 +53,7 @@ double Paroi_Rayo_transp::flux_impose(int i) const
     return le_champ_front->valeurs()(i,0)-flux_radia;
   else
     Cerr << "Paroi_Rayo_transp::flux_impose erreur" << finl;
-  exit();
+  Process::exit();
   return 0.;
 }
 

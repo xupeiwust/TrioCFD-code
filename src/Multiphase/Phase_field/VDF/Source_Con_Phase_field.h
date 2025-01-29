@@ -174,7 +174,7 @@ inline double Source_Con_Phase_field::drhodc(const int n_elem) const
           break;
         default:
           Cerr <<"Source_Con_Phase_field::drhodc : Problem with drhodc_ dimension:"<<dim<<finl;
-          exit();
+          Process::exit();
           break;
         }
       return value;

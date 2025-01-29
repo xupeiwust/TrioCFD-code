@@ -135,13 +135,13 @@ void Echange_contact_Rayo_transp_VDF::mettre_a_jour(double temps)
         {
           Cerr<<"gros pb "<<que_suis_je()<<finl;
           assert(0);
-          exit();
+          Process::exit();
         }
 
       if (frontiere_dis().le_nom()!=chcal.front_dis().le_nom())
         {
           Cerr<<"Le nom de bord doit etre le meme pour les deux domaines au niveau du raccord"<<finl;
-          exit();
+          Process::exit();
         }
 
       const Front_VF& frontvf=ref_cast(Front_VF,eqn->domaine_dis().frontiere_dis(frontiere_dis().le_nom()));
@@ -153,7 +153,7 @@ void Echange_contact_Rayo_transp_VDF::mettre_a_jour(double temps)
     }
   else
     {
-      // exit();
+      // Process::exit();
     }
   T_autre_pb().mettre_a_jour(temps);
 
@@ -189,7 +189,7 @@ void Echange_contact_Rayo_transp_VDF::calculer_Teta_equiv(DoubleTab& Teta_eq,con
 {
 
   Cerr<<"On ne doit pas passer par la Echange_contact_Rayo_transp_VDF::calculer_Teta_equiv "<<__FILE__<<finl;
-  exit();
+  Process::exit();
 
 }
 
@@ -269,7 +269,7 @@ void Echange_contact_Rayo_transp_VDF::calculer_Teta_paroi(DoubleTab& Teta_equiv,
           Cerr<<" Teta_equiv avt modif "<<(mon_h(numfa,0)*mon_inco(elem) + lautre_h(numfa,0)*t_autre(numfa)-fluxradia(numfa))/(mon_h(numfa,0)+lautre_h(numfa,0));
           Cerr<<" h "<<mon_h(numfa,0)<<" autreh "<<lautre_h(numfa,0)<<" flux radia "<<fluxradia(numfa);
           Cerr<<" mon T "<<mon_inco(elem)<<" autre T "<< t_autre(numfa)<<finl;
-          exit();
+          Process::exit();
         }
       //        assert(Teta_equiv(numfa,0)>0);
     }

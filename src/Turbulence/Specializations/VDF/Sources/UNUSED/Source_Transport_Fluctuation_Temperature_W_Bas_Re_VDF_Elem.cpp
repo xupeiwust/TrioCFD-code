@@ -57,7 +57,7 @@ Entree& Source_Transport_Fluctuation_Temperature_W_Bas_Re_VDF_Elem::readOn(Entre
   if (motlu != accolade_ouverte)
     {
       Cerr << "On attendait { pour commencer a lire les constantes de Source_Transport_Fluctuation_Temperature_W_Bas_Re" << finl;
-      exit();
+      Process::exit();
     }
   Cerr << "Lecture des constantes de Source_Transport_Fluctuation_Temperature_W_Bas_Re" << finl;
   Motcles les_mots(4);
@@ -96,7 +96,7 @@ Entree& Source_Transport_Fluctuation_Temperature_W_Bas_Re_VDF_Elem::readOn(Entre
         default :
           {
             Cerr << "On ne comprend pas le mot cle : " << motlu << "dans Source_Transport_Fluctuation_Temperature_W_Bas_Re" << finl;
-            exit();
+            Process::exit();
           }
         }
 
@@ -627,7 +627,7 @@ DoubleTab& Source_Transport_Fluctuation_Temperature_W_Bas_Re_VDF_Elem::ajouter(D
     {
       visco=-1;
       Cerr << "La viscosite doit etre uniforme !!!!" << finl;
-      exit();
+      Process::exit();
     }
 
   if (sub_type(Champ_Uniforme,ch_diffu))
@@ -638,7 +638,7 @@ DoubleTab& Source_Transport_Fluctuation_Temperature_W_Bas_Re_VDF_Elem::ajouter(D
     {
       diffu=-1;
       Cerr << "La diffusivite doit etre uniforme !!!!" << finl;
-      exit();
+      Process::exit();
     }
 
 

@@ -342,7 +342,7 @@ DoubleTab& Source_DC_VDF_NS::calculer_residu(Connectivites_base& connect, LIST(O
   else
     {
       Cerr<<"Ce type d'equation n'a pas ete traite !!"<<finl;
-      exit();
+      Process::exit();
     }
 
   //  Cerr<<"voici le residu final : "<< le_residu << finl;

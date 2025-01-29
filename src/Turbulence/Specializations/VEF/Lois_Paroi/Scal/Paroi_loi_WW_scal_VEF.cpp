@@ -95,7 +95,7 @@ int Paroi_loi_WW_scal_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     {
       Cerr<<"Attention: the axisymmetric VEF case is not yet implemented"<<finl;
       Cerr<<"in the thermal wall-function. trust will now stop."<<finl;
-      exit();
+      Process::exit();
     }
 
   double visco=-1;
@@ -111,7 +111,7 @@ int Paroi_loi_WW_scal_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //tab_visco+=DMINFLOAT;
 

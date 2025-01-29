@@ -78,7 +78,7 @@ Entree& Echange_externe_impose_rayo_semi_transp::readOn(Entree& is)
             Cerr << "Erreur a la lecture de la condition aux limites de type "<<finl;
             Cerr << "Echange_externe_impose_rayo_semi_transp " << finl;
             Cerr << "On attendait " << les_motcles << "a la place de " <<  motlu << finl;
-            exit();
+            Process::exit();
           }
         }
       ind++;
@@ -90,7 +90,7 @@ Entree& Echange_externe_impose_rayo_semi_transp::readOn(Entree& is)
       Cerr<<"Echange_externe_impose_rayo_semi_transp. Celle ci ne peut"<<finl;
       Cerr<<"etre utilisee pour un probleme de rayonnement que pour "<<finl;
       Cerr<<"imposer une temperature sur une paroi"<<finl;
-      exit();
+      Process::exit();
     }
 
   return is;

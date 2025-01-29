@@ -118,7 +118,7 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
   if (!sub_type(ParoiVEF_TBLE,loi))
     {
       Cerr << "Une loi de paroi TBLE en thermique doit etre utilisee obligatoirement avec une loi de paroi TBLE sur la QDM " << finl;
-      exit();
+      Process::exit();
     }
 
   Paroi_std_scal_hyd_VEF::init_lois_paroi();
@@ -275,7 +275,7 @@ int ParoiVEF_TBLE_scal::init_lois_paroi()
   if(oui_stats==1 && tps>tps_deb_stats)
     {
       Cerr << " Reprise des stats non code dans TBLE_scal : .... a faire a l'occasion !!! " << finl;
-      exit();
+      Process::exit();
     }
 
   if(je_suis_maitre())
@@ -646,7 +646,7 @@ Paroi_TBLE_QDM& ParoiVEF_TBLE_scal::getLoiParoiHydraulique()
   else
     {
       Cerr << "Pour utiliser des expressions de Nu et Lambda dependant de T dans TBLE, il faut avoir un probleme de thermohydraulique turbulent avec une loi de paroi de type TBLE et TBLE scalaire" << finl;
-      exit();
+      Process::exit();
     }
   return getLoiParoiHydraulique();//n'arrive jamais ici
 }

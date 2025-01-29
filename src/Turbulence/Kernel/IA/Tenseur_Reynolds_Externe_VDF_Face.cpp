@@ -79,7 +79,7 @@ Entree& Tenseur_Reynolds_Externe_VDF_Face::readOn(Entree& is )
   if (motlu != accolade_ouverte)
     {
       Cerr << "On attendait { pour commencer a lire les constantes de Tenseur_Reynolds_Externe" << finl;
-      exit();
+      Process::exit();
     }
   Motcles les_mots(1);
   {
@@ -99,7 +99,7 @@ Entree& Tenseur_Reynolds_Externe_VDF_Face::readOn(Entree& is )
         default :
           {
             Cerr << "On ne comprend pas le mot cle : " << motlu << " dans Tenseur_Reynolds_Externe" << finl;
-            exit();
+            Process::exit();
           }
         }
 
@@ -114,7 +114,7 @@ Entree& Tenseur_Reynolds_Externe_VDF_Face::readOn(Entree& is )
 //     {
 //       Cerr << "Erreur a la lecture du terme source de type " << que_suis_je() << finl;
 //       Cerr << "le champ source doit avoir " << dimension << " composantes" << finl;
-//       exit();
+//       Process::exit();
 //     }
 //  return s ;
 }
@@ -138,7 +138,7 @@ void Tenseur_Reynolds_Externe_VDF_Face::associer_pb(const Probleme_base& pb)
     {
       Cerr << "Error TRUST in " << que_suis_je()  << finl;
       Cerr << "Hydraulic equation not found" << finl;
-      exit();
+      Process::exit();
     }
   else
     {

@@ -44,7 +44,7 @@ Entree& Algo_Couple_1::readOn(Entree& is )
     {
       Cerr << "On attendait une { a la lecture d'une " << que_suis_je() << finl;
       Cerr << "et non : " << motlu << finl;
-      exit();
+      Process::exit();
     }
   is >> motlu;
   while (motlu != accolade_fermee)
@@ -57,7 +57,7 @@ Entree& Algo_Couple_1::readOn(Entree& is )
           break;
         default :
           Cerr << "Mot cle inconnu dans Algo_Couple_1  " << finl;
-          exit();
+          Process::exit();
         }
       is >> motlu;
     }

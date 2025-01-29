@@ -106,7 +106,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
   if (motlu!="{")
     {
       Cerr<<"Source_Con_Phase_field::readOn: We are expecting { at the beginning of Source_Con_Phase_field block instead of " << motlu <<finl;
-      exit();
+      Process::exit();
     }
   int cpt = 0;
   is >> motlu;
@@ -126,7 +126,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
           if (motlu!="{")
             {
               Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'non' instead of "<< motlu <<finl;
-              exit();
+              Process::exit();
             }
           is >>motlu;
           int cpt0=0;
@@ -148,7 +148,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                     if (motlu!="{")
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after potentiel_chimique instead of "<< motlu <<finl;
-                        exit();
+                        Process::exit();
                       }
                     Motcle temp_potentiel_chimique_;
                     is >> temp_potentiel_chimique_;
@@ -164,13 +164,13 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                     else
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: "<<temp_potentiel_chimique_<<" is not a valid keyword in potentiel_chimique block"<<finl;
-                        exit();
+                        Process::exit();
                       }
                     is >> motlu;
                     if (motlu!="}")
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: We are expecting } at the end of potentiel_chimique block instead of "<< motlu <<finl;
-                        exit();
+                        Process::exit();
                       }
                     break;
                   }
@@ -193,7 +193,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                     if (motlu!="{")
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: We are expecting { at the end of kappa_variable block instead of " << motlu <<finl;
-                        exit();
+                        Process::exit();
                       }
                     Motcle temp_type_kappa_;
                     is >> temp_type_kappa_;
@@ -217,14 +217,14 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: "<<temp_type_kappa_<<" is not a valid keyword in kappa_variable block"<<finl;
                             Cerr<<"You can specify only non, defaut or fonction expression for kappa_variable"<<finl;
-                            exit();
+                            Process::exit();
                           }
                       }
                     is >> motlu;
                     if (motlu!="}")
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: We are expecting } at the end of kappa_variable block instead of " << motlu <<finl;
-                        exit();
+                        Process::exit();
                       }
                     break;
                   }
@@ -236,7 +236,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                     for (int i=1; i<8; i++)
                       Cerr << les_mots[i] << " ";
                     Cerr<< finl;
-                    exit();
+                    Process::exit();
                   }
 
                 }
@@ -246,7 +246,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
             {
               Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
               Cerr << "You should specify all these parameters: " << les_mots << finl;
-              exit();
+              Process::exit();
             }
         }
       else if (temp_systeme_naire=="oui")
@@ -256,7 +256,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
           if (motlu!="{")
             {
               Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'oui' instead of "<< motlu <<finl;
-              exit();
+              Process::exit();
             }
           is >>motlu;
           int cpt0=0;
@@ -284,7 +284,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         if (motlu!="{")
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'oui' instead of "<< motlu <<finl;
-                            exit();
+                            Process::exit();
                           }
                         if (nb_equation_CH==2)
                           {
@@ -322,7 +322,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                       Cerr << "Source_Con_Phase_field::readOn: Error while reading alpha_rotation " << finl;
                                       Cerr << motlu << " is not understood."<< finl;
                                       Cerr << "We are expecting a keyword among " << param_alpha << finl;
-                                      exit();
+                                      Process::exit();
                                     }
 
                                   }
@@ -332,7 +332,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                               {
                                 Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
                                 Cerr << "You should specify all these parameters: " << param_alpha << finl;
-                                exit();
+                                Process::exit();
                               }
                             double coeff_mult;
                             coeff_mult = alpha_ref/(2*pow(cos(angle_alphaMatrix* PI / 180.0),2)+diagonal_coeff*pow(sin(angle_alphaMatrix* PI / 180.0),2));
@@ -354,7 +354,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         if (motlu!="{")
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'non' instead of "<< motlu <<finl;
-                            exit();
+                            Process::exit();
                           }
                         is >> motlu;
                         while(motlu!="}")
@@ -375,7 +375,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                   Cerr << "Source_Con_Phase_field::readOn: Error while reading alpha_rotation " << finl;
                                   Cerr << motlu << " is not understood."<< finl;
                                   Cerr << "We are expecting a keyword among " << les_mots[1] << finl;
-                                  exit();
+                                  Process::exit();
                                 }
                               }
                             is >> motlu;
@@ -395,7 +395,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         if (motlu!="{")
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'defaut' instead of "<< motlu <<finl;
-                            exit();
+                            Process::exit();
                           }
                         is >> motlu;
                         int cpt1=0;
@@ -430,7 +430,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                   Cerr << "Source_Con_Phase_field::readOn: Error while reading potentiel_chimique " << finl;
                                   Cerr << motlu << " is not understood."<< finl;
                                   Cerr << "We are expecting a keyword among " << param_potentiel_chimique << finl;
-                                  exit();
+                                  Process::exit();
                                 }
                               }
                             is>> motlu;
@@ -439,7 +439,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                           {
                             Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
                             Cerr << "You should specify all these parameters: " << param_potentiel_chimique << finl;
-                            exit();
+                            Process::exit();
                           }
                         dWdc_naire=&Source_Con_Phase_field::dWdc_naire_defaut;
                       }
@@ -452,7 +452,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                             if (motlu!="{")
                               {
                                 Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'fonction_analytique' instead of "<< motlu <<finl;
-                                exit();
+                                Process::exit();
                               }
                             is >> motlu;
                             int cpt1=0;
@@ -517,7 +517,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                       Cerr << "Source_Con_Phase_field::readOn: Error while reading potentiel_chimique " << finl;
                                       Cerr << motlu << " is not understood."<< finl;
                                       Cerr << "We are expecting a keyword among " << param_potentiel_analytique_ternaire << finl;
-                                      exit();
+                                      Process::exit();
                                     }
                                   }
                                 is>> motlu;
@@ -526,7 +526,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                               {
                                 Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
                                 Cerr << "You should specify all these parameters: " << param_potentiel_analytique_ternaire << finl;
-                                exit();
+                                Process::exit();
                               }
                             dWdc_naire_analytique_ter=&Source_Con_Phase_field::dWdc_naire_analytique_ternaire;
                           }
@@ -536,7 +536,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                             if (motlu!="{")
                               {
                                 Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'fonction_analytique' instead of "<< motlu <<finl;
-                                exit();
+                                Process::exit();
                               }
                             is >> motlu;
                             int cpt1=0;
@@ -632,7 +632,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                       Cerr << "Source_Con_Phase_field::readOn: Error while reading potentiel_chimique " << finl;
                                       Cerr << motlu << " is not understood."<< finl;
                                       Cerr << "We are expecting a keyword among " << param_potentiel_analytique_quaternaire << finl;
-                                      exit();
+                                      Process::exit();
                                     }
                                   }
                                 is>> motlu;
@@ -641,7 +641,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                               {
                                 Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
                                 Cerr << "You should specify all these parameters: " << param_potentiel_analytique_quaternaire << finl;
-                                exit();
+                                Process::exit();
                               }
                             dWdc_naire_analytique_quater=&Source_Con_Phase_field::dWdc_naire_analytique_quaternaire;
                           }
@@ -659,7 +659,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                     else
                       {
                         Cerr<<"Source_Con_Phase_field::readOn: "<<temp_potentiel_chimique_<<" is not a valid keyword in potentiel_chimique block"<<finl;
-                        exit();
+                        Process::exit();
                       }
                     break;
                   }
@@ -701,7 +701,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         if (motlu!="{")
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'oui' instead of "<< motlu <<finl;
-                            exit();
+                            Process::exit();
                           }
                         is >> motlu;
                         int cpt1=0;
@@ -747,7 +747,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                   Cerr << "Source_Con_Phase_field::readOn: Error while reading kappa_auto_diffusion " << finl;
                                   Cerr << motlu << " is not understood."<< finl;
                                   Cerr << "We are expecting a keyword among " << param_mobilite << finl;
-                                  exit();
+                                  Process::exit();
                                 }
 
                               }
@@ -757,7 +757,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                           {
                             Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
                             Cerr << "You should specify all these parameters: " << param_mobilite << finl;
-                            exit();
+                            Process::exit();
                           }
                         kappaMatrix_func_c=&Source_Con_Phase_field::kappa_func_auto_diffusion;
                       }
@@ -768,7 +768,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         if (motlu!="{")
                           {
                             Cerr<<"Source_Con_Phase_field::readOn: We are expecting { after 'non' instead of "<< motlu <<finl;
-                            exit();
+                            Process::exit();
                           }
                         is >> motlu;
                         while(motlu!="}")
@@ -789,7 +789,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                                   Cerr << "Source_Con_Phase_field::readOn: Error while reading kappa_auto_diffusion " << finl;
                                   Cerr << motlu << " is not understood."<< finl;
                                   Cerr << "We are expecting a keyword among " << les_mots[4] << finl;
-                                  exit();
+                                  Process::exit();
                                 }
                               }
                             is >> motlu;
@@ -800,7 +800,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
                         Cerr << "Source_Con_Phase_field::readOn: Error while reading systeme_naire" << finl;
                         Cerr << motlu << " is not understood."<< finl;
                         Cerr << "We are expecting a keyword among " << les_mots << finl;
-                        exit();
+                        Process::exit();
                       }
 
                     break; //test break
@@ -812,7 +812,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
             {
               Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
               Cerr << "You should specify all these parameters: " << les_mots << finl;
-              exit();
+              Process::exit();
             }
         }
     }
@@ -829,7 +829,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
             if(tpsaff<0. || tpsaff >100.)
               {
                 Cerr << "Source_Con_Phase_field::readOn: Temps_d_affichage should be in the range 0 - 100 seconds." << finl;
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -953,7 +953,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
             Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field" << finl;
             Cerr << motlu << " is not understood."<< finl;
             Cerr << "We are expecting a keyword among " << les_mots << finl;
-            exit();
+            Process::exit();
           }
         }
       is >>motlu;
@@ -962,7 +962,7 @@ Entree& Source_Con_Phase_field::readOn(Entree& is )
     {
       Cerr << "Source_Con_Phase_field::readOn: Error while reading Source_Con_Phase_field: wrong number of parameters" << finl;
       Cerr << "You should specify all these parameters: " << les_mots << finl;
-      exit();
+      Process::exit();
     }
   /*if (type_systeme_naire_==0)
     if(kappa>0)
@@ -985,7 +985,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
   if (boussi_!=1 && boussi_!=0)
     {
       Cerr << "Erreur dans le choix du parametre boussi_" << finl;
-      exit();
+      Process::exit();
     }
 
   // diff_boussi==1 si la viscosite dynamique n'est pas constante (variation de la viscosite en fonction de la concentration c)
@@ -993,7 +993,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
   if (diff_boussi_!=1 && diff_boussi_!=0)
     {
       Cerr << "Erreur dans le choix du parametre diff_boussi_" << finl;
-      exit();
+      Process::exit();
     }
 
   g_=eq_ns.get_g_();
@@ -1003,7 +1003,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
   if (mutype_!=0 && mutype_!=1)
     {
       Cerr << "Erreur dans le choix du parametre mutype_" << finl;
-      exit();
+      Process::exit();
     }
 
   if(implicitation_==1)
@@ -1012,7 +1012,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
         {
           Cerr << "** Erreur du choix de la methode implicite GMRES - L'execution doit stopper **" << finl;
           Cerr << "Choix possibles : 0, 1" << finl;
-          exit();
+          Process::exit();
         }
     }
   else if(implicitation_!=0)
@@ -1020,7 +1020,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
       Cerr<<"================================================="<<finl;
       Cerr<<"Choix de l'implicitation incorrect ! (ni 0, ni 1)"<<finl;
       Cerr<<"================================================="<<finl;
-      exit();
+      Process::exit();
     }
 
   // kappa_ind==1 si c'est mobilite degeneree (==0 si mobilite constante)
@@ -1037,7 +1037,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
       else
         {
           Cerr << "Erreur dans le choix de kappa !" << finl;
-          exit();
+          Process::exit();
         }
     }
   if (type_systeme_naire_==1)
@@ -1053,7 +1053,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
       else
         {
           Cerr << "Erreur dans le choix de kappa !" << finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -1063,7 +1063,7 @@ void Source_Con_Phase_field::associer_pb(const Probleme_base& pb)
       if(kappa_moy_!=0 && kappa_moy_!=1 && kappa_moy_!=2)
         {
           Cerr << "Erreur dans le choix de la moyenne de kappa !" << finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -2702,7 +2702,7 @@ void Source_Con_Phase_field::assembler_matrice_point_fixe(Matrice_Morse& matrice
       if (compt!=dimensionnement)
         {
           Cerr << "Erreur lors du calcul de la matrice du point fixe : nombre d'elements non nuls calcules different du nombre d'elements non nuls prevus" << finl;
-          exit();
+          Process::exit();
         }
       //   Cerr<<"Nombre d'elements non nuls calcules="<<compt<<finl;
       //   Cerr<<"Nombre d'elements non nuls prevus="<<dimensionnement<<finl;
@@ -3210,7 +3210,7 @@ void Source_Con_Phase_field::assembler_matrice_point_fixe(Matrice_Morse& matrice
       if (compt!=dimensionnement)
         {
           Cerr << "Erreur lors du calcul de la matrice du point fixe : nombre d'elements non nuls calcules different du nombre d'elements non nuls prevus" << finl;
-          exit();
+          Process::exit();
         }
       //   Cerr<<"Nombre d'elements non nuls calcules="<<compt<<finl;
       //   Cerr<<"Nombre d'elements non nuls prevus="<<dimensionnement<<finl;
@@ -3266,7 +3266,7 @@ void Source_Con_Phase_field::calculer_point_fixe(const DoubleTab& c, const Doubl
   Cerr<<"Inversion du systeme du point fixe"<<finl;
   Cerr<<"(Attention : fonctionne seulement en sequentiel)"<<finl;
   if (Process::nproc()>1)
-    exit();
+    Process::exit();
 
   while(norme_array(residu1) > epsilon_ || norme_array(residu2)>epsilon_)
     {

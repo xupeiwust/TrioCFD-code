@@ -80,7 +80,7 @@ void Traitement_particulier_NS_THI_thermo_VDF::init_calc_spectre()
       Cerr << "On ne peut pas demander de spectres sur la temperature" << finl;
       Cerr << "si on ne resout pas une equation de la chaleur." << finl;
       Cerr << "Solution : enlever le suffixe '_thermo'." << finl;
-      exit();
+      Process::exit();
     }
 
   Traitement_particulier_NS_THI_VDF::init_calc_spectre();

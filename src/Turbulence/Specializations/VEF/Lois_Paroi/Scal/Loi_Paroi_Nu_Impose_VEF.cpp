@@ -98,7 +98,7 @@ Entree& Loi_Paroi_Nu_Impose_VEF::readOn(Entree& s)
         default : // non compris
           Cerr << "Mot cle \"" << motlu << "\" non compris lors de la lecture d'un "
                << que_suis_je() << finl;
-          exit();
+          Process::exit();
         }
       s >> motlu;
     }
@@ -107,13 +107,13 @@ Entree& Loi_Paroi_Nu_Impose_VEF::readOn(Entree& s)
   if (nusselt_ok==-1)
     {
       Cerr << "Il faut definir l'expression nusselt(Re,Pr)" << finl;
-      exit();
+      Process::exit();
     }
 
   if (diam_hydr->nb_comp()!=1)
     {
       Cerr << "Il faut definir le champ diam_hydr a une composante" << finl;
-      exit();
+      Process::exit();
     }
   return s;
 }
@@ -155,7 +155,7 @@ int  Loi_Paroi_Nu_Impose_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //tab_visco+=DMINFLOAT;
 

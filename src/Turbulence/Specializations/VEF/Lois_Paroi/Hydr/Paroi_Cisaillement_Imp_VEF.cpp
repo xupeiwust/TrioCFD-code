@@ -111,7 +111,7 @@ int Paroi_Cisaillement_Imp_VEF::calculer_hyd_commun()
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //tab_visco+=DMINFLOAT;
 
@@ -181,7 +181,7 @@ int Paroi_Cisaillement_Imp_VEF::calculer_hyd_commun()
               else
                 {
                   Cerr << " On ne sait traiter que des champs P1NC dans Paroi_Cisaillement_Imp_VEF::calculer_hyd" << finl;
-                  exit();
+                  Process::exit();
                 }
 
               double dist=distance_face_elem(num_face,elem,domaine_VEF);

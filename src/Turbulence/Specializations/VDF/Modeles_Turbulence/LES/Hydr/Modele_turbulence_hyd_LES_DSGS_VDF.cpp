@@ -90,7 +90,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_DSGS_VDF::calculer_viscosite_turbulen
   if (visco_turb.size() != nb_elem)
     {
       Cerr << "erreur dans la taille du DoubleTab valeurs de la viscosite" << finl;
-      exit();
+      Process::exit();
     }
 
   Debog::verifier("Modele_turbulence_hyd_LES_DSGS_VDF::calculer_viscosite_turbulente visco_turb 0", visco_turb);
@@ -525,7 +525,7 @@ void Modele_turbulence_hyd_LES_DSGS_VDF::calculer_Mij(const DoubleTab& Sij_grid_
   // en sortie de la boucle coeff=sqrt(2*tmp) tmp calculer qu avec le dernier
   // elt
   assert(0);
-  exit();
+  Process::exit();
   sij_filt *= coeff;
 
   calculer_filter_tensor(sij_filt);

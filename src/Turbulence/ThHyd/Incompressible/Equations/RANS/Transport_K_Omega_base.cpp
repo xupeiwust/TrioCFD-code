@@ -58,7 +58,7 @@ void Transport_K_Omega_base::discretiser()
     {
       Cerr << " Transport_K_Omega_base::discretiser " << finl;
       Cerr << "Discretization " << discretisation().que_suis_je() << " not recognized." << finl;
-      exit();
+      Process::exit();
     }
 
   Cerr << "K-Omega transport equation (" << que_suis_je() << ") discretization" << finl;
@@ -285,7 +285,7 @@ int Transport_K_Omega_base::controler_K_Omega()
               // qui posent probleme
               Cerr << "The problem is postprocessed in order to find the nodes where K or Omega values go below 0." << finl;
               probleme().postraiter(1);
-              exit();
+              Process::exit();
             };
         }
       if (neg[2])

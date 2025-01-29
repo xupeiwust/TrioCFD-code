@@ -1120,7 +1120,7 @@ double Op_Conv_ALE_VEF::application_LIMITEUR(double grad1, double grad2, Motcle&
     {
       Cerr << type_limit << " is not implemented. " << finl;
       Cerr << " Choose from: minmod - vanleer - vanalbada - chakravarthy - superbee " << finl;
-      exit();
+      Process::exit();
     }
 
   return gradlim;

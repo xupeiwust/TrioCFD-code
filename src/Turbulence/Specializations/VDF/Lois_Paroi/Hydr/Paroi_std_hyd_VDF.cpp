@@ -126,7 +126,7 @@ int Paroi_std_hyd_VDF::preparer_calcul_hyd(DoubleTab& tab)
             {
               Cerr << "Erreur TRUST dans Paroi_std_hyd_VDF::preparer_calculer_hyd" << finl;
               Cerr << "Le DoubleTab tab ne peut pas avoir plus de 2 entrees" << finl;
-              exit();
+              Process::exit();
             }
           else
             {
@@ -186,7 +186,7 @@ int Paroi_std_hyd_VDF::calculer_hyd(DoubleTab& tab1, int isKeps, DoubleTab& tab2
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   int ndeb, nfin, elem, ori;
   double norm_v, dist, u_plus_d_plus, d_visco;
@@ -444,7 +444,7 @@ int Paroi_std_hyd_VDF::compute_law_komega(DoubleTab& field_komega)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   int ndeb, nfin, elem, ori;
   //double norm_v, dist, u_plus_d_plus {0}, d_visco;
@@ -790,7 +790,7 @@ double Paroi_std_hyd_VDF::calculer_local(double u_plus_d_plus, double d_visco, d
       //bizarre
       u_star = 0;
       assert(0);
-      exit();
+      Process::exit();
     }
   return u_star;
 }
@@ -1220,7 +1220,7 @@ void Paroi_std_hyd_VDF::calculer_moyennes_parois(double& U_moy_1,
         //   on ne doit pas changer tab_visco ici !
         {
           Cerr<<" visco <=0 ?"<<finl;
-          exit();
+          Process::exit();
         }
       //        tab_visco += DMINFLOAT;
     }
@@ -1279,7 +1279,7 @@ void Paroi_std_hyd_VDF::calculer_moyennes_parois(double& U_moy_1,
                     dir1 = dir2=-1;
                     Cerr << que_suis_je() <<" Aborting during detection of wall orientation."<< finl;
                     Cerr<<"Please contact TRUST support."<<finl;
-                    exit();
+                    Process::exit();
                   }
                 }
             }
@@ -1376,14 +1376,14 @@ void Paroi_std_hyd_VDF::modifs_valeurs_turb(int num_elem, int type_cou,
     {
       Cerr << "Il y a un pbl : type_cou doit etre egal a 0, 1, ou 2!!" << finl;
       Cerr << "type_cou=" << type_cou << finl;
-      exit();
+      Process::exit();
     }
 }
 
 double Paroi_std_hyd_VDF::calculer_u_star(double& norm_vit, double& visco, double& dist)
 {
   Cerr << "On ne doit pas passer dans Paroi_std_hyd_VDF::calculer_u_star..." << finl;
-  exit();
+  Process::exit();
   return 1;
 }
 
@@ -1413,7 +1413,7 @@ int Paroi_std_hyd_VDF::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
 
   int ndeb, nfin;

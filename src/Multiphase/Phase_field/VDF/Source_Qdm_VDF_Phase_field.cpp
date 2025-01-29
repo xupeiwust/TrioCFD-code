@@ -58,7 +58,7 @@ Entree& Source_Qdm_VDF_Phase_field::readOn(Entree& is )
   if (motlu!="{")
     {
       Cerr<<"On attendait { dans Source_Qdm_VDF_Phase_field::readOn"<<finl;
-      exit();
+      Process::exit();
     }
 
   is >> motlu;
@@ -66,7 +66,7 @@ Entree& Source_Qdm_VDF_Phase_field::readOn(Entree& is )
   if (motlu!="forme_du_terme_source")
     {
       Cerr<<"On attendait forme_du_terme_source dans Source_Qdm_VDF_Phase_field::readOn"<<finl;
-      exit();
+      Process::exit();
     }
   else
     is >> terme_source;
@@ -79,7 +79,7 @@ Entree& Source_Qdm_VDF_Phase_field::readOn(Entree& is )
   if (motlu!="}")
     {
       Cerr<<"On attendait }  dans Source_Qdm_VDF_Phase_field::readOn"<<finl;
-      exit();
+      Process::exit();
     }
 
   switch(terme_source)
@@ -110,7 +110,7 @@ Entree& Source_Qdm_VDF_Phase_field::readOn(Entree& is )
 
     default:
       Cerr<<"Le choix de la methode :"<<terme_source<<", n'est pas valide."<<finl;
-      exit();
+      Process::exit();
       break;
     }
 
@@ -126,7 +126,7 @@ void Source_Qdm_VDF_Phase_field::associer_pb(const Probleme_base& pb)
   if (boussi_!=1 && boussi_!=0)
     {
       Cerr << "Erreur dans le choix du parametre boussi_" << finl;
-      exit();
+      Process::exit();
     }
 
   eq_ns.getset_terme_source_()=terme_source;

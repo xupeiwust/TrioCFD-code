@@ -49,7 +49,7 @@ void Transport_K_Eps_ALE::corriger_derivee_impl_ALE(DoubleTab& d)
           Cerr<<"volume_entrelace_Cl used in the mass matrix is wrong for the ALE treatment on the boundaries"<<finl;
           Cerr<<"(vol_entrelace_Cl=0 for some of the boundaries indeed a correction is necessary) :"<<finl;
           Cerr<<"the VEFPreP1B discretization must be used to avoid this problem. "<<finl;
-          exit();
+          Process::exit();
         }
       Cerr << "Adding ALE contribution to K Eps..." << finl;
       Op_Conv_ALE& opale=ref_cast(Op_Conv_ALE, terme_convectif.valeur());

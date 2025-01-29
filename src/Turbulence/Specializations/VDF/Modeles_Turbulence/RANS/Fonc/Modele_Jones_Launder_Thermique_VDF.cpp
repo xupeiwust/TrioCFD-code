@@ -51,14 +51,14 @@ Entree& Modele_Jones_Launder_Thermique_VDF::readOn(Entree& is )
         {
           Cerr << "Erreur a la lecture du Modele fonc bas reynolds Jones et Launder pour la thermique" << finl;
           Cerr << "On attendait } a la place de " << motlu << finl;
-          exit();
+          Process::exit();
         }
     }
   else
     {
       Cerr << "Erreur a la lecture du Modele fonc bas reynolds Jones et Launder pour la thermique" << finl;
       Cerr << "On attendait { a la place de " << motlu << finl;
-      exit();
+      Process::exit();
     }
   return is;
 }

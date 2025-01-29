@@ -54,7 +54,7 @@ Entree& Marqueur_FT::readOn(Entree& is)
     {
     Cerr << "On attendait une { a la lecture d'une " << que_suis_je() << finl;
     Cerr << "et non : " << motlu << finl;
-    exit();
+    Process::exit();
     }
     is >> motlu;
 
@@ -77,7 +77,7 @@ Entree& Marqueur_FT::readOn(Entree& is)
     }
   */
   //temporaire
-  exit();
+  Process::exit();
   return is;
 }
 
@@ -117,7 +117,7 @@ void Marqueur_FT::discretiser(const Probleme_base& pb, const  Discretisation_bas
   */
 
   //temporaire
-  exit();
+  Process::exit();
 }
 
 //Calcul des valeurs du champ postraitable densite_particules_
@@ -142,11 +142,11 @@ void Marqueur_FT::calculer_valeurs_champs()
     {
     if (je_suis_maitre())
     Cerr<<"Une particule n est pas localisee dans le domaine"<<finl;
-    exit();
+    Process::exit();
     }
     }
   */
 
   //temporaire
-  exit();
+  Process::exit();
 }

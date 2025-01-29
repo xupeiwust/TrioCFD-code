@@ -44,7 +44,7 @@ Entree& Frontiere_ouverte_vitesse_vortex::readOn(Entree& is)
   if (coeff_vitesse_.size_array() != dimension)
     {
       Cerr << "Frontiere_ouverte_vitesse_vortex: wrong dimension for coeff_vitesse" << finl;
-      exit();
+      Process::exit();
     }
   Nom n("Champ_Front_Uniforme ");
   n += Nom(dimension);

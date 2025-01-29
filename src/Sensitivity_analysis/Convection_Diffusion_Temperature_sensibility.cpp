@@ -68,7 +68,7 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
         {
           Cerr << "We expected a { while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       is >> motlu;
@@ -82,27 +82,27 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
             {
               Cerr<<"We expected the name of a problem and a fluid fild while reading of "<<motlu<< finl;
               Cerr << "and not : " <<accolade_ouverte << " or "<<  accolade_fermee << finl;
-              exit();
+              Process::exit();
             }
         }
       else
         {
           Cerr<<"Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard: keyword "<<motlu<<" is not recognized."<<finl;
           Cerr<<"The recognized keywords are :"<<"pb_champ_evaluateur "<<finl;
-          exit();
+          Process::exit();
         }
       is>>motlu;
       if(motlu != accolade_fermee)
         {
           Cerr << "We expected a } while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
       if (lu_info_evaluateur!=1)
         {
           Cerr<<"Keyword pb_champ_evaluateur must be specified with associated data"<<finl;
           Cerr<<"when Convection_Diffusion_Temperature_sensibility is used."<<finl;
-          exit();
+          Process::exit();
         }
       //const Motcle velocity;
       associate_evaluator_field( name_state_pb,name_velocity_state_field);
@@ -118,7 +118,7 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
         {
           Cerr << "We expected a { while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       is >> motlu;
@@ -132,27 +132,27 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
             {
               Cerr<<"We expected the name of a problem and a fluid fild while reading of "<<motlu<< finl;
               Cerr << "and not : " <<accolade_ouverte << " or "<<  accolade_fermee << finl;
-              exit();
+              Process::exit();
             }
         }
       else
         {
           Cerr<<"Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard: keyword "<<motlu<<" is not recognized."<<finl;
           Cerr<<"The recognized keywords are :"<<"pb_champ_evaluateur "<<finl;
-          exit();
+          Process::exit();
         }
       is>>motlu;
       if(motlu != accolade_fermee)
         {
           Cerr << "We expected a } while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
       if (lu_info_evaluateur!=1)
         {
           Cerr<<"Keyword pb_champ_evaluateur must be specified with associated data"<<finl;
           Cerr<<"when Convection_Diffusion_Temperature_sensibility is used."<<finl;
-          exit();
+          Process::exit();
         }
       associate_evaluator_field( name_state_pb,name_temperature_state_field);
       return 1;
@@ -167,7 +167,7 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
         {
           Cerr << "We expected a { while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       is >> motlu;
@@ -178,7 +178,7 @@ int Convection_Diffusion_Temperature_sensibility::lire_motcle_non_standard(const
         {
           Cerr << "We expected a } while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -201,7 +201,7 @@ void Convection_Diffusion_Temperature_sensibility::associate_evaluator_field(con
   if(probleme().le_nom() ==one_name_state_pb )
     {
       Cerr <<"Convection_Diffusion_Temperature_sensibility: we expect here the nom of the state problem and not the name of the sensibility problem"<< finl;
-      exit();
+      Process::exit();
     }
   Objet_U& ob= Interprete::objet(one_name_state_pb);
   OBS_PTR(Probleme_base) pb;
@@ -214,7 +214,7 @@ void Convection_Diffusion_Temperature_sensibility::associate_evaluator_field(con
   else
     {
       Cerr <<"No problem named "<< one_name_state_pb <<" has been found."<< finl;
-      exit();
+      Process::exit();
     }
   rch = pb->get_champ(one_name_state_field);
 
@@ -228,7 +228,7 @@ void Convection_Diffusion_Temperature_sensibility::associate_evaluator_field(con
   else
     {
       Cerr<<pb->le_nom()<<" has no unknown field named "<<one_name_state_field<<finl;
-      exit();
+      Process::exit();
     }
 }
 //Update the reference to the evaluator field (state_field)

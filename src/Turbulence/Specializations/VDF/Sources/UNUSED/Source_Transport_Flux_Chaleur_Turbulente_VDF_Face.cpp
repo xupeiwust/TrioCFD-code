@@ -56,7 +56,7 @@ Entree& Source_Transport_Flux_Chaleur_Turbulente_VDF_Face::readOn(Entree& is )
   if (motlu != accolade_ouverte)
     {
       Cerr << "On attendait { pour commencer a lire les constantes de Source_Transport_Flux_Chaleur_Turbulente" << finl;
-      exit();
+      Process::exit();
     }
   Cerr << "Lecture des constantes de Source_Transport_Flux_Chaleur_Turbulente" << finl;
   Motcles les_mots(3);
@@ -89,7 +89,7 @@ Entree& Source_Transport_Flux_Chaleur_Turbulente_VDF_Face::readOn(Entree& is )
         default :
           {
             Cerr << "On ne comprend pas le mot cle : " << motlu << "dans Source_Transport_Flux_Chaleur_Turbulente" << finl;
-            exit();
+            Process::exit();
           }
         }
 
@@ -595,7 +595,7 @@ DoubleTab& Source_Transport_Flux_Chaleur_Turbulente_VDF_Face::ajouter(DoubleTab&
       Cerr<<" Si vous utilisiez "<<que_suis_je()<<" priere de contacter l'assistance TRUST"<<finl;
       Cerr<<" un gros bug a ete trouve ...."<<finl;
       assert(0);
-      exit();
+      Process::exit();
       ori=orientation(num_face);
       elem1 = face_voisins(num_face,0);
       elem2 = face_voisins(num_face,1);

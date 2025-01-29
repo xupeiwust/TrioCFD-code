@@ -50,7 +50,7 @@ Entree& Ecr_fic_Ansys::interpreter(Entree& is)
     {
       Cerr << nom_dom << " est du type " << objet(nom_dom).que_suis_je() << finl;
       Cerr << "On attendait un objet de type Domaine" << finl;
-      exit();
+      Process::exit();
     }
   // On recupere le domaine a partir du nom de domaine
   const Domaine& dom=ref_cast(Domaine, objet(nom_dom));
@@ -142,7 +142,7 @@ Entree& Ecr_fic_Ansys::interpreter(Entree& is)
       else
         {
           Cerr << "Element " << type << " inexistant." << finl;
-          exit();
+          Process::exit();
         }
     }
   // Tableau de travail pour reordonner les sommets des faces de bord
@@ -313,7 +313,7 @@ Entree& Ecr_fic_Ansys::interpreter(Entree& is)
                           Cerr << alpha*ny << finl;
                           Cerr << alpha*nz << finl;
                           Cerr << "Contacter le support TRUST." <<finl;
-                          exit();
+                          Process::exit();
                         }
                     }
                 }

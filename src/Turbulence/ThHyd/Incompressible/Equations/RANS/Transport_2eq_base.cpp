@@ -81,7 +81,7 @@ Milieu_base& Transport_2eq_base::milieu()
     {
       Cerr << "No fluid has been associated to the two equations Transport"
            << que_suis_je() << " equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -98,7 +98,7 @@ const Milieu_base& Transport_2eq_base::milieu() const
     {
       Cerr << "No fluid has been associated to the Transport K_Epsilon"
            << que_suis_je() << " equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }

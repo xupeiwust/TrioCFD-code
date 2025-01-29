@@ -67,7 +67,7 @@ void Traitement_particulier_NS_THI_VEF_new::init_calc_spectre()
   if( nsize%2 != 0 )
     {
       Cerr << " Trait_part_NS_THI_VEF_new : nsize n'est pas un nombre paire !! " <<  nsize << finl;
-      exit();
+      Process::exit();
     }
 
   DoubleTab vit_u(nl,nl,nsize);
@@ -566,7 +566,7 @@ void Traitement_particulier_NS_THI_VEF_new::determine_new_tab_fft_VEF()
       Cerr << " ATTENTION (Trait_part_NS_THI_VEF_new) : nombre de points trouves differe de  " << ntot << finl;
       Cerr << " assurez-vous que le nombre de points dans le fichier .data" << finl;
       Cerr << "est bien le meme suivant les 3 directions d'espace et que la longueur du pave etudie correspond bien a : " << longueur << finl;
-      exit();
+      Process::exit();
     }
 
   //            Nom fic_vit_ = "chp_vit";

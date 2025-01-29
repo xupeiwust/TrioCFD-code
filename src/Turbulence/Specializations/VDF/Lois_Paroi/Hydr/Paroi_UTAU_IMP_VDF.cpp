@@ -91,7 +91,7 @@ int Paroi_UTAU_IMP_VDF::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -245,7 +245,7 @@ int Paroi_UTAU_IMP_VDF::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 

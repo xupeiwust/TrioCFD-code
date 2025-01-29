@@ -103,7 +103,7 @@ double Fluide_Diphasique::chaleur_latente() const
   if (!chaleur_latente_.non_nul())
     {
       Cerr << "Fluide_Diphasique::chaleur_latente() : The latent heat has not been specified." << finl;
-      exit();
+      Process::exit();
     }
   return chaleur_latente_->valeurs()(0, 0);
 }

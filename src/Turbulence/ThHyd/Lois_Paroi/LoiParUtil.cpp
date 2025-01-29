@@ -79,7 +79,7 @@ double calculer_u_tau(double nu, double us, double delta, int& type_couche)
       //       if(dplus > valmin_ss_couche_log)
       //         {
       //           Cerr << "PB .... " << finl;
-      //           exit();
+      //           Process::exit();
       //         }
       double uplus=uplusdplus/dplus;
       return us/uplus;
@@ -93,7 +93,7 @@ double calculer_u_tau(double nu, double us, double delta, int& type_couche)
         //         if( (dplus < valmin_ss_couche_log) || (dplus > valmax_ss_couche_log) )
         //         {
         //           Cerr << "PB .... " << finl;
-        //           exit();
+        //           Process::exit();
         //         }
         type_couche=1;
         double uplus=uplusdplus/dplus;

@@ -103,7 +103,7 @@ void Transport_K_ou_Eps_base::discretiser()
     {
       Cerr<<" Transport_K_ou_Eps_base::discretiser "<<finl;
       Cerr<<"Discretization "<<discretisation().que_suis_je()<<" not recognized."<<finl;
-      exit();
+      Process::exit();
     }
   creer_champ( "residu" );
 }
@@ -126,7 +126,7 @@ Milieu_base& Transport_K_ou_Eps_base::milieu()
     {
       Cerr << "No fluid has been associated to the Transport K_Epsilon"
            << que_suis_je()<< " equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -144,7 +144,7 @@ const Milieu_base& Transport_K_ou_Eps_base::milieu() const
     {
       Cerr << "No fluid has been associated to the Transport K_Epsilon"
            << que_suis_je() <<" equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -387,7 +387,7 @@ int Transport_K_ou_Eps_base::controler_variable()
               Cerr << "The problem is postprocessed in order to find the nodes where K or Eps values go below 0."
                    << finl;
               probleme().postraiter(1);
-              exit();
+              Process::exit();
             };
         }
       if ( neg[1] )

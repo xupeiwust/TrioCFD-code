@@ -64,7 +64,7 @@ inline const Milieu_base& Transport_Fluctuation_Temperature_W_Bas_Re::milieu() c
     {
       Cerr << "Il semble que vous n'ayez pas associe "
            << "Transport_Fluctuation_Temperature_W_Bas_Re avec un fluide" << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -75,7 +75,7 @@ inline Milieu_base& Transport_Fluctuation_Temperature_W_Bas_Re::milieu()
     {
       Cerr << "Il semble que vous n'ayez pas associe "
            << "Transport_Fluctuation_Temperature_W_Bas_Re avec un fluide" << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }

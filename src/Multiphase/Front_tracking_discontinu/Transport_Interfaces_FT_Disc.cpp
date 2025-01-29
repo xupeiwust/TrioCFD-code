@@ -497,7 +497,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
           Cerr << "Transport_Interfaces_FT_Disc::lire\n"
                << "The options for " << un_mot << " are :\n"
                << motcles2;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -611,7 +611,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
               {
                 Cerr << "Erreur a la lecture des parametres de l'interpolation lineaire : " << finl;
                 Cerr << "On attendait : " << accouverte << " , on a eu " << mot2 << finl;
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -619,7 +619,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
           Cerr << "Transport_Interfaces_FT_Disc::lire\n"
                << " les options de interpolation_champ_face sont :\n"
                << motcles2;
-          exit();
+          Process::exit();
         }
     }
   else if (un_mot=="type_vitesse_imposee")
@@ -642,7 +642,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
           Cerr << "Transport_Interfaces_FT_Disc::lire\n"
                << " les options de type_vitesse_imposee sont :\n"
                << motcles2;
-          exit();
+          Process::exit();
         }
     }
   else if (un_mot=="distance_IBC_faces")
@@ -668,7 +668,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
           Cerr << "Transport_Interfaces_FT_Disc::lire\n"
                << " les options de distance_IBC_faces sont :\n"
                << motcles2;
-          exit();
+          Process::exit();
         }
     }
   else if (un_mot=="distance_projete_faces")
@@ -774,7 +774,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
               {
                 Cerr << "Erreur a la lecture des parametres de l'indicatrice modifiee " << finl;
                 Cerr << "On attendait : " << accouverte << finl;
-                exit();
+                Process::exit();
               }
             if (Process::je_suis_maitre())
               {
@@ -804,7 +804,7 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
 
 /*! @brief Methode appelee par Equation_base::readOn On verifie que toutes les cl sont de type Paroi_FT_disc.
  *
- *   Fait exit() si erreur.
+ *   Fait Process::exit() si erreur.
  *
  */
 int Transport_Interfaces_FT_Disc::verif_Cl() const
@@ -822,7 +822,7 @@ int Transport_Interfaces_FT_Disc::verif_Cl() const
       Cerr << "Error in Transport_Interfaces_FT_Disc::verif_Cl():\n"
            << " Boundary conditions for Transport_Interfaces_FT_Disc must be\n"
            << " of type Paroi_FT_disc (example : \"Paroi_FT_disc symetrie\")" << finl;
-      exit();
+      Process::exit();
     }
   return 1;
 }
@@ -899,7 +899,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
   if (motlu != "{")
     {
       Cerr << "Error in Transport_Interfaces_FT_Disc::lire_cond_init, expected { after fichier_geom" << finl;
-      exit();
+      Process::exit();
     }
 
   Motcles motcles(6);
@@ -931,7 +931,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
             if (phase_specifiee[i] != 0 && phase_specifiee[i] != 1)
               {
                 Cerr << " Error reading point_phase : expected 0 or 1" << finl;
-                exit();
+                Process::exit();
               }
             for (int j = 0; j < dimension; j++)
               {
@@ -946,7 +946,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
           if (default_phase != 0 && default_phase != 1)
             {
               Cerr << " Error reading default_phase : expected 0 or 1" << finl;
-              exit();
+              Process::exit();
             }
           Cerr << " Default phase : " << default_phase << finl;
           break;
@@ -966,7 +966,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
         default:
           Cerr << " Unknown keyword " << motlu
                << "\n Known keywords are " << motcles << finl;
-          exit();
+          Process::exit();
         }
     }
   while (1);
@@ -974,12 +974,12 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
   if (filename != "??" && domain_name != "??")
     {
       Cerr << "Error: you specified both a .geom file name AND a domain name" << finl;
-      exit();
+      Process::exit();
     }
   else if (filename == "??" && domain_name == "??")
     {
       Cerr << "Error: you must specify a FICHIER_GEOM or a NOM_DOMAINE" << finl;
-      exit();
+      Process::exit();
     }
   if (filename != "??")
     {
@@ -1002,7 +1002,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
       if (!sub_type(Domaine, Interprete::objet(domain_name)))
         {
           Cerr << "Error : object " << domain_name << " is not a domain" << finl;
-          exit();
+          Process::exit();
         }
       ref_dom = ref_cast(Domaine, Interprete::objet(domain_name));
     }
@@ -1016,7 +1016,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
       if (nb_som_elem != 2 && nb_som_elem != 3)
         {
           Cerr << "Error: mesh has wrong dimension (must be segments in 2D, triangles in 3D)" << finl;
-          exit();
+          Process::exit();
         }
       const int j0 = nb_som_elem - 2;
       for (int i = 0; i < nb_elem; i++)
@@ -1117,7 +1117,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
             {
               Cerr << "Error : point " << i << " is not in the domain" << finl;
               barrier();
-              exit();
+              Process::exit();
             }
           else if (composante_connexe == -1)
             {
@@ -1125,7 +1125,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
                    << " (this point is in a mesh cell containing the interface)."
                    << " Use the dump_lata keyword to find a point away from the interface" << finl;
               barrier();
-              exit();
+              Process::exit();
             }
           else
             {
@@ -1185,7 +1185,7 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
            << " you must either specify more points or specify a default_phase.\n"
            << " With the lata_dump keyword, you can watch connex components and find where\n"
            << " points should be added." << finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -1214,7 +1214,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
     {
       Cerr << "Erreur dans Transport_Interfaces_FT_Disc::lire_cond_init\n";
       Cerr << " On attendait {\n On a trouve " << motlu << finl;
-      exit();
+      Process::exit();
     }
   const Motcle virgule = ",";
   int init = 1;
@@ -1254,7 +1254,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
                     Cerr << " The keyword " << nom_phase << " is not understood.\n";
                     Cerr << " Allowed keywords are : ajout_phase0 or ajout_phase1" << finl;
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
             Nom expression;
@@ -1284,7 +1284,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
                       {
                         Cerr << "Error:  the interface is colliding with an existing interface." << finl;
                         barrier();
-                        exit();
+                        Process::exit();
                       }
                   }
                 maillage_interface().ajouter_maillage(maillage_tmp);
@@ -1319,7 +1319,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
           Cerr << "Transport_Interfaces_FT::lire_cond_init :\n";
           Cerr << " The keyword " << motlu << " is not understood here.\n";
           Cerr << " Allowed keywords are :\n" << motcles << finl;
-          exit();
+          Process::exit();
         }
       is >> motlu;
       Cerr<<"lectureF "<<motlu<<finl;
@@ -1330,7 +1330,7 @@ Entree& Transport_Interfaces_FT_Disc::lire_cond_init(Entree& is)
     {
       Cerr << "Error for method Transport_Interfaces_FT_Disc::lire_cond_init\n";
       Cerr << " A } was expected\n It has been found " << motlu << finl;
-      exit();
+      Process::exit();
     }
 
   return is;
@@ -2099,7 +2099,7 @@ void Transport_Interfaces_FT_Disc::calculer_vitesse_transport_interpolee(
             Cerr << "The interpolation from a field " << champ_vitesse.que_suis_je();
             Cerr << "is not developped." << finl;
             assert(0); // a coder...
-            exit();
+            Process::exit();
           }
 
         // Calcul de la vitesse interpolee a partir du champ P1
@@ -2287,14 +2287,14 @@ void Transport_Interfaces_FT_Disc::calculer_scalaire_interpole(
     case Transport_Interfaces_FT_Disc_interne::VDF_LINEAIRE:
       {
 
-        exit();
+        Process::exit();
         break;
       }
     default:
       {
         Cerr << "Transport_Interfaces_FT_Disc::calculer_scalaire_interpole\n"
              << " the interpolation method is not coded" << finl;
-        exit();
+        Process::exit();
       }
     }
 }
@@ -2471,7 +2471,7 @@ void Transport_Interfaces_FT_Disc::modifier_vpoint_pour_imposer_vit(const Double
            << " The transport equation is not of type \"methode_transport vitesse_imposee\"."
            << " or \"methode_transport loi_horaire\"."
            << finl;
-      exit();
+      Process::exit();
     }
   vpoint.echange_espace_virtuel();
   Debog::verifier("Transport_Interfaces_FT_Disc::calculer_vitesse_imposee vpoint",vpoint);
@@ -2754,7 +2754,7 @@ void Transport_Interfaces_FT_Disc::calcul_source(const DoubleTab& inco_val,
 
       Cerr << "Erreur dans Transport_Interfaces_FT_Disc::calcul_source\n"         << finl;
       Cerr << "Dimension de indicatrice_face differente de dimension de vpoint.\n" << finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -3283,7 +3283,7 @@ void Transport_Interfaces_FT_Disc::calcul_vitesse(DoubleTab& vitesse_imp,
               {
                 Cerr << "Transport_Interfaces_FT_Disc::calculer_vitesse_imposee\n"
                      << " interpolation lineaire non codee en VEF" << finl;
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -3291,7 +3291,7 @@ void Transport_Interfaces_FT_Disc::calcul_vitesse(DoubleTab& vitesse_imp,
           {
             Cerr << "Transport_Interfaces_FT_Disc::calculer_vitesse_imposee\n"
                  << " methode d'interpolation non codee" << finl;
-            exit();
+            Process::exit();
           }
         }
     }
@@ -3301,7 +3301,7 @@ void Transport_Interfaces_FT_Disc::calcul_vitesse(DoubleTab& vitesse_imp,
            << " The transport equation is not of type \"methode_transport vitesse_imposee\"."
            << " or \"methode_transport loi_horaire\"."
            << finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -3688,7 +3688,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
                       else
                         {
                           Process::Journal() << "erreur dans le choix de l'element "<<finl ;
-                          exit() ;
+                          Process::exit() ;
                         }
                       int nb = trav(elem,ori) ;
 
@@ -4246,7 +4246,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
                   Cerr << "ERREUR DE DIMENSIONNEMENT " << finl ;
                   Cerr << " OutFa7.size() "<<OutFa7.size()<<finl ;
                   Cerr << " OutElem.size()*nb_fa7_accepted "<<OutElem.size()*nb_fa7_accepted<<finl ;
-                  exit() ;
+                  Process::exit() ;
                 }
 
               // Tableau des numeros de facettes retenues
@@ -4396,7 +4396,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
                               Cerr << "Attention, verifier les conditions aux limites."<<finl ;
                               Cerr << "En effet, le codage suivant ne permet pas de prendre en compte des conditions" << finl ;
                               Cerr << "de periodicite avec une vitesse solide imposee analytique." << finl ;
-                              exit() ;
+                              Process::exit() ;
                             }
                           const double grad0 = gradient_old(voisin0);
                           if (grad0 > invalid_test)
@@ -4419,7 +4419,7 @@ void Transport_Interfaces_FT_Disc::interpoler_vitesse_face(
                               Cerr << "Attention, verifier les conditions aux limites."<<finl ;
                               Cerr << "En effet, le codage suivant ne permet pas de prendre en compte des conditions" << finl ;
                               Cerr << "de periodicite avec une vitesse solide imposee analytique." << finl ;
-                              exit() ;
+                              Process::exit() ;
                             }
                           const double grad1 = gradient_old(voisin1);
                           if (grad1 > invalid_test)
@@ -4725,7 +4725,7 @@ void Transport_Interfaces_FT_Disc::calcul_nb_traverse( const DoubleTab& xe, cons
               else
                 {
                   Cerr << " attention seules les dimension 2 et 3 sont traitees "<<finl ;
-                  exit() ;
+                  Process::exit() ;
                 }
             }
         }
@@ -5263,7 +5263,7 @@ void Transport_Interfaces_FT_Disc::StockageFa7( Maillage_FT_Disc& maillage,
               Cerr<<"Attention, seulement "<< cpt << " facettes ont ete stokees "<< finl ;
               Cerr<<"dans l'element "<< i_elem << " qui en contient plus."<< finl ;
               Cerr<<"Regarder la finesse du maillage Lagrangien par rapport au maillage Eulerien" <<finl ;
-              exit() ;
+              Process::exit() ;
             }
         }
     }
@@ -6140,7 +6140,7 @@ void Transport_Interfaces_FT_Disc::projete_point_face_interface( int& nb_proj_mo
                     {
                       Cerr << "erreur concernant la face : "<< i_face << " I_f = "<<indicatrice_face(i_face)<<finl ;
                       Cerr << "aucune facette detecte "<< finl ;
-                      exit() ;
+                      Process::exit() ;
                     }
                   else if (nb_facettes_to_uzawa >0)
                     {
@@ -6808,7 +6808,7 @@ void Transport_Interfaces_FT_Disc::integrer_ensemble_lagrange(const double temps
 {
   Cerr<<"The method Transport_Interfaces_FT_Disc::integrer_ensemble_lagrange"<<finl;
   Cerr<<"must be overloaded."<<finl;
-  exit();
+  Process::exit();
 }
 
 void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
@@ -6897,7 +6897,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
     default:
       Cerr << "Error for the method Transport_Interfaces_FT_Disc::mettre_a_jour :\n"
            << " the requested transport mehod is not developped" << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -6957,7 +6957,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
                << " (if it is wished, add an interface at a large time in the file)"
                << finl;
           barrier();
-          exit();
+          Process::exit();
         }
     }
 
@@ -7252,14 +7252,14 @@ int Transport_Interfaces_FT_Disc::nombre_d_operateurs() const
 const Operateur& Transport_Interfaces_FT_Disc::operateur(int i) const
 {
   assert(0);
-  exit();
+  Process::exit();
   throw;
 }
 
 Operateur& Transport_Interfaces_FT_Disc::operateur(int i)
 {
   assert(0);
-  exit();
+  Process::exit();
   throw;
 }
 
@@ -7404,7 +7404,7 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
       {
         Cerr << "Error for the method Transport_Interfaces_FT_Disc::reprendre" << finl;
         Cerr << variables_internes_->que_suis_je() <<" was expected."<< finl;
-        exit();
+        Process::exit();
       }
     variables_internes_->maillage_interface.associer_equation_transport(*this);
     variables_internes_->reprendre(is);
@@ -7578,7 +7578,7 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
                 // Coder le postraitement d'une vitesse imposee
                 Cerr << "Error : vitesse_repere_local nodes post-processing : to be developped." << finl;
                 assert(0);
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -7599,7 +7599,7 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
         default:
           Cerr << "Error for the method Transport_Interfaces_FT_Disc::get_champ_post_FT" << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
       res = 1;
     }
@@ -7727,7 +7727,7 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
             default:
               Cerr << "Transport_Interfaces_FT_Disc::get_champ_post_FT : unexpected case" << finl;
               assert(0);
-              exit();
+              Process::exit();
             }
         }
     }

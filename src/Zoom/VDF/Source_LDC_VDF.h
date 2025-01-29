@@ -59,7 +59,7 @@ public:
 inline DoubleTab& Source_LDC_VDF::calculer_residu(Connectivites_base& connect, LIST(OWN_PTR(Prolongement_base))& P, Equation_base& eqG, Nom&)
 {
   Cerr<<"N'est pas codee avec ces arguments dans la classe Source_LDC_VDF_NS !!"<<finl;
-  exit();
+  Process::exit();
   /* pour les compilateurs ---> il faut retourner un DoubleTab quelconque */
   return eqG.inconnue().valeurs();
 }

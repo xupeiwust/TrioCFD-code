@@ -806,7 +806,7 @@ int Paroi_std_hyd_VEF::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   // tab_visco+=DMINFLOAT;
 
@@ -1116,7 +1116,7 @@ int Paroi_std_hyd_VEF::calculer_hyd_BiK(DoubleTab& tab_k,DoubleTab& tab_eps)
               if (face_keps_imposee_(i)>-1) compteur2++;
             }
           Cerr<<"compteurs "<<compteur2<<" "<<compteur<<finl;
-          exit();
+          Process::exit();
         }
     }
 #endif
@@ -1201,7 +1201,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_2eq)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr << " visco <=0 ?" << finl;
-      exit();
+      Process::exit();
     }
   // tab_visco+=DMINFLOAT;
 
@@ -1540,7 +1540,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_2eq)
               if (face_keps_imposee_(i)>-1) compteur2++;
             }
           Cerr<<"compteurs "<<compteur2<<" "<<compteur<<finl;
-          exit();
+          Process::exit();
         }
     }
 #endif
@@ -1698,7 +1698,7 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //tab_visco+=DMINFLOAT;
 

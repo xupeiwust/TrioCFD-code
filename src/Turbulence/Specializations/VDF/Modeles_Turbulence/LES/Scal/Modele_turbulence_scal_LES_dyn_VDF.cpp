@@ -108,7 +108,7 @@ int Modele_turbulence_scal_LES_dyn_VDF::lire_motcle_non_standard(const Motcle& m
                 {
                   Cerr << "le mot clef stablise plans_paralleles doit necessairement etre suivi de Nb_points !!!\n" << finl;
                   assert(0);
-                  exit();
+                  Process::exit();
                 }
               break;
             }
@@ -129,7 +129,7 @@ int Modele_turbulence_scal_LES_dyn_VDF::lire_motcle_non_standard(const Motcle& m
               Cerr << motlutmp << " n'est pas compris; Les mots compris sont : " << finl;
               Cerr << les_motcles_stabilise;
               assert(0);
-              exit();
+              Process::exit();
             }
           }
         break;
@@ -528,7 +528,7 @@ void Modele_turbulence_scal_LES_dyn_VDF::stabilise_moyenne(const DoubleTab& haut
     {
       Cerr << "probleme dans la definition de la methode de stabilisation" << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
 }
 
@@ -1045,7 +1045,7 @@ void Modele_turbulence_scal_LES_dyn_VDF::calcul_tableaux_correspondance(int& N_c
             {
               Cerr << "nb_points=" << N_c << " est trop petit pour le nombre de plans paralleles." << finl;
               Cerr << "Augmenter cette valeur." << finl;
-              exit();
+              Process::exit();
             }
           if (y == Y_c[j])
             {

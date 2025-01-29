@@ -71,7 +71,7 @@ Entree& Paroi_FT_disc::readOn(Entree& is)
     default :
       Cerr << "Paroi_FT::readOn: expected a contact angle model.\n You say: "
            << motlu << "\n Valid keywords are: " << motcles << finl;
-      exit();
+      Process::exit();
     }
 
   if (type_ != SYMETRIE)

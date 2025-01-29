@@ -79,7 +79,7 @@ Entree& Extraire_surface_ALE::interpreter_(Entree& is)
       Cerr << "Error!" << finl;
       Cerr <<"The domain " << domaine_surfacique.le_nom() << " can't be used by the Extraire_surface keyword." <<finl;
       Cerr <<"The domain for Extraire_surface keyword should be empty and created just before." << finl;
-      exit();
+      Process::exit();
     }
 
   // on recupere le pb
@@ -87,7 +87,7 @@ Entree& Extraire_surface_ALE::interpreter_(Entree& is)
     {
       Cerr << nom_pb << " is of type " << objet(nom_pb).que_suis_je() << finl;
       Cerr << "and not of type Probleme_base" << finl;
-      exit();
+      Process::exit();
     }
   Probleme_base& pb=ref_cast(Probleme_base, objet(nom_pb));
   const Domaine_VF& domaine_vf=ref_cast(Domaine_VF,pb.domaine_dis());

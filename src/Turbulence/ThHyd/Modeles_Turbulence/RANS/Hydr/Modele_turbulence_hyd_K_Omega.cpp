@@ -132,7 +132,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente(do
         {
           Cerr << "visco_turb_K_Omega size is " << visco_turb_K_Omega.size()
                << " instead of " << komega_size_real << finl;
-          exit();
+          Process::exit();
         }
 
       // A la fin de cette boucle, le tableau visco_turb_K_Omega contient les valeurs de la viscosite turbulente

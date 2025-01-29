@@ -66,7 +66,7 @@ Entree& Associer_pbMG_pbGglobal::interpreter(Entree& is)
   is >> nom1 >> nom2;
   /*   if(!is){
        Cerr << "Probleme de lecture dans Associer_pbMG_pbGglobal << finl";
-       exit();
+       Process::exit();
        } */
   Objet_U& ob1=objet(nom1);
   Objet_U& ob2=objet(nom2);
@@ -78,7 +78,7 @@ Entree& Associer_pbMG_pbGglobal::interpreter(Entree& is)
   //       {
   //         Cerr << "On ne sait pas associer " << pb1.que_suis_je()
   //              << " et " << pb2.que_suis_je()  << finl;
-  //         exit();
+  //         Process::exit();
   //       }
   pb1.associer_pbMG_pbGglobal_(pb2);
   return is;

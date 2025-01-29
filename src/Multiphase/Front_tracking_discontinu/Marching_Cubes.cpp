@@ -35,14 +35,14 @@ Implemente_instanciable_sans_constructeur(Marching_Cubes,"Marching_Cubes",Objet_
 Entree& Marching_Cubes::readOn(Entree& is)
 {
   Cerr << "Erreur : Marching_Cubes::readOn n'est pas code." << finl;
-  exit();
+  Process::exit();
   return is;
 }
 
 Sortie& Marching_Cubes::printOn(Sortie& os) const
 {
   Cerr << "Erreur : Marching_Cubes::printOn n'est pas code." << finl;
-  exit();
+  Process::exit();
   return os;
 }
 
@@ -110,7 +110,7 @@ int Marching_Cubes::construire_iso(const DoubleVect& valeurs_sommets,
       Cerr << "Marching_Cubes::construire_iso : Erreur :" << finl;
       Cerr << " Aucun domaine n'a ete associe a Marching_Cubes" << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
 
   ArrOfBit signe; // Taille : nombre de sommets euleriens
@@ -260,7 +260,7 @@ int Marching_Cubes::construire_iso(const Nom& expression, double isovaleur,
       Cerr << "Marching_Cubes::construire_iso : Erreur :" << finl;
       Cerr << " Aucun domaine n'a ete associe a Marching_Cubes" << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
 
   std::string expr_chaine(expression);
@@ -390,7 +390,7 @@ void Marching_Cubes::remplir_data_marching_cubes(const Domaine& domaine)
       Cerr << "Erreur dans Marching_Cubes::remplir_data_marching_cubes :" << finl;
       Cerr << " l'element geometrique " << elem_geom.que_suis_je();
       Cerr << " n'est pas pris en charge." << finl;
-      exit();
+      Process::exit();
     }
 
   int i;
@@ -1239,4 +1239,3 @@ void Marching_Cubes::calculer_coord_noeuds(const DoubleVect& valeurs_sommets,
   const Desc_Structure_FT& desc = maillage.desc_sommets_;
   desc.echange_espace_virtuel(coord_noeuds);
 }
-

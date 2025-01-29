@@ -147,7 +147,7 @@ int Remailleur_Collision_FT_Juric::traite_RuptureCoalescenceInterfaces(
       Cerr << "Erreur dans Remailleur_Collision_FT_Juric::traite_RuptureCoalescenceInterfaces" << finl;
       Cerr << " option source_isovaleur_ non implementee" << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
 
   const Marching_Cubes& marching_cubes = eq_transport_FT.marching_cubes();

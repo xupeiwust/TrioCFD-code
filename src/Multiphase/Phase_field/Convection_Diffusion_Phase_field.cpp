@@ -86,7 +86,7 @@ int Convection_Diffusion_Phase_field::lire_motcle_non_standard(const Motcle& mot
         {
           Cerr<<"Allowed keywords for potentiel_chimique_generalise are :"<<finl;
           Cerr<<"avec_energie_cinetique or sans_energie_cinetique"<<finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }

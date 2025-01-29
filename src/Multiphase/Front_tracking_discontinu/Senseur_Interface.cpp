@@ -46,7 +46,7 @@ Entree& Senseur_Interface::readOn(Entree& is)
       || nb_points_tests_ < 2)
     {
       Cerr << "Error: wrong segments dimension or nb_points_tests" << finl;
-      exit();
+      Process::exit();
     }
   equation_ = ref_cast(Transport_Interfaces_FT_Disc, probleme_->get_equation_by_name(equation_interface_));
 

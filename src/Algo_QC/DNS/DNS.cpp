@@ -7589,11 +7589,11 @@ Entree& DNS_QC_double::interpreter(Entree& is)
           if (decoupage_selon_x_ou_y > 1 )
             {
               Cerr << "In order to compute FFT on planes you must only split in z direction the spectral_splitting" << finl;
-              exit();
+              Process::exit();
             }
 #else
           Cerr << " Module FFTW desactive impossible de faire la FFT " << finl;
-          exit();
+          Process::exit();
 #endif
         }
     }
@@ -7606,7 +7606,7 @@ Entree& DNS_QC_double::interpreter(Entree& is)
       if (decoupage_selon_x_ou_y > 1 )
         {
           Cerr << "In order to save lata on planes you must only split in z direction the sauvegarde_splitting" << finl;
-          exit();
+          Process::exit();
         }
       // Fin modif Martin
 
@@ -8134,7 +8134,7 @@ void DNS_QC_double::initialise()
       if (!statistiques_.is_converge())
         {
           Cerr << " les stats ne sont pas converger pas de productions spectrale allowed." << finl;
-          exit();
+          Process::exit();
         }
 
       partie_fourier_.initialize(splitting_ /* maillage de simu */
@@ -10190,7 +10190,7 @@ void DNS_QC_double::run()
       Cerr << " Post-traitement Spectral " << finl;
       Nom Nom_post_test = "Spectrale";
       partie_fourier_.postraiter(Nom_post_test);
-      exit();
+      Process::exit();
     }
 
   int stop = 0;

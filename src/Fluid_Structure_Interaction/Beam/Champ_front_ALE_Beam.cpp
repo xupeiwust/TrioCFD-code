@@ -70,7 +70,7 @@ void Champ_front_ALE_Beam::remplir_vit_som_bord_ALE(double tps)
   if(index==-1)//no match found between the Beam name and the mobile boundaries
     {
       Cerr << "The CL name and the Beam name must be the same!";
-      exit();
+      Process::exit();
     }
 
   double dt = dom_ale.get_dt();

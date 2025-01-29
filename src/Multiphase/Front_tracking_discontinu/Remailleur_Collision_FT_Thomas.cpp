@@ -55,7 +55,7 @@ Entree& Remailleur_Collision_FT_Thomas::readOn(Entree& is)
     {
       Cerr << "Error: distance_interface_element_max must be positive" << finl;
       barrier();
-      exit();
+      Process::exit();
     }
   return is;
 }
@@ -68,7 +68,7 @@ Entree& Remailleur_Collision_FT_Thomas::readOn(Entree& is)
 Sortie& Remailleur_Collision_FT_Thomas::printOn(Sortie& os) const
 {
   Cerr << "Erreur  Remailleur_Collision_FT_Thomas::printOn() n'est pas code." << finl;
-  exit();
+  Process::exit();
   return os;
 }
 

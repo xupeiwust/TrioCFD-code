@@ -48,7 +48,7 @@ Topologie_Maillage_FT::Topologie_Maillage_FT() :
 Sortie& Topologie_Maillage_FT::printOn(Sortie& os) const
 {
   Cerr << "Topologie_Maillage_FT::printOn" << finl;
-  exit();
+  Process::exit();
   return os;
 }
 
@@ -86,13 +86,13 @@ Entree& Topologie_Maillage_FT::readOn(Entree& is)
           Cerr << "Erreur dans Topologie_Maillage_FT::readOn :\n"
                << " Il faut fournir le type du remailleur et ses parametres.\n"
                << " Valeur conseillee: Juric { ... }" << finl;
-          exit();
+          Process::exit();
         }
       if (!sub_type(Remailleur_Collision_FT_Juric, remailleur_Collision_.valeur()))
         {
           Cerr << "Erreur dans Topologie_Maillage_FT::readOn :\n"
                << " Il faut un remailleur de type Juric" << finl;
-          exit();
+          Process::exit();
         }
     }
   return is;
@@ -103,7 +103,7 @@ int Topologie_Maillage_FT::get_phase_continue() const
   if (phase_continue_ < 0.)
     {
       Cerr << "Error in Topologie_Maillage_FT::get_phase_continue(): phase_continue must be specified in the data file !" << finl;
-      exit();
+      Process::exit();
     }
   return phase_continue_;
 }

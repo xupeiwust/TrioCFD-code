@@ -145,7 +145,7 @@ const Operateur& Transport_Fluctuation_Temperature::operateur(int i) const
         Cerr << "Error for Transport_Fluctuation_Temperature::operateur(int i)" << finl;
         Cerr << "Transport_Fluctuation_Temperature has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;
@@ -176,7 +176,7 @@ Operateur& Transport_Fluctuation_Temperature::operateur(int i)
         Cerr << "Error for Transport_Fluctuation_Temperature::operateur(int i)" << finl;
         Cerr << "Transport_Fluctuation_Temperature has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;
@@ -198,7 +198,7 @@ const Milieu_base& Transport_Fluctuation_Temperature::milieu() const
     {
       Cerr << "No fluid has been associated to"
            << "Transport_Fluctuation_Temperature equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -209,7 +209,7 @@ Milieu_base& Transport_Fluctuation_Temperature::milieu()
     {
       Cerr << "No fluid has been associated to"
            << "Transport_Fluctuation_Temperature equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }

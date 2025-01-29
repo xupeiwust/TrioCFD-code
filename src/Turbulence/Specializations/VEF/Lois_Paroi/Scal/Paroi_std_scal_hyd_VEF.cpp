@@ -115,7 +115,7 @@ int Paroi_std_scal_hyd_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -194,7 +194,7 @@ int Paroi_std_scal_hyd_VEF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
                 {
                   Cerr<<"Error: the axisymmetric VEF case is not yet implemented"<<finl;
                   Cerr<<"in the scalar wall-function."<<finl;
-                  exit();
+                  Process::exit();
                 }
               else if (sub_type(Paroi_decalee_Robin,la_cl.valeur()))
                 {

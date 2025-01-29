@@ -137,7 +137,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_combinaison::calculer_viscosite_turbulent
       else
         {
           Cerr << "Modele_turbulence_hyd_combinaison::calculer_viscosite_turbulente : error " << les_var[so] << " not Champ_P0_XX" << finl;
-          exit();
+          Process::exit();
         }
 
       if (conv_to_elem(so) != 0)
@@ -148,7 +148,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_combinaison::calculer_viscosite_turbulent
       if (nb_dim_so(so) < 1 || nb_dim_so(so) > 2) // nb_dim in [1; 2] only
         {
           Cerr << "Modele_turbulence_hyd_combinaison::calculer_viscosite_turbulente : " << les_var[so] << " nb dimension = " << source_so_val.nb_dim() << " != 1 or 2 " << finl;
-          exit();
+          Process::exit();
         }
       dim_2_so(so) = 0;
       if (nb_dim_so(so) != 1)

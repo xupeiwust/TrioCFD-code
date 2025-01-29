@@ -94,7 +94,7 @@ Entree& Paroi_TBLE_scal_VDF::readOn(Entree& is)
           else
             {
               Cerr << "alpha_cv doit valoir 0 ou 1 !" << finl;
-              exit();
+              Process::exit();
             }
           break;
         default :
@@ -145,7 +145,7 @@ int Paroi_TBLE_scal_VDF::init_lois_paroi()
   if (!sub_type(ParoiVDF_TBLE,loi))
     {
       Cerr << "Une loi de paroi TBLE en thermique doit etre utilisee obligatoirement avec une loi de paroi TBLE sur la QDM " << finl;
-      exit();
+      Process::exit();
     }
 
   Paroi_std_scal_hyd_VDF::init_lois_paroi();
@@ -284,7 +284,7 @@ int Paroi_TBLE_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -719,7 +719,7 @@ Paroi_TBLE_QDM& Paroi_TBLE_scal_VDF::getLoiParoiHydraulique()
   else
     {
       Cerr << "Pour utiliser des expressions de Nu et Lambda dependant de T dans TBLE, il faut avoir un probleme de thermohydraulique turbulent avec une loi de paroi de type TBLE et TBLE scalaire" << finl;
-      exit();
+      Process::exit();
     }
   return getLoiParoiHydraulique();//n'arrive jamais ici
 }

@@ -325,7 +325,7 @@ void Restriction_face_face::restreindre(const Domaine_VF& domaine_VFG,
     {
       //SI INCO VITESSE VEF
       Cerr<<"SI INCO VITESSE VEF A faire !!!!!!!!!!"<<finl;
-      exit();
+      Process::exit();
     }
   //Cerr<<"fin de Restriction_face_face::restreindre"<<finl;
 }

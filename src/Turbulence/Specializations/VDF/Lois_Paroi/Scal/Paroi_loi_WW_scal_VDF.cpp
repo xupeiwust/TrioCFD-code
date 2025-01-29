@@ -103,7 +103,7 @@ int Paroi_loi_WW_scal_VDF::calculer_scal(Champ_Fonc_base& diffusivite_turb)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 

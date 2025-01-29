@@ -1297,7 +1297,7 @@ double Remaillage_FT_IJK::calculer_longueurIdeale2_arete(const Maillage_FT_Disc&
   else
     {
       Cerr << "Erreur Remaillage_FT_IJK::calculer_longueurIdeale2_arete" << finl;
-      exit();
+      Process::exit();
     }
   return lgrId2;
 }

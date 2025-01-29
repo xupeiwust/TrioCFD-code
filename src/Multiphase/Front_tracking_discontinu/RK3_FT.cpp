@@ -67,7 +67,7 @@ bool RK3_FT::iterateTimeStep(bool& converged)
     if (prob.equation(i).equation_non_resolue())
       {
         Cerr << "Option equation_non_resolue is not yet supported for the " << que_suis_je() << " scheme." << finl;
-        exit();
+        Process::exit();
       }
   double dt_temp;
 

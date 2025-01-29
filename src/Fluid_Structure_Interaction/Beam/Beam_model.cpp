@@ -169,7 +169,7 @@ void Beam_model::readInputMassStiffnessFiles(Nom& masse_and_stiffness_file_name)
             {
               Cerr<<" Beam_model::read_input_files values of mass and stiffness are wrong in the file "<<masse_and_stiffness_file_name<<finl;
               Cerr<<" Value of mass = "<< mass<< " and value of stiffness = "<<stiffness<<finl;
-              exit();
+              Process::exit();
             }
         }
 
@@ -178,7 +178,7 @@ void Beam_model::readInputMassStiffnessFiles(Nom& masse_and_stiffness_file_name)
   else
     {
       Cerr<< "ERROR: Unable to open the file." <<masse_and_stiffness_file_name<<finl;
-      exit();
+      Process::exit();
     }
   //Cerr<<"mass = "<<mass_<<" stiffnes "<<stiffness_<<" damp = "<<damping_<<finl;
 }
@@ -205,7 +205,7 @@ void Beam_model::readInputAbscFiles(Nom& absc_file_name)
   else
     {
       Cerr<< "ERROR: Unable to open the file." <<absc_file_name<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -243,7 +243,7 @@ void Beam_model::readInputCIFile(Nom& CI_file_name)
   else
     {
       Cerr<< "ERROR: Unable to open the file." <<CI_file_name<<finl;
-      exit();
+      Process::exit();
     }
 
 }
@@ -275,7 +275,7 @@ void Beam_model::readRestartFile(Nom& Restart_file_name)
     {
       Cerr<< "Beam_model::readRestartFile "<<finl;
       Cerr<< "ERROR: Unable to open the restart file " <<Restart_file_name<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -316,7 +316,7 @@ void Beam_model::readInputModalDeformation(Noms& modal_deformation_file_name)
       else
         {
           Cerr<< "ERROR: Unable to open the file." <<modal_deformation_file_name[count]<<finl;
-          exit();
+          Process::exit();
         }
     }
 }
@@ -542,12 +542,12 @@ DoubleVect Beam_model::interpolationOnThe3DSurface(const double& x, const double
   if(les_bords_ALE.size()!= 1)
     {
       Cerr<<"Too many beams. For the moment one can treat only a beam with the Beam module!"<<finl;
-      exit();
+      Process::exit();
     }
   if(dimension != 3)
     {
       Cerr<<"The dimension of the problem is different from 3"<<finl;
-      exit();
+      Process::exit();
     }
 
   Cerr<<" Interpolation on the "<<les_bords_ALE(0).le_nom()<<" boundary"<<finl;

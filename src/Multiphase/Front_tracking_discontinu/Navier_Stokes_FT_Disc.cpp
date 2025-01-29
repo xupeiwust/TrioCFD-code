@@ -285,7 +285,7 @@ int Navier_Stokes_FT_Disc::lire_motcle_non_standard(const Motcle& mot, Entree& i
               Cerr << "Since 1.6.4 TRUST version, you need to use the following syntax when" << finl;
               Cerr << "using several equation_interfaces_vitesse_imposee equations:" << finl;
               Cerr << "equations_interfaces_vitesse_imposee number_of_equations equation_name_one equation_name_two ..." << finl;
-              exit();
+              Process::exit();
             }
           else
             {
@@ -323,7 +323,7 @@ int Navier_Stokes_FT_Disc::lire_motcle_non_standard(const Motcle& mot, Entree& i
       if (!sub_type(Convection_Diffusion_Temperature_FT_Disc, eq))
         {
           Cerr << " Error : equation is not of type Convection_Diffusion_Temperature_FT_Disc" << finl;
-          exit();
+          Process::exit();
         }
       variables_internes().ref_equation_mpoint_ = ref_cast(Convection_Diffusion_Temperature_FT_Disc, eq);
       return 1;
@@ -362,7 +362,7 @@ int Navier_Stokes_FT_Disc::lire_motcle_non_standard(const Motcle& mot, Entree& i
         default:
           Cerr << "Error " << mots << "was expected whereas " << motbis << " has been found." << finl;
           barrier();
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -416,7 +416,7 @@ int Navier_Stokes_FT_Disc::lire_motcle_non_standard(const Motcle& mot, Entree& i
                 default:
                   Cerr << "Erreur, on attendait " << mots << "On a trouve : " << motbis << finl;
                   barrier();
-                  exit();
+                  Process::exit();
                 }
               is >> motbis;
             }
@@ -590,7 +590,7 @@ void Navier_Stokes_FT_Disc::associer_pb_base(const Probleme_base& un_probleme)
       Cerr << "Error for the method Navier_Stokes_FT_Disc::associer_pb_base\n";
       Cerr << " Navier_Stokes_FT_Disc equation must be associated to\n";
       Cerr << " a Probleme_FT_Disc_gen problem type\n";
-      exit();
+      Process::exit();
     }
   probleme_ft_ = ref_cast(Probleme_FT_Disc_gen, un_probleme);
   Navier_Stokes_std::associer_pb_base(un_probleme);
@@ -605,7 +605,7 @@ const Fluide_Diphasique& Navier_Stokes_FT_Disc::fluide_diphasique() const
       Cerr << " The fluid has not been associated\n";
       Cerr << " (check that the fluid is of Fluide_Diphasique type)" << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
   return fluide_dipha.valeur();
 }

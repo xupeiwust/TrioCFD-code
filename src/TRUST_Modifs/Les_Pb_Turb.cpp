@@ -62,7 +62,7 @@ int Pb_Hydraulique_Concentration_Turbulent::verifier()
               Cerr << "Pour le modele de turbulence de l'equation de concentration, la syntaxe a changee:" << finl;
               Cerr << "Utiliser le mot cle Schmidt au lieu du mot cle Prandtl." << finl;
             }
-          exit();
+          Process::exit();
         }
 
     }
@@ -176,7 +176,7 @@ int Pb_Thermohydraulique_Concentration_Turbulent::verifier()
         {
           Cerr << "Les modeles de turbulence ne sont pas de la meme famille" << finl;
           Cerr << "pour l'hydraulique et la thermique" << finl;
-          exit();
+          Process::exit();
         }
       if (!sub_type(Modele_turbulence_scal_Schmidt,le_mod_turb_co))
         {
@@ -187,7 +187,7 @@ int Pb_Thermohydraulique_Concentration_Turbulent::verifier()
               Cerr << "Pour le modele de turbulence de l'equation de concentration, la syntaxe a changee:" << finl;
               Cerr << "Utiliser le mot cle Schmidt au lieu du mot cle Prandtl." << finl;
             }
-          exit();
+          Process::exit();
         }
 
     }
@@ -224,7 +224,7 @@ int Pb_Thermohydraulique_Turbulent_QC::verifier()
         {
           Cerr << "Les modeles de turbulence ne sont pas de la meme famille" << finl;
           Cerr << "pour l'hydraulique et la thermique" << finl;
-          exit();
+          Process::exit();
         }
     }
   return 1;

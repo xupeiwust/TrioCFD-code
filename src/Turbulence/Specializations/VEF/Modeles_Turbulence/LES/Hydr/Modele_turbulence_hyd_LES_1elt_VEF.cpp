@@ -47,7 +47,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_1elt_VEF::calculer_viscosite_turbulen
   if (visco_turb.size() != nb_elem)
     {
       Cerr << "Size error for the array containing the values of the turbulent viscosity." << finl;
-      exit();
+      Process::exit();
     }
   visco_turb = 0.;
 

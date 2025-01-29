@@ -57,7 +57,7 @@ int Modele_turbulence_hyd_LES_VDF::lire_motcle_non_standard(const Motcle& mot, E
           Cerr << "Error while reading the subgrid model." << finl;
           Cerr << "You have indicated " << nb_points_ << " points " << finl;
           Cerr << "while this model is available only for 4 or 6 points" << finl;
-          exit();
+          Process::exit();
         }
       Cerr << "Structure fonction formulation at " << nb_points_ << " points" << finl;
       if (nb_points_ == 4)
@@ -94,7 +94,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_VDF::calculer_viscosite_turbulente()
   if (visco_turb.size() != nb_poly)
     {
       Cerr << "Size error for the array containing the values of the turbulent viscosity." << finl;
-      exit();
+      Process::exit();
     }
 
   Debog::verifier("Modele_turbulence_hyd_LES_VDF::calculer_viscosite_turbulente visco_turb 0", visco_turb);
@@ -117,7 +117,7 @@ void Modele_turbulence_hyd_LES_VDF::calculer_energie_cinetique_turb()
   if (k.size() != nb_poly)
     {
       Cerr << "Size error for the array containing the values of the turbulent kinetic energy." << finl;
-      exit();
+      Process::exit();
     }
 
   for (int elem = 0; elem < nb_poly; elem++)
@@ -519,6 +519,6 @@ void Modele_turbulence_hyd_LES_VDF::calculer_fonction_structure()
     {
       Cerr << "The structure fonction subgrid model can be used" << finl;
       Cerr << "only for dimesnion 3." << finl;
-      exit();
+      Process::exit();
     }
 }

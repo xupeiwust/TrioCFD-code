@@ -163,7 +163,7 @@ int Transport_K_ou_Eps_Realisable::lire_motcle_non_standard(const Motcle& mot, E
     {
       Cerr << mot << " is not understood by " << que_suis_je() << finl;
       Cerr << "Use this keyword in the Navier Stokes equation, not in KEps equation, please." << finl;
-      exit();
+      Process::exit();
     }
   else
     return Transport_K_ou_Eps_base::lire_motcle_non_standard(mot,is);
@@ -217,7 +217,7 @@ const Operateur& Transport_K_ou_Eps_Realisable::operateur(int i) const
       Cerr << "Error for Transport_K_ou_Eps_Realisable::operateur("<<i<<") !! " << finl;
       Cerr << "Transport_K_ou_Eps has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   // Pour les compilos!!
   return terme_diffusif;
@@ -244,7 +244,7 @@ Operateur& Transport_K_ou_Eps_Realisable::operateur(int i)
       Cerr << "Error for Transport_K_ou_Eps_Realisable::operateur("<<i<<") !! " << finl;
       Cerr << "Transport_K_ou_Eps has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   // Pour les compilos!!
   return terme_diffusif;

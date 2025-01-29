@@ -90,7 +90,7 @@ public:
   // Cette methode ne doivent pas servir : on passe par l'interface de Problem
   void mettre_a_jour(double temps) override
   {
-    exit();
+    Process::exit();
   }
 
   bool is_pb_rayo() override { return true ; }

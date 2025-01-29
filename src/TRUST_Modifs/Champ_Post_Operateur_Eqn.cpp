@@ -73,7 +73,7 @@ void Champ_Post_Operateur_Eqn::verification_cas_compo() const
     {
       Cerr<<"Error in Champ_Post_Operateur_Eqn::verification_cas_compo()"<<finl;
       Cerr<<"It isn't possible to get a component from a non vectoriel field " <<finl;
-      exit();
+      Process::exit();
     }
 
   // Verification de compo
@@ -82,14 +82,14 @@ void Champ_Post_Operateur_Eqn::verification_cas_compo() const
     {
       Cerr<<"Error in Champ_Post_Operateur_Eqn::verification_cas_compo()"<<finl;
       Cerr<<"compo="<<compo_<<" is not allowed."<<" You must give a value between 0 and "<< nb_compo-1<<finl;
-      exit();
+      Process::exit();
     }
   // Verifier qu'on n'est pas en VDF
   if (ref_eq_->discretisation().is_vdf() && (compo_ != -1 ))
     {
       Cerr<<"Error in Champ_Post_Operateur_Eqn::verification_cas_compo()"<<finl;
       Cerr<<"The option compo is not available in case of VDF discretization"<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -161,7 +161,7 @@ void Champ_Post_Operateur_Eqn::completer(const Postraitement_base& post)
   if (numero_eq_==-1)
     {
       Cerr<<"Champ_Post_Operateur_Eqn can be applied only to equation unknown."<<finl;
-      exit();
+      Process::exit();
     }
 
   if (!iskeps && !iskomega)
@@ -181,7 +181,7 @@ void Champ_Post_Operateur_Eqn::completer(const Postraitement_base& post)
   else
     {
       Cerr<<"Error: unknown case !"<<finl;
-      exit();
+      Process::exit();
     }
 
   int ok=0;
@@ -207,7 +207,7 @@ void Champ_Post_Operateur_Eqn::completer(const Postraitement_base& post)
   if (ok==0)
     {
       Cerr<<"Error in "<<que_suis_je()<<" unknown localisation"<<finl;
-      exit();
+      Process::exit();
     }
   verification_cas_compo();
 }
@@ -240,7 +240,7 @@ const Champ_base& Champ_Post_Operateur_Eqn::get_champ_compo_without_evaluation(O
       break;
     default:
       Cerr<<"error in Champ_Post_Operateur_Eqn::get_champ"<<finl;
-      exit();
+      Process::exit();
 
     }
   int nb_comp = 1;

@@ -97,7 +97,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps_Realisable_Bicephale::calculer_visc
       if (visco_turb_K_eps_Rea.size() != n)
         {
           Cerr << "visco_turb_K_eps_Rea size is " << visco_turb_K_eps_Rea.size() << " instead of " << n << finl;
-          exit();
+          Process::exit();
         }
 
       fill_turbulent_viscosity_tab(n, tab_K, tab_Eps, visco_turb_K_eps_Rea);

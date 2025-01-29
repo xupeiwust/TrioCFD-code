@@ -513,7 +513,7 @@ int AssembleurPVDF_PF::modifier_secmem(DoubleTab& secmem)
           Cerr << "Erreur dans Assembleur_P_VDF::modifier_secmem\n la condition aux limites ";
           Cerr << la_cl_base.que_suis_je() << " n'est pas prise en charge." << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
     }
   secmem.echange_espace_virtuel();
@@ -547,7 +547,7 @@ void AssembleurPVDF_PF::modifier_secmem_pression_imposee(const Neumann_sortie_li
           Cerr << champ_front.que_suis_je();
           Cerr << " + resoudre_increment_pression non code" << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
       else
         {
@@ -717,7 +717,7 @@ int AssembleurPVDF_PF::assembler_QC(const DoubleTab& tab_rho, Matrice& matrice)
           if ((je_suis_maitre()) && (la_matrice.nb_lignes()==0) && (la_matrice.nb_colonnes()==0))
             {
               Cerr<<"Pressure matrix will not be defined."<<finl;
-              exit();
+              Process::exit();
             }
           if ((la_matrice.nb_lignes()>0) && (la_matrice.nb_colonnes()>0))
             {

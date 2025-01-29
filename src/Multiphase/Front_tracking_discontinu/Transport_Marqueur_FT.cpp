@@ -113,7 +113,7 @@ Entree& Transport_Marqueur_FT::readOn(Entree& is)
       if (!ok_impl)
         {
           Cerr<<"Implicite option cannot be used if there is no added weight source term."<<finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -158,7 +158,7 @@ int Transport_Marqueur_FT::lire_motcle_non_standard(const Motcle& mot, Entree& i
         {
           Cerr<<"The keyword "<<motlu<<" is not recognized as a calculation method "<<finl;
           Cerr<<"of the velocity particles."<<finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -192,7 +192,7 @@ int Transport_Marqueur_FT::lire_motcle_non_standard(const Motcle& mot, Entree& i
       else
         {
           Cerr<<"The keyword "<<motlu<<" is not recognized as a fluid/particles coupling method."<<finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -272,7 +272,7 @@ Entree& Transport_Marqueur_FT::lire_transformation(Entree& is)
     {
       Cerr<<"Transformation of bubbles into particles can be selected"<<finl;
       Cerr<<"only for two phases calculation."<<finl;
-      exit();
+      Process::exit();
     }
 
   dt_transfo_ = probleme().schema_temps().pas_temps_min();
@@ -705,7 +705,7 @@ void Transport_Marqueur_FT::transformer_particules()
       if (!sub_type(Fluide_Diphasique,mil))
         {
           Cerr<<"Particles transformation can be activated only for a Fluide_Diphasique medium."<<finl;
-          exit();
+          Process::exit();
         }
       Maillage_FT_Disc& ens_points = maillage_interface();
       ens_points.nettoyer_phase(nom_eq_interf_,phase_marquee_);
@@ -1491,7 +1491,7 @@ int Transport_Marqueur_FT::get_champ_post_FT(const Motcle& champ, Postraitement_
             }
           default:
             Cerr << "Error for the method Transport_Marqueur_FT::get_champ_post_FT" << finl;
-            exit();
+            Process::exit();
           }
       res = 1;
     }

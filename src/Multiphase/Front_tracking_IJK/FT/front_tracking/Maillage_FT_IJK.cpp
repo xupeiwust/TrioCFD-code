@@ -1048,7 +1048,7 @@ int Maillage_FT_IJK::check_mesh(int error_is_fatal, int skip_facette_pe, int ski
       Journal() << "Erreur Maillage_FT_IJK::check_mesh : taille de compo_connexe_facettes_ invalide" << finl;
       Journal() << "nb_facettes = " << nf << " et compo_connexe_facettes_ = " <<  compo_connexe_facettes_.size_array() << finl ;
       assert(0);
-      exit();
+      Process::exit();
     }
   if (nf != Surfactant_facettes_.size_array() and !Surfactant_facettes_.get_disable_surfactant())
     {
@@ -1078,7 +1078,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
         {
           Journal() << "Erreur Maillage_FT_Disc::check_sommets : maillage RESET invalide" << finl;
           assert(0);
-          exit();
+          Process::exit();
         }
       return !ok;
     }
@@ -1092,7 +1092,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
         Cerr << "" << finl;
       }
@@ -1106,7 +1106,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
             if (error_is_fatal)
               {
                 assert(0);
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -1122,7 +1122,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
       }
     ArrOfIntFT num_owner(nsom);
@@ -1138,7 +1138,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
             if (error_is_fatal)
               {
                 assert(0);
-                exit();
+                Process::exit();
               }
           }
       }
@@ -1179,7 +1179,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
             if (copie_sommets(i,j) != sommets_(i,j))
@@ -1190,7 +1190,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
           }
@@ -1205,7 +1205,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
         if (error_is_fatal)
           {
             assert(0);
-            exit();
+            Process::exit();
           }
       }
     // On verifie que les sommets virtuels ont bien sommet_elem_ < 0:
@@ -1227,7 +1227,7 @@ int Maillage_FT_IJK::check_sommets(int error_is_fatal) const
                 if (error_is_fatal)
                   {
                     assert(0);
-                    exit();
+                    Process::exit();
                   }
               }
           }

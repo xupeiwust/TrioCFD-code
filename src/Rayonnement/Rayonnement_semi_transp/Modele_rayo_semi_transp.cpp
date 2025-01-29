@@ -203,7 +203,7 @@ void Modele_rayo_semi_transp::preparer_calcul()
       Cerr<<"Attention, vous n'avez pas defini de terme source de rayonnement semi transparent"<<finl;
       Cerr<<"pensez a ajourter le terme source Source_rayo_semi_transp dans la liste des termes "<<finl;
       Cerr<<"sources de l'equation de l'energie"<<finl;
-      exit();
+      Process::exit();
     }
   eq_rayo().completer();
 }
@@ -295,7 +295,7 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
           Cerr<<"vous n'avez probablement pas renseigne tous les "<<finl;
           Cerr<<"parametres physique de votre fluide incompressible "<<finl;
           Cerr<<"pour pouvoir traiter un probleme de rayonnement semi transparent"<<finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -304,7 +304,7 @@ void Modele_rayo_semi_transp::discretiser(Discretisation_base& dis)
       Cerr<<"Erreur dans Modele_rayo_semi_transp::readOn "<<finl;
       Cerr<<"Le modele de rayonnement semi transparent ne peut etre utilise"<<finl;
       Cerr<<"qu'avec un Fluide_base et non "<< probleme().milieu().que_suis_je()<<finl;
-      exit();
+      Process::exit();
     }
 
   Cerr << "Modele_rayo_semi_transp::discretiser fin" << finl;
@@ -333,7 +333,7 @@ void Modele_rayo_semi_transp::calculer_flux_radiatif()
         {
           Cerr<<"Erreur : les conditions aux limites de l'equation de rayonnement"<<finl;
           Cerr<<"doivent forcement etre du type rayonnantes"<<finl;
-          exit();
+          Process::exit();
         }
     }
 }
@@ -361,14 +361,14 @@ const Champ_front_base& Modele_rayo_semi_transp::flux_radiatif(const Nom& nom_bo
             {
               Cerr<<"Erreur : les conditions aux limites de l'equation de rayonnement"<<finl;
               Cerr<<"doivent forcement etre du type rayonnantes"<<finl;
-              exit();
+              Process::exit();
 
             }
         }
     }
   Cerr<<"Erreur : Modele_rayo_semi_transp::flux_radiatif"<<finl;
   Cerr<<"il n'y a pas de condition a la limite portant le nom "<<nom_bord<<finl;
-  exit();
+  Process::exit();
   //pour les compilos
   const Cond_lim& la_cl_rayo = eq_rayo().domaine_Cl_dis().les_conditions_limites(0);
   Flux_radiatif_base& la_cl_rayon = ref_cast_non_const(Flux_radiatif_base,la_cl_rayo.valeur());

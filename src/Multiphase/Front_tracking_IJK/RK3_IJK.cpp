@@ -106,7 +106,7 @@ Entree& IJK_problem_double::interpreter(Entree& is)
   if (gravite_.size_array() != 3)
     {
       Cerr << "Erreur: la gravite doit etre un vecteur de 3 composantes" << finl;
-      exit();
+      Process::exit();
     }
   splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
 
@@ -562,7 +562,7 @@ void IJK_problem_double::recalculer_mu_de_rho(const IJK_Field_double& rho,
       if (mu_liquide_ != mu_gaz_)
         {
           Cerr << " Erreur dans recalculer_mu_de_rho: rho_l = rho_g mais mu_l != mu_g" << finl;
-          exit();
+          Process::exit();
         }
       molecular_mu.data() = mu_liquide_;
     }
@@ -616,7 +616,7 @@ void IJK_problem_double::euler_time_step()
       break;
     default:
       Cerr << "Erreur dans RK3_IJK::euler_time_step " << choix_schema_transport_rho_ << " non code" << finl;
-      exit();
+      Process::exit();
     }
 
   calcul_integrale_rho(rho_field_nplus1);
@@ -705,7 +705,7 @@ void IJK_problem_double::euler_time_step()
       break;
     default:
       Cerr << "Erreur dans RK3_IJK::euler_time_step " << champ_miroir_pour_RHS_ << " non code" << finl;
-      exit();
+      Process::exit();
     }
 
 

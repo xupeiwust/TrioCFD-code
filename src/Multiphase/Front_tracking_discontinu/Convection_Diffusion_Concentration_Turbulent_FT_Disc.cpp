@@ -119,7 +119,7 @@ int Convection_Diffusion_Concentration_Turbulent_FT_Disc::lire_motcle_non_standa
           Cerr << " Error: the equation indicated for keyword equation_interface "<<finl;
           Cerr << " is not of type (or sub type) of Transport_Interfaces_FT_Disc." << finl;
           barrier();
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -135,7 +135,7 @@ int Convection_Diffusion_Concentration_Turbulent_FT_Disc::lire_motcle_non_standa
         {
           Cerr << "Error: expected RAMASSE_MIETTES_SIMPLE or RIEN after keyword OPTION" << finl;
           barrier();
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -267,7 +267,7 @@ void Convection_Diffusion_Concentration_Turbulent_FT_Disc::mettre_a_jour_chimie(
       Cerr << "Error for method Convection_Diffusion_Concentration_Turbulent_FT_Disc::mettre_a_jour_chimie()\n"
            << "It implies two equations_source_chimie" << finl;
       barrier();
-      exit();
+      Process::exit();
     }
 
   Probleme_base& pb = mon_probleme.valeur();
@@ -496,7 +496,7 @@ void Convection_Diffusion_Concentration_Turbulent_FT_Disc::mettre_a_jour(double 
     default:
       Cerr << "Internal error for method Convection_Diffusion_Concentration_Turbulent_FT_Disc::mettre_a_jour" << finl;
       barrier();
-      exit();
+      Process::exit();
     }
 
   if (equations_source_chimie_.size() > 0)

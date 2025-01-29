@@ -162,7 +162,7 @@ Entree& ParoiVDF_TBLE_LRM::readOn(Entree& is)
           {
             Cerr << mot_lu << " n'est pas un mot compris par ParoiVDF_TBLE_LRM" << finl;
             Cerr << "Les mots compris sont : " << les_mots << finl;
-            exit();
+            Process::exit();
           }
         }
       is >> mot_lu;
@@ -171,7 +171,7 @@ Entree& ParoiVDF_TBLE_LRM::readOn(Entree& is)
   if (type_reg=="vide")
     {
       Cerr << "Le modele d'echelles l_eps, l_mu n'est pas precise !" << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -210,7 +210,7 @@ int ParoiVDF_TBLE_LRM::init_lois_paroi()
   // B.M. Nouveau codage a tester: je n'ai pas trouve ou est fait le resize()
   // initial du tableau a nb_faces_bord. Je ne sais pas si le tableau contient
   // deja des valeurs ou pas, s'il faut les conserver ou pas !
-  exit();
+  Process::exit();
   Cisaillement_paroi_.resize(0, dimension);
   domaine_VDF.creer_tableau_faces_bord(Cisaillement_paroi_);
 
@@ -486,7 +486,7 @@ int ParoiVDF_TBLE_LRM::init_lois_paroi()
 int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& nu_t, DoubleTab& tab_k)
 {
   Cerr <<"TBLE LRM non code en LES" << finl;
-  exit();
+  Process::exit();
   return 0;
 }
 
@@ -497,7 +497,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
   if (Process::nproc()>1)
     {
       Cerr << "ParoiVDF_TBLE_LRM::calculer_hyd n'est pas parallelise." << finl;
-      exit();
+      Process::exit();
     }
   const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
   const IntVect& orientation = domaine_VDF.orientation();
@@ -529,7 +529,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -844,7 +844,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                           else
                             {
                               Cerr << " On ne sait pas traiter un beta_t non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -868,7 +868,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                           if (!sub_type(Champ_Uniforme,ch_gravite))
                             {
                               Cerr << " On ne sait pas traiter la gravite non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -1216,7 +1216,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                           else
                             {
                               Cerr << " On ne sait pas traiter un beta_t non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -1240,7 +1240,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
                           if (!sub_type(Champ_Uniforme,ch_gravite))
                             {
                               Cerr << " On ne sait pas traiter la gravite non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -1419,7 +1419,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
   if (Process::nproc()>1)
     {
       Cerr << "ParoiVDF_TBLE_LRM::calculer_hyd n'est pas parallelise." << finl;
-      exit();
+      Process::exit();
     }
   const Domaine_VDF& domaine_VDF = le_dom_VDF.valeur();
   const IntVect& orientation = domaine_VDF.orientation();
@@ -1451,7 +1451,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -1774,7 +1774,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
                           else
                             {
                               Cerr << " On ne sait pas traiter un beta_t non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -1798,7 +1798,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
                           if (!sub_type(Champ_Uniforme,ch_gravite))
                             {
                               Cerr << " On ne sait pas traiter la gravite non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -2146,7 +2146,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
                           else
                             {
                               Cerr << " On ne sait pas traiter un beta_t non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 
@@ -2170,7 +2170,7 @@ int ParoiVDF_TBLE_LRM::calculer_hyd(DoubleTab& tab_k_eps)
                           if (!sub_type(Champ_Uniforme,ch_gravite))
                             {
                               Cerr << " On ne sait pas traiter la gravite non uniforme dans Paroi TBLE_LRM !!!"<< finl;
-                              exit();
+                              Process::exit();
                             }
 
 

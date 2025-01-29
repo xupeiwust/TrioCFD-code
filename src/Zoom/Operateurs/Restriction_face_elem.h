@@ -80,7 +80,7 @@ inline void Restriction_face_elem::restreindre(const Domaine_VF& domaine_VFG,
                                                int num_prem_face_frontG)
 {
   Cerr<<"n'est pas codee dans cette classe"<<finl;
-  exit();
+  Process::exit();
 }
 
 

@@ -224,12 +224,12 @@ void Pb_Couple_Rayonnement::completer()
           Cerr<<"On ne sait traiter qu'un seul pb fluide"<<finl;
           Cerr<<" a moins d'indiquer le nom_pb_rayonnant au modele de rayonnement"<<finl;
           //  is_pb_fluide=0;
-          exit();
+          Process::exit();
         }
       else if (is_pb_nom_existe==0)
         {
           Cerr<<"On a au moins deux problemes fluides, le nom du pb rayonnant indique est "<<mod_rayo.nom_pb_rayonnant()<<" et ne corrrespond pas a un probleme fluide existant"<<finl;
-          exit();
+          Process::exit();
         }
     }
   else
@@ -281,7 +281,7 @@ void Pb_Couple_Rayonnement::completer()
                       if (ok==0)
                         {
                           Cerr<<"La condition limite de nom "<<la_zcl.les_conditions_limites(num_cl)->frontiere_dis().le_nom()<<" est definie comme rayonnante, mais n'est pas dans la liste des faces rayonnantes ou son emissivite vaut -1"<<finl;
-                          exit();
+                          Process::exit();
                         }
                     }
                 }

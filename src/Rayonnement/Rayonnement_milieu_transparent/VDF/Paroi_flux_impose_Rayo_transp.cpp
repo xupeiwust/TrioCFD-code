@@ -198,7 +198,7 @@ void Paroi_flux_impose_Rayo_transp::calculer_Teta_i_VDF()
       else
         {
           Cerr << "Paroi_flux_impose_Rayo_transp::calculer_Teta_i() erreur" << finl;
-          exit();
+          Process::exit();
         }
     }
   // Impression:

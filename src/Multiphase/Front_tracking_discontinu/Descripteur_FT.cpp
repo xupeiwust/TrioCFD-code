@@ -63,7 +63,7 @@ Entree& Descripteur_FT::readOn(Entree& is)
       Cerr << "Erreur dans Descripteur_FT::readOn\n";
       Cerr << " On attendait le motcle " << que_suis_je();
       Cerr << "\n On a trouve " << motlu << finl;
-      exit();
+      Process::exit();
     }
   is >> pe_voisins_;
   int i;
@@ -236,7 +236,7 @@ Entree& Desc_Structure_FT::readOn(Entree& is)
       Cerr << "Erreur dans Desc_Structure_FT::readOn\n";
       Cerr << " On attendait le motcle " << que_suis_je();
       Cerr << "\n On a trouve " << motlu << finl;
-      exit();
+      Process::exit();
     }
   is >> espace_distant_;
   is >> espace_virtuel_;
@@ -387,7 +387,7 @@ int Desc_Structure_FT::check() const
                     Cerr << " des espaces distants et un espace virtuel" << finl;
                   else
                     Cerr << " plusieurs espaces virtuels" << finl;
-                  exit();
+                  Process::exit();
                 }
               else
                 {
@@ -479,7 +479,7 @@ int Desc_Structure_FT::check() const
                 Cerr << "Descripteur_FT::check : erreur sur le graphe de voisinage.\n";
                 Cerr << " Les espaces distants et virtuels ne se correspondent pas.\n";
                 Cerr << pe_voisin << finl;
-                exit();
+                Process::exit();
               }
             if (procs_virt(index, 1) != nb_elements)
               {
@@ -488,7 +488,7 @@ int Desc_Structure_FT::check() const
                 Cerr << ", nombre d'elements " << nb_elements;
                 Cerr << "\n Espace virtuel du PE " << pe_voisin << " : PE voisin " << i;
                 Cerr << ", nombre d'elements " << procs_virt(index, 1) << finl;
-                exit();
+                Process::exit();
               }
           }
       }
@@ -501,7 +501,7 @@ int Desc_Structure_FT::check() const
           {
             Cerr << "Descripteur_FT::check : erreur sur le graphe de voisinage.\n";
             Cerr << " Les espaces distants et virtuels ne se correspondent pas." << finl;
-            exit();
+            Process::exit();
           }
       }
   }

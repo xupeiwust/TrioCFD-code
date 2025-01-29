@@ -116,7 +116,7 @@ Entree& Triple_Line_Model_FT_Disc::readOn( Entree& is )
       if(!fic.ouvrir(Nom_ficher_tcl_))
         {
           Cerr << " File " <<Nom_ficher_tcl_<< " doesn't exist. To generate it, please, check JDD " << finl;
-          exit();
+          Process::exit();
         }
 
 

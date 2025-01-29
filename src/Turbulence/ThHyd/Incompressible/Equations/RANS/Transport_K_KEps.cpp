@@ -124,7 +124,7 @@ int Transport_K_KEps::lire_motcle_non_standard(const Motcle& mot, Entree& is)
         {
           Cerr << "A { was expected while reading loi_2couches" << finl;
           Cerr << "instead of : " << motbis << finl;
-          exit();
+          Process::exit();
         }
       is >> motbis;
       loi_2couches.typer(motbis);
@@ -133,7 +133,7 @@ int Transport_K_KEps::lire_motcle_non_standard(const Motcle& mot, Entree& is)
         {
           Cerr << "A } was expected when ending to read loi_2couches" << finl;
           Cerr << "instead of : " << motbis << finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }

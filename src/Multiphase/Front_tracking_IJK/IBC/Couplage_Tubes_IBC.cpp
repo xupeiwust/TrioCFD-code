@@ -185,7 +185,7 @@ void Couplage_Tubes_IBC::force_ibc(IJK_Field_double& vx, IJK_Field_double& vy, I
               break;
             default:
               Cerr << "Erreur dans Couplage_Tubes_IBC::force_ibc: methode_IBC " << methode_IBC_ << " non code" << finl;
-              exit();
+              Process::exit();
             }
 
           break;
@@ -240,12 +240,12 @@ void Couplage_Tubes_IBC::force_ibc(IJK_Field_double& vx, IJK_Field_double& vy, I
 
             default:
               Cerr << "Erreur dans Couplage_Tubes_IBC::force_ibc: methode_IBC " << methode_IBC_ << " non code" << finl;
-              exit();
+              Process::exit();
             }
           break;
         default:
           Cerr << "Erreur dans Couplage_Tubes_IBC::force_ibc: solide " << solide_ << " non code" << finl;
-          exit();
+          Process::exit();
         }
 
       break;
@@ -267,7 +267,7 @@ void Couplage_Tubes_IBC::force_ibc(IJK_Field_double& vx, IJK_Field_double& vy, I
       break;
     default:
       Cerr << "Erreur dans Couplage_Tubes_IBC::force_ibc: champ_miroir " << champ_miroir_ << " non code" << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -354,7 +354,7 @@ void Couplage_Tubes_IBC::calcul_force_post_projection(IJK_Field_double& vx, IJK_
 #endif
     default:
       Cerr << "Erreur dans Couplage_Tubes_IBC::force_ibc_post_proj: methode_IBC " << methode_IBC_ << " non code" << finl;
-      exit();
+      Process::exit();
     }
 
   double inv_timestep = (1./timestep);
@@ -513,7 +513,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity(IJK_Field_double& vx, IJK_Field_doub
                           critere_max_carre = rayon_tube_carre; // pour initialiser, pour le compilateur
                           critere_min_carre = rayon_tube_carre;
                           Cerr << "Erreur dans Couplage_Tubes_IBC::update: lissage " << lissage_ << " non code" << finl;
-                          exit();
+                          Process::exit();
                         }
 
                       if (d2 < critere_max_carre)
@@ -3246,7 +3246,7 @@ void Couplage_Tubes_IBC::update(int tstep,
       }
     default:
       Cerr << "Erreur dans Couplage_Tubes_IBC::update: mouvement " << mouvement_ << " non code" << finl;
-      exit();
+      Process::exit();
     }
 }
 

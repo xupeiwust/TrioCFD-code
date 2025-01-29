@@ -75,7 +75,7 @@ Entree& Imposer_vit_bords_ALE::interpreter_(Entree& is)
   if (!dom_name.contient("ALE"))
     {
       Cerr <<"Mobile domain:  replace  " <<domaine().que_suis_je()<<" with "<< domaine().que_suis_je() <<"_ALE and restart!"<< finl;
-      exit();
+      Process::exit();
     }
   Domaine_ALE& dom=ref_cast(Domaine_ALE, domaine());
   dom.reading_vit_bords_ALE(is);

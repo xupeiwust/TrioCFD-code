@@ -220,14 +220,14 @@ void Flux_radiatif_VDF::calculer_flux_radiatif(const Equation_base& eq_temp)
           else
             {
               Cerr <<"Coder pour les autres condition limites de l'equation de temperature 1 "<<finl;
-              exit();
+              Process::exit();
             }
         }
     }
   if(test_nom == 0)
     {
       Cerr<<"Erreur : il n'y a pas de condition limite sur une frontiere portant le nom : "<<le_nom()<<finl;
-      exit();
+      Process::exit();
     }
   //  Tb contient les temperatures de bord
   //  Cerr<<"Tb = "<<Tb.valeurs()<<finl;

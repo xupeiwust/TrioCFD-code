@@ -44,7 +44,7 @@ Entree& Sondes_IJK::readOn( Entree& s )
     {
       Cerr << "Error while reading the probes in the postprocessing" << finl;
       Cerr << "We expected { to start to read the probes" << finl;
-      exit();
+      Process::exit();
     }
   s >> motlu;
 
@@ -52,7 +52,7 @@ Entree& Sondes_IJK::readOn( Entree& s )
     {
       Cerr << "Error while reading the probes in the postprocessing" << finl;
       Cerr << "You have not defined any probe" << finl;
-      exit();
+      Process::exit();
     }
   while (motlu != accolade_fermee)
     {

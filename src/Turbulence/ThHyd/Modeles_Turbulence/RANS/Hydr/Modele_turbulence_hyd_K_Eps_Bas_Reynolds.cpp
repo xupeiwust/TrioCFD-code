@@ -104,7 +104,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps_Bas_Reynolds::calculer_viscosite_tu
       if (visco_turb_K_eps_Bas_Re.size() != n)
         {
           Cerr << "visco_turb_K_eps_Bas_Re size is " << visco_turb_K_eps_Bas_Re.size() << " instead of " << n << finl;
-          exit();
+          Process::exit();
         }
 
       fill_turbulent_viscosity_tab(n, tab_K_Eps, Fmu, visco_turb_K_eps_Bas_Re);

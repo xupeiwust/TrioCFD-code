@@ -56,7 +56,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_VEF::calculer_viscosite_turbulente()
   if (visco_turb.size() != nb_elem)
     {
       Cerr << "erreur dans la taille du DoubleTab valeurs de la viscosite" << finl;
-      exit();
+      Process::exit();
     }
   visco_turb = 0.;
 
@@ -199,7 +199,7 @@ void Modele_turbulence_hyd_LES_VEF::calculer_fonction_structure()
               if (petit < 0.)
                 {
                   Cerr << "pb avec r(fac) negatif dans Modele_turbulence_hyd_LES_VEF" << finl;
-                  exit();
+                  Process::exit();
                 }
 
               // On calcule la vitesse aux 2*dimension points qui entourent le point 0
@@ -258,7 +258,7 @@ void Modele_turbulence_hyd_LES_VEF::calculer_fonction_structure()
               if (petit < 0.)
                 {
                   Cerr << "pb avec r(fac) negatif dans Modele_turbulence_hyd_LES_VEF" << finl;
-                  exit();
+                  Process::exit();
                 }
 
               double F1 = 0;
@@ -321,7 +321,7 @@ void Modele_turbulence_hyd_LES_VEF::calculer_fonction_structure()
       if (petit < 0.)
         {
           Cerr << "pb avec r(fac) negatif dans Modele_turbulence_hyd_LES_VEF" << finl;
-          exit();
+          Process::exit();
         }
 
       // On calcule la vitesse aux 2*dimension points qui entourent le point 0

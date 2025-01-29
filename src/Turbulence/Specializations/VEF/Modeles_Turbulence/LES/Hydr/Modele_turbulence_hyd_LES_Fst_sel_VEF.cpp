@@ -48,7 +48,7 @@ void Modele_turbulence_hyd_LES_Fst_sel_VEF::discretiser()
   if (dimension != 3)
     {
       Cerr << " The model sous_maille_fst_selectif has sense only for dimension 3." << finl;
-      exit();
+      Process::exit();
 
     }
   Modele_turbulence_hyd_LES_base::discretiser();

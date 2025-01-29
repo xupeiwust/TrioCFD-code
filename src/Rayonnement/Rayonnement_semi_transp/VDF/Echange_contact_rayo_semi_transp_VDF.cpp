@@ -184,7 +184,7 @@ void Echange_contact_rayo_semi_transp_VDF::mettre_a_jour(double temps)
         {
           Cerr<<"gros pb "<<que_suis_je()<<finl;
           assert(0);
-          exit();
+          Process::exit();
         }
 
       const Front_VF& frontvf=ref_cast(Front_VF,eqn->domaine_dis().frontiere_dis(frontiere_dis().le_nom()));
@@ -291,7 +291,7 @@ void Echange_contact_rayo_semi_transp_VDF::calculer_Teta_paroi(DoubleTab& Teta_p
     {
       Cerr<<"On ne devrait pas a avoir a calculer la temperature de bord pour le probleme"<<finl;
       Cerr<<"solide "<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -337,7 +337,7 @@ Echange_contact_rayo_semi_transp_VDF& Echange_contact_rayo_semi_transp_VDF::la_C
     }
 
   Cerr << "Erreur lors de la recherche de la CL opposee." << finl;
-  exit();
+  Process::exit();
 
   // Pour le compilo
   return *this;

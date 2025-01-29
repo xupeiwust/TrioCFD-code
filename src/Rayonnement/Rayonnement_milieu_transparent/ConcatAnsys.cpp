@@ -86,7 +86,7 @@ Entree& ConcatAnsys::interpreter_(Entree& is)
             {
               Cerr << "Warning trouve dans le fichier " << nom << ". Calcul des facteurs de " << finl;
               Cerr << "forme interrompu. Contacter le support TRUST." << finl;
-              exit();
+              Process::exit();
             }
           nombre_faces_ansys++;
         }
@@ -156,7 +156,7 @@ Entree& ConcatAnsys::interpreter_(Entree& is)
               Cerr << "La somme des facteurs de forme (" << total_lu << ") de la ligne " << I+1 << " depasse 1 !" << finl;
               Cerr << "Il se peut que vous ayez fait un calcul Ansys avec" << finl;
               Cerr << "option faces non cachees qui ne soit pas justifie." << finl;
-              exit();
+              Process::exit();
             }
           else if (est_egal(total_lu,0))
             {
@@ -176,7 +176,7 @@ Entree& ConcatAnsys::interpreter_(Entree& is)
                   Cerr << "Une face du maillage .geom est mal orientee." << finl;
                   Cerr << "Contactez le support TRUST." << finl;
                 }
-              exit();
+              Process::exit();
             }
           else
             {
@@ -252,7 +252,7 @@ Entree& ConcatAnsys::interpreter_(Entree& is)
     {
       Cerr << "Erreur dans le calcul des facteurs de forme apres le regroupement." << finl;
       Cerr << "Contacter le support TRUST." << finl;
-      exit();
+      Process::exit();
     }
   Cerr << finl << "Ecriture du fichier " << nom2 << " contenant les facteurs de forme pour TRUST." << finl;
   SFichier ff(nom2);

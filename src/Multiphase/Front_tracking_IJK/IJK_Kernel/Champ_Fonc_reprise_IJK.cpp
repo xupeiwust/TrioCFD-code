@@ -57,7 +57,7 @@ Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
   else
     {
       Cerr << nom_champ_inc << " is not 'vitesse' (this is the only unknown supported for now)!! " << nom_pb << finl;
-      exit();
+      Process::exit();
     }
 
   // Ouverture du fichier
@@ -68,7 +68,7 @@ Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
   if(fic_rep.fail())
     {
       Cerr<<"Error while opening the file of resumption : " <<nom_fic<<finl;
-      exit();
+      Process::exit();
     }
 
   EFichier& fich = fic_rep;
@@ -78,7 +78,7 @@ Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
       Cerr << "Error in Champ_Fonc_reprise_IJK::reprendre" << finl;
       Cerr << "The resumption file does not exist" << finl;
       Cerr << "or could not be opened correctly." << finl;
-      exit();
+      Process::exit();
     }
 
 //  Nom ident_lu;
@@ -86,7 +86,7 @@ Entree& Champ_Fonc_reprise_IJK::readOn(Entree& s)
 //  if (ident_lu != "xyz_ijk:")
 //    {
 //      Cerr << "Wrong file format. Expected XYZ_IJK."<<finl;
-//      exit();
+//      Process::exit();
 //    }
 
   associer_domaine_dis_base(pb.domaine_dis());
@@ -326,7 +326,7 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
       if (md != zvf.face_sommets().get_md_vector())
         {
           Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Problem! Expected face descriptor."<< finl;
-          exit();
+          Process::exit();
         }
       const DoubleTab& coords = zvf.xv(); // Descripteur des face
       const double epsilon = zvf.domaine().epsilon();
@@ -335,13 +335,13 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
   else
     {
       Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Problem in the resumption. Not a MD_vector_std." << finl;
-      exit();
+      Process::exit();
     }
 
   if (ntot != nb_items_seq)
     {
       Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Internal error" << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -350,7 +350,7 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
       Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Problem in the resumption "<< finl;
       Cerr << "The field wich is read, does not have same number of nodal values" << finl;
       Cerr << "that the field created by the discretization " << finl;
-      exit();
+      Process::exit();
     }
   Cerr << "Resume of the field " << nom_ << " performed." << finl;
 }

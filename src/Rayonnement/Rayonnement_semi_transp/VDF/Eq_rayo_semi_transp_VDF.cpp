@@ -128,7 +128,7 @@ void Eq_rayo_semi_transp_VDF::resoudre(double temps)
         Cerr<<"de rayonnement semi transparent avec le solveur : "<<solveur.que_suis_je()<<finl;
         Cerr<<"car kappa n'est pas constant, donc, la_matrice"<<finl;
         Cerr<<"n'est pas symetrique"<<finl;
-        exit();
+        Process::exit();
       }
   else if (solveur->que_suis_je() == "Solv_Gmres")
     if (Process::nproc() == 1)
@@ -147,7 +147,7 @@ void Eq_rayo_semi_transp_VDF::resoudre(double temps)
         Cerr<<"un probleme avec kappa constant, vous contournerez"<<finl;
         Cerr<<"cette limitation en utilisant le solveur GCP avec"<<finl;
         Cerr<<"un preconditionnement GCP"<<finl;
-        exit();
+        Process::exit();
       }
   else
     {
@@ -156,7 +156,7 @@ void Eq_rayo_semi_transp_VDF::resoudre(double temps)
       Cerr<<"Attention, on ne peut pas utiliser le solveur : "<<solveur.que_suis_je()<<finl;
       Cerr<<"pour resoudre l'equation de rayonnement dans un "<<finl;
       Cerr<<"probleme de rayonnement semi transparent"<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -243,7 +243,7 @@ void Eq_rayo_semi_transp_VDF::evaluer_cl_rayonnement(double temps)
                     {
                       Cerr <<"Coder pour les autres condition limites de l'equation de temperature 2 "<<finl;
                       Cerr<<"le cas d'une CL thermique  "<<la_cl_temp->que_suis_je()<<" n'est pas code"<<finl;
-                      exit();
+                      Process::exit();
                     }
                 }
             }
@@ -262,7 +262,7 @@ void Eq_rayo_semi_transp_VDF::evaluer_cl_rayonnement(double temps)
         {
           Cerr<<"La condition a la limite "<<la_cl_rayo->que_suis_je()<<" n'est pas connue"<<finl;
           Cerr<<" pour l'equation de rayonnement "<< finl;
-          exit();
+          Process::exit();
         }
     }
   //  Cerr<<"Eq_rayo_semi_transp_VDF::evaluer_cl_rayonnement : Fin"<<finl;
@@ -348,7 +348,7 @@ void Eq_rayo_semi_transp_VDF::modifier_matrice()
             {
               Cerr<<"Erreur dans Eq_rayo_semi_transp_VDF::modifier_matrice()"<<finl;
               Cerr<<"la frontiere associee a la_cl ne derive pas de Front_VF"<<finl;
-              exit();
+              Process::exit();
             }
         }
       else if (sub_type(Symetrie,la_cl.valeur()))
@@ -359,7 +359,7 @@ void Eq_rayo_semi_transp_VDF::modifier_matrice()
         {
           Cerr<<"La condition a la limite utilisee n'est pas connue pour l'equation"<<finl;
           Cerr<<" de rayonnement "<< finl;
-          exit();
+          Process::exit();
         }
     }
   //  Cerr<<"Eq_rayo_semi_transp_VDF::modifier_matrice : Fin"<<finl;
@@ -407,7 +407,7 @@ void Eq_rayo_semi_transp_VDF::assembler_matrice()
   Cerr<<"On verifie lors du calcul de la matrice de discretisation que "<<finl;
   Cerr<<"l'ordre de la matrice est bien egale au nombre d'elements"<<finl;
   if(la_matrice.ordre() != nb_elem_tot)
-    exit();
+    Process::exit();
   Cerr<<"Ordre de la matrice OK"<<finl;
 
   //  int nb_comp = fluide().kappa().nb_comp();

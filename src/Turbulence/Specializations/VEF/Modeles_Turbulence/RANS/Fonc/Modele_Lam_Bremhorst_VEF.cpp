@@ -764,7 +764,7 @@ void Modele_Lam_Bremhorst_VEF::lire_distance_paroi( )
   if(!fic.ouvrir(nom_fic))
     {
       Cerr << " File " <<nom_fic<< " doesn't exist. To generate it, please, refer to html.doc (Distance_paroi) " << finl;
-      exit();
+      Process::exit();
     }
 
   Noms nom_paroi;

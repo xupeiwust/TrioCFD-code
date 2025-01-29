@@ -139,7 +139,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
         {
           //POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!
           Cerr<<"POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!"<<finl;
-          exit();
+          Process::exit();
           //MODIF
           //ATTENTION : POUR LE MOMENT, ON NE TRAITE PAS LES FRONTIERES DE TYPE "Raccord_distant_homogene"
           //DONC ON N'A PAS BESOIN DU nom_bord_oppose()
@@ -270,7 +270,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
                         else
                           {
                             Cerr << "Une face fine de l'interface ne correspond a aucune face grossiere !!!" << finl;
-                            exit();
+                            Process::exit();
                           }
                       }
                   }
@@ -291,7 +291,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
                       else
                         {
                           Cerr << "Une face fine de l'interface ne correspond a aucune face grossiere !!!" << finl;
-                          exit();
+                          Process::exit();
                         }
                     }
                 }
@@ -311,7 +311,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
                   else
                     {
                       Cerr << "Une face fine de l'interface ne correspond a aucune face grossiere !!!" << finl;
-                      exit();
+                      Process::exit();
                     }
                 }
             }
@@ -426,7 +426,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
           if (nb_comp != 1)
             {
               Cerr << "On ne sait pas traiter un pb couple 'zoom' lorsque nb_composante de la conductivite est plus grand que 1 " << finl;
-              exit();
+              Process::exit();
             }
           //ON RECUPERE LA TEMPERATURE FINE
           Text_valeurs = 0.;
@@ -463,7 +463,7 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
             else
               {
                 Cerr << " L'equation " << eqF << " n'a pas de champs inconnu temperature !!" << finl;
-                exit();
+                Process::exit();
               }
 
           }
@@ -481,14 +481,14 @@ void Echange_contact_VDF_Zoom_grossier::mettre_a_jour(double temps)
                 else
                 {
                 Cerr<<"On ne peut pas faire de couplage avec ce type de connectivites !!!"<<finl;
-                exit();
+                Process::exit();
                 }*/
     }
   else
     {
       Cerr<<"Ce type de champ a la frontiere ne peut pas etre utilise"<<finl;
       Cerr<<"Il doit avoir acces au pb_MG et aux connectivites !!"<<finl;
-      exit();
+      Process::exit();
     }
 
   Echange_impose_base::mettre_a_jour(temps);

@@ -99,7 +99,7 @@ const Operateur& Transport_K_Eps_Realisable::operateur(int i) const
       Cerr << "Error for "<<que_suis_je()<<"::operateur("<<i<<") !! " << finl;
       Cerr << que_suis_je()<<" has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   // Pour les compilos!!
   return terme_diffusif;
@@ -122,7 +122,7 @@ Operateur& Transport_K_Eps_Realisable::operateur(int i)
       Cerr << "Error for "<<que_suis_je()<<"::operateur("<<i<<") !! " << finl;
       Cerr << que_suis_je()<<" has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   // Pour les compilos!!
   return terme_diffusif;

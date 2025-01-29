@@ -87,13 +87,13 @@ void Structural_dynamic_mesh_model::initMfrontBehaviour()
   if ( l_ == "unset string")
     {
       Cerr << "Error: Mfront library path undefined (Mfront_library keyword)" << finl ;
-      exit() ;
+      Process::exit() ;
     }
 
   if ( f_ == "unset string")
     {
       Cerr << "Error: Mfront model name undefined (Mfront_model_name keyword)" << finl ;
-      exit() ;
+      Process::exit() ;
     }
 
   if (h_ == "unset string")
@@ -133,7 +133,7 @@ void Structural_dynamic_mesh_model::initMfrontBehaviour()
 
       Cerr << "Wrong Mfront behaviour for structural dynamic mesh motion" << finl ;
       Cerr << "Only pure elastic materials are allowed" << finl ;
-      exit();
+      Process::exit();
     }
   if ( nbEvars_ > 0)
     {
@@ -167,7 +167,7 @@ void Structural_dynamic_mesh_model::initMfrontBehaviour()
             {
               Cerr << "Error with input for Mfront behaviour " << f_ << finl ;
               Cerr << "The number of scalar values must be " << vSize << " for property " << mps.name << finl ;
-              exit();
+              Process::exit();
             }
           for (size_t i = 0; i < vSize; ++i)
             {
@@ -484,7 +484,7 @@ void Structural_dynamic_mesh_model::computeInternalForces(double& Vol, double& X
   if (speedOfSound[0] <= 0.)
     {
       Cerr << "Error (mesh motion): speed of sound not computed in provided Mfront behaviour" << finl ;
-      exit();
+      Process::exit();
     }
   else
     {
@@ -724,7 +724,7 @@ void Structural_dynamic_mesh_model::integrate_behaviour_(double *const stress,  
     {
       // Message::error("Integration of the behavior failed");
       Cerr << "Error: Integration of the behaviour with Mfront failed" << finl ;
-      exit() ;
+      Process::exit() ;
     }
   else if (ierr == 0)
     {
@@ -790,7 +790,7 @@ double Structural_dynamic_mesh_model::computeCriticalDt(const double Vol, const 
   if (currDensity <= 0.)
     {
       Cerr << "Error: negative density in grid mesh motion" << finl ;
-      exit() ;
+      Process::exit() ;
     }
 
   double cc = cSound ;

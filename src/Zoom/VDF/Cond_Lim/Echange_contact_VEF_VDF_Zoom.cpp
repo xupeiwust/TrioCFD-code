@@ -136,7 +136,7 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
         {
           //POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!
           Cerr<<"POUR LE MOMENT ON NE TRAITE PAS CE CAS !!!!!!!!!"<<finl;
-          exit();
+          Process::exit();
         }   // fin du cas Raccord_distant_homogene
       else // Raccord_local_homogene
         {
@@ -290,7 +290,7 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
           if (nb_comp_vef != 1 || nb_comp_vdf != 1)
             {
               Cerr << "On ne sait pas traiter un pb couple 'zoom' lorsque nb_composante de la conductivite est plus grand que 1 " << finl;
-              exit();
+              Process::exit();
             }
 
 
@@ -403,7 +403,7 @@ void Echange_contact_VEF_VDF_Zoom::mettre_a_jour(double temps)
     {
       Cerr<<"Ce type de champ a la frontiere ne peux pas etre utilise"<<finl;
       Cerr<<"Il doit avoir acces au pb_MG et aux connectivites !!"<<finl;
-      exit();
+      Process::exit();
     }
 
 }

@@ -72,7 +72,7 @@ Entree& Paroi_DWF_hyd_VDF::readOn(Entree& is )
         {
           Cerr << "Check the value (0 or 1) behind key-word CHT..." << finl;
           Cerr << "Trio will now stop." << finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -324,7 +324,7 @@ int Paroi_DWF_hyd_VDF::calculer_hyd(DoubleTab& tab_nu_t,DoubleTab& tab_k)
     {
       Cerr << "DWF only works for THERMO-hydraulic problems" << finl;
       Cerr << "Trio will now stop." << finl;
-      exit();
+      Process::exit();
     }
 
   Equation_base& eqn_NRJ_F = pb_fin->equation(1);

@@ -101,7 +101,7 @@ Entree& Modele_Rayonnement_Milieu_Transparent::readOn(Entree& is)
     {
       Cerr << "On attendait une { a la lecture d'une " << que_suis_je() << finl;
       Cerr << "et non : " << motlu << finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -217,7 +217,7 @@ Entree& Modele_Rayonnement_Milieu_Transparent::readOn(Entree& is)
       else
         {
           Cerr<< " le nom du pb rayonnant n'est pas un pb fluide "<<finl;
-          exit();
+          Process::exit();
         }
     }
   return is;
@@ -250,13 +250,13 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2, 
   if (stat(facteur_file,&f))
     {
       Cerr << facteur_file << " doesn't exist." << finl;
-      exit();
+      Process::exit();
     }
 
   if (stat(emissivite_file,&e))
     {
       Cerr << emissivite_file << " doesn't exist." << finl;
-      exit();
+      Process::exit();
     }
 
   if (stat(matrice_inverse_file,&m))
@@ -306,7 +306,7 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2)
             {
               Cerr<<"erreur dans "<<nom1<<finl;
               Cerr<<" emissivite <0 et != -1 :"<<les_faces_rayonnantes[i].emissivite()<<finl;
-              exit();
+              Process::exit();
             }
           if (irayo>=nb_faces_rayonnantes_)
             {
@@ -317,7 +317,7 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2)
               Cerr<<" on a corrige emissivite=0 ne veut pas dire pas de rayonnement"<<finl;
               Cerr<<" Il faut mettre maintenant l'emissivite a -1"<<finl;
               Cerr<<" pour ne pas tenir compte de certains bords "<<finl;
-              exit();
+              Process::exit();
             }
           //temporaire(irayo)=jrayo;
           irayo++;
@@ -332,7 +332,7 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2)
       Cerr<<" erreur dans "<<nom1<<finl;
       Cerr<<"nb_faces_rayonnantes utilisateur "<<nb_faces_rayonnantes_<<finl;
       Cerr<<"nb_faces_rayonnantes deduites des emissivites "<<irayo<<finl;
-      exit();
+      Process::exit();
     }
 
 
@@ -343,7 +343,7 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2)
       /*if (!fic2){
         Cerr << "Impossible d'ouvrir le fichier " << nom2 << finl;
         Cerr << "Verifier le nom de votre fichier " << finl;
-        exit();
+        Process::exit();
         }*/
 
       fic2 >> ordre_mat_forme_;
@@ -351,7 +351,7 @@ void Modele_Rayonnement_Milieu_Transparent::lire_fichiers(Nom& nom1, Nom& nom2)
         {
           Cerr << "Le nombre de faces dans la matrice des facteurs de formes est different de celui du fichier des faces rayonnantes" << finl;
           Cerr << "Verifier votre fichier " << nom2 << finl;
-          exit();
+          Process::exit();
         }
       Cerr <<"l'ordre de la matrice est " << ordre_mat_forme_ << finl;
       // Dimensionnement de la "matrice" des facteurs de formes.
@@ -395,7 +395,7 @@ void Modele_Rayonnement_Milieu_Transparent::calculer_radiosites ()
 {
   Cerr<<"On ne devrait plus passer par la:  Modele_Rayonnement_Milieu_Transparent::calculer_radiosites"<<finl;
   assert(0);
-  exit();
+  Process::exit();
   return;
 
 }
@@ -447,7 +447,7 @@ void Modele_Rayonnement_Milieu_Transparent::calculer_flux_radiatifs()
             {
               Cerr<<"On est oblige d'inverser au debut"<<finl;
               assert(0);
-              exit();
+              Process::exit();
             }
         }
       else
@@ -602,7 +602,7 @@ double Modele_Rayonnement_Milieu_Transparent::flux_radiatif( int num_face) const
                             Cerr<<me()<<"la face "<<nglob <<" semble etre contenu par les faces_rayonnantes "<<i <<" et "<<corres[nglob]<<finl;
                             Cerr<<me()<< les_faces_rayonnantes[i].nom_bord_rayo_lu()<<" "<< les_faces_rayonnantes[corres[nglob]].nom_bord_rayo_lu()<<finl;
                             Cerr<<ensemble.nb_faces_bord()<<finl;
-                            exit();
+                            Process::exit();
                           }
                         else
                           corres[nglob]=i;
@@ -808,14 +808,14 @@ void  Modele_Rayonnement_Milieu_Transparent::preparer_calcul ()
                   /*if (!fic){
                     Cerr << "Impossible d'ouvrir le fichier " << nom_fic_mat_ray_inv_ << finl;
                     Cerr << "Verifier le nom de votre fichier " << finl;
-                    exit();
+                    Process::exit();
                     }*/
                   Nom toto;
                   fic >> toto;
                   if (toto!=version)
                     {
                       Cerr<<"Il faut detruire votre fichier "<<nom_fic_mat_ray_inv_<<" la matrice stockee a changee."<<finl;
-                      exit();
+                      Process::exit();
                     }
                   fic >> ordre_mat_forme_;
                   if (ordre_mat_forme_ !=nb_faces_rayonnantes() )
@@ -823,7 +823,7 @@ void  Modele_Rayonnement_Milieu_Transparent::preparer_calcul ()
                       Cerr << "L'ordre de la matrice inverse de rayonnement est different"<<finl;
                       Cerr << "du nombre de faces rayonnantes" << finl;
                       Cerr << "Verifiez votre fichier " << nom_fic_mat_ray_inv_ << finl;
-                      exit();
+                      Process::exit();
                     }
                   Cerr <<"l'ordre de la matrice est " << ordre_mat_forme_ << finl;
 
@@ -840,14 +840,14 @@ void  Modele_Rayonnement_Milieu_Transparent::preparer_calcul ()
                   /*if (!fic_bin){
                     Cerr << "Impossible d'ouvrir le fichier " << nom_fic_mat_ray_inv_ << finl;
                     Cerr << "Verifier le nom de votre fichier " << finl;
-                    exit();
+                    Process::exit();
                     }*/
                   Nom toto;
                   fic_bin >> toto;
                   if (toto!=version)
                     {
                       Cerr<<"Il faut detruire votre fichier "<<nom_fic_mat_ray_inv_<<" la matrice stockee a changee."<<finl;
-                      exit();
+                      Process::exit();
                     }
                   fic_bin>>matrice_rayo;
                   ordre_mat_forme_ = matrice_rayo.dimension(0);
@@ -856,7 +856,7 @@ void  Modele_Rayonnement_Milieu_Transparent::preparer_calcul ()
                       Cerr << "L'ordre de la matrice inverse de rayonnement est different"<<finl;
                       Cerr << "du nombre de faces rayonnantes" << finl;
                       Cerr << "Verifiez votre fichier " << nom_fic_mat_ray_inv_ << finl;
-                      exit();
+                      Process::exit();
                     }
                   Cerr <<"l'ordre de la matrice est " << ordre_mat_forme_ << finl;
                 }

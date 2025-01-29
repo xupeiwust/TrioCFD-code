@@ -151,7 +151,7 @@ int Convection_Diffusion_Temperature_FT_Disc::lire_motcle_non_standard(const Mot
         {
           barrier();
           Cerr << " Error: phase must be specified before diffusion" << finl;
-          exit();
+          Process::exit();
         }
       Convection_Diffusion_std::lire_motcle_non_standard(mot,is);
       return 1;
@@ -164,7 +164,7 @@ int Convection_Diffusion_Temperature_FT_Disc::lire_motcle_non_standard(const Mot
         {
           barrier();
           Cerr << " Error: equation_navier_stokes must be specified before convection" << finl;
-          exit();
+          Process::exit();
         }
       Convection_Diffusion_std::lire_motcle_non_standard(mot,is);
       return 1;
@@ -1507,7 +1507,7 @@ void Convection_Diffusion_Temperature_FT_Disc::associer_milieu_base(const Milieu
            << " On attendait un fluide diphasique" << finl;
       Cerr << "Error for Convection_Diffusion_Temperature_FT_Disc::associer_milieu_base\n"
            << "A Fluide_Diphasique medium was expected." << finl;
-      exit();
+      Process::exit();
     }
   fluide_dipha_ = ref_cast(Fluide_Diphasique, un_milieu);
 }

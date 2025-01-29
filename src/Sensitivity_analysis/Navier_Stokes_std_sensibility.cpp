@@ -61,13 +61,13 @@ void Navier_Stokes_std_sensibility::set_param(Param& param)
   /* if (schema_temps().diffusion_implicite())
      {
        Cerr<<"diffusion implicite forbidden within Navier_Stokes_std_sensibility  "<<finl;
-       exit();
+       Process::exit();
      }*/
   if( schema_temps().que_suis_je() != "Schema_euler_explicite" )
     {
       Cerr<<"Time  scheme: "<<schema_temps().que_suis_je() <<finl;
       Cerr<<"Only  Scheme_euler_explicit time scheme within Navier_Stokes_std_sensibility  "<<finl;
-      exit();
+      Process::exit();
     }
 
 }
@@ -85,7 +85,7 @@ int Navier_Stokes_std_sensibility::lire_motcle_non_standard(const Motcle& mot, E
         {
           Cerr << "We expected a { while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       is >> motlu;
@@ -99,27 +99,27 @@ int Navier_Stokes_std_sensibility::lire_motcle_non_standard(const Motcle& mot, E
             {
               Cerr<<"We expected the name of a problem and a fluid fild while reading of "<<motlu<< finl;
               Cerr << "and not : " <<accolade_ouverte << " or "<<  accolade_fermee << finl;
-              exit();
+              Process::exit();
             }
         }
       else
         {
           Cerr<<"Navier_Stokes_std_sensibility::lire_motcle_non_standard: keyword "<<motlu<<" is not recognized."<<finl;
           Cerr<<"The recognized keywords are :"<<"pb_champ_evaluateur "<<finl;
-          exit();
+          Process::exit();
         }
       is>>motlu;
       if(motlu != accolade_fermee)
         {
           Cerr << "We expected a } while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
       if (lu_info_evaluateur!=1)
         {
           Cerr<<"Keyword pb_champ_evaluateur must be specified with associated data"<<finl;
           Cerr<<"when Navier_Stokes_std_sensibility is used."<<finl;
-          exit();
+          Process::exit();
         }
       associate_evaluator_field( name_state_pb,name_state_field);
       return 1;
@@ -134,7 +134,7 @@ int Navier_Stokes_std_sensibility::lire_motcle_non_standard(const Motcle& mot, E
         {
           Cerr << "We expected a { while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       is >> motlu;
@@ -145,7 +145,7 @@ int Navier_Stokes_std_sensibility::lire_motcle_non_standard(const Motcle& mot, E
         {
           Cerr << "We expected a } while reading of " << que_suis_je() << finl;
           Cerr << "and not : " << motlu << finl;
-          exit();
+          Process::exit();
         }
       return 1;
     }
@@ -168,7 +168,7 @@ void Navier_Stokes_std_sensibility::associate_evaluator_field(const Nom& one_nam
   if(probleme().le_nom() ==one_name_state_pb )
     {
       Cerr <<"Navier_Stokes_std_sensibility: we expect here the nom of the state problem and not the name of the sensibility problem"<< finl;
-      exit();
+      Process::exit();
     }
   Objet_U& ob= Interprete::objet(one_name_state_pb);
   OBS_PTR(Probleme_base) pb;
@@ -181,7 +181,7 @@ void Navier_Stokes_std_sensibility::associate_evaluator_field(const Nom& one_nam
   else
     {
       Cerr <<"No problem named "<< one_name_state_pb <<" has been found."<< finl;
-      exit();
+      Process::exit();
     }
   rch = pb->get_champ(one_name_state_field);
 
@@ -190,7 +190,7 @@ void Navier_Stokes_std_sensibility::associate_evaluator_field(const Nom& one_nam
   else
     {
       Cerr<<pb->le_nom()<<" has no unknown field named "<<one_name_state_field<<finl;
-      exit();
+      Process::exit();
     }
 }
 //Update the reference to the evaluator field (state_field)

@@ -82,7 +82,7 @@ int Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::lire_motcle_non_standard(const Motc
               {
                 Cerr << "The keywords stablise plans_paralleles must be followed by the keyword Nb_points.\n" << finl;
                 assert(0);
-                exit();
+                Process::exit();
               }
             break;
           }
@@ -103,7 +103,7 @@ int Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::lire_motcle_non_standard(const Motc
             Cerr << motlutmp << " is not understood. Available keywords are : " << finl;
             Cerr << les_motcles;
             assert(0);
-            exit();
+            Process::exit();
           }
         }
       return 1;
@@ -594,7 +594,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::calculer_viscosite_tur
   if (visco_turb.size() != domaine_VDF.domaine().nb_elem())
     {
       Cerr << "Size error for the array containing the values of the turbulent viscosity." << finl;
-      exit();
+      Process::exit();
     }
 
   Debog::verifier("Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::calculer_viscosite_turbulente visco_turb 0", visco_turb);
@@ -779,7 +779,7 @@ void Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::stabilise_moyenne(const DoubleTab&
     {
       Cerr << "Problem with the definition of the stabilisation method." << finl;
       assert(0);
-      exit();
+      Process::exit();
     }
 }
 
@@ -1059,7 +1059,7 @@ void Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::calcul_voisins(const int element_n
               if (num[j] == -1)
                 {
                   Cerr << "Problem with the algorithm Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::calcul_voisins" << finl;
-                  exit();
+                  Process::exit();
                 }
               dist(j) += (xp(num[j], i) - x(i)) * (xp(num[j], i) - x(i));
             }
@@ -1251,7 +1251,7 @@ void Modele_turbulence_hyd_LES_SMAGO_DYN_VDF::calcul_tableaux_correspondance(int
             {
               Cerr << "nb_points=" << N_c << " is too low  for the parallel planes number." << finl;
               Cerr << "Please increase this value." << finl;
-              exit();
+              Process::exit();
             }
           if (y == Y_c[j])
             {

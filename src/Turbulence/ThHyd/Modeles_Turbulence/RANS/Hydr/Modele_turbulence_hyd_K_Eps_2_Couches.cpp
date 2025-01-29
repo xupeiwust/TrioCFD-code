@@ -82,7 +82,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps_2_Couches::calculer_viscosite_turbu
       if (visco_turb_K_eps.size() != n)
         {
           Cerr << "visco_turb_K_eps size is " << visco_turb_K_eps.size() << " instead of " << n << finl;
-          exit();
+          Process::exit();
         }
 
       fill_turbulent_viscosity_tab(n, tab_K_Eps, visco_turb_K_eps);

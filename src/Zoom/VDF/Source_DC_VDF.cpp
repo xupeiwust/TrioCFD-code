@@ -243,7 +243,7 @@ DoubleTab& Source_DC_VDF::calculer_residu(Connectivites_base& connect, LIST(OWN_
   else
     {
       Cerr<<"Ce type de probleme n'a pas ete traite !!"<<finl;
-      exit();
+      Process::exit();
     }
 
   return le_residu;

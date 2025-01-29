@@ -162,7 +162,7 @@ void Modele_turbulence_hyd_LES_selectif_mod_VDF::cutoff()
     {
       Cerr << "Problem with the input data of the sous_maille_selectif_mod model." << finl;
       Cerr << "A necessary parameter : THI or Canal has not been specified." << finl;
-      exit();
+      Process::exit();
     }
 
   if ((nb_points_ == 4) && (dir_par_ != dir3_))

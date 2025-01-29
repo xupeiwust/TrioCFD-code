@@ -64,7 +64,7 @@ Parcours_interface::Parcours_interface()
  */
 Parcours_interface::Parcours_interface(const Parcours_interface& a): Objet_U(a)
 {
-  exit();
+  Process::exit();
 }
 
 /*! @brief L'operateur = est interdit !
@@ -72,7 +72,7 @@ Parcours_interface::Parcours_interface(const Parcours_interface& a): Objet_U(a)
  */
 const Parcours_interface& Parcours_interface::operator=(const Parcours_interface&)
 {
-  exit();
+  Process::exit();
   return *this;
 }
 
@@ -158,7 +158,7 @@ void Parcours_interface::associer_domaine_dis(const Domaine_dis_base& domaine_di
       Cerr << "Parcours_interface::associer_domaine_vf\n";
       Cerr << " Le type d'element " << nom_elem;
       Cerr << " n'est pas reconnu !\n";
-      exit();
+      Process::exit();
     }
 }
 
@@ -1418,7 +1418,7 @@ void Parcours_interface::calcul_inverse_matrice33(const FTd_matrice33& matrice, 
             }
           Cerr<<finl;
         }
-      exit();
+      Process::exit();
     }
   const double t17 = 1/(t);
 
@@ -2540,7 +2540,7 @@ int Parcours_interface::calculer_sortie_face_bord(const int face_0,
           {
             Cerr << "Erreur sur PE " << Process::me()
                  << " face de sortie non trouvee" << finl;
-            exit();
+            Process::exit();
           }
       }
       // On cherche a quelle arete correspondent les deux sommets
@@ -2569,7 +2569,7 @@ int Parcours_interface::calculer_sortie_face_bord(const int face_0,
         {
           Cerr << "Erreur sur PE " << Process::me()
                << " face de sortie non trouvee (2)" << finl;
-          exit();
+          Process::exit();
         }
       // Calcul du numero de la face voisine de la face_0 par l'arete i :
       face_bord_sortie = connect_front.faces_voisins()(face_0, i);

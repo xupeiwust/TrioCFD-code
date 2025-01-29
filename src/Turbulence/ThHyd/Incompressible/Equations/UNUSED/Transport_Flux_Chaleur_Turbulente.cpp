@@ -118,7 +118,7 @@ const Operateur& Transport_Flux_Chaleur_Turbulente::operateur(int i) const
         Cerr << "Error for Transport_Flux_Chaleur_Turbulente::operateur(int i)" << finl;
         Cerr << "Transport_Flux_Chaleur_Turbulente has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<<finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;
@@ -149,7 +149,7 @@ Operateur& Transport_Flux_Chaleur_Turbulente::operateur(int i)
         Cerr << "Error for Transport_Flux_Chaleur_Turbulente::operateur(int i)" << finl;
         Cerr << "Transport_Flux_Chaleur_Turbulente has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<<finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;
@@ -189,7 +189,7 @@ const Milieu_base& Transport_Flux_Chaleur_Turbulente::milieu() const
     {
       Cerr << "No fluid has been associated to"
            << "Transport_Flux_Chaleur_Turbulente equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }
@@ -200,7 +200,7 @@ Milieu_base& Transport_Flux_Chaleur_Turbulente::milieu()
     {
       Cerr << "No fluid has been associated to"
            << "Transport_Flux_Chaleur_Turbulente equation." << finl;
-      exit();
+      Process::exit();
     }
   return le_fluide.valeur();
 }

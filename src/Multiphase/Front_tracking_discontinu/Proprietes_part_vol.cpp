@@ -43,7 +43,7 @@ Proprietes_part_vol::Proprietes_part_vol()
 Sortie& Proprietes_part_vol::printOn(Sortie& os) const
 {
   assert(0);
-  exit();
+  Process::exit();
   return os;
 }
 
@@ -67,7 +67,7 @@ Entree& Proprietes_part_vol::readOn(Entree& is)
       Cerr<<"Both keyword fichier and distribution have been readen."<<finl;
       Cerr<<"Only one of these keywords can be selected."<<finl;
       Cerr<<"Please, see the reference manual for more details."<<finl;
-      exit();
+      Process::exit();
     }
   return is;
 }
@@ -90,7 +90,7 @@ int Proprietes_part_vol::lire_motcle_non_standard(const Motcle& mot, Entree& is)
       if (!fic.ouvrir(nomfic))
         {
           Cerr << " Error while opening the file "<< nomfic << finl;
-          exit();
+          Process::exit();
         }
       fic >> vitesse_p_ >> temperature_p_ >> masse_volumique_p_>> diametre_p_;
       nb_particules_ = vitesse_p_.dimension(0);
@@ -142,7 +142,7 @@ void Proprietes_part_vol::completer()
     {
       Cerr<<"Method Proprietes_part_vol::completer()"<<finl;
       Cerr<<"The case dimension "<<dim<<" is not treated."<<finl;
-      exit();
+      Process::exit();
     }
 }
 

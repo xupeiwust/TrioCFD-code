@@ -58,7 +58,7 @@ Entree& Source_Transport_Fluctuation_Temperature_W_VDF_Elem::readOn(Entree& is )
   if (motlu != accolade_ouverte)
     {
       Cerr << "On attendait { pour commencer a lire les constantes de Source_Transport_Fluctuation_Temperature_W" << finl;
-      exit();
+      Process::exit();
     }
   Cerr << "Lecture des constantes de Source_Transport_Fluctuation_Temperature_W" << finl;
   Motcles les_mots(4);
@@ -97,7 +97,7 @@ Entree& Source_Transport_Fluctuation_Temperature_W_VDF_Elem::readOn(Entree& is )
         default :
           {
             Cerr << "On ne comprend pas le mot cle : " << motlu << "dans Source_Transport_Fluctuation_Temperature_W" << finl;
-            exit();
+            Process::exit();
           }
         }
 

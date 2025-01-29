@@ -166,7 +166,7 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
             {
               Cout << "Variable "<<uncertain_var<<" Is not available yet."<<" "
                    "Try available TEMPERATURE or BOUSSINESQ_TEMPERATURE or BETA_TH or LAMBDA or CP variable." << finl;
-              exit();
+              Process::exit();
             }
 
 
@@ -175,14 +175,14 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
         {
           Cout << "Operateur_Conv_sensibility_VEF::ajouter() =>  Sensibility cannot use currently equation " << equation().que_suis_je()
                <<". Try available Navier_Stokes_standard_sensibility or Convection_Diffusion_Temperature_sensibility." << finl;
-          exit();
+          Process::exit();
         }
 
     }
   else
     {
       Cout << "Sensibility cannot use currently convection scheme " << op_conv.type() <<". Try available Sensibility -centre -amont -muscl convection scheme." << finl;
-      exit();
+      Process::exit();
     }
   resu.echange_espace_virtuel();
   Debog::verifier("resu dansOperateur_Conv_sensibility_VEF::ajouter", resu);
@@ -1047,7 +1047,7 @@ void Operateur_Conv_sensibility_VEF::ajouter_Lstate_sensibility_Amont(const Doub
           else
             {
               Cout << "Sensibility is currently working only with Tetra_VEF (3D) or Tri_VEF (2D)." << finl;
-              exit();
+              Process::exit();
             }
 
           // Determination du type de CL selon le rang
@@ -1438,7 +1438,7 @@ void Operateur_Conv_sensibility_VEF::ajouter_Lsensibility_state_Amont(const Doub
           else
             {
               Cout << "Sensibility is currently working only with Tetra_VEF (3D) or Tri_VEF (2D)." << finl;
-              exit();
+              Process::exit();
             }
 
           // Determination du type de CL selon le rang
@@ -2429,7 +2429,7 @@ double Operateur_Conv_sensibility_VEF::application_LIMITEUR(double grad1, double
     {
       Cerr << type_limit << " is not implemented. " << finl;
       Cerr << " Choose from: minmod - vanleer - vanalbada - chakravarthy - superbee " << finl;
-      exit();
+      Process::exit();
     }
 
   return gradlim;

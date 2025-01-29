@@ -55,14 +55,14 @@ Entree& Modele_Jones_Launder_VDF::readOn(Entree& is )
         {
           Cerr << "Erreur a la lecture du Modele fonc bas reynolds Jones et Launder" << finl;
           Cerr << "On attendait } a la place de " << motlu << finl;
-          exit();
+          Process::exit();
         }
     }
   else
     {
       Cerr << "Erreur a la lecture du Modele fonc bas reynolds Jones et Launder" << finl;
       Cerr << "On attendait { a la place de " << motlu << finl;
-      exit();
+      Process::exit();
     }
   return is;
 }
@@ -120,7 +120,7 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_D(DoubleTab& D,const Domaine_dis_bas
       Cerr << "Il y'a des valeurs negatives dans les valeurs de K" << finl;
       Cerr << "dans Modele_Jones_Launder_VDF::Calcul_D" << finl;
       Cerr << "On arrete le calcul." << finl;
-      exit();
+      Process::exit();
     }
   // Boucle sur les bords pour traiter les conditions aux limites
   for (int n_bord=0; n_bord<le_dom.nb_front_Cl(); n_bord++)
@@ -206,7 +206,7 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_D(DoubleTab& D,const Domaine_dis_bas
       else
         {
           Cerr<<la_cl->que_suis_je()<< "not implemented in calculer_D"<<finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -697,7 +697,7 @@ DoubleTab& Modele_Jones_Launder_VDF::calcul_derivees_premieres_croisees(DoubleTa
                 {
                   Cerr << "2 bords avec une condition limite de periodicite ne sont separees que d'une maille !" << finl;
                   Cerr << "Cela n'est pas valide pour le Modele Jones Launder et son calcul de derivees croisees..." << finl;
-                  exit();
+                  Process::exit();
                 }
               coef[0] = 0.5*(vit(num[1])-vit(num[0]))/le_dom.dist_face(num[0],num[1],ori1);
               coef[1] = 0.5*(vit(num[3])-vit(num[2]))/le_dom.dist_face(num[2],num[3],ori0);
@@ -1164,7 +1164,7 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_F2( DoubleTab& F2, DoubleTab& Deb, c
 /*
   DoubleTab& Modele_Jones_Launder_VDF::Calcul_F2( DoubleTab& F2, DoubleTab& D, const Domaine_dis_base& domaine_dis,const DoubleTab& K_eps_Bas_Re, const DoubleTab& tab_visco ) const
   {
-  exit();
+  Process::exit();
   const Domaine_VDF& le_dom = ref_cast(Domaine_VDF,domaine_dis);
   int nb_elem = le_dom.nb_elem();
   DoubleTab Re(nb_elem);
@@ -1221,7 +1221,7 @@ DoubleTab&  Modele_Jones_Launder_VDF::Calcul_Fmu( DoubleTab& Fmu,const Domaine_d
 /*
   DoubleTab&  Modele_Jones_Launder_VDF::Calcul_Fmu( DoubleTab& Fmu,const Domaine_dis_base& domaine_dis,const DoubleTab& K_eps_Bas_Re,const DoubleTab& tab_visco ) const
   {
-  exit();
+  Process::exit();
   const Domaine_VDF& le_dom = ref_cast(Domaine_VDF,domaine_dis);
   double Re;
   Fmu = 0;
@@ -1363,7 +1363,7 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_D_BiK(DoubleTab& D,const Domaine_dis
       Cerr << "Il y'a des valeurs negatives dans les valeurs de K" << finl;
       Cerr << "dans Modele_Jones_Launder_VDF::Calcul_D" << finl;
       Cerr << "On arrete le calcul." << finl;
-      exit();
+      Process::exit();
     }
   // Boucle sur les bords pour traiter les conditions aux limites
   for (int n_bord=0; n_bord<le_dom.nb_front_Cl(); n_bord++)
@@ -1449,7 +1449,7 @@ DoubleTab& Modele_Jones_Launder_VDF::Calcul_D_BiK(DoubleTab& D,const Domaine_dis
       else
         {
           Cerr<<la_cl->que_suis_je()<< "not implemented in calculer_D"<<finl;
-          exit();
+          Process::exit();
         }
     }
 

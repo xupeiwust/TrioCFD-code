@@ -506,7 +506,7 @@ void Domaine_ALE::initialiser (double temps, Domaine_dis_base& le_domaine_dis,Pr
   if (!pbb.contient("ALE"))
     {
       Cerr <<"Domaine_ALE:  replace  " <<pb.que_suis_je()<<" with "<< pb.que_suis_je() <<"_ALE and restart!"<< finl;
-      Process:: exit();
+      Process::exit();
     }
 
   // check that the equation is Navier_Stokes_std_ALE when we the domain is mobile (domaine_ALE)
@@ -514,7 +514,7 @@ void Domaine_ALE::initialiser (double temps, Domaine_dis_base& le_domaine_dis,Pr
      Nom eqnom = eqn_hydr.que_suis_je();
       if (!eqnom.contient("ALE")){
       Cout<<"replace "<<eqn_hydr.que_suis_je()<<"  with "<<eqn_hydr.que_suis_je()<<"_ALE and restart   "<<finl;
-      exit();}
+      Process::exit();}
       */
 
   // check that at least one boundary is mobile
@@ -707,7 +707,7 @@ DoubleTab Domaine_ALE::calculer_vitesse(double temps, Domaine_dis_base& le_domai
 
         default :
           Cerr << "Unknown model for ALE grid motion" << finl ;
-          exit();
+          Process::exit();
         }
       check_NoZero_ALE = true;
     }
@@ -1485,7 +1485,7 @@ void Domaine_ALE::reading_structural_dynamic_mesh_model(Entree& is)
       Cerr << "Error reading structural dynamic mesh model\n";
       Cerr << "A " << accolade_ouverte << " was expected instead of \n"
            << motlu;
-      exit();
+      Process::exit();
     }
   while(1)
     {
@@ -1521,7 +1521,7 @@ void Domaine_ALE::reading_structural_dynamic_mesh_model(Entree& is)
               Cerr << "Error reading Mfront material property\n";
               Cerr << "A " << accolade_ouverte << " was expected instead of \n"
                    << motlu;
-              exit();
+              Process::exit();
             }
           is >> nomlu ;
           std::string const nom_prop(nomlu) ;
@@ -1587,7 +1587,7 @@ void Domaine_ALE::reading_structural_dynamic_mesh_model(Entree& is)
   if(str_mesh_model.getDensity() == 0.)
     {
       Cerr << "Error: density not provided" << finl;
-      exit();
+      Process::exit();
     }
 
 }
@@ -1834,4 +1834,3 @@ void Domaine_ALE::update_coord_dom_extrait_surface()
           }
       }
 }
-

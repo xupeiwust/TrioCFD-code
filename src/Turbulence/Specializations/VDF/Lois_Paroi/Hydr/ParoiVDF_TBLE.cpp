@@ -312,7 +312,7 @@ int ParoiVDF_TBLE::init_lois_paroi()
               else
                 {
                   Cerr << " On ne sait pas traiter un beta_t non uniforme dans TBLE !!!"<< finl;
-                  exit();
+                  Process::exit();
                 }
 
               break;
@@ -367,7 +367,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
       if (!sub_type(Champ_Uniforme,ch_gravite))
         {
           Cerr << " On ne sait pas traiter la gravite non uniforme dans TBLE !!!"<< finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -386,7 +386,7 @@ int ParoiVDF_TBLE::calculer_hyd_BiK(DoubleTab& tab_k, DoubleTab& tab_eps)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 
@@ -892,7 +892,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
   /*  if (Process::nproc()>1)
       {
       Cerr << "ParoiVDF_TBLE::calculer_hyd n'est pas parallelise." << finl;
-      exit();
+      Process::exit();
       }
   */
 
@@ -914,7 +914,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
       if (!sub_type(Champ_Uniforme,ch_gravite))
         {
           Cerr << " On ne sait pas traiter la gravite non uniforme dans TBLE !!!"<< finl;
-          exit();
+          Process::exit();
         }
     }
 
@@ -933,7 +933,7 @@ int ParoiVDF_TBLE::calculer_hyd(DoubleTab& tab1,int isKeps,DoubleTab& tab2)
     //   on ne doit pas changer tab_visco ici !
     {
       Cerr<<" visco <=0 ?"<<finl;
-      exit();
+      Process::exit();
     }
   //    tab_visco+=DMINFLOAT;
 

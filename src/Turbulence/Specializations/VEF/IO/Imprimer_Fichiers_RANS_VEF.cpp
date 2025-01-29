@@ -58,7 +58,7 @@ Entree& Imprimer_Fichiers_RANS_VEF::interpreter(Entree& is)
     {
       Cerr << nom_pb << " est du type " << objet(nom_pb).que_suis_je() << finl;
       Cerr << "On attendait un objet de type Probleme_base" << finl;
-      exit();
+      Process::exit();
     }
   Probleme_base& pb=ref_cast(Probleme_base, objet(nom_pb));
 

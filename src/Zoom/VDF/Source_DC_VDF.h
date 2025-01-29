@@ -59,7 +59,7 @@ public:
 inline DoubleTab& Source_DC_VDF::calculer_residu(Connectivites_IndGros& connect, Restriction_base& rest, Equation_base& eq_fine)
 {
   Cerr<<"N'est pas codee avec ces arguments dans la classe Source_LDC_VDF_NS !!"<<finl;
-  exit();
+  Process::exit();
   throw;
 }
 

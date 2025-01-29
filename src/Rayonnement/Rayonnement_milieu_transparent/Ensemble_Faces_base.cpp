@@ -150,7 +150,7 @@ void Ensemble_Faces_base::associer_les_cl(Cond_lim_base& la_cl)
                       Cerr << "Error in Ensemble_Faces_base::associer_les_cl" << finl;
                       Cerr << "Contact TRUST support." << finl;
                       Cerr<<fac<<" face en double "<<finl;
-                      exit();
+                      Process::exit();
                     }
                 }
             }
@@ -168,7 +168,7 @@ void Ensemble_Faces_base::associer_les_cl(Cond_lim_base& la_cl)
                     Cerr <<pos(f2,dir)<<" ";
                   Cerr<<finl;
                 }
-              exit();
+              Process::exit();
             }
 
         }

@@ -123,7 +123,7 @@ int Transport_K_Omega::lire_motcle_non_standard(const Motcle& mot, Entree& is)
     {
       Cerr << mot << " is not understood by " << que_suis_je() << finl;
       Cerr << "Use this keyword in the Navier Stokes equation, not in turbulence equation, please." << finl;
-      exit();
+      Process::exit();
     }
   else
     return Transport_K_Omega_base::lire_motcle_non_standard(mot, is);
@@ -192,7 +192,7 @@ const Operateur& Transport_K_Omega::operateur(int i) const
       Cerr << "Error for Transport_K_Omega::operateur("<<i<<") !! " << finl;
       Cerr << "Transport_K_Omega has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   return terme_diffusif; // Needed for the compiler
 }
@@ -218,7 +218,7 @@ Operateur& Transport_K_Omega::operateur(int i)
       Cerr << "Error for Transport_K_Omega::operateur("<<i<<") !! " << finl;
       Cerr << "Transport_K_Omega has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   // Pour les compilos!!
   return terme_diffusif;

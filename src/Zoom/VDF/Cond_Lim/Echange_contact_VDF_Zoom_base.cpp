@@ -63,7 +63,7 @@ Entree& Echange_contact_VDF_Zoom_base::readOn(Entree& s )
           {
             Cerr << "Erreur a la lecture de la condition aux limites de type Echange_impose " << finl;
             Cerr << "On attendait " << les_motcles << "a la place de " <<  motlu << finl;
-            exit();
+            Process::exit();
           }
         }
 

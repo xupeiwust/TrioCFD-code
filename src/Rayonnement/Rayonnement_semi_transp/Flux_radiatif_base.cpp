@@ -78,7 +78,7 @@ Entree& Flux_radiatif_base::readOn(Entree& is)
             Cerr << "Erreur a la lecture de la condition aux limites de type "<<finl;
             Cerr << "Flux_radiatif_base " << finl;
             Cerr << "On attendait " << les_motcles << "a la place de " <<  motlu << finl;
-            exit();
+            Process::exit();
           }
         }
       ind++;
@@ -129,7 +129,7 @@ double Flux_radiatif_base::flux_impose(int i) const
     return le_champ_front->valeurs()(i,0);
   else
     Cerr << "Flux_radiatif_base::flux_impose erreur" << finl;
-  exit();
+  Process::exit();
   return 0.;
 }
 

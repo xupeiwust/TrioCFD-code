@@ -62,7 +62,7 @@ double Sortie_libre_rho_variable::flux_impose(int i, int j) const
 
   Cerr << "Sortie_libre_rho_variable::flux_impose(int i, int j)\n ";
   Cerr << " Qu'est-ce que ca veut dire ?" << finl;
-  exit();
+  Process::exit();
   return 0.;
 }
 

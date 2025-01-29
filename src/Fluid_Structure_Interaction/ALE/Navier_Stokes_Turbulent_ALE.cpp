@@ -178,7 +178,7 @@ Entree& Navier_Stokes_Turbulent_ALE::lire_op_diff_turbulent(Entree& is)
     {
       Cerr << "A { was expected while reading" << finl;
       Cerr << "the turbulent diffusive term" << finl;
-      exit();
+      Process::exit();
     }
   is >>  motbidon;
   if (motbidon=="negligeable")

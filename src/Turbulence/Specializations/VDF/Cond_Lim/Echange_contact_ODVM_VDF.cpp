@@ -69,7 +69,7 @@ void Echange_contact_ODVM_VDF::calculer_Teta_equiv(DoubleTab& La_T_ext,const Dou
   if (paroi_vdf.get_Tf0().size_array()==0)
     {
       Cerr<<"pb !!!!!!!!"<<finl;
-      exit() ;
+      Process::exit() ;
     }
 
   for (int numfa=0; numfa<nb_faces_bord; numfa++)

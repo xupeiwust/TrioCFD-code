@@ -188,7 +188,7 @@ void Pb_MG::initialiser_champ_front_zoom()
       else
         {
           Cerr << "A Pb_MG can not contain a " << pbF.que_suis_je() << finl;
-          exit();
+          Process::exit();
         }
     }
 }

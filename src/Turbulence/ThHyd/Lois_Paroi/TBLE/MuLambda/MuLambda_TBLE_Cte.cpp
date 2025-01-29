@@ -41,7 +41,7 @@ void MuLambda_TBLE_Cte::initialiser(const Milieu_base& milieu)
   if (!sub_type(Fluide_Incompressible, milieu))
     {
       Cerr << "Avec TBLE, vous devez utiliser un fluide incompressible " << finl;
-      exit();
+      Process::exit();
     }
 
   const Fluide_base& le_fluide = ref_cast(Fluide_base,milieu);
@@ -55,7 +55,7 @@ void MuLambda_TBLE_Cte::initialiser(const Milieu_base& milieu)
   else
     {
       Cerr << "Viscosite non constante : cas non traite encore dans TBLE" << finl;
-      exit();
+      Process::exit();
     }
   if (le_fluide.has_diffusivite())
     {
@@ -68,7 +68,7 @@ void MuLambda_TBLE_Cte::initialiser(const Milieu_base& milieu)
       else
         {
           Cerr << "Diffusivite non constante : cas non traite encore dans TBLE" << finl;
-          exit();
+          Process::exit();
         }
     }
 }

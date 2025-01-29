@@ -123,7 +123,7 @@ Champ_Fonc_base& Modele_turbulence_scal_Fluctuation_Temperature::calculer_diffus
         {
           Cerr << "Les DoubleTab des champs diffusivite_turbulente et viscosite_turbulente" << finl;
           Cerr << "doivent avoir le meme nombre de valeurs nodales" << finl;
-          exit();
+          Process::exit();
         }
 
       for (int i=0; i<n; i++)

@@ -55,7 +55,7 @@ Entree& Transport_Fluctuation_Temperature_W_Bas_Re::readOn(Entree& is )
         {
           Cerr << "A problem of type " <<que_suis_je()<<" cannot be considered "<<finl;
           Cerr << "with a Transport_Fluctuation_Temperature_W_Bas_Re equation." <<finl;
-          exit();
+          Process::exit();
         }
       so->associer_eqn(*this);
     }
@@ -104,7 +104,7 @@ const Operateur& Transport_Fluctuation_Temperature_W_Bas_Re::operateur(int i) co
         Cerr << "Error for Transport_Fluctuation_Temperature_W_Bas_Re::operateur(int i)" << finl;
         Cerr << "Transport_Fluctuation_Temperature_W_Bas_Re has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;
@@ -135,7 +135,7 @@ Operateur& Transport_Fluctuation_Temperature_W_Bas_Re::operateur(int i)
         Cerr << "Error for Transport_Fluctuation_Temperature_W_Bas_Re::operateur(int i)" << finl;
         Cerr << "Transport_Fluctuation_Temperature_W_Bas_Re has " << nombre_d_operateurs() <<" operators "<<finl;
         Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-        exit();
+        Process::exit();
       }
     }
   return terme_diffusif;

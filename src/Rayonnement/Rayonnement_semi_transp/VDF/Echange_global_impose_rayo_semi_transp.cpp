@@ -79,7 +79,7 @@ Entree& Echange_global_impose_rayo_semi_transp::readOn(Entree& is)
             Cerr << "Erreur a la lecture de la condition aux limites de type "<<finl;
             Cerr << "Echange_global_impose_rayo_semi_transp " << finl;
             Cerr << "On attendait " << les_motcles << "a la place de " <<  motlu << finl;
-            exit();
+            Process::exit();
           }
         }
       ind++;

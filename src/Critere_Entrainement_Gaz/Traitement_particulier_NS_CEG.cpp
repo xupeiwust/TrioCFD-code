@@ -152,7 +152,7 @@ void Traitement_particulier_NS_CEG::preparer_calcul_particulier()
   if (!trouve)
     {
       Cerr << "The free surface named " << la_surface_libre_nom_ << " has not been found." << finl;
-      exit();
+      Process::exit();
     }
   // KEps si critere AREVA
   if (calculer_critere_areva_)

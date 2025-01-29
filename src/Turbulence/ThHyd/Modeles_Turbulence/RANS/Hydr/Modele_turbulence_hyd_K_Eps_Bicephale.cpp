@@ -161,7 +161,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Eps_Bicephale::calculer_viscosite_turbu
       if (visco_turb_K_eps.size() != n)
         {
           Cerr << "visco_turb_K_eps size is " << visco_turb_K_eps.size() << " instead of " << n << finl;
-          exit();
+          Process::exit();
         }
       // A la fin de cette boucle, le tableau visco_turb_K_eps contient les valeurs de la viscosite turbulente
       // au centre des faces du maillage.

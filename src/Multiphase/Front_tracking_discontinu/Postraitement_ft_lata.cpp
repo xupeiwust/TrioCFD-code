@@ -44,7 +44,7 @@ Entree& Postraitement_ft_lata::readOn(Entree& is)
       Cerr << " Probleme_FT_Disc_gen " << finl;
       Cerr << " Pb_Thermohydraulique_Especes_QC " << finl;
       Cerr << " Pb_Thermohydraulique_Especes_Turbulent_QC " << finl;
-      exit();
+      Process::exit();
     }
 
   Postraitement::readOn(is);
@@ -94,7 +94,7 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
           Cerr<<" The "<<Motcle(refequation_interfaces->le_nom())<<" has already been read for the post-process "<<(*this).le_nom()<<finl;
           Cerr<<" Please, create a new Postraitement_ft_lata post-process"<<finl;
           Cerr<<" for the "<<motlu<<" transport interface equation."<<finl;
-          exit();
+          Process::exit();
         }
 
       if (Process::je_suis_maitre())
@@ -119,7 +119,7 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
       if (!refequation_interfaces.non_nul())
         {
           Cerr<<" No interface equation name  "<<motlu<<" has been found. "<<finl;
-          exit();
+          Process::exit();
         }
       is >> motlu;
       if (motlu == "no_virtuals")
@@ -133,7 +133,7 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
           Cerr << " Postraitement_ft_lata::lire_champ\n";
           Cerr << " { was expected after the keyword interfaces\n";
           Cerr << " It has been found " << motlu << finl;
-          exit();
+          Process::exit();
         }
 
       lire_champ_interface(is);
@@ -166,7 +166,7 @@ void Postraitement_ft_lata::lire_champ_interface(Entree& is)
           Cerr << "Error for Postraitement_ft_lata::lire_champ_interface :\n";
           Cerr << loc_lu <<" has been readen. "<< finl;
           Cerr << " Keywords 'som' or 'elem' were expected after the field name '" << nom_champ << "'" << finl;
-          exit();
+          Process::exit();
         }
 
       if (!eq_interfaces.get_champ_post_FT(nom_champ, loc, (DoubleTab*) 0) && !eq_interfaces.get_champ_post_FT(nom_champ, loc, (IntTab*) 0))
@@ -177,7 +177,7 @@ void Postraitement_ft_lata::lire_champ_interface(Entree& is)
           Cerr << tmp << "'" << finl;
           eq_interfaces.get_champ_post_FT(demande_description, loc, (DoubleTab*) 0);
           eq_interfaces.get_champ_post_FT(demande_description, loc, (IntTab*) 0);
-          exit();
+          Process::exit();
         }
       Motcles& liste = loc == SOMMETS ? liste_champs_i_aux_sommets : liste_champs_i_aux_elements;
       if (!liste.contient_(nom_champ))
@@ -236,7 +236,7 @@ int Postraitement_ft_lata::ecrire_maillage_ft_disc()
   else
     {
       Cerr<<"Type "<<refequation_interfaces->que_suis_je()<<" not recognized"<<finl;
-      exit();
+      Process::exit();
     }
   const Maillage_FT_Disc& mesh = refequation_interfaces->maillage_interface_pour_post();
   const DoubleTab& sommets = mesh.sommets();
@@ -324,7 +324,7 @@ void Postraitement_ft_lata::postprocess_field_values()
               // Normalement on aurait deja du detecter cette erreur a la lecture du postraitement :
               Cerr << "Error for Postraitement_ft_lata::ecrire_maillage" << finl;
               Cerr << "Unknown field : " << nom_du_champ << finl;
-              exit();
+              Process::exit();
             }
 
           const int nb_items = dtab.dimension(0);
@@ -336,7 +336,7 @@ void Postraitement_ft_lata::postprocess_field_values()
               Cerr << "Error for Postraitement_ft_lata::ecrire_maillage" << finl;
               Cerr << msg << "= " << nb_items << finl;
               Cerr << msg << "expected = " << nb_items_attendus << finl;
-              exit();
+              Process::exit();
             }
           // [ABN] should I really bother with this?:
           Noms unites(nb_compo), noms_compo;

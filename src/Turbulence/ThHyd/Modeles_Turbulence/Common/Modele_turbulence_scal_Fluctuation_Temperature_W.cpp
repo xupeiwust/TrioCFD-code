@@ -73,7 +73,7 @@ int Modele_turbulence_scal_Fluctuation_Temperature_W::lire_motcle_non_standard(c
       {
         Cerr << "Erreur a la lecture des donnees du modele de fluctuation thermique" << finl;
         Cerr << "On attendait les motcles Transport_Fluctuation_Temperature_W au lieu de " << mot << finl;
-        exit();
+        Process::exit();
         break;
       }
     }
@@ -122,7 +122,7 @@ Champ_Fonc_base& Modele_turbulence_scal_Fluctuation_Temperature_W::calculer_diff
         {
           Cerr << "Les DoubleTab des champs diffusivite_turbulente et viscosite_turbulente" << finl;
           Cerr << "doivent avoir le meme nombre de valeurs nodales" << finl;
-          exit();
+          Process::exit();
         }
 
       for (int i=0; i<n; i++)

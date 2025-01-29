@@ -58,7 +58,7 @@ Entree& Frontiere_Ouverte_temperature_imposee_Rayo_transp::readOn(Entree& s )
     Cerr << "Erreur a la lecture de la condition aux limites de type: " << finl;
     Cerr << que_suis_je() << finl;
     Cerr << "On attendait " << les_motcles << " a la place de " <<  motlu << finl;
-    exit();
+    Process::exit();
     }
     }
     return s;

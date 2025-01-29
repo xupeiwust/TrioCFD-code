@@ -30,7 +30,7 @@ Entree& Connectivite_frontieres::readOn(Entree& is)
 {
   Cerr << "Connectivite_frontieres::readOn" << finl;
   assert(0);
-  exit();
+  Process::exit();
   return is;
 }
 
@@ -38,7 +38,7 @@ Sortie& Connectivite_frontieres::printOn(Sortie& is) const
 {
   Cerr << "Connectivite_frontieres::printOn" << finl;
   assert(0);
-  exit();
+  Process::exit();
   return is;
 }
 
@@ -108,7 +108,7 @@ void Connectivite_frontieres::remplir_def_face_aretes(const Domaine_VF& domaine_
       Cerr << "Connectivite_frontieres::remplir_def_face_aretes\n";
       Cerr << " Le type d'element " << nom_elem;
       Cerr << " n'est pas reconnu !\n";
-      exit();
+      Process::exit();
     }
   def_face_aretes_.resize(nb_aretes_par_face,2);
   for (int i = 0; i < nb_aretes_par_face; i++)
@@ -275,7 +275,7 @@ void Connectivite_frontieres::remplir_faces_voisins(const Domaine_VF& domaine_vf
               Cerr << ") Erreur dans Connectivite_frontieres::associer_domaine_vf\n";
               Cerr << " faces_voisins_(" << i << "," << j << ") < 0" << finl;
               assert(0);
-              exit();
+              Process::exit();
             }
         }
     }
@@ -289,7 +289,7 @@ Connectivite_frontieres::Connectivite_frontieres(const Connectivite_frontieres& 
   Cerr << "Erreur : Connectivite_frontieres::Connectivite_frontieres(const Connectivite_frontieres &)"
        << finl;
   assert(0);
-  exit();
+  Process::exit();
 }
 
 /*! @brief Operateur copie : produit une erreur.
@@ -299,6 +299,6 @@ const Connectivite_frontieres& Connectivite_frontieres::operator=(const Connecti
 {
   Cerr << "Erreur : Connectivite_frontieres::operator=" << finl;
   assert(0);
-  exit();
+  Process::exit();
   return *this;
 }

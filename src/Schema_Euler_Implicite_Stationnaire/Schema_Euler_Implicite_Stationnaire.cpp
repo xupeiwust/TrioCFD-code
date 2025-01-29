@@ -54,12 +54,12 @@ Entree& Schema_Euler_Implicite_Stationnaire::readOn(Entree& s)
       Cerr << "A solver must be selected." << finl;
       Cerr << "Syntax : " << finl
            << "Solveur solver_name [ solver parameters ] " << finl;
-      exit();
+      Process::exit();
     }
   if (diffusion_implicite())
     {
       Cerr << "diffusion_implicite option cannot be used with an implicit time scheme." << finl;
-      exit();
+      Process::exit();
     }
 
   if (le_solveur.le_nom()!="Implicit_steady")
@@ -67,18 +67,18 @@ Entree& Schema_Euler_Implicite_Stationnaire::readOn(Entree& s)
       Cerr << "You can only select the Implicit_steady solver" << finl;
       Cerr << "Syntax : " << finl
            << "Solveur Implicit_steady [ solver parameters ] " << finl;
-      exit();
+      Process::exit();
     }
 
   if(steady_security_facteur_<1.e-08)
     {
       Cerr << "steady_security_facteur must be > 1.e-08" << finl;
-      exit();
+      Process::exit();
     }
   if(steady_global_dt_<1.e-08)
     {
       Cerr << "steady_global_dt  must be > 1.e-08 " << finl;
-      exit();
+      Process::exit();
     }
 
   return s;
@@ -150,7 +150,7 @@ void Schema_Euler_Implicite_Stationnaire::ajouter_inertie(Matrice_Base& mat_mors
         {
           Cerr<<"The size of the 'dt_locaux' does not match in 'Schema_Temps_base::ajouter_inertie_pas_temps_locaux' !"<<finl;
           Cerr << "Please, contact TRUST support." << finl;
-          exit();
+          Process::exit();
         }
     }
   else

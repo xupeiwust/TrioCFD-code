@@ -81,7 +81,7 @@ inline void Restriction_face_face_vect_VDF::restreindre(const Domaine_VF& domain
                                                         int num_prem_face_frontG)
 {
   Cerr<<"n'est pas codee dans cette classe"<<finl;
-  exit();
+  Process::exit();
 }
 
 

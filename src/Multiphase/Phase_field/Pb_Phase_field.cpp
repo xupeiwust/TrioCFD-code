@@ -129,7 +129,7 @@ void Pb_Phase_field::associer_milieu_base(const Milieu_base& mil)
     {
       Cerr << "Un milieu de type " << mil.que_suis_je() << " ne peut etre associe a " << finl;
       Cerr << "un probleme de type Pb_Phase_field " << finl;
-      exit();
+      Process::exit();
     }
 }
 

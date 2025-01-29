@@ -91,7 +91,7 @@ Entree& Equation_rayonnement_base::readOn(Entree& is)
             Cerr<<"Remark : The discretization of a coupling problem carries out those of the involved coupled "<<finl;
             Cerr<<"         problems therefore it is not useful to keep the discretization of these last ones.  "<<finl;
             Cerr<<finl;
-            exit();
+            Process::exit();
           }
       }
     else
@@ -100,7 +100,7 @@ Entree& Equation_rayonnement_base::readOn(Entree& is)
         Cerr<<"been defined while a semi transparent radiation model is used."<<finl;
         Cerr<<"The fields kappa and indice which respectively define the absoption coefficient"<<finl;
         Cerr<<"and the refraction index must be added to the luid properties."<<finl;
-        exit();
+        Process::exit();
       }
   else
     {
@@ -108,7 +108,7 @@ Entree& Equation_rayonnement_base::readOn(Entree& is)
       Cerr << "Your fluid is of type " <<fluide().que_suis_je()<< finl;
       Cerr << "Currently only fluid of type Fluide_base can be considered "<< finl;
       Cerr << "with the semi transparent radiation model."<<finl;
-      exit();
+      Process::exit();
     }
 
   Nom type="Op_Diff_";
@@ -148,7 +148,7 @@ Entree& Equation_rayonnement_base::readOn(Entree& is)
         Cerr<<"been defined while a semi transparent radiation model is used."<<finl;
         Cerr<<"The fields kappa and indice which respectively define the absoption coefficient"<<finl;
         Cerr<<"and the refraction index must be added to the luid properties."<<finl;
-        exit();
+        Process::exit();
       }
   else
     {
@@ -156,7 +156,7 @@ Entree& Equation_rayonnement_base::readOn(Entree& is)
       Cerr << "Your fluid is of type " <<fluide().que_suis_je()<< finl;
       Cerr << "Currently only fluid of type Fluide_base can be considered "<< finl;
       Cerr << "with the semi transparent radiation model."<<finl;
-      exit();
+      Process::exit();
     }
 
   return is;
@@ -212,7 +212,7 @@ void Equation_rayonnement_base::associer_milieu_base(const Milieu_base& un_milie
         Cerr<<"been defined while a semi transparent radiation model is used."<<finl;
         Cerr<<"The fields kappa and indice which respectively define the absoption coefficient"<<finl;
         Cerr<<"and the refraction index must be added to the luid properties."<<finl;
-        exit();
+        Process::exit();
       }
   else
     {
@@ -220,7 +220,7 @@ void Equation_rayonnement_base::associer_milieu_base(const Milieu_base& un_milie
       Cerr << "Your fluid is of type " <<un_milieu.que_suis_je()<< finl;
       Cerr << "Currently only fluid of type Fluide_base can be considered "<< finl;
       Cerr << "with the semi transparent radiation model."<<finl;
-      exit();
+      Process::exit();
     }
 }
 
@@ -295,7 +295,7 @@ const Operateur& Equation_rayonnement_base::operateur(int i) const
       Cerr << "Error for Equation_rayonnement_base::operateur(int i)" << finl;
       Cerr << "Equation_rayonnement_base has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   return terme_diffusif;
 }
@@ -320,7 +320,7 @@ Operateur& Equation_rayonnement_base::operateur(int i)
       Cerr << "Error for Equation_rayonnement_base::operateur(int i)" << finl;
       Cerr << "Equation_rayonnement_base has " << nombre_d_operateurs() <<" operators "<<finl;
       Cerr << "and you are trying to access the " << i <<" th one."<< finl;
-      exit();
+      Process::exit();
     }
   return terme_diffusif;
 }
@@ -387,7 +387,7 @@ const Discretisation_base& Equation_rayonnement_base::discretisation() const
   //  {
   //    Cerr << "Erreur : " << que_suis_je()
   //           << "n'a pas ete associee a un probleme ! " << finl;
-  //    exit();
+  //    Process::exit();
   //  }
   return le_modele->discretisation();
 }

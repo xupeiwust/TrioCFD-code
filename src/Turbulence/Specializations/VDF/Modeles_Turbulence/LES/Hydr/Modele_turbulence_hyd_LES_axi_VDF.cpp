@@ -58,7 +58,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_LES_axi_VDF::calculer_viscosite_turbulent
   if (visco_turb.size() != nb_poly)
     {
       Cerr << "erreur dans la taille du DoubleTab valeurs de la viscosite" << finl;
-      exit();
+      Process::exit();
     }
 
   Debog::verifier("Modele_turbulence_hyd_LES_axi_VDF::calculer_viscosite_turbulente visco_turb 0", visco_turb);
@@ -358,6 +358,6 @@ void Modele_turbulence_hyd_LES_axi_VDF::calculer_fonction_structure()
     {
       Cerr << "Le modele sous maille fonction de structure" << finl;
       Cerr << "est utilisable uniquement en dimension 3" << finl;
-      exit();
+      Process::exit();
     }
 }

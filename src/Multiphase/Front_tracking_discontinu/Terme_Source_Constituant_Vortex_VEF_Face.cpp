@@ -47,7 +47,7 @@ Entree& Terme_Source_Constituant_Vortex_VEF_Face::readOn(Entree& is)
   if (delta_spot_.size_array() != dim || rayon_spot_ <= 0.)
     {
       Cerr << "Error: wrong segments dimension or nb_points_tests" << finl;
-      exit();
+      Process::exit();
     }
   return is;
 }
