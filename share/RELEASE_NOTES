@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+29/01/25 (TrioCFD) Minor change: Trust commit hash moved to file src/trust.commit
 21/01/25 (TrioCFD) New feature : FT IJK - Cut-cell solver for thermal equation.
 21/01/25 (TrioCFD) New feature : Thermal subresolution LRS (see Grosso et al 2025 IJHMT).
 21/01/25 (TrioCFD) New feature : Interfacial transport equation for FT field (ex : surfactant concentration).
