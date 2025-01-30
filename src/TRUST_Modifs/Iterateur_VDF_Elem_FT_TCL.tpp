@@ -209,7 +209,7 @@ bool Iterateur_VDF_Elem<_TYPE_>::ajouter_blocs_bords_echange_ext_FT_TCL(const Ec
     for (int face = ndeb; face < nfin; face++)
       {
         const int local_face = le_dom->front_VF(boundary_index).num_local_face(face);
-        flux_evaluateur.coeffs_face(boundary_index, face, local_face, ndeb, cl, aii, ajj);
+        flux_evaluateur.coeffs_face(donnee, boundary_index, face, local_face, ndeb, cl, aii, ajj);
         fill_coeffs_matrices(face, aii, ajj, mat, d_cc); // XXX : Attention Yannick pour d_cc c'est pas tout a fait comme avant ... N et M ...
       }
 

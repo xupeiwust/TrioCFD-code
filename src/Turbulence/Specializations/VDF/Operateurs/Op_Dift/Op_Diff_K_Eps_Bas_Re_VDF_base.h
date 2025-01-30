@@ -53,7 +53,7 @@ public:
     Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr, mat2;
     if (!mat)
       return;
-    Op_VDF_Elem::dimensionner(iter->domaine(), iter->domaine_Cl(), mat2);
+    Op_VDF_Elem::dimensionner(iter->domaine(), iter->domaine_Cl(), mat2, equation().diffusion_multi_scalaire());
     mat->nb_colonnes() ? *mat += mat2 : *mat = mat2;
   }
 

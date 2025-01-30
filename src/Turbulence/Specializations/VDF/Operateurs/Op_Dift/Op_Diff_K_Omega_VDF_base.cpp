@@ -175,7 +175,7 @@ void Op_Diff_K_Omega_VDF_base::dimensionner_blocs(matrices_t matrices, const tab
 {
   const std::string& nom_inco = equation().inconnue().le_nom().getString();
   Matrice_Morse *mat = matrices.count(nom_inco) ? matrices.at(nom_inco) : nullptr, mat2;
-  Op_VDF_Elem::dimensionner(iter->domaine(), iter->domaine_Cl(), mat2);
+  Op_VDF_Elem::dimensionner(iter->domaine(), iter->domaine_Cl(), mat2, equation().diffusion_multi_scalaire());
   mat->nb_colonnes() ? *mat += mat2 : *mat = mat2;
 }
 
