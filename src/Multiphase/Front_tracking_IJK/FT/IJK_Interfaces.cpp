@@ -4863,7 +4863,8 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
                     nb_increment_somme_contrib++;
                   }
 
-                assert(nb_increment_somme_contrib <= 1);
+                if (nb_increment_somme_contrib > 1)
+                  Process::exit("Error in IJK_Interfaces::calculer_indicatrice !");
 
                 // GB Fix 2022: tolerance play:
                 // Si l'on est proche de 0 ou de 1, on ne sait pas vraiment si on a bien fait nos calculs
@@ -5073,7 +5074,8 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
                     nb_increment_somme_contrib++;
                   }
 
-                assert(nb_increment_somme_contrib <= 1);
+                if (nb_increment_somme_contrib > 1)
+                  Process::exit("Error in IJK_Interfaces::calculer_indicatrice_optim !");
 
                 if (somme_contrib > 0.)
                   {
@@ -5909,7 +5911,8 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                         nb_increment_somme_contrib++;
                       }
 
-                    assert(nb_increment_somme_contrib <= 1);
+                    if (nb_increment_somme_contrib > 1)
+                      Process::exit("Error in IJK_Interfaces::calculer_barycentre !");
 
                     // Note : On recalcule l'indicatrice, c'est un peu dommage
                     if (indic(i, j, k) != somme_contrib)
