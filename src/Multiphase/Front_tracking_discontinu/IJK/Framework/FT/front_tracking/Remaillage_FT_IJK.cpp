@@ -944,7 +944,6 @@ int Remaillage_FT_IJK::supprimer_petites_aretes(Maillage_FT_IJK& maillage,
         surfactant.set_tolerance_point_identique(longueur_cara_fa7);
         surfactant.echange_espace_virtuel(maillage);
 
-        OBS_PTR(IJK_Splitting) splitting = maillage.ref_splitting();
         DoubleTab liste_sommets_avant_deplacement(0, 3);
         DoubleTab liste_sommets_apres_deplacement(0, 3);
         ArrOfInt compo_connexe_sommets_deplace(0);
@@ -975,7 +974,7 @@ int Remaillage_FT_IJK::supprimer_petites_aretes(Maillage_FT_IJK& maillage,
           }
 
 
-        surfactant.completer_compo_connexe_partielle(maillage, splitting, liste_sommets_apres_deplacement, liste_sommets_avant_deplacement, compo_connexe_sommets_deplace);
+        surfactant.completer_compo_connexe_partielle(maillage, maillage.get_domaine(), liste_sommets_apres_deplacement, liste_sommets_avant_deplacement, compo_connexe_sommets_deplace);
         DoubleTab& facettes_sommets_full_compo = surfactant.get_facettes_sommets_full_compo_non_const();
         DoubleTab& liste_sommets_et_deplacements_full_compo = surfactant.get_liste_sommets_et_deplacements_non_const();
         ArrOfInt sorted_index = surfactant.get_sorted_index();
@@ -1233,9 +1232,7 @@ void Remaillage_FT_IJK::remaillage_local_interface(double temps, Maillage_FT_IJK
 
 Vecteur3 Remaillage_FT_IJK::get_delta_euler(const Maillage_FT_IJK& maillage) const
 {
-  OBS_PTR(IJK_Splitting) s = maillage.ref_splitting();
-  const IJK_Grid_Geometry& geom = s->get_grid_geometry();
-  //  const IJK_Grid_Geometry & geom = s.get_grid_geometry();
+  const Domaine_IJK& geom = maillage.get_domaine();
   Vecteur3 delta(0., 0., 0.);
   const int dim = Objet_U::dimension;
   for (int k = 0; k < dim; k++)

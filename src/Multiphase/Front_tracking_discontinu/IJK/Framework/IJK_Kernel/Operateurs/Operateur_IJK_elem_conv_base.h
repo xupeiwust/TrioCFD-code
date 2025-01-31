@@ -16,7 +16,7 @@
 #ifndef Operateur_IJK_elem_conv_base_included
 #define Operateur_IJK_elem_conv_base_included
 
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field_vector.h>
 #include <Operateur_IJK_base.h>
 #include <Cut_cell_FT_Disc.h>
@@ -28,7 +28,7 @@ class Operateur_IJK_elem_conv_base_double : public Operateur_IJK_elem_base_doubl
 {
   Declare_base(Operateur_IJK_elem_conv_base_double);
 public:
-  void initialize(const IJK_Splitting& splitting) override;
+  void initialize(const Domaine_IJK& splitting) override;
   virtual void set_indicatrice(const IJK_Field_double& indicatrice) { indicatrice_= &indicatrice; };
   virtual void set_corrige_flux(OWN_PTR(Corrige_flux_FT_base)& corrige_flux) { corrige_flux_ = &corrige_flux; };
   virtual void set_velocity_frame_of_reference(const Vecteur3& velocity_frame_of_reference) { velocity_frame_of_reference_ = velocity_frame_of_reference; };

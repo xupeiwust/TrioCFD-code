@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Cut_cell_schema_auxiliaire.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Cut_cell_schema_auxiliaire.h>
 #include <Cut_cell_FT_Disc.h>
@@ -110,13 +104,13 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
   const double delta_z = geom.get_constant_delta(2);
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+  assert(cut_cell_disc.get_domaine().is_uniform(0));
+  assert(cut_cell_disc.get_domaine().is_uniform(1));
+  assert(cut_cell_disc.get_domaine().is_uniform(2));
 
   int statut_diphasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
@@ -227,13 +221,13 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(DIRECTION_I);
   const double delta_y = geom.get_constant_delta(DIRECTION_J);
   const double delta_z = geom.get_constant_delta(DIRECTION_K);
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+  assert(geom.is_uniform(0));
+  assert(geom.is_uniform(1));
+  assert(geom.is_uniform(2));
 
   int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
   int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
@@ -381,13 +375,13 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_ponderation_voisin(b
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
   const double delta_z = geom.get_constant_delta(2);
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+  assert(cut_cell_disc.get_domaine().is_uniform(0));
+  assert(cut_cell_disc.get_domaine().is_uniform(1));
+  assert(cut_cell_disc.get_domaine().is_uniform(2));
 
   int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
   int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
@@ -547,9 +541,9 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien(doub
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
   const IJK_Field_double& surface_interface_old = cut_cell_disc.get_interfaces().get_surface_interface_old();
 
-  double dx = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(0);
-  double dy = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(1);
-  double dz = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(2);
+  double dx = cut_cell_disc.get_domaine().get_constant_delta(0);
+  double dy = cut_cell_disc.get_domaine().get_constant_delta(1);
+  double dz = cut_cell_disc.get_domaine().get_constant_delta(2);
 
   int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
   int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
@@ -664,9 +658,9 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_inte
   int count_status_below_1000000 = 0;
   int count_status_above_1000000 = 0;
 
-  double dx = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(0);
-  double dy = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(1);
-  double dz = cut_cell_disc.get_splitting().get_grid_geometry().get_constant_delta(2);
+  double dx = cut_cell_disc.get_domaine().get_constant_delta(0);
+  double dy = cut_cell_disc.get_domaine().get_constant_delta(1);
+  double dz = cut_cell_disc.get_domaine().get_constant_delta(2);
 
   int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
   int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);
@@ -701,9 +695,9 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_inte
       double next_bary_deplace_y = next_bary_y - velocity_y*timestep;
       double next_bary_deplace_z = next_bary_z - velocity_z*timestep;
 
-      double coordinates_x = next_bary_deplace_x + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_I, i, IJK_Splitting::NODES);
-      double coordinates_y = next_bary_deplace_y + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_J, j, IJK_Splitting::NODES);
-      double coordinates_z = next_bary_deplace_z + cut_cell_disc.get_splitting().get_coord_of_dof_along_dir(DIRECTION_K, k, IJK_Splitting::NODES);
+      double coordinates_x = next_bary_deplace_x + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_I, i, IJK_Splitting::NODES);
+      double coordinates_y = next_bary_deplace_y + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_J, j, IJK_Splitting::NODES);
+      double coordinates_z = next_bary_deplace_z + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_K, k, IJK_Splitting::NODES);
       Vecteur3 coordinates(coordinates_x, coordinates_y, coordinates_z);
 
       int status = -2;
@@ -771,9 +765,9 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+  assert(cut_cell_disc.get_domaine().is_uniform(0));
+  assert(cut_cell_disc.get_domaine().is_uniform(1));
+  assert(cut_cell_disc.get_domaine().is_uniform(2));
 
   int statut_diphasique = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::MOURRANT);
   int index_min = cut_cell_disc.get_statut_diphasique_value_index(statut_diphasique);
@@ -912,9 +906,9 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
 {
   const Cut_cell_FT_Disc& cut_cell_disc = cut_field_temperature.get_cut_cell_disc();
 
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_cell_disc.get_splitting().get_grid_geometry().is_uniform(2));
+  assert(cut_cell_disc.get_domaine().is_uniform(0));
+  assert(cut_cell_disc.get_domaine().is_uniform(1));
+  assert(cut_cell_disc.get_domaine().is_uniform(2));
 
   int statut_diphasique_naissant = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::NAISSANT);
   int statut_diphasique_petit = static_cast<int>(Cut_cell_FT_Disc::STATUT_DIPHASIQUE::DESEQUILIBRE_FINAL);

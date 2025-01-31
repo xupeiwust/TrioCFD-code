@@ -19,7 +19,7 @@
 #include <Objet_U.h>
 #include <Maillage_FT_Disc.h>
 #include <Linear_algebra_tools.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <FT_Field.h>
 class Domaine_dis_base;
@@ -37,7 +37,7 @@ class Maillage_FT_IJK : public Maillage_FT_Disc
 public:
   FT_Field Surfactant_facettes_;
   Maillage_FT_IJK(const Maillage_FT_IJK&) = default;
-  void initialize(const IJK_Splitting&, const Domaine_dis_base&, const Parcours_interface&);
+  void initialize(const Domaine_IJK&, const Domaine_dis_base&, const Parcours_interface&);
   const ArrOfInt& compo_connexe_facettes() const
   {
     return compo_connexe_facettes_;
@@ -59,7 +59,7 @@ public:
   {
     Surfactant_facettes_.update_gradient_laplacien_FT(*this);
   };
-  void update_sigma_grad_sigma(const IJK_Splitting& splitting)
+  void update_sigma_grad_sigma(const Domaine_IJK& splitting)
   {
     Surfactant_facettes_.update_sigma_grad_sigma(*this, splitting);
   };
@@ -96,47 +96,9 @@ public:
   void lire_maillage_ft_dans_lata(const char *filename_with_path, int tstep,
                                   const char *geometryname);
 
-// Ces methodes de conversion index <-> (i,j,k) ont ete deplaces dans la classe splitting.
-#if 0
-  int convert_ijk_cell_to_packed(int i, int j, int k) const
-  {
-    assert((i < 0 && j < 0 && k < 0)
-           || (i >= 0 && i < nbmailles_euler_i_
-               && j >= 0 && j < nbmailles_euler_j_
-               && k >= 0 && k < nbmailles_euler_k_));
-    if (i < 0)
-      return -1;
-    else
-      return (k * nbmailles_euler_j_ + j) * nbmailles_euler_i_ + i;
-  }
-  Int3 convert_packed_to_ijk_cell(int index) const
-  {
-    Int3 ijk;
-    if (index < 0)
-      {
-        ijk[0] = ijk[1] = ijk[2] = -1;
-      }
-    else
-      {
-        ijk[0] = index % nbmailles_euler_i_;
-        index /= nbmailles_euler_i_;
-        ijk[1] = index % nbmailles_euler_j_;
-        index /= nbmailles_euler_j_;
-        ijk[2] = index;
-        assert(index < nbmailles_euler_k_);
-      }
-    return ijk;
-  }
-
   void set_ijk_cell_index(int num_sommet, Int3 ijk)
   {
-    sommet_elem_[num_sommet] = convert_ijk_cell_to_packed(ijk[0],ijk[1],ijk[2]);
-  }
-
-#endif
-  void set_ijk_cell_index(int num_sommet, Int3 ijk)
-  {
-    const IJK_Splitting& s = ref_splitting_.valeur();
+    const Domaine_IJK& s = ref_domaine_.valeur();
     sommet_elem_[num_sommet] = s.convert_ijk_cell_to_packed(ijk[0],ijk[1],ijk[2]);
   }
   void set_barycentrage(bool bary)
@@ -145,7 +107,7 @@ public:
   }
   Int3 get_ijk_cell_index(int num_sommet) const
   {
-    const IJK_Splitting& s = ref_splitting_.valeur();
+    const Domaine_IJK& s = ref_domaine_.valeur();
     int index = sommet_elem_[num_sommet];
     return s.convert_packed_to_ijk_cell(index);
   }
@@ -166,10 +128,9 @@ public:
 
   double minimum_longueur_arrete() const;
   int nb_facettes_sans_duplicata() const;
-  const OBS_PTR(IJK_Splitting) ref_splitting() const
-  {
-    return ref_splitting_;
-  }
+
+  const Domaine_IJK& get_domaine() const { return ref_domaine_.valeur(); }
+
 protected:
   // Surcharge de Maillage_FT_Disc :
   bool during_barycentrage_ = false;
@@ -186,7 +147,7 @@ protected:
                                  const ArrOfInt& facettes_send_pe_list,
                                  const ArrOfInt& facettes_recv_pe_list) override;
 
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
 
 // Taille du domaine IJK sur chaque proc:
   int nbmailles_euler_i_ = 0;

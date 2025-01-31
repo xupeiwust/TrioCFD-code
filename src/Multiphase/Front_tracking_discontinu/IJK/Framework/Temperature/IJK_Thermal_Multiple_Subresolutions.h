@@ -26,7 +26,7 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field.h>
 #include <Parser.h>
 #include <IJK_Lata_writer.h>
@@ -56,7 +56,7 @@ class IJK_Thermal_Multiple_Subresolutions : public IJK_Thermal_Subresolution
 
 public :
 
-  int initialize(const IJK_Splitting& splitting, const int idx) override;
+  int initialize(const Domaine_IJK& splitting, const int idx) override;
   void update_thermal_properties() override;
   void set_param(Param& param) override;
 

@@ -164,7 +164,7 @@ Entree& Intersection_Interface_ijk_face::readOn(Entree& is)
   return is;
 }
 
-int Intersection_Interface_ijk_face::initialize(const IJK_Splitting& splitting, const IJK_Interfaces& interfaces)
+int Intersection_Interface_ijk_face::initialize(const Domaine_IJK& splitting, const IJK_Interfaces& interfaces)
 {
   // TODO: est-ce que les pointeurs restent bien toujours les meme ?
   // Si oui je peux ne les initialiser qu'une fois, sinon il faudra
@@ -172,9 +172,9 @@ int Intersection_Interface_ijk_face::initialize(const IJK_Splitting& splitting, 
   interfaces_ = &interfaces;
   splitting_ = &splitting;
   allocate_velocity(idiph_ijk_, splitting, 2);
-//	idiph_ijk_[0].allocate(splitting, IJK_Splitting::FACES_I, 2);
-//	idiph_ijk_[1].allocate(splitting, IJK_Splitting::FACES_J, 2);
-//	idiph_ijk_[2].allocate(splitting, IJK_Splitting::FACES_K, 2);
+//	idiph_ijk_[0].allocate(splitting, Domaine_IJK::FACES_I, 2);
+//	idiph_ijk_[1].allocate(splitting, Domaine_IJK::FACES_J, 2);
+//	idiph_ijk_[2].allocate(splitting, Domaine_IJK::FACES_K, 2);
   return 1;
 }
 
@@ -240,7 +240,7 @@ void Intersection_Interface_ijk_face::calcul_projection_bary_face_mouillee_inter
         {
           if (c != dir)
             {
-              surf_cell *= splitting_->get_grid_geometry().get_constant_delta(c);
+              surf_cell *= splitting_->get_constant_delta(c);
             }
         }
       for (int i = 0; i < ni; i++)
@@ -300,11 +300,11 @@ void Intersection_Interface_ijk_face::calcul_projection_bary_face_mouillee_inter
                   };
                   Vecteur3 bary_face;
                   if (dir == 0)
-                    bary_face = splitting_->get_coords_of_dof(i,j,k, IJK_Splitting::FACES_I);
+                    bary_face = splitting_->get_coords_of_dof(i,j,k, Domaine_IJK::FACES_I);
                   else if (dir == 1)
-                    bary_face = splitting_->get_coords_of_dof(i,j,k, IJK_Splitting::FACES_J);
+                    bary_face = splitting_->get_coords_of_dof(i,j,k, Domaine_IJK::FACES_J);
                   else if (dir == 2)
-                    bary_face = splitting_->get_coords_of_dof(i,j,k, IJK_Splitting::FACES_K);
+                    bary_face = splitting_->get_coords_of_dof(i,j,k, Domaine_IJK::FACES_K);
                   else
                     Process::exit();
                   Vecteur3 bary_liqu = bary_face - bary_vap;
@@ -358,7 +358,7 @@ Entree& Intersection_Interface_ijk_cell::readOn(Entree& is)
 }
 
 int Intersection_Interface_ijk_cell::initialize(
-  const IJK_Splitting& splitting, const IJK_Interfaces& interfaces)
+  const Domaine_IJK& splitting, const IJK_Interfaces& interfaces)
 {
   // TODO: est-ce que les pointeurs restent bien toujours les meme ?
   // Si oui je peux ne les initialiser qu'une fois, sinon il faudra
@@ -370,7 +370,7 @@ int Intersection_Interface_ijk_cell::initialize(
   // calcul_projection_centre_...
   // n_diph_ n est pas initialise
   n_diph_ = 1;
-  idiph_ijk_.allocate(splitting, IJK_Splitting::ELEM, 2);
+  idiph_ijk_.allocate(splitting, Domaine_IJK::ELEM, 2);
   return 1;
 }
 
@@ -437,7 +437,7 @@ void Intersection_Interface_ijk_cell::calcul_projection_centre_sur_interface_moy
               indices(i_diph, 2) = k;
 
               // Je calcule la projection du centre sur l'interface.
-              centre = splitting_->get_coords_of_dof(i, j, k, IJK_Splitting::ELEM);
+              centre = splitting_->get_coords_of_dof(i, j, k, Domaine_IJK::ELEM);
               projete_interface(normale_interf, bary_interf, centre, position);
               // distance_point_point(position, centre, distance_centre_interface(i_diph, 0));
               distance_point_point_signe(position, centre, normale_interf, distance_centre_interface(i_diph, 0));
@@ -504,11 +504,11 @@ void Intersection_Interface_ijk_cell::calcul_projection_centre_faces_sur_interfa
               indices_voisins(i_diph, l) = l+1;
               nb_faces_to_correct++;
               if (ii)
-                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, IJK_Splitting::FACES_I);
+                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, Domaine_IJK::FACES_I);
               if (jj)
-                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, IJK_Splitting::FACES_J);
+                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, Domaine_IJK::FACES_J);
               if (kk)
-                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, IJK_Splitting::FACES_K);
+                bary_face = splitting_->get_coords_of_dof(i+ii_f, j+jj_f, k+kk_f, Domaine_IJK::FACES_K);
               const double nx = normales_interf(i_diph, 0);
               const double ny = normales_interf(i_diph, 1);
               const double nz = normales_interf(i_diph, 2);

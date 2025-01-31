@@ -108,7 +108,7 @@ Entree& IJK_problem_double::interpreter(Entree& is)
       Cerr << "Erreur: la gravite doit etre un vecteur de 3 composantes" << finl;
       Process::exit();
     }
-  splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
+  domaine_ = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(ijk_splitting_name));
 
   if (nom_reprise_ != "??")
     reprendre_probleme(nom_reprise_);
@@ -184,10 +184,10 @@ void IJK_problem_double::posttraiter_champs_instantanes(const char *lata_name, d
 
 void set_data(IJK_Field_double& f, double func(double, double, double))
 {
-  const IJK_Grid_Geometry& geom = f.get_splitting().get_grid_geometry();
-  const int i_min = f.get_splitting().get_offset_local(DIRECTION_I);
-  const int j_min = f.get_splitting().get_offset_local(DIRECTION_J);
-  const int k_min = f.get_splitting().get_offset_local(DIRECTION_K);
+  const Domaine_IJK& geom = f.get_domaine();
+  const int i_min = f.get_domaine().get_offset_local(DIRECTION_I);
+  const int j_min = f.get_domaine().get_offset_local(DIRECTION_J);
+  const int k_min = f.get_domaine().get_offset_local(DIRECTION_K);
   const int ni_tot = geom.get_nb_elem_tot(DIRECTION_I);
   const int nj_tot = geom.get_nb_elem_tot(DIRECTION_J);
   const int nk_tot = geom.get_nb_elem_tot(DIRECTION_K);
@@ -236,7 +236,7 @@ double function_levelset_init(double x, double y, double z)
 //void calcul_integrale_pression_sur_ibc(0
 void force_entry_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed)
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
+  const Domaine_IJK& splitting = vx.get_domaine();
   const int offset_i = splitting.get_offset_local(DIRECTION_I);
   if (offset_i > 0)
     return;
@@ -330,8 +330,8 @@ void force_boundary_condition_v(IJK_Field_double& vx, IJK_Field_double& vy,  IJK
 {
   const int nj = vz.nj();
   const int ni = vz.ni();
-  const int kmin = vz.get_splitting().get_offset_local(DIRECTION_K);
-  const int nktot = vz.get_splitting().get_nb_items_global(IJK_Splitting::FACES_K, DIRECTION_K);
+  const int kmin = vz.get_domaine().get_offset_local(DIRECTION_K);
+  const int nktot = vz.get_domaine().get_nb_items_global(Domaine_IJK::FACES_K, DIRECTION_K);
   if (kmin == 0)
     {
       for (int j = 0; j < nj; j++)
@@ -364,7 +364,7 @@ double find_timestep(const IJK_Field_double& v, int direction)
         }
     }
   max_v = Process::mp_max(max_v);
-  const double delta = v.get_splitting().get_grid_geometry().get_constant_delta(direction);
+  const double delta = v.get_domaine().get_constant_delta(direction);
   return delta / max_v;
 }
 
@@ -419,37 +419,37 @@ void IJK_problem_double::initialise()
 
 void IJK_problem_double::run()
 {
-  splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
+  domaine_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
   Cerr << "IJK_problem_double::run()" << finl;
-  allocate_velocity(velocity_, splitting_, ghost_size_pour_ibc_);
-  allocate_velocity(velocity_tmp_, splitting_, ghost_size_pour_ibc_);
-  allocate_velocity(d_velocity_, splitting_, 1);
-  pressure_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_pour_ibc_);
-  molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  allocate_velocity(velocity_, domaine_, ghost_size_pour_ibc_);
+  allocate_velocity(velocity_tmp_, domaine_, ghost_size_pour_ibc_);
+  allocate_velocity(d_velocity_, domaine_, 1);
+  pressure_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_pour_ibc_);
+  molecular_mu_.allocate(domaine_, Domaine_IJK::ELEM, 2);
   molecular_mu_.data() = 1.;
   Cerr << " Allocating 11 arrays, approx total size= "
        << molecular_mu_.data().size_array() * (int)sizeof(double) * 11 * 9.537E-07 << " MB per core" << finl;
-  pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  pressure_rhs_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  rho_field_.allocate(domaine_, Domaine_IJK::ELEM, 2);
 
-  rho_field_bis_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  rho_field_bis_.allocate(domaine_, Domaine_IJK::ELEM, 2);
 
-  d_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-  alpha_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
-  //fonction_levelset_.allocate(splitting_, IJK_Splitting::ELEM, 2);
-  //d_fonction_levelset_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+  d_rho_field_.allocate(domaine_, Domaine_IJK::ELEM, 0);
+  alpha_field_.allocate(domaine_, Domaine_IJK::ELEM, 2);
+  //fonction_levelset_.allocate(splitting_, Domaine_IJK::ELEM, 2);
+  //d_fonction_levelset_.allocate(splitting_, Domaine_IJK::ELEM, 0);
 
   velocity_diffusion_op_.typer("OpDiffIJK_double");
   velocity_diffusion_op_->set_bc(boundary_conditions_);
-  velocity_diffusion_op_.initialize(splitting_);
+  velocity_diffusion_op_.initialize(domaine_);
 
   velocity_convection_op_.typer("OpConvIJKQuickSharp_double");
-  velocity_convection_op_.initialize(splitting_);
+  velocity_convection_op_.initialize(domaine_);
 
   velocity_convection_op_.typer("OpConvIJKQuickSharp_double");
-  scalar_convection_op_.initialize(splitting_);
+  scalar_convection_op_.initialize(domaine_);
 
-  poisson_solver_.initialize(splitting_);
+  poisson_solver_.initialize(domaine_);
 
   rho_field_.data() = 1.;
 
@@ -467,7 +467,7 @@ void IJK_problem_double::run()
                       pressure_rhs_, check_divergence_, poisson_solver_);
   const double max_timestep = timestep_;
 
-  couplage_tubes_ibc_.initialize(splitting_);
+  couplage_tubes_ibc_.initialize(domaine_);
 
   // Preparer le fichier de postraitement et postraiter la condition initiale:
   const Nom lata_name = nom_du_cas() + Nom(".lata");
@@ -897,8 +897,7 @@ void IJK_problem_double::scalar_convection_op_Triton(const IJK_Field_double& rho
 {
   // il s'agit d'un schema decentre amont !!!!
   IJK_Field_double d_rho_field = d_rho_;
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const double delta_x = geom.get_constant_delta(0);  // taille de la maille selon x
   const double delta_y = geom.get_constant_delta(1);
   const double delta_z = geom.get_constant_delta(2);
@@ -1111,10 +1110,9 @@ void IJK_problem_double::scalar_convection_op_Despres_Samuel(IJK_Field_double& r
 {
   const double dt = timestep_;
   IJK_Field_double rho_tmp;
-  rho_tmp.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  rho_tmp.allocate(domaine_, Domaine_IJK::ELEM, 2);
   rho_tmp.data() = 1.; // pourquoi on a besoin de ca???
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const double delta_x = geom.get_constant_delta(0);  // taille de la maille selon x
   double conv_rho =0;
   int imin = 0;
@@ -1241,10 +1239,9 @@ void IJK_problem_double::scalar_convection_op_Despres_Dellacherie(IJK_Field_doub
 {
   const double dt = timestep_;
   IJK_Field_double rho_tmp;
-  rho_tmp.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  rho_tmp.allocate(domaine_, Domaine_IJK::ELEM, 2);
   rho_tmp.data() = 1.; // pourquoi on a besoin de ca???
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const double delta_x = geom.get_constant_delta(0);  // taille de la maille selon x
   const double delta_y = geom.get_constant_delta(1);
   const double delta_z = geom.get_constant_delta(2);
@@ -1600,14 +1597,13 @@ void IJK_problem_double::scalar_convection_op_DESPRES_alpha_AMONT_rho(IJK_Field_
 {
   const double dt = timestep_;
   IJK_Field_double alpha_tmp;
-  alpha_tmp.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  alpha_tmp.allocate(domaine_, Domaine_IJK::ELEM, 2);
   alpha_tmp.data() = 1.; // pourquoi on a besoin de ca???
   IJK_Field_double rho_tmp;
-  rho_tmp.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  rho_tmp.allocate(domaine_, Domaine_IJK::ELEM, 2);
   rho_tmp.data() = 1.; // pourquoi on a besoin de ca???
 
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const double delta_x = geom.get_constant_delta(0);  // taille de la maille selon x
 
   double conv_alpha=0;
@@ -1807,10 +1803,9 @@ void IJK_problem_double::scalar_convection_op_Amont_rho(IJK_Field_double& rho_,
 {
   const double dt = timestep_;
   IJK_Field_double rho_tmp;
-  rho_tmp.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  rho_tmp.allocate(domaine_, Domaine_IJK::ELEM, 2);
   rho_tmp.data() = 1.; // pourquoi on a besoin de ca???
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const double delta_x = geom.get_constant_delta(0);  // taille de la maille selon x
 
   int imin = 0;
@@ -1872,8 +1867,7 @@ void IJK_problem_double::scalar_convection_op_Amont_rho(IJK_Field_double& rho_,
 
 void IJK_problem_double::calcul_integrale_rho( IJK_Field_double& rho_) const
 {
-  const IJK_Splitting& splitting = rho_.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = rho_.get_domaine();
   const double volume = geom.get_constant_delta(0) * geom.get_constant_delta(1) * geom.get_constant_delta(2);  // taille de la maille selon x
   double tmp_rho_domaine =0;
   int imin = 0;

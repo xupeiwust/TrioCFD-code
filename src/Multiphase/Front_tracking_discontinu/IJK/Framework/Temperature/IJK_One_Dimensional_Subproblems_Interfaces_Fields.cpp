@@ -25,7 +25,7 @@ IJK_One_Dimensional_Subproblems_Interfaces_Fields::IJK_One_Dimensional_Subproble
 
 }
 
-int IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const IJK_Splitting& splitting,
+int IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const Domaine_IJK& splitting,
                                                                   IJK_One_Dimensional_Subproblems& thermal_local_subproblems,
                                                                   const int& debug)
 {
@@ -33,12 +33,12 @@ int IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const IJK_Spli
   debug_ = debug;
 
   int nalloc = 0;
-  tmp_ft_field_val_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 1);
+  tmp_ft_field_val_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 1);
   nalloc += 1;
   tmp_ft_field_val_.data() = 0.;
   tmp_ft_field_val_.echange_espace_virtuel(tmp_ft_field_val_.ghost());
 
-  tmp_field_val_.allocate(splitting, IJK_Splitting::ELEM, 1);
+  tmp_field_val_.allocate(splitting, Domaine_IJK::ELEM, 1);
   nalloc += 1;
   tmp_field_val_.data() = 0.;
   tmp_field_val_.echange_espace_virtuel(tmp_field_val_.ghost());
@@ -219,7 +219,7 @@ bool IJK_One_Dimensional_Subproblems_Interfaces_Fields::retrieve_interfacial_sur
         elem_crossed_.reset();
       const int dim = 3;
       const IJK_Interfaces& interfaces = ref_ijk_ft_->itfce();
-      const IJK_Splitting& splitting = ref_ijk_ft_->get_splitting_ft();
+      const Domaine_IJK& splitting = ref_ijk_ft_->get_domaine_ft();
 
       const Domaine_dis_base& mon_dom_dis = interfaces.get_domaine_dis();
       const Maillage_FT_IJK& maillage = interfaces.maillage_ft_ijk();

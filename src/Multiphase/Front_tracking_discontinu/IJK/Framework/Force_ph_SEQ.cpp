@@ -17,7 +17,7 @@
 //
 // void Force_ph::initialise(int a_nproc_tot, int a_ni,int a_nj,int a_nk,int a_nl,int a_nm, int a_nn,
 //   double a_Lx, double a_Ly, double a_Lz, double a_Ox,double a_Oy,double a_Oz, int a_momin, int a_momax, double a_kmin, double a_kmax,
-//   std::string nom_fichier, const IJK_Splitting& splitting)
+//   std::string nom_fichier, const Domaine_IJK& splitting)
 // {
 //  // int ind,i,j,k;
 //  nproc_tot = a_nproc_tot;
@@ -668,7 +668,7 @@
 // }
 //
 //
-// void Force_ph::write_offset_index_position( const IJK_Splitting& my_splitting)
+// void Force_ph::write_offset_index_position( const Domaine_IJK& my_splitting)
 // {
 //   std::ofstream Offset_flux("/volatile/FFTW/creeping_flow/creeping_flow_bis/src/offset.txt", std::ios::app);
 //   if (Offset_flux)

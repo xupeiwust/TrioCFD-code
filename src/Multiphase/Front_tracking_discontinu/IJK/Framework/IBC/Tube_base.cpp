@@ -56,7 +56,7 @@ static void evaluer_f_et_df_dt_et_df2_dt2(const Noms& expressions, const double 
     }
 }
 
-void Tube_base::initialize(const IJK_Splitting& x)
+void Tube_base::initialize(const Domaine_IJK& x)
 {
   ref_splitting_ = x;
 }
@@ -221,8 +221,7 @@ void Tube_libre::update_vitesse_position(double current_time, double dt, const V
   // Calcul de la masse du tube:
   const double surface = M_PI * rayon_ * rayon_; // surface analytique
   // Calcul de la hauteur du tube
-  const IJK_Splitting& splitting = ref_splitting_.valeur();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = ref_splitting_.valeur();
   ArrOfDouble noeuds_y;
   noeuds_y = geom.get_node_coordinates(1); // rentre les coordonnees des noeuds selon y dans le tableau noeuds_y
   const int n_element_y = noeuds_y.size_array()-1; // nombre d'elements selon y = nombre de noeuds -1

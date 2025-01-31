@@ -24,7 +24,7 @@
 #include <Param.h>
 
 //
-class IJK_Grid_Geometry;
+class Domaine_IJK;
 class Statistiques_dns_ijk : public Objet_U
 {
   Declare_instanciable(Statistiques_dns_ijk);
@@ -82,12 +82,12 @@ public:
                      double dt);
 
   int lire_motcle_non_standard(const Motcle& mot, Entree& is) override;
-  virtual void initialize(const IJK_Grid_Geometry&)
+  virtual void initialize(const Domaine_IJK&)
   {
-    Cerr << "On est pas suppose pouvoir etre ici : Statistiques_dns_ijk::initialize(const IJK_Grid_Geometry &)" << finl;
+    Cerr << "On est pas suppose pouvoir etre ici : Statistiques_dns_ijk::initialize(const Domaine_IJK &)" << finl;
     Process::exit();
   }
-  virtual void initialize(const IJK_Grid_Geometry& ,const double T_KMAX, const double T_KMIN, const double constante_specifique_gaz);
+  virtual void initialize(const Domaine_IJK& ,const double T_KMAX, const double T_KMIN, const double constante_specifique_gaz);
   const double& t_integration() const
   {
     return t_integration_;

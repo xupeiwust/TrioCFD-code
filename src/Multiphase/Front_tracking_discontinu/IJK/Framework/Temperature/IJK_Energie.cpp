@@ -135,7 +135,7 @@ Entree& IJK_Energie::readOn(Entree& is)
   return is;
 }
 
-int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
+int IJK_Energie::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
   rang_ = idx;
@@ -147,11 +147,11 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
 
   int nalloc = 0;
 
-  temperature_.allocate(splitting, IJK_Splitting::ELEM, 2);
-  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
-  d_temperature_.allocate(splitting, IJK_Splitting::ELEM, 2); // 1
-  div_lambda_grad_T_volume_.allocate(splitting, IJK_Splitting::ELEM, 0);
-  D_rhocp_T_.allocate(splitting, IJK_Splitting::ELEM, 0);
+  temperature_.allocate(splitting, Domaine_IJK::ELEM, 2);
+  lambda_.allocate(splitting, Domaine_IJK::ELEM, 1);
+  d_temperature_.allocate(splitting, Domaine_IJK::ELEM, 2); // 1
+  div_lambda_grad_T_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
+  D_rhocp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
   nalloc += 5;
 
   diffusion_temperature_op_.initialize(splitting);
@@ -161,7 +161,7 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
   corrige_flux_->set_physical_parameters(rho_cp_.liqu(), rho_cp_.vap(),
                                          lda_.liqu(), lda_.vap());
   corrige_flux_->initialize(
-    ref_ijk_ft_->get_splitting_ns(),
+    ref_ijk_ft_->get_domaine(),
     temperature_,
     ref_ijk_ft_->itfce(),
     ref_ijk_ft_,
@@ -174,8 +174,8 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
 
   if ((ref_ijk_ft_.non_nul()) and (!ref_ijk_ft_->disable_diphasique()))
     {
-      temperature_ft_.allocate(ref_ijk_ft_->get_splitting_ft(),
-                               IJK_Splitting::ELEM, 1);
+      temperature_ft_.allocate(ref_ijk_ft_->get_domaine_ft(),
+                               Domaine_IJK::ELEM, 1);
       nalloc += 4;
     }
 
@@ -204,7 +204,7 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
       Cout << "Reading initial temperature field T" << rang_ << " from file "
            << fichier_reprise_temperature_
            << " timestep= " << timestep_reprise_temperature_ << finl;
-      const Nom& geom_name = splitting.get_grid_geometry().le_nom();
+      const Nom& geom_name = splitting.le_nom();
       lire_dans_lata(
         fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name,
         Nom("TEMPERATURE_") + Nom(idx),
@@ -224,8 +224,8 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
       (liste_post_instantanes_.contient_("TEMPERATURE_ANA") ||
        liste_post_instantanes_.contient_("ECART_T_ANA")))
     {
-      temperature_ana_.allocate(splitting, IJK_Splitting::ELEM, 1);
-      ecart_t_ana_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
+      ecart_t_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 2;
     }
 
@@ -235,11 +235,11 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
     allocate_velocity(grad_T_, splitting, 1);
   nalloc += 3;
 
-  // rho_cp_.allocate(splitting, IJK_Splitting::ELEM, 2);
+  // rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
   // nalloc +=1;
 
-  rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 2);
-  div_rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 0);
+  rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
+  div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
   nalloc += 2;
 
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
@@ -380,8 +380,8 @@ void IJK_Energie::compute_energy_convection(
       const int nk = d_temperature_.nk();
       energy_convection_op_quick_interface_.calculer(
         temperature_, velocity[0], velocity[1], velocity[2], d_temperature_);
-      const IJK_Grid_Geometry& geom =
-        d_temperature_.get_splitting().get_grid_geometry();
+      const Domaine_IJK& geom =
+        d_temperature_.get_domaine();
       const double dx = geom.get_constant_delta(DIRECTION_I);
       const double dy = geom.get_constant_delta(DIRECTION_J);
       const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -474,8 +474,8 @@ void IJK_Energie::add_temperature_diffusion()
       const int ni = d_temperature_.ni();
       const int nj = d_temperature_.nj();
       const int nk = d_temperature_.nk();
-      const IJK_Grid_Geometry& geom =
-        d_temperature_.get_splitting().get_grid_geometry();
+      const Domaine_IJK& geom =
+        d_temperature_.get_domaine();
       const double dx = geom.get_constant_delta(DIRECTION_I);
       const double dy = geom.get_constant_delta(DIRECTION_J);
       const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -650,12 +650,12 @@ void IJK_Energie::calculer_energies(double& E_liq_pure, double& E_lta,
         }
 
   const int ntot =
-    temperature_.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                     DIRECTION_I) *
-    temperature_.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                     DIRECTION_J) *
-    temperature_.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                     DIRECTION_K);
+    temperature_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                   DIRECTION_I) *
+    temperature_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                   DIRECTION_J) *
+    temperature_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                   DIRECTION_K);
   E_vap_pure = Process::mp_sum(E_vap_pure) / ntot;
   E_liq_pure = Process::mp_sum(E_liq_pure) / ntot;
   E_vta = Process::mp_sum(E_vta) / ntot;
@@ -750,7 +750,7 @@ void IJK_Energie::compute_interfacial_temperature2(
   ArrOfDouble& interfacial_temperature,
   ArrOfDouble& flux_normal_interp) const
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dist =
     1.52 * std::pow(std::pow(geom.get_constant_delta(0), 2.) +
                     std::pow(geom.get_constant_delta(1), 2.) +
@@ -807,7 +807,7 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
   const int ny = temperature.nj();
   const int nz = temperature.nk();
   // To be sure we're on a regular mesh
-  assert(indic.get_splitting().get_grid_geometry().get_constant_delta(
+  assert(indic.get_domaine().get_constant_delta(
            DIRECTION_K) > 0);
   for (int k = 0; k < nz; k++)
     for (int j = 0; j < ny; j++)
@@ -818,12 +818,12 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
           global_energy += rho_cp_(chi_l) * temperature(i, j, k);
         }
   const int ntot =
-    temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                    DIRECTION_I) *
-    temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                    DIRECTION_J) *
-    temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM,
-                                                    DIRECTION_K);
+    temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                  DIRECTION_I) *
+    temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                  DIRECTION_J) *
+    temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM,
+                                                  DIRECTION_K);
   global_energy = mp_sum(global_energy) / (double)(ntot);
   return global_energy;
 }
@@ -835,8 +835,8 @@ double IJK_Energie::compute_global_energy(const IJK_Field_double& temperature)
 // From DNS_QC; Vectorize code later?
 int IJK_Energie::calculer_k_pour_bord(const IJK_Field_double& temperature, const bool bord_kmax)
 {
-  const int kmin = temperature.get_splitting().get_offset_local(DIRECTION_K);
-  const int nktot = temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int kmin = temperature.get_domaine().get_offset_local(DIRECTION_K);
+  const int nktot = temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   int k;
   // calcul l'indice k de la couche de mailles voisine du bord. Si je n'ai pas de bord, on met k = -1
   if (!bord_kmax)
@@ -880,7 +880,7 @@ int IJK_Energie::calculer_flux_thermique_bord(const IJK_Field_double& temperatur
                                               IJK_Field_local_double& flux_bord,
                                               const bool bord_kmax)
 {
-  const int kmin = temperature.get_splitting().get_offset_local(DIRECTION_K);
+  const int kmin = temperature.get_domaine().get_offset_local(DIRECTION_K);
   int k = calculer_k_pour_bord(temperature, bord_kmax);
   if (k == -1)
     return k;
@@ -890,7 +890,7 @@ int IJK_Energie::calculer_flux_thermique_bord(const IJK_Field_double& temperatur
   const int nj = temperature.nj();
   flux_bord.allocate(ni, nj, 1 /* 1 seule couche de valeurs en k */, 0 /* pas d'elements fantomes */);
 
-  const IJK_Grid_Geometry& geometry = temperature.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geometry = temperature.get_domaine();
   const double delta_k = geometry.get_delta(DIRECTION_K)[k + kmin]; // k+kmin est l'indice global de la maille locale k
   double facteur = 2.0 / delta_k * geometry.get_constant_delta(DIRECTION_I) * geometry.get_constant_delta(DIRECTION_J);
   if (bord_kmax)
@@ -925,7 +925,7 @@ int IJK_Energie::imposer_flux_thermique_bord(const IJK_Field_double& temperature
   const int nj = temperature.nj();
   flux_bord.allocate(ni, nj, 1 /* 1 seule couche de valeurs en k */, 0 /* pas d'elements fantomes */);
   //MR je multiplie le flux par la surface dxdy
-  const IJK_Grid_Geometry& geometry = temperature.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geometry = temperature.get_domaine();
 
   double facteur = 1.* geometry.get_constant_delta(DIRECTION_I) * geometry.get_constant_delta(DIRECTION_J);
   if (bord_kmax)

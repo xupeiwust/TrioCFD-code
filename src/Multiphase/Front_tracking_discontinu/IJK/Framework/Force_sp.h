@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <FixedVector.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Objet_U.h>
 #include <string>
 #include <iostream>

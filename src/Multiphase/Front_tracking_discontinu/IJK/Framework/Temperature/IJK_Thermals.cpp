@@ -184,7 +184,7 @@ void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
     }
 }
 
-void IJK_Thermals::initialize(const IJK_Splitting& splitting, int& nalloc)
+void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
 {
   if (!est_vide())
     {
@@ -359,7 +359,7 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
     }
 }
 
-int IJK_Thermals::init_switch_thermals(const IJK_Splitting& splitting)
+int IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)
 {
   int nb_allocated_arrays=0;
   int idx =0;
@@ -417,7 +417,7 @@ int IJK_Thermals::ghost_fluid_flag()
   return ghost_fluid;
 }
 
-void IJK_Thermals::compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init)
+void IJK_Thermals::compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& splitting, int ghost_init)
 {
   for (auto& itr : (*this))
     itr->compute_ghost_cell_numbers_for_subproblems(splitting, ghost_init);
@@ -595,7 +595,7 @@ void IJK_Thermals::recompute_interface_smoothing()
 }
 
 void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
-                                             const IJK_Splitting& new_mesh,
+                                             const Domaine_IJK& new_mesh,
                                              const Nom& lata_name,
                                              DoubleTab& coeff_i,
                                              IntTab Indice_i,
@@ -609,7 +609,7 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
     {
       switch_double_ft.calculer_coords_elem();
       switch_double_ft.calculer_coeff(coeff_i,Indice_i,coeff_j,Indice_j,coeff_k,Indice_k);
-      new_thermal_field.allocate(new_mesh /* it is in fact a splitting */, IJK_Splitting::ELEM, 0);
+      new_thermal_field.allocate(new_mesh /* it is in fact a splitting */, Domaine_IJK::ELEM, 0);
     }
   int idth = 0;
   for (auto& itr : (*this))

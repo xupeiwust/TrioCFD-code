@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Couplage_Tubes_IBC.cpp
-// Directory : $IJK_ROOT/src/IBC
-//
-/////////////////////////////////////////////////////////////////////////////
 #include <Couplage_Tubes_IBC.h>
 #include <Param.h>
 #include <Interprete_bloc.h>
@@ -78,7 +72,7 @@ Entree& Couplage_Tubes_IBC::readOn(Entree& is)
   return is;
 }
 
-void Couplage_Tubes_IBC::initialize(const IJK_Splitting& splitting)
+void Couplage_Tubes_IBC::initialize(const Domaine_IJK& splitting)
 {
   ref_splitting_ = splitting; // copie de splitting pour l'utiliser dans la class Couplage_Tubes_IBC
 
@@ -405,8 +399,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity(IJK_Field_double& vx, IJK_Field_doub
                                             DoubleTab& integrale_force,
                                             const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -419,8 +412,8 @@ void Couplage_Tubes_IBC::force_ibc_velocity(IJK_Field_double& vx, IJK_Field_doub
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
   const double epsilon = epaisseur_lissage_ * geom.get_constant_delta(DIRECTION_I); // definition de la demi largeur du domaine d'etalement du terme de forcage comme un nombre de fois la largeur de maille selon la direction x
@@ -572,8 +565,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_frac_vol(IJK_Field_double& vx, IJK_F
                                                      DoubleTab& integrale_force,
                                                      const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -586,8 +578,8 @@ void Couplage_Tubes_IBC::force_ibc_velocity_frac_vol(IJK_Field_double& vx, IJK_F
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -754,8 +746,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_anticipe_cube(IJK_Field_double& vx, 
                                                           const double timestep) const
 {
   Cout << "Fonction_anticipe" << finl;
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -768,8 +759,8 @@ void Couplage_Tubes_IBC::force_ibc_velocity_anticipe_cube(IJK_Field_double& vx, 
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -957,8 +948,7 @@ void Couplage_Tubes_IBC::ibc0_velocity_cube(IJK_Field_double& vx, IJK_Field_doub
                                             DoubleTab& integrale_force,
                                             const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -971,8 +961,8 @@ void Couplage_Tubes_IBC::ibc0_velocity_cube(IJK_Field_double& vx, IJK_Field_doub
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -1136,8 +1126,7 @@ void Couplage_Tubes_IBC::ibc0_force_cube(IJK_Field_double& vx, IJK_Field_double&
                                          DoubleTab& integrale_force,
                                          const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -1150,8 +1139,8 @@ void Couplage_Tubes_IBC::ibc0_force_cube(IJK_Field_double& vx, IJK_Field_double&
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -1283,8 +1272,7 @@ void Couplage_Tubes_IBC::ibc_diffuse_velocity_cube(IJK_Field_double& vx, IJK_Fie
                                                    DoubleTab& integrale_force,
                                                    const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -1297,8 +1285,8 @@ void Couplage_Tubes_IBC::ibc_diffuse_velocity_cube(IJK_Field_double& vx, IJK_Fie
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -1482,8 +1470,7 @@ void Couplage_Tubes_IBC::ibc_diffuse_force_cube(IJK_Field_double& vx, IJK_Field_
                                                 DoubleTab& integrale_force,
                                                 const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -1496,8 +1483,8 @@ void Couplage_Tubes_IBC::ibc_diffuse_force_cube(IJK_Field_double& vx, IJK_Field_
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -1654,8 +1641,7 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube(IJK_Field_double& vx, IJK_F
                                                      DoubleTab& integrale_force,
                                                      const Faisceau_Tubes& faisceau, double current_time) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -1668,8 +1654,8 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube(IJK_Field_double& vx, IJK_F
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -1978,8 +1964,7 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube_qdm(IJK_Field_double& vx, I
                                                          DoubleTab& integrale_force,
                                                          const Faisceau_Tubes& faisceau, double current_time) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -1992,8 +1977,8 @@ void Couplage_Tubes_IBC::ibc_localisee_velocity_cube_qdm(IJK_Field_double& vx, I
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
 
@@ -2371,8 +2356,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_symetrie_plane(IJK_Field_double& vx,
                                                            DoubleTab& integrale_force,
                                                            const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -2385,9 +2369,9 @@ void Couplage_Tubes_IBC::force_ibc_velocity_symetrie_plane(IJK_Field_double& vx,
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_j = splitting.get_offset_local(DIRECTION_J);  // donne l'offset selon la direction k
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_j = geom.get_offset_local(DIRECTION_J);  // donne l'offset selon la direction k
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
   const double h_maillage = geom.get_constant_delta(DIRECTION_I);
@@ -2601,8 +2585,7 @@ void Couplage_Tubes_IBC::force_ibc_velocity_miroir(IJK_Field_double& vx, IJK_Fie
                                                    DoubleTab& integrale_force,
                                                    const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -2615,8 +2598,8 @@ void Couplage_Tubes_IBC::force_ibc_velocity_miroir(IJK_Field_double& vx, IJK_Fie
           elem_pos[dir][i] = (nodes_pos[dir][i] + nodes_pos[dir][i+1]) * 0.5; // la position de l'element selon dir est moyenne de la positions des noeuds de part et d'autre
       }
   }
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
 
   const int ntubes = faisceau.size();
   const double epsilon = epaisseur_lissage_ * geom.get_constant_delta(DIRECTION_I); // definition de la demi largeur de la zone d'etalement du terme de forcage comme un nombre de fois la largeur de maille selon la direction x
@@ -2808,8 +2791,7 @@ void Couplage_Tubes_IBC::calcul_F_pression(const IJK_Field_double& pressure, con
                                            DoubleTab& integrale_force_pression, DoubleTab& pression_teta,
                                            const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -2973,8 +2955,7 @@ void Couplage_Tubes_IBC::calcul_F_pression2(const IJK_Field_double& pressure, co
                                             DoubleTab& integrale_force_pression, DoubleTab& pression_teta,
                                             const Faisceau_Tubes& faisceau) const
 {
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   ArrOfDouble nodes_pos[3]; //defini un tableau dynamique de 3 lignes pour la position des nodes
   ArrOfDouble elem_pos[3];  //defini un tableau dynamique de 3 lignes pour la position des elements
   {
@@ -2989,8 +2970,8 @@ void Couplage_Tubes_IBC::calcul_F_pression2(const IJK_Field_double& pressure, co
   }
   int jmin = 0;
   int jmax = pressure.nj();
-  const int offset_i = splitting.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
-  const int offset_k = splitting.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
+  const int offset_i = geom.get_offset_local(DIRECTION_I); // donne l'offset selon la direction i
+  const int offset_k = geom.get_offset_local(DIRECTION_K);  // donne l'offset selon la direction k
   const int ntubes = faisceau.size();
   DoubleTab Pos_P;
   DoubleTab P_l_j;
@@ -3174,8 +3155,7 @@ void Couplage_Tubes_IBC::update(double current_time,
       const Vecteur3 v = tube.get_current_velocity();
 
       // Calcul de la hauteur du tube
-      const IJK_Splitting& splitting = ref_splitting_.valeur();
-      const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+      const Domaine_IJK& geom = ref_splitting_.valeur();
       ArrOfDouble noeuds_y;
       noeuds_y = geom.get_node_coordinates(1); // rentre les coordonnees des noeuds selon y dans le tableau noeuds_y
       const int n_element_y = noeuds_y.size_array()-1; // nombre d'elements selon y = nombre de noeuds -1

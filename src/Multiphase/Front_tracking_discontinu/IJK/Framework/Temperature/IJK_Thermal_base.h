@@ -26,7 +26,7 @@
 #include <IJK_Field_vector.h>
 #include <Objet_U.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Parser.h>
 #include <IJK_Lata_writer.h>
 #include <Operateur_IJK_elem_conv.h>
@@ -56,8 +56,8 @@ public:
    * Initialisation
    */
   virtual void set_param(Param& param);
-  virtual int initialize(const IJK_Splitting& splitting, const int idx);
-  virtual int initialize_switch(const IJK_Splitting& splitting, const int idx);
+  virtual int initialize(const Domaine_IJK& splitting, const int idx);
+  virtual int initialize_switch(const Domaine_IJK& splitting, const int idx);
   virtual void update_thermal_properties();
   double compute_timestep(const double timestep,
                           const double dxmin);
@@ -428,7 +428,7 @@ public:
 #if 0
   void ecrire_reprise_thermique(SFichier& fichier);
 #endif
-  virtual void compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init) { ghost_cells_ = ghost_init; };
+  virtual void compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& splitting, int ghost_init) { ghost_cells_ = ghost_init; };
 
   void compute_eulerian_distance();
   void compute_eulerian_curvature();
@@ -444,7 +444,7 @@ public:
                                                  const Nom& local_quantities_thermal_probes_time_index_folder) { }
   virtual void compute_temperature_init();
   virtual void recompute_temperature_init();
-  virtual int set_subproblems_interfaces_fields(const IJK_Splitting& splitting) { return 0; };
+  virtual int set_subproblems_interfaces_fields(const Domaine_IJK& splitting) { return 0; };
   void copy_previous_interface_state();
   int post_process_quantities_from_subresolution(const Motcles& liste_post_instantanes,
                                                  const char *lata_name,
@@ -462,9 +462,9 @@ protected:
 
   void compute_cell_volume();
   void compute_min_cell_delta();
-  void compute_cell_diagonal(const IJK_Splitting& splitting);
+  void compute_cell_diagonal(const Domaine_IJK& splitting);
 
-  virtual void lire_temperature(const IJK_Splitting& splitting, int idx);
+  virtual void lire_temperature(const Domaine_IJK& splitting, int idx);
 
   void calculer_dT(const IJK_Field_vector3_double& velocity);
   virtual void post_process_after_temperature_increment();

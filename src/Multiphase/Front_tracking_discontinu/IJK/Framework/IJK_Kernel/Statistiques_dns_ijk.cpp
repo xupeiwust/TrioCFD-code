@@ -15,7 +15,7 @@
 
 #include <Statistiques_dns_ijk.h>
 #include <IJK_Field_vector.h>
-#include <IJK_Grid_Geometry.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <communications.h>
 #include <IJK_Navier_Stokes_tools.h> // pour initialiser les IJK_double
@@ -417,7 +417,7 @@ static inline double derivee_aniso( double alpha /* rapport des distances a la m
 
 // Attention, cette methode est appelee apres readOn(),
 // il ne faut pas casser les donnees lues
-void Statistiques_dns_ijk::initialize(const IJK_Grid_Geometry& geom,double T_KMAX , double T_KMIN, double constante_specifique_gaz)
+void Statistiques_dns_ijk::initialize(const Domaine_IJK& geom,double T_KMAX , double T_KMIN, double constante_specifique_gaz)
 {
   // F.A ajout recuperation des temperatures des CLs
   TCL_kmax_ = T_KMAX;
@@ -582,11 +582,11 @@ void Statistiques_dns_ijk::update_stat(const IJK_Field_vector3_double& vitesse,
   const IJK_Field_double& structural_uscalar_z = structural_uscalar_vector[2];
 
   // Nombre total de mailles en K
-  const int nktot = pression.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
 
   // Nombre local de mailles en K
   const int kmax = pression.nk();
-  const int offset = pression.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = pression.get_domaine().get_offset_local(DIRECTION_K);
 
   DoubleTab tmp(nktot, nval_);
   const int imax = pression.ni();
@@ -1142,8 +1142,8 @@ void Statistiques_dns_ijk::update_stat(const IJK_Field_vector3_double& vitesse,
         }
       // facteur 1./(ni*nj) car sommation de ni*nj valeurs sur des mailles de meme taille
       // facteur delta_z / taille_totale_en_z  car mailles non uniformes en z
-      const int ni_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_I);
-      const int nj_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_J);
+      const int ni_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_I);
+      const int nj_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_J);
 
       double facteur = 1./(double)(ni_tot * nj_tot);
 
@@ -1201,11 +1201,11 @@ void Statistiques_dns_ijk::update_stat_k(const IJK_Field_vector3_double& vitesse
   const ArrOfDouble& nu_moy = nu_moy_;  // DD 16/10/2015
 
   // Nombre total de mailles en K
-  const int nktot = pression.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
 
   // Nombre local de mailles en K
   const int kmax = pression.nk();
-  const int offsetk = pression.get_splitting().get_offset_local(DIRECTION_K);
+  const int offsetk = pression.get_domaine().get_offset_local(DIRECTION_K);
 
   DoubleTab tmp(nktot, kval_);
   const int imax = pression.ni();
@@ -1222,19 +1222,19 @@ void Statistiques_dns_ijk::update_stat_k(const IJK_Field_vector3_double& vitesse
   double lambda_kmax = calculer_lambda_air(TCL_kmax);
   */
 
-  const IJK_Splitting& split = pression.get_splitting();
+  const Domaine_IJK& split = pression.get_domaine();
   IJK_Field_double Ener_cin;
 
 
-  Ener_cin.allocate(split, IJK_Splitting::ELEM, 1);
+  Ener_cin.allocate(split, Domaine_IJK::ELEM, 1);
   Ener_cin.data()=0;
 
   IJK_Field_double Div_fluc_U;
-  Div_fluc_U.allocate(split, IJK_Splitting::ELEM, 1);
+  Div_fluc_U.allocate(split, Domaine_IJK::ELEM, 1);
   Div_fluc_U.data()=0;
 
   IJK_Field_double Div_tot_U;
-  Div_tot_U.allocate(split, IJK_Splitting::ELEM, 1);
+  Div_tot_U.allocate(split, Domaine_IJK::ELEM, 1);
   Div_tot_U.data()=0;
   // on precalcule l'ener cinetique fluctuations de pression !!!    (le div u
   // pour la paroi
@@ -1679,8 +1679,8 @@ void Statistiques_dns_ijk::update_stat_k(const IJK_Field_vector3_double& vitesse
         }
       // facteur 1./(ni*nj) car sommation de ni*nj valeurs sur des mailles de meme taille
       // facteur delta_z / taille_totale_en_z  car mailles non uniformes en z
-      const int ni_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_I);
-      const int nj_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_J);
+      const int ni_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_I);
+      const int nj_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_J);
 
       double facteur = 1./(double)(ni_tot * nj_tot);
 
@@ -1937,7 +1937,7 @@ double Statistiques_dns_ijk::face_to_cell_gradient(const IJK_Field_double& vites
                                                    const int bc_type) const
 {
 
-  bool perio_k=vitesse_k.get_splitting().get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  bool perio_k=vitesse_k.get_domaine().get_periodic_flag(DIRECTION_K);
   // ******************************** //
   // derivation direction x
   // de Ux
@@ -2046,14 +2046,14 @@ void Statistiques_dns_ijk::compute_and_store_gradU_cell(const IJK_Field_double& 
                                                         IJK_Field_double& dudx, IJK_Field_double& dvdy, IJK_Field_double& dwdx,
                                                         IJK_Field_double& dudz, IJK_Field_double& dvdz, IJK_Field_double& dwdz)
 {
-  const IJK_Splitting& splitting = vitesse_i.get_splitting();
+  const Domaine_IJK& splitting = vitesse_i.get_domaine();
 
   // Nombre total de mailles en K
-  const int nktot = splitting.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = splitting.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   // Nombre local de mailles :
-  const int imax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int jmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int kmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const int imax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 0);
+  const int jmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 1);
+  const int kmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 2);
 
   const int offset = splitting.get_offset_local(DIRECTION_K);
 
@@ -2161,13 +2161,13 @@ IJK_Field_double Statistiques_dns_ijk::compute_and_store_scalar_product_face_to_
   IJK_Field_double v1v2 = v1_i;
   v1v2.data()=0;
 
-  const IJK_Splitting& splitting = v1_i.get_splitting();
+  const Domaine_IJK& splitting = v1_i.get_domaine();
   // Nombre total de mailles en K
-  //const int nktot = splitting.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  //const int nktot = splitting.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   // Nombre local de mailles :
-  const int imax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int jmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int kmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const int imax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 0);
+  const int jmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 1);
+  const int kmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 2);
 
   //const int offset = splitting.get_offset_local(DIRECTION_K);
 
@@ -2396,13 +2396,13 @@ double Statistiques_dns_ijk::calculer_produit_scalaire_faces_to_center(
 
 void Statistiques_dns_ijk::compute_vecA_minus_vecB_in_vecA(IJK_Field_vector3_double& vecA, const IJK_Field_vector3_double& vecB)
 {
-  const IJK_Splitting& splitting = vecA.get_splitting();
+  const Domaine_IJK& splitting = vecA.get_domaine();
   // Nombre total de mailles en K
-  //const int nktot = splitting.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  //const int nktot = splitting.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   // Nombre local de mailles :
-  const int imax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int jmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int kmax = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const int imax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 0);
+  const int jmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 1);
+  const int kmax = splitting.get_nb_items_local(Domaine_IJK::ELEM, 2);
 
   //const int offset = splitting.get_offset_local(DIRECTION_K);
   for (int k = 0; k < kmax; k++)

@@ -293,11 +293,11 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
 
   if (_DIR_ == DIRECTION::Z)
     {
-      if (cut_cell_disc.get_splitting().get_grid_geometry().get_periodic_flag(dir))
+      if (cut_cell_disc.get_domaine().get_periodic_flag(dir))
         {
           const int kmax = cut_cell_disc.get_interfaces().I().nk();
-          int n_dir = cut_cell_disc.get_splitting().get_nb_elem_local(dir);
-          int n_dir_tot = cut_cell_disc.get_splitting().get_grid_geometry().get_nb_elem_tot(dir);
+          int n_dir = cut_cell_disc.get_domaine().get_nb_elem_local(dir);
+          int n_dir_tot = cut_cell_disc.get_domaine().get_nb_elem_tot(dir);
 
           // Le processeur contient deux fois les valeurs sur les bords
           if (n_dir == n_dir_tot)
@@ -431,7 +431,7 @@ void OpConvQuickIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double 
                           double bar_dir_centre = cut_cell_disc.get_interfaces().get_barycentre(true, dir, phase, i,j,k);
                           assert((n_centre >= 0) || (bar_dir_centre == .5));
 
-                          // Note : suppose un maillage uniforme, splitting_.get_grid_geometry().is_uniform(_DIR_)
+                          // Note : suppose un maillage uniforme, splitting_.is_uniform(_DIR_)
                           double input_milieu = (input_left + input_centre) * 0.5;
                           double input_lineaire = (1 - bar_dir_left + bar_dir_centre) == 0. ? input_milieu : input_left + (1 - bar_dir_left)/(1 - bar_dir_left + bar_dir_centre)*(input_centre - input_left);
                           assert(std::abs(input_lineaire - input_left) <= std::abs(input_centre - input_left));

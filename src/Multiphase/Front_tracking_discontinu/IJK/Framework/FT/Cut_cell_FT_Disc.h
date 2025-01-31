@@ -19,7 +19,7 @@
 #include <Descripteur_FT.h>
 #include <Maillage_FT_Disc.h>
 #include <IJK_Field.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <ConstIJK_ptr.h>
 #include <TRUSTTabFT_cut_cell.h>
 #include <IJK_Field_simd_tools.h>
@@ -30,9 +30,6 @@ class Probleme_FTD_IJK_cut_cell;
 class IJK_Interfaces;
 
 /*! @brief : class Cut_cell_FT_Disc
- *
- *  <Description of class Cut_cell_FT_Disc>
- *
  *
  *  Cette classe decrit un maillage cut-cell, c'est-a-dire permettant
  *  des tableaux a valeurs dans les mailles diphasiques uniquement.
@@ -55,8 +52,8 @@ public:
   void add_to_transient_data(IntTabFT_cut_cell& field, int dimension);
   void add_to_lazy_data(IntTabFT_cut_cell& field, int dimension);
 
-  void initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc);
-  void initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
+  void initialise(IJK_Interfaces& interfaces, Domaine_IJK& splitting, Domaine_IJK::Localisation loc);
+  void initialise(IJK_Interfaces& interfaces, Domaine_IJK& splitting, Domaine_IJK::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
 
   int initialise_independent_index(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice);
   void initialise_permutation();
@@ -112,7 +109,7 @@ public:
   int get_n_loc() const { return n_loc_; }
   int get_n_tot() const { return n_tot_; }
   const IJK_Interfaces& get_interfaces() const;
-  const IJK_Splitting& get_splitting() const;
+  const Domaine_IJK& get_domaine() const;
   const Desc_Structure_FT& get_desc_structure() const;
 
   IJK_Field_double& get_write_buffer() const { return write_buffer_; }
@@ -164,8 +161,8 @@ protected:
   Desc_Structure_FT desc_;
 
   OBS_PTR(IJK_Interfaces) ref_interfaces_;
-  OBS_PTR(IJK_Splitting) ref_splitting_;
-  IJK_Splitting::Localisation localisation_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
+  Domaine_IJK::Localisation localisation_;
   int ghost_size_;
 
   // Compteur du nombre de mise a jour des champs diphasiques
@@ -276,16 +273,16 @@ inline Int3 Cut_cell_FT_Disc::ijk_per_of_index(int i, int j, int k, int index) c
       int per_y = (index%9)/3;
       int per_x = (index%9)%3;
 
-      assert((per_x == 0) || ref_splitting_->get_grid_geometry().get_periodic_flag(0));
-      assert((per_y == 0) || ref_splitting_->get_grid_geometry().get_periodic_flag(1));
-      assert((per_z == 0) || ref_splitting_->get_grid_geometry().get_periodic_flag(2));
+      assert((per_x == 0) || ref_domaine_->get_periodic_flag(0));
+      assert((per_y == 0) || ref_domaine_->get_periodic_flag(1));
+      assert((per_z == 0) || ref_domaine_->get_periodic_flag(2));
 
-      int n_dir_x = ref_splitting_->get_nb_elem_local(0);
-      int n_dir_y = ref_splitting_->get_nb_elem_local(1);
-      int n_dir_z = ref_splitting_->get_nb_elem_local(2);
-      assert((per_x == 0) || (n_dir_x == ref_splitting_->get_grid_geometry().get_nb_elem_tot(0)));
-      assert((per_y == 0) || (n_dir_y == ref_splitting_->get_grid_geometry().get_nb_elem_tot(1)));
-      assert((per_z == 0) || (n_dir_z == ref_splitting_->get_grid_geometry().get_nb_elem_tot(2)));
+      int n_dir_x = ref_domaine_->get_nb_elem_local(0);
+      int n_dir_y = ref_domaine_->get_nb_elem_local(1);
+      int n_dir_z = ref_domaine_->get_nb_elem_local(2);
+      assert((per_x == 0) || (n_dir_x == ref_domaine_->get_nb_elem_tot(0)));
+      assert((per_y == 0) || (n_dir_y == ref_domaine_->get_nb_elem_tot(1)));
+      assert((per_z == 0) || (n_dir_z == ref_domaine_->get_nb_elem_tot(2)));
 
       assert((per_x == 0) || ((i < ghost_size_) || (i >= n_dir_x - ghost_size_)));
       assert((per_y == 0) || ((j < ghost_size_) || (j >= n_dir_y - ghost_size_)));
@@ -319,10 +316,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
       assert(min_dir >= 0 && min_dir <=2);
       for (int dir_1 = min_dir; dir_1 < max_dir ; dir_1++)
         {
-          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_1))
+          if (ref_domaine_->get_periodic_flag(dir_1))
             {
-              int n_dir_1 = ref_splitting_->get_nb_elem_local(dir_1);
-              int n_dir_tot_1 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_1);
+              int n_dir_1 = ref_domaine_->get_nb_elem_local(dir_1);
+              int n_dir_tot_1 = ref_domaine_->get_nb_elem_tot(dir_1);
 
               if (n_dir_1 == n_dir_tot_1)
                 {
@@ -345,10 +342,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                       int per_z_debut_boucle_2 = per_z;
                       for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
                         {
-                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_2))
+                          if (ref_domaine_->get_periodic_flag(dir_2))
                             {
-                              int n_dir_2 = ref_splitting_->get_nb_elem_local(dir_2);
-                              int n_dir_tot_2 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_2);
+                              int n_dir_2 = ref_domaine_->get_nb_elem_local(dir_2);
+                              int n_dir_tot_2 = ref_domaine_->get_nb_elem_tot(dir_2);
 
                               if (n_dir_2 == n_dir_tot_2)
                                 {
@@ -371,10 +368,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                       int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
-                                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_3))
+                                          if (ref_domaine_->get_periodic_flag(dir_3))
                                             {
-                                              int n_dir_3 = ref_splitting_->get_nb_elem_local(dir_3);
-                                              int n_dir_tot_3 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_3);
+                                              int n_dir_3 = ref_domaine_->get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = ref_domaine_->get_nb_elem_tot(dir_3);
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
@@ -425,10 +422,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                       int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
-                                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_3))
+                                          if (ref_domaine_->get_periodic_flag(dir_3))
                                             {
-                                              int n_dir_3 = ref_splitting_->get_nb_elem_local(dir_3);
-                                              int n_dir_tot_3 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_3);
+                                              int n_dir_3 = ref_domaine_->get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = ref_domaine_->get_nb_elem_tot(dir_3);
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
@@ -483,10 +480,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                       int per_z_debut_boucle_2 = per_z;
                       for (int dir_2 = 0; dir_2 < dir_1 ; dir_2++)
                         {
-                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_2))
+                          if (ref_domaine_->get_periodic_flag(dir_2))
                             {
-                              int n_dir_2 = ref_splitting_->get_nb_elem_local(dir_2);
-                              int n_dir_tot_2 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_2);
+                              int n_dir_2 = ref_domaine_->get_nb_elem_local(dir_2);
+                              int n_dir_tot_2 = ref_domaine_->get_nb_elem_tot(dir_2);
 
                               if (n_dir_2 == n_dir_tot_2)
                                 {
@@ -509,10 +506,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                       int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
-                                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_3))
+                                          if (ref_domaine_->get_periodic_flag(dir_3))
                                             {
-                                              int n_dir_3 = ref_splitting_->get_nb_elem_local(dir_3);
-                                              int n_dir_tot_3 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_3);
+                                              int n_dir_3 = ref_domaine_->get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = ref_domaine_->get_nb_elem_tot(dir_3);
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
@@ -563,10 +560,10 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
                                       int per_z_debut_boucle_3 = per_z;
                                       for (int dir_3 = 0; dir_3 < dir_2 ; dir_3++)
                                         {
-                                          if (ref_splitting_->get_grid_geometry().get_periodic_flag(dir_3))
+                                          if (ref_domaine_->get_periodic_flag(dir_3))
                                             {
-                                              int n_dir_3 = ref_splitting_->get_nb_elem_local(dir_3);
-                                              int n_dir_tot_3 = ref_splitting_->get_grid_geometry().get_nb_elem_tot(dir_3);
+                                              int n_dir_3 = ref_domaine_->get_nb_elem_local(dir_3);
+                                              int n_dir_tot_3 = ref_domaine_->get_nb_elem_tot(dir_3);
 
                                               if (n_dir_3 == n_dir_tot_3)
                                                 {
@@ -614,7 +611,7 @@ inline int Cut_cell_FT_Disc::next_index_ijk_per(int i, int j, int k, int index, 
 inline Int3 Cut_cell_FT_Disc::get_ijk(int n) const
 {
   int independent_index = independent_index_(n);
-  Int3 ijk = ref_splitting_->get_ijk_from_independent_index(independent_index);
+  Int3 ijk = ref_domaine_->get_ijk_from_independent_index(independent_index);
 
   return ijk;
 }
@@ -665,12 +662,12 @@ inline bool Cut_cell_FT_Disc::within_ghost_(int n, int negative_ghost_size, int 
   int j = ijk[1];
   int k = ijk[2];
 
-  return ref_splitting_->within_ghost_<_DIR_>(i, j, k, negative_ghost_size, positive_ghost_size);
+  return ref_domaine_->within_ghost_<_DIR_>(i, j, k, negative_ghost_size, positive_ghost_size);
 }
 
 inline int Cut_cell_FT_Disc::get_k_value_index(int k) const
 {
-  assert(k <= ref_splitting_->get_nb_elem_local(2) + 2*ghost_size_);
+  assert(k <= ref_domaine_->get_nb_elem_local(2) + 2*ghost_size_);
   return k_value_index_(k + ghost_size_);
 }
 

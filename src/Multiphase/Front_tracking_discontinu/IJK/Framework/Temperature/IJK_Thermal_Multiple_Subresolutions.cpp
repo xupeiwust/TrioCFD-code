@@ -73,14 +73,14 @@ void IJK_Thermal_Multiple_Subresolutions::set_param( Param& param )
   param.ajouter_flag("main_phase_", &main_phase_);
 }
 
-int IJK_Thermal_Multiple_Subresolutions::initialize(const IJK_Splitting& splitting, const int idx)
+int IJK_Thermal_Multiple_Subresolutions::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
 
   int nalloc = 0;
   nalloc = IJK_Thermal_Subresolution::initialize(splitting, idx);
 
-  temperature_vapour_.allocate(splitting, IJK_Splitting::ELEM, 2);
+  temperature_vapour_.allocate(splitting, Domaine_IJK::ELEM, 2);
   nalloc += 1;
 
   compute_distance_ = compute_distance_ || ghost_fluid_;

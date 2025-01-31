@@ -39,7 +39,7 @@ class Corrige_flux_FT_temperature_conv : public Corrige_flux_FT_base
 
 public:
 
-  void initialize(const IJK_Splitting& splitting,
+  void initialize(const Domaine_IJK& splitting,
                   const IJK_Field_double& field,
                   const IJK_Interfaces& interfaces,
                   const Probleme_FTD_IJK_base& ijk_ft,

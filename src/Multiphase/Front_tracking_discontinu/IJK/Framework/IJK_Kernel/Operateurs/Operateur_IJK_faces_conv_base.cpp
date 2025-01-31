@@ -38,10 +38,10 @@ Entree& Operateur_IJK_faces_conv_base_double::readOn(Entree& is)
   return is;
 }
 
-void Operateur_IJK_faces_conv_base_double::initialize(const IJK_Splitting& splitting)
+void Operateur_IJK_faces_conv_base_double::initialize(const Domaine_IJK& splitting)
 {
   channel_data_.initialize(splitting);
-  perio_k_= splitting.get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  perio_k_= splitting.get_periodic_flag(DIRECTION_K);
 }
 
 void Operateur_IJK_faces_conv_base_double::calculer(const IJK_Field_double& inputx, const IJK_Field_double& inputy, const IJK_Field_double& inputz,

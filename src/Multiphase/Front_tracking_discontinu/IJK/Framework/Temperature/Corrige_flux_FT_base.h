@@ -19,7 +19,7 @@
 #include <MonofluidVar.h>
 #include <IJK_Field_vector.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Objet_U.h>
 #include <Parser.h>
 #include <IJK_Interfaces.h>
@@ -46,14 +46,14 @@ class Corrige_flux_FT_base : public Objet_U
 {
   Declare_base( Corrige_flux_FT_base ) ;
 public:
-  virtual void initialize(const IJK_Splitting& splitting,
+  virtual void initialize(const Domaine_IJK& dom,
                           const IJK_Field_double& field,
                           const IJK_Interfaces& interfaces,
                           const Probleme_FTD_IJK_base& ijk_ft,
                           Intersection_Interface_ijk_face& intersection_ijk_face,
                           Intersection_Interface_ijk_cell& intersection_ijk_cell);
 
-  virtual void initialize_with_subproblems(const IJK_Splitting& splitting,
+  virtual void initialize_with_subproblems(const Domaine_IJK& splitting,
                                            const IJK_Field_double& field,
                                            const IJK_Interfaces& interfaces,
                                            const Probleme_FTD_IJK_base& ijk_ft,
@@ -166,10 +166,10 @@ public:
                                                                               const int& copy_temperature_on_every_procs) { ; };
 
 protected:
-  const IJK_Interfaces *interfaces_ = nullptr;
-  const IJK_Field_double *field_ = nullptr;
-  const IJK_Splitting *splitting_ = nullptr;
+  OBS_PTR(IJK_Interfaces) interfaces_;
+  OBS_PTR(Domaine_IJK) domaine_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
+  const IJK_Field_double *field_ = nullptr;
 
 
   double rhocp_l_= 0.;

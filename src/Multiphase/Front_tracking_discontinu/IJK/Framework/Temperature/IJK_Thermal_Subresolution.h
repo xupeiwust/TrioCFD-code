@@ -26,7 +26,7 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Parser.h>
 #include <IJK_Lata_writer.h>
 #include <OpConvQuickIJKScalar.h>
@@ -53,12 +53,12 @@ class IJK_Thermal_Subresolution : public IJK_Thermal_base
 
 public :
 
-  int initialize(const IJK_Splitting& splitting, const int idx) override;
+  int initialize(const Domaine_IJK& splitting, const int idx) override;
   // void sauvegarder_temperature(Nom& lata_name, int idx) override;
   void update_thermal_properties() override;
   void post_process_after_temperature_increment() override;
   void set_param(Param& param) override;
-  void compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init) override;
+  void compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& splitting, int ghost_init) override;
 
   double get_probes_length();
   // Entree& read_fd_solver(Entree& is);
@@ -96,7 +96,7 @@ public :
                            const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
                            const int& line_dir);
   void min_max_ldir(const int& dir,
-                    const IJK_Grid_Geometry& geom,
+                    const Domaine_IJK& geom,
                     double& min_dir, double& max_dir);
   void interpolate_fields_on_downstream_line(const int& dir,
                                              const int& nb_thermal_circles,
@@ -405,7 +405,7 @@ public :
     return disable_post_processing_probes_out_files_;
   }
   int get_first_step_thermals_post() override { return first_step_thermals_post_; }
-  int set_subproblems_interfaces_fields(const IJK_Splitting& splitting) override;
+  int set_subproblems_interfaces_fields(const Domaine_IJK& splitting) override;
 protected :
   void reset_subresolution_distributed_vectors();
   void compute_thermal_subproblems() override;

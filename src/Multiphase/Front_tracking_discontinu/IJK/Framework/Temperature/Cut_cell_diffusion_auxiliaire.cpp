@@ -63,43 +63,28 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, doub
   temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
 
   if (methode_flux_interface_ == METHODE_FLUX_INTERFACE::INTERP_PURE)
-    {
-      compute_interfacial_temperature2(next_time, lambda_liquid, lambda_vapour, temperature_ft, ref_ijk_ft->get_geometry(), ref_ijk_ft->itfce().maillage_ft_ijk(), coord_facettes, interfacial_temperature, interfacial_phin_ai);
-    }
+    compute_interfacial_temperature2(next_time, lambda_liquid, lambda_vapour, temperature_ft, ref_ijk_ft->get_domaine(), ref_ijk_ft->itfce().maillage_ft_ijk(), coord_facettes, interfacial_temperature, interfacial_phin_ai);
   else if (methode_flux_interface_ == METHODE_FLUX_INTERFACE::INTERP_CUT_CELL)
-    {
-      compute_interfacial_temperature_cut_cell(next_time, lambda_liquid, lambda_vapour, cut_field_temperature, ref_ijk_ft->get_geometry(), ref_ijk_ft->itfce().maillage_ft_ijk(), coord_facettes, interfacial_temperature, interfacial_phin_ai);
-    }
+    compute_interfacial_temperature_cut_cell(next_time, lambda_liquid, lambda_vapour, cut_field_temperature, ref_ijk_ft->get_domaine(), ref_ijk_ft->itfce().maillage_ft_ijk(), coord_facettes, interfacial_temperature, interfacial_phin_ai);
   else
-    {
-      Cerr << "Methode non reconnue pour le calcul du flux a l'interface." << finl;
-      Process::exit();
-    }
+    Process::exit("Methode non reconnue pour le calcul du flux a l'interface.");
 
   // Calcul des flux sur le maillage FT
   {
     const Cut_cell_FT_Disc& cut_cell_disc = flux_interface_efficace_.get_cut_cell_disc();
     const Maillage_FT_IJK& mesh = cut_cell_disc.get_interfaces().maillage_ft_ijk();
     const Intersections_Elem_Facettes& intersec = next_time ? mesh.intersections_elem_facettes() : mesh.intersections_elem_facettes_old();
-    const IJK_Splitting& s = flux_interface_ft_[next_time].get_splitting();
+    const Domaine_IJK& s = flux_interface_ft_[next_time].get_domaine();
 
     const int ni = flux_interface_ft_[next_time].ni();
     const int nj = flux_interface_ft_[next_time].nj();
     const int nk = flux_interface_ft_[next_time].nk();
 
     // Initialisation
-    {
-      for (int k = 0; k < nk; k++)
-        {
-          for (int j = 0; j < nj; j++)
-            {
-              for (int i = 0; i < ni; i++)
-                {
-                  flux_interface_ft_[next_time](i, j, k) = 0.;
-                }
-            }
-        }
-    }
+    for (int k = 0; k < nk; k++)
+      for (int j = 0; j < nj; j++)
+        for (int i = 0; i < ni; i++)
+          flux_interface_ft_[next_time](i, j, k) = 0.;
 
     // Calcul pour les faces coupees par l'interface
     {
@@ -112,7 +97,6 @@ void Cut_cell_diffusion_auxiliaire::calculer_flux_interface(bool next_time, doub
                 {
                   if (next_time ? (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().In_ft(i,j,k))) : (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I_ft(i,j,k))))
                     {
-                      assert(mesh.ref_splitting().valeur() == s);
                       const int num_elem = s.convert_ijk_cell_to_packed(i,j,k);
                       int index = index_elem[num_elem];
                       double somme_contrib = 0.;
@@ -197,7 +181,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature2(bool next_t
                                                                      double lambda_liquid,
                                                                      double lambda_vapour,
                                                                      const IJK_Field_double& temperature_ft,
-                                                                     const IJK_Grid_Geometry& geom,
+                                                                     const Domaine_IJK& geom,
                                                                      const Maillage_FT_IJK& maillage,
                                                                      Facettes_data& coord_facettes,
                                                                      Facettes_data& interfacial_temperature,
@@ -278,7 +262,7 @@ void Cut_cell_diffusion_auxiliaire::compute_interfacial_temperature_cut_cell(boo
                                                                              double lambda_liquid,
                                                                              double lambda_vapour,
                                                                              const Cut_field_double& cut_field_temperature,
-                                                                             const IJK_Grid_Geometry& geom,
+                                                                             const Domaine_IJK& geom,
                                                                              const Maillage_FT_IJK& maillage,
                                                                              Facettes_data& coord_facettes,
                                                                              Facettes_data& interfacial_temperature,

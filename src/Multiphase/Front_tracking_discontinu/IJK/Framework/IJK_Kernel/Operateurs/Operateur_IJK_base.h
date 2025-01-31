@@ -20,7 +20,7 @@
 #include <IJK_ptr.h>
 #include <IJK_Field_vector.h>
 #include <IJK_Field_simd_tools.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_data_channel.h>
 #include <Corrige_flux_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -90,7 +90,7 @@ class Operateur_IJK_elem_base_double : public Objet_U
   Declare_base( Operateur_IJK_elem_base_double );
 
 public:
-  virtual void initialize(const IJK_Splitting& splitting)=0;
+  virtual void initialize(const Domaine_IJK& splitting)=0;
   void set_runge_kutta(int rk_step, double dt_tot, IJK_Field_vector3_double& current_fluxes, IJK_Field_vector3_double& RK3_F_fluxes);
   virtual void compute_set(IJK_Field_double& dx);
   virtual void compute_add(IJK_Field_double& dx);

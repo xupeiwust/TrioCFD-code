@@ -14,7 +14,7 @@
 *****************************************************************************/
 
 #include <Statistiques_dns_qc_ijk.h>
-#include <IJK_Grid_Geometry.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <communications.h>
 #include <Param.h>

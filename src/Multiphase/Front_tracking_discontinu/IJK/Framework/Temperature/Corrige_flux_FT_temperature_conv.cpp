@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Corrige_flux_FT_temperature_conv.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/IJK_Kernel/Operateurs
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Corrige_flux_FT_temperature_conv.h>
 #include <DebogIJK.h>
@@ -43,7 +37,7 @@ Entree& Corrige_flux_FT_temperature_conv::readOn( Entree& is )
 }
 
 void Corrige_flux_FT_temperature_conv::initialize(
-  const IJK_Splitting& splitting, const IJK_Field_double& field,
+  const Domaine_IJK& splitting, const IJK_Field_double& field,
   const IJK_Interfaces& interfaces, const Probleme_FTD_IJK_base& ijk_ft,
   Intersection_Interface_ijk_face& intersection_ijk_face,
   Intersection_Interface_ijk_cell& intersection_ijk_cell)
@@ -182,7 +176,7 @@ double Corrige_flux_FT_temperature_conv::extrapolation_amont_1_depuis_l_interfac
   const double Ti = temp_interface_cell_(i_diph);
   const double qi = q_interface_cell_(i_diph);
   // const double d = intersection_ijk_cell_.dist_interf()(i_diph);
-  const double d = 0.5 * splitting_->get_grid_geometry().get_constant_delta(parcours_.face());
+  const double d = 0.5 * domaine_->get_constant_delta(parcours_.face());
   const Vecteur3 norm_interf =
   {
     (intersection_ijk_cell_->norm_interf())(i_diph, 0),
@@ -265,7 +259,7 @@ void Corrige_flux_FT_temperature_conv::corrige_flux_faceIJ(
   parcours_.set_dir(dir);
 
   const auto& surfaces = interfaces_->get_surface_vapeur_par_face();
-  const double s_face = parcours_.calculer_surface_face(splitting_->get_grid_geometry());
+  const double s_face = parcours_.calculer_surface_face(domaine_.valeur());
 
   const int ni = field_->ni();
   const int nj = field_->nj();
@@ -322,11 +316,10 @@ void Corrige_flux_FT_temperature_conv::calcul_temp_flux_interf_pour_bary_face(Ar
 {
   const double ldal = lda_l_;
   const double ldav = lda_v_;
-  const auto& geom = splitting_->get_grid_geometry();
   const double dist = 1.52 * std::pow((
-                                        std::pow(geom.get_constant_delta(0), 2.) +
-                                        std::pow(geom.get_constant_delta(1), 2.) +
-                                        std::pow(geom.get_constant_delta(2), 2.)), 0.5);
+                                        std::pow(domaine_->get_constant_delta(0), 2.) +
+                                        std::pow(domaine_->get_constant_delta(1), 2.) +
+                                        std::pow(domaine_->get_constant_delta(2), 2.)), 0.5);
 
   DoubleTab coo_liqu1;
   DoubleTab coo_vap1;
@@ -394,11 +387,10 @@ void Corrige_flux_FT_temperature_conv::interp_back_to_bary_faces(const ArrOfDoub
   const int n_point_interp = temp_vap.size_array();
   Cerr << "N diph " << n_diph << "n point inter = 2*n_diph " << n_point_interp << finl;
   assert(2*n_diph == n_point_interp);
-  const auto& geom = splitting_->get_grid_geometry();
   const double d1 = 1.52 * std::pow((
-                                      std::pow(geom.get_constant_delta(0), 2.) +
-                                      std::pow(geom.get_constant_delta(1), 2.) +
-                                      std::pow(geom.get_constant_delta(2), 2.)), 0.5);
+                                      std::pow(domaine_->get_constant_delta(0), 2.) +
+                                      std::pow(domaine_->get_constant_delta(1), 2.) +
+                                      std::pow(domaine_->get_constant_delta(2), 2.)), 0.5);
   temperature_barys_.resize(n_diph, 2);
   // On réalise une interpolation proportionelle a la distance entre la
   // tempertaure d'interface et la température de la mm phase qui est au
@@ -431,11 +423,10 @@ void Corrige_flux_FT_temperature_conv::calcul_temp_flux_interf_pour_bary_cell(Ar
 {
   const double ldal = lda_l_;
   const double ldav = lda_v_;
-  const auto& geom = splitting_->get_grid_geometry();
   const double dist = 1.52 * std::pow((
-                                        std::pow(geom.get_constant_delta(0), 2.) +
-                                        std::pow(geom.get_constant_delta(1), 2.) +
-                                        std::pow(geom.get_constant_delta(2), 2.)), 0.5);
+                                        std::pow(domaine_->get_constant_delta(0), 2.) +
+                                        std::pow(domaine_->get_constant_delta(1), 2.) +
+                                        std::pow(domaine_->get_constant_delta(2), 2.)), 0.5);
   DoubleTab coord_vap, coord_liqu;
   calcul_temperature_flux_interface(
     *field_, ldal, ldav, dist, intersection_ijk_cell_->pos_interf(),

@@ -15,7 +15,7 @@
 
 #include <Fourier_trans.h>
 #include <IJK_Field_vector.h>
-#include <IJK_Grid_Geometry.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <communications.h>
 #include <Param.h>
@@ -380,29 +380,28 @@ static void recentrer_spectres(IJK_Field_double& field,IJK_Field_double& tmp )
 }
 // Attention, cette methode est appelee apres readOn(),
 // il ne faut pas casser les donnees lues
-void Fourier_trans::initialize(const IJK_Splitting& split_origine,const IJK_Splitting& split,VECT(ArrOfDouble) vmoy, ArrOfDouble rhomoy, ArrOfDouble numoy, double T_KMAX , double T_KMIN, int avec_reprise)
+void Fourier_trans::initialize(const Domaine_IJK& split_origine,const Domaine_IJK& split,VECT(ArrOfDouble) vmoy, ArrOfDouble rhomoy, ArrOfDouble numoy, double T_KMAX , double T_KMIN, int avec_reprise)
 {
 
   static Stat_Counter_Id cnt_TFprepa = statistiques().new_counter(1, "TF_prepa");
   /* d'abord on initialise la redistribution */
 
-  Post_splitting_ = split ;
+  post_splitting_ = split ;
   Cerr << "Initialisation du post-traitement spectral" << finl;
-  redistribute_to_post_splitting_elem_.initialize(split_origine,Post_splitting_,IJK_Splitting::ELEM);
-  redistribute_to_post_splitting_faces_[0].initialize(split_origine,Post_splitting_,IJK_Splitting::FACES_I);
-  redistribute_to_post_splitting_faces_[1].initialize(split_origine,Post_splitting_,IJK_Splitting::FACES_J);
-  redistribute_to_post_splitting_faces_[2].initialize(split_origine,Post_splitting_,IJK_Splitting::FACES_K);
+  redistribute_to_post_splitting_elem_.initialize(split_origine,post_splitting_,Domaine_IJK::ELEM);
+  redistribute_to_post_splitting_faces_[0].initialize(split_origine,post_splitting_,Domaine_IJK::FACES_I);
+  redistribute_to_post_splitting_faces_[1].initialize(split_origine,post_splitting_,Domaine_IJK::FACES_J);
+  redistribute_to_post_splitting_faces_[2].initialize(split_origine,post_splitting_,Domaine_IJK::FACES_K);
 
   /* on recupere des infos sur le maillage */
-  const IJK_Grid_Geometry& geom = Post_splitting_.get_grid_geometry();
-  const int Nk_tot = geom.get_nb_elem_tot(DIRECTION_K);
+  const int Nk_tot = post_splitting_.get_nb_elem_tot(DIRECTION_K);
 
-  dx_=geom.get_constant_delta(0); //modif AT 20/06/2013
-  dy_=geom.get_constant_delta(1); //modif AT 20/06/2013
-  tab_dz_=geom.get_delta(2); //modif AT 20/06/2013
+  dx_=post_splitting_.get_constant_delta(0); //modif AT 20/06/2013
+  dy_=post_splitting_.get_constant_delta(1); //modif AT 20/06/2013
+  tab_dz_=post_splitting_.get_delta(2); //modif AT 20/06/2013
   elem_coord_.resize_array(Nk_tot);
 
-  const ArrOfDouble& coord_z = geom.get_node_coordinates(DIRECTION_K);
+  const ArrOfDouble& coord_z = post_splitting_.get_node_coordinates(DIRECTION_K);
   for (int i = 0; i < Nk_tot; i++)
     elem_coord_[i] = (coord_z[i] + coord_z[i+1]) * 0.5;
 
@@ -433,11 +432,11 @@ void Fourier_trans::initialize(const IJK_Splitting& split_origine,const IJK_Spli
 
   const int N = N_RES ;
   for (int i = 0 ; i < N ; i++)
-    resultat_[i].allocate(Post_splitting_, IJK_Splitting::ELEM, 0);
+    resultat_[i].allocate(post_splitting_, Domaine_IJK::ELEM, 0);
 
-  const int imax  = Post_splitting_.get_nb_elem_local(DIRECTION_I);
-  const int jmax  = Post_splitting_.get_nb_elem_local(DIRECTION_J);
-  const int kmax  = Post_splitting_.get_nb_elem_local(DIRECTION_K);
+  const int imax  = post_splitting_.get_nb_elem_local(DIRECTION_I);
+  const int jmax  = post_splitting_.get_nb_elem_local(DIRECTION_J);
+  const int kmax  = post_splitting_.get_nb_elem_local(DIRECTION_K);
   statistiques().begin_count(cnt_TFprepa);
   //  allou les tableaux des entrees/sortie de la FFT
   in  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) *(imax*jmax));
@@ -448,30 +447,30 @@ void Fourier_trans::initialize(const IJK_Splitting& split_origine,const IJK_Spli
 
   const int Nval_inter = NVAL_INTER ; // chiffre au hasard pour le moment !!
   /*
-    Div_U.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
+    Div_U.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
     Div_U.data()=0;
 
 
-    DUiDx.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
+    DUiDx.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
     DUiDx.data()=0;
 
 
-    DUjDy.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
+    DUjDy.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
     DUjDy.data()=0;
 
 
-    DUkDz.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
+    DUkDz.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
     DUkDz.data()=0;
     */
-  allocate_velocity(vitesse, Post_splitting_, 1);
-  champ_mu.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
-  pression.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
-  masse_vol.allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
+  allocate_velocity(vitesse, post_splitting_, 1);
+  champ_mu.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
+  pression.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
+  masse_vol.allocate(post_splitting_, Domaine_IJK::ELEM, 1);
   for ( int type = 0 ; type < Nval_inter ; type ++ )
     {
-      Avant_TF[type].allocate(Post_splitting_, IJK_Splitting::ELEM, 1);
-      Reel_TF[type].allocate(Post_splitting_,  IJK_Splitting::ELEM, 1);
-      Imag_TF[type].allocate(Post_splitting_,  IJK_Splitting::ELEM, 1);
+      Avant_TF[type].allocate(post_splitting_, Domaine_IJK::ELEM, 1);
+      Reel_TF[type].allocate(post_splitting_,  Domaine_IJK::ELEM, 1);
+      Imag_TF[type].allocate(post_splitting_,  Domaine_IJK::ELEM, 1);
     }
 
   /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -594,12 +593,12 @@ void Fourier_trans::update(const IJK_Field_vector3_double& vitesse_ori,
   const ArrOfDouble& nu_moy = nu_moy_;  // DD 16/10/2015
 
   // Nombre total de mailles en K
-  const int nktot = Post_splitting_.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = post_splitting_.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   // Nombre local de mailles en K
   const int imax = pression.ni();
   const int jmax = pression.nj();
   const int kmax = pression.nk();
-  const int offsetk = Post_splitting_.get_offset_local(DIRECTION_K);
+  const int offsetk = post_splitting_.get_offset_local(DIRECTION_K);
 
   const double unsurdx=1./dx_;
   const double unsurdy=1./dy_;
@@ -1224,7 +1223,7 @@ void Fourier_trans::update(const IJK_Field_vector3_double& vitesse_ori,
       /*
        * const double unsurdz = 1./tab_dz_[kg];
        * // AUTRE FACON DE CALCULER Lx
-       * // const IJK_Grid_Geometry & geom = Post_splitting_.get_grid_geometry();
+       * // const Domaine_IJK & geom = post_splitting_;
        * // const int Nx_tot = geom.get_nb_elem_tot(0) + 1;
        * // const int Ny_tot = geom.get_nb_elem_tot(1) + 1;
        * // const double Lx = geom.get_node_coordinates(0)[Nx_tot - 1] - geom.get_origin(0);
@@ -1680,7 +1679,7 @@ void Fourier_trans::update(const IJK_Field_vector3_double& vitesse_ori,
 /* converti un tableau dans l'espace spectral */
 void Fourier_trans::Traitement_spectral(const IJK_Field_double& entree, IJK_Field_double& reel, IJK_Field_double& imag, int sens)
 {
-  const int Nk  = Post_splitting_.get_nb_elem_local(DIRECTION_K);
+  const int Nk  = post_splitting_.get_nb_elem_local(DIRECTION_K);
   if ( sens == 1 )
     {
       for (int k = 0 ; k < Nk ; k++)
@@ -1700,8 +1699,8 @@ void Fourier_trans::Traitement_spectral(const IJK_Field_double& entree, IJK_Fiel
 
 void Fourier_trans::Traitement_spectral_klayer_direct(const IJK_Field_double& entree, IJK_Field_double& reel, IJK_Field_double& imag, int k)
 {
-  const int Ni  = Post_splitting_.get_nb_elem_local(DIRECTION_I);
-  const int Nj  = Post_splitting_.get_nb_elem_local(DIRECTION_J);
+  const int Ni  = post_splitting_.get_nb_elem_local(DIRECTION_I);
+  const int Nj  = post_splitting_.get_nb_elem_local(DIRECTION_J);
 
   for (int j=0 ; j < Nj ; j++)
     for (int i=0; i < Ni ; i++)
@@ -1729,8 +1728,8 @@ void Fourier_trans::Traitement_spectral_klayer_direct(const IJK_Field_double& en
 
 void Fourier_trans::Traitement_spectral_klayer_inverse(IJK_Field_double& reel, IJK_Field_double& imag, int k)
 {
-  const int Ni  = Post_splitting_.get_nb_elem_local(DIRECTION_I);
-  const int Nj  = Post_splitting_.get_nb_elem_local(DIRECTION_J);
+  const int Ni  = post_splitting_.get_nb_elem_local(DIRECTION_I);
+  const int Nj  = post_splitting_.get_nb_elem_local(DIRECTION_J);
 
   for (int j=0 ; j < Nj ; j++)
     for (int i=0; i < Ni ; i++)
@@ -1829,8 +1828,8 @@ void Fourier_trans::postraiter_TFi(Sortie& os, int flag_valeur_instantanee) cons
   const int N = N_RES;
   // tous les processeurs ecrivent en meme temps mais chaun son fichier !!!
 
-  const int kmax  = Post_splitting_.get_nb_elem_local(DIRECTION_K);
-  const int offsetk = Post_splitting_.get_offset_local(DIRECTION_K);
+  const int kmax  = post_splitting_.get_nb_elem_local(DIRECTION_K);
+  const int offsetk = post_splitting_.get_offset_local(DIRECTION_K);
   const int Taille = tri_ki.size_array();
 
   for (int z = 0; z < kmax; z++)
@@ -1864,12 +1863,11 @@ void Fourier_trans::postraiter_TFx(Sortie& os, int flag_valeur_instantanee) cons
   const int N = N_RES;
   // tous les processeurs ecrivent en meme temps mais chaun son fichier !!!
 
-  const int kmax  = Post_splitting_.get_nb_elem_local(DIRECTION_K);
-  const int imax  = Post_splitting_.get_nb_elem_local(DIRECTION_I);
-  const int offsetk = Post_splitting_.get_offset_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = Post_splitting_.get_grid_geometry();
-  const int Nx_tot = geom.get_nb_elem_tot(0) + 1;
-  const double Lx = geom.get_node_coordinates(0)[Nx_tot - 1] - geom.get_origin(0);
+  const int kmax  = post_splitting_.get_nb_elem_local(DIRECTION_K);
+  const int imax  = post_splitting_.get_nb_elem_local(DIRECTION_I);
+  const int offsetk = post_splitting_.get_offset_local(DIRECTION_K);
+  const int Nx_tot = post_splitting_.get_nb_elem_tot(0) + 1;
+  const double Lx = post_splitting_.get_node_coordinates(0)[Nx_tot - 1] - post_splitting_.get_origin(0);
   const double fac = 1./Lx;
   for (int z = 0; z < kmax; z++)
     {
@@ -1902,12 +1900,11 @@ void Fourier_trans::postraiter_TFy(Sortie& os, int flag_valeur_instantanee) cons
   const int N = N_RES;
   // tous les processeurs ecrivent en meme temps mais chaun son fichier !!!
 
-  const int kmax  = Post_splitting_.get_nb_elem_local(DIRECTION_K);
-  const int jmax  = Post_splitting_.get_nb_elem_local(DIRECTION_J);
-  const int offsetk = Post_splitting_.get_offset_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = Post_splitting_.get_grid_geometry();
-  const int Ny_tot = geom.get_nb_elem_tot(1) + 1;
-  const double Ly = geom.get_node_coordinates(1)[Ny_tot - 1] - geom.get_origin(1);
+  const int kmax  = post_splitting_.get_nb_elem_local(DIRECTION_K);
+  const int jmax  = post_splitting_.get_nb_elem_local(DIRECTION_J);
+  const int offsetk = post_splitting_.get_offset_local(DIRECTION_K);
+  const int Ny_tot = post_splitting_.get_nb_elem_tot(1) + 1;
+  const double Ly = post_splitting_.get_node_coordinates(1)[Ny_tot - 1] - post_splitting_.get_origin(1);
   const double fac = 1./Ly;
 
   for (int z = 0; z < kmax; z++)
@@ -1941,7 +1938,7 @@ void Fourier_trans::sauvegarde() const
   Cerr << "Sauvegarde parrallele des stats spectrales " << finl;
   Nom nom_sauv = "Sauvegarde_spectrale_";
   // on va indiquer la position dans le mapping, on ne sais jamais des fois que cela bouge !!!!
-  int pos = Post_splitting_.get_local_slice_index(2);
+  int pos = post_splitting_.get_local_slice_index(2);
   nom_sauv += Nom(pos) + ".sauv";
   SFichier fichier(nom_sauv);
   fichier.precision(17);
@@ -1973,7 +1970,7 @@ void Fourier_trans::reprise()
   // on a deja lu tous le  fichier de reprise de base on va lire les specifiques pour ici !!!
   Nom nom_sauv = "Sauvegarde_spectrale_";
   // on va indiquer la position dans le mapping, on ne sais jamais des fois que cela bouge !!!!
-  int pos = Post_splitting_.get_local_slice_index(2);
+  int pos = post_splitting_.get_local_slice_index(2);
   nom_sauv += Nom(pos) + ".sauv";
   Cerr << " Reprise des stats spectrales dans "<< nom_sauv << finl;
 

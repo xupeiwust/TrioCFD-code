@@ -37,7 +37,7 @@ class Operateur_IJK_elem_conv: public OWN_PTR(Operateur_IJK_elem_conv_base_doubl
 {
   Declare_instanciable( Operateur_IJK_elem_conv );
 public:
-  inline void initialize(const IJK_Splitting &splitting);
+  inline void initialize(const Domaine_IJK &splitting);
   Nom get_convection_op_type(Motcle word);
   void reset_operator();
   Entree& typer_convection_op(Entree &is);
@@ -55,7 +55,7 @@ protected:
   bool is_cast_;
 };
 
-inline void Operateur_IJK_elem_conv::initialize(const IJK_Splitting& splitting)
+inline void Operateur_IJK_elem_conv::initialize(const Domaine_IJK& splitting)
 {
   if (!is_cast_)
     typer_convection_op("quick");

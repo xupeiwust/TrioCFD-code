@@ -25,7 +25,7 @@
 #include <Objet_U.h>
 #include <MonofluidVar.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Parser.h>
 #include <IJK_Interfaces.h>
 #include <IJK_Lata_writer.h>
@@ -76,7 +76,7 @@ public:
   const ArrOfInt& get_indices_to_keep() const { return indices_to_keep_;}
   const ArrOfInt& get_normale_vec() const {return next_elem_;}
 
-  double calculer_surface_face(const IJK_Grid_Geometry& geom) const
+  double calculer_surface_face(const Domaine_IJK& geom) const
   {
     double surface = 1.;
     for (int c = 0; c < 2; c++)

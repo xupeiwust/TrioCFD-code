@@ -16,7 +16,7 @@
 #ifndef Operateur_IJK_data_channel_h
 #define Operateur_IJK_data_channel_h
 #include <IJK_Field.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 
 // Data used by IJK operators in the case of a
 //  biperiodic channel uniform mesh in i and j,
@@ -24,7 +24,7 @@
 class Operateur_IJK_data_channel
 {
 public:
-  void initialize(const IJK_Splitting& splitting);
+  void initialize(const Domaine_IJK& splitting);
 
   int nb_elem_k_tot() const
   {

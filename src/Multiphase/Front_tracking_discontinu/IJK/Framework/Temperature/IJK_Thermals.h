@@ -49,7 +49,7 @@ public :
   void sauvegarder_temperature(Nom& lata_name, const int& stop);
   void sauvegarder_thermals(SFichier& fichier);
   void compute_timestep(double& dt_thermals, const double dxmin);
-  void initialize(const IJK_Splitting& splitting, int& nalloc);
+  void initialize(const Domaine_IJK& splitting, int& nalloc);
   void recompute_temperature_init();
   void copie_pure_vers_diph_sans_interpolation();
   void echange_pure_vers_diph_cellules_initialement_pures();
@@ -70,11 +70,11 @@ public :
                                               const int latastep,
                                               const double current_time,
                                               int& n);
-  int init_switch_thermals(const IJK_Splitting& splitting);
+  int init_switch_thermals(const Domaine_IJK& splitting);
   void prepare_thermals(const char *lataname);
   int ghost_fluid_flag();
   void ecrire_fichier_reprise(SFichier& fichier, const char *lata_name);
-  void compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init);
+  void compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& splitting, int ghost_init);
   int get_probes_ghost_cells(int ghost_init);
 
   void update_intersections();
@@ -100,7 +100,7 @@ public :
   void set_temperature_ini();
   void recompute_interface_smoothing();
   void compute_new_thermal_field(Switch_FT_double& switch_double_ft,
-                                 const IJK_Splitting& new_mesh,
+                                 const Domaine_IJK& new_mesh,
                                  const Nom& lata_name,
                                  DoubleTab& coeff_i,
                                  IntTab Indice_i,

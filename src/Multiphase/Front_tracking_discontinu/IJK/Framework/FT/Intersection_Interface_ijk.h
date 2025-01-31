@@ -38,7 +38,7 @@
 #include <Objet_U.h>
 #include <IJK_Field.h>
 #include <IJK_Field_vector.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field_forward.h>
 #define NEIGHBOURS_I {-1, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
@@ -62,7 +62,7 @@ class Intersection_Interface_ijk : public Objet_U
 {
   Declare_base(Intersection_Interface_ijk);
 public:
-  virtual int initialize(const IJK_Splitting& splitting,
+  virtual int initialize(const Domaine_IJK& splitting,
                          const IJK_Interfaces& interfaces) = 0;
 
   // Cette méthode permet de récupérer à partir des positions projetées sur
@@ -110,7 +110,7 @@ protected:
    * TODO: create pointers that point to object
    * shared with IJK_Interfaces ?
    */
-  const IJK_Splitting *splitting_ = nullptr;
+  const Domaine_IJK *splitting_ = nullptr;
 
   // Le nombre de cellules diphasiques.
   int n_diph_ = 1;
@@ -134,7 +134,7 @@ class Intersection_Interface_ijk_face : public Intersection_Interface_ijk
   Declare_instanciable_sans_constructeur(Intersection_Interface_ijk_face);
 public:
   Intersection_Interface_ijk_face() : Intersection_Interface_ijk() {};
-  int initialize(const IJK_Splitting& splitting,
+  int initialize(const Domaine_IJK& splitting,
                  const IJK_Interfaces& interfaces) override;
 
   // const int& operator()(int i_diph) const { return ijkf_interfaces_(i_diph); }
@@ -174,7 +174,7 @@ class Intersection_Interface_ijk_cell : public Intersection_Interface_ijk
   Declare_instanciable_sans_constructeur(Intersection_Interface_ijk_cell);
 public:
   Intersection_Interface_ijk_cell() : Intersection_Interface_ijk() {};
-  int initialize(const IJK_Splitting& splitting,
+  int initialize(const Domaine_IJK& splitting,
                  const IJK_Interfaces& interfaces) override;
 
   // int& operator()(const int i,const int j,const int k);

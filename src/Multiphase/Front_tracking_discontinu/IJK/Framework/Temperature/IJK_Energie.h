@@ -21,7 +21,7 @@
 #include <IJK_FT_Post.h>
 #include <IJK_Field.h>
 #include <IJK_Lata_writer.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <MonofluidVar.h>
 #include <Objet_U.h>
 #include <OpConvQuickInterfaceOnefluidIJKScalar.h>
@@ -41,7 +41,7 @@ class IJK_Energie : public Objet_U
   Declare_instanciable(IJK_Energie);
 
 public:
-  int initialize(const IJK_Splitting& splitting, const int idx);
+  int initialize(const Domaine_IJK& splitting, const int idx);
   void update_thermal_properties();
   double compute_timestep(const double timestep, const double dxmin) const;
   void associer(const Probleme_FTD_IJK_base& ijk_ft);

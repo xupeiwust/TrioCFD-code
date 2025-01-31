@@ -15,16 +15,15 @@
 
 #include <Operateur_IJK_data_channel.h>
 
-void Operateur_IJK_data_channel::initialize(const IJK_Splitting& splitting)
+void Operateur_IJK_data_channel::initialize(const Domaine_IJK& grid_geom)
 {
-  const IJK_Grid_Geometry& grid_geom = splitting.get_grid_geometry();
 
   nb_elem_k_tot_ = grid_geom.get_nb_elem_tot(2);
-  offset_to_global_k_layer_ = splitting.get_offset_local(2);
+  offset_to_global_k_layer_ = grid_geom.get_offset_local(2);
   delta_x_ = grid_geom.get_constant_delta(0);
   delta_y_ = grid_geom.get_constant_delta(1);
 
-  splitting.get_local_mesh_delta(2 /*direction*/, 2 /* number of ghost cells to get */, delta_z_);
+  grid_geom.get_local_mesh_delta(2 /*direction*/, 2 /* number of ghost cells to get */, delta_z_);
 
   inv_delta_x_ = 1. / delta_x_;
   inv_delta_y_ = 1. / delta_y_;

@@ -86,7 +86,7 @@ void OpConvCentre2IJK_double::fill_g_compo(DoubleTab& g, int nb_values, int offs
     }
 }
 
-void OpConvCentre2IJK_double::initialize(const IJK_Splitting& splitting)
+void OpConvCentre2IJK_double::initialize(const Domaine_IJK& splitting)
 {
   Operateur_IJK_faces_conv_base_double::initialize(splitting);
 

@@ -74,10 +74,10 @@ const IJK_Field_local_double& Operateur_IJK_elem_diff_base_double::get_model(DIR
   return *coeff_field_x_;
 }
 
-void Operateur_IJK_elem_diff_base_double::initialize(const IJK_Splitting& splitting)
+void Operateur_IJK_elem_diff_base_double::initialize(const Domaine_IJK& splitting)
 {
   channel_data_.initialize(splitting);
-  perio_k_= splitting.get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  perio_k_= splitting.get_periodic_flag(DIRECTION_K);
 }
 
 void Operateur_IJK_elem_diff_base_double::calculer(const IJK_Field_double& field,

@@ -685,8 +685,8 @@ void IJK_Interfaces::compute_vinterp()
     }
 }
 
-int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
-                               const IJK_Splitting& splitting_NS,
+int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
+                               const Domaine_IJK& domaine_NS,
                                const Domaine_dis_base& domaine_dis,
                                const int thermal_probes_ghost_cells,
                                const bool compute_vint,
@@ -696,93 +696,93 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   int nalloc = 0;
   set_recompute_indicator(CLASSIC_METHOD);
 
-  ref_splitting_ = splitting_FT;
+  ref_domaine_ = domaine_FT;
 
-  surface_vapeur_par_face_computation_.initialize(splitting_FT);
-  val_par_compo_in_cell_computation_.initialize(splitting_FT, maillage_ft_ijk_);
+  surface_vapeur_par_face_computation_.initialize(domaine_FT);
+  val_par_compo_in_cell_computation_.initialize(domaine_FT, maillage_ft_ijk_);
 
   if ((not is_switch) || cut_cell_activated_)
     {
       const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
-      indicatrice_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_ft_[old()].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
       indicatrice_ft_[old()].data() = 1.;
       indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
-      indicatrice_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_ft_[next()].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
       indicatrice_ft_[next()].data() = 1.;
       indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
-      indicatrice_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_ns_[old()].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       indicatrice_ns_[old()].data() = 1.;
-      allocate_cell_vector(groups_indicatrice_ns_[old()], splitting_NS, 1);
-      allocate_cell_vector(groups_indicatrice_ns_[next()], splitting_NS, 1);
+      allocate_cell_vector(groups_indicatrice_ns_[old()], domaine_NS, 1);
+      allocate_cell_vector(groups_indicatrice_ns_[next()], domaine_NS, 1);
       indicatrice_ns_[old()].echange_espace_virtuel(indicatrice_ns_[old()].ghost());
-      indicatrice_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_ns_[next()].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       indicatrice_ns_[next()].data() = 1.;
       indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
       nalloc += 4;
-      indicatrice_avant_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_avant_remaillage_ft_.allocate(domaine_FT, IJK_Splitting::ELEM, 2);
       indicatrice_avant_remaillage_ft_.data() = 1.;
       indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
-      indicatrice_avant_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_avant_remaillage_ns_.allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       indicatrice_avant_remaillage_ns_.data() = 1.;
       indicatrice_avant_remaillage_ns_.echange_espace_virtuel(indicatrice_avant_remaillage_ns_.ghost());
-      indicatrice_apres_remaillage_ft_.allocate(splitting_FT, IJK_Splitting::ELEM, 2);
+      indicatrice_apres_remaillage_ft_.allocate(domaine_FT, IJK_Splitting::ELEM, 2);
       indicatrice_apres_remaillage_ft_.data() = 1.;
       indicatrice_apres_remaillage_ft_.echange_espace_virtuel(indicatrice_apres_remaillage_ft_.ghost());
-      indicatrice_apres_remaillage_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      indicatrice_apres_remaillage_ns_.allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       indicatrice_apres_remaillage_ns_.data() = 1.;
       indicatrice_apres_remaillage_ns_.echange_espace_virtuel(indicatrice_apres_remaillage_ns_.ghost());
-      delta_volume_theorique_bilan_ns_.allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      delta_volume_theorique_bilan_ns_.allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       delta_volume_theorique_bilan_ns_.data() = 0.;
       delta_volume_theorique_bilan_ns_.echange_espace_virtuel(delta_volume_theorique_bilan_ns_.ghost());
       nalloc += 5;
-      allocate_cell_vector(groups_indicatrice_ft_[old()], splitting_FT, 1);
-      allocate_cell_vector(groups_indicatrice_ft_[next()], splitting_FT, 1);
+      allocate_cell_vector(groups_indicatrice_ft_[old()], domaine_FT, 1);
+      allocate_cell_vector(groups_indicatrice_ft_[next()], domaine_FT, 1);
       nalloc += 6;
 #if VERIF_INDIC
-      indicatrice_ft_test_.allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-      allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
-      allocate_cell_vector(groups_indicatrice_ft_test_, splitting_FT, 1);
+      indicatrice_ft_test_.allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+      allocate_cell_vector(groups_indicatrice_ft_test_, domaine_FT, 1);
+      allocate_cell_vector(groups_indicatrice_ft_test_, domaine_FT, 1);
       nalloc += 7;
 #endif
-      nb_compo_traversante_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
-      nb_compo_traversante_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 0);
+      nb_compo_traversante_[old()].allocate(domaine_FT, IJK_Splitting::ELEM, 0);
+      nb_compo_traversante_[next()].allocate(domaine_FT, IJK_Splitting::ELEM, 0);
       nalloc += 2;
       for (int i = 0; i < max_authorized_nb_of_components_; i++)
         {
-          compos_traversantes_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          surface_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          indicatrice_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          courbure_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          phi_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+          compos_traversantes_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          surface_par_compo_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          indicatrice_par_compo_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          courbure_par_compo_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          phi_par_compo_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
           for (int dir = 0; dir < 3; dir++)
-            grad_sigma_par_compo_[old()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          repuls_par_compo_[old()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          compos_traversantes_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          surface_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          indicatrice_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          phi_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+            grad_sigma_par_compo_[old()][dir][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          repuls_par_compo_[old()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          compos_traversantes_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          surface_par_compo_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          indicatrice_par_compo_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          phi_par_compo_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
           for (int dir = 0; dir < 3; dir++)
-            grad_sigma_par_compo_[next()][dir][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          repuls_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-          courbure_par_compo_[next()][i].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+            grad_sigma_par_compo_[next()][dir][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          repuls_par_compo_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+          courbure_par_compo_[next()][i].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
           nalloc += 12;
           // Et pour les vecteurs :
           for (int dir = 0; dir < 3; dir++)
             {
               const int idx = i * 3 + dir;
-              normale_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-              bary_par_compo_[old()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
-              normale_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-              bary_par_compo_[next()][idx].allocate(splitting_FT, IJK_Splitting::ELEM, 1);
+              normale_par_compo_[old()][idx].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+              bary_par_compo_[old()][idx].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
+              normale_par_compo_[next()][idx].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+              bary_par_compo_[next()][idx].allocate(domaine_FT, IJK_Splitting::ELEM, 1);
               nalloc += 4;
             }
         }
 
-      surface_interface_ft_[old()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-      surface_interface_ft_[next()].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-      surface_interface_ns_[old()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-      surface_interface_ns_[next()].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      surface_interface_ft_[old()].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+      surface_interface_ft_[next()].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+      surface_interface_ns_[old()].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+      surface_interface_ns_[next()].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
       nalloc += 4;
 
       surface_interface_ft_[old()].data() = 0.;
@@ -790,10 +790,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
       surface_interface_ns_[old()].data() = 0.;
       surface_interface_ns_[next()].data() = 0.;
 
-      allocate_cell_vector(barycentre_phase1_ft_[old()], splitting_FT, 2);
-      allocate_cell_vector(barycentre_phase1_ft_[next()], splitting_FT, 2);
-      allocate_cell_vector(barycentre_phase1_ns_[old()], splitting_NS, nb_ghost_cells);
-      allocate_cell_vector(barycentre_phase1_ns_[next()], splitting_NS, nb_ghost_cells);
+      allocate_cell_vector(barycentre_phase1_ft_[old()], domaine_FT, 2);
+      allocate_cell_vector(barycentre_phase1_ft_[next()], domaine_FT, 2);
+      allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells);
+      allocate_cell_vector(barycentre_phase1_ns_[next()], domaine_NS, nb_ghost_cells);
       nalloc += 4;
 
       for (int bary_compo = 0; bary_compo < 3; bary_compo++)
@@ -804,10 +804,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
           barycentre_phase1_ns_[next()][bary_compo].data() = 0.;
         }
 
-      allocate_velocity(indicatrice_surfacique_face_ft_[old()], splitting_FT, 2);
-      allocate_velocity(indicatrice_surfacique_face_ft_[next()], splitting_FT, 2);
-      allocate_velocity(indicatrice_surfacique_face_ns_[old()], splitting_NS, nb_ghost_cells);
-      allocate_velocity(indicatrice_surfacique_face_ns_[next()], splitting_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_face_ft_[old()], domaine_FT, 2);
+      allocate_velocity(indicatrice_surfacique_face_ft_[next()], domaine_FT, 2);
+      allocate_velocity(indicatrice_surfacique_face_ns_[old()], domaine_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_face_ns_[next()], domaine_NS, nb_ghost_cells);
       nalloc += 12;
 
       for (int face_dir = 0; face_dir < 3; face_dir++)
@@ -818,10 +818,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
           indicatrice_surfacique_face_ns_[next()][face_dir].data() = 0.;
         }
 
-      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ft_, splitting_FT, 2);
-      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
-      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ft_, splitting_FT, 2);
-      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, splitting_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ft_, domaine_FT, 2);
+      allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ns_, domaine_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ft_, domaine_FT, 2);
+      allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, domaine_NS, nb_ghost_cells);
       nalloc += 12;
 
       for (int face_dir = 0; face_dir < 3; face_dir++)
@@ -836,10 +836,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
         {
           for (int bary_compo = 0; bary_compo < 2; bary_compo++)
             {
-              barycentre_phase1_face_ft_[old()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-              barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(splitting_FT, IJK_Splitting::ELEM, 2);
-              barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
-              barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(splitting_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+              barycentre_phase1_face_ft_[old()][face_dir][bary_compo].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+              barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(domaine_FT, IJK_Splitting::ELEM, 2);
+              barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
+              barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(domaine_NS, IJK_Splitting::ELEM, nb_ghost_cells);
               nalloc += 4;
             }
         }
@@ -855,45 +855,45 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
             }
         }
 
-      allocate_velocity(normal_of_interf_[old()], splitting_FT, 2);
-      allocate_velocity(normal_of_interf_[next()], splitting_FT, 2);
-      allocate_velocity(normal_of_interf_ns_[old()], splitting_NS, nb_ghost_cells);
-      allocate_velocity(normal_of_interf_ns_[next()], splitting_NS, nb_ghost_cells);
+      allocate_velocity(normal_of_interf_[old()], domaine_FT, 2);
+      allocate_velocity(normal_of_interf_[next()], domaine_FT, 2);
+      allocate_velocity(normal_of_interf_ns_[old()], domaine_NS, nb_ghost_cells);
+      allocate_velocity(normal_of_interf_ns_[next()], domaine_NS, nb_ghost_cells);
       nalloc += 12;
 
-      allocate_velocity(bary_of_interf_[old()], splitting_FT, 1);
-      allocate_velocity(bary_of_interf_[next()], splitting_FT, 1);
-      allocate_velocity(bary_of_interf_ns_[old()], splitting_NS, 1);
-      allocate_velocity(bary_of_interf_ns_[next()], splitting_NS, 1);
+      allocate_velocity(bary_of_interf_[old()], domaine_FT, 1);
+      allocate_velocity(bary_of_interf_[next()], domaine_FT, 1);
+      allocate_velocity(bary_of_interf_ns_[old()], domaine_NS, 1);
+      allocate_velocity(bary_of_interf_ns_[next()], domaine_NS, 1);
       nalloc += 12;
 
-      allocate_velocity(surface_vapeur_par_face_[old()], splitting_FT, 1);
-      allocate_velocity(surface_vapeur_par_face_[next()], splitting_FT, 1);
-      allocate_velocity(surface_vapeur_par_face_ns_[old()], splitting_NS, 1);
-      allocate_velocity(surface_vapeur_par_face_ns_[next()], splitting_NS, 1);
+      allocate_velocity(surface_vapeur_par_face_[old()], domaine_FT, 1);
+      allocate_velocity(surface_vapeur_par_face_[next()], domaine_FT, 1);
+      allocate_velocity(surface_vapeur_par_face_ns_[old()], domaine_NS, 1);
+      allocate_velocity(surface_vapeur_par_face_ns_[next()], domaine_NS, 1);
       nalloc += 12;
 
       for (int d = 0; d < 3; d++)
         {
           surface_vapeur_par_face_[old()][d].data() = 0.;
           surface_vapeur_par_face_[next()][d].data() = 0.;
-          allocate_velocity(barycentre_vapeur_par_face_[old()][d], splitting_FT, 1);
-          allocate_velocity(barycentre_vapeur_par_face_[next()][d], splitting_FT, 1);
+          allocate_velocity(barycentre_vapeur_par_face_[old()][d], domaine_FT, 1);
+          allocate_velocity(barycentre_vapeur_par_face_[next()][d], domaine_FT, 1);
           surface_vapeur_par_face_ns_[old()][d].data() = 0.;
           surface_vapeur_par_face_ns_[next()][d].data() = 0.;
-          allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], splitting_NS, 1);
-          allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], splitting_NS, 1);
+          allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], domaine_NS, 1);
+          allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], domaine_NS, 1);
           nalloc += 12;
         }
 
       if (cut_cell_activated_)
         {
           Cut_field_vector3_double& cut_field_deformation_velocity = static_cast<Cut_field_vector3_double&>(deformation_velocity_);
-          allocate_velocity_ephemere(*ref_ijk_ft_->get_cut_cell_disc(), cut_field_deformation_velocity, splitting_NS, 2);
+          allocate_velocity_ephemere(*ref_ijk_ft_->get_cut_cell_disc(), cut_field_deformation_velocity, domaine_NS, 2);
           nalloc += 3;
         }
 
-      allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, splitting_NS, nb_ghost_cells);
+      allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, domaine_NS, nb_ghost_cells);
       nalloc += 3;
     }
 
@@ -901,9 +901,6 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
     return nalloc;
 
   refdomaine_dis_ = domaine_dis;
-
-  const IJK_Grid_Geometry& geom_NS = splitting_NS.get_grid_geometry();
-  const IJK_Grid_Geometry& geom_FT = splitting_FT.get_grid_geometry();
 
   // Calcul de la bounding box de Navier Stokes et stockage en memoire de la
   // perio.
@@ -919,19 +916,19 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   bounding_box_forbidden_criteria_.resize(3, 2);
   for (int direction = 0; direction < 3; direction++)
     {
-      const double ori = geom_NS.get_origin(direction);
-      const double len = geom_NS.get_domain_length(direction);
+      const double ori = domaine_NS.get_origin(direction);
+      const double len = domaine_NS.get_domain_length(direction);
       bounding_box_NS_domain_(direction, 0) = ori;
       bounding_box_NS_domain_(direction, 1) = ori + len;
-      bool perio = geom_NS.get_periodic_flag(direction);
+      bool perio = domaine_NS.get_periodic_flag(direction);
       perio_NS_[direction] = perio;
       if (perio)
         {
           // Les bulles qui entre dans les ncells_forbidden_ dernieres mailles
           // doivent etre deplacees.
-          const double oriFT = geom_FT.get_origin(direction);
-          const double lenFT = geom_FT.get_domain_length(direction);
-          const double delta = geom_FT.get_constant_delta(direction);
+          const double oriFT = domaine_FT.get_origin(direction);
+          const double lenFT = domaine_FT.get_domain_length(direction);
+          const double delta = domaine_FT.get_constant_delta(direction);
           // largeur du domaine, au bord du domaine navier stokes, au sein de
           // laquelle on declanche la duplication des bulles (si une bulle depasse a
           // l'exterieur du domaine, on duplique) Cette domaine tient compte du stencil
@@ -972,10 +969,10 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   connectivite_frontieres_.associer_domaine_vf(domaine_vf);
   parcours_.associer_connectivite_frontieres(connectivite_frontieres_);
 
-  maillage_ft_ijk_.initialize(splitting_FT, domaine_dis, parcours_);
+  maillage_ft_ijk_.initialize(domaine_FT, domaine_dis, parcours_);
   if (cut_cell_activated_)
     {
-      old_maillage_ft_ijk_.initialize(splitting_FT, domaine_dis, parcours_);
+      old_maillage_ft_ijk_.initialize(domaine_FT, domaine_dis, parcours_);
     }
 
   // Lecture du maillage initial:
@@ -1074,8 +1071,8 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
    * TODO: Add nalloc
    */
   read_bubbles_barycentres_old_new(fichier_reprise_interface_);
-  intersection_ijk_cell_.initialize(splitting_NS, *this);
-  intersection_ijk_face_.initialize(splitting_NS, *this);
+  intersection_ijk_cell_.initialize(domaine_NS, *this);
+  intersection_ijk_face_.initialize(domaine_NS, *this);
   nalloc += ijk_compo_connex_.initialize(*this, is_switch);
   return nalloc;
 }
@@ -1323,7 +1320,7 @@ void IJK_Interfaces::supprimer_certaines_bulles_reelles()
     {
       // Calcul du domaine dans lequelle une bulle est supprimee:
       bounding_box_delete_criteria_.resize(3, 2);
-      const IJK_Grid_Geometry& geom_FT = ref_splitting_->get_grid_geometry();
+      const Domaine_IJK& geom_FT = ref_domaine_.valeur();
       for (int direction = 0; direction < 3; direction++)
         {
           if (perio_NS_[direction])
@@ -1845,8 +1842,7 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
                                                             const int& store_values)
 {
   calculer_volume_bulles(volumes, barycentres);
-  const IJK_Splitting& splitting = I().get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = I().get_domaine();
   if (store_values && !has_computed_bubble_barycentres_)
     {
       if (ref_ijk_ft_->get_tstep() == 0)
@@ -2068,7 +2064,7 @@ void IJK_Interfaces::calculer_surfactant(ArrOfDouble& surfactant,ArrOfDouble& su
 }
 
 
-void IJK_Interfaces::calculer_poussee_bulles(const ArrOfDouble& grav,
+void IJK_Interfaces::calculer_poussee_bulles(const DoubleTab& grav,
                                              DoubleTab& poussee) const
 {
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
@@ -2105,7 +2101,7 @@ void IJK_Interfaces::calculer_poussee_bulles(const ArrOfDouble& grav,
       const double coord_centre_gravite_j = (sommets(i0, 1) + sommets(i1, 1) + sommets(i2, 1)) / 3.;
       const double coord_centre_gravite_k = (sommets(i0, 2) + sommets(i1, 2) + sommets(i2, 2)) / 3.;
       const double grav_scalaire_position_fois_s =
-        (grav[0] * coord_centre_gravite_i + grav[1] * coord_centre_gravite_j + grav[2] * coord_centre_gravite_k) * s;
+        (grav(0,0) * coord_centre_gravite_i + grav(0,1) * coord_centre_gravite_j + grav(0,2) * coord_centre_gravite_k) * s;
       for (int dir = 0; dir < 3; dir++)
         poussee(compo, dir) += grav_scalaire_position_fois_s * normales_facettes(i, dir);
     }
@@ -2120,8 +2116,7 @@ void IJK_Interfaces::calculer_aire_interfaciale(IJK_Field_double& ai) const
   const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
 
   const int n = mesh.nb_facettes();
-  const IJK_Splitting& s = ai.get_splitting();
-  const IJK_Grid_Geometry& geom = s.get_grid_geometry();
+  const Domaine_IJK& geom = ai.get_domaine();
   const double dxi = geom.get_constant_delta(DIRECTION_I);
   const double dxj = geom.get_constant_delta(DIRECTION_J);
   const double dxk = geom.get_constant_delta(DIRECTION_K);
@@ -2146,7 +2141,7 @@ void IJK_Interfaces::calculer_aire_interfaciale(IJK_Field_double& ai) const
           // Anciennement la methode etait portee par le mesh :
           //      const Int3 ijk = mesh.convert_packed_to_ijk_cell(num_elem);
           // A present, elle est dans le splitting :
-          const Int3 ijk = s.convert_packed_to_ijk_cell(num_elem);
+          const Int3 ijk = geom.convert_packed_to_ijk_cell(num_elem);
           const double surf = data.fraction_surface_intersection_ * sf;
           ai(ijk[0], ijk[1], ijk[2]) += surf / vol;
           index = data.index_element_suivant_;
@@ -2182,11 +2177,11 @@ void IJK_Interfaces::calculer_kappa_ft(IJK_Field_double& kappa_ft)
   const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
 
   const int n = mesh.nb_facettes();
-  const IJK_Splitting& s = kappa_ft.get_splitting();
+  const Domaine_IJK& s = kappa_ft.get_domaine();
 
 
   IJK_Field_double SI_ft;
-  SI_ft.allocate(s, IJK_Splitting::ELEM, 0);
+  SI_ft.allocate(s, Domaine_IJK::ELEM, 0);
   SI_ft.data() = 0.;
 
   kappa_ft.data() = 0.;
@@ -2232,7 +2227,7 @@ void IJK_Interfaces::calculer_kappa_ft(IJK_Field_double& kappa_ft)
 
 
 // Le champ de normale n'est pas sur une grille decallee.
-// Il doit etre a la meme localisation que "ai" : IJK_Splitting::ELEM
+// Il doit etre a la meme localisation que "ai" : Domaine_IJK::ELEM
 // Le champ kappa_ai contient le produit de la courbure moyenne sur la cellule
 // eulerienne par l'aire interfaciale dans cette cellule,
 // divisee par le volume de la cellule.
@@ -2253,8 +2248,7 @@ void IJK_Interfaces::calculer_normales_et_aires_interfaciales(IJK_Field_double& 
   const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
 
   const int n = mesh.nb_facettes();
-  const IJK_Splitting& s = ai.get_splitting();
-  const IJK_Grid_Geometry& geom = s.get_grid_geometry();
+  const Domaine_IJK& geom = ai.get_domaine();
   const double dxi = geom.get_constant_delta(DIRECTION_I);
   const double dxj = geom.get_constant_delta(DIRECTION_J);
   const double dxk = geom.get_constant_delta(DIRECTION_K);
@@ -2292,7 +2286,7 @@ void IJK_Interfaces::calculer_normales_et_aires_interfaciales(IJK_Field_double& 
         {
           const Intersections_Elem_Facettes_Data& data = intersections.data_intersection(index);
           const int num_elem = data.numero_element_;
-          const Int3 ijk = s.convert_packed_to_ijk_cell(num_elem);
+          const Int3 ijk = geom.convert_packed_to_ijk_cell(num_elem);
           const double surf = data.fraction_surface_intersection_ * sf;
           for (int dir = 0; dir< 3; dir++)
             {
@@ -2716,7 +2710,7 @@ void IJK_Interfaces::calculer_var_volume_remaillage(double timestep,
           {
             for (int i = 0; i < ni; i++)
               {
-                const int num_elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k); // Note: ref_splitting_ is a ft_splitting
+                const int num_elem = ref_domaine_->convert_ijk_cell_to_packed(i, j, k); // Note: ref_domaine_ is a ft_splitting
                 delta_volume_theorique_bilan_ns_vdf[num_elem] = delta_volume_theorique_bilan_ns_(i,j,k);
               }
           }
@@ -3248,7 +3242,7 @@ void IJK_Interfaces::transporter_maillage_remaillage(int correction_semi_locale_
       //creer_duplicata_bulles();
       //mesh.parcourir_maillage();
       mesh.update_gradient_laplacien_Surfactant();
-      mesh.update_sigma_grad_sigma(ref_splitting_);
+      mesh.update_sigma_grad_sigma(ref_domaine_);
     }
 
 
@@ -3391,8 +3385,7 @@ void IJK_Interfaces::calculer_vitesse_de_deformation(
   const int nk = cut_field_deformation_velocity[0].nk();
   const int ghost = cut_field_deformation_velocity[0].ghost();
 
-  const IJK_Splitting& splitting = cut_field_deformation_velocity[0].get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = cut_field_deformation_velocity[0].get_domaine();
   assert(geom.is_uniform(0));
   assert(geom.is_uniform(1));
   assert(geom.is_uniform(2));
@@ -3405,9 +3398,9 @@ void IJK_Interfaces::calculer_vitesse_de_deformation(
   double origin_y = geom.get_origin(DIRECTION_J);
   double origin_z = geom.get_origin(DIRECTION_K);
 
-  const int offset_x = splitting.get_offset_local(DIRECTION_I);
-  const int offset_y = splitting.get_offset_local(DIRECTION_J);
-  const int offset_z = splitting.get_offset_local(DIRECTION_K);
+  const int offset_x = geom.get_offset_local(DIRECTION_I);
+  const int offset_y = geom.get_offset_local(DIRECTION_J);
+  const int offset_z = geom.get_offset_local(DIRECTION_K);
 
   int imin = std::max(-ghost,     (int)((bounding_box_bulles(compo, 0, 0) - origin_x)/dx - offset_x - 2));
   int imax = std::min(ni + ghost, (int)((bounding_box_bulles(compo, 0, 1) - origin_x)/dx - offset_x + 2));
@@ -3534,9 +3527,9 @@ void IJK_Interfaces::calculer_bounding_box_bulles(DoubleTab& bounding_box, int o
             {
               // position du barycentre de la bulle de reference a laquelle appartient le sommet
               double pos_ref = position(iconnex,0);
-              //const IJK_Splitting& split = ref_splitting_.valeur();
+              //const Domaine_IJK& split = ref_domaine_.valeur();
               double Lx =  IJK_Shear_Periodic_helpler::Lx_for_shear_perio;
-              //double Lx =  split.get_grid_geometry().get_domain_length(0) - (position_xmax_compo(iconnex)-pos_ref);
+              //double Lx =  split.get_domain_length(0) - (position_xmax_compo(iconnex)-pos_ref);
               double offset = option_shear * IJK_Shear_Periodic_helpler::shear_x_time_;
               // le barycentre de la bulle reelle (compo >0) est situe entre db et Lx + db (pas entre 0 et Lx)
               // vrai uniquement pour des bulles qui montent.
@@ -3645,7 +3638,7 @@ static int decoder_deplacement(const int code, const int dir, int& compo_bulle_r
 // Le code pour le deplacement est code dans la compo connexe. Il faut le
 // recuperer et le decoder. Le maillage transmis doit avoir son tableau des
 // composantes connexes a jour.
-static void calculer_deplacement_from_code_compo_connexe(const Maillage_FT_IJK& m, const IJK_Splitting& split,
+static void calculer_deplacement_from_code_compo_connexe(const Maillage_FT_IJK& m, const Domaine_IJK& split,
                                                          DoubleTab& deplacement,
                                                          DoubleTab& bounding_box_NS, DoubleTab position,
                                                          const int nbulles, const Maillage_FT_IJK& mesh)
@@ -3904,7 +3897,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   Maillage_FT_IJK maillage_temporaire; // Maillage ou on va cumuler les bulles
   // dupliquees deplacees.
-  maillage_temporaire.initialize(ref_splitting_.valeur(), refdomaine_dis_.valeur(), parcours_);
+  maillage_temporaire.initialize(ref_domaine_.valeur(), refdomaine_dis_.valeur(), parcours_);
   // dupliquer tout le maillage:
   Maillage_FT_IJK a_dupliquer;
   // On recopie tout le maillage dans a_dupliquer:
@@ -4219,7 +4212,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
       // Le maillage_temporaire transmis a son tableau des composantes connexes a
       // jour. le tableau contient l'encodage pour le deplacement que l'on va
       // decoder :
-      const IJK_Splitting& split = ref_splitting_.valeur();
+      const Domaine_IJK& split = ref_domaine_.valeur();
       ArrOfDouble volume_reel;
       DoubleTab position;
       calculer_volume_bulles(volume_reel, position);
@@ -4594,194 +4587,6 @@ void IJK_Interfaces::deplacer_bulle_perio(const ArrOfInt& masque_deplacement_par
     }
 }
 
-#if 0
-
-// 3 Versions de code pour marquer l'interieur des bulles :
-//    v1 : Version la plus ancienne : Boucle facette et composante maximale de la normale
-//           o Boucle sur les facettes.
-//           o recherche l'element voisin dans la direction de la plus grande composante de la normale
-//             eg, ivoisin=ielem-1   si  nx<0 et abs(nx) > abs(ny,nz).
-//           o Marque ce voisin comme interne.
-//      --> Rate parfois la vapeur lors de la mise au point du cas bulle oscillante.
-//    v2 : Marquage du centre de la bounding box : Version simple mais defaillante si bulle cap tres creusee.
-//    v3 : Version mise au point pour ajouter_terme_source_interfaces
-//           o Boucle sur elem
-//           o Calcul de la normale moyenne et on prend le voisin dans ce sens.
-//           o On marque seulement si le voisin n'est pas traverse par une interface
-//           o
-// CONVENTION :
-//   drapeau = 1 si indic == 1 cad si liquide
-//   drapeau = 0 si indic == 0 cad si vapeur
-
-// toward_liquid = true si on se deplace dans le sans de la normale (ie vers le liquide)
-//                      On marque alors par 1
-//               = false si on se deplace dans la direction opposee a la normale.
-static void compute_drapeaux_vapeur_v1(const Maillage_FT_IJK& mesh,
-                                       const IntTab& elem_faces,
-                                       const IntTab& faces_voisins,
-                                       const IntVect& num_compo,
-                                       const bool towards_liquid,
-                                       ArrOfInt& drapeau)
-{
-  // initialisation forcee du tableau drapeaux avec la compo qu'on ne va pas marquer :
-  if (towards_liquid)
-    drapeau = 0.;
-  else
-    drapeau = 1.;
-
-  const Intersections_Elem_Facettes& intersec = mesh.intersections_elem_facettes();
-  // Boucle sur les facettes (pour parcourir les elements traverses
-  // par une interface)
-  const int nb_facettes = mesh.nb_facettes();
-  for (int facette = 0; facette < nb_facettes; facette++)
-    {
-      double normale[3];
-      mesh.calcul_normale_3D(facette, normale);
-
-      // Si on va vers la vapeur, on prends l'autre normale :
-      if (!towards_liquid)
-        {
-          normale[0] *= -1.;
-          normale[1] *= -1.;
-          normale[2] *= -1.;
-        }
-
-      int index = intersec.index_facette()[facette];
-      while (index >= 0)
-        {
-          // Numero de l'element:
-          const Intersections_Elem_Facettes_Data& data = intersec.data_intersection(index);
-          const int num_elem = data.numero_element_;
-          // prendre la direction ou la normale est maximale
-          int dir = 0;
-          if (std::fabs(normale[1]) >= std::fabs(normale[0]) && std::fabs(normale[1]) >= std::fabs(normale[2]))
-            dir = 1;
-          if (std::fabs(normale[2]) >= std::fabs(normale[0]) && std::fabs(normale[2]) >= std::fabs(normale[1]))
-            dir = 2;
-          int num_face;
-          // prendre la face dans la direction de la normale (vers l'indicatrice 1)
-          if (normale[dir] > 0.)
-            num_face = elem_faces(num_elem, dir+3);
-          else
-            num_face = elem_faces(num_elem, dir);
-          int elem_voisin = faces_voisins(num_face, 0) + faces_voisins(num_face, 1) - num_elem;
-
-          if (elem_voisin >= 0 && num_compo[elem_voisin] >= 0)
-            {
-              int compo = num_compo[elem_voisin];
-
-              // Marquage de la phase trouvee :
-              if (towards_liquid)
-                drapeau[compo] = 1.;
-              else
-                drapeau[compo] = 0.;
-
-            }
-
-          index = data.index_element_suivant_;
-        }
-    }
-
-  // Synchroniser les marqueurs sur tous les processeurs
-  mp_max_for_each_item(drapeau);
-}
-
-// Dans la classe pour avoir calculer_bounding_box_bulles.
-// A faire pour les bulles ghost...
-void IJK_Interfaces::compute_drapeaux_vapeur_v2(const IntVect& vecteur_composantes,
-                                                ArrOfInt& drapeau_liquide) const
-{
-  const IJK_Splitting& split = ref_splitting_.valeur();
-  // Pour s'assurer que le splitting pris est bien celui du maillage :
-  assert(maillage_ft_ijk_.ref_splitting_ == ref_splitting);
-  drapeau_liquide = 1; // Initialise a 1. Seule une case gardera cette valeur.
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
-
-  // Evaluation du cube contenant chaque bulle :
-  DoubleTab bounding_box;
-  calculer_bounding_box_bulles(bounding_box);
-  //  calculer_bounding_box_bulles(bounding_box, 1 /*ghost = True*/);
-
-  const int nbulles = get_nb_bulles_reelles();
-#if 1
-  const int nbulles_ghost = get_nb_bulles_ghost();
-  Cerr << "IJK_Interfaces::compute_drapeaux_vapeur_v2" << nbulles_ghost << finl;
-#endif
-
-  // Index des cellules ou se trouvent les centres des bulles :
-  IntTab ijk_elems(nbulles,3);
-  for (int direction=0; direction<3; direction++)
-    {
-      const double delta = geom.get_constant_delta(direction);
-      //    const bool perio =  geom.get_periodic_flag(direction);
-      const double origin = geom.get_origin(direction); // valid pour la face de gauche des elem...
-      //    const double len = geom.get_domain_length(direction);
-      const int offset =  split.get_offset_local(direction);
-      const int ni = split.get_nb_elem_local(direction);
-
-      // Boucle sur les compo connexes reelles :
-      //    for (int ibulle=0; ibulle<nbulles+nbulles_ghost; ibulle++) {
-      for (int ibulle=0; ibulle<nbulles; ibulle++)
-        {
-          // Coordonnees du centre :
-          double xc = (bounding_box(ibulle, direction, 0) + bounding_box(ibulle, direction, 1)) * 0.5;
-
-          const double x2 = (xc - origin) / delta;
-          const int index = (int)(floor(x2)) - offset;
-
-          // is point in the domain ? (ghost cells ko...)
-          // Sinon, on ne s'en occupe pas, un autre proc le traite...
-          bool ok = (index >= 0 && index < ni);
-          if (ok)
-            ijk_elems(ibulle, direction) = index;
-          else
-            ijk_elems(ibulle, direction) = -1; // On mets -1 pour savoir qu'il n'est pas chez moi. Un autre proc s'en occupe.
-
-        }
-    }
-  // On ne synchronise pas car on ne veut connaitre que les centres qui m'appartienne.
-
-  for (int ibulle=0; ibulle<nbulles; ibulle++)
-    {
-      const int i = ijk_elems(ibulle, 0);
-      const int j = ijk_elems(ibulle, 1);
-      const int k = ijk_elems(ibulle, 2);
-
-      // Le centre de la bulle m'appartient-il?
-      if ((i>=0) && (j>=0) && (k>=0))
-        {
-          // Numero VF de l'element :
-          // Anciennement la methode etait portee par le mesh :
-          //      const int elem = maillage_ft_ijk_.convert_ijk_cell_to_packed(i,j,k);
-          // A present, elle est dans le splitting :
-          const int elem = split.convert_ijk_cell_to_packed(i,j,k);
-          const int compo = vecteur_composantes[elem];
-          drapeau_liquide[compo] = 0.;
-        }
-    }
-
-  // Synchroniser les marqueurs sur tous les processeurs
-  // Les procs contenant les centres de bulles ont mis 0 dans la case du tableau :
-  mp_min_for_each_item(drapeau_liquide);
-
-}
-
-#if VERIF_DRAPEAU
-static int check_somme_drapeau(const ArrOfInt& drapeau_liquide)
-{
-
-  //  assert(drapeau_liquide.sum() == 1);
-  int som = 0;
-  for (int i=0; i < drapeau_liquide.size_array(); i++)
-    {
-      som += drapeau_liquide[i];
-    }
-  Cerr << " Verif : som==1 ? " << som << finl;
-  assert(som == 1);
-  return som;
-}
-#endif
-#endif
 // retourne le nombre de compo_connexe presentes dans l'element.
 // Pour cela, la methode utilise les Intersections_Elem_Facettes_Data
 // Or, il est possible qu'on n'ait des facettes reconnues comme intersectant un
@@ -4812,7 +4617,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_voisins = domaine_vf.face_voisins();
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic.get_splitting();
+  const Domaine_IJK& s = indic.get_domaine();
 
   indic.data() = 1.; // Tout liquide pour commencer
   num_compo_ = 0;    // Re-initialize the table...
@@ -4839,7 +4644,6 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
                 //    const int num_elem =
                 // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                 // A present, elle est dans le splitting :
-                assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                 const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                 int index = index_elem[num_elem];
                 double somme_contrib = 0.;
@@ -4933,7 +4737,7 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
     compute_drapeaux_vapeur_v1(mesh, elem_faces, faces_voisins, num_compo, false, drapeau1b);
     compute_drapeaux_vapeur_v2(num_compo, drapeau2);
 
-    const IJK_Splitting& split = ref_splitting_.valeur();
+    const Domaine_IJK& split = ref_domaine_.valeur();
     compute_drapeaux_vapeur_v3(mesh, split, num_compo, drapeau3);
 
     // HACKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
@@ -5029,7 +4833,7 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic.get_splitting();
+  const Domaine_IJK& s = indic.get_domaine();
 
   const int ni = indic.ni();
   const int nj = indic.nj();
@@ -5046,7 +4850,6 @@ void IJK_Interfaces::calculer_indicatrice_optim(IJK_Field_double& indic)
           {
             for (int i = 0; i < ni; i++)
               {
-                assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                 const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                 int index = index_elem[num_elem];
 
@@ -5103,7 +4906,7 @@ void IJK_Interfaces::calculer_indicatrices(IJK_Field_vector3_double& indic)
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_voisins = domaine_vf.face_voisins();
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic.get_splitting();
+  const Domaine_IJK& s = indic.get_domaine();
 
   for (int igroup = 0; igroup < nb_groups_; igroup++)
     {
@@ -5152,7 +4955,6 @@ void IJK_Interfaces::calculer_indicatrices(IJK_Field_vector3_double& indic)
                 //    const int num_elem =
                 // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                 // A present, elle est dans le splitting :
-                assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                 const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                 int index = index_elem[num_elem];
                 double somme_contrib[max_authorized_nb_of_groups_] = {0.};
@@ -5245,7 +5047,7 @@ void IJK_Interfaces::calculer_indicatrices_optim(IJK_Field_vector3_double& indic
   statistiques().begin_count(calculer_indicatrice_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic.get_splitting();
+  const Domaine_IJK& s = indic.get_domaine();
 
   const int ni = indic[0].ni();
   const int nj = indic[0].nj();
@@ -5266,7 +5068,6 @@ void IJK_Interfaces::calculer_indicatrices_optim(IJK_Field_vector3_double& indic
           {
             for (int i = 0; i < ni; i++)
               {
-                assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                 const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                 int index = index_elem[num_elem];
                 double somme_contrib[max_authorized_nb_of_groups_] = {0.};
@@ -5325,12 +5126,12 @@ int IJK_Interfaces::update_indicatrice(IJK_Field_double& indic)
   const int nj = indic.nj();
   const int nk = indic.nk();
 
-  const IJK_Splitting& s = indic.get_splitting();
+  const Domaine_IJK& s = indic.get_domaine();
   const int imin = s.get_offset_local(DIRECTION_I);
   const int jmin = s.get_offset_local(DIRECTION_J);
   const int kmin = s.get_offset_local(DIRECTION_K);
 
-  const IJK_Splitting::Localisation loc = indic.get_localisation();
+  const Domaine_IJK::Localisation loc = indic.get_localisation();
   const int nitot = s.get_nb_items_global(loc, DIRECTION_I);
   const int njtot = s.get_nb_items_global(loc, DIRECTION_J);
   const int nktot = s.get_nb_items_global(loc, DIRECTION_K);
@@ -5440,7 +5241,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(IJK_Field_v
   statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic_surfacique_face.get_splitting();
+  const Domaine_IJK& s = indic_surfacique_face.get_domaine();
 
   const int ni = indic_surfacique_face[0].ni();
   const int nj = indic_surfacique_face[0].nj();
@@ -5518,7 +5319,6 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_barycentre_face(IJK_Field_v
                     //    const int num_elem =
                     // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                     // A present, elle est dans le splitting :
-                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                     const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                     int index = index_elem[num_elem];
                     double somme_contrib[3] = {0., 0., 0.};
@@ -5627,7 +5427,7 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_face(IJK_Field_vector3_doub
   statistiques().begin_count(calculer_indicatrice_surfacique_face_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = indic_surfacique_face.get_splitting();
+  const Domaine_IJK& s = indic_surfacique_face.get_domaine();
 
   const int ni = indic_surfacique_face[0].ni();
   const int nj = indic_surfacique_face[0].nj();
@@ -5697,7 +5497,6 @@ void IJK_Interfaces::calculer_indicatrice_surfacique_face(IJK_Field_vector3_doub
                     //    const int num_elem =
                     // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                     // A present, elle est dans le splitting :
-                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                     const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                     int index = index_elem[num_elem];
                     double somme_contrib[3] = {0., 0., 0.};
@@ -5759,7 +5558,7 @@ void IJK_Interfaces::calculer_surface_interface(IJK_Field_double& surf_interface
   statistiques().begin_count(calculer_surface_interface_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = surf_interface.get_splitting();
+  const Domaine_IJK& s = surf_interface.get_domaine();
 
   const ArrOfDouble& surface_facettes = maillage_ft_ijk_.get_update_surface_facettes();
 
@@ -5801,7 +5600,6 @@ void IJK_Interfaces::calculer_surface_interface(IJK_Field_double& surf_interface
                     //    const int num_elem =
                     // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                     // A present, elle est dans le splitting :
-                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                     const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                     int index = index_elem[num_elem];
                     double somme_contrib_surf = 0.;
@@ -5832,7 +5630,7 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
   statistiques().begin_count(calculer_barycentre_counter_);
 
   const Intersections_Elem_Facettes& intersec = maillage_ft_ijk_.intersections_elem_facettes();
-  const IJK_Splitting& s = baric.get_splitting();
+  const Domaine_IJK& s = baric.get_domaine();
 
   const int ni = baric[0].ni();
   const int nj = baric[0].nj();
@@ -5875,7 +5673,6 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                     //    const int num_elem =
                     // maillage_ft_ijk_.convert_ijk_cell_to_packed(i, j, k);
                     // A present, elle est dans le splitting :
-                    assert(maillage_ft_ijk_.ref_splitting().valeur() == s);
                     const int num_elem = s.convert_ijk_cell_to_packed(i, j, k);
                     int index = index_elem[num_elem];
                     double somme_contrib = 0.;
@@ -6008,8 +5805,7 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
 {
   statistiques().begin_count(source_counter_);
 
-  const IJK_Splitting& split = ref_splitting_.valeur();
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = ref_domaine_.valeur();
 
   // calculer la courbure et le terme de gravite aux sommets du maillage
   // lagrangien On appelle ce terme "phi", potentiel aux sommets
@@ -6026,10 +5822,10 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
             continue;
 
           const double delta_dir = geom.get_constant_delta(direction);
-          const int offset = split.get_offset_local(direction);
+          const int offset = geom.get_offset_local(direction);
           const bool perio = geom.get_periodic_flag(direction);
-          IJK_Splitting::Localisation loc = vpoint[direction].get_localisation();
-          const int nb_items_tot = split.get_nb_items_global(loc, direction);
+          Domaine_IJK::Localisation loc = vpoint[direction].get_localisation();
+          const int nb_items_tot = geom.get_nb_items_global(loc, direction);
           for (int j = 0; j < vpoint[direction].nj(); j++)
             {
               for (int i = 0; i < vpoint[direction].ni(); i++)
@@ -6113,7 +5909,7 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   // vers le liquide)
 
                                   // Coordonnees centre face :
-                                  Vecteur3 centre_face = split.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
+                                  Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
 
                                   Vecteur3 normale;
                                   Vecteur3 bary_facettes_dans_elem;
@@ -6187,7 +5983,7 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   // vers le liquide)
 
                                   // Coordonnees centre face :
-                                  Vecteur3 centre_face = split.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
+                                  Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
 
                                   Vecteur3 normale;
                                   Vecteur3 bary_facettes_dans_elem;
@@ -6324,15 +6120,15 @@ static bool intersection_segment_triangle(const Vecteur3& A,
 
 int IJK_Interfaces::compute_cell_phase_with_interface_normal(int num_elem, int direction, int face_plus)
 {
-  const IJK_Splitting& split = ref_splitting_.valeur();
+  const Domaine_IJK& split = ref_domaine_.valeur();
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const Intersections_Elem_Facettes& intersections = mesh.intersections_elem_facettes();
 
   const IntTab& facettes = mesh.facettes();
   const DoubleTab& sommets = mesh.sommets();
-  const Vecteur3 cell_size(split.get_grid_geometry().get_constant_delta(DIRECTION_I),
-                           split.get_grid_geometry().get_constant_delta(DIRECTION_J),
-                           split.get_grid_geometry().get_constant_delta(DIRECTION_K));
+  const Vecteur3 cell_size(split.get_constant_delta(DIRECTION_I),
+                           split.get_constant_delta(DIRECTION_J),
+                           split.get_constant_delta(DIRECTION_K));
 
   ArrOfInt facettes_traversantes;
   intersections.get_liste_facettes_traversantes(num_elem, facettes_traversantes);
@@ -6448,9 +6244,8 @@ void IJK_Interfaces::compute_drapeaux_vapeur_v4(const IntVect& vecteur_composant
     statistiques().new_counter(2, "Calcul de l'indicatrice: calculs des drapeaux");
   statistiques().begin_count(calculs_drapeaux_counter_);
 
-  const IJK_Splitting& split = ref_splitting_.valeur();
+  const Domaine_IJK& split = ref_domaine_.valeur();
   const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
-  //  const IJK_Grid_Geometry &geom = split.get_grid_geometry() ;
   const Intersections_Elem_Facettes& intersections = mesh.intersections_elem_facettes();
   const ArrOfInt& index_elem = maillage_ft_ijk_.intersections_elem_facettes().index_elem();
   const ArrOfInt& index_facette = maillage_ft_ijk_.intersections_elem_facettes().index_facette();
@@ -6465,9 +6260,9 @@ void IJK_Interfaces::compute_drapeaux_vapeur_v4(const IntVect& vecteur_composant
 #endif
 
   drapeau_vapeur = 0; // Tout vapeur
-  const Vecteur3 cell_size(split.get_grid_geometry().get_constant_delta(DIRECTION_I),
-                           split.get_grid_geometry().get_constant_delta(DIRECTION_J),
-                           split.get_grid_geometry().get_constant_delta(DIRECTION_K));
+  const Vecteur3 cell_size(split.get_constant_delta(DIRECTION_I),
+                           split.get_constant_delta(DIRECTION_J),
+                           split.get_constant_delta(DIRECTION_K));
 
   const int nb_facettes = mesh.nb_facettes();
   const IntTab& facettes = mesh.facettes();
@@ -6878,7 +6673,7 @@ void IJK_Interfaces::calculer_distance_autres_compo_connexe_ijk(const DoubleTab&
   const int nb_som = sommets_a_tester.dimension(0);
   const int nb_fa7 = facettes.dimension(0);
 
-  const IJK_Splitting& splitting = I_ft().get_splitting();
+  const Domaine_IJK& splitting = I_ft().get_domaine();
   Int3 ijk_glob, ijk_loc, useless;
   Int3 nb_elem_loc;
   for(int dir=0; dir<3; dir++)
@@ -6988,7 +6783,7 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
                                                            ArrOfInt& compo_sommet, ArrOfDouble& distance,
                                                            DoubleTab& vr_to_other, double distmax)
 {
-  const IJK_Splitting& splitting = ref_splitting_.valeur();
+  const Domaine_IJK& splitting = ref_domaine_.valeur();
   if (dir == 3)
     {
       if(!no_octree_method_)
@@ -7011,7 +6806,7 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
         }
       else
         {
-          const ArrOfDouble& coord_nodes = splitting.get_grid_geometry().get_node_coordinates(dir);
+          const ArrOfDouble& coord_nodes = splitting.get_node_coordinates(dir);
           const int offset = splitting.get_offset_local(dir);
           const double left_node = coord_nodes[offset];
           min_coord = left_node + distmax;
@@ -7028,7 +6823,7 @@ void IJK_Interfaces::recursive_calcul_distance_chez_voisin(DoubleTab& vinterp_tm
         }
       else
         {
-          const ArrOfDouble& coord_nodes = splitting.get_grid_geometry().get_node_coordinates(dir);
+          const ArrOfDouble& coord_nodes = splitting.get_node_coordinates(dir);
           const int offset = splitting.get_offset_local(dir);
           const int i_last_node = offset + splitting.get_nb_elem_local(dir);
           const double right_node = coord_nodes[i_last_node];
@@ -7219,7 +7014,7 @@ void dump_facette(const Maillage_FT_Disc& mesh, int fa7, int append = 0)
     }
 }
 
-void dump_elem(const IJK_Splitting& split, int ii, int jj, int kk, int append = 0)
+void dump_elem(const Domaine_IJK& split, int ii, int jj, int kk, int append = 0)
 {
   SFichier f;
   if (append)
@@ -7239,8 +7034,8 @@ void dump_elem(const IJK_Splitting& split, int ii, int jj, int kk, int append = 
   for (int i = 0; i < 3; i++)
     {
       int j = split.get_offset_local(i) + ijk[i];
-      p[0][i] = split.get_grid_geometry().get_node_coordinates(i)[j];
-      p[1][i] = split.get_grid_geometry().get_node_coordinates(i)[j+1];
+      p[0][i] = split.get_node_coordinates(i)[j];
+      p[1][i] = split.get_node_coordinates(i)[j+1];
     }
   for (int dir = 0; dir < 3; dir++)
     {
@@ -7452,7 +7247,7 @@ void IJK_Interfaces::compute_external_forces_(IJK_Field_vector3_double& rappel_f
   DoubleTab individual_forces(nb_bulles_reelles_,3);
   for (int idir=0; idir < 3; idir++)
     {
-      const double ldom = rappel.get_splitting().get_grid_geometry().get_domain_length(idir);
+      const double ldom = rappel.get_domaine().get_domain_length(idir);
       for (int ib=0; ib < nb_bulles_reelles_; ib++)
         {
           if (Process::je_suis_maitre())
@@ -7560,7 +7355,7 @@ void IJK_Interfaces::compute_external_forces_color_function(IJK_Field_vector3_do
   // Some reordering is required.
 
   // Carefull : domaine_vdf is built on splitting_ft_, so num_compo_ refers to these numbers
-  const IJK_Splitting& s_ft =indic_ft.get_splitting();
+  const Domaine_IJK& s_ft =indic_ft.get_domaine();
   Int3 ijk_global, ijk_local, ijk_processeur;
   for (int ib=0; ib < nb_bulles_reelles_+nb_bulles_ghost_; ib++)
     {
@@ -7685,9 +7480,9 @@ void IJK_Interfaces::compute_external_forces_color_function(IJK_Field_vector3_do
   // qui doit etre construit sur le FT!
 
   DoubleTab integrated_forces(nb_bulles_reelles_/* For real bubbles only*/, 3/*dims*/);
-  const double vol = s_ft.get_grid_geometry().get_constant_delta(0)
-                     * s_ft.get_grid_geometry().get_constant_delta(1)
-                     * s_ft.get_grid_geometry().get_constant_delta(2);
+  const double vol = s_ft.get_constant_delta(0)
+                     * s_ft.get_constant_delta(1)
+                     * s_ft.get_constant_delta(2);
   IntTab integration_cells_per_bubble(nb_bulles_reelles_/* For real bubbles only*/, 3/*dims because can be different due to MAC scheme */);
   integration_cells_per_bubble=0;
   integrated_forces =0.;
@@ -7697,12 +7492,12 @@ void IJK_Interfaces::compute_external_forces_color_function(IJK_Field_vector3_do
       const int ny = rappel_ft[idir].nj();
       int nzdeb = 0;
       int nz = rappel_ft[idir].nk();
-      if ((!s_ft.get_grid_geometry().get_periodic_flag(DIRECTION_K)) &&
+      if ((!s_ft.get_periodic_flag(DIRECTION_K)) &&
           (idir==DIRECTION_K))
         {
           force_zero_on_walls(rappel_ft[DIRECTION_K]);
           const int kmin = s_ft.get_offset_local(DIRECTION_K);
-          const int nktot = s_ft.get_nb_items_global(IJK_Splitting::FACES_K, DIRECTION_K);
+          const int nktot = s_ft.get_nb_items_global(Domaine_IJK::FACES_K, DIRECTION_K);
           if (kmin + nz == nktot)
             {
               // On the "last" proc (in dir==2), there is a last layer of faces in this direction. We cannot do convert_ijk_cell_to_packed
@@ -7921,7 +7716,7 @@ void IJK_Interfaces::compute_indicatrice_non_perturbe(IJK_Field_double& indic_np
 // initialisation.
 void IJK_Interfaces::calculer_indicatrice_next(
   IJK_Field_double& field_repulsion,
-  const ArrOfDouble& gravite,
+  const DoubleTab& gravite,
   const double delta_rho,
   const double sigma,
   const double time,
@@ -8051,13 +7846,13 @@ void IJK_Interfaces::calculer_indicatrice_next(
   // Overwriting the MedCoupling computation of the face surfaces.
   //
   //{
-  //  const IJK_Splitting& s = indicatrice_ns_[next()].get_splitting();
+  //  const Domaine_IJK& s = indicatrice_ns_[next()].get_domaine();
   //
-  //  double dx = s.get_grid_geometry().get_constant_delta(DIRECTION_I);
-  //  double dy = s.get_grid_geometry().get_constant_delta(DIRECTION_J);
-  //  double dz = s.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  //  double dx = s.get_constant_delta(DIRECTION_I);
+  //  double dy = s.get_constant_delta(DIRECTION_J);
+  //  double dz = s.get_constant_delta(DIRECTION_K);
   //
-  //  const IJK_Grid_Geometry& geom = s.get_grid_geometry();
+  //  const Domaine_IJK& geom = s.get_grid_geometry();
   //  double origin_x = geom.get_origin(DIRECTION_I);
   //  double origin_y = geom.get_origin(DIRECTION_J);
   //  double origin_z = geom.get_origin(DIRECTION_K);
@@ -8502,7 +8297,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
   IJK_Field_double& field_repulsion,
-  const ArrOfDouble& gravite,
+  const DoubleTab& gravite,
   const double delta_rho,
   const double sigma,
   const double time,
@@ -8518,7 +8313,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
     potentiels_sommets, phi_par_compo);
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
-      maillage_ft_ijk_.update_sigma_grad_sigma(ref_splitting_);
+      maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
       for (int dir = 0; dir < 3; dir++)
         {
           const ArrOfDouble& grad_sigma_sommets = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(dir);
@@ -8528,7 +8323,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
   val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(
     repulsions_sommets, repuls_par_compo);
 
-  const IJK_Splitting& split = ref_splitting_;
+  const Domaine_IJK& split = ref_domaine_;
   const int ni = split.get_nb_elem_local(DIRECTION_I);
   const int nj = split.get_nb_elem_local(DIRECTION_J);
   const int nk = split.get_nb_elem_local(DIRECTION_K);
@@ -8545,7 +8340,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
 void IJK_Interfaces::calculer_phi_repuls_sommet(
   ArrOfDouble& potentiels_sommets,
   ArrOfDouble& repulsions_sommets,
-  const ArrOfDouble& gravite,
+  const DoubleTab& gravite,
   const double delta_rho,
   const double sigma,
   const double time,
@@ -8555,8 +8350,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
 
   // Initialisation forcee a -1 :
 
-  const IJK_Splitting& split = ref_splitting_.valeur();
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = ref_domaine_.valeur();
 
   // calculer la courbure et le terme de gravite aux sommets du maillage
   // lagrangien On appelle ce terme "phi", potentiel aux sommets
@@ -8573,7 +8367,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
   //Il faut quil passe en sigma variable ici dans le cas de surfactant
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
-      maillage_ft_ijk_.update_sigma_grad_sigma(ref_splitting_);
+      maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
       const ArrOfDouble& sigma_sommets = maillage_ft_ijk_.Surfactant_facettes().get_sigma_sommets();
       for (int i = 0; i < nb_som; i++)
         {
@@ -8611,16 +8405,16 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
             {
               // Bulle ghost : correction du deplacement:
               correction_potentiel_deplacement = -(
-                                                   gravite[0] * deplacement(i, 0) +
-                                                   gravite[1] * deplacement(i, 1) +
-                                                   gravite[2] * deplacement(i, 2)
+                                                   gravite(0,0) * deplacement(i, 0) +
+                                                   gravite(0,1) * deplacement(i, 1) +
+                                                   gravite(0,2) * deplacement(i, 2)
                                                  );
             }
           const Vecteur3 coord(sommets, i);
           double p = (
-                       gravite[0] * coord[0] +
-                       gravite[1] * coord[1] +
-                       gravite[2] * coord[2] +
+                       gravite(0,0) * coord[0] +
+                       gravite(0,1) * coord[1] +
+                       gravite(0,2) * coord[2] +
                        correction_potentiel_deplacement
                      );
           potentiels_sommets[i] -= p * delta_rho;

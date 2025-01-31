@@ -75,14 +75,12 @@ void Switch_FT_double::initialise()
 
   // Probleme of type FT:
   // old_mesh_ and new_mesh_ are acutally splittings...
-  const IJK_Grid_Geometry& geom = old_mesh_.get_grid_geometry();
-  const double dx = geom.get_constant_delta(DIRECTION_I);
-  const double dy = geom.get_constant_delta(DIRECTION_J);
+  const double dx = old_mesh_.get_constant_delta(DIRECTION_I);
+  const double dy = old_mesh_.get_constant_delta(DIRECTION_J);
 
-  const IJK_Grid_Geometry& geom_new = new_mesh_.get_grid_geometry();
-  const double new_dx = geom_new.get_constant_delta(DIRECTION_I);
-  const double new_dy = geom_new.get_constant_delta(DIRECTION_J);
-  const Nom& vdf_name = geom_new.le_nom()+Nom("_VDF");
+  const double new_dx = new_mesh_.get_constant_delta(DIRECTION_I);
+  const double new_dy = new_mesh_.get_constant_delta(DIRECTION_J);
+  const Nom& vdf_name = new_mesh_.le_nom()+Nom("_VDF");
 
   const double old_to_new_ratio = std::min(dx/new_dx, dy/new_dy);
   const int new_ijk_splitting_ft_extension = (int) std::lrint(std::ceil(old_ijk_splitting_ft_extension_* old_to_new_ratio));
@@ -90,7 +88,7 @@ void Switch_FT_double::initialise()
   Cerr << "Extended splitting dimensions. old = " << old_ijk_splitting_ft_extension_
        << " new = " << new_ijk_splitting_ft_extension << finl;
   Cerr << "Construction du domaine VDF..." << finl;
-  IJK_Splitting splitting_ft;
+  Domaine_IJK splitting_ft;
   build_extended_splitting(new_mesh_, splitting_ft, new_ijk_splitting_ft_extension);
 
   // Le probleme ft disc qui porte le maillage vdf pour les algorithmes front-tracking
@@ -111,35 +109,13 @@ void Switch_FT_double::initialise()
 
   // GAB
   const int nproc_tot = Process::nproc();
-  old_forcage_.compute_initial_chouippe(nproc_tot,geom,old_ni_,old_nj_,old_nk_,splitting_ft,nom_sauvegarde_);
-  new_forcage_.compute_initial_chouippe(nproc_tot,geom_new,new_ni_,new_nj_,new_nk_,splitting_ft,nom_sauvegarde_);
+  old_forcage_.compute_initial_chouippe(nproc_tot,old_mesh_,old_ni_,old_nj_,old_nk_,splitting_ft,nom_sauvegarde_);
+  new_forcage_.compute_initial_chouippe(nproc_tot,new_mesh_,new_ni_,new_nj_,new_nk_,splitting_ft,nom_sauvegarde_);
   Cout << "new_forcage_.get_semi_gen()" << new_forcage_.get_semi_gen() << finl;
   Cout << "old_forcage_.get_semi_gen()" << old_forcage_.get_semi_gen() << finl;
   Cout << "new_forcage_.get_b_flt()" << new_forcage_.get_b_flt() << finl;
 }
 
-/////////////////////////////////////:
-// MODIFICATIONS GAB : gabriel.ramirez@cea.fr
-/*  Cout << "forcage_.get_type_forcage() : " <<forcage_.get_type_forcage() << finl;
-  if (forcage_.get_type_forcage() > 0)
-    {
-      const IJK_Splitting& gbz_splitting = velocity_[0].get_splitting();
-      const IJK_Grid_Geometry& my_geom = velocity_[0].get_splitting().get_grid_geometry();
-
-      const int my_ni = velocity_[0].ni();
-      const int my_nj = velocity_[0].nj();
-      const int my_nk = velocity_[0].nk();
-      const int nproc_tot = Process::nproc();
-      Cout << "BF compute_initial_chouippe" << finl;
-      Cout << "ni : "<<my_ni<<" ,nj : "<<my_nj<<" ,nk : "<<my_nk << finl;
-      std::cout << "in initialise i_offset : " << gbz_splitting.get_offset_local(DIRECTION_I) << std::endl;
-      std::cout << "Process::me()" << Process::me() << std::endl;
-      forcage_.compute_initial_chouippe(nproc_tot,geom_new,new_ni_,new_nj_,new_nk_,splitting_ft,nom_sauvegarde_);
-      statistiques().begin_count(m2);
-      Cout << "AF compute_initial_chouippe" << finl;
-    }
-    */
-/////////////////////////////////////: gabriel.ramirez@cea.fr
 
 int Switch_FT_double::init_thermique()
 // The Thermique.initialize does both the allocate and the initialize:
@@ -277,8 +253,8 @@ void Switch_FT_double::compute_and_write_extra_fields(const Nom& lata_name,
   	/*Cout << "forcage2_.get_type_forcage() : " <<forcage2_.get_type_forcage() << finl;
   	if (forcage2_.get_type_forcage() > 0)
     {
-      const IJK_Splitting& gbz_splitting = velocity_[0].get_splitting();
-      const IJK_Grid_Geometry& my_geom = velocity_[0].get_splitting().get_grid_geometry();
+      const Domaine_IJK& gbz_splitting = velocity_[0].get_domaine();
+      const Domaine_IJK& my_geom = velocity_[0].get_domaine();
 
       const int my_ni = velocity_[0].ni();
       const int my_nj = velocity_[0].nj();
@@ -297,7 +273,7 @@ void Switch_FT_double::compute_and_write_extra_fields(const Nom& lata_name,
       calculer_coeff(coeff_i,Indice_i,
                      coeff_j,Indice_j,
                      coeff_k,Indice_k);
-      new_temperature.allocate(new_mesh_ /* it is in fact a splitting */, IJK_Splitting::ELEM, 0);
+      new_temperature.allocate(new_mesh_ /* it is in fact a splitting */, Domaine_IJK::ELEM, 0);
     }
   int idx = 0;
   for (auto& itr : thermique_)

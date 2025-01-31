@@ -22,7 +22,7 @@
 #define RK3_IJK_H
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_faces_conv.h>
 #include <Operateur_IJK_faces_diff.h>
 #include <Operateur_IJK_elem_conv.h>
@@ -61,9 +61,9 @@ protected:
                             int epaisseur_joint) const;
   void euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
                              const int k_layer) const;
-  const IJK_Grid_Geometry& get_geometry() const
+  const Domaine_IJK& get_geometry() const
   {
-    return splitting_.get_grid_geometry();
+    return domaine_;
   }
   double intermediate_dt(int step) const
   {
@@ -109,7 +109,7 @@ protected:
   Nom expression_alpha_initiale_;
   Noms expression_vitesse_initiale_; // on attend trois expressions
 
-  IJK_Splitting splitting_;
+  Domaine_IJK domaine_;
   ArrOfDouble_with_ghost delta_z_local_;
 
   Boundary_Conditions boundary_conditions_;

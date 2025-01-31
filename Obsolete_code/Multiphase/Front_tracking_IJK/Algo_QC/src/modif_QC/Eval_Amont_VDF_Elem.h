@@ -12,14 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Eval_Amont_VDF_Elem.h
-// Directory:   $TRIO_U_ROOT/src/VDF/Operateurs/Evaluateurs
-// Version:     /main/15
-//
-//////////////////////////////////////////////////////////////////////////////
-
 
 
 #ifndef Eval_Amont_VDF_Elem_included

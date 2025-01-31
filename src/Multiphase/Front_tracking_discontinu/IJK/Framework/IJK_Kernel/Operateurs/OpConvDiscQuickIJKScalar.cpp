@@ -45,7 +45,7 @@ void OpConvDiscQuickIJKScalar_double::ajouter(const IJK_Field_double& field,
 
 }
 
-//void OpConvDiscQuickIJKScalar_double::initialize(const IJK_Splitting& splitting)
+//void OpConvDiscQuickIJKScalar_double::initialize(const Domaine_IJK& splitting)
 //{
 //  Operateur_IJK_elem_conv_base_double::initialize(splitting, indicatrice);
 //  input_indicatrice_ = 0;

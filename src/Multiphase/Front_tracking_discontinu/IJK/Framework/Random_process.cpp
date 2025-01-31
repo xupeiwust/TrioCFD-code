@@ -24,7 +24,7 @@
 #include <math.h>
 #include <fstream>
 
-#include <IJK_Splitting.h> // Pour que la classe de splitting soit connue
+#include <Domaine_IJK.h> // Pour que la classe de splitting soit connue
 #include <communications.h>
 
 #include <Param.h>

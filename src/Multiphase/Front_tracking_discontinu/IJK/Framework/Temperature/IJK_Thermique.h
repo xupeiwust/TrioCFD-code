@@ -20,7 +20,7 @@
 #include <IJK_Field_vector.h>
 #include <Objet_U.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field.h>
 #include <Parser.h>
 #include <IJK_Lata_writer.h>
@@ -48,7 +48,7 @@ public :
   friend class Probleme_FTD_IJK;
   friend class Probleme_FTD_IJK_cut_cell;
 
-  int initialize(const IJK_Splitting& splitting, const int idx);
+  int initialize(const Domaine_IJK& splitting, const int idx);
   void update_thermal_properties();
   double compute_timestep(const double timestep,
                           const double dxmin) const;

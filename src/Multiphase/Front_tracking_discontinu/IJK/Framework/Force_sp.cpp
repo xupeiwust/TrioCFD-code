@@ -22,7 +22,7 @@
 #include <Force_sp.h>
 #include <fstream>
 #include <math.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <communications.h>
 #include <MaillerParallel.h>
 #include <EChaine.h>

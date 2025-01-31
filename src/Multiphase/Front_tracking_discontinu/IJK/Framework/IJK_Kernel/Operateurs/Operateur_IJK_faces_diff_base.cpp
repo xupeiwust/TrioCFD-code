@@ -13,7 +13,7 @@
  *
  *****************************************************************************/
 
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <stat_counters.h>
 #include <Operateur_IJK_faces_diff_base.h>
 

@@ -43,9 +43,9 @@ class Operateur_IJK_faces_diff_base_double : public Operateur_IJK_faces_base_dou
 public:
   Operateur_IJK_faces_diff_base_double();
 
-  inline virtual void initialize(const IJK_Splitting& splitting, const int harmonic_nu = 0)
+  inline virtual void initialize(const Domaine_IJK& splitting, const int harmonic_nu = 0)
   {
-    perio_k_= splitting.get_grid_geometry().get_periodic_flag(DIRECTION_K);
+    perio_k_= splitting.get_periodic_flag(DIRECTION_K);
     channel_data_.initialize(splitting);
     harmonic_nu_=harmonic_nu;
   }

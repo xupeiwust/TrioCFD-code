@@ -38,7 +38,7 @@ class Operateur_IJK_elem_diff: public OWN_PTR( Operateur_IJK_elem_diff_base_doub
   Declare_instanciable( Operateur_IJK_elem_diff );
 
 public:
-  inline void initialize(const IJK_Splitting &splitting);
+  inline void initialize(const Domaine_IJK &splitting);
 
   void reset_operator();
   void typer_diffusion_op(const char *diffusion_op);
@@ -60,7 +60,7 @@ protected:
   bool is_cast_;
 };
 
-inline void Operateur_IJK_elem_diff::initialize(const IJK_Splitting& splitting)
+inline void Operateur_IJK_elem_diff::initialize(const Domaine_IJK& splitting)
 {
   if (!is_cast_)
     typer_diffusion_op("standard");

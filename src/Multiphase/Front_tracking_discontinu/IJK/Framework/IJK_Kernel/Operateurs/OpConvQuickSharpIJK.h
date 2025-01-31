@@ -22,7 +22,7 @@ class OpConvQuickSharpIJK_double : public Operateur_IJK_faces_conv_base_double
 {
   Declare_instanciable(OpConvQuickSharpIJK_double);
 public:
-  void initialize(const IJK_Splitting& splitting) override;
+  void initialize(const Domaine_IJK& splitting) override;
 
 protected:
   inline void compute_flux_x_vx(IJK_Field_local_double& resu, const int k_layer) override

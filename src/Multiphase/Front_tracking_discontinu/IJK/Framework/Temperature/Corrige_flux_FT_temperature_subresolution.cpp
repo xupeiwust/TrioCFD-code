@@ -156,7 +156,7 @@ static int compute_periodic_index(const int index, const int n)
   return (n + index % n) % n;
 }
 
-void Corrige_flux_FT_temperature_subresolution::initialize_with_subproblems(const IJK_Splitting& splitting,
+void Corrige_flux_FT_temperature_subresolution::initialize_with_subproblems(const Domaine_IJK& splitting,
                                                                             const IJK_Field_double& field,
                                                                             const IJK_Interfaces& interfaces,
                                                                             const Probleme_FTD_IJK_base& ijk_ft,
@@ -317,13 +317,13 @@ void Corrige_flux_FT_temperature_subresolution::compute_temperature_cell_centre_
       const int nj = neighbours_weighting.nj();
       const int nk = neighbours_weighting.nk();
 
-      const int offset_i = neighbours_weighting.get_splitting().get_offset_local(0);
-      const int offset_j = neighbours_weighting.get_splitting().get_offset_local(1);
-      const int offset_k = neighbours_weighting.get_splitting().get_offset_local(2);
+      const int offset_i = neighbours_weighting.get_domaine().get_offset_local(0);
+      const int offset_j = neighbours_weighting.get_domaine().get_offset_local(1);
+      const int offset_k = neighbours_weighting.get_domaine().get_offset_local(2);
 
-      const int ni_tot = neighbours_weighting.get_splitting().get_grid_geometry().get_nb_elem_tot(0);
-      const int nj_tot = neighbours_weighting.get_splitting().get_grid_geometry().get_nb_elem_tot(1);
-      const int nk_tot = neighbours_weighting.get_splitting().get_grid_geometry().get_nb_elem_tot(2);
+      const int ni_tot = neighbours_weighting.get_domaine().get_nb_elem_tot(0);
+      const int nj_tot = neighbours_weighting.get_domaine().get_nb_elem_tot(1);
+      const int nk_tot = neighbours_weighting.get_domaine().get_nb_elem_tot(2);
 
       neighbours_weighting.data() = 0;
       neighbours_weighting.echange_espace_virtuel(neighbours_weighting.ghost());
@@ -565,7 +565,7 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
 {
   int nb_k_layer;
   if (global_indices)
-    nb_k_layer = ref_ijk_ft_->itfce().I().get_splitting().get_grid_geometry().get_nb_elem_tot(2);
+    nb_k_layer = ref_ijk_ft_->itfce().I().get_domaine().get_nb_elem_tot(2);
   else
     nb_k_layer = ref_ijk_ft_->itfce().I().nk();
 
@@ -600,7 +600,7 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
 
   int nb_k_layer;
   if (global_indices)
-    nb_k_layer = ref_ijk_ft_->itfce().I().get_splitting().get_grid_geometry().get_nb_elem_tot(2);
+    nb_k_layer = ref_ijk_ft_->itfce().I().get_domaine().get_nb_elem_tot(2);
   else
     nb_k_layer = ref_ijk_ft_->itfce().I().nk();
 
@@ -1051,15 +1051,14 @@ void Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_faces_in
       const int nb_j_layer = cell_faces_neighbours_corrected_bool[0].nj();
       const int nb_k_layer = cell_faces_neighbours_corrected_bool[0].nk();
 
-      const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
-      const int offset_i = splitting_ns.get_offset_local(0);
-      const int offset_j = splitting_ns.get_offset_local(1);
-      const int offset_k = splitting_ns.get_offset_local(2);
+      const Domaine_IJK& dom_ns = ref_ijk_ft_->itfce().I().get_domaine();
+      const int offset_i = dom_ns.get_offset_local(0);
+      const int offset_j = dom_ns.get_offset_local(1);
+      const int offset_k = dom_ns.get_offset_local(2);
 
-      const IJK_Grid_Geometry& geometry = splitting_ns.get_grid_geometry();
-      const int nb_i_layer_tot = geometry.get_nb_elem_tot(0);
-      const int nb_j_layer_tot = geometry.get_nb_elem_tot(1);
-      const int nb_k_layer_tot = geometry.get_nb_elem_tot(2);
+      const int nb_i_layer_tot = dom_ns.get_nb_elem_tot(0);
+      const int nb_j_layer_tot = dom_ns.get_nb_elem_tot(1);
+      const int nb_k_layer_tot = dom_ns.get_nb_elem_tot(2);
 
       int m,l,n;
       int index_i_problem, index_j_problem, index_k_problem;
@@ -1435,10 +1434,10 @@ void Corrige_flux_FT_temperature_subresolution::combine_all_fluxes_from_outisde_
   const int nj = indicator.nj();
   const int nk = indicator.nk();
 
-  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
-  const int offset_i = splitting_ns.get_offset_local(0);
-  const int offset_j = splitting_ns.get_offset_local(1);
-  const int offset_k = splitting_ns.get_offset_local(2);
+  const Domaine_IJK& dom_ns = ref_ijk_ft_->itfce().I().get_domaine();
+  const int offset_i = dom_ns.get_offset_local(0);
+  const int offset_j = dom_ns.get_offset_local(1);
+  const int offset_k = dom_ns.get_offset_local(2);
 
   double convective_flux = 0.;
   double diffusive_flux = 0.;
@@ -1853,7 +1852,7 @@ bool Corrige_flux_FT_temperature_subresolution::compute_cell_neighbours_thermal_
   double surf_face = 1.;
   for (int c = 0; c < 3; c++)
     if (c!=dir)
-      surf_face *= splitting_->get_grid_geometry().get_constant_delta(c);
+      surf_face *= domaine_->get_constant_delta(c);
   surf_face *= flux_sign[fluxes_type][(int) (2*dir)];
   flux = compute_thermal_flux_face_centre(fluxes_type,
                                           subproblem_index,
@@ -1972,7 +1971,7 @@ void Corrige_flux_FT_temperature_subresolution::replace_temperature_cell_centre_
       const int nj = temperature.nj();
       const int nk = temperature.nk();
 
-      const IJK_Splitting& splitting = temperature.get_splitting();
+      const Domaine_IJK& splitting = temperature.get_domaine();
       ArrOfInt corrected_values;
       ArrOfInt out_of_bounds_corrected_values;
       ArrOfDouble out_of_bounds_values;
@@ -2056,12 +2055,12 @@ void Corrige_flux_FT_temperature_subresolution::smooth_temperature_cell_centre_n
                                                                                           ArrOfDouble& out_of_bounds_values,
                                                                                           IJK_Field_double& distance) const
 {
-  // const IJK_Splitting& splitting = temperature.get_splitting();
+  // const Domaine_IJK& splitting = temperature.get_domaine();
   //	const Int3 num_elem_ijk = splitting.convert_packed_to_ijk_cell(elem);
   //	(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
   if (smooth_temperature_field_)
     {
-      const IJK_Splitting& splitting = temperature.get_splitting();
+      const Domaine_IJK& splitting = temperature.get_domaine();
       ArrOfDouble temperature_smoothed;
       int counter;
       double temperature_neighbour;
@@ -2191,7 +2190,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_thermal_fluxes_face_cent
             {
               for (int c = 0; c < 3; c++)
                 if (c!= faces_dir[l])
-                  surf_face *= splitting_->get_grid_geometry().get_constant_delta(c);
+                  surf_face *= domaine_->get_constant_delta(c);
               const double dist = dist_interf(intersection_ijk_cell_index, l);
               const double dist_sub_res = thermal_subproblems_->get_dist_faces_interface(i)[l];
               double local_flux_face = 0.;
@@ -3119,15 +3118,14 @@ void Corrige_flux_FT_temperature_subresolution::sort_ijk_intersections_subproble
   const int nb_k_layer = indicator.nk();
 
   // Make it parallel
-  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
-  const int offset_i = splitting_ns.get_offset_local(0);
-  const int offset_j = splitting_ns.get_offset_local(1);
-  const int offset_k = splitting_ns.get_offset_local(2);
+  const Domaine_IJK& dom_ns = ref_ijk_ft_->itfce().I().get_domaine();
+  const int offset_i = dom_ns.get_offset_local(0);
+  const int offset_j = dom_ns.get_offset_local(1);
+  const int offset_k = dom_ns.get_offset_local(2);
 
-  const IJK_Grid_Geometry& geometry = splitting_ns.get_grid_geometry();
-  const int nb_i_layer_tot = geometry.get_nb_elem_tot(0);
-  const int nb_j_layer_tot = geometry.get_nb_elem_tot(1);
-  const int nb_k_layer_tot = geometry.get_nb_elem_tot(2);
+  const int nb_i_layer_tot = dom_ns.get_nb_elem_tot(0);
+  const int nb_j_layer_tot = dom_ns.get_nb_elem_tot(1);
+  const int nb_k_layer_tot = dom_ns.get_nb_elem_tot(2);
 
   const int seq = (Process::nproc() == 1);
 
@@ -3379,7 +3377,7 @@ int Corrige_flux_FT_temperature_subresolution::get_linear_index_local(const int&
 
 int Corrige_flux_FT_temperature_subresolution::get_linear_index_global(const int& i, const int& j, const int& k, const int& dir)
 {
-  const IJK_Grid_Geometry& geometry = ref_ijk_ft_->itfce().I().get_splitting().get_grid_geometry();
+  const Domaine_IJK& geometry = ref_ijk_ft_->itfce().I().get_domaine();
   int nb_i_layer_tot = geometry.get_nb_elem_tot(0);
   int nb_j_layer_tot = geometry.get_nb_elem_tot(1);
   if (dir == 0)
@@ -3498,10 +3496,10 @@ void Corrige_flux_FT_temperature_subresolution::combine_fluxes_from_frontier_on_
   const int nj = indicator.nj();
   const int nk = indicator.nk();
 
-  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
-  const int offset_i = splitting_ns.get_offset_local(0);
-  const int offset_j = splitting_ns.get_offset_local(1);
-  const int offset_k = splitting_ns.get_offset_local(2);
+  const Domaine_IJK& dom_ns = ref_ijk_ft_->itfce().I().get_domaine();
+  const int offset_i = dom_ns.get_offset_local(0);
+  const int offset_j = dom_ns.get_offset_local(1);
+  const int offset_k = dom_ns.get_offset_local(2);
 
   FixedVector<std::map<int, int>, 3> multiple_flux_values_k;
   FixedVector<std::map<int, int>, 3> multiple_flux_values_count;

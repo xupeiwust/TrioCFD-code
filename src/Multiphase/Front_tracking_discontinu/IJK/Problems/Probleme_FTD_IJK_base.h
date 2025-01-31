@@ -18,7 +18,7 @@
 
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_faces_diff.h>
 #include <Operateur_IJK_faces_conv.h>
 #include <Multigrille_Adrien.h>
@@ -43,6 +43,8 @@
 #include <Cut_cell_surface_efficace.h>
 #include <Probleme_FT_Disc_gen.h>
 #include <Fluide_Diphasique_IJK.h>
+
+class Domaine_IJK;
 
 class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
 {
@@ -114,13 +116,11 @@ public :
   /*
    * This
    */
-  const Probleme_base& probleme(const IJK_Splitting& split) const
+  const Probleme_base& probleme(const Domaine_IJK& dom) const
   {
-    if (split == splitting_ft_)
+    if (dom == domaine_ft_)
       return refprobleme_ft_disc_.valeur();
-    if (split == splitting_)
-      //  return refprobleme_ns_.valeur();
-      Cerr << "Unrecognized splitting provided" << finl;
+    Cerr << "Unrecognized domain provided" << finl;
     Process::exit();
     return refprobleme_ns_.valeur();
   }
@@ -137,39 +137,29 @@ public :
 
 
 
-
-
-
-
-
   /*
    *
    * Domaine_ijk
    */
-  const int& get_splitting_extension() const
-  {
-    return ijk_splitting_ft_extension_ ;
-  }
-  const IJK_Splitting& get_splitting_ft() const
-  {
-    return splitting_ft_ ;
-  }
-  const IJK_Splitting& get_splitting_ns() const
-  {
-    return splitting_ ;
-  }
-  const IJK_Grid_Geometry& get_geometry() const
-  {
-    return splitting_.get_grid_geometry();
-  }
+
+
+  int associer_(Objet_U&) override;
+  const Domaine_IJK& get_domaine_ft() const { return domaine_ft_ ; }
+  const Domaine_IJK& get_domaine() const { return domaine_ijk_.valeur(); }
+
   void redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                          IJK_Field_double& output_field);
 
   void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                            IJK_Field_double& output_field);
-  int ijk_splitting_ft_extension_ = 0;
-  IJK_Splitting splitting_ft_;
-  // Classe outil pour passer entre splitting_ et splitting_ft_
+
+  const Domaine_IJK& domaine_ijk() const { return domaine_ijk_.valeur(); }
+  Domaine_IJK& domaine_ijk() { return domaine_ijk_.valeur(); }
+
+  OBS_PTR(Domaine_IJK) domaine_ijk_;
+  Domaine_IJK domaine_ft_;
+
+  // Classe outil pour passer entre domain_ijk_ et domain_ft_
   // Une instance par direction des faces:
   FixedVector<Redistribute_Field, 3> redistribute_to_splitting_ft_faces_;
   FixedVector<Redistribute_Field, 3> redistribute_from_splitting_ft_faces_;
@@ -514,13 +504,13 @@ public:
                              const int time_iteration,
                              const double dt,
                              const double current_time,
-                             const IJK_Splitting& my_splitting
+                             const Domaine_IJK& my_splitting
                             );
   void compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
                                             const int time_iteration,
                                             const double dt,
                                             const double current_time,
-                                            const IJK_Splitting& my_splitting,
+                                            const Domaine_IJK& my_splitting,
                                             const int facteur
                                            );
   // Dealing with thermal aspects:
@@ -740,7 +730,6 @@ public:
   Nom expression_pression_initiale_ = "??"; // useless, unless post-pro OR pressure_increment.
   //ab-sauv/repr-fin
 
-  IJK_Splitting splitting_;
   // Le probleme ft disc qui porte le maillage vdf pour les algorithmes front-tracking
   OBS_PTR(Probleme_base) refprobleme_ft_disc_;
   // Creation d'un probleme sur le domaine d'origine pour les sondes et pour faire leur VDF...

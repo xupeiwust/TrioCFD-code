@@ -38,11 +38,11 @@ class IJK_Composantes_Connex : public Objet_U
 public :
   int initialize(IJK_Interfaces& interfaces,
                  const bool is_switch);
-  int allocate_fields(const IJK_Splitting& splitting,
+  int allocate_fields(const Domaine_IJK& splitting,
                       const int& compute_compo_fields);
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void initialise_bubbles_params();
-  int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
+  int associate_rising_velocities_parameters(const Domaine_IJK& splitting,
                                              const int& compute_rising_velocities,
                                              const int& fill_rising_velocities,
                                              const int& use_bubbles_velocities_from_interface,

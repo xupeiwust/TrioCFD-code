@@ -266,8 +266,7 @@ Champ_base& Champ_Uniforme_Morceaux::affecter_(const Champ_base& ch)
     }
   else
     {
-      Cerr << "It is not known to affect a " << ch.que_suis_je()
-           << " at a " << que_suis_je() << finl;
+      Cerr << "Can not affect a '" << ch.que_suis_je() << "' to a '" << que_suis_je() << "'" << finl;
       exit();
     }
   return *this;

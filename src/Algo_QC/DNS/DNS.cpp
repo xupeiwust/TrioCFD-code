@@ -265,13 +265,13 @@ static inline void choix_modele(const Nom& turbulent_viscosity_model,
     }
 }
 
-void calculer_delta_z_pour_delta(const IJK_Splitting& splitting,
-                                 const IJK_Grid_Geometry& geom_pour_delta,
+void calculer_delta_z_pour_delta(const Domaine_IJK& splitting,
+                                 const Domaine_IJK& geom_pour_delta,
                                  const int ghost_size,
                                  ArrOfDouble_with_ghost& delta_z_pour_delta)
 {
-  const int nktot = splitting.get_grid_geometry().get_nb_elem_tot(DIRECTION_K);
-  const ArrOfDouble& coord_z = splitting.get_grid_geometry().get_node_coordinates(DIRECTION_K);
+  const int nktot = splitting.get_nb_elem_tot(DIRECTION_K);
+  const ArrOfDouble& coord_z = splitting.get_node_coordinates(DIRECTION_K);
   ArrOfDouble elem_coord(nktot);
   for (int i = 0; i < nktot; i++)
     {
@@ -357,12 +357,12 @@ void calculer_delta_z_pour_delta(const IJK_Splitting& splitting,
     }
 }
 
-void calculer_delta_z_filtre_identique(const IJK_Splitting& splitting,
+void calculer_delta_z_filtre_identique(const Domaine_IJK& splitting,
                                        const ArrOfDouble_with_ghost& delta_z_pour_delta,
                                        ArrOfDouble_with_ghost& delta_z_filtre)
 {
-  const int nk = splitting.get_nb_items_local(IJK_Splitting::FACES_K, DIRECTION_K);
-  const int nktot = splitting.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nk = splitting.get_nb_items_local(Domaine_IJK::FACES_K, DIRECTION_K);
+  const int nktot = splitting.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   const int offset = splitting.get_offset_local(DIRECTION_K);
 
   for (int k = 0; k < nk; k++)
@@ -374,15 +374,15 @@ void calculer_delta_z_filtre_identique(const IJK_Splitting& splitting,
 }
 
 void calculer_delta_z_filtre_n_mailles(const int taille_filtre,
-                                       const IJK_Splitting& splitting,
+                                       const Domaine_IJK& splitting,
                                        const ArrOfDouble_with_ghost& delta_z,
                                        const ArrOfDouble_with_ghost& delta_z_pour_delta,
                                        ArrOfDouble_with_ghost& delta_z_filtre)
 {
   Cerr << "Taille du filtre explicite fixee a " << taille_filtre << " mailles." << finl;
 
-  const int nk = splitting.get_nb_items_local(IJK_Splitting::FACES_K, DIRECTION_K);
-  const int nktot = splitting.get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nk = splitting.get_nb_items_local(Domaine_IJK::FACES_K, DIRECTION_K);
+  const int nktot = splitting.get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   const int offset = splitting.get_offset_local(DIRECTION_K);
 
   const bool impair = (taille_filtre%2 != 0);
@@ -565,7 +565,7 @@ void multiplier_champ_rho_arete_ik(const IJK_Field_double& champ_rho,
                                    double rho_kmin,
                                    IJK_Field_double& champ)
 {
-  const int offset = champ_rho.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = champ_rho.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = champ.ni();
   const int nj = champ.nj();
@@ -591,7 +591,7 @@ void multiplier_champ_rho_arete_jk(const IJK_Field_double& champ_rho,
                                    double rho_kmin,
                                    IJK_Field_double& champ)
 {
-  const int offset = champ_rho.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = champ_rho.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = champ.ni();
   const int nj = champ.nj();
@@ -704,7 +704,7 @@ void multiplier_champ_rho_face_k(const int flag_add,
                                  const IJK_Field_double& champ_in,
                                  IJK_Field_double& champ_out)
 {
-  const int offset = champ_rho.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = champ_rho.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = champ_in.ni();
   const int nj = champ_in.nj();
@@ -766,8 +766,8 @@ void filtrer_champ_elem(const int flag_add,
                         FixedVector<IJK_Field_local_double, 18>& tmp_a,
                         IJK_Field_double& champ_filtre)
 {
-  const double dx = champ.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = champ.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = champ.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = champ.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -775,8 +775,8 @@ void filtrer_champ_elem(const int flag_add,
   const int nj = champ.nj();
   const int nk = champ.nk();
 
-  const int nktot = champ.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = champ.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = champ.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = champ.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b = tmp_b[0];
   IJK_Field_local_double& a = tmp_a[0];
@@ -895,8 +895,8 @@ void filtrer_champ_face(const int flag_add,
                         FixedVector<IJK_Field_local_double, 18>& tmp_a,
                         IJK_Field_double& champ_filtre)
 {
-  const double dx = champ.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = champ.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = champ.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = champ.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -904,8 +904,8 @@ void filtrer_champ_face(const int flag_add,
   const int nj = champ.nj();
   const int nk = champ.nk();
 
-  const int nktot = champ.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = champ.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = champ.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = champ.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b = tmp_b[0];
   IJK_Field_local_double& a = tmp_a[0];
@@ -1034,13 +1034,13 @@ static inline void calculer_g(int i, int j, int k,
   const IJK_Field_double& vitesse_j = velocity[1];
   const IJK_Field_double& vitesse_k = velocity[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double deltaunsurdx = dx_delta * 1./dx;
   const double deltaunsurdy = dy_delta * 1./dy;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int kg = k + offset;
   const double dz = delta_z_maillage[k];
@@ -1149,13 +1149,13 @@ static inline void calculer_tau(int i, int j, int k,
   const IJK_Field_double& vitesse_j = velocity[1];
   const IJK_Field_double& vitesse_k = velocity[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double deltaunsurdx = dx_delta * 1./dx;
   const double deltaunsurdy = dy_delta * 1./dy;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int kg = k + offset;
   const double dz = delta_z_maillage[k];
@@ -1330,13 +1330,13 @@ static inline void calculer_q(int i, int j, int k,
 {
   const IJK_Field_double& vitesse_k = velocity[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double deltaunsurdx = dx_delta * 1./dx;
   const double deltaunsurdy = dy_delta * 1./dy;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int kg = k + offset;
   const double dz = delta_z_maillage[k];
@@ -1388,13 +1388,13 @@ static inline void calculer_pi(int i, int j, int k,
 {
   const IJK_Field_double& vitesse_k = velocity[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double deltaunsurdx = dx_delta * 1./dx;
   const double deltaunsurdy = dy_delta * 1./dy;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int kg = k + offset;
   const double dz = delta_z_maillage[k];
@@ -1470,21 +1470,21 @@ void calculer_turbulent_mu(const bool anisotropic,
                            const double facteur_y_pour_delta,
                            const ArrOfDouble_with_ghost& delta_z_pour_delta,
                            IJK_Field_double& turbulent_mu,
-                           const IJK_Splitting& splitting)
+                           const Domaine_IJK& splitting)
 {
   const IJK_Field_double& vitesse_k = velocity[2];
 
-  const double dx_pour_delta = facteur_x_pour_delta * vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy_pour_delta = facteur_y_pour_delta * vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx_pour_delta = facteur_x_pour_delta * vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy_pour_delta = facteur_y_pour_delta * vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const ArrOfDouble& coord_z = splitting.get_grid_geometry().get_node_coordinates(DIRECTION_K);
+  const ArrOfDouble& coord_z = splitting.get_node_coordinates(DIRECTION_K);
   ArrOfDouble elem_coord(nk);
   for (int i = 0; i < nktot; i++)
     {
@@ -1495,7 +1495,7 @@ void calculer_turbulent_mu(const bool anisotropic,
   FixedVector<FixedVector<double, 3>, 3> g;
   FixedVector<double, 3> q;
 // Modif Martin
-//  const int nktot_elem = splitting.get_grid_geometry().get_nb_elem_tot(DIRECTION_K);
+//  const int nktot_elem = splitting.get_nb_elem_tot(DIRECTION_K);
   // Quick fix using the C++ std::vector
   // double turbulent_viscosity_model_constant_tab[nk];
   std::vector<double> turbulent_viscosity_model_constant_tab(nk);
@@ -1626,8 +1626,8 @@ void calculer_ml_dynamic_uu_tensor(const bool anisotropic,
   const IJK_Field_double& structural_uu_filtre_yz = structural_uu_filtre_tensor[4];
   const IJK_Field_double& structural_uu_filtre_zz = structural_uu_filtre_tensor[5];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -1635,8 +1635,8 @@ void calculer_ml_dynamic_uu_tensor(const bool anisotropic,
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& bf_ii = tmp_b[0];
   IJK_Field_local_double& bf_ij = tmp_b[1];
@@ -2375,7 +2375,7 @@ void calculer_constante_direct(const bool global,
   ArrOfDouble moy_hij = moy_hij_0;
 
   const int nk = vitesse_k.nk();
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   Cout <<
        "Dynamic correction of constant [ " << description <<
@@ -2468,7 +2468,7 @@ void calculer_constante_lilly(const bool global,
   ArrOfDouble moy_mijhij = moy_mijhij_0;
 
   const int nk = vitesse_k.nk();
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   Cout << "Dynamic correction of constant [ " << description << " ] type= lilly global= " << (int)global << " clipping= " << (int)clipping << " mixte= " << (int)flag_mixte << " :" << finl;
 
@@ -2559,7 +2559,7 @@ void calculer_constante_twoparameters(const bool global,
   ArrOfDouble moy_mijhij = moy_mijhij_0;
 
   const int nk = vitesse_k.nk();
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   Cout << "Dynamic correction of constant [ " << description << " ] type= twoparameters global= " << (int)global << " clipping= " << (int)clipping << " :" << finl;
 
@@ -2653,7 +2653,7 @@ void calculer_constante_twonoerror(const bool global,
   ArrOfDouble moy_mijhij = moy_mijhij_0;
 
   const int nk = vitesse_k.nk();
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   Cout << "Dynamic correction of constant [ " << description << " ] type= twonoerror global= " << (int)global << " clipping= " << (int)clipping << " :" << finl;
 
@@ -2737,7 +2737,7 @@ void multiplier_par_constante(const bool face,
                               IJK_Field_double& turbulent_mu)
 {
   const IJK_Field_double& vitesse_k = velocity[2];
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -2893,8 +2893,8 @@ void calculer_ml_dynamic_uscalar_vector(const bool anisotropic,
   const IJK_Field_double& structural_uscalar_filtre_y = structural_uscalar_filtre_vector[1];
   const IJK_Field_double& structural_uscalar_filtre_z = structural_uscalar_filtre_vector[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -2902,8 +2902,8 @@ void calculer_ml_dynamic_uscalar_vector(const bool anisotropic,
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& bf_i = tmp_b[0];
   IJK_Field_local_double& bf_j = tmp_b[1];
@@ -3432,7 +3432,7 @@ void calculer_turbulent_mu_scalar(const bool anisotropic,
                                   const bool flag_turbulent_mu_filtre,
                                   IJK_Field_double& turbulent_mu_filtre,
                                   IJK_Field_double& turbulent_mu,
-                                  const IJK_Splitting& splitting)
+                                  const Domaine_IJK& splitting)
 {
   Turbulent_viscosity_base* model = nullptr;
 
@@ -3520,7 +3520,7 @@ void calculer_turbulent_mu_tensor(const bool anisotropic,
                                   const bool flag_turbulent_mu_filtre,
                                   FixedVector<IJK_Field_double, 6>& turbulent_mu_filtre_tensor,
                                   FixedVector<IJK_Field_double, 6>& turbulent_mu_tensor,
-                                  const IJK_Splitting& splitting)
+                                  const Domaine_IJK& splitting)
 {
   Turbulent_viscosity_base* model = nullptr;
 
@@ -3620,7 +3620,7 @@ void calculer_turbulent_mu_vector(const bool anisotropic,
                                   const bool flag_turbulent_mu_filtre,
                                   IJK_Field_vector3_double& turbulent_mu_filtre_vector,
                                   IJK_Field_vector3_double& turbulent_mu_vector,
-                                  const IJK_Splitting& splitting)
+                                  const Domaine_IJK& splitting)
 {
   Turbulent_viscosity_base* model = nullptr;
 
@@ -3700,8 +3700,8 @@ void calculer_structural_uu_gradient(const double structural_uu_model_constant,
   const double deltaunsurdx = facteur_x_pour_delta;
   const double deltaunsurdy = facteur_y_pour_delta;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -3910,8 +3910,8 @@ void calculer_laplacien_u(const IJK_Field_vector3_double& velocity,
   const double deltaunsurdx = facteur_x_pour_delta;
   const double deltaunsurdy = facteur_y_pour_delta;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -4038,8 +4038,8 @@ void calculer_structural_uu_su_laplacien_u(const double structural_uu_model_cons
   const double& coefficient_yz = structural_uu_tensor_coefficients[4];
   const double& coefficient_zz = structural_uu_tensor_coefficients[5];
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -4156,8 +4156,8 @@ void calculer_structural_uu_convection(const double structural_uu_model_constant
   const double& coefficient_yz = structural_uu_tensor_coefficients[4];
   const double& coefficient_zz = structural_uu_tensor_coefficients[5];
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -4254,16 +4254,16 @@ void calculer_structural_uu_similarity_comp(const double structural_uu_model_con
   const double& coefficient_yz = structural_uu_tensor_coefficients[4];
   const double& coefficient_zz = structural_uu_tensor_coefficients[5];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b_ii = tmp_b[0];
   IJK_Field_local_double& b_ij = tmp_b[1];
@@ -4631,8 +4631,8 @@ void calculer_structural_uu_similarity(const double structural_uu_model_constant
   const double& coefficient_yz = structural_uu_tensor_coefficients[4];
   const double& coefficient_zz = structural_uu_tensor_coefficients[5];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -4640,8 +4640,8 @@ void calculer_structural_uu_similarity(const double structural_uu_model_constant
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b_ii = tmp_b[0];
   IJK_Field_local_double& b_ij = tmp_b[1];
@@ -4936,8 +4936,8 @@ void calculer_structural_uu_similarity_Streher(const double structural_uu_model_
   IJK_Field_double& structural_uu_yz = structural_uu_tensor[4];
   IJK_Field_double& structural_uu_zz = structural_uu_tensor[5];
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   for (int k = 0; k < nk; k++)
     {
@@ -5314,8 +5314,8 @@ void calculer_structural_uscalar_gradient(const double structural_uscalar_model_
   const double deltaunsurdx = facteur_x_pour_delta;
   const double deltaunsurdy = facteur_y_pour_delta;
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   const int ni = vitesse_k.ni();
   const int nj = vitesse_k.nj();
@@ -5503,8 +5503,8 @@ void calculer_structural_uscalar_similarity_comp(const double structural_uscalar
   const double& coefficient_y = structural_uscalar_vector_coefficients[1];
   const double& coefficient_z = structural_uscalar_vector_coefficients[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -5512,8 +5512,8 @@ void calculer_structural_uscalar_similarity_comp(const double structural_uscalar
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b_is = tmp_b[0];
   IJK_Field_local_double& b_js = tmp_b[1];
@@ -5811,8 +5811,8 @@ void calculer_structural_uscalar_similarity(const double structural_uscalar_mode
   const double& coefficient_y = structural_uscalar_vector_coefficients[1];
   const double& coefficient_z = structural_uscalar_vector_coefficients[2];
 
-  const double dx = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vitesse_k.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vitesse_k.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vitesse_k.get_domaine().get_constant_delta(DIRECTION_J);
   const double dx_pour_delta = facteur_delta_x*dx;
   const double dy_pour_delta = facteur_delta_y*dy;
 
@@ -5820,8 +5820,8 @@ void calculer_structural_uscalar_similarity(const double structural_uscalar_mode
   const int nj = vitesse_k.nj();
   const int nk = vitesse_k.nk();
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   IJK_Field_local_double& b_is = tmp_b[0];
   IJK_Field_local_double& b_js = tmp_b[1];
@@ -6046,8 +6046,8 @@ void calculer_structural_uscalar_similarity_Streher(const double structural_usca
   IJK_Field_double& structural_uscalar_y = structural_uscalar_vector[1];
   IJK_Field_double& structural_uscalar_z = structural_uscalar_vector[2];
 
-  const int nktot = vitesse_k.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
-  const int offset = vitesse_k.get_splitting().get_offset_local(DIRECTION_K);
+  const int nktot = vitesse_k.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
+  const int offset = vitesse_k.get_domaine().get_offset_local(DIRECTION_K);
 
   for (int k = 0; k < nk; k++)
     {
@@ -7523,9 +7523,9 @@ Entree& DNS_QC_double::interpreter(Entree& is)
   param.lire_avec_accolades(is);
 
   // Recuperation des donnees de maillage
-  splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
+  domaine_ = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(ijk_splitting_name));
   // Initialisation de delta_z_local_
-  splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
+  domaine_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
 
   if (geom_name_pour_delta == Nom("__identique_au_maillage__"))
     {
@@ -7535,17 +7535,17 @@ Entree& DNS_QC_double::interpreter(Entree& is)
     }
   else
     {
-      Cerr << "Lecture de la taille du filtre depuis le IJK_Grid_Geometry " << geom_name_pour_delta << "." << finl;
-      IJK_Grid_Geometry geom_pour_delta = ref_cast(IJK_Grid_Geometry, Interprete_bloc::objet_global(geom_name_pour_delta));
-      const double dx_maillage = splitting_.get_grid_geometry().get_constant_delta(DIRECTION_I);
-      const double dy_maillage = splitting_.get_grid_geometry().get_constant_delta(DIRECTION_J);
+      Cerr << "Lecture de la taille du filtre depuis le Domaine_IJK " << geom_name_pour_delta << "." << finl;
+      Domaine_IJK geom_pour_delta = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(geom_name_pour_delta));
+      const double dx_maillage = domaine_.get_constant_delta(DIRECTION_I);
+      const double dy_maillage = domaine_.get_constant_delta(DIRECTION_J);
       const double dx_pour_delta = geom_pour_delta.get_constant_delta(DIRECTION_I);
       const double dy_pour_delta = geom_pour_delta.get_constant_delta(DIRECTION_J);
       facteur_delta_x_ = dx_pour_delta/dx_maillage;
       facteur_delta_y_ = dy_pour_delta/dy_maillage;
 
-      calculer_delta_z_pour_delta(splitting_, geom_pour_delta, 2, delta_z_local_pour_delta_);
-      for (int i=-2 ; i<splitting_.get_nb_elem_local(DIRECTION_K)+2 ; i++)
+      calculer_delta_z_pour_delta(domaine_, geom_pour_delta, 2, delta_z_local_pour_delta_);
+      for (int i=-2 ; i<domaine_.get_nb_elem_local(DIRECTION_K)+2 ; i++)
         {
           Cerr << i << "      " << delta_z_local_[i] << "        " << delta_z_local_pour_delta_[i] << finl;
         }
@@ -7583,7 +7583,7 @@ Entree& DNS_QC_double::interpreter(Entree& is)
       else
         {
 #if defined(WITH_FFTW)
-          post_splitting_ =ref_cast(IJK_Splitting, Interprete_bloc::objet_global(post_splitting_name));
+          post_splitting_ =ref_cast(Domaine_IJK, Interprete_bloc::objet_global(post_splitting_name));
 
           const int decoupage_selon_x_ou_y = post_splitting_.get_nprocessor_per_direction(0)*post_splitting_.get_nprocessor_per_direction(1);
           if (decoupage_selon_x_ou_y > 1 )
@@ -7600,7 +7600,7 @@ Entree& DNS_QC_double::interpreter(Entree& is)
 
   if (sauvegarde_splitting_name_ != "??")
     {
-      sauvegarde_splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(sauvegarde_splitting_name_));
+      sauvegarde_splitting_ = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(sauvegarde_splitting_name_));
       const int decoupage_selon_x_ou_y = sauvegarde_splitting_.get_nprocessor_per_direction(0)*sauvegarde_splitting_.get_nprocessor_per_direction(1);
       // Modif Martin
       if (decoupage_selon_x_ou_y > 1 )
@@ -7611,10 +7611,10 @@ Entree& DNS_QC_double::interpreter(Entree& is)
       // Fin modif Martin
 
       Cerr << "Initialisation de la sauvegarde des lata par plan" << finl;
-      redistribute_to_sauvegarde_splitting_elem_.initialize(splitting_,sauvegarde_splitting_,IJK_Splitting::ELEM);
-      redistribute_to_sauvegarde_splitting_faces_[0].initialize(splitting_,sauvegarde_splitting_,IJK_Splitting::FACES_I);
-      redistribute_to_sauvegarde_splitting_faces_[1].initialize(splitting_,sauvegarde_splitting_,IJK_Splitting::FACES_J);
-      redistribute_to_sauvegarde_splitting_faces_[2].initialize(splitting_,sauvegarde_splitting_,IJK_Splitting::FACES_K);
+      redistribute_to_sauvegarde_splitting_elem_.initialize(domaine_,sauvegarde_splitting_,Domaine_IJK::ELEM);
+      redistribute_to_sauvegarde_splitting_faces_[0].initialize(domaine_,sauvegarde_splitting_,Domaine_IJK::FACES_I);
+      redistribute_to_sauvegarde_splitting_faces_[1].initialize(domaine_,sauvegarde_splitting_,Domaine_IJK::FACES_J);
+      redistribute_to_sauvegarde_splitting_faces_[2].initialize(domaine_,sauvegarde_splitting_,Domaine_IJK::FACES_K);
     }
 
   if ( (!lecture_post_instantanes_) && (lecture_post_instantanes_filtrer_u_
@@ -7999,8 +7999,8 @@ static void calculer_debit(const IJK_Field_double& vx, const IJK_Field_double& r
   const int ni = vx.ni();
   const int nj = vx.nj();
   const int nk = vx.nk();
-  const double dx = vx.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = vx.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = vx.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = vx.get_domaine().get_constant_delta(DIRECTION_J);
 
   debit = 0.;
   // Ponderation par le volume des mailles pour traiter le cas ou le maillage est irregulier en k
@@ -8062,15 +8062,14 @@ void DNS_QC_double::initialise()
        << "\n lambda_de_t_paroi_kmax = " << lambda_de_t_paroi_kmax_ << finl;
 
   // calcul du volume total du domaine
-  const IJK_Grid_Geometry& geometry = splitting_.get_grid_geometry();
-  const Nom& geom_name = splitting_.get_grid_geometry().le_nom();
+  const Nom& geom_name = domaine_.le_nom();
 
-  int Nx_tot = geometry.get_nb_elem_tot(0) + 1;
-  int Ny_tot = geometry.get_nb_elem_tot(1) + 1;
-  int Nz_tot = geometry.get_nb_elem_tot(2) + 1;
-  Lx_tot_  = geometry.get_node_coordinates(0)[Nx_tot - 1] - geometry.get_origin(0);
-  Ly_tot_  = geometry.get_node_coordinates(1)[Ny_tot - 1] - geometry.get_origin(1);
-  Lz_tot_  = geometry.get_node_coordinates(2)[Nz_tot - 1] - geometry.get_origin(2);
+  int Nx_tot = domaine_.get_nb_elem_tot(0) + 1;
+  int Ny_tot = domaine_.get_nb_elem_tot(1) + 1;
+  int Nz_tot = domaine_.get_nb_elem_tot(2) + 1;
+  Lx_tot_  = domaine_.get_node_coordinates(0)[Nx_tot - 1] - domaine_.get_origin(0);
+  Ly_tot_  = domaine_.get_node_coordinates(1)[Ny_tot - 1] - domaine_.get_origin(1);
+  Lz_tot_  = domaine_.get_node_coordinates(2)[Nz_tot - 1] - domaine_.get_origin(2);
   volume_total_domaine_ = Lx_tot_ * Ly_tot_ * Lz_tot_;
   Cout << " Volume total domaine = " << volume_total_domaine_ << finl;
 
@@ -8127,7 +8126,7 @@ void DNS_QC_double::initialise()
 
   // statistiques...
   Cout << "Initialisation des statistiques. T_debut_statistiques=" << t_debut_statistiques_ << finl;
-  statistiques_.initialize(splitting_.get_grid_geometry(), T_paroi_impose_kmax_,T_paroi_impose_kmin_, constante_specifique_gaz_ );
+  statistiques_.initialize(domaine_, T_paroi_impose_kmax_,T_paroi_impose_kmin_, constante_specifique_gaz_ );
 
   if ( dt_post_spectral_ > 0 ) // si on a un post traitement spectral
     {
@@ -8137,7 +8136,7 @@ void DNS_QC_double::initialise()
           Process::exit();
         }
 
-      partie_fourier_.initialize(splitting_ /* maillage de simu */
+      partie_fourier_.initialize(domaine_ /* maillage de simu */
                                  ,post_splitting_ /* maillage de post traitement */
                                  ,statistiques_.vitesse_moyenne() /* vitesse moyenne utilisee dans les stats standart */
                                  ,statistiques_.masse_volumique_moyenne() /* masse volumique moyenne utilisee dans les stats standart */
@@ -8164,8 +8163,8 @@ static void force_zero_normal_velocity_on_walls(IJK_Field_double& vz)
 {
   const int nj = vz.nj();
   const int ni = vz.ni();
-  const int kmin = vz.get_splitting().get_offset_local(DIRECTION_K);
-  const int nktot = vz.get_splitting().get_nb_items_global(IJK_Splitting::FACES_K, DIRECTION_K);
+  const int kmin = vz.get_domaine().get_offset_local(DIRECTION_K);
+  const int nktot = vz.get_domaine().get_nb_items_global(Domaine_IJK::FACES_K, DIRECTION_K);
   if (kmin == 0)
     {
       for (int j = 0; j < nj; j++)
@@ -8195,8 +8194,8 @@ static void force_zero_normal_velocity_on_walls(IJK_Field_double& vz)
 //   const int ni = vx.ni();
 //   const int nj = vx.nj();
 //   const int nk = vx.nk();
-//   const double dx = vx.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-//   const double dy = vx.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+//   const double dx = vx.get_domaine().get_constant_delta(DIRECTION_I);
+//   const double dy = vx.get_domaine().get_constant_delta(DIRECTION_J);
 //
 //   v_moy = 0.;
 //   rho_v_moy = 0.;
@@ -8233,15 +8232,14 @@ static double calculer_dtstab_diffusion_temperature_local(const IJK_Field_double
                                                           const IJK_Field_double& rho,
                                                           const double cp_gaz)
 {
-  const IJK_Splitting& split = lambda.get_splitting();
-  const int ni = split.get_nb_elem_local(DIRECTION_I);
-  const int nj = split.get_nb_elem_local(DIRECTION_J);
-  const int nk = split.get_nb_elem_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = lambda.get_domaine();
+  const int ni = geom.get_nb_elem_local(DIRECTION_I);
+  const int nj = geom.get_nb_elem_local(DIRECTION_J);
+  const int nk = geom.get_nb_elem_local(DIRECTION_K);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const ArrOfDouble& delta_z = geom.get_delta(DIRECTION_K);
-  const int k_offset = split.get_offset_local(DIRECTION_K);
+  const int k_offset = geom.get_offset_local(DIRECTION_K);
 
   double inv_dtstab = 1e-20;
   for (int k = 0; k < nk; k++)
@@ -8266,15 +8264,14 @@ static double calculer_dtstab_diffusion_temperature_local_sans_rho(const bool an
                                                                    const IJK_Field_double& lambda_z,
                                                                    const double cp_gaz)
 {
-  const IJK_Splitting& split = lambda_x.get_splitting();
-  const int ni = split.get_nb_elem_local(DIRECTION_I);
-  const int nj = split.get_nb_elem_local(DIRECTION_J);
-  const int nk = split.get_nb_elem_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = lambda_x.get_domaine();
+  const int ni = geom.get_nb_elem_local(DIRECTION_I);
+  const int nj = geom.get_nb_elem_local(DIRECTION_J);
+  const int nk = geom.get_nb_elem_local(DIRECTION_K);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const ArrOfDouble& delta_z = geom.get_delta(DIRECTION_K);
-  const int k_offset = split.get_offset_local(DIRECTION_K);
+  const int k_offset = geom.get_offset_local(DIRECTION_K);
 
   double inv_dtstab = 1e-20;
   for (int k = 0; k < nk; k++)
@@ -8325,15 +8322,14 @@ static double calculer_dtstab_diffusion_temperature_local_avec_turbulent_favre(c
   const IJK_Field_double& lambda_turbulent_zx = lambda_turbulent_xz;
   const IJK_Field_double& lambda_turbulent_zy = lambda_turbulent_yz;
 
-  const IJK_Splitting& split = lambda.get_splitting();
-  const int ni = split.get_nb_elem_local(DIRECTION_I);
-  const int nj = split.get_nb_elem_local(DIRECTION_J);
-  const int nk = split.get_nb_elem_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = lambda.get_domaine();
+  const int ni = geom.get_nb_elem_local(DIRECTION_I);
+  const int nj = geom.get_nb_elem_local(DIRECTION_J);
+  const int nk = geom.get_nb_elem_local(DIRECTION_K);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const ArrOfDouble& delta_z = geom.get_delta(DIRECTION_K);
-  const int k_offset = split.get_offset_local(DIRECTION_K);
+  const int k_offset = geom.get_offset_local(DIRECTION_K);
 
   double inv_dtstab = 1e-20;
   for (int k = 0; k < nk; k++)
@@ -8396,15 +8392,14 @@ static double calculer_dtstab_diffusion_temperature_local_avec_turbulent_velocit
   const IJK_Field_double& lambda_turbulent_zx = lambda_turbulent_xz;
   const IJK_Field_double& lambda_turbulent_zy = lambda_turbulent_yz;
 
-  const IJK_Splitting& split = lambda.get_splitting();
-  const int ni = split.get_nb_elem_local(DIRECTION_I);
-  const int nj = split.get_nb_elem_local(DIRECTION_J);
-  const int nk = split.get_nb_elem_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = lambda.get_domaine();
+  const int ni = geom.get_nb_elem_local(DIRECTION_I);
+  const int nj = geom.get_nb_elem_local(DIRECTION_J);
+  const int nk = geom.get_nb_elem_local(DIRECTION_K);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const ArrOfDouble& delta_z = geom.get_delta(DIRECTION_K);
-  const int k_offset = split.get_offset_local(DIRECTION_K);
+  const int k_offset = geom.get_offset_local(DIRECTION_K);
 
   double inv_dtstab = 1e-20;
   for (int k = 0; k < nk; k++)
@@ -8459,13 +8454,13 @@ void DNS_QC_double::calculer_moyennes_flux()
   const int nj = velocity_[2].nj();
   const int nk = velocity_[2].nk();
 
-  const double dx = velocity_[2].get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = velocity_[2].get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = velocity_[2].get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = velocity_[2].get_domaine().get_constant_delta(DIRECTION_J);
 
   const double facteur = Cp_gaz_ * P_thermodynamique_ / constante_specifique_gaz_;
   const double surface = 1. / (ni*nj); // calcule directement la surface et la moyenne.
-  const int offset = temperature_.get_splitting().get_offset_local(DIRECTION_K);
-  const int nktot = velocity_[2].get_splitting().get_nb_items_global(IJK_Splitting::FACES_K, DIRECTION_K);
+  const int offset = temperature_.get_domaine().get_offset_local(DIRECTION_K);
+  const int nktot = velocity_[2].get_domaine().get_nb_items_global(Domaine_IJK::FACES_K, DIRECTION_K);
 
   // tableau globaux plus facile pour faire un mp_sum.
   ArrOfDouble flux_cv(nktot);
@@ -8537,20 +8532,6 @@ void DNS_QC_double::calculer_moyennes_flux()
   // bon pour le moment je m'en contente.
   mp_sum_for_each_item(flux_cv);
   mp_sum_for_each_item(flux_cd);
-
-  // ici on va imprimmer ce dont on a besoin.
-#if 0
-  const IJK_Grid_Geometry& geometry = splitting_.get_grid_geometry();
-  if(Process::je_suis_maitre())
-    {
-      for (int k = 0; k < nktot; k++)
-        {
-          double z = geometry.get_node_coordinates(2)[k];
-          Cerr << "iiii " << z << " " << flux_cv[k] << " " << flux_cd[k] << finl;
-        }
-      Cerr << "iiii " << finl;
-    }
-#endif
 }
 
 
@@ -9550,24 +9531,24 @@ void DNS_QC_double::run()
   int ghost_size_pressure = (lecture_post_instantanes_filtrer_p_ || lecture_post_instantanes_filtrer_tous_) ? max((int) 1, ghost_size_filter) : 1;
 
   /* allocation des tableaux */
-  allocate_velocity(velocity_, splitting_, ghost_size_velocity);
-  velocity_elem_X_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  velocity_elem_Y_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  velocity_elem_Z_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  rho_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_rho);
-  allocate_velocity(rho_v_, splitting_, 2);
-  allocate_velocity(d_velocity_, splitting_, 1);
-  allocate_velocity(RK3_F_velocity_, splitting_, 0);
-  pressure_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_pressure);
-  molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  d_rho_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  temperature_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_temperature);
-  RK3_F_rho_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-  molecular_lambda_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  div_lambda_grad_T_volume_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-  u_div_rho_u_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-  divergence_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+  allocate_velocity(velocity_, domaine_, ghost_size_velocity);
+  velocity_elem_X_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  velocity_elem_Y_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  velocity_elem_Z_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  rho_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_rho);
+  allocate_velocity(rho_v_, domaine_, 2);
+  allocate_velocity(d_velocity_, domaine_, 1);
+  allocate_velocity(RK3_F_velocity_, domaine_, 0);
+  pressure_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_pressure);
+  molecular_mu_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  pressure_rhs_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  d_rho_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  temperature_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_temperature);
+  RK3_F_rho_.allocate(domaine_, Domaine_IJK::ELEM, 0);
+  molecular_lambda_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  div_lambda_grad_T_volume_.allocate(domaine_, Domaine_IJK::ELEM, 0);
+  u_div_rho_u_.allocate(domaine_, Domaine_IJK::ELEM, 1);
+  divergence_.allocate(domaine_, Domaine_IJK::ELEM, 1);
 
   //Modif Martin
   if (sauvegarde_splitting_name_ != "??")
@@ -9575,26 +9556,26 @@ void DNS_QC_double::run()
       if (( sauvegarde_splitting_.get_local_slice_index(0) == sauvegarde_splitting_.get_nprocessor_per_direction(0) - 1) || ( sauvegarde_splitting_.get_local_slice_index(1) == sauvegarde_splitting_.get_nprocessor_per_direction(1) - 1) || ( sauvegarde_splitting_.get_local_slice_index(2) == sauvegarde_splitting_.get_nprocessor_per_direction(2) - 1))
         {
           allocate_velocity(velocity_sauvegarde_, sauvegarde_splitting_, 1);
-          temperature_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          molecular_lambda_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          molecular_mu_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          rho_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          pressure_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          velocity_elem_X_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          velocity_elem_Y_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
-          velocity_elem_Z_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 1);
+          temperature_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          molecular_lambda_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          molecular_mu_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          rho_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          pressure_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          velocity_elem_X_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          velocity_elem_Y_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
+          velocity_elem_Z_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 1);
         }
       else
         {
           allocate_velocity(velocity_sauvegarde_, sauvegarde_splitting_, 0);
-          temperature_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          molecular_lambda_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          molecular_mu_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          rho_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          pressure_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          velocity_elem_X_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          velocity_elem_Y_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
-          velocity_elem_Z_sauvegarde_.allocate(sauvegarde_splitting_, IJK_Splitting::ELEM, 0);
+          temperature_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          molecular_lambda_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          molecular_mu_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          rho_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          pressure_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          velocity_elem_X_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          velocity_elem_Y_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
+          velocity_elem_Z_sauvegarde_.allocate(sauvegarde_splitting_, Domaine_IJK::ELEM, 0);
         }
     }
 
@@ -9644,7 +9625,7 @@ void DNS_QC_double::run()
           facteur_delta_filtre_x_ = sqrt(facteur_delta_x_*facteur_delta_x_ + facteur_delta_x_*facteur_delta_x_);
           facteur_delta_filtre_y_ = sqrt(facteur_delta_y_*facteur_delta_y_ + facteur_delta_y_*facteur_delta_y_);
           delta_z_local_pour_delta_filtre_ = delta_z_local_;
-          calculer_delta_z_filtre_identique(splitting_, delta_z_local_pour_delta_, delta_z_local_pour_delta_filtre_);
+          calculer_delta_z_filtre_identique(domaine_, delta_z_local_pour_delta_, delta_z_local_pour_delta_filtre_);
         }
       else
         {
@@ -9654,7 +9635,7 @@ void DNS_QC_double::run()
           facteur_delta_filtre_x_ = sqrt(n_mailles*n_mailles + facteur_delta_x_*facteur_delta_x_);
           facteur_delta_filtre_y_ = sqrt(n_mailles*n_mailles + facteur_delta_y_*facteur_delta_y_);
           delta_z_local_pour_delta_filtre_ = delta_z_local_;
-          calculer_delta_z_filtre_n_mailles((int)n_mailles, splitting_, delta_z_local_, delta_z_local_pour_delta_, delta_z_local_pour_delta_filtre_);
+          calculer_delta_z_filtre_n_mailles((int)n_mailles, domaine_, delta_z_local_, delta_z_local_pour_delta_, delta_z_local_pour_delta_filtre_);
         }
       constante_modele_ = delta_z_local_;
       for (int i=0 ; i<18 ; i++)
@@ -9669,7 +9650,7 @@ void DNS_QC_double::run()
           tmp_b_[i].allocate(ni, nj, ghost_size_filter, ghost_size_filter);
           tmp_a_[i].allocate(ni, ghost_size_filter, ghost_size_filter, ghost_size_filter);
         }
-      const int nktot = velocity_[2].get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+      const int nktot = velocity_[2].get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
       for (int i=0; i<8; i++)
         {
           for (int j=0; j<7; j++)
@@ -9686,12 +9667,12 @@ void DNS_QC_double::run()
 
       if (flag_nu_tensorial_)
         {
-          turbulent_mu_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
-          turbulent_mu_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
-          turbulent_mu_tensor_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
-          turbulent_mu_tensor_[3].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
-          turbulent_mu_tensor_[4].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
-          turbulent_mu_tensor_[5].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[3].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[4].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_tensor_[5].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
           turbulent_mu_tensor_[0].data() = 0.;
           turbulent_mu_tensor_[1].data() = 0.;
           turbulent_mu_tensor_[2].data() = 0.;
@@ -9701,7 +9682,7 @@ void DNS_QC_double::run()
         }
       else
         {
-          turbulent_mu_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_mu);
+          turbulent_mu_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_mu);
           turbulent_mu_.data() = 0.;
         }
     }
@@ -9711,23 +9692,23 @@ void DNS_QC_double::run()
 
       if (flag_kappa_vectorial_)
         {
-          turbulent_kappa_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_kappa);
-          turbulent_kappa_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_kappa);
-          turbulent_kappa_vector_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_kappa);
+          turbulent_kappa_vector_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_kappa);
+          turbulent_kappa_vector_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_kappa);
+          turbulent_kappa_vector_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_kappa);
           turbulent_kappa_vector_[0].data() = 0.;
           turbulent_kappa_vector_[1].data() = 0.;
           turbulent_kappa_vector_[2].data() = 0.;
         }
       else
         {
-          turbulent_kappa_.allocate(splitting_, IJK_Splitting::ELEM, ghost_size_turbulent_kappa);
+          turbulent_kappa_.allocate(domaine_, Domaine_IJK::ELEM, ghost_size_turbulent_kappa);
           turbulent_kappa_.data() = 0.;
         }
     }
 
   if (flag_u_filtre_)
     {
-      allocate_velocity(velocity_filtre_, splitting_, 2);
+      allocate_velocity(velocity_filtre_, domaine_, 2);
       velocity_filtre_[0].data() = 0.;
       velocity_filtre_[1].data() = 0.;
       velocity_filtre_[2].data() = 0.;
@@ -9736,12 +9717,12 @@ void DNS_QC_double::run()
     {
       int ghost_size_structural_uu = flag_structural_uu_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
-      structural_uu_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
-      structural_uu_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
-      structural_uu_tensor_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
-      structural_uu_tensor_[3].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
-      structural_uu_tensor_[4].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
-      structural_uu_tensor_[5].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[3].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[4].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
+      structural_uu_tensor_[5].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu);
       structural_uu_tensor_[0].data() = 0.;
       structural_uu_tensor_[1].data() = 0.;
       structural_uu_tensor_[2].data() = 0.;
@@ -9752,21 +9733,21 @@ void DNS_QC_double::run()
 
   if (flag_rho_filtre_)
     {
-      rho_filtre_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      rho_filtre_.allocate(domaine_, Domaine_IJK::ELEM, 2);
       rho_filtre_.data() = 1.; // not zero=> might want 1./rho and must not crash
     }
   if (flag_temperature_filtre_)
     {
-      temperature_filtre_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      temperature_filtre_.allocate(domaine_, Domaine_IJK::ELEM, 2);
       temperature_filtre_.data() = 293.; // like rho: not zero
     }
   if (structural_uscalar_)
     {
       int ghost_size_structural_uscalar = flag_structural_uscalar_filtre_ ? max((int) 2, ghost_size_filter) : 2;
 
-      structural_uscalar_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
-      structural_uscalar_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
-      structural_uscalar_vector_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar);
+      structural_uscalar_vector_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar);
+      structural_uscalar_vector_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar);
+      structural_uscalar_vector_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar);
       structural_uscalar_vector_[0].data() = 0.;
       structural_uscalar_vector_[1].data() = 0.;
       structural_uscalar_vector_[2].data() = 0.;
@@ -9776,12 +9757,12 @@ void DNS_QC_double::run()
     {
       if (flag_nu_tensorial_)
         {
-          turbulent_mu_filtre_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_mu_filtre_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_mu_filtre_tensor_[2].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_mu_filtre_tensor_[3].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_mu_filtre_tensor_[4].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_mu_filtre_tensor_[5].allocate(splitting_, IJK_Splitting::ELEM, 2);
+          turbulent_mu_filtre_tensor_[0].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_mu_filtre_tensor_[1].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_mu_filtre_tensor_[2].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_mu_filtre_tensor_[3].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_mu_filtre_tensor_[4].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_mu_filtre_tensor_[5].allocate(domaine_, Domaine_IJK::ELEM, 2);
           turbulent_mu_filtre_tensor_[0].data() = 0.;
           turbulent_mu_filtre_tensor_[1].data() = 0.;
           turbulent_mu_filtre_tensor_[2].data() = 0.;
@@ -9791,7 +9772,7 @@ void DNS_QC_double::run()
         }
       else
         {
-          turbulent_mu_filtre_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+          turbulent_mu_filtre_.allocate(domaine_, Domaine_IJK::ELEM, 2);
           turbulent_mu_filtre_.data() = 0.;
         }
     }
@@ -9799,28 +9780,28 @@ void DNS_QC_double::run()
     {
       if (flag_kappa_vectorial_)
         {
-          turbulent_kappa_filtre_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_kappa_filtre_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, 2);
-          turbulent_kappa_filtre_vector_[2].allocate(splitting_, IJK_Splitting::ELEM, 2);
+          turbulent_kappa_filtre_vector_[0].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_kappa_filtre_vector_[1].allocate(domaine_, Domaine_IJK::ELEM, 2);
+          turbulent_kappa_filtre_vector_[2].allocate(domaine_, Domaine_IJK::ELEM, 2);
           turbulent_kappa_filtre_vector_[0].data() = 0.;
           turbulent_kappa_filtre_vector_[1].data() = 0.;
           turbulent_kappa_filtre_vector_[2].data() = 0.;
         }
       else
         {
-          turbulent_kappa_filtre_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+          turbulent_kappa_filtre_.allocate(domaine_, Domaine_IJK::ELEM, 2);
           turbulent_kappa_filtre_.data() = 0.;
         }
     }
 
   if (flag_structural_uu_filtre_)
     {
-      structural_uu_filtre_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uu_filtre_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uu_filtre_tensor_[2].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uu_filtre_tensor_[3].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uu_filtre_tensor_[4].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uu_filtre_tensor_[5].allocate(splitting_, IJK_Splitting::ELEM, 2);
+      structural_uu_filtre_tensor_[0].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uu_filtre_tensor_[1].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uu_filtre_tensor_[2].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uu_filtre_tensor_[3].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uu_filtre_tensor_[4].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uu_filtre_tensor_[5].allocate(domaine_, Domaine_IJK::ELEM, 2);
       structural_uu_filtre_tensor_[0].data() = 0.;
       structural_uu_filtre_tensor_[1].data() = 0.;
       structural_uu_filtre_tensor_[2].data() = 0.;
@@ -9830,9 +9811,9 @@ void DNS_QC_double::run()
     }
   if (flag_structural_uscalar_filtre_)
     {
-      structural_uscalar_filtre_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uscalar_filtre_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, 2);
-      structural_uscalar_filtre_vector_[2].allocate(splitting_, IJK_Splitting::ELEM, 2);
+      structural_uscalar_filtre_vector_[0].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uscalar_filtre_vector_[1].allocate(domaine_, Domaine_IJK::ELEM, 2);
+      structural_uscalar_filtre_vector_[2].allocate(domaine_, Domaine_IJK::ELEM, 2);
       structural_uscalar_filtre_vector_[0].data() = 0.;
       structural_uscalar_filtre_vector_[1].data() = 0.;
       structural_uscalar_filtre_vector_[2].data() = 0.;
@@ -9842,12 +9823,12 @@ void DNS_QC_double::run()
     {
       int ghost_size_structural_uu_tmp = flag_structural_uu_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
-      structural_uu_tmp_tensor_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
-      structural_uu_tmp_tensor_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
-      structural_uu_tmp_tensor_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
-      structural_uu_tmp_tensor_[3].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
-      structural_uu_tmp_tensor_[4].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
-      structural_uu_tmp_tensor_[5].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[3].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[4].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
+      structural_uu_tmp_tensor_[5].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uu_tmp);
       structural_uu_tmp_tensor_[0].data() = 0.;
       structural_uu_tmp_tensor_[1].data() = 0.;
       structural_uu_tmp_tensor_[2].data() = 0.;
@@ -9859,9 +9840,9 @@ void DNS_QC_double::run()
     {
       int ghost_size_structural_uscalar_tmp = flag_structural_uscalar_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
-      structural_uscalar_tmp_vector_[0].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
-      structural_uscalar_tmp_vector_[1].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
-      structural_uscalar_tmp_vector_[2].allocate(splitting_, IJK_Splitting::ELEM, ghost_size_structural_uscalar_tmp);
+      structural_uscalar_tmp_vector_[0].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar_tmp);
+      structural_uscalar_tmp_vector_[1].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar_tmp);
+      structural_uscalar_tmp_vector_[2].allocate(domaine_, Domaine_IJK::ELEM, ghost_size_structural_uscalar_tmp);
       structural_uscalar_tmp_vector_[0].data() = 0.;
       structural_uscalar_tmp_vector_[1].data() = 0.;
       structural_uscalar_tmp_vector_[2].data() = 0.;
@@ -9870,7 +9851,7 @@ void DNS_QC_double::run()
     {
       ghost_size_d_velocity_tmp = flag_d_velocity_tmp_ ? max((int) 2, ghost_size_filter) : 2;
 
-      allocate_velocity(d_velocity_tmp_, splitting_, ghost_size_d_velocity_tmp);
+      allocate_velocity(d_velocity_tmp_, domaine_, ghost_size_d_velocity_tmp);
       d_velocity_tmp_[0].data() = 0.;
       d_velocity_tmp_[1].data() = 0.;
       d_velocity_tmp_[2].data() = 0.;
@@ -9886,19 +9867,19 @@ void DNS_QC_double::run()
     {
       Cerr << "The diffusion is 'simple': the flux is 'molecular_mu * grad u'" << finl;
       velocity_diffusion_op_simple_.set_bc(boundary_conditions_);
-      velocity_diffusion_op_simple_.initialize(splitting_);
+      velocity_diffusion_op_simple_.initialize(domaine_);
     }
   else if (type_velocity_diffusion_ == Nom("simple_with_transpose"))
     {
       Cerr << "The diffusion is 'simple_with_transpose': the flux is 'molecular_mu * (grad u + grad^T u)'" << finl;
       velocity_diffusion_op_simple_with_transpose_.set_bc(boundary_conditions_);
-      velocity_diffusion_op_simple_with_transpose_.initialize(splitting_);
+      velocity_diffusion_op_simple_with_transpose_.initialize(domaine_);
     }
   else if (type_velocity_diffusion_ == Nom("full"))
     {
       Cerr << "The diffusion is 'full': the flux is 'molecular_mu * (grad u + grad^T u - 2/3 * div u * Id)'" << finl;
       velocity_diffusion_op_full_.set_bc(boundary_conditions_);
-      velocity_diffusion_op_full_.initialize(splitting_);
+      velocity_diffusion_op_full_.initialize(domaine_);
     }
   else if (type_velocity_diffusion_ == Nom("none"))
     {
@@ -9914,37 +9895,37 @@ void DNS_QC_double::run()
     {
       Cerr << "The velocity turbulent diffusion is 'simple': the flux is 'turbulent_mu * grad u'" << finl;
       velocity_turbulent_diffusion_op_simple_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_simple_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_simple_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("simple_with_transpose"))
     {
       Cerr << "The velocity turbulent diffusion is 'simple_with_transpose': the flux is 'turbulent_mu * (grad u + grad^T u)'" << finl;
       velocity_turbulent_diffusion_op_simple_with_transpose_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_simple_with_transpose_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_simple_with_transpose_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("full"))
     {
       Cerr << "The velocity turbulent diffusion is 'full': the flux is 'turbulent_mu * (grad u + grad^T u - 2/3 * div u * Id)'" << finl;
       velocity_turbulent_diffusion_op_full_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_full_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_full_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("simple_anisotropic"))
     {
       Cerr << "The velocity turbulent diffusion is 'simple_anisotropic': the flux is 'turbulent_mu^a * grad^a u' where (grad^a)_i = Delta_i (grad)_i" << finl;
       velocity_turbulent_diffusion_op_simple_anisotropic_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_simple_anisotropic_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_simple_anisotropic_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("simple_with_transpose_anisotropic"))
     {
       Cerr << "The velocity turbulent diffusion is 'simple_with_transpose_anisotropic': the flux is 'turbulent_mu^a * (grad^a u + grad^a^T u)' where (grad^a)_i = Delta_i (grad)_i" << finl;
       velocity_turbulent_diffusion_op_simple_with_transpose_anisotropic_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_simple_with_transpose_anisotropic_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_simple_with_transpose_anisotropic_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("full_anisotropic"))
     {
       Cerr << "The velocity turbulent diffusion is 'full_anisotropic': the flux is 'turbulent_mu^a * (grad^a u + grad^a^T u - 2/3 * div^a u * Id)' where (grad^a)_i = Delta_i (grad)_i" << finl;
       velocity_turbulent_diffusion_op_full_anisotropic_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_full_anisotropic_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_full_anisotropic_.initialize(domaine_);
     }
   else if (type_velocity_turbulent_diffusion_ == Nom("none"))
     {
@@ -9967,7 +9948,7 @@ void DNS_QC_double::run()
       Cerr << " zz: " << structural_uu_tensor_coefficients_[5];
       Cerr << finl;
       velocity_turbulent_diffusion_op_structural_.set_bc(boundary_conditions_);
-      velocity_turbulent_diffusion_op_structural_.initialize(splitting_);
+      velocity_turbulent_diffusion_op_structural_.initialize(domaine_);
     }
 
   if (structural_uscalar_)
@@ -9977,18 +9958,18 @@ void DNS_QC_double::run()
            << " y: " << structural_uscalar_vector_coefficients_[1]
            << " z: " << structural_uscalar_vector_coefficients_[2]
            << finl;
-      operateur_diffusion_temperature_structural_.initialize(splitting_);
+      operateur_diffusion_temperature_structural_.initialize(domaine_);
     }
 
   if (type_scalar_turbulent_diffusion_ == Nom("normal"))
     {
       Cerr << "The scalar turbulent diffusion is 'normal': the flux is 'lambda * grad s'" << finl;
-      operateur_diffusion_turbulent_scalar_.initialize(splitting_);
+      operateur_diffusion_turbulent_scalar_.initialize(domaine_);
     }
   else if (type_scalar_turbulent_diffusion_ == Nom("anisotropic"))
     {
       Cerr << "The scalar turbulent diffusion is 'anisotropic': the flux is 'lambda^a * grad^a s' where (grad^a)_i = Delta_i (grad)_i" << finl;
-      operateur_diffusion_turbulent_scalar_anisotropic_.initialize(splitting_);
+      operateur_diffusion_turbulent_scalar_anisotropic_.initialize(domaine_);
     }
   else if (type_scalar_turbulent_diffusion_ == Nom("none"))
     {
@@ -10079,47 +10060,47 @@ void DNS_QC_double::run()
 
   if (convection_velocity_amont_)
     {
-      velocity_convection_op_amont_.initialize(splitting_);
+      velocity_convection_op_amont_.initialize(domaine_);
     }
   else if (convection_velocity_quicksharp_)
     {
-      velocity_convection_op_quicksharp_.initialize(splitting_);
+      velocity_convection_op_quicksharp_.initialize(domaine_);
     }
   else if (convection_velocity_centre2_)
     {
-      velocity_convection_op_centre_2_.initialize(splitting_);
+      velocity_convection_op_centre_2_.initialize(domaine_);
       velocity_convection_op_centre_2_.set_bc(boundary_conditions_);
     }
   else
     {
       // Schema centre4 (utilise par defaut)
-      velocity_convection_op_.initialize(splitting_);
+      velocity_convection_op_.initialize(domaine_);
       velocity_convection_op_.set_bc(boundary_conditions_);
     }
 
   if (convection_rho_centre2_)
     {
-      rho_convection_op_centre2_.initialize(splitting_);
+      rho_convection_op_centre2_.initialize(domaine_);
     }
   else if (convection_rho_amont_)
     {
-      rho_convection_op_amont_.initialize(splitting_);
+      rho_convection_op_amont_.initialize(domaine_);
     }
   else if (convection_rho_centre4_)
     {
       // ATTENTION le schema centre 4 OpCentre4IJK a ete modifie pour devenir un centre 2
-      rho_convection_op_centre4_.initialize(splitting_);
+      rho_convection_op_centre4_.initialize(domaine_);
       rho_convection_op_centre4_.set_bc(boundary_conditions_);
     }
   else
     {
       // Schema quick (utilise par defaut)
-      rho_convection_op_.initialize(splitting_);
+      rho_convection_op_.initialize(domaine_);
     }
-  operateur_diffusion_temperature_.initialize(splitting_);
+  operateur_diffusion_temperature_.initialize(domaine_);
   if (!disable_solveur_poisson_)
     {
-      poisson_solver_.initialize(splitting_);
+      poisson_solver_.initialize(domaine_);
     }
 
   initialise();
@@ -10227,7 +10208,7 @@ void DNS_QC_double::run()
           Cout << "T= " << current_time_
                << " timestep= " << timestep_ << finl;
 
-          const Nom& geom_name = splitting_.get_grid_geometry().le_nom();
+          const Nom& geom_name = domaine_.le_nom();
 
           Cout << "Lecture rho dans fichier " << fichier_reprise_rho_ << " timestep= " << timestep_reprise_rho_ << finl;
           lire_dans_lata(fichier_reprise_rho_, timestep_reprise_rho_, geom_name, "RHO", rho_);
@@ -10606,8 +10587,8 @@ void DNS_QC_double::run()
 
 int calculer_k_pour_bord(const IJK_Field_double& temperature, const bool bord_kmax)
 {
-  const int kmin = temperature.get_splitting().get_offset_local(DIRECTION_K);
-  const int nktot = temperature.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int kmin = temperature.get_domaine().get_offset_local(DIRECTION_K);
+  const int nktot = temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
   int k;
   // calcul l'indice k de la couche de mailles voisine du bord. Si je n'ai pas de bord, on met k = -1
   if (!bord_kmax)
@@ -10655,7 +10636,7 @@ int calculer_flux_thermique_bord(const IJK_Field_double& temperature,
                                  IJK_Field_local_double& flux_bord,
                                  const bool bord_kmax)
 {
-  const int kmin = temperature.get_splitting().get_offset_local(DIRECTION_K);
+  const int kmin = temperature.get_domaine().get_offset_local(DIRECTION_K);
   int k = calculer_k_pour_bord(temperature, bord_kmax);
   if (k == -1)
     return k;
@@ -10665,7 +10646,7 @@ int calculer_flux_thermique_bord(const IJK_Field_double& temperature,
   const int nj = temperature.nj();
   flux_bord.allocate(ni, nj, 1, 0);
 
-  const IJK_Grid_Geometry& geometry = temperature.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geometry = temperature.get_domaine();
   const double delta_k = geometry.get_delta(DIRECTION_K)[k + kmin]; // k+kmin est l'indice global de la maille locale k
   const ArrOfDouble& coord_z = geometry.get_node_coordinates(DIRECTION_K);
 
@@ -11397,7 +11378,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_kappa_filtre_,
                                            turbulent_kappa_filtre_vector_,
-                                           turbulent_kappa_vector_, splitting_);
+                                           turbulent_kappa_vector_, domaine_);
             }
           else
             {
@@ -11410,7 +11391,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            facteur_delta_filtre_x_, facteur_delta_filtre_y_, delta_z_local_pour_delta_filtre_,
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_kappa_filtre_, turbulent_kappa_filtre_,
-                                           turbulent_kappa_, splitting_);
+                                           turbulent_kappa_, domaine_);
             }
           statistiques().end_count(cnt_kappa_t);
         }
@@ -11602,7 +11583,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_kappa_filtre_,
                                            turbulent_kappa_filtre_vector_,
-                                           turbulent_kappa_vector_, splitting_);
+                                           turbulent_kappa_vector_, domaine_);
             }
           else
             {
@@ -11615,7 +11596,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            facteur_delta_filtre_x_, facteur_delta_filtre_y_, delta_z_local_pour_delta_filtre_,
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_kappa_filtre_, turbulent_kappa_filtre_,
-                                           turbulent_kappa_, splitting_);
+                                           turbulent_kappa_, domaine_);
             }
           statistiques().end_count(cnt_kappa_t);
         }
@@ -11822,7 +11803,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_mu_filtre_,
                                            turbulent_mu_filtre_tensor_,
-                                           turbulent_mu_tensor_, splitting_);
+                                           turbulent_mu_tensor_, domaine_);
             }
           else
             {
@@ -11835,7 +11816,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            facteur_delta_filtre_x_, facteur_delta_filtre_y_, delta_z_local_pour_delta_filtre_,
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_mu_filtre_, turbulent_mu_filtre_,
-                                           turbulent_mu_, splitting_);
+                                           turbulent_mu_, domaine_);
             }
           statistiques().end_count(cnt_diff_t);
         }
@@ -12094,7 +12075,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_mu_filtre_,
                                            turbulent_mu_filtre_tensor_,
-                                           turbulent_mu_tensor_, splitting_);
+                                           turbulent_mu_tensor_, domaine_);
             }
           else
             {
@@ -12107,7 +12088,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
                                            facteur_delta_filtre_x_, facteur_delta_filtre_y_, delta_z_local_pour_delta_filtre_,
                                            kernel_, tmp_b_, tmp_a_,
                                            flag_turbulent_mu_filtre_, turbulent_mu_filtre_,
-                                           turbulent_mu_, splitting_);
+                                           turbulent_mu_, domaine_);
             }
 
           statistiques().end_count(cnt_diff_t);
@@ -12403,7 +12384,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
     const int nj = rho_.nj();
     const int nk = rho_.nk();
     const double R_divise_par_Cp_Pth = constante_specifique_gaz_ / (Cp_gaz_ * P_th_final);
-    const IJK_Grid_Geometry& geom = rho_.get_splitting().get_grid_geometry();
+    const Domaine_IJK& geom = rho_.get_domaine();
 // On a besoin de vx et rho pour la pondÃ©ration du terme source par la vitesse
     IJK_Field_double& vx = velocity_[0];
     IJK_Field_double& rho = rho_;
@@ -12475,8 +12456,8 @@ void DNS_QC_double::fixer_reference_pression(double& reference_pression)
   const int ni = pressure_.ni();
   const int nj = pressure_.nj();
   const int nk = pressure_.nk();
-  const double dx = pressure_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = pressure_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = pressure_.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = pressure_.get_domaine().get_constant_delta(DIRECTION_J);
 
   double integrale_pression = 0.;
   for (int k = 0; k < nk; k++)
@@ -12517,8 +12498,8 @@ void DNS_QC_double::compute_rho_bulk(double& rho_bulk)
   const int ni = rho_.ni();
   const int nj = rho_.nj();
   const int nk = rho_.nk();
-  const double dx  = rho_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy  = rho_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx  = rho_.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy  = rho_.get_domaine().get_constant_delta(DIRECTION_J);
 
   double integral_rho = 0.;
   for (int k = 0; k < nk; k++)
@@ -12544,8 +12525,8 @@ void DNS_QC_double::compute_t_bulk(double& t_bulk)
   const int ni = temperature_.ni();
   const int nj = temperature_.nj();
   const int nk = temperature_.nk();
-  const double dx = temperature_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = temperature_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = temperature_.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = temperature_.get_domaine().get_constant_delta(DIRECTION_J);
 
   double integral_t = 0.;
   for (int k = 0; k < nk; k++)
@@ -12570,8 +12551,8 @@ void DNS_QC_double::compute_rho_t_bulk(double& rho_bulk, double& t_bulk)
   const int ni = rho_.ni();
   const int nj = rho_.nj();
   const int nk = rho_.nk();
-  const double dx = rho_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = rho_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
+  const double dx = rho_.get_domaine().get_constant_delta(DIRECTION_I);
+  const double dy = rho_.get_domaine().get_constant_delta(DIRECTION_J);
 
   double integral_t   = 0.;
   double integral_rho = 0.;

@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_One_Dimensional_Subproblem_Geometry.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_One_Dimensional_Subproblem_Geometry.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -327,7 +321,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::interpolate_indicator_on_probes()
 double IJK_One_Dimensional_Subproblem_Geometry::find_cell_related_indicator_on_probes(const int& last_index)
 {
   const IJK_Field_double& indicator = interfaces_->I();
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
 
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
@@ -336,7 +330,7 @@ double IJK_One_Dimensional_Subproblem_Geometry::find_cell_related_indicator_on_p
                            coordinates_cartesian_compo_(last_index, 1),
                            coordinates_cartesian_compo_(last_index, 2)
                           };
-  Vecteur3 centre_elem = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+  Vecteur3 centre_elem = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
   Vecteur3 displacement_centre_probe = centre_elem;
   displacement_centre_probe *= (-1);
   displacement_centre_probe += xyz_cart_end;
@@ -363,7 +357,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_cell_centre()
 {
   if (!has_computed_cell_centre_distance_)
     {
-      Vecteur3 centre = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+      Vecteur3 centre = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
 
       Vecteur3 facet_to_cell_centre = facet_barycentre_;
       facet_to_cell_centre *= -1;
@@ -413,11 +407,11 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_faces_centres()
               const int kk_f = neighbours_faces_k[l];
               pure_liquid_neighbours_[l] = 1;
               if (ii)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_I);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_I);
               if (jj)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_J);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_J);
               if (kk)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_K);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_K);
 
               // Normal distance
               vector_relative = facet_barycentre_;
@@ -482,7 +476,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_vertex_position(const int&
                                                                       double& tangential_distance_vertex_centre,
                                                                       Vecteur3& tangential_distance_vector_vertex_centre)
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -532,7 +526,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_vertex_position(const int&
 
 void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_cell_centres_neighbours()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -627,7 +621,7 @@ double IJK_One_Dimensional_Subproblem_Geometry::compute_cell_weighting(const dou
 
 void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_last_cell_faces_neighbours()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -876,7 +870,7 @@ double IJK_One_Dimensional_Subproblem_Geometry::compute_distance_cell_faces(cons
 
 int IJK_One_Dimensional_Subproblem_Geometry::get_dxyz_increment_max()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -898,7 +892,7 @@ int IJK_One_Dimensional_Subproblem_Geometry::get_dxyz_increment_max()
 
 int IJK_One_Dimensional_Subproblem_Geometry::get_dxyz_over_two_increment_max()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);

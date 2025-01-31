@@ -21,7 +21,7 @@
 #include <Objet_U.h>
 #include <Linear_algebra_tools.h>
 #include <Noms.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <TRUST_Vector.h>
 #include <TRUST_Deriv.h>
 #include <TRUST_Ref.h>
@@ -30,7 +30,7 @@ class Tube_base : public Objet_U
 {
   Declare_base(Tube_base);
 public:
-  void initialize(const IJK_Splitting&);
+  void initialize(const Domaine_IJK&);
   const Vecteur3& get_current_pos() const
   {
     return pos_;
@@ -60,7 +60,7 @@ public:
     return nom_;
   }
 protected:
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_splitting_;
   double omega_; // vitesse de rotation du tube en rad/s
   double rayon_; // rayon du tube
   Vecteur3 pos_;

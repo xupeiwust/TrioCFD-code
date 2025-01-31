@@ -46,7 +46,7 @@ void Sonde_IJK::completer_IJK(const Probleme_FTD_IJK_base& ijk_ft)
   ref_ijk_field_ = ijk_ft.get_IJK_field(nom_champ_lu_);
 
   // A quoi sert ce bidon ? IJK compile meme en commentant les trois lignes suivantes
-  const IJK_Splitting& splitting = ref_ijk_ft_->get_splitting_ft();
+  const Domaine_IJK& splitting = ref_ijk_ft_->get_domaine_ft();
   post_bidon_.associer_nom_et_pb_base(bidon, ijk_ft.probleme(splitting));
   mon_post=post_bidon_;
   // Recherche du champ sonde
@@ -463,8 +463,8 @@ void Sonde_IJK::initialiser()
   if(elem_.size() != nbre_points)
     elem_.resize(nbre_points);
 
-  const IJK_Splitting& splitting = ref_ijk_ft_->get_splitting_ft();
-  const Domaine& domaine_geom = ref_ijk_ft_->probleme(splitting).domaine();
+  const Domaine_IJK& geom_ft = ref_ijk_ft_->get_domaine_ft();
+  const Domaine& domaine_geom = ref_ijk_ft_->probleme(geom_ft).domaine();
   if ( numero_elem_==-1)
     {
       int nb_som = domaine_geom.type_elem()->nb_som();
@@ -660,27 +660,25 @@ void Sonde_IJK::initialiser()
   // Je ne sais pas pourquoi, mais meme aux elems, la position n'est pas bonne...
   {
     IJK_Field_double& ijk_field = ref_ijk_field_.valeur();
-    const IJK_Splitting::Localisation loc = ijk_field.get_localisation();
-    const IJK_Splitting& field_splitting = ijk_field.get_splitting();
-    //const IJK_Grid_Geometry& field_geom = field_splitting.get_grid_geometry();
-    const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+    const Domaine_IJK::Localisation loc = ijk_field.get_localisation();
+    const Domaine_IJK& field_splitting = ijk_field.get_domaine();
     Vecteur3 origin(0., 0., 0.), delta(0., 0., 0.);
-    delta[0] = geom.get_constant_delta(DIRECTION_I);
-    delta[1] = geom.get_constant_delta(DIRECTION_J);
-    delta[2] = geom.get_constant_delta(DIRECTION_K);
+    delta[0] = geom_ft.get_constant_delta(DIRECTION_I);
+    delta[1] = geom_ft.get_constant_delta(DIRECTION_J);
+    delta[2] = geom_ft.get_constant_delta(DIRECTION_K);
 
     Int3 offset;
-    offset[0] =  splitting.get_offset_local(DIRECTION_I);
-    offset[1] =  splitting.get_offset_local(DIRECTION_J);
-    offset[2] =  splitting.get_offset_local(DIRECTION_K);
+    offset[0] =  geom_ft.get_offset_local(DIRECTION_I);
+    offset[1] =  geom_ft.get_offset_local(DIRECTION_J);
+    offset[2] =  geom_ft.get_offset_local(DIRECTION_K);
 
     // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
-    origin[0] = geom.get_origin(DIRECTION_I)
-                + ((loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::ELEM) ? (delta[DIRECTION_I] * 0.5) : 0. ) ;
-    origin[1] = geom.get_origin(DIRECTION_J)
-                + ((loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::ELEM) ? (delta[DIRECTION_J] * 0.5) : 0. ) ;
-    origin[2] = geom.get_origin(DIRECTION_K)
-                + ((loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::ELEM) ? (delta[DIRECTION_K] * 0.5) : 0. ) ;
+    origin[0] = geom_ft.get_origin(DIRECTION_I)
+                + ((loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::ELEM) ? (delta[DIRECTION_I] * 0.5) : 0. ) ;
+    origin[1] = geom_ft.get_origin(DIRECTION_J)
+                + ((loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::ELEM) ? (delta[DIRECTION_J] * 0.5) : 0. ) ;
+    origin[2] = geom_ft.get_origin(DIRECTION_K)
+                + ((loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::ELEM) ? (delta[DIRECTION_K] * 0.5) : 0. ) ;
 
     for (int idx =0; idx < nbre_points; idx++)
       {
@@ -689,7 +687,7 @@ void Sonde_IJK::initialiser()
           {
             // L'element appartient a ce proc. On peut donc trouver son ijk...
             // Les autres positions seront mises a jour par les autres procs...
-            const Int3 ijk = splitting.convert_packed_to_ijk_cell(num_elem);
+            const Int3 ijk = geom_ft.convert_packed_to_ijk_cell(num_elem);
             Int3 new_ijk(ijk);
             /*
               Cerr << "Avant : Sonde ?? Point " << idx
@@ -704,7 +702,7 @@ void Sonde_IJK::initialiser()
                 /*
                 // Meme aux elems, j'ai teste avec la pression, la sonde n'est pas placee a l'elem
                 // Je ne sais pas pourquoi..
-                if ((loc==IJK_Splitting::ELEM) && std::fabs(les_positions_(idx, i) - val)>delta[0]/10. ) {
+                if ((loc==Domaine_IJK::ELEM) && std::fabs(les_positions_(idx, i) - val)>delta[0]/10. ) {
                 Cerr << "Error in Sondes_IJK::: Sonde in element with confusing position... "  << endl;
                 Process::exit();
                 }
@@ -716,17 +714,17 @@ void Sonde_IJK::initialiser()
                  << " y= " << les_positions_(idx, 1)
                  << " z= " << les_positions_(idx, 2) << finl;
 
-            if ((field_splitting != splitting) &&
-                (ref_ijk_ft_->get_splitting_extension() != 0))
+            if ((field_splitting != geom_ft) &&
+                (ref_ijk_ft_->get_domaine_ft().ft_extension() != 0))
               {
                 // Les 2 splittings ne sont pas identiques il faut changer l'elem :
                 for (int i = 0; i < 3; i++)
                   {
                     //Cerr << " " << (field_geom.get_origin(i)-geom.get_origin(i))/delta[i] << finl;
-                    if (geom.get_periodic_flag(i))
+                    if (geom_ft.get_periodic_flag(i))
                       {
                         //assert(int((field_geom.get_origin(i)-geom.get_origin(i))/delta[i]) == ref_ijk_ft_->get_splitting_extension());
-                        new_ijk[i] -= ref_ijk_ft_->get_splitting_extension();
+                        new_ijk[i] -= ref_ijk_ft_->get_domaine_ft().ft_extension();
                       }
                   }
                 const int new_num_elem =  field_splitting.convert_ijk_cell_to_packed(new_ijk[0], new_ijk[1], new_ijk[2]);
@@ -855,7 +853,7 @@ void Sonde_IJK::postraiter()
         valeurs_locales.resize(elem_.size());
         const int nb_pts = elem_.size();
         IJK_Field_double& ijk_field = ref_ijk_field_.valeur();
-        const IJK_Splitting& splitting = ijk_field.get_splitting();
+        const Domaine_IJK& splitting = ijk_field.get_domaine();
         for (int idx =0; idx < nb_pts; idx++)
           {
             const int num_elem = elem_[idx];

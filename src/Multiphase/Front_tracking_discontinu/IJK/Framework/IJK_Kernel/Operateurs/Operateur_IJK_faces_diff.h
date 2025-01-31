@@ -28,7 +28,7 @@ class Operateur_IJK_faces_diff: public OWN_PTR( Operateur_IJK_faces_diff_base_do
 {
   Declare_instanciable( Operateur_IJK_faces_diff );
 public:
-  inline void initialize(const IJK_Splitting &splitting, const int harmonic_nu);
+  inline void initialize(const Domaine_IJK &splitting, const int harmonic_nu);
   Entree& typer_diffusion_op(Entree &is);
   void typer_diffusion_op(const char *diffusion_op);
   int lire_motcle_non_standard(const Motcle &mot, Entree &is) override;
@@ -51,7 +51,7 @@ protected:
   bool is_cast_;
 };
 
-inline void Operateur_IJK_faces_diff::initialize(const IJK_Splitting& splitting, const int harmonic_nu = 0)
+inline void Operateur_IJK_faces_diff::initialize(const Domaine_IJK& splitting, const int harmonic_nu = 0)
 {
   if (!is_cast_)
     typer_diffusion_op("standard");

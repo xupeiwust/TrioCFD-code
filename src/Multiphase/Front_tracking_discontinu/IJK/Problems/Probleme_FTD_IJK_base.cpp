@@ -37,6 +37,7 @@
 #include <Force_sp.h>
 #include <Force_ph.h>
 #include <Vecteur3.h>
+#include <Domaine_IJK.h>
 
 #define COMPLEMENT_ANTI_DEVIATION_RESIDU
 // #define VARIABLE_DZ
@@ -138,8 +139,6 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
 
   set_param(param);
 
-  ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
-
   post_.complete_interpreter(param, is);
 
   param.lire_avec_accolades(is);
@@ -206,41 +205,32 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
       Process::exit();
     }
 
-  splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
-
-  const IJK_Grid_Geometry& geom = splitting_.get_grid_geometry();
   if (vol_bulle_monodisperse_ != -1 || diam_bulle_monodisperse_ != -1)
     {
       if (vol_bulle_monodisperse_ != -1)
         diam_bulle_monodisperse_ = pow(6. * vol_bulle_monodisperse_ / (M_PI), 1./3.);
       else
         vol_bulle_monodisperse_ = M_PI * pow(diam_bulle_monodisperse_, 3) / 6.;
-      int ijk_splitting_ft_extension_from_diameter = 0;
-      for (int c=0; c<3; c++)
-        {
-          const double delta = geom.get_constant_delta(c);
-          ijk_splitting_ft_extension_from_diameter = std::max(ijk_splitting_ft_extension_from_diameter, (int) ceil(diam_bulle_monodisperse_/delta));
-        }
-      ijk_splitting_ft_extension_ = (ijk_splitting_ft_extension_from_diameter > ijk_splitting_ft_extension_) ? ijk_splitting_ft_extension_from_diameter : ijk_splitting_ft_extension_;
+      domaine_ft_.set_extension_from_bulle_param(vol_bulle_monodisperse_, diam_bulle_monodisperse_);
     }
 
   Cerr << "Construction du domaine VDF NS pour les sondes..." << finl;
-  refprobleme_ns_ = creer_domaine_vdf(splitting_, "DOM_NS_VDF");
+  refprobleme_ns_ = creer_domaine_vdf(domaine_ijk_.valeur(), "DOM_NS_VDF");
 
   Cerr << "Construction du domaine VDF..." << finl;
   {
-    build_extended_splitting(splitting_, splitting_ft_, ijk_splitting_ft_extension_);
-    refprobleme_ft_disc_ = creer_domaine_vdf(splitting_ft_, "DOM_VDF");
+    build_extended_splitting(domaine_ijk_.valeur(), domaine_ft_, domaine_ijk_->ft_extension());
+    refprobleme_ft_disc_ = creer_domaine_vdf(domaine_ft_, "DOM_VDF");
     for (int dir = 0; dir < 3; dir++)
       {
         VECT(IntTab) map(3);
-        IJK_Splitting::Localisation loc = (dir==0) ? IJK_Splitting::FACES_I : (dir==1) ? IJK_Splitting::FACES_J : IJK_Splitting::FACES_K;
-        const int n_ext = ijk_splitting_ft_extension_;
+        Domaine_IJK::Localisation loc = (dir==0) ? Domaine_IJK::FACES_I : (dir==1) ? Domaine_IJK::FACES_J : Domaine_IJK::FACES_K;
+        const int n_ext = domaine_ijk_->ft_extension();
 
         for (int dir2 = 0; dir2 < 3; dir2++)
           {
-            const int n = splitting_.get_nb_items_global(loc, dir2);
-            if (n_ext == 0 || !splitting_.get_grid_geometry().get_periodic_flag(dir2))
+            const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
+            if (n_ext == 0 || !domaine_ijk_->get_periodic_flag(dir2))
               {
                 map[dir2].resize(1,3);
                 map[dir2](0,0) = 0;// source index
@@ -264,12 +254,12 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
                 map[dir2](2,2) = n_ext;
               }
           }
-        redistribute_to_splitting_ft_faces_[dir].initialize(splitting_, splitting_ft_, loc, map);
+        redistribute_to_splitting_ft_faces_[dir].initialize(domaine_ijk_.valeur(), domaine_ft_, loc, map);
 
         for (int dir2 = 0; dir2 < 3; dir2++)
           {
-            const int n = splitting_.get_nb_items_global(loc, dir2);
-            if (n_ext == 0 || !splitting_.get_grid_geometry().get_periodic_flag(dir2))
+            const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
+            if (n_ext == 0 || !domaine_ijk_->get_periodic_flag(dir2))
               {
                 map[dir2].resize(1,3);
                 map[dir2](0,0) = 0;
@@ -285,19 +275,19 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
                 map[dir2](0,2) = n; // size
               }
           }
-        redistribute_from_splitting_ft_faces_[dir].initialize(splitting_ft_, splitting_, loc, map);
+        redistribute_from_splitting_ft_faces_[dir].initialize(domaine_ft_, domaine_ijk_.valeur(), loc, map);
       }
 
     // Pour les elements:
     {
       VECT(IntTab) map(3);
-      IJK_Splitting::Localisation loc = IJK_Splitting::ELEM;
-      const int n_ext = ijk_splitting_ft_extension_;
+      Domaine_IJK::Localisation loc = Domaine_IJK::ELEM;
+      const int n_ext = domaine_ijk_->ft_extension();
 
       for (int dir2 = 0; dir2 < 3; dir2++)
         {
-          const int n = splitting_.get_nb_items_global(loc, dir2);
-          if (n_ext == 0 || !splitting_.get_grid_geometry().get_periodic_flag(dir2))
+          const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
+          if (n_ext == 0 || !domaine_ijk_->get_periodic_flag(dir2))
             {
               map[dir2].resize(1,3);
               map[dir2](0,0) = 0;// source index
@@ -321,13 +311,13 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
               map[dir2](2,2) = n_ext;
             }
         }
-      redistribute_to_splitting_ft_elem_.initialize(splitting_, splitting_ft_, loc, map);
+      redistribute_to_splitting_ft_elem_.initialize(domaine_ijk_.valeur(), domaine_ft_, loc, map);
 
 
       for (int dir2 = 0; dir2 < 3; dir2++)
         {
-          const int n = splitting_.get_nb_items_global(loc, dir2);
-          if (n_ext == 0 || !splitting_.get_grid_geometry().get_periodic_flag(dir2))
+          const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
+          if (n_ext == 0 || !domaine_ijk_->get_periodic_flag(dir2))
             {
               map[dir2].resize(1,3);
               map[dir2](0,0) = 0;
@@ -343,12 +333,12 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
               map[dir2](0,2) = n; // size
             }
         }
-      redistribute_from_splitting_ft_elem_.initialize(splitting_ft_, splitting_, loc, map);
+      redistribute_from_splitting_ft_elem_.initialize(domaine_ft_, domaine_ijk_.valeur(), loc, map);
 
       for (int dir2 = 0; dir2 < 3; dir2++)
         {
           const int ghost_a_redistribute = 2 ;
-          const int n = splitting_.get_nb_items_global(loc, dir2);
+          const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
           if(dir2==2)
             {
               // on ne redistribue les ghost que sur z pour le shear perio
@@ -367,13 +357,13 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
             }
 
         }
-      redistribute_from_splitting_ft_elem_ghostz_min_.initialize(splitting_ft_, splitting_, loc, map);
+      redistribute_from_splitting_ft_elem_ghostz_min_.initialize(domaine_ft_, domaine_ijk_.valeur(), loc, map);
 
       for (int dir2 = 0; dir2 < 3; dir2++)
         {
           const int ghost_a_redistribute = 2 ;
-          const int n = splitting_.get_nb_items_global(loc, dir2);
-          const int n_ft = splitting_ft_.get_nb_items_global(loc, dir2);
+          const int n = domaine_ijk_->get_nb_items_global(loc, dir2);
+          const int n_ft = domaine_ft_.get_nb_items_global(loc, dir2);
           if(dir2==2)
             {
               // on ne redistribue les ghost que sur z pour le shear perio
@@ -392,7 +382,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
             }
 
         }
-      redistribute_from_splitting_ft_elem_ghostz_max_.initialize(splitting_ft_, splitting_, loc, map);
+      redistribute_from_splitting_ft_elem_ghostz_max_.initialize(domaine_ft_, domaine_ijk_.valeur(), loc, map);
     }
   }
 
@@ -441,7 +431,8 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   if (tstep_init_)
     use_tstep_init_ = 1;
 
-
+  // Register domains for post processing object
+  post_.associer_domaines(domaine_ijk_.valeur(), domaine_ft_);
 
   is >> motlu;
   if (motlu != "}")
@@ -679,7 +670,7 @@ void Probleme_FTD_IJK_base::force_entry_velocity(IJK_Field_double& vx,
                                                  const int& compo,
                                                  const int& stencil)
 {
-  const IJK_Splitting& splitting = select_dir(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
+  const Domaine_IJK& splitting = select_dir(dir, vx.get_domaine(), vy.get_domaine(), vz.get_domaine());
   const int offset_ijk = splitting.get_offset_local(dir);
   if (offset_ijk > 0)
     return;
@@ -722,8 +713,7 @@ void Probleme_FTD_IJK_base::force_upstream_velocity_shear_perio(IJK_Field_double
   const double xb  = ( bounding_box(0, 0, 1) + bounding_box(0, 0, 0) ) / 2.;
   const double zb  = ( bounding_box(0, 2, 1) + bounding_box(0, 2, 0) ) / 2.;
 
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   double origin_x = geom.get_origin(DIRECTION_I) ;
   double lx = geom.get_domain_length(DIRECTION_I) ;
   double origin_z = geom.get_origin(DIRECTION_K) ;
@@ -759,8 +749,8 @@ void Probleme_FTD_IJK_base::force_upstream_velocity_shear_perio(IJK_Field_double
 
   double dx = geom.get_constant_delta(DIRECTION_I);
   double dz = geom.get_constant_delta(DIRECTION_K);
-  int offset_i = splitting.get_offset_local(DIRECTION_I);
-  int offset_k = splitting.get_offset_local(DIRECTION_K);
+  int offset_i = geom.get_offset_local(DIRECTION_I);
+  int offset_k = geom.get_offset_local(DIRECTION_K);
 
   // position des plans : conversion en indice du tableau NS
   // en shear perio, pas de decoupage sur x. les index_i sont compris entre 0 et ni_tot
@@ -950,8 +940,7 @@ void Probleme_FTD_IJK_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Fi
         dir=0;
     }
 
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
 
   bool perio = geom.get_periodic_flag(dir);
 
@@ -970,7 +959,7 @@ void Probleme_FTD_IJK_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Fi
   // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
   const double ddir = geom.get_constant_delta(dir);
   const double origin_dir = geom.get_origin(dir) ;
-  const int offset_dir = splitting.get_offset_local(dir);
+  const int offset_dir = geom.get_offset_local(dir);
 
   // FIXME: If nb_diam is too large it will iterate a lot
   if (perio)
@@ -1093,8 +1082,8 @@ void Probleme_FTD_IJK_base::ecrire_donnees(const IJK_Field_vector3_double& f3com
           cnt++;
         }
 
-  const IJK_Grid_Geometry& geom = get_geometry();
-  const int idx_min = f.get_splitting().get_offset_local(compo);
+  const Domaine_IJK& geom = get_domaine();
+  const int idx_min = f.get_domaine().get_offset_local(compo);
   if ((idx_min == 0) &&  (geom.get_periodic_flag(compo)))
     {
       double l = geom.get_domain_length(compo) + geom.get_origin(compo);
@@ -1403,7 +1392,7 @@ double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
           for (int i = 0; i < ni; i++)
             max_v = std::max(max_v, fabs(v(i,j,k)));
       max_v = Process::mp_max(max_v);
-      const IJK_Grid_Geometry& geom = v.get_splitting().get_grid_geometry();
+      const Domaine_IJK& geom = v.get_domaine();
 #ifndef VARIABLE_DZ
       const double delta = geom.get_constant_delta(dir);
 #else
@@ -1529,8 +1518,8 @@ int Probleme_FTD_IJK_base::initialise()
   Cout << "forcage_.get_type_forcage() : " <<forcage_.get_type_forcage() << finl;
   if (forcage_.get_type_forcage() > 0)
     {
-      const IJK_Splitting& gbz_splitting = velocity_[0].get_splitting();
-      const IJK_Grid_Geometry& my_geom = velocity_[0].get_splitting().get_grid_geometry();
+      const Domaine_IJK& gbz_splitting = velocity_[0].get_domaine();
+      const Domaine_IJK& my_geom = velocity_[0].get_domaine();
 
       const int my_ni = velocity_[0].ni();
       const int my_nj = velocity_[0].nj();
@@ -1595,13 +1584,13 @@ int Probleme_FTD_IJK_base::initialise()
   nalloc += post_.initialise(reprise_);
 
   // statistiques...
-  nalloc += post_.initialise_stats(splitting_, vol_bulles_, vol_bulle_monodisperse_);
+  nalloc += post_.initialise_stats(domaine_ijk_.valeur(), vol_bulles_, vol_bulle_monodisperse_);
 
   if (coef_immobilisation_ > 1e-16)
     {
       nalloc +=3;
-      allocate_velocity(force_rappel_, splitting_, 2);
-      allocate_velocity(force_rappel_ft_, splitting_ft_, 2);
+      allocate_velocity(force_rappel_, domaine_ijk_.valeur(), 2);
+      allocate_velocity(force_rappel_ft_, domaine_ft_, 2);
       // A la reprise, c'est fait par le IJK_Interfaces::readOn
       if (interfaces_.get_flag_positions_reference() == 0) // (!reprise_)
         {
@@ -1647,7 +1636,7 @@ int Probleme_FTD_IJK_base::initialise()
   int idx =0;
   for (auto& itr : thermique_)
     {
-      nalloc += itr.initialize(splitting_, idx);
+      nalloc += itr.initialize(domaine_ijk_.valeur(), idx);
       if (!disable_diphasique_)
         itr.update_thermal_properties();
       idx++;
@@ -1656,7 +1645,7 @@ int Probleme_FTD_IJK_base::initialise()
   int idx2 =0;
   for (auto& itr : energie_)
     {
-      nalloc += itr.initialize(splitting_, idx2);
+      nalloc += itr.initialize(domaine_ijk_.valeur(), idx2);
       if (!disable_diphasique_)
         itr.update_thermal_properties();
       idx2++;
@@ -1670,14 +1659,14 @@ int Probleme_FTD_IJK_base::initialise()
    */
   interfaces_.initialise_ijk_compo_connex_bubbles_params();
 
-  thermals_.initialize(splitting_, nalloc);
+  thermals_.initialize(domaine_ijk_.valeur(), nalloc);
   thermals_.get_rising_velocities_parameters(compute_rising_velocities_,
                                              fill_rising_velocities_,
                                              use_bubbles_velocities_from_interface_,
                                              use_bubbles_velocities_from_barycentres_);
 
-  nalloc += interfaces_.allocate_ijk_compo_connex_fields(splitting_, thermals_.ghost_fluid_flag() || upstream_velocity_measured_);
-  nalloc += interfaces_.associate_rising_velocities_parameters(splitting_,
+  nalloc += interfaces_.allocate_ijk_compo_connex_fields(domaine_ijk_.valeur(), thermals_.ghost_fluid_flag() || upstream_velocity_measured_);
+  nalloc += interfaces_.associate_rising_velocities_parameters(domaine_ijk_.valeur(),
                                                                compute_rising_velocities_ || upstream_velocity_measured_,
                                                                fill_rising_velocities_,
                                                                use_bubbles_velocities_from_interface_,
@@ -1852,13 +1841,13 @@ static double calculer_wall_difference(const IJK_Field_double& vx)
 {
   const int nj = vx.nj();
   const int ni = vx.ni();
-  const IJK_Grid_Geometry& geom = vx.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   // Maillage uniforme, il suffit donc de diviser par le nombre total de mailles:
   // cast en double au cas ou on voudrait faire un maillage >2 milliards
   const double n_mailles_plan_xy = ((double) geom.get_nb_elem_tot(0)) * geom.get_nb_elem_tot(1) ;
-  const int kmin = vx.get_splitting().get_offset_local(DIRECTION_K);
-  const IJK_Splitting::Localisation loc = vx.get_localisation();
-  const int nktot = vx.get_splitting().get_nb_items_global(loc, DIRECTION_K);
+  const int kmin = vx.get_domaine().get_offset_local(DIRECTION_K);
+  const Domaine_IJK::Localisation loc = vx.get_localisation();
+  const int nktot = vx.get_domaine().get_nb_items_global(loc, DIRECTION_K);
 
   double x=0.;
   if (kmin == 0)
@@ -1887,13 +1876,13 @@ static double calculer_tau_wall(const IJK_Field_double& vx, const double mu_liqu
 {
   const int nj = vx.nj();
   const int ni = vx.ni();
-  const IJK_Grid_Geometry& geom = vx.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   // Maillage uniforme, il suffit donc de diviser par le nombre total de mailles:
   // cast en double au cas ou on voudrait faire un maillage >2 milliards
   const double n_mailles_plan_xy = ((double) geom.get_nb_elem_tot(0)) * geom.get_nb_elem_tot(1) ;
-  const int kmin = vx.get_splitting().get_offset_local(DIRECTION_K);
-  const  IJK_Splitting::Localisation loc = vx.get_localisation();
-  const int nktot = vx.get_splitting().get_nb_items_global(loc, DIRECTION_K);
+  const int kmin = vx.get_domaine().get_offset_local(DIRECTION_K);
+  const  Domaine_IJK::Localisation loc = vx.get_localisation();
+  const int nktot = vx.get_domaine().get_nb_items_global(loc, DIRECTION_K);
   double tauw=0.;
 
 #ifndef VARIABLE_DZ
@@ -1974,12 +1963,12 @@ void Probleme_FTD_IJK_base::calculer_vitesse_droite(const IJK_Field_double& vx, 
 {
   /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
   /* Ne fonctionne que pour des maillages uniformes */
-  const IJK_Splitting& splitting = vx.get_splitting();
+  const Domaine_IJK& splitting = vx.get_domaine();
   const int ni = vx.ni();
   const int nj = vx.nj();
   const int nk = vx.nk();
   //const int nk = vx.nk();
-  //double dz = splitting.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  //double dz = splitting.get_constant_delta(DIRECTION_K);
   int z_index = splitting.get_local_slice_index(2);
   int z_index_max = splitting.get_nprocessor_per_direction(2) - 1;
   vx_moy = 0.;
@@ -2016,11 +2005,11 @@ void Probleme_FTD_IJK_base::calculer_vitesse_gauche(const IJK_Field_double& vx, 
 {
   /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
   /* Ne fonctionne que pour des maillages uniformes */
-  const IJK_Splitting& splitting = vx.get_splitting();
+  const Domaine_IJK& splitting = vx.get_domaine();
   const int ni = vx.ni();
   const int nj = vx.nj();
   //const int nk = vx.nk();
-  //double dz = splitting.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  //double dz = splitting.get_constant_delta(DIRECTION_K);
   int z_index = splitting.get_local_slice_index(2);
   int z_index_min = 0;
   vx_moy = 0.;
@@ -2066,7 +2055,7 @@ void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay
   double rhov_moyy = calculer_v_moyen(rho_v_[DIRECTION_J]);
   double rhov_moyz = calculer_v_moyen(rho_v_[DIRECTION_K]);
 
-  const IJK_Grid_Geometry& geom = velocity_[milieu_ijk().get_direction_gravite()].get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = velocity_[milieu_ijk().get_direction_gravite()].get_domaine();
   double Lz =  geom.get_domain_length(DIRECTION_K);
   double Lx =  geom.get_domain_length(DIRECTION_I);
   double Ly =  geom.get_domain_length(DIRECTION_J);
@@ -2161,7 +2150,7 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
 
   double moy_rappel = 0.;
   // GAB, rotation
-  const IJK_Grid_Geometry& geom = velocity_[direction_gravite].get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = velocity_[direction_gravite].get_domaine();
   double vol_dom =  geom.get_domain_length(DIRECTION_I)*geom.get_domain_length(DIRECTION_J)*geom.get_domain_length(DIRECTION_K);
   if (coef_immobilisation_ > 1e-16)
     {
@@ -2364,7 +2353,7 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
   // Toutes les interfaces etant fermees, on a donc la somme des forces
   // donnee par la poussee d'archimede : delta_rho * g * alpha
   double vol_cell = 1., vol_NS = 1., vol_gaz = 0.;
-  const IJK_Grid_Geometry& geom_NS = get_geometry();
+  const Domaine_IJK& geom_NS = get_domaine();
   for (int direction = 0; direction < 3; direction++)
     {
       vol_NS *= geom_NS.get_domain_length(direction);
@@ -2435,7 +2424,7 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
         }
       else
         {
-          force_theo[direction] = drho_alpha*milieu_ijk().gravite().valeurs()[direction];
+          force_theo[direction] = drho_alpha*milieu_ijk().gravite().valeurs()(0,direction);
         }
       rhov_moy[direction] = calculer_v_moyen(rho_v_[direction]);
       acc[direction] =  (rhov_moy[direction]-store_rhov_moy_[direction]) /fractional_dt;
@@ -2472,7 +2461,7 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
             }
           if (interfaces_.is_terme_gravite_rhog())
             {
-              residu[dir] = -(rho_l-(rho_l-rho_v)*vol_gaz/vol_NS)*milieu_ijk().gravite().valeurs()[dir];
+              residu[dir] = -(rho_l-(rho_l-rho_v)*vol_gaz/vol_NS)*milieu_ijk().gravite().valeurs()(0,dir);
             }
           integrated_residu_[dir] += residu[dir] * fractional_dt;
         }
@@ -2582,7 +2571,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
   //     on est dans variable dz et on ne prends pas en compte k dans le calcul du volume...
   double volume_cell_uniforme = 1.;
   for (int i = 0; i < 3; i++)
-    volume_cell_uniforme *= splitting_.get_grid_geometry().get_constant_delta(i);
+    volume_cell_uniforme *= domaine_ijk_->get_constant_delta(i);
   if (velocity_reset_)
     for (int dir=0; dir<3; dir++)
       velocity_[dir].data() = 0.; //Velocity reset for test
@@ -2765,7 +2754,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
 #ifndef VARIABLE_DZ
       double volume = 1.;
       for (int i = 0; i < 3; i++)
-        volume *= splitting_.get_grid_geometry().get_constant_delta(i);
+        volume *= domaine_ijk_->get_constant_delta(i);
 #else
       Cerr << "This methods does not support variable DZ yet... Contact trust support. ";
       Process::exit();
@@ -2980,7 +2969,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
 #ifndef VARIABLE_DZ
       double volume = 1.;
       for (int i = 0; i < 3; i++)
-        volume *= splitting_.get_grid_geometry().get_constant_delta(i);
+        volume *= domaine_ijk_->get_constant_delta(i);
 
       // GAB, qdm
       // dans d_velocity_moyen on a la contrib de interfaces, forces ajoutees
@@ -3035,7 +3024,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
           // est bien homogene a g, et ainsi (jespere) dv est bien homogene a g.
           if (interfaces_.is_terme_gravite_rhog())
             {
-              const double g = milieu_ijk().gravite().valeurs()[dir];
+              const double g = milieu_ijk().gravite().valeurs()(0,dir);
               for (int j = 0; j < nj; j++)
                 for (int i = 0; i < ni; i++)
                   dv(i,j,k) += g;  // c'est rho*g qu'il faut pour GR, 18.08.2021
@@ -3091,13 +3080,13 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
     {
       if (rk_step==-1)
         compute_add_THI_force_sur_d_velocity(velocity_, tstep_, timestep_, time,
-                                             d_velocity_.get_splitting(),
+                                             d_velocity_.get_domaine(),
                                              forcage_.get_facteur_forcage());//, rk_step);
       else
         {
           const double intermediate_dt = compute_fractionnal_timestep_rk3(timestep_, rk_step);
           compute_add_THI_force_sur_d_velocity(velocity_, tstep_, intermediate_dt, time,
-                                               d_velocity_.get_splitting(),
+                                               d_velocity_.get_domaine(),
                                                forcage_.get_facteur_forcage());//, rk_step);
         }
     }
@@ -3111,7 +3100,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
 
 
   // Il est important de s'assurer a la fin que la derivee de la vitesse soit a zero sur les parois:
-  if (!splitting_.get_grid_geometry().get_periodic_flag(DIRECTION_K))
+  if (!domaine_ijk_->get_periodic_flag(DIRECTION_K))
     force_zero_on_walls(d_velocity_[2]);
 
   statistiques().end_count(calcul_dv_counter);
@@ -3160,7 +3149,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force(const IJK_Field_vector3_double
                                                   const int time_iteration,
                                                   const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                                   const double current_time,
-                                                  const IJK_Splitting& my_splitting
+                                                  const Domaine_IJK& my_splitting
                                                   // const int rk_step
                                                  )
 {
@@ -3180,7 +3169,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force(const IJK_Field_vector3_double
       forcage_.update_advection_length(dt);
       Cout << "AF : update_advection_length" << finl;
     }
-  forcage_.compute_THI_force(time_iteration,dt,current_time,splitting_);
+  forcage_.compute_THI_force(time_iteration,dt,current_time,domaine_ijk_);
 
   statistiques().end_count(m2_counter_);
 
@@ -3213,7 +3202,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field
                                                                  const int time_iteration,
                                                                  const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                                                  const double current_time,
-                                                                 const IJK_Splitting& my_splitting,
+                                                                 const Domaine_IJK& my_splitting,
                                                                  const int facteur
                                                                  // const int rk_step
                                                                 )
@@ -3238,7 +3227,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field
       /* Advection du champ de force par advection_velocity_, donnee du jdd */
       forcage_.update_advection_length(dt);
     }
-  forcage_.compute_THI_force(time_iteration,dt,current_time,splitting_);
+  forcage_.compute_THI_force(time_iteration,dt,current_time,domaine_ijk_);
   statistiques().end_count(m2_counter_);
 
   statistiques().begin_count(m3_counter_);
@@ -3301,7 +3290,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field
 // Hard coded constant pressure gradient in i direction, add contribution in m/s*volume of control volume
 void Probleme_FTD_IJK_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const
 {
-  const double constant = milieu_ijk().gravite().valeurs()[dir];
+  const double constant = milieu_ijk().gravite().valeurs()(0,dir);
   const int imax = dv.ni();
   const int jmax = dv.nj();
   for (int j = 0; j < jmax; j++)
@@ -3356,9 +3345,9 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
     if (IJK_Shear_Periodic_helpler::defilement_ == 1)
       {
         // after redistribute, velocity in ft domain must be shifted by the shear
-        velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), ijk_splitting_ft_extension_);
-        velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., ijk_splitting_ft_extension_);
-        velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., ijk_splitting_ft_extension_ );
+        velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), domaine_ijk_->ft_extension());
+        velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., domaine_ijk_->ft_extension());
+        velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., domaine_ijk_->ft_extension() );
       }
 
     for (int dir = 0; dir < 3; dir++)
@@ -3484,9 +3473,9 @@ void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
       // after redistribute, velocity in ft domain must be shifted by the shear
-      velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), ijk_splitting_ft_extension_);
-      velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., ijk_splitting_ft_extension_);
-      velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., ijk_splitting_ft_extension_);
+      velocity_ft_[0].redistribute_with_shear_domain_ft(velocity_[0], boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()), domaine_ijk_->ft_extension());
+      velocity_ft_[1].redistribute_with_shear_domain_ft(velocity_[1], 0., domaine_ijk_->ft_extension());
+      velocity_ft_[2].redistribute_with_shear_domain_ft(velocity_[2], 0., domaine_ijk_->ft_extension());
     }
 
   for (int dir = 0; dir < 3; dir++)
@@ -3700,12 +3689,12 @@ void Probleme_FTD_IJK_base::update_v_ghost_from_rho_v()
       const int jmax = velocity_[dir].nj();
       const int kmax = velocity_[dir].nk();
       const int ghost = velocity_[dir].ghost();
-      int last_global_k = splitting_.get_nb_items_global(IJK_Splitting::ELEM, 2);
+      int last_global_k = domaine_ijk_->get_nb_items_global(Domaine_IJK::ELEM, 2);
       for (int j = 0; j < jmax; j++)
         {
           for (int i = 0; i < imax; i++)
             {
-              if(splitting_.get_offset_local(2)==0)
+              if(domaine_ijk_->get_offset_local(2)==0)
                 {
                   for (int k = -ghost; k < 0; k++)
                     {
@@ -3728,7 +3717,7 @@ void Probleme_FTD_IJK_base::update_v_ghost_from_rho_v()
                       velocity_[dir](i, j, k) = rho_v_[dir](i, j, k)/rho - DU;
                     }
                 }
-              if(splitting_.get_offset_local(2)+kmax==last_global_k)
+              if(domaine_ijk_->get_offset_local(2)+kmax==last_global_k)
                 {
                   for (int k = kmax; k < kmax + ghost; k++)
                     {
@@ -3805,7 +3794,7 @@ void Probleme_FTD_IJK_base::fill_variable_source_and_potential_phi(const double 
 Vecteur3 Probleme_FTD_IJK_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,const IJK_Field_double& pression)
 {
   IJK_Field_vector3_double champ;
-  allocate_velocity(champ, splitting_, 1);
+  allocate_velocity(champ, domaine_ijk_.valeur(), 1);
   Vecteur3 resu;
 
   // Remise a zero :
@@ -3832,7 +3821,7 @@ Vecteur3 Probleme_FTD_IJK_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_do
 Vecteur3 Probleme_FTD_IJK_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
 {
   IJK_Field_vector3_double champ;
-  allocate_velocity(champ, splitting_, 1);
+  allocate_velocity(champ, domaine_ijk_.valeur(), 1);
   Vecteur3 resu;
 
   // Remise a zero :
@@ -3860,7 +3849,7 @@ Vecteur3 Probleme_FTD_IJK_base::calculer_grad_p_over_rho_moyen(const IJK_Field_d
    * Calcule Moyenne_spatiale{ 1/rho * grad(p) }
    * */
   IJK_Field_vector3_double champ;
-  allocate_velocity(champ, splitting_, 1);
+  allocate_velocity(champ, domaine_ijk_.valeur(), 1);
   Vecteur3 resu;
 
   // Remise a zero :
@@ -4001,8 +3990,7 @@ double Probleme_FTD_IJK_base::calculer_moyenne_de_phase_liq(const IJK_Field_doub
 {
   /* Au 04.11.21 : Renvoi alpha_liq * vx_liq
    * */
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const int ni = vx.ni();
   const int nj = vx.nj();
   const int nk = vx.nk();
@@ -4052,8 +4040,7 @@ double Probleme_FTD_IJK_base::calculer_moyenne_de_phase_vap(const IJK_Field_doub
 {
   /* Au 04.11.21 : Renvoi alpha_vap * vx_vap
    * */
-  const IJK_Splitting& splitting = vx.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
   const int ni = vx.ni();
   const int nj = vx.nj();
   const int nk = vx.nk();
@@ -4226,6 +4213,19 @@ void Probleme_FTD_IJK_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume
     }
 }
 
+
+int Probleme_FTD_IJK_base::associer_(Objet_U& obj)
+{
+  if (sub_type(Domaine_IJK, obj))
+    {
+      domaine_ijk_ = ref_cast(Domaine_IJK, obj);
+      return 1;
+    }
+  else
+    return Probleme_FT_Disc_gen::associer_(obj);
+}
+
+
 void Probleme_FTD_IJK_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                                               IJK_Field_double& output_field)
 {
@@ -4343,7 +4343,7 @@ IJK_Field_double Probleme_FTD_IJK_base::scalar_product(const IJK_Field_vector3_d
    * * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
    */
   IJK_Field_double resu;
-  resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
+  resu.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
   int nk = V1[0].nk();
   if (nk != V2[0].nk())
     {
@@ -4387,7 +4387,7 @@ IJK_Field_vector3_double Probleme_FTD_IJK_base::scalar_times_vector(const IJK_Fi
    */
 
   IJK_Field_vector3_double resu;
-  allocate_velocity(resu,splitting_,3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
+  allocate_velocity(resu,domaine_ijk_.valeur(),3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
   int nk = Vec[0].nk();
   if (nk != (Sca.nk()))
     {
@@ -4427,7 +4427,7 @@ IJK_Field_double Probleme_FTD_IJK_base::scalar_fields_product(const IJK_Field_do
    * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
    */
   IJK_Field_double resu;
-  resu.allocate(splitting_, IJK_Splitting::ELEM, 3);
+  resu.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
   int nk = S1.nk();
   if (nk != S2.nk())
     {

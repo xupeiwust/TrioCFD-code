@@ -44,16 +44,16 @@ class init_forcage_THI : public Objet_U
 public :
 
   void compute_initial_chouippe(int nproc_tot,
-                                const IJK_Grid_Geometry& my_geom,
+                                const Domaine_IJK& my_geom,
                                 int my_ni, int my_nj, int my_nk,
-                                const IJK_Splitting& my_splitting,
+                                const Domaine_IJK& my_splitting,
                                 Nom nom_sauvegarde);
   // IJK_Field_vector3_double v_);
 
   void compute_THI_force(const int time_iteration,
                          const double tstep,
                          const double current_time,
-                         const IJK_Splitting& my_splitting
+                         const Domaine_IJK& my_splitting
                         );
 
   int get_type_forcage();

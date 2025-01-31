@@ -28,7 +28,7 @@ using Cut_field_vector3_int = Cut_field_vector<int, 3>;
 using Cut_field_vector3_double = Cut_field_vector<double, 3>;
 
 
-class IJK_Splitting;
+class Domaine_IJK;
 class Cut_cell_FT_Disc;
 
 void dumplata_scalar_cut_cell(int cut_cell_activated,
@@ -42,10 +42,10 @@ void lire_dans_lata_cut_cell(int cut_cell_activated,
                              const char *filename, int tstep, const char *geometryname, const char *fieldname,
                              std::shared_ptr<IJK_Field_double>& f);
 
-void allocate_velocity(Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
-void allocate_velocity_persistant(Cut_cell_FT_Disc& cut_cell_disc, Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
-void allocate_velocity_ephemere(Cut_cell_FT_Disc& cut_cell_disc,   Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
-void allocate_velocity_paresseux(Cut_cell_FT_Disc& cut_cell_disc,  Cut_field_vector3_double& v, const IJK_Splitting& s, int ghost, double DU=0.);
+void allocate_velocity(Cut_field_vector3_double& v, const Domaine_IJK& s, int ghost, double DU=0.);
+void allocate_velocity_persistant(Cut_cell_FT_Disc& cut_cell_disc, Cut_field_vector3_double& v, const Domaine_IJK& s, int ghost, double DU=0.);
+void allocate_velocity_ephemere(Cut_cell_FT_Disc& cut_cell_disc,   Cut_field_vector3_double& v, const Domaine_IJK& s, int ghost, double DU=0.);
+void allocate_velocity_paresseux(Cut_cell_FT_Disc& cut_cell_disc,  Cut_field_vector3_double& v, const Domaine_IJK& s, int ghost, double DU=0.);
 
 
 #endif /* Cut_cell_tools_included */

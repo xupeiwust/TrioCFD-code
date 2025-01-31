@@ -51,7 +51,7 @@ class IJK_One_Dimensional_Subproblems_Interfaces_Fields : public Objet_U
   Declare_instanciable( IJK_One_Dimensional_Subproblems_Interfaces_Fields ) ;
 
 public :
-  int initialise(const IJK_Splitting& splitting,
+  int initialise(const Domaine_IJK& splitting,
                  IJK_One_Dimensional_Subproblems& thermal_local_subproblems,
                  const int& debug);
   void associer(const Probleme_FTD_IJK_base& ijk_ft);

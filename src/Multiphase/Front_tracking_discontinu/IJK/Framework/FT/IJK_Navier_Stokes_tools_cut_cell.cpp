@@ -153,12 +153,11 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
   const double y = coordinates[1];
   const double z = coordinates[2];
 
-  const IJK_Splitting& splitting = cut_cell_disc.get_splitting();
-  const int ni = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int nj = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int nk = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
+  const int ni = geom.get_nb_items_local(IJK_Splitting::ELEM, 0);
+  const int nj = geom.get_nb_items_local(IJK_Splitting::ELEM, 1);
+  const int nk = geom.get_nb_items_local(IJK_Splitting::ELEM, 2);
 
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -178,9 +177,9 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
-  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
-  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
+  const int index_i = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
+  const int index_j = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
+  const int index_k = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -reduced_ghost && index_i < ni + reduced_ghost) && (index_j >= -reduced_ghost && index_j < nj + reduced_ghost) && (index_k >= -reduced_ghost && index_k < nk + reduced_ghost);
@@ -403,8 +402,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   const int nj_ft = field_ft.nj();
   const int nk_ft = field_ft.nk();
 
-  const IJK_Splitting& splitting_ft = field_ft.get_splitting();
-  const IJK_Grid_Geometry& geom_ft = splitting_ft.get_grid_geometry();
+  const Domaine_IJK& geom_ft = field_ft.get_domaine();
 
   const double dx_ft = geom_ft.get_constant_delta(DIRECTION_I);
   const double dy_ft = geom_ft.get_constant_delta(DIRECTION_J);
@@ -417,20 +415,19 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
   const double y2_ft = (y - origin_y_ft) / dy_ft;
   const double z2_ft = (z - origin_z_ft) / dz_ft;
 
-  const int index_i_ft = (int)(std::floor(x2_ft)) - splitting_ft.get_offset_local(DIRECTION_I);
-  const int index_j_ft = (int)(std::floor(y2_ft)) - splitting_ft.get_offset_local(DIRECTION_J);
-  const int index_k_ft = (int)(std::floor(z2_ft)) - splitting_ft.get_offset_local(DIRECTION_K);
+  const int index_i_ft = (int)(std::floor(x2_ft)) - geom_ft.get_offset_local(DIRECTION_I);
+  const int index_j_ft = (int)(std::floor(y2_ft)) - geom_ft.get_offset_local(DIRECTION_J);
+  const int index_k_ft = (int)(std::floor(z2_ft)) - geom_ft.get_offset_local(DIRECTION_K);
 
   const int ni = field.ni();
   const int nj = field.nj();
   const int nk = field.nk();
 
-  const IJK_Splitting& splitting = field.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = field.get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
-  //const IJK_Splitting::Localisation loc = field.pure_.get_localisation();
+  //const Domaine_IJK::Localisation loc = field.pure_.get_localisation();
   // L'origine est sur un noeud. Donc que la premiere face en I est sur get_origin(DIRECTION_I)
   double origin_x = geom.get_origin(DIRECTION_I);
   double origin_y = geom.get_origin(DIRECTION_J);
@@ -537,8 +534,7 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
         }
 
       const ArrOfInt& index_elem = intersec.index_elem();
-      assert(mesh.ref_splitting().valeur() == splitting_ft);
-      const int num_elem = splitting_ft.convert_ijk_cell_to_packed(i_candidate_ft,j_candidate_ft,k_candidate_ft);
+      const int num_elem = geom_ft.convert_ijk_cell_to_packed(i_candidate_ft,j_candidate_ft,k_candidate_ft);
       int index = index_elem[num_elem];
 
       // Boucle sur les facettes qui traversent cet element

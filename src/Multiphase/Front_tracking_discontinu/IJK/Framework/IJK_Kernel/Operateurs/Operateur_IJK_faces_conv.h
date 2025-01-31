@@ -31,7 +31,7 @@ class Operateur_IJK_faces_conv : public OWN_PTR( Operateur_IJK_faces_conv_base_d
   Declare_instanciable( Operateur_IJK_faces_conv ) ;
 
 public:
-  inline void initialize(const IJK_Splitting& splitting);
+  inline void initialize(const Domaine_IJK& splitting);
 
   int lire_motcle_non_standard(const Motcle& mot, Entree& is) override;
   void search_convection_option_type(Entree& is);
@@ -57,7 +57,7 @@ protected:
   bool is_cast_;
 };
 
-inline void Operateur_IJK_faces_conv::initialize(const IJK_Splitting& splitting)
+inline void Operateur_IJK_faces_conv::initialize(const Domaine_IJK& splitting)
 {
   if (!is_cast_)
     {

@@ -16,7 +16,7 @@
 #ifndef IJK_SWITCH_H
 #define IJK_SWITCH_H
 
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field_vector.h>
 #include <Interprete.h>
 #include <Linear_algebra_tools.h>
@@ -67,7 +67,7 @@ protected:
   virtual void prepare_thermals(const Nom lata_name) {};
 
   void write_velocity(const Nom lata_name) const;
-  void calculer_coords(const IJK_Splitting::Localisation loc);
+  void calculer_coords(const Domaine_IJK::Localisation loc);
   void calculer_coords_elem();
   void calculer_coords_Vi(const int dir);
   void remplir_gost();
@@ -92,8 +92,8 @@ protected:
 
   // maillages
   Nom old_mesh_name_, new_mesh_name_;
-  IJK_Splitting new_mesh_;
-  IJK_Splitting old_mesh_;
+  Domaine_IJK new_mesh_;
+  Domaine_IJK old_mesh_;
 
   // direct_write_ = 1 => ecrit les fichiers a la volee sans alouer la memoire
   // direct_write_ = 0 => ancien algo avec allocation de new_velocity_

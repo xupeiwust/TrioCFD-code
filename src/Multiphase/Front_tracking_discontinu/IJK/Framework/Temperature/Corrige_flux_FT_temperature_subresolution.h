@@ -12,7 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-
 #ifndef Corrige_flux_FT_temperature_subresolution_included
 #define Corrige_flux_FT_temperature_subresolution_included
 
@@ -26,7 +25,6 @@
 #define NEIGHBOURS_FACES_I {0, 1, 0, 0, 0, 0}
 #define NEIGHBOURS_FACES_J {0, 0, 0, 1, 0, 0}
 #define NEIGHBOURS_FACES_K {0, 0, 0, 0, 0, 1}
-
 #define FACES_DIR {0, 0, 1, 1, 2, 2}
 // TODO: Be careful to operators ! (Left - Right) values
 #define FLUX_SIGN_DIFF {-1, -1, -1, -1, -1, -1}
@@ -43,7 +41,7 @@ class Corrige_flux_FT_temperature_subresolution : public Corrige_flux_FT_base
 
 public :
 
-  void initialize_with_subproblems(const IJK_Splitting& splitting,
+  void initialize_with_subproblems(const Domaine_IJK& splitting,
                                    const IJK_Field_double& field,
                                    const IJK_Interfaces& interfaces,
                                    const Probleme_FTD_IJK_base& ijk_ft,

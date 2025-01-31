@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 #include <Statistiques_dns_ijk_FT.h>
 #include <IJK_Field_vector.h>
-#include <IJK_Grid_Geometry.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <communications.h>
 #include <Param.h>
@@ -989,21 +989,21 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_vector3_double& gradP=cas.post_.grad_P_;
 
   // Nombre total de mailles en K
-  const int nktot = pression.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
 
 // For each slice in the domain, the integral is divided by the length of the domain
 // facteur 1./(ni*nj) car sommation de ni*nj valeurs sur des mailles de meme taille
 // OU facteur delta_z / taille_totale_en_z  si mailles non uniformes en z
-  const int nijtot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_I)
-                     * pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_J);
+  const int nijtot = pression.get_domaine().get_nb_elem_tot(DIRECTION_I)
+                     * pression.get_domaine().get_nb_elem_tot(DIRECTION_J);
   double facteur = 1./(double)(nijtot);
 
   // Nombre local de mailles en K
   const int imax = pression.ni();
   const int jmax = pression.nj();
   const int kmax = pression.nk();
-  const int offset = pression.get_splitting().get_offset_local(DIRECTION_K);
-  const int periok = pression.get_splitting().get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  const int offset = pression.get_domaine().get_offset_local(DIRECTION_K);
+  const int periok = pression.get_domaine().get_periodic_flag(DIRECTION_K);
 
   const bool dipha = (!cas.disable_diphasique_);
   IJK_Field_local_double zero, zeros;
@@ -2783,7 +2783,7 @@ void Statistiques_dns_ijk_FT::completer_read(Param& param)
 
 // Attention, cette methode est appelee apres readOn(),
 // il ne faut pas casser les donnees lues
-void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const IJK_Grid_Geometry& geom)
+void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom)
 {
   ref_ijk_ft_=ijk_ft;
   dx_=geom.get_constant_delta(0); //modif AT 20/06/2013
@@ -2856,14 +2856,14 @@ void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, co
   check_stats_ = 0;
 }
 
-int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const IJK_Splitting& splitting,
+int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom,
                                         const int check_stats)
 {
-  initialize(ijk_ft,splitting.get_grid_geometry());
+  initialize(ijk_ft,geom);
   // Pour les deriv de U, V et W :
-  allocate_cell_vector(gradU_, splitting, 0);
-  allocate_cell_vector(gradV_, splitting, 0);
-  allocate_cell_vector(gradW_, splitting, 0);
+  allocate_cell_vector(gradU_, geom, 0);
+  allocate_cell_vector(gradV_, geom, 0);
+  allocate_cell_vector(gradW_, geom, 0);
   int nalloc=9;
   // veut-on verifier les derivees :
   check_stats_ = check_stats;
@@ -2871,14 +2871,14 @@ int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, con
     {
       // Pour verification des stats :
       // Pour stocker les deriv secondes :
-      allocate_cell_vector(grad2Pi_, splitting, 0);
-      allocate_cell_vector(grad2Pc_, splitting, 0);
-      allocate_cell_vector(grad2Ui_, splitting, 0);
-      allocate_cell_vector(grad2Uc_, splitting, 0);
-      allocate_cell_vector(grad2Vi_, splitting, 0);
-      allocate_cell_vector(grad2Vc_, splitting, 0);
-      allocate_cell_vector(grad2Wi_, splitting, 0);
-      allocate_cell_vector(grad2Wc_, splitting, 0);
+      allocate_cell_vector(grad2Pi_, geom, 0);
+      allocate_cell_vector(grad2Pc_, geom, 0);
+      allocate_cell_vector(grad2Ui_, geom, 0);
+      allocate_cell_vector(grad2Uc_, geom, 0);
+      allocate_cell_vector(grad2Vi_, geom, 0);
+      allocate_cell_vector(grad2Vc_, geom, 0);
+      allocate_cell_vector(grad2Wi_, geom, 0);
+      allocate_cell_vector(grad2Wc_, geom, 0);
       nalloc +=24;
     }
   return nalloc;
@@ -2927,7 +2927,7 @@ const IJK_Field_vector3_double& Statistiques_dns_ijk_FT::get_IJK_vector_field(co
   throw;
 }
 
-double Statistiques_dns_ijk_FT::compute_desequil_alpha(const IJK_Grid_Geometry& geom_NS,
+double Statistiques_dns_ijk_FT::compute_desequil_alpha(const Domaine_IJK& geom_NS,
                                                        const double portee_wall_repulsion) const
 {
   if (Process::je_suis_maitre())

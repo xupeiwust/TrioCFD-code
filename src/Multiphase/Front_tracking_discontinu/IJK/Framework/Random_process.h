@@ -23,7 +23,7 @@
 #define Random_process_included
 
 #include <FixedVector.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -33,7 +33,7 @@
 #include <Objet_U.h>
 #include <Redistribute_Field.h>
 #include <Parser.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Multigrille_Adrien.h>
 #include <Interprete.h>
 #include <TRUST_Ref.h>

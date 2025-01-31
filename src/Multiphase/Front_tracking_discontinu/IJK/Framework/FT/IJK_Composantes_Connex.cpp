@@ -53,7 +53,7 @@ int IJK_Composantes_Connex::initialize(IJK_Interfaces& interfaces,
   return 0;
 }
 
-int IJK_Composantes_Connex::allocate_fields(const IJK_Splitting& splitting,
+int IJK_Composantes_Connex::allocate_fields(const Domaine_IJK& splitting,
                                             const int& allocate_compo_fields)
 {
   int nalloc = 0;
@@ -62,51 +62,51 @@ int IJK_Composantes_Connex::allocate_fields(const IJK_Splitting& splitting,
     {
       if (Process::nproc() == 1 && compute_from_bounding_box_)
         {
-          eulerian_compo_connex_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
+          eulerian_compo_connex_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
           nalloc += 1;
           eulerian_compo_connex_ft_.data() = -1.;
           eulerian_compo_connex_ft_.echange_espace_virtuel(eulerian_compo_connex_ft_.ghost());
 
-          eulerian_compo_connex_ghost_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
+          eulerian_compo_connex_ghost_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
           nalloc += 1;
           eulerian_compo_connex_ghost_ft_.data() = -1.;
           eulerian_compo_connex_ghost_ft_.echange_espace_virtuel(eulerian_compo_connex_ghost_ft_.ghost());
 
-          eulerian_compo_connex_ns_.allocate(splitting, IJK_Splitting::ELEM, 0);
+          eulerian_compo_connex_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
           nalloc += 1;
           eulerian_compo_connex_ns_.echange_espace_virtuel(eulerian_compo_connex_ns_.ghost());
 
-          eulerian_compo_connex_ghost_ns_.allocate(splitting, IJK_Splitting::ELEM, 0);
+          eulerian_compo_connex_ghost_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
           nalloc += 1;
           eulerian_compo_connex_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_ghost_ns_.ghost());
         }
-      eulerian_compo_connex_from_interface_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
+      eulerian_compo_connex_from_interface_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 0);
       nalloc += 1;
       eulerian_compo_connex_from_interface_ft_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ft_.ghost());
 
-      eulerian_compo_connex_from_interface_ns_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      eulerian_compo_connex_from_interface_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 1;
       eulerian_compo_connex_from_interface_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ns_.ghost());
 
-      eulerian_compo_connex_from_interface_ghost_ft_.allocate(ref_ijk_ft_->get_splitting_ft(), IJK_Splitting::ELEM, 0);
+      eulerian_compo_connex_from_interface_ghost_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 0);
       nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_ft_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ft_.ghost());
 
-      eulerian_compo_connex_from_interface_ghost_ns_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      eulerian_compo_connex_from_interface_ghost_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ns_.ghost());
 
-      eulerian_compo_connex_from_interface_int_ns_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      eulerian_compo_connex_from_interface_int_ns_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
       eulerian_compo_connex_from_interface_int_ns_.data() = -1;
       eulerian_compo_connex_from_interface_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_int_ns_.ghost());
 
-      eulerian_compo_connex_from_interface_ghost_int_ns_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      eulerian_compo_connex_from_interface_ghost_int_ns_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_int_ns_.data() = -1;
       eulerian_compo_connex_from_interface_ghost_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_int_ns_.ghost());
 
-      eulerian_compo_connex_valid_compo_field_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      eulerian_compo_connex_valid_compo_field_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
       eulerian_compo_connex_valid_compo_field_.data() = 0;
       eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
@@ -124,7 +124,7 @@ void IJK_Composantes_Connex::initialise_bubbles_params()
   interfaces_->calculer_volume_bulles(bubbles_volume_, bubbles_barycentre_);
 }
 
-int IJK_Composantes_Connex::associate_rising_velocities_parameters(const IJK_Splitting& splitting,
+int IJK_Composantes_Connex::associate_rising_velocities_parameters(const Domaine_IJK& splitting,
                                                                    const int& compute_rising_velocities,
                                                                    const int& fill_rising_velocities,
                                                                    const int& use_bubbles_velocities_from_interface,
@@ -141,7 +141,7 @@ int IJK_Composantes_Connex::associate_rising_velocities_parameters(const IJK_Spl
         use_bubbles_velocities_from_interface_ = 0;
       if (fill_rising_velocities_)
         {
-          eulerian_rising_velocities_.allocate(splitting, IJK_Splitting::ELEM, 0);
+          eulerian_rising_velocities_.allocate(splitting, Domaine_IJK::ELEM, 0);
           eulerian_rising_velocities_.data() = 0;
           nalloc += 1;
           eulerian_rising_velocities_.echange_espace_virtuel(eulerian_rising_velocities_.ghost());
@@ -197,7 +197,7 @@ void IJK_Composantes_Connex::compute_compo_connex_from_interface()
 
       fill_mixed_cell_compo();
 
-      const IJK_Splitting& splitting = eulerian_compo_connex_from_interface_int_ns_.get_splitting();
+      const Domaine_IJK& splitting = eulerian_compo_connex_from_interface_int_ns_.get_domaine();
       int neighours_i[6] = NEIGHBOURS_I;
       int neighours_j[6] = NEIGHBOURS_J;
       int neighours_k[6] = NEIGHBOURS_K;
@@ -263,7 +263,7 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
   const Maillage_FT_IJK& maillage = interfaces_->maillage_ft_ijk();
 
   // Same splitting for the normal vector field
-  const IJK_Splitting& splitting_ft = ref_ijk_ft_->get_splitting_ft();
+  const Domaine_IJK& splitting_ft = ref_ijk_ft_->get_domaine_ft();
 
   const Intersections_Elem_Facettes& intersections = maillage.intersections_elem_facettes();
   const ArrOfInt& index_elem = intersections.index_elem();

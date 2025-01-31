@@ -156,7 +156,6 @@ void ComputeValParCompoInCell::calculer_moy_par_compo(
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          assert(mesh_->ref_splitting() == ref_splitting_);
           // A present, elle est dans le splitting :
           const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
           // Pour chaque element, est-il traverse par une ou plusieurs interface ?
@@ -262,7 +261,6 @@ void ComputeValParCompoInCell::calculer_moy_field_sommet_par_compo(
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          assert(mesh_->ref_splitting() == ref_splitting_);
           // A present, elle est dans le splitting :
           const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
           const int nb_compo_traversantes =
@@ -345,7 +343,6 @@ void ComputeValParCompoInCell::calculer_moy_field_fa7_par_compo(
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          assert(mesh_->ref_splitting() == ref_splitting_);
           // A present, elle est dans le splitting :
           const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
           const int nb_compo_traversantes =

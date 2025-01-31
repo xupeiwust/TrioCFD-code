@@ -20,7 +20,7 @@
 #include <IJK_FT_Post.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Cut_cell_tools.h>
 #include <Cut_cell_diffusion_flux_interface.h>
 
@@ -81,39 +81,39 @@ void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
 bool Probleme_FTD_IJK_cut_cell::run()
 {
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
-  cut_cell_disc_.initialise(interfaces_, splitting_, IJK_Splitting::ELEM);
+  cut_cell_disc_.initialise(interfaces_, domaine_ijk_.valeur(), Domaine_IJK::ELEM);
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
   cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, splitting_ft_, interfaces_.maillage_ft_ijk(), interfaces_.old_maillage_ft_ijk());
 
-  splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
-                                  delta_z_local_);
+  domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
+                                     delta_z_local_);
   Cerr << "Probleme_FTD_IJK_cut_cell::run()" << finl;
   int nalloc = 0;
   thermal_probes_ghost_cells_ = 4;
-  thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
+  thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
 
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, splitting_, 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, domaine_ijk_.valeur(), 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
     }
   else
     {
-      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, splitting_, thermal_probes_ghost_cells_);
+      allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
     }
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      if (splitting_.get_nb_elem_local(2) < 4 )
+      if (domaine_ijk_->get_nb_elem_local(2) < 4 )
         {
           std::cout << "Nb of cells / proc in z-direction must be >=4 for shear periodic run" << std::endl;
           std::cout << "Nb of cells / proc in z-direction must be >=8 for shear periodic run if only one proc on z-direction" << std::endl;
           std::cout << "Or find an other way to stock indic_ghost_zmin and zmax than IJK_Field" << std::endl;
           Process::exit();
         }
-      if (splitting_.get_offset_local(0)!=0.)
+      if (domaine_ijk_->get_offset_local(0)!=0.)
         {
           std::cout << " Shear_periodic conditions works only without splitting in i-direction " << std::endl;
           std::cout << "if splitting in i-direction --> get_neighbour_processor has to be changed" << std::endl;
@@ -121,27 +121,27 @@ bool Probleme_FTD_IJK_cut_cell::run()
         }
     }
 
-  allocate_velocity(d_velocity_, splitting_, 1);
+  allocate_velocity(d_velocity_, domaine_ijk_.valeur(), 1);
   nalloc += 6;
   // GAB, qdm
   if (test_etapes_et_bilan_)
     {
-      allocate_velocity(rho_u_euler_av_prediction_champ_, splitting_, 1);
-      allocate_velocity(rho_u_euler_av_rho_mu_ind_champ_, splitting_, 1);
-      allocate_velocity(rho_du_euler_ap_prediction_champ_, splitting_, 1);
-      allocate_velocity(rho_u_euler_ap_projection_champ_, splitting_, 1);
-      allocate_velocity(rho_du_euler_ap_projection_champ_, splitting_, 1);
-      allocate_velocity(rho_u_euler_ap_rho_mu_ind_champ_, splitting_, 1);
-      allocate_velocity(terme_diffusion_local_, splitting_, 1);
-      allocate_velocity(terme_pression_local_, splitting_, 1);
-      allocate_velocity(terme_pression_in_ustar_local_, splitting_, 1);
-      allocate_velocity(d_v_diff_et_conv_, splitting_, 1);
-      allocate_velocity(terme_convection_mass_solver_, splitting_, 1);
-      allocate_velocity(terme_diffusion_mass_solver_, splitting_, 1);
+      allocate_velocity(rho_u_euler_av_prediction_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(rho_u_euler_av_rho_mu_ind_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(rho_du_euler_ap_prediction_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(rho_u_euler_ap_projection_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(rho_du_euler_ap_projection_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(rho_u_euler_ap_rho_mu_ind_champ_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_diffusion_local_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_pression_local_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_pression_in_ustar_local_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(d_v_diff_et_conv_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_convection_mass_solver_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_diffusion_mass_solver_, domaine_ijk_.valeur(), 1);
       nalloc += 36;
     }
   //
-  pressure_ghost_cells_.allocate(splitting_, IJK_Splitting::ELEM, thermal_probes_ghost_cells_);
+  pressure_ghost_cells_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, thermal_probes_ghost_cells_);
   pressure_ghost_cells_.data() = 0.;
   pressure_ghost_cells_.echange_espace_virtuel(pressure_ghost_cells_.ghost());
   nalloc += 1;
@@ -149,18 +149,18 @@ bool Probleme_FTD_IJK_cut_cell::run()
   // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
   if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide()==1)
     {
-      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
+      pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3, 0 ,1, false, 1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
     }
   else
-    pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3);
+    pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
   nalloc += 1;
 
   if (include_pressure_gradient_in_ustar_)
     {
-      d_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      d_pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 1);
       if (get_time_scheme() == RK3_FT)
         {
-          RK3_F_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+          RK3_F_pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 1);
           nalloc += 1;
         }
       nalloc += 1;
@@ -168,23 +168,23 @@ bool Probleme_FTD_IJK_cut_cell::run()
 
   // On utilise aussi rhov pour le bilan de forces et pour d'autres formes de convection...
   //  if (!(expression_derivee_acceleration_ == Nom("0")))
-  allocate_velocity(rho_v_, splitting_, 2);
+  allocate_velocity(rho_v_, domaine_ijk_.valeur(), 2);
   nalloc += 3;
 
-  pressure_rhs_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+  pressure_rhs_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 1);
   nalloc += 1;
-  I_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
-  kappa_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  I_ns_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
+  kappa_ns_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
   if (!disable_diphasique_ && (boundary_conditions_.get_correction_interp_monofluide()==1 || boundary_conditions_.get_correction_interp_monofluide()==2))
     {
-      molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, mu_v, mu_l);
-      rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, rho_v, rho_l);
+      molecular_mu_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2, 0 ,1, false, 2, mu_v, mu_l);
+      rho_field_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2, 0 ,1, false, 2, rho_v, rho_l);
       nalloc += 2;
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_l;
       if (use_inv_rho_)
         {
-          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_v, 1./rho_l);
+          inv_rho_field_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2, 0 ,1, false, 2, 1./rho_v, 1./rho_l);
           IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_v;
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_l;
           nalloc += 1;
@@ -195,23 +195,23 @@ bool Probleme_FTD_IJK_cut_cell::run()
 
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_l;
-      molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2);
-      rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      molecular_mu_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
+      rho_field_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
       nalloc += 2;
       if (use_inv_rho_)
         {
-          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+          inv_rho_field_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
           nalloc += 1;
           IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_v;
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_l;
         }
     }
 
-  //  rho_batard_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+  //  rho_batard_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
 
   if (first_step_interface_smoothing_)
     {
-      allocate_velocity(zero_field_ft_, splitting_ft_, thermal_probes_ghost_cells_);
+      allocate_velocity(zero_field_ft_, domaine_ft_, thermal_probes_ghost_cells_);
       for (int dir = 0; dir < 3; dir++)
         zero_field_ft_[dir].data() = 0.;
       zero_field_ft_.echange_espace_virtuel();
@@ -220,8 +220,8 @@ bool Probleme_FTD_IJK_cut_cell::run()
 
   if (diffusion_alternative_)
     {
-      allocate_velocity(laplacien_velocity_, splitting_, 1);
-      unit_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      allocate_velocity(laplacien_velocity_, domaine_ijk_.valeur(), 1);
+      unit_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
       unit_.data() = 1.;
       unit_.echange_espace_virtuel(unit_.ghost());
       nalloc += 4;
@@ -229,10 +229,10 @@ bool Probleme_FTD_IJK_cut_cell::run()
 
   if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_rhou)
     {
-      div_rhou_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      div_rhou_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 1);
       nalloc += 1;
     }
-  allocate_velocity(psi_velocity_, splitting_, 2);
+  allocate_velocity(psi_velocity_, domaine_ijk_.valeur(), 2);
   nalloc += 3;
 
   // champs pour post-traitement :
@@ -246,21 +246,21 @@ bool Probleme_FTD_IJK_cut_cell::run()
       || (expression_variable_source_[2] != "??")
       || (expression_potential_phi_ != "??"))
     {
-      allocate_velocity(variable_source_, splitting_, 1);
+      allocate_velocity(variable_source_, domaine_ijk_.valeur(), 1);
       flag_variable_source = true;
-      potential_phi_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      potential_phi_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 1);
       nalloc += 4;
       for (int dir = 0; dir < 3; dir++)
         variable_source_[dir].data() = 0.;
       potential_phi_.data() = 0.;
     }
 
-  // thermals_.initialize(splitting_, nalloc);
+  // thermals_.initialize(domaine_ijk_.valeur(), nalloc);
 
   // GB : Je ne sais pas si on a besoin d'un ghost... Je crois que oui. Lequel?
   // Si la a vitesse ft doit transporter les sommets virtuels des facettes reelles,
   // alors il faut un domaine ghost de la taille de la longueur maximale des arretes.
-  // allocate_velocity(velocity_ft_, splitting_ft_, 0);
+  // allocate_velocity(velocity_ft_, domaine_ft_, 0);
   /*
    * FIXME: Allocate based on the thermal subproblems
    * as the thermal probes necessitates several ghost cells to interpolate velocity !
@@ -269,27 +269,27 @@ bool Probleme_FTD_IJK_cut_cell::run()
   /*
    * Finally use the ns velocity field for the thermal sub-problems
    */
-  // thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, ft_ghost_cells);
+  // thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), ft_ghost_cells);
   // ft_ghost_cells = thermals_.get_probes_ghost_cells(ft_ghost_cells);
   int ft_ghost_cells = 4;
-  allocate_velocity(velocity_ft_, splitting_ft_, ft_ghost_cells);
-  //  allocate_velocity(velocity_ft_, splitting_ft_, 4);
+  allocate_velocity(velocity_ft_, domaine_ft_, ft_ghost_cells);
+  //  allocate_velocity(velocity_ft_, domaine_ft_, 4);
   nalloc += 3;
 
-  kappa_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 2);
+  kappa_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 2);
 
   if (!disable_diphasique_)
     {
-      allocate_velocity(terme_source_interfaces_ft_, splitting_ft_, 2);
-      allocate_velocity(backup_terme_source_interfaces_ft_, splitting_, 2);
+      allocate_velocity(terme_source_interfaces_ft_, domaine_ft_, 2);
+      allocate_velocity(backup_terme_source_interfaces_ft_, domaine_ijk_.valeur(), 2);
       // Seulement pour le calcul du bilan de forces :
-      allocate_velocity(terme_source_interfaces_ns_, splitting_, 1);
-      allocate_velocity(backup_terme_source_interfaces_ns_, splitting_, 1);
+      allocate_velocity(terme_source_interfaces_ns_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(backup_terme_source_interfaces_ns_, domaine_ijk_.valeur(), 1);
       // Seulement pour le calcul des statistiques :
-      allocate_velocity(terme_repulsion_interfaces_ns_, splitting_, 1);
-      allocate_velocity(terme_repulsion_interfaces_ft_, splitting_ft_, 1);
-      allocate_velocity(terme_abs_repulsion_interfaces_ns_, splitting_, 1);
-      allocate_velocity(terme_abs_repulsion_interfaces_ft_, splitting_ft_, 1);
+      allocate_velocity(terme_repulsion_interfaces_ns_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_repulsion_interfaces_ft_, domaine_ft_, 1);
+      allocate_velocity(terme_abs_repulsion_interfaces_ns_, domaine_ijk_.valeur(), 1);
+      allocate_velocity(terme_abs_repulsion_interfaces_ft_, domaine_ft_, 1);
       nalloc += 18;
     }
 
@@ -298,16 +298,16 @@ bool Probleme_FTD_IJK_cut_cell::run()
   nalloc += post_.alloc_velocity_and_co(flag_variable_source);
   if (get_time_scheme() == RK3_FT)
     {
-      allocate_velocity(RK3_F_velocity_, splitting_, 1);
+      allocate_velocity(RK3_F_velocity_, domaine_ijk_.valeur(), 1);
       nalloc += 3;
       Cout << "Schema temps de type : RK3_FT" << finl;
     }
   else
     Cout << "Schema temps de type : euler_explicite" << finl;
 
-  velocity_diffusion_op_.initialize(splitting_, harmonic_nu_in_diff_operator_);
+  velocity_diffusion_op_.initialize(domaine_ijk_.valeur(), harmonic_nu_in_diff_operator_);
   velocity_diffusion_op_->set_bc(boundary_conditions_);
-  velocity_convection_op_.initialize(splitting_);
+  velocity_convection_op_.initialize(get_domaine());
 
   treatment_count_.allocate(splitting_, IJK_Splitting::ELEM, 2);
   nalloc += 1;
@@ -315,7 +315,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
 
   // Economise la memoire si pas besoin
   if (!disable_solveur_poisson_)
-    poisson_solver_.initialize(splitting_);
+    poisson_solver_.initialize(get_domaine());
 
 
   nalloc += initialise_interfaces();
@@ -330,7 +330,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
        * 9.537E-07 << " MB per core" << finl;
 
 // Les champs ont etes alloues.
-// On peut completer les sondes car les ijk_field.get_splitting() sont a present remplis.
+// On peut completer les sondes car les ijk_field.get_domaine() sont a present remplis.
   post_.completer_sondes();
   post_.improved_initial_pressure_guess(improved_initial_pressure_guess_);
 
@@ -631,7 +631,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
   for (tstep_ = 0; tstep_ < nb_timesteps_ && stop == 0; tstep_++)
     {
       statistiques().begin_count(timestep_counter_);
-      if (!splitting_.get_grid_geometry().get_periodic_flag(DIRECTION_K))
+      if (!domaine_ijk_->get_periodic_flag(DIRECTION_K))
         {
           force_zero_on_walls(velocity_[2]);
         }

@@ -1061,7 +1061,7 @@ void IJK_One_Dimensional_Subproblem::interpolate_indicator_on_probes()
 double IJK_One_Dimensional_Subproblem::find_cell_related_indicator_on_probes(const int& last_index)
 {
   const IJK_Field_double& indicator = interfaces_->I();
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
 
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
@@ -1070,7 +1070,7 @@ double IJK_One_Dimensional_Subproblem::find_cell_related_indicator_on_probes(con
                            coordinates_cartesian_compo_(last_index, 1),
                            coordinates_cartesian_compo_(last_index, 2)
                           };
-  Vecteur3 centre_elem = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+  Vecteur3 centre_elem = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
   Vecteur3 displacement_centre_probe = centre_elem;
   displacement_centre_probe *= (-1);
   displacement_centre_probe += xyz_cart_end;
@@ -1250,7 +1250,7 @@ void IJK_One_Dimensional_Subproblem::compute_distance_cell_centre()
 {
   if (!has_computed_cell_centre_distance_)
     {
-      Vecteur3 centre = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+      Vecteur3 centre = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
 
       Vecteur3 facet_to_cell_centre = facet_barycentre_;
       facet_to_cell_centre *= -1;
@@ -1309,11 +1309,11 @@ void IJK_One_Dimensional_Subproblem::compute_distance_faces_centres()
               pure_vapour_neighbours_[l] = 0;
               pure_liquid_neighbours_[l] = 1;
               if (ii)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_I);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_I);
               if (jj)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_J);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_J);
               if (kk)
-                bary_face = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, IJK_Splitting::FACES_K);
+                bary_face = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_+ii_f, index_j_+jj_f, index_k_+kk_f, Domaine_IJK::FACES_K);
 
               // Normal distance
               vector_relative = facet_barycentre_;
@@ -1449,7 +1449,7 @@ void IJK_One_Dimensional_Subproblem::compute_vertex_position(const int& vertex_n
                                                              double& tangential_distance_vertex_centre,
                                                              Vecteur3& tangential_distance_vector_vertex_centre)
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -1499,7 +1499,7 @@ void IJK_One_Dimensional_Subproblem::compute_vertex_position(const int& vertex_n
 
 void IJK_One_Dimensional_Subproblem::compute_distance_cell_centres_neighbours()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -1593,7 +1593,7 @@ double IJK_One_Dimensional_Subproblem::compute_cell_weighting(const double& dx_c
 
 void IJK_One_Dimensional_Subproblem::compute_distance_last_cell_faces_neighbours()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -1854,7 +1854,7 @@ double IJK_One_Dimensional_Subproblem::compute_distance_cell_faces(const double&
 
 int IJK_One_Dimensional_Subproblem::get_dxyz_increment_max()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -1876,7 +1876,7 @@ int IJK_One_Dimensional_Subproblem::get_dxyz_increment_max()
 
 int IJK_One_Dimensional_Subproblem::get_dxyz_over_two_increment_max()
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -1946,7 +1946,7 @@ void IJK_One_Dimensional_Subproblem::compute_modified_probe_length(const int& pr
 
 void IJK_One_Dimensional_Subproblem::interpolate_velocity_at_cell_centre()
 {
-  Vecteur3 bary_cell = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
+  Vecteur3 bary_cell = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
   xyz_velocity_cell_ = {0., 0., 0.};
   double x_velocity_cell, y_velocity_cell, z_velocity_cell;
   interpolate_quantities_at_point((*velocity_)[0], bary_cell, x_velocity_cell);
@@ -3682,7 +3682,7 @@ double IJK_One_Dimensional_Subproblem::get_velocity_cartesian_grid_value(const d
   int k = test_index_k ? index_k: index_k_;
   // const double delta = (dist - cell_centre_distance_) * normal_vector_compo_[dir];
   //  double incr_dir;
-  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  const Domaine_IJK& geom= ref_ijk_ft_->get_domaine();
   //  double ddir = geom.get_constant_delta(dir);
   //  incr_dir = (int) delta / ddir;
   if (!(test_index_i && test_index_j && test_index_k))
@@ -3715,8 +3715,8 @@ double IJK_One_Dimensional_Subproblem::get_velocity_cartesian_grid_value(const d
   //  DoubleTab coordinates_point;
   //	DoubleVect field_interp(1);
   //	coordinates_point.resize(1,3);
-  //  Vecteur3 bary_cell = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(index_i_, index_j_, index_k_, IJK_Splitting::ELEM);
-  //  const IJK_Grid_Geometry& geom= ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  //  Vecteur3 bary_cell = ref_ijk_ft_->get_domaine().get_coords_of_dof(index_i_, index_j_, index_k_, Domaine_IJK::ELEM);
+  //  const Domaine_IJK& geom= ref_ijk_ft_->get_domaine();
   //  double ddir = geom.get_constant_delta(dir) / 2.;
   //	Vecteur3 compo_xyz = bary_cell;
   //	ddir = sign_dir ? - ddir: ddir;
@@ -4023,7 +4023,7 @@ void IJK_One_Dimensional_Subproblem::get_discrete_two_dimensional_spacing(const 
                                                                           double& dl1, double& dl2,
                                                                           Vecteur3& point_coords) const
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -4063,7 +4063,7 @@ void IJK_One_Dimensional_Subproblem::get_discrete_two_dimensional_spacing(const 
 
 double IJK_One_Dimensional_Subproblem::get_discrete_surface_at_level(const int& dir, const int& level) const
 {
-  const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+  const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -4480,7 +4480,7 @@ void IJK_One_Dimensional_Subproblem::complete_frame_of_reference_lrs_fluxes_eval
 {
   if (!disable_relative_velocity_energy_balance_ && !has_computed_lrs_flux_frame_of_ref_terms_)
     {
-      const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
+      const Domaine_IJK& geom = ref_ijk_ft_->get_domaine();
       const int face_dir[6] = FACES_DIR;
       const int flux_out[6] = FLUXES_OUT;
       const double rho_cp = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * (*cp_liquid_);
@@ -4705,12 +4705,11 @@ void IJK_One_Dimensional_Subproblem::dispatch_interfacial_heat_flux_correction(I
   const int nj = ref_ijk_ft_->itfce().I().nj();
   const int nk = ref_ijk_ft_->itfce().I().nk();
 
-  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
-  const int offset_i = splitting_ns.get_offset_local(0);
-  const int offset_j = splitting_ns.get_offset_local(1);
-  const int offset_k = splitting_ns.get_offset_local(2);
+  const Domaine_IJK& geometry = ref_ijk_ft_->itfce().I().get_domaine();
+  const int offset_i = geometry.get_offset_local(0);
+  const int offset_j = geometry.get_offset_local(1);
+  const int offset_k = geometry.get_offset_local(2);
 
-  const IJK_Grid_Geometry& geometry = splitting_ns.get_grid_geometry();
   const int ni_tot = geometry.get_nb_elem_tot(0);
   const int nj_tot = geometry.get_nb_elem_tot(1);
   const int nk_tot = geometry.get_nb_elem_tot(2);

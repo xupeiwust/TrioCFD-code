@@ -30,7 +30,7 @@ void OpConvCentre2IJK_double::exec_after_divergence_flux_(IJK_Field_double& resu
       // global index of the layer of flux of the wall
       //  (assume one walls at zmin and zmax)
       const int first_global_k_layer = 0;
-      const int last_global_k_layer = resu.get_splitting().get_nb_items_global(IJK_Splitting::FACES_K, DIRECTION_K) - 1;
+      const int last_global_k_layer = resu.get_domaine().get_nb_items_global(Domaine_IJK::FACES_K, DIRECTION_K) - 1;
 
       if (!perio_k_ && (global_k_layer <= first_global_k_layer || global_k_layer >= last_global_k_layer))
         {

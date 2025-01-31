@@ -47,8 +47,6 @@ class Switch_FT_double;
  *  Cette classe rassemble tous les algorithmes de gestion des interfaces pour le ijk
  *  (le maillage, les algo de remaillage, sauvegarde, reprise, etc)
  *
- *
- *
  */
 class IJK_Interfaces : public Objet_U
 {
@@ -56,8 +54,8 @@ class IJK_Interfaces : public Objet_U
   Declare_instanciable(IJK_Interfaces);
   friend class IJK_Composantes_Connex;
 public :
-  int initialize(const IJK_Splitting& splitting_FT,
-                 const IJK_Splitting& splitting_NS,
+  int initialize(const Domaine_IJK& splitting_FT,
+                 const Domaine_IJK& splitting_NS,
                  const Domaine_dis_base& domaine_dis,
                  const int thermal_probes_ghost_cells=0,
                  const bool compute_vint=true,
@@ -294,7 +292,7 @@ public :
     if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
       {
         maillage_ft_ijk_.update_gradient_laplacien_Surfactant();
-        maillage_ft_ijk_.update_sigma_grad_sigma(ref_splitting_);
+        maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
       }
     return;
   };
@@ -401,7 +399,7 @@ public :
 
   void calculer_aspect_ratio(ArrOfDouble& aspect_ratio) const;
   void calculer_surfactant(ArrOfDouble& surfactant,ArrOfDouble& surfactant_min,ArrOfDouble& surfactant_max) const;
-  void calculer_poussee_bulles(const ArrOfDouble& gravite, DoubleTab& poussee) const;
+  void calculer_poussee_bulles(const DoubleTab& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
                                              IJK_Field_double& kappa_ai,
@@ -410,7 +408,7 @@ public :
   void compute_drapeaux_vapeur_v2(const IntVect& vecteur_composantes,
                                   ArrOfInt& drapeau_liquide) const;
   void compute_drapeaux_vapeur_v3(const Maillage_FT_IJK& mesh,
-                                  const IJK_Splitting& split,
+                                  const Domaine_IJK& split,
                                   const IntVect& vecteur_composantes,
                                   ArrOfInt& drapeau_vapeur) const;
   void compute_drapeaux_vapeur_v4(const IntVect& vecteur_composantes,
@@ -435,7 +433,7 @@ public :
 
   // Permet de recuperer un mcu qui est une vue de maillage_bulles_ft_ijk. Il
   // n'y a pas de copie memoire, seulement des passages de case memoire.
-  // splitting.get_grid_geometry().get_origin, get_constant_delta(DIRECTION_X),
+  // splitting.get_origin, get_constant_delta(DIRECTION_X),
   // ...
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
@@ -821,7 +819,7 @@ public :
   void switch_indicatrice_next_old();
   void calculer_indicatrice_next(
     IJK_Field_double& field_repulsion,
-    const ArrOfDouble& gravite,
+    const DoubleTab& gravite,
     const double delta_rho,
     const double sigma,
     const double time,
@@ -904,14 +902,14 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
-  int allocate_ijk_compo_connex_fields(const IJK_Splitting& splitting, const int& allocate_compo_fields)
+  int allocate_ijk_compo_connex_fields(const Domaine_IJK& splitting, const int& allocate_compo_fields)
   {
     if (!is_diphasique_)
       return 0;
     return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
   }
 
-  int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
+  int associate_rising_velocities_parameters(const Domaine_IJK& splitting,
                                              const int& compute_rising_velocities,
                                              const int& fill_rising_velocities,
                                              const int& use_bubbles_velocities_from_interface,
@@ -974,7 +972,7 @@ protected:
   void calculer_phi_repuls_sommet(
     ArrOfDouble& potentiels_sommets,
     ArrOfDouble& repulsions_sommets,
-    const ArrOfDouble& gravite,
+    const DoubleTab& gravite,
     const double delta_rho,
     const double sigma,
     const double time,
@@ -986,7 +984,7 @@ protected:
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
     IJK_Field_double& field_repulsion,
-    const ArrOfDouble& gravite,
+    const DoubleTab& gravite,
     const double delta_rho,
     const double sigma,
     const double time,
@@ -1060,7 +1058,7 @@ protected:
                                                   const double distmax);
 
 // reference vers le splitting_ft_ pour les interfaces :
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
   OBS_PTR(Domaine_dis_base) refdomaine_dis_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;

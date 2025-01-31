@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Couplage_Tubes_IBC.h
-// Directory : $IJK_ROOT/src/IBC
-//
-/////////////////////////////////////////////////////////////////////////////
 #ifndef Couplage_Tubes_IBC_H
 #define Couplage_Tubes_IBC_H
 #include <Objet_U.h>
@@ -46,7 +40,7 @@ class Couplage_Tubes_IBC : public Objet_U
 {
   Declare_instanciable(Couplage_Tubes_IBC);
 public:
-  void initialize(const IJK_Splitting&);
+  void initialize(const Domaine_IJK&);
 
   void force_ibc(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
                  const IJK_Field_double& rho_field,
@@ -166,7 +160,7 @@ protected:
                                const double vitesse_entree) const;
 #endif
 protected:
-  OBS_PTR(IJK_Splitting) ref_splitting_; // cette variable est initialisee dans la methode initialize()
+  OBS_PTR(Domaine_IJK) ref_splitting_; // cette variable est initialisee dans la methode initialize()
 
   int lissage_;
   double epaisseur_lissage_;

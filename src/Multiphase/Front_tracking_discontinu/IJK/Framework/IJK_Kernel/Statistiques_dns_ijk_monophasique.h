@@ -22,13 +22,13 @@
 
 #include <Statistiques_dns_ijk.h>
 #include <TRUSTArrays.h>
-class IJK_Grid_Geometry;
+class Domaine_IJK;
 class Statistiques_dns_ijk_monophasique : public Statistiques_dns_ijk
 {
   Declare_instanciable(Statistiques_dns_ijk_monophasique);
 public:
   using Statistiques_dns_ijk::initialize;
-  void initialize(const IJK_Grid_Geometry&) override;
+  void initialize(const Domaine_IJK&) override;
   void update_stat(const IJK_Field_vector3_double& vitesse,
                    const IJK_Field_double& pression,
                    const IJK_Field_double& temperature,

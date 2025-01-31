@@ -15,7 +15,7 @@
 
 #include <Statistiques_dns_ijk_monophasique.h>
 #include <IJK_Field_vector.h>
-#include <IJK_Grid_Geometry.h>
+#include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <communications.h>
 #include <Param.h>
@@ -194,11 +194,11 @@ void Statistiques_dns_ijk_monophasique::update_stat(const IJK_Field_vector3_doub
 
 
   // Nombre total de mailles en K
-  const int nktot = pression.get_splitting().get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K);
+  const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
 
   // Nombre local de mailles en K
   const int kmax = pression.nk();
-  const int offset = pression.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = pression.get_domaine().get_offset_local(DIRECTION_K);
 
   DoubleTab tmp(nktot, nval_);
   const int imax = pression.ni();
@@ -302,8 +302,8 @@ void Statistiques_dns_ijk_monophasique::update_stat(const IJK_Field_vector3_doub
         }
       // facteur 1./(ni*nj) car sommation de ni*nj valeurs sur des mailles de meme taille
       // facteur delta_z / taille_totale_en_z  car mailles non uniformes en z
-      const int ni_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_I);
-      const int nj_tot = pression.get_splitting().get_grid_geometry().get_nb_elem_tot(DIRECTION_J);
+      const int ni_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_I);
+      const int nj_tot = pression.get_domaine().get_nb_elem_tot(DIRECTION_J);
 
       double facteur = 1./(double)(ni_tot * nj_tot);
 
@@ -345,7 +345,7 @@ Entree& Statistiques_dns_ijk_monophasique::readOn(Entree& is)
 }
 // Attention, cette methode est appelee apres readOn(),
 // il ne faut pas casser les donnees lues
-void Statistiques_dns_ijk_monophasique::initialize(const IJK_Grid_Geometry& geom)
+void Statistiques_dns_ijk_monophasique::initialize(const Domaine_IJK& geom)
 {
   dx_=geom.get_constant_delta(0); //modif AT 20/06/2013
   dy_=geom.get_constant_delta(1); //modif AT 20/06/2013

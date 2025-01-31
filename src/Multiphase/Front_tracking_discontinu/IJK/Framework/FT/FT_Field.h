@@ -19,7 +19,7 @@
 
 #include <TRUST_Ref.h>
 #include <TRUSTVect.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 //#include <Maillage_FT_IJK.h>
 #include <Operator_FT_Disc.h>
 #include <Descripteur_FT.h>
@@ -203,7 +203,7 @@ public:
   FT_Field();
   void initialize(const Maillage_FT_IJK& mesh, const DoubleTab& centre_mass);
   void update_gradient_laplacien_FT(const Maillage_FT_IJK& mesh);
-  void update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const IJK_Splitting& splitting);
+  void update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting);
   void dimensionner_remaillage_FT_Field(Maillage_FT_IJK& mesh, const ArrOfIntFT& table_old_new);
   void sauvegarder_triangle(const Maillage_FT_IJK& mesh, const int i, const int avant_apres_remaillage);
   void echanger_triangles(Maillage_FT_IJK& mesh);
@@ -240,7 +240,7 @@ public:
 
   void exchange_compo_connexe(int pe_send_,int pe_recv_, const Maillage_FT_IJK& mesh);
   void update_FT_Field_local_from_full_compo(const Maillage_FT_IJK& mesh);
-  void completer_compo_connexe_partielle(const Maillage_FT_IJK& mesh, const IJK_Splitting& splitting, const DoubleTab& liste_sommets_apres_deplacement, const DoubleTab& liste_sommets_avant_deplacement, const ArrOfInt& compo_connexe_sommets_deplace);
+  void completer_compo_connexe_partielle(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting, const DoubleTab& liste_sommets_apres_deplacement, const DoubleTab& liste_sommets_avant_deplacement, const ArrOfInt& compo_connexe_sommets_deplace);
 
   bool sauv_num_pe_echange(int pe);
   bool is_compo_in_proc(const int compo_connexe, const int pe_send);

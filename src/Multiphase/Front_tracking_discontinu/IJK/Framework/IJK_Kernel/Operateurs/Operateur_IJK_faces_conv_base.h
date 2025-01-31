@@ -18,7 +18,7 @@
 #include <IJK_Field.h>
 #include <IJK_ptr.h>
 #include <TRUSTTab.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_base.h>
 #include <Operateur_IJK_data_channel.h>
 #include <Boundary_Conditions.h>
@@ -28,7 +28,7 @@ class Operateur_IJK_faces_conv_base_double : public Operateur_IJK_faces_base_dou
 {
   Declare_base(Operateur_IJK_faces_conv_base_double);
 public:
-  virtual void initialize(const IJK_Splitting& splitting);
+  virtual void initialize(const Domaine_IJK& splitting);
   virtual inline void set_bc(const Boundary_Conditions& bc) { ; };
   virtual inline void set_bc_thermique(const Boundary_Conditions_Thermique& bc_th) { ; };
   void calculer(const IJK_Field_double& inputx, const IJK_Field_double& inputy, const IJK_Field_double& inputz,

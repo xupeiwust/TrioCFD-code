@@ -504,7 +504,7 @@ int IJK_Thermal_Subresolution::lire_motcle_non_standard(const Motcle& mot, Entre
 //}
 
 
-int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const int idx)
+int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
 
@@ -557,7 +557,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   nalloc = IJK_Thermal_base::initialize(splitting, idx);
   corrige_flux_.typer("Corrige_flux_FT_temperature_subresolution");
 
-  temperature_before_extrapolation_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_);
+  temperature_before_extrapolation_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_);
   nalloc += 1;
   temperature_before_extrapolation_.data() = 0.;
 
@@ -670,8 +670,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 
   if (approximate_temperature_increment_)
     {
-      d_temperature_uncorrected_.allocate(splitting, IJK_Splitting::ELEM, 2);
-      div_coeff_grad_T_volume_uncorrected_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      d_temperature_uncorrected_.allocate(splitting, Domaine_IJK::ELEM, 2);
+      div_coeff_grad_T_volume_uncorrected_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 2;
       // Centre2
       temperature_diffusion_op_.typer("standard");
@@ -706,7 +706,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
                                          lambda_liquid_,
                                          lambda_vapour_);
   corrige_flux_->initialize_with_subproblems(
-    ref_ijk_ft_->get_splitting_ns(),
+    ref_ijk_ft_->get_domaine(),
     *temperature_,
     ref_ijk_ft_->itfce(),
     ref_ijk_ft_,
@@ -718,15 +718,15 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
 
   if (debug_)
     {
-      debug_LRS_cells_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      debug_LRS_cells_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 1;
       debug_LRS_cells_.data() = -1.;
     }
 
   if (find_temperature_cell_neighbours_)
     {
-      neighbours_temperature_to_correct_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_); // , 1);
-      temperature_cell_neighbours_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_); // , 1);
+      neighbours_temperature_to_correct_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
+      temperature_cell_neighbours_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
       nalloc += 2;
       neighbours_temperature_to_correct_.data() = 0;
       temperature_cell_neighbours_.data() = 0.;
@@ -734,14 +734,14 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
       temperature_cell_neighbours_.echange_espace_virtuel(temperature_cell_neighbours_.ghost());
       if (neighbours_weighting_)
         {
-          neighbours_temperature_colinearity_weighting_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_); // , 1);
+          neighbours_temperature_colinearity_weighting_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
           nalloc += 1;
           neighbours_temperature_colinearity_weighting_.data() = 0.;
           neighbours_temperature_colinearity_weighting_.echange_espace_virtuel(neighbours_temperature_colinearity_weighting_.ghost());
         }
       if (debug_)
         {
-          temperature_cell_neighbours_debug_.allocate(splitting, IJK_Splitting::ELEM, ghost_cells_); // , 1);
+          temperature_cell_neighbours_debug_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
           nalloc += 1;
           temperature_cell_neighbours_debug_.data() = 0.;
           temperature_cell_neighbours_debug_.echange_espace_virtuel(temperature_cell_neighbours_debug_.ghost());
@@ -773,7 +773,7 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
         cell_faces_neighbours_corrected_min_max_bool_[c].data() = 0;
       cell_faces_neighbours_corrected_min_max_bool_.echange_espace_virtuel();
 
-      neighbours_temperature_to_correct_trimmed_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      neighbours_temperature_to_correct_trimmed_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
       neighbours_temperature_to_correct_trimmed_.data() = 0.;
       neighbours_temperature_to_correct_trimmed_.echange_espace_virtuel(neighbours_temperature_to_correct_trimmed_.ghost());
@@ -821,14 +821,14 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
     }
   if (debug_probe_collision_)
     {
-      probe_collision_debug_field_.allocate(splitting, IJK_Splitting::ELEM, 0); // , 1);
+      probe_collision_debug_field_.allocate(splitting, Domaine_IJK::ELEM, 0); // , 1);
       nalloc += 1;
       probe_collision_debug_field_.data() = 0.;
     }
 
   if (fluxes_correction_conservations_)
     {
-      zero_liquid_neighbours_.allocate(splitting, IJK_Splitting::ELEM, 1); // , 1);
+      zero_liquid_neighbours_.allocate(splitting, Domaine_IJK::ELEM, 1); // , 1);
       nalloc += 1;
       zero_liquid_neighbours_.data() = 0.;
       allocate_cell_vector(interfacial_heat_flux_dispatched_, splitting, 1);
@@ -994,9 +994,9 @@ Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expressi
           const double x_real = bubbles_centres(index_bubble_real,0);
           const double y_real = bubbles_centres(index_bubble_real,1);
           const double z_real = bubbles_centres(index_bubble_real,2);
-          const double lx = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
-          const double ly = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
-          const double lz = temperature_->get_splitting().get_grid_geometry().get_domain_length(0);
+          const double lx = temperature_->get_domaine().get_domain_length(0);
+          const double ly = temperature_->get_domaine().get_domain_length(0);
+          const double lz = temperature_->get_domaine().get_domain_length(0);
           x = (abs(x - x_real)< (lx / 2.)) ? x_real : ((x_real < (lx / 2.)) ? x_real + lx : x_real - lx);
           y = (abs(y - y_real)< (ly / 2.)) ? y_real : ((y_real < (ly / 2.)) ? y_real + ly : y_real - ly);
           z = (abs(z - z_real)< (lz / 2.)) ? z_real : ((z_real < (lz / 2.)) ? z_real + lz : z_real - lz);
@@ -1731,11 +1731,10 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   statistiques().end_count(cnt_lrs_prepare_corr);
 }
 
-void IJK_Thermal_Subresolution::compute_ghost_cell_numbers_for_subproblems(const IJK_Splitting& splitting, int ghost_init)
+void IJK_Thermal_Subresolution::compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& geom, int ghost_init)
 {
   int ghost_cells;
-  compute_cell_diagonal(splitting);
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  compute_cell_diagonal(geom);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -2623,12 +2622,12 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
       const int ni = temperature.ni();
       const int nj = temperature.nj();
       const int nk = temperature.nk();
-      const int offset_i = temperature.get_splitting().get_offset_local(0);
-      const int offset_j = temperature.get_splitting().get_offset_local(1);
-      const int offset_k = temperature.get_splitting().get_offset_local(2);
-      const int ni_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(0);
-      const int nj_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(1);
-      const int nk_tot = temperature.get_splitting().get_grid_geometry().get_nb_elem_tot(2);
+      const int offset_i = temperature.get_domaine().get_offset_local(0);
+      const int offset_j = temperature.get_domaine().get_offset_local(1);
+      const int offset_k = temperature.get_domaine().get_offset_local(2);
+      const int ni_tot = temperature.get_domaine().get_nb_elem_tot(0);
+      const int nj_tot = temperature.get_domaine().get_nb_elem_tot(1);
+      const int nk_tot = temperature.get_domaine().get_nb_elem_tot(2);
       std::vector<double> indices_i_to_correct;
       std::vector<double> indices_j_to_correct;
       std::vector<double> indices_k_to_correct;
@@ -3038,8 +3037,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_line_points(const int& line_d
                                                                FixedVector<ArrOfDouble,3>& coordinates_line,
                                                                double& diameter)
 {
-  const IJK_Splitting& splitting = temperature_->get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = temperature_->get_domaine();
   bool perio =  geom.get_periodic_flag(line_dir);
   assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
 
@@ -3112,8 +3110,7 @@ void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrO
                                                     const std::vector<std::vector<FixedVector<ArrOfDouble,2>>>& coordinates_sides,
                                                     const int& line_dir)
 {
-  const IJK_Splitting& splitting = temperature_->get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = temperature_->get_domaine();
 
   double min_dir_x, max_dir_x;
   min_max_ldir(0, geom, min_dir_x, max_dir_x);
@@ -3122,9 +3119,9 @@ void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrO
   double min_dir_z, max_dir_z;
   min_max_ldir(2, geom, min_dir_z, max_dir_z);
 
-  const int offset_i = splitting.get_offset_local(0);
-  const int offset_j = splitting.get_offset_local(1);
-  const int offset_k = splitting.get_offset_local(2);
+  const int offset_i = geom.get_offset_local(0);
+  const int offset_j = geom.get_offset_local(1);
+  const int offset_k = geom.get_offset_local(2);
 
   const int nb_i = temperature_->ni();
   const int nb_j = temperature_->nj();
@@ -3213,7 +3210,7 @@ void IJK_Thermal_Subresolution::find_points_on_proc(std::vector<std::vector<ArrO
 }
 
 void IJK_Thermal_Subresolution::min_max_ldir(const int& dir,
-                                             const IJK_Grid_Geometry& geom,
+                                             const Domaine_IJK& geom,
                                              double& min_dir,
                                              double& max_dir)
 {
@@ -3699,8 +3696,7 @@ double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int&
     }
   else
     dir = upstream_dir;
-  const IJK_Splitting& splitting = temperature_->get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = temperature_->get_domaine();
 
   const int nb_i_layer_tot = geom.get_nb_elem_tot(0);
   const int nb_j_layer_tot = geom.get_nb_elem_tot(1);
@@ -3748,7 +3744,7 @@ double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int&
 
   const double ddir = geom.get_constant_delta(dir);
   const double origin_dir = geom.get_origin(dir) ;
-  const int offset_dir = splitting.get_offset_local(dir);
+  const int offset_dir = geom.get_offset_local(dir);
 
   if (perio)
     {
@@ -3791,7 +3787,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int&
   values *= 0.;
   if (index_dir_local != -1)
     {
-      const IJK_Splitting& splitting = field.get_splitting();
+      const Domaine_IJK& splitting = field.get_domaine();
       int offset_cross_dir_1, offset_cross_dir_2;
       int n_local_cross_section_1, n_local_cross_section_2;
       int * index_i = nullptr;
@@ -3858,7 +3854,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int&
           for (i=0; i<n_local_cross_section_1; i++)
             for (j=0; j<n_local_cross_section_2; j++)
               {
-                Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                Vecteur3 ij_coord = ref_ijk_ft_->get_domaine().get_coords_of_dof(*index_i, *index_j, *index_k, Domaine_IJK::ELEM);
                 ij_indices[0](i+offset_cross_dir_1, j+offset_cross_dir_2) = i+offset_cross_dir_1;
                 ij_indices[1](i+offset_cross_dir_1, j+offset_cross_dir_2) = j+offset_cross_dir_2;
                 switch(dir)
@@ -3924,7 +3920,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_values(int&
               for (i=0; i<n_local_cross_section_1; i++)
                 for (j=0; j<n_local_cross_section_2; j++)
                   {
-                    Vecteur3 ij_coord = ref_ijk_ft_->get_splitting_ns().get_coords_of_dof(*index_i, *index_j, *index_k, IJK_Splitting::ELEM);
+                    Vecteur3 ij_coord = ref_ijk_ft_->get_domaine().get_coords_of_dof(*index_i, *index_j, *index_k, Domaine_IJK::ELEM);
                     switch(dir)
                       {
                       case 0:
@@ -4225,7 +4221,7 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
     }
 }
 
-int IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const IJK_Splitting& splitting)
+int IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const Domaine_IJK& splitting)
 {
   if (!disable_subresolution_ || reference_gfm_on_probes_)
     thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(2);

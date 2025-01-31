@@ -26,7 +26,7 @@ class OpConvCentre2IJK_double : public Operateur_IJK_faces_conv_base_double
 public:
   inline void set_bc(const Boundary_Conditions& bc) override { ref_bc_ = bc; };
   inline void set_bc_thermique(const Boundary_Conditions_Thermique& bc_th) override { ref_bc_Thermique_ = bc_th; };
-  void initialize(const IJK_Splitting& splitting) override;
+  void initialize(const Domaine_IJK& splitting) override;
   void calculer(const IJK_Field_double& inputx, const IJK_Field_double& inputy, const IJK_Field_double& inputz,
                 const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz,
                 IJK_Field_double& dvx, IJK_Field_double& dvy, IJK_Field_double& dvz);

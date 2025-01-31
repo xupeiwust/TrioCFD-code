@@ -20,7 +20,7 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 #include <Boundary_Conditions_Thermique.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <IJK_Field.h>
 #include <Parser.h>
 #include <IJK_Lata_writer.h>
@@ -44,7 +44,7 @@ class IJK_Thermal_cut_cell : public IJK_Thermal_base
 
 public :
 
-  int initialize(const IJK_Splitting& splitting, const int idx) override;
+  int initialize(const Domaine_IJK& splitting, const int idx) override;
   double compute_timestep(const double timestep,
                           const double rho_l, const double rho_v,
                           const double dxmin);
@@ -181,7 +181,7 @@ public :
 protected :
   friend class IJK_FT_Post;
 
-  void lire_temperature(const IJK_Splitting& splitting, int idx) override;
+  void lire_temperature(const Domaine_IJK& splitting, int idx) override;
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 

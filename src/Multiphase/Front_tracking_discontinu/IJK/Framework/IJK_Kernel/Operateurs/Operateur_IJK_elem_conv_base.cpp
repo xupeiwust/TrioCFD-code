@@ -46,9 +46,9 @@ Entree& Operateur_IJK_elem_conv_base_double::readOn(Entree& is)
   return is;
 }
 
-void Operateur_IJK_elem_conv_base_double::initialize(const IJK_Splitting& splitting)
+void Operateur_IJK_elem_conv_base_double::initialize(const Domaine_IJK& splitting)
 {
-  perio_k_= splitting.get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  perio_k_= splitting.get_periodic_flag(DIRECTION_K);
   channel_data_.initialize(splitting);
   input_field_ = nullptr;
   input_velocity_x_ = nullptr;

@@ -58,7 +58,7 @@ void IJK_MonofluidVar::harmo(const IJK_Field_double& indic_l, IJK_Field_double& 
   const int ni = indic_l.ni();
   const int nj = indic_l.nj();
   const int nk = indic_l.nk();
-  // res.allocate(indic_l.get_splitting(), IJK_Splitting::ELEM, 2);
+  // res.allocate(indic_l.get_domaine(), Domaine_IJK::ELEM, 2);
   for (int i=0; i < ni; i++)
     for (int j=0; j < nj; j++)
       for (int k=0; k < nk; k++)
@@ -73,7 +73,7 @@ void IJK_MonofluidVar::operator()(const IJK_Field_double& indic_l, IJK_Field_dou
   const int ni = indic_l.ni();
   const int nj = indic_l.nj();
   const int nk = indic_l.nk();
-  // res.allocate(indic_l.get_splitting(), IJK_Splitting::ELEM, 2);
+  // res.allocate(indic_l.get_domaine(), Domaine_IJK::ELEM, 2);
   for (int i=0; i < ni; i++)
     for (int j=0; j < nj; j++)
       for (int k=0; k < nk; k++)

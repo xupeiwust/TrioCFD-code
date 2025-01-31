@@ -13,7 +13,6 @@
 *
 *****************************************************************************/
 
-
 #ifndef IJK_FT_Post_included
 #define IJK_FT_Post_included
 
@@ -28,7 +27,7 @@
 #include <Multigrille_Adrien.h>
 
 class Probleme_FTD_IJK_base;
-class IJK_Splitting;
+class Domaine_IJK;
 
 /*
  * TODO: Demander à Aymeric l'interet (obsolete ??)
@@ -48,14 +47,16 @@ class IJK_FT_Post
 public:
   IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft);
   void complete_interpreter(Param& param, Entree& e);
+
+  void associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft);
   int initialise(int reprise);
   void complete(int reprise);
-  int initialise_stats(IJK_Splitting& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
+  int initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
   void init_indicatrice_non_perturbe();
 
   void posttraiter_champs_instantanes(const char * lata_name, double time, int time_iteration);
   void posttraiter_statistiques_plans(double time);
-  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const ArrOfDouble& gravite, const double current_time) const;
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const;
   void ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const;
   void ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const;
   void update_stat_ft(const double dt);
@@ -167,7 +168,7 @@ public:
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
   void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
-                      const ArrOfDouble& gravite, const Nom& nom_cas);
+                      const DoubleTab& gravite, const Nom& nom_cas);
   //void ijk_interpolate_implementation_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
   //                                        int skip_unknown_points, double value_for_bad_points,const IJK_Field_double& indic);
   //void  ijk_interpolate_skip_unknown_points_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
@@ -390,8 +391,8 @@ protected:
   IJK_Field_vector3_double repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
   const IJK_Field_vector3_double& d_velocity_;
 
-  IJK_Splitting& splitting_;
-  IJK_Splitting& splitting_ft_;
+  OBS_PTR(Domaine_IJK) domaine_ijk_;
+  OBS_PTR(Domaine_IJK) domaine_ft_;
   LIST(IJK_Thermique)& thermique_;
   LIST(IJK_Energie)& energie_;
   IJK_Thermals& thermals_;

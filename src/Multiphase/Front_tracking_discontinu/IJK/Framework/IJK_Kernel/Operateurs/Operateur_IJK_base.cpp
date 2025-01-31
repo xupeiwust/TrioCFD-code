@@ -69,15 +69,14 @@ Entree& Operateur_IJK_faces_base_double::readOn(Entree& is)
 double Operateur_IJK_faces_base_double::compute_dtstab_convection_local(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz)
 {
   double inverse_dt_conv = 0.;
-  const IJK_Splitting& split = vx.get_splitting();
-  const int ni = split.get_nb_elem_local(DIRECTION_I);
-  const int nj = split.get_nb_elem_local(DIRECTION_J);
-  const int nk = split.get_nb_elem_local(DIRECTION_K);
-  const IJK_Grid_Geometry& geom = split.get_grid_geometry();
+  const Domaine_IJK& geom = vx.get_domaine();
+  const int ni = geom.get_nb_elem_local(DIRECTION_I);
+  const int nj = geom.get_nb_elem_local(DIRECTION_J);
+  const int nk = geom.get_nb_elem_local(DIRECTION_K);
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const ArrOfDouble& delta_z = geom.get_delta(DIRECTION_K);
-  const int k_offset = split.get_offset_local(DIRECTION_K);
+  const int k_offset = geom.get_offset_local(DIRECTION_K);
 
   for (int k = 0 ; k < nk ; k++)
     {

@@ -100,10 +100,10 @@ void Switch_double::switch_vit_direct(SFichier& binary_file)
 void Switch_double::prepare_run()
 {
   // Recuperation des donnees de maillage
-  old_mesh_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(old_mesh_name_));
-  new_mesh_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(new_mesh_name_));
+  old_mesh_ = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(old_mesh_name_));
+  new_mesh_ = ref_cast(Domaine_IJK, Interprete_bloc::objet_global(new_mesh_name_));
   // On garde en memoire si on a un cas perio :
-  perio_k_ = old_mesh_.get_grid_geometry().get_periodic_flag(DIRECTION_K);
+  perio_k_ = old_mesh_.get_periodic_flag(DIRECTION_K);
 
   lire_fichier_reprise(nom_reprise_);
 }
@@ -134,19 +134,19 @@ Entree& Switch_double::interpreter(Entree& is)
 
 void Switch_double::initialise()
 {
-  const Nom& oldgeomname = old_mesh_.get_grid_geometry().le_nom();
+  const Nom& oldgeomname = old_mesh_.le_nom();
 
   Cout << "Lecture vitesse initiale dans fichier " << fichier_old_vitesse_ << " timestep= " << timestep_reprise_vitesse_ << finl;
   lire_dans_lata(fichier_old_vitesse_, timestep_reprise_vitesse_, oldgeomname, "VELOCITY",
                  old_velocity_[0], old_velocity_[1], old_velocity_[2]); // fonction qui lit un champ a partir d'un lata .
 
-  old_ni_ = old_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_I);
-  old_nj_ = old_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_J);
-  old_nk_ = old_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_K);
+  old_ni_ = old_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_I);
+  old_nj_ = old_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_J);
+  old_nk_ = old_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_K);
 
-  new_ni_ = new_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_I);
-  new_nj_ = new_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_J);
-  new_nk_ = new_mesh_.get_nb_items_local(IJK_Splitting::ELEM, DIRECTION_K);
+  new_ni_ = new_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_I);
+  new_nj_ = new_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_J);
+  new_nk_ = new_mesh_.get_nb_items_local(Domaine_IJK::ELEM, DIRECTION_K);
 }
 
 void Switch_double::set_param_reprise(Param& param)
@@ -261,7 +261,7 @@ void Switch_double::calculer_coeff(DoubleTab& coeff_i, IntTab& Indice_i,
   if (!perio_k_)
     {
       const int kmin = old_mesh_.get_offset_local(DIRECTION_K);
-      const bool own_last = (kmin+old_nk_ == old_mesh_.get_grid_geometry().get_nb_elem_tot(DIRECTION_K));
+      const bool own_last = (kmin+old_nk_ == old_mesh_.get_nb_elem_tot(DIRECTION_K));
       if (kmin == 0)
         {
           Indice_k[0] = 0;
@@ -280,23 +280,22 @@ void Switch_double::calculer_coeff(DoubleTab& coeff_i, IntTab& Indice_i,
     }
 }
 
-void Switch_double::calculer_coords(const IJK_Splitting::Localisation loc)
+void Switch_double::calculer_coords(const Domaine_IJK::Localisation loc)
 {
   // ancien maillage
-  const IJK_Grid_Geometry& old_geom = old_mesh_.get_grid_geometry();
-  const double s_dx = old_geom.get_constant_delta(DIRECTION_I);
-  const double s_dy = old_geom.get_constant_delta(DIRECTION_J);
-  const ArrOfDouble& s_dz = old_geom.get_delta(DIRECTION_K);
+  const double s_dx = old_mesh_.get_constant_delta(DIRECTION_I);
+  const double s_dy = old_mesh_.get_constant_delta(DIRECTION_J);
+  const ArrOfDouble& s_dz = old_mesh_.get_delta(DIRECTION_K);
   /*
   const int old_offset_i = old_geom.get_offset_local(DIRECTION_I);
   const int old_offset_j = old_geom.get_offset_local(DIRECTION_J);
   const int old_offset_k = old_geom.get_offset_local(DIRECTION_K);
   double s_origin_x = old_geom.get_origin(DIRECTION_I)
-                    + ((loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::ELEM) ? (s_dx * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::ELEM) ? (s_dx * 0.5) : 0. ) ;
   double s_origin_y = old_geom.get_origin(DIRECTION_J)
-                    + ((loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::ELEM) ? (s_dy * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::ELEM) ? (s_dy * 0.5) : 0. ) ;
   double s_origin_z = old_geom.get_origin(DIRECTION_K)
-                    + ((loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::ELEM) ? (s_dz[0] * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::ELEM) ? (s_dz[0] * 0.5) : 0. ) ;
   */
   // Coords of the local origin :
   Vecteur3 old_xyz0 = old_mesh_.get_coords_of_dof(0,0,0,loc);
@@ -315,7 +314,7 @@ void Switch_double::calculer_coords(const IJK_Splitting::Localisation loc)
     {
       // Il faut peut-etre corriger la position des ghosts :
       const int kmin = old_mesh_.get_offset_local(DIRECTION_K);
-      const bool own_last = (kmin+old_nk_ == old_mesh_.get_grid_geometry().get_nb_elem_tot(DIRECTION_K));
+      const bool own_last = (kmin+old_nk_ == old_mesh_.get_nb_elem_tot(DIRECTION_K));
       if (kmin == 0)
         old_z_[-1]= old_z_[0]-0.5*s_dz[0]; /* CL  K_min*/
       if (own_last)
@@ -333,17 +332,16 @@ void Switch_double::calculer_coords(const IJK_Splitting::Localisation loc)
     old_y_[j] = old_y_[j-1]+s_dy;
 
   // nouveau maillage
-  const IJK_Grid_Geometry& new_geom = new_mesh_.get_grid_geometry();
-  const double c_dx = new_geom.get_constant_delta(DIRECTION_I);
-  const double c_dy = new_geom.get_constant_delta(DIRECTION_J);
-  const ArrOfDouble& c_dz = new_geom.get_delta(DIRECTION_K);
+  const double c_dx = new_mesh_.get_constant_delta(DIRECTION_I);
+  const double c_dy = new_mesh_.get_constant_delta(DIRECTION_J);
+  const ArrOfDouble& c_dz = new_mesh_.get_delta(DIRECTION_K);
   /*
   double c_origin_x = new_geom.get_origin(DIRECTION_I)
-                    + ((loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::ELEM) ? (c_dx * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::ELEM) ? (c_dx * 0.5) : 0. ) ;
   double c_origin_y = new_geom.get_origin(DIRECTION_J)
-                    + ((loc==IJK_Splitting::FACES_K || loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::ELEM) ? (c_dy * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_K || loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::ELEM) ? (c_dy * 0.5) : 0. ) ;
   double c_origin_z = new_geom.get_origin(DIRECTION_K)
-                    + ((loc==IJK_Splitting::FACES_I || loc==IJK_Splitting::FACES_J || loc==IJK_Splitting::ELEM) ? (c_dz[0] * 0.5) : 0. ) ;
+                    + ((loc==Domaine_IJK::FACES_I || loc==Domaine_IJK::FACES_J || loc==Domaine_IJK::ELEM) ? (c_dz[0] * 0.5) : 0. ) ;
   */
   // Coords of the local origin :
   Vecteur3 new_xyz0 = new_mesh_.get_coords_of_dof(0,0,0,loc);
@@ -380,8 +378,8 @@ void Switch_double::calculer_coords(const IJK_Splitting::Localisation loc)
 
 void Switch_double::calculer_coords_elem()
 {
-  // const IJK_Splitting::Localisation loc = field.get_localisation();
-  const IJK_Splitting::Localisation loc=IJK_Splitting::ELEM;
+  // const Domaine_IJK::Localisation loc = field.get_localisation();
+  const Domaine_IJK::Localisation loc=Domaine_IJK::ELEM;
   calculer_coords(loc);
   return;
 }
@@ -391,13 +389,13 @@ void Switch_double::calculer_coords_Vi(const int dir)
   switch(dir)
     {
     case 0:
-      calculer_coords(IJK_Splitting::FACES_I);
+      calculer_coords(Domaine_IJK::FACES_I);
       break;
     case 1:
-      calculer_coords(IJK_Splitting::FACES_J);
+      calculer_coords(Domaine_IJK::FACES_J);
       break;
     case 2:
-      calculer_coords(IJK_Splitting::FACES_K);
+      calculer_coords(Domaine_IJK::FACES_K);
       break;
     default:
       Cerr << "Error in calculer_coords_Vi: wrong dir" << finl;
@@ -504,16 +502,15 @@ void Switch_double::write_velocity(const Nom lata_name) const
       if (Process::je_suis_maitre())
         {
           SFichier f;
-          const IJK_Grid_Geometry& geom = new_mesh_.get_grid_geometry();
           f.ouvrir(lata_name, ios::app);
           // Attention, peut ne pas tenir dans un int:
           long long n;
           char sz_string[100];
-          n = ((long long) geom.get_nb_elem_tot(DIRECTION_I)+1)
-              * ((long long) geom.get_nb_elem_tot(DIRECTION_J)+1)
-              * ((long long) geom.get_nb_elem_tot(DIRECTION_K)+1);
+          n = ((long long) new_mesh_.get_nb_elem_tot(DIRECTION_I)+1)
+              * ((long long) new_mesh_.get_nb_elem_tot(DIRECTION_J)+1)
+              * ((long long) new_mesh_.get_nb_elem_tot(DIRECTION_K)+1);
           snprintf(sz_string, 100, "%lld", n); // Apparemment %lld est la bonne syntaxe pour les long long
-          f << "Champ VELOCITY " << (lata_name + Nom(".VELOCITY.data")) <<  " geometrie=" << geom.le_nom() << " size=" << sz_string
+          f << "Champ VELOCITY " << (lata_name + Nom(".VELOCITY.data")) <<  " geometrie=" << new_mesh_.le_nom() << " size=" << sz_string
             << " localisation=FACES composantes=3 nature=vector" << finl;
         }
     }

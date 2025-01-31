@@ -21,7 +21,7 @@
 #include <Probleme_FTD_IJK_base.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Process.h>    // Process::Journal()
 #include <stat_counters.h>
 #include <Cut_cell_FT_Disc.h>
@@ -43,8 +43,6 @@ IJK_FT_Post::IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft) :
   source_spectrale_(ijk_ft.forcage_.get_force_ph2()),
   bk_tsi_ns_(ijk_ft.backup_terme_source_interfaces_ns_),
   d_velocity_(ijk_ft.d_velocity_),
-  splitting_(ijk_ft.splitting_),
-  splitting_ft_(ijk_ft.splitting_ft_),
   thermique_(ijk_ft.thermique_),
   energie_(ijk_ft.energie_),
   thermals_(ijk_ft.thermals_)
@@ -141,6 +139,13 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("Sondes", &les_sondes_);
 }
 
+void IJK_FT_Post::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
+{
+  domaine_ijk_ = dom_ijk;
+  domaine_ft_ = dom_ft;
+}
+
+
 int IJK_FT_Post::initialise(int reprise)
 {
   int nalloc = 0;
@@ -150,7 +155,7 @@ int IJK_FT_Post::initialise(int reprise)
   // pour relire les champs de temps integres:
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
     {
-      integrated_timescale_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+      integrated_timescale_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
       if ((reprise) && (fichier_reprise_integrated_timescale_ != "RESET"))
         {
@@ -160,7 +165,7 @@ int IJK_FT_Post::initialise(int reprise)
               Process::exit();
             }
           const int timestep_reprise_integrated_timescale_ = 1;
-          const Nom& geom_name = integrated_timescale_.get_splitting().get_grid_geometry().le_nom();
+          const Nom& geom_name = integrated_timescale_.get_domaine().le_nom();
           lire_dans_lata(fichier_reprise_integrated_timescale_, timestep_reprise_integrated_timescale_, geom_name, "INTEGRATED_TIMESCALE", integrated_timescale_); // fonction qui lit un champ a partir d'un lata .
         }
       else
@@ -176,7 +181,7 @@ int IJK_FT_Post::initialise(int reprise)
   // Pour relire les champs de vitesse et pression integres :
   if (((ref_ijk_ft_.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY")))
     {
-      allocate_velocity(integrated_velocity_, splitting_, 2);
+      allocate_velocity(integrated_velocity_, domaine_ijk_, 2);
       nalloc += 3;
     }
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
@@ -190,7 +195,7 @@ int IJK_FT_Post::initialise(int reprise)
             }
           const int timestep_reprise_integrated_velocity_ = 1;
           cout << "Lecture vitesse integree initiale dans fichier " << fichier_reprise_integrated_velocity_ << " timestep= " << timestep_reprise_integrated_velocity_ << endl;
-          const Nom& geom_name = velocity_[0].get_splitting().get_grid_geometry().le_nom();
+          const Nom& geom_name = velocity_[0].get_domaine().le_nom();
           lire_dans_lata(fichier_reprise_integrated_velocity_, timestep_reprise_integrated_velocity_, geom_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1],
                          integrated_velocity_[2]); // fonction qui lit un champ a partir d'un lata .
         }
@@ -210,7 +215,7 @@ int IJK_FT_Post::initialise(int reprise)
     }
   if (((ref_ijk_ft_.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE")))
     {
-      integrated_pressure_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+      integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
     }
   if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
@@ -224,7 +229,7 @@ int IJK_FT_Post::initialise(int reprise)
             }
           const int timestep_reprise_integrated_pressure_ = 1;
           cout << "Lecture pression integree initiale dans fichier " << fichier_reprise_integrated_pressure_ << " timestep= " << timestep_reprise_integrated_pressure_ << endl;
-          const Nom& geom_name = pressure_.get_splitting().get_grid_geometry().le_nom();
+          const Nom& geom_name = pressure_.get_domaine().le_nom();
           lire_dans_lata(fichier_reprise_integrated_pressure_, timestep_reprise_integrated_pressure_, geom_name, "INTEGRATED_PRESSURE", integrated_pressure_); // fonction qui lit un champ a partir d'un lata .
 
         }
@@ -243,17 +248,17 @@ int IJK_FT_Post::initialise(int reprise)
   if (((ref_ijk_ft_.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
       || ((reprise) && ((fichier_reprise_indicatrice_non_perturbe_ != "??"))))
     {
-      indicatrice_non_perturbe_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+      indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
     }
 
   // Pour le post-traitement de lambda2 :
   if (liste_post_instantanes_.contient_("LAMBDA2"))
     {
-      lambda2_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      dudy_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      dvdx_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      dwdy_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+      lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       nalloc += 4;
     }
 
@@ -323,7 +328,7 @@ void IJK_FT_Post::complete(int reprise)
     }
 }
 
-int IJK_FT_Post::initialise_stats(IJK_Splitting& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
+int IJK_FT_Post::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
 {
   cout << "Initialisation des statistiques. T_debut_statistiques=" << t_debut_statistiques_ << endl;
   int nalloc = statistiques_FT_.initialize(ref_ijk_ft_, splitting, check_stats_);
@@ -355,7 +360,7 @@ void IJK_FT_Post::init_indicatrice_non_perturbe()
     {
       const int timestep_reprise_indicatrice_non_perturbe = 1; // 1 ou 0 est le premier? attention au get_db ou latadb...
       cout << "Lecture indicatrice non perturbee dans fichier " << fichier_reprise_indicatrice_non_perturbe_ << " timestep= " << timestep_reprise_indicatrice_non_perturbe << endl;
-      const Nom& geom_name = indicatrice_non_perturbe_.get_splitting().get_grid_geometry().le_nom();
+      const Nom& geom_name = indicatrice_non_perturbe_.get_domaine().le_nom();
       lire_dans_lata(fichier_reprise_indicatrice_non_perturbe_, timestep_reprise_indicatrice_non_perturbe, geom_name, "INDICATRICE_PERTURBE", indicatrice_non_perturbe_); // fonction qui lit un champ a partir d'un lata .
     }
   else
@@ -491,7 +496,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const int num_elem = splitting_ft_.convert_ijk_cell_to_packed(i, j, k);
+              const int num_elem = domaine_ft_->convert_ijk_cell_to_packed(i, j, k);
               num_compo_ft_(i, j, k) = num_compo[num_elem];
             }
       n--, dumplata_scalar(lata_name, "NUM_COMPO", num_compo_ft_, latastep);
@@ -1033,7 +1038,7 @@ void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
 
 // Le nom du fichier est base sur le nom du cas...
 // Si reset!=0, on efface le fichier avant d'ecrire, sinon on ajoute...
-void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const ArrOfDouble& gravite, const double current_time) const
+void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const
 {
   if (disable_diphasique_)
     return;
@@ -1995,7 +2000,7 @@ void IJK_FT_Post::fill_surface_force(IJK_Field_vector3_double& the_field_you_kno
 {
   double volume = 1.;
   for (int i = 0; i < 3; i++)
-    volume *= splitting_.get_grid_geometry().get_constant_delta(i);
+    volume *= domaine_ijk_->get_constant_delta(i);
 
   if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
     for (int dir = 0; dir < 3; dir++)
@@ -2053,21 +2058,21 @@ void IJK_FT_Post::calculer_gradient_indicatrice_et_pression(const IJK_Field_doub
 int IJK_FT_Post::alloc_fields()
 {
   int nalloc = 0;
-  rebuilt_indic_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
-  potentiel_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
+  rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
+  potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   nalloc += 2;
   if ((!disable_diphasique_) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
-      ai_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
+      ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
     }
   // Pour les stats, on calcule kappa*ai :
   if ((!disable_diphasique_) && ((t_debut_statistiques_ < 1.e10)))
     {
-      kappa_ai_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
-      kappa_ai_ns_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      ai_ns_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      allocate_cell_vector(normale_cell_ns_, splitting_, 0);
+      kappa_ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
+      kappa_ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      allocate_cell_vector(normale_cell_ns_, domaine_ijk_, 0);
       nalloc += 6;
     }
 
@@ -2076,11 +2081,11 @@ int IJK_FT_Post::alloc_fields()
       && ((liste_post_instantanes_.contient_("PRESSURE_LIQ")) || (liste_post_instantanes_.contient_("PRESSURE_VAP")) || (liste_post_instantanes_.contient_("TOUS")) || (t_debut_statistiques_ < 1.e10)))
     {
       extended_pressure_computed_ = 1;
-      pressure_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 5);
-      extended_pl_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      extended_pv_.allocate(splitting_, IJK_Splitting::ELEM, 0);
-      extended_pl_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
-      extended_pv_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
+      pressure_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 5);
+      extended_pl_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      extended_pv_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      extended_pl_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
+      extended_pv_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       nalloc += 5;
     }
   else
@@ -2091,33 +2096,33 @@ int IJK_FT_Post::alloc_fields()
                                  || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
                                  || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
-      allocate_cell_vector(normale_cell_ft_, splitting_ft_, 0);
+      allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
       nalloc += 3;
     }
 
   // Allocation des champs derivee de vitesse :
   if ((t_debut_statistiques_ < 1.e10) || (liste_post_instantanes_.contient_("LAMBDA2")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("CURL")))
     {
-      dudx_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dudy_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dvdx_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dvdy_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dwdx_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dudz_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dvdz_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dwdy_.allocate(splitting_, IJK_Splitting::ELEM, 1);
-      dwdz_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+      dudx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dvdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dwdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dudz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dvdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dwdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       nalloc += 9;
       if (liste_post_instantanes_.contient_("LAMBDA2"))
         {
-          lambda2_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+          lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
           nalloc += 1;
         }
       if ((liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("CURL")))
         {
-          critere_Q_.allocate(splitting_, IJK_Splitting::ELEM, 0);
+          critere_Q_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
           // Le rotationnel, aux elems aussi :
-          allocate_cell_vector(rot_, splitting_, 0);
+          allocate_cell_vector(rot_, domaine_ijk_, 0);
           nalloc += 4;
         }
     }
@@ -2146,57 +2151,57 @@ int IJK_FT_Post::alloc_fields()
       //    allocate_cell_vector(dVd_, splitting_, 1);
       //    allocate_cell_vector(dWd_, splitting_, 1);
       // Et leurs solutions analytiques sans ghost :
-      allocate_velocity(ana_gradP_, splitting_, 1);
-      allocate_cell_vector(ana_dUd_, splitting_, 0);
-      allocate_cell_vector(ana_dVd_, splitting_, 0);
-      allocate_cell_vector(ana_dWd_, splitting_, 0);
+      allocate_velocity(ana_gradP_, domaine_ijk_, 1);
+      allocate_cell_vector(ana_dUd_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_dVd_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_dWd_, domaine_ijk_, 0);
       // Pour les deriv secondes :
-      allocate_cell_vector(ana_grad2Pi_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Pc_, splitting_, 0);
+      allocate_cell_vector(ana_grad2Pi_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Pc_, domaine_ijk_, 0);
       // And for velocities components :
-      allocate_cell_vector(ana_grad2Ui_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Uc_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Vi_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Vc_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Wi_, splitting_, 0);
-      allocate_cell_vector(ana_grad2Wc_, splitting_, 0);
+      allocate_cell_vector(ana_grad2Ui_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Uc_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Vi_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Vc_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Wi_, domaine_ijk_, 0);
+      allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
       nalloc += 36;
     }
   if (liste_post_instantanes_.contient_("NUM_COMPO"))
     {
-      num_compo_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 0);
+      num_compo_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
     }
   if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
     {
-      allocate_cell_vector(cell_velocity_, splitting_, 0);
+      allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
       nalloc += 3;
     }
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
     {
-      allocate_cell_vector(cell_source_spectrale_, splitting_, 0);
+      allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
       nalloc += 3;
     }
   if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
     {
-      allocate_cell_vector(cell_grad_p_, splitting_, 0);
+      allocate_cell_vector(cell_grad_p_, domaine_ijk_, 0);
       nalloc += 3;
     }
   if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
     {
-      allocate_cell_vector(cell_source_interface_,splitting_, 0);
+      allocate_cell_vector(cell_source_interface_,domaine_ijk_, 0);
       nalloc +=3;
     }
   if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION")||liste_post_instantanes_.contient_("TOUS"))
     {
-      allocate_cell_vector(cell_repulsion_interface_,splitting_, 0);
+      allocate_cell_vector(cell_repulsion_interface_,domaine_ijk_, 0);
       nalloc +=3;
     }
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
     {
-      allocate_cell_vector(cell_bk_tsi_ns_,splitting_, 1);
+      allocate_cell_vector(cell_bk_tsi_ns_,domaine_ijk_, 1);
       nalloc +=3;
-      allocate_cell_vector(cell_rho_Ssigma_,splitting_, 1);
+      allocate_cell_vector(cell_rho_Ssigma_,domaine_ijk_, 1);
       nalloc +=3;
     }
   return nalloc;
@@ -2207,44 +2212,44 @@ int IJK_FT_Post::alloc_velocity_and_co(bool flag_variable_source)
   int n = 0;
   // Le mot cle TOUS n'a pas encore ete compris comme tel.
   if ((liste_post_instantanes_.contient_("GRAD_INDICATRICE_FT")) || (liste_post_instantanes_.contient_("TOUS")))
-    n += 3, allocate_velocity(grad_I_ft_, splitting_ft_, 2);
+    n += 3, allocate_velocity(grad_I_ft_, domaine_ft_, 2);
 
   if ((liste_post_instantanes_.contient_("VELOCITY_ANA")) || (liste_post_instantanes_.contient_("ECART_ANA")))
-    n += 3, allocate_velocity(velocity_ana_, splitting_, 1);
+    n += 3, allocate_velocity(velocity_ana_, domaine_ijk_, 1);
   if (liste_post_instantanes_.contient_("ECART_ANA"))
-    n += 3, allocate_velocity(ecart_ana_, splitting_, 0);
+    n += 3, allocate_velocity(ecart_ana_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("D_VELOCITY_ANA"))
-    n += 3, allocate_velocity(d_velocity_ana_, splitting_, 1);
+    n += 3, allocate_velocity(d_velocity_ana_, domaine_ijk_, 1);
   if ((liste_post_instantanes_.contient_("PRESSURE_ANA")) || (liste_post_instantanes_.contient_("ECART_P_ANA")))
-    n++, pressure_ana_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+    n++, pressure_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
-    n++, ecart_p_ana_.allocate(splitting_, IJK_Splitting::ELEM, 1);
+    n++, ecart_p_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
   if (liste_post_instantanes_.contient_("OP_CONV"))
     {
-      n += 3, allocate_velocity(op_conv_, splitting_, ref_ijk_ft_.d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
+      n += 3, allocate_velocity(op_conv_, domaine_ijk_, ref_ijk_ft_.d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
       //                                          On veut qqch d'aligne pour copier les data() l'un dans l'autre
     }
   if (liste_post_instantanes_.contient_("CELL_OP_CONV"))
     {
-      n+=3,allocate_cell_vector(cell_op_conv_, splitting_, ref_ijk_ft_.d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
+      n+=3,allocate_cell_vector(cell_op_conv_, domaine_ijk_, ref_ijk_ft_.d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
       //                                          On veut qqch d'aligne pour copier les data() l'un dans l'autre
     }
 
   if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
-    n+=3,allocate_velocity(rho_Ssigma_, splitting_, 0);
+    n+=3,allocate_velocity(rho_Ssigma_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF"))
-    n+=3,allocate_cell_vector(cell_rho_Ssigma_, splitting_, 0);
+    n+=3,allocate_cell_vector(cell_rho_Ssigma_, domaine_ijk_, 0);
 
   // Pour le calcul des statistiques diphasiques :
   // (si le t_debut_stat a ete initialise... Sinon, on ne va pas les calculer au cours de ce calcul)
   if ((t_debut_statistiques_ < 1.e10))
     {
-      n += 3, allocate_velocity(grad_I_ns_, splitting_, 1);
-      n += 3, allocate_velocity(grad_P_, splitting_, 1);
+      n += 3, allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
+      n += 3, allocate_velocity(grad_P_, domaine_ijk_, 1);
     }
   else if (flag_variable_source)
     {
-      n += 3, allocate_velocity(grad_I_ns_, splitting_, 1);
+      n += 3, allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
     }
   return n;
 }
@@ -2268,7 +2273,7 @@ void IJK_FT_Post::improved_initial_pressure_guess(bool imp)
       noms_coords[0] = "X";
       noms_coords[1] = "Y";
       noms_coords[2] = "Z";
-      allocate_velocity(coords_, splitting_, 1);
+      allocate_velocity(coords_, domaine_ijk_, 1);
       for (int i = 0; i < 3; i++)
         {
           // Cette methode parcours ni(), nj() et nk() et donc pas les ghost...
@@ -2310,7 +2315,7 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
     }
 }
 
-void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const ArrOfDouble& gravite, const Nom& nom_cas)
+void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const DoubleTab& gravite, const Nom& nom_cas)
 {
   const int tstep_sauv = tstep + tstep_init;
   thermals_.set_first_step_thermals_post(first_step_thermals_post_);
@@ -2373,15 +2378,14 @@ static void ijk_interpolate_implementation_bis(const IJK_Field_double& field, co
   const int ni = field.ni();
   const int nj = field.nj();
   const int nk = field.nk();
-  const IJK_Splitting& splitting = field.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = field.get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
-  const IJK_Splitting::Localisation loc = field.get_localisation();
-  double origin_x = geom.get_origin(DIRECTION_I) + ((loc == IJK_Splitting::FACES_J || loc == IJK_Splitting::FACES_K || loc == IJK_Splitting::ELEM) ? (dx * 0.5) : 0.);
-  double origin_y = geom.get_origin(DIRECTION_J) + ((loc == IJK_Splitting::FACES_K || loc == IJK_Splitting::FACES_I || loc == IJK_Splitting::ELEM) ? (dy * 0.5) : 0.);
-  double origin_z = geom.get_origin(DIRECTION_K) + ((loc == IJK_Splitting::FACES_I || loc == IJK_Splitting::FACES_J || loc == IJK_Splitting::ELEM) ? (dz * 0.5) : 0.);
+  const Domaine_IJK::Localisation loc = field.get_localisation();
+  double origin_x = geom.get_origin(DIRECTION_I) + ((loc == Domaine_IJK::FACES_J || loc == Domaine_IJK::FACES_K || loc == Domaine_IJK::ELEM) ? (dx * 0.5) : 0.);
+  double origin_y = geom.get_origin(DIRECTION_J) + ((loc == Domaine_IJK::FACES_K || loc == Domaine_IJK::FACES_I || loc == Domaine_IJK::ELEM) ? (dy * 0.5) : 0.);
+  double origin_z = geom.get_origin(DIRECTION_K) + ((loc == Domaine_IJK::FACES_I || loc == Domaine_IJK::FACES_J || loc == Domaine_IJK::ELEM) ? (dz * 0.5) : 0.);
   const int nb_coords = coordinates.dimension(0);
   const int gh = indic.ghost();
   result.resize_array(nb_coords);
@@ -2393,9 +2397,9 @@ static void ijk_interpolate_implementation_bis(const IJK_Field_double& field, co
       const double x2 = (x - origin_x) / dx;
       const double y2 = (y - origin_y) / dy;
       const double z2 = (z - origin_z) / dz;
-      const int index_i = (int) (floor(x2)) - splitting.get_offset_local(DIRECTION_I);  //index of the closest cell center is this defined only in the single processor?
-      const int index_j = (int) (floor(y2)) - splitting.get_offset_local(DIRECTION_J);
-      const int index_k = (int) (floor(z2)) - splitting.get_offset_local(DIRECTION_K);
+      const int index_i = (int) (floor(x2)) - geom.get_offset_local(DIRECTION_I);  //index of the closest cell center is this defined only in the single processor?
+      const int index_j = (int) (floor(y2)) - geom.get_offset_local(DIRECTION_J);
+      const int index_k = (int) (floor(z2)) - geom.get_offset_local(DIRECTION_K);
       const int index_kp1 = index_k + 1;
       const double xfact = x2 - floor(x2);  // non-dimension distance inside the cell where the interpolation is requested
       const double yfact = y2 - floor(y2);
@@ -2415,8 +2419,8 @@ static void ijk_interpolate_implementation_bis(const IJK_Field_double& field, co
       if (!geom.get_periodic_flag(DIRECTION_K))
         // In this case the two domains (FT and NS) are equal in the z direction
         {
-          const int kmin = splitting.get_offset_local(DIRECTION_K);
-          const int nktot = splitting.get_nb_items_global(loc, DIRECTION_K);
+          const int kmin = geom.get_offset_local(DIRECTION_K);
+          const int nktot = geom.get_nb_items_global(loc, DIRECTION_K);
           //Serial calculation
           if (nktot == nk)
             {
@@ -2584,49 +2588,13 @@ void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh)
 
   statistiques().begin_count(postraitement_counter_);
   // The following calculation is defined on the extended domain ft
-  const IJK_Splitting& split_ft = splitting_ft_;
-  //const IJK_Grid_Geometry& geom = split_ft.get_grid_geometry();
+  const Domaine_IJK& split_ft = domaine_ft_;
   const int ni = split_ft.get_nb_elem_local(DIRECTION_I);
   const int nj = split_ft.get_nb_elem_local(DIRECTION_J);
   const int nk = split_ft.get_nb_elem_local(DIRECTION_K);
-  const double dx = split_ft.get_grid_geometry().get_constant_delta(DIRECTION_I);
-  const double dy = split_ft.get_grid_geometry().get_constant_delta(DIRECTION_J);
-  const double dz = split_ft.get_grid_geometry().get_constant_delta(DIRECTION_K);
-  //double origin_x = geom.get_origin(DIRECTION_I);
-// double origin_y = geom.get_origin(DIRECTION_J);
-// double origin_z = geom.get_origin(DIRECTION_K);
-
-  /*
-   void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh,
-   const IJK_Field_double& indic,
-   const int phase)
-   {
-   //const IJK_Field_double& pressure = pressure_;
-   IJK_Field_double& extended_p = phase == 1? extended_pl_ : extended_pv_;
-   // The field we want to fill :
-   if (phase < 0 || phase > 1)
-   Process::exit();
-
-   Cerr << extended_p(0,0,0) << finl;
-
-
-   // If we need it, mesh must not be "const"
-   //  const DoubleTab& normale_facettes = mesh.get_update_normale_facettes();
-
-   / Do we need a global table for it?
-   interfaces_.calculer_normales_et_aires_interfaciales(ai_,
-   kappa_ai_,
-   normale_cell_ft_,
-   -1) ;
-   */
-  //onst IJK_Splitting& split = ref_ijk_ft_.splitting_;
-  //const int ni = split.get_nb_elem_local(DIRECTION_I) ;
-  //const int nj = split.get_nb_elem_local(DIRECTION_J) ;
-  //const int nk = split.get_nb_elem_local(DIRECTION_K) ;
-  //const double dx = split.get_grid_geometry().get_constant_delta(DIRECTION_I);
-  //const double dy = split.get_grid_geometry().get_constant_delta(DIRECTION_J);
-  //const double dz = split.get_grid_geometry().get_constant_delta(DIRECTION_K);
-  //const double delta[3] = {dx,dy,dz};
+  const double dx = split_ft.get_constant_delta(DIRECTION_I);
+  const double dy = split_ft.get_constant_delta(DIRECTION_J);
+  const double dz = split_ft.get_constant_delta(DIRECTION_K);
   int nbsom = 0;
   // ArrOfInt liste_composantes_connexes_dans_element;
   DoubleTab positions_liq(2 * nbsom, 3); // Table of coordinates where interpolation needs to be computed
@@ -2657,54 +2625,10 @@ void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh)
         {
           if ((interfaces_.In_ft()(i, j, k) > 1.e-6) && (1. - interfaces_.In_ft()(i, j, k) > 1.e-6))
             {
-              // Cerr << "Indicatrice[" << i << ", " << j << ", " << k << "] = " << interfaces_.In_ft()(i,j,k) << finl;
-              //The normal may only be computed on the extended domain
-              // A relationship between the indices of the two meshes is defined
-              // Non sono piu necessari perche si lavora solo  una griglia, quella estesa
-              // const int n_ext = ref_ijk_ft_.get_splitting_extension();
-              // const int i_ft = i+ n_ext;
-              // const int j_ft = j+ n_ext;
-              // int k_ft = k;
-              // if (split.get_grid_geometry().get_periodic_flag(DIRECTION_K))
-              //   k_ft+= n_ext;
-              // const int elem = split_ft.convert_ijk_cell_to_packed(i, j, k);
-              // const int nb_compo_traversantes = interfaces_.compute_list_compo_connex_in_element(mesh, elem, liste_composantes_connexes_dans_element); //number of bubbles crossing the cell
               Vecteur3 bary_facettes_dans_elem;
               Vecteur3 normale;
               double norm = 1.;
               double dist = 0.;
-              // int num_compo;
-              // if ( nb_compo_traversantes == 0)
-              //   {
-              //     normale[0]=1.;
-              //     normale[1]=1.;
-              //     normale[2]=1.;
-              //     Cerr << "Error no compo traversante on proc. " << Process::me() << finl;
-              //     Cerr << "Indicatrice[" << i <<"," << j << "," << k << "] = " << interfaces_.In_ft()(i,j,k) << finl;
-              //     Process::exit();
-              //   }
-              // else if ( nb_compo_traversantes == 1)
-              //   {
-
-              //     num_compo = liste_composantes_connexes_dans_element[0];
-              //     interfaces_.calculer_normale_et_bary_element_pour_compo(num_compo,
-              //                                                             elem,
-              //                                                             mesh,
-              //                                                             normale,
-              //                                                             bary_facettes_dans_elem);
-              //   }
-
-              // // If the same cell is crossed by several bubbles the image points coincide with the crossed cells
-              // // the interpolation function in these points will lead to invalid values.
-              // else
-              //   {
-              //     num_compo = liste_composantes_connexes_dans_element[1];
-              //     interfaces_.calculer_normale_et_bary_element_pour_compo(num_compo,
-              //                                                             elem,
-              //                                                             mesh,
-              //                                                             normale,
-              //                                                             bary_facettes_dans_elem);
-              //   }
               for (int c = 0; c < 3; c++)
                 {
                   normale[c] = interfaces_.get_norm_par_compo_itfc_in_cell_ft()[c](i, j, k);

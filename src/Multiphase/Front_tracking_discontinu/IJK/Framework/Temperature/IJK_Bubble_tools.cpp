@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Bubble_tools.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Bubble_tools.h>
 
@@ -115,8 +109,7 @@ void compute_bounding_box_fill_compo(const IJK_Interfaces& interfaces,
   /*
    * Considered a constant grid spacing
    */
-  const IJK_Splitting& splitting =eulerian_compo_connex.get_splitting();
-  const IJK_Grid_Geometry& geometry = splitting.get_grid_geometry();
+  const Domaine_IJK& geometry =eulerian_compo_connex.get_domaine();
   double dx = geometry.get_constant_delta(DIRECTION_I);
   double dy = geometry.get_constant_delta(DIRECTION_J);
   double dz = geometry.get_constant_delta(DIRECTION_K);
@@ -128,9 +121,9 @@ void compute_bounding_box_fill_compo(const IJK_Interfaces& interfaces,
   double geom_origin_x = geometry.get_origin(DIRECTION_I);
   double geom_origin_y = geometry.get_origin(DIRECTION_J);
   double geom_origin_z = geometry.get_origin(DIRECTION_K);
-  double origin_x = geom_origin_x + splitting.get_offset_local(DIRECTION_I) * dx;
-  double origin_y = geom_origin_y + splitting.get_offset_local(DIRECTION_J) * dy;
-  double origin_z = geom_origin_z + splitting.get_offset_local(DIRECTION_K) * dz;
+  double origin_x = geom_origin_x + geometry.get_offset_local(DIRECTION_I) * dx;
+  double origin_y = geom_origin_y + geometry.get_offset_local(DIRECTION_J) * dy;
+  double origin_z = geom_origin_z + geometry.get_offset_local(DIRECTION_K) * dz;
   double geom_origin[3] = {geom_origin_x, geom_origin_y, geom_origin_z};
   double origin[3] = {origin_x, origin_y, origin_z};
   //
@@ -259,11 +252,6 @@ void compute_rising_velocity(const IJK_Field_vector3_double& velocity,
   /*
    * Constant cell volume
    */
-  //	const IJK_Splitting& splitting =eulerian_compo_connex_ns.get_splitting();
-  //	const IJK_Grid_Geometry& geometry = splitting.get_grid_geometry();
-  //	double dx = geometry.get_constant_delta(DIRECTION_I);
-  //	double dy = geometry.get_constant_delta(DIRECTION_J);
-  //	double dz = geometry.get_constant_delta(DIRECTION_K);
   const int nk = eulerian_compo_connex_ns.nk();
   const int nj = eulerian_compo_connex_ns.nj();
   const int ni = eulerian_compo_connex_ns.ni();

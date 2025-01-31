@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Ghost_Fluid_tools.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Ghost_Fluid_tools.h>
 #include <IJK_Field_vector.h>
@@ -45,7 +39,7 @@ static void extrapolate_with_elem_faces_connectivity(const Domaine_VF& domaine_v
   IJK_Field_double field_old;
   // Use to locate the initial non-zero values
   IJK_Field_double field_ini(field);
-  const IJK_Splitting& splitting_distance = distance.get_splitting();
+  const Domaine_IJK& splitting_distance = distance.get_domaine();
   /*
    * n_iterations = stencil_width is the minimum to get a propagation of information from the interface to the border
    * of the extrapolation. But doing more will lead to smoother values... And it probably costs close to nothing
@@ -239,8 +233,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
   const Maillage_FT_IJK& maillage = interfaces.maillage_ft_ijk();
 
   // Same splitting for the normal vector field
-  const IJK_Splitting& splitting_distance = distance_field.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting_distance.get_grid_geometry();
+  const Domaine_IJK& geom = distance_field.get_domaine();
 
   for (int l=0; l<dim; l++)
     {
@@ -306,7 +299,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
               }
             index = data.index_facette_suivante_;
           }
-        const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
+        const Int3 num_elem_ijk = geom.convert_packed_to_ijk_cell(elem);
         if (surface_tot > 0.)
           {
             /*
@@ -504,7 +497,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
             {
               // Averaging the normal vector on the neighbours
               double n[3] = {0., 0., 0.};
-              const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
+              const Int3 num_elem_ijk = geom.convert_packed_to_ijk_cell(elem);
               for (i = 0; i < dim; i++)
                 {
                   n[i] = normal_vect[i](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
@@ -514,7 +507,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                   // We look for the neighbour by face k
                   const int face = elem_faces(elem, k);
                   const int e_voisin = face_voisins(face, 0) + face_voisins(face, 1) - elem;
-                  const Int3 num_elem_voisin_ijk = splitting_distance.convert_packed_to_ijk_cell(e_voisin);
+                  const Int3 num_elem_voisin_ijk = geom.convert_packed_to_ijk_cell(e_voisin);
                   if (e_voisin >= 0) // Not on a boundary
                     for (i = 0; i < dim; i++)
                       n[i] += normal_vect[i](num_elem_voisin_ijk[DIRECTION_I],num_elem_voisin_ijk[DIRECTION_J],num_elem_voisin_ijk[DIRECTION_K]);
@@ -539,7 +532,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
       int elem;
       for (elem = 0; elem < nb_elem; elem++)
         {
-          const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
+          const Int3 num_elem_ijk = geom.convert_packed_to_ijk_cell(elem);
           double nx = normal_vect[0](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
           double ny = normal_vect[1](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
           double nz = normal_vect[2](num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]);
@@ -729,7 +722,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
           for (i_elem = 0; i_elem < liste_elem_size; i_elem++)
             {
               elem = liste_elements[i_elem];
-              const Int3 num_elem_ijk = splitting_distance.convert_packed_to_ijk_cell(elem);
+              const Int3 num_elem_ijk = geom.convert_packed_to_ijk_cell(elem);
               if (terme_src_dist(num_elem_ijk[DIRECTION_I], num_elem_ijk[DIRECTION_J], num_elem_ijk[DIRECTION_K]) > invalid_distance_value)
                 {
                   // For all the element already crossed by the interface, the value is not computed again
@@ -748,7 +741,7 @@ void compute_eulerian_normal_distance_facet_barycentre_field(const IJK_Interface
                       // Look for a neighbour by the face k
                       const int face = elem_faces(elem, k);
                       const int e_voisin = face_voisins(face, 0) + face_voisins(face, 1) - elem;
-                      const Int3 num_elem_voisin_ijk = splitting_distance.convert_packed_to_ijk_cell(e_voisin);
+                      const Int3 num_elem_voisin_ijk = geom.convert_packed_to_ijk_cell(e_voisin);
                       if (e_voisin >= 0) // Not on a boundary
                         {
                           const double distance_voisin = distance_field(num_elem_voisin_ijk[DIRECTION_I],
@@ -829,12 +822,12 @@ void compute_eulerian_curvature_field_from_distance_field(const IJK_Field_double
   Operateur_IJK_elem_diff laplacian_distance;
   laplacian_distance.typer_diffusion_op("uniform");
   // Initialise with unit lambda
-  laplacian_distance.initialize(distance.get_splitting());
+  laplacian_distance.initialize(distance.get_domaine());
   const double lambda = 1.;
   laplacian_distance->set_uniform_lambda(lambda);
   // Calculate Laplacian(dist)
   laplacian_distance->calculer(distance, curvature, boundary_flux_kmin, boundary_flux_kmax);
-  const IJK_Grid_Geometry& geom = curvature.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = curvature.get_domaine();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -887,7 +880,7 @@ void compute_eulerian_curvature_field_from_interface(const IJK_Field_vector3_dou
   const Domaine_dis_base& mon_dom_dis = interfaces.get_domaine_dis();
   const int nb_elem = mon_dom_dis.domaine().nb_elem();
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, mon_dom_dis);
-  const IJK_Splitting& splitting_curvature = normal_vect.get_splitting();
+  const Domaine_IJK& splitting_curvature = normal_vect.get_domaine();
 
   const Maillage_FT_IJK& maillage = interfaces.maillage_ft_ijk();
   const Intersections_Elem_Facettes& intersections = maillage.intersections_elem_facettes();

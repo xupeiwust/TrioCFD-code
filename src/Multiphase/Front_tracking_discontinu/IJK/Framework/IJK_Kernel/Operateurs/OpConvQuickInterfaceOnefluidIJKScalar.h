@@ -29,7 +29,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_base.h>
 #include <Operateur_IJK_data_channel.h>
 #include <OpConvQuickIJKScalar.h>

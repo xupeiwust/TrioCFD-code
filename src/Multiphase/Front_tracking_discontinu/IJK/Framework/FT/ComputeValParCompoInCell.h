@@ -37,7 +37,7 @@ class ComputeValParCompoInCell
 public:
   ComputeValParCompoInCell() { mesh_ = nullptr;}
   ~ComputeValParCompoInCell() {}
-  void initialize(const IJK_Splitting& splitting, const Maillage_FT_IJK& maillage_ft_ijk)
+  void initialize(const Domaine_IJK& splitting, const Maillage_FT_IJK& maillage_ft_ijk)
   {
     ref_splitting_ = splitting;
     mesh_ = &maillage_ft_ijk;
@@ -91,7 +91,7 @@ protected:
     const int elem,
     ArrOfInt& liste_composantes_connexes_dans_element) const;
 
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_splitting_;
   const Maillage_FT_IJK * mesh_;
 };
 

@@ -18,7 +18,7 @@
 #include <Maillage_FT_Disc.h>
 #include <IJK_Field.h>
 #include <Array_tools.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 
 Cut_cell_FT_Disc::Cut_cell_FT_Disc() :
   ghost_size_(4),
@@ -41,12 +41,12 @@ Cut_cell_FT_Disc::Cut_cell_FT_Disc() :
   statut_diphasique_value_index_.resize(0, 1);
 }
 
-void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc)
+void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, Domaine_IJK& splitting, Domaine_IJK::Localisation loc)
 {
   /* Initialisation sans indicatrice (suppose aucune cellule diphasique) */
 
   ref_interfaces_ = interfaces;
-  ref_splitting_ = splitting;
+  ref_domaine_ = splitting;
   localisation_ = loc;
 
   // Initialisation des tableaux
@@ -60,10 +60,10 @@ void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& spl
   resize_data(0);
 
   // Initialisation du champ IJK_Field utilise pour le post-traitement
-  write_buffer_.allocate(ref_splitting_, localisation_, 1);
+  write_buffer_.allocate(ref_domaine_, localisation_, 1);
 
   // Initialisation du champ IJK_Field des indices diphasiques
-  indice_diphasique_.allocate(ref_splitting_, localisation_, ghost_size_);
+  indice_diphasique_.allocate(ref_domaine_, localisation_, ghost_size_);
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
   set_coord();
@@ -92,10 +92,10 @@ void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& spl
 }
 
 
-void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& splitting, IJK_Splitting::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
+void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, Domaine_IJK& splitting, Domaine_IJK::Localisation loc, const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
   ref_interfaces_ = interfaces;
-  ref_splitting_ = splitting;
+  ref_domaine_ = splitting;
   localisation_ = loc;
   assert(localisation_ == old_indicatrice.get_localisation());
   assert(localisation_ == next_indicatrice.get_localisation());
@@ -113,10 +113,10 @@ void Cut_cell_FT_Disc::initialise(IJK_Interfaces& interfaces, IJK_Splitting& spl
   resize_data(n_loc_);
 
   // Initialisation du champ IJK_Field utilise pour le post-traitement
-  write_buffer_.allocate(ref_splitting_, localisation_, 1);
+  write_buffer_.allocate(ref_domaine_, localisation_, 1);
 
   // Initialisation du champ IJK_Field des indices diphasiques
-  indice_diphasique_.allocate(ref_splitting_, localisation_, ghost_size_);
+  indice_diphasique_.allocate(ref_domaine_, localisation_, ghost_size_);
 
   // Remplissage de certains champs a partir des valeurs sur la structure IJK_Field
   set_coord();
@@ -200,10 +200,10 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK
   assert(verifier_coherence_coord_independent_index());
   assert(verifier_taille_tableaux());
 
-  Nom string_localisation = (localisation_ == IJK_Splitting::ELEM) ? Nom("ELEM") :
-                            ((localisation_ == IJK_Splitting::FACES_I) ? Nom("FACES_I") :
-                             ((localisation_ == IJK_Splitting::FACES_J) ? Nom("FACES_J") :
-                              (localisation_ == IJK_Splitting::FACES_K) ? Nom("FACES_K") : Nom("Error")));
+  Nom string_localisation = (localisation_ == Domaine_IJK::ELEM) ? Nom("ELEM") :
+                            ((localisation_ == Domaine_IJK::FACES_I) ? Nom("FACES_I") :
+                             ((localisation_ == Domaine_IJK::FACES_J) ? Nom("FACES_J") :
+                              (localisation_ == Domaine_IJK::FACES_K) ? Nom("FACES_K") : Nom("Error")));
   Cerr << "(Cut_cell_FT_Disc::update " << string_localisation << ") Iter: " << processed_count_-1 << " n_tot_=" << n_tot_  << " n_loc_=" << n_loc_ << finl;
 }
 
@@ -211,9 +211,9 @@ void Cut_cell_FT_Disc::update(const IJK_Field_double& old_indicatrice, const IJK
 // et renvoie le nombre local d'elements diphasiques n_loc.
 int Cut_cell_FT_Disc::initialise_independent_index(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  const int ni = ref_domaine_->get_nb_elem_local(0);
+  const int nj = ref_domaine_->get_nb_elem_local(1);
+  const int nk = ref_domaine_->get_nb_elem_local(2);
 
   int n_loc = n_loc_;
 
@@ -246,7 +246,7 @@ int Cut_cell_FT_Disc::initialise_independent_index(const IJK_Field_double& old_i
               {
                 if (!ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                   {
-                    independent_index_(n) = ref_splitting_->get_independent_index(i, j, k);
+                    independent_index_(n) = ref_domaine_->get_independent_index(i, j, k);
 
                     // Verification de la fonction function get_ijk_from_independent_index
                     assert(get_ijk(n)[0] == i);
@@ -284,9 +284,9 @@ void Cut_cell_FT_Disc::initialise_processed()
 void Cut_cell_FT_Disc::set_coord()
 {
   const int processed_sign = (processed_.dimension(0) == 0) ? 1 : (processed_(0) > 0 ? 1 : -1);
-  assert(ref_splitting_->get_grid_geometry().is_uniform(0));
-  assert(ref_splitting_->get_grid_geometry().is_uniform(1));
-  assert(ref_splitting_->get_grid_geometry().is_uniform(2));
+  assert(ref_domaine_->is_uniform(0));
+  assert(ref_domaine_->is_uniform(1));
+  assert(ref_domaine_->is_uniform(2));
   for (int n = 0; n < n_loc_; n++)
     {
       Int3 ijk = get_ijk(n);
@@ -298,14 +298,14 @@ void Cut_cell_FT_Disc::set_coord()
       // a fixer la valeur de coord_.
       if (processed_(n) * processed_sign >= processed_count_)
         {
-          coord_(n,0) = (i + ref_splitting_->get_offset_local(0) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(0) + ref_splitting_->get_grid_geometry().get_origin(0);
-          coord_(n,1) = (j + ref_splitting_->get_offset_local(1) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(1) + ref_splitting_->get_grid_geometry().get_origin(1);
-          coord_(n,2) = (k + ref_splitting_->get_offset_local(2) + .5)*ref_splitting_->get_grid_geometry().get_constant_delta(2) + ref_splitting_->get_grid_geometry().get_origin(2);
+          coord_(n,0) = (i + ref_domaine_->get_offset_local(0) + .5)*ref_domaine_->get_constant_delta(0) + ref_domaine_->get_origin(0);
+          coord_(n,1) = (j + ref_domaine_->get_offset_local(1) + .5)*ref_domaine_->get_constant_delta(1) + ref_domaine_->get_origin(1);
+          coord_(n,2) = (k + ref_domaine_->get_offset_local(2) + .5)*ref_domaine_->get_constant_delta(2) + ref_domaine_->get_origin(2);
 
           // Verification de la fonction function get_ijk_from_independent_index
-          assert(i == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[0]);
-          assert(j == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[1]);
-          assert(k == ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[2]);
+          assert(i == ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[0]);
+          assert(j == ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[1]);
+          assert(k == ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM)[2]);
         }
     }
 }
@@ -315,9 +315,9 @@ void Cut_cell_FT_Disc::set_coord()
 // et renvoie le nombre local d'elements diphasiques n_loc.
 int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_indicatrice, const IJK_Field_double& next_indicatrice)
 {
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  const int ni = ref_domaine_->get_nb_elem_local(0);
+  const int nj = ref_domaine_->get_nb_elem_local(1);
+  const int nk = ref_domaine_->get_nb_elem_local(2);
 
   int n_loc = n_loc_;
 
@@ -350,7 +350,7 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_
             {
               if (!ref_interfaces_->est_pure(0.5*(old_indicatrice(i,j,k) + next_indicatrice(i,j,k))))
                 {
-                  int independent_index = ref_splitting_->get_independent_index(i, j, k);
+                  int independent_index = ref_domaine_->get_independent_index(i, j, k);
 
                   // Recherche de l'element dans la structure cut-cell
                   // La zone de recherche est restreinte car on sait que l'on va trouver les
@@ -389,7 +389,7 @@ int Cut_cell_FT_Disc::add_and_remove_local_elements(const IJK_Field_double& old_
   int n_deletion = 0;
   for (int n = 0; n < n_initial; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
+      Int3 ijk = ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
@@ -524,12 +524,12 @@ void Cut_cell_FT_Disc::compute_virtual_independent_index()
   // Verification de l'indice lineaire pour les elements locaux
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
+      Int3 ijk = ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      independent_index = ref_splitting_->get_independent_index(i, j, k);
+      independent_index = ref_domaine_->get_independent_index(i, j, k);
 
       assert(independent_index_(n) == independent_index);
     }
@@ -537,12 +537,12 @@ void Cut_cell_FT_Disc::compute_virtual_independent_index()
   // Calcul de l'indice lineaire pour les elements virtuels
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
+      Int3 ijk = ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i = ijk[0];
       int j = ijk[1];
       int k = ijk[2];
 
-      independent_index = ref_splitting_->get_independent_index(i, j, k);
+      independent_index = ref_domaine_->get_independent_index(i, j, k);
 
       independent_index_(n) = independent_index;
     }
@@ -593,9 +593,9 @@ void Cut_cell_FT_Disc::initialise_schema_comm()
 
 int Cut_cell_FT_Disc::initialise_communications()
 {
-  int ni = ref_splitting_->get_nb_elem_local(0);
-  int nj = ref_splitting_->get_nb_elem_local(1);
-  int nk = ref_splitting_->get_nb_elem_local(2);
+  int ni = ref_domaine_->get_nb_elem_local(0);
+  int nj = ref_domaine_->get_nb_elem_local(1);
+  int nk = ref_domaine_->get_nb_elem_local(2);
 
   Descripteur_FT& espace_distant = desc_.espace_distant();
 
@@ -769,7 +769,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
   index_sorted_by_k_.sort_tot(1);
 
   // Trouve les indices des differents k
-  const int nk_tot = ref_splitting_->get_nb_elem_local(2) + 2*ghost_size_;
+  const int nk_tot = ref_domaine_->get_nb_elem_local(2) + 2*ghost_size_;
   k_value_index_.resize(nk_tot+1, 1);
 
   int previous_k = -ghost_size_;
@@ -787,7 +787,7 @@ void Cut_cell_FT_Disc::update_index_sorted_by_k()
           previous_k = k;
         }
     }
-  for (int k_intermediaire = previous_k+1; k_intermediaire <= ref_splitting_->get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
+  for (int k_intermediaire = previous_k+1; k_intermediaire <= ref_domaine_->get_nb_elem_local(2) + ghost_size_; k_intermediaire++)
     {
       k_value_index_(k_intermediaire + ghost_size_) = n_tot_;
     }
@@ -895,9 +895,9 @@ void Cut_cell_FT_Disc::update_index_sorted_by_statut_diphasique(const IJK_Field_
 
 void Cut_cell_FT_Disc::remplir_indice_diphasique()
 {
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  const int ni = ref_domaine_->get_nb_elem_local(0);
+  const int nj = ref_domaine_->get_nb_elem_local(1);
+  const int nk = ref_domaine_->get_nb_elem_local(2);
 
   for (int k = -ghost_size_; k < nk+ghost_size_; k++)
     {
@@ -1024,9 +1024,9 @@ template<typename T>
 void Cut_cell_FT_Disc::fill_buffer_with_variable(const TRUSTTabFT<T>& array, int component /* = 0 by default */) const
 {
   assert(component < array.dimension(1));
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  const int ni = ref_domaine_->get_nb_elem_local(0);
+  const int nj = ref_domaine_->get_nb_elem_local(1);
+  const int nk = ref_domaine_->get_nb_elem_local(2);
 
   for (int k = 0; k < nk; k++)
     {
@@ -1091,7 +1091,7 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_independent_index()
   // Verifie la coherence entre les tableaux coord_ et independent_index_
   for (int n = 0; n < n_loc_; n++)
     {
-      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
+      Int3 ijk_1 = ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
@@ -1106,7 +1106,7 @@ bool Cut_cell_FT_Disc::verifier_coherence_coord_independent_index()
 
   for (int n = n_loc_; n < n_tot_; n++)
     {
-      Int3 ijk_1 = ref_splitting_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
+      Int3 ijk_1 = ref_domaine_->get_ijk_from_coord(coord_(n,0), coord_(n,1), coord_(n,2), IJK_Splitting::ELEM);
       int i_1 = ijk_1[0];
       int j_1 = ijk_1[1];
       int k_1 = ijk_1[2];
@@ -1166,7 +1166,7 @@ bool Cut_cell_FT_Disc::verifier_taille_tableaux()
 
 void Cut_cell_FT_Disc::imprime_elements_diphasiques()
 {
-  Cerr << "# Impression des elements diphasiques pour le PE#" << ref_splitting_->me() << " [N IJK XYZ T]" << finl;
+  Cerr << "# Impression des elements diphasiques pour le PE#" << ref_domaine_->me() << " [N IJK XYZ T]" << finl;
   for (int n = 0; n < n_loc_; n++)
     {
       Int3 ijk = get_ijk(n);
@@ -1201,9 +1201,9 @@ void Cut_cell_FT_Disc::imprime_elements_diphasiques()
 void Cut_cell_FT_Disc::imprime_elements_distants()
 {
   Cerr << "# Impression des elements distants [N PE IJK XYZ T]" << finl;
-  const int ni = ref_splitting_->get_nb_elem_local(0);
-  const int nj = ref_splitting_->get_nb_elem_local(1);
-  const int nk = ref_splitting_->get_nb_elem_local(2);
+  const int ni = ref_domaine_->get_nb_elem_local(0);
+  const int nj = ref_domaine_->get_nb_elem_local(1);
+  const int nk = ref_domaine_->get_nb_elem_local(2);
 
   int left_neighbour_x = (ref_splitting_->get_neighbour_processor(0, 0) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 0);
   int left_neighbour_y = (ref_splitting_->get_neighbour_processor(0, 1) < 0) ? ref_splitting_->me() : ref_splitting_->get_neighbour_processor(0, 1);
@@ -1275,9 +1275,9 @@ const IJK_Interfaces& Cut_cell_FT_Disc::get_interfaces() const
   return ref_interfaces_;
 }
 
-const IJK_Splitting& Cut_cell_FT_Disc::get_splitting() const
+const Domaine_IJK& Cut_cell_FT_Disc::get_domaine() const
 {
-  return ref_splitting_;
+  return ref_domaine_;
 }
 
 const Desc_Structure_FT& Cut_cell_FT_Disc::get_desc_structure() const

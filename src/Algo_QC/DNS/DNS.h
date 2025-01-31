@@ -36,7 +36,7 @@
 #include <Boundary_Conditions.h>
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <Operateur_IJK_elem_diff_base.h>
 #include <Operateur_IJK_faces_diff.h>
 #include <Operateur_IJK_faces_conv.h>
@@ -158,7 +158,7 @@ protected:
   void compute_t_bulk(double& t_bulk_);
   void compute_rho_t_bulk(double& rho_bulk_, double& t_bulk_);
 
-  IJK_Splitting splitting_;
+  Domaine_IJK domaine_;
   // taille des mailles de ce processeur en z, avec des mailles fantomes:
   ArrOfDouble_with_ghost delta_z_local_;
   // Cond.lim diffusion qdm, par defaut paroi fixe:
@@ -192,10 +192,10 @@ protected:
   Fourier_trans partie_fourier_;
   int dt_post_spectral_;
   int reprise_fourier_;
-  IJK_Splitting post_splitting_;
+  Domaine_IJK post_splitting_;
 
   // Sauvegarde des lata par plan
-  IJK_Splitting sauvegarde_splitting_;
+  Domaine_IJK sauvegarde_splitting_;
   Nom sauvegarde_splitting_name_;
   FixedVector<Redistribute_Field, 3> redistribute_to_sauvegarde_splitting_faces_;
   Redistribute_Field redistribute_to_sauvegarde_splitting_elem_;

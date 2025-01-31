@@ -26,7 +26,7 @@ class Operateur_IJK_elem_diff_base_double : public Operateur_IJK_elem_base_doubl
   Declare_base_sans_constructeur(Operateur_IJK_elem_diff_base_double);
 public:
   Operateur_IJK_elem_diff_base_double();
-  virtual void initialize(const IJK_Splitting& splitting) override;
+  virtual void initialize(const Domaine_IJK& splitting) override;
   virtual void set_indicatrice(const IJK_Field_double& indicatrice) { indicatrice_= &indicatrice; };
   virtual void set_corrige_flux(OWN_PTR(Corrige_flux_FT_base)& corrige_flux) { corrige_flux_ = &corrige_flux; };
   virtual void calculer(const IJK_Field_double& field,

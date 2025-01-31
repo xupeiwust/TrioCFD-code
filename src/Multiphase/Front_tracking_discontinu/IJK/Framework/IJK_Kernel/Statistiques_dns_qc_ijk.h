@@ -21,7 +21,7 @@
 #include <TRUSTArrays.h>
 #include <TRUST_Ref.h>
 
-class IJK_Grid_Geometry;
+class Domaine_IJK;
 class Statistiques_dns_qc_ijk : public Statistiques_dns_ijk
 {
   Declare_instanciable_sans_constructeur(Statistiques_dns_qc_ijk);

@@ -111,7 +111,7 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.ajouter("verbosite", &verbosite_);
 }
 
-int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int idx)
+int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
 
@@ -119,7 +119,7 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   ref_ijk_ft_cut_cell_ = ref_cast(Probleme_FTD_IJK_cut_cell, ref_ijk_ft_.valeur());
 
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
-  cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
+  cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize
 
   if (runge_kutta_fluxes_convection_)
     {
@@ -133,15 +133,15 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
       allocate_velocity_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), RK3_F_fluxes_diff_, splitting, 2);
     }
 
-  cellule_rk_restreint_conv_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_);
-  cellule_rk_restreint_diff_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_);
+  cellule_rk_restreint_conv_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, ghost_cells_);
+  cellule_rk_restreint_diff_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, ghost_cells_);
 
   if (postraiter_champs_intermediaires_)
     {
-      temperature_post_dying_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_regular_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_convection_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
-      temperature_post_diff_regular_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+      temperature_post_dying_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
+      temperature_post_regular_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
+      temperature_post_convection_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
+      temperature_post_diff_regular_.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
     }
 
   cut_cell_flux_diffusion_[0].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
@@ -153,18 +153,18 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
 
 
   int nalloc = IJK_Thermal_base::initialize(splitting, idx);
-  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
+  lambda_.allocate(splitting, Domaine_IJK::ELEM, 1);
   nalloc += 2;
 
-  temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 4);
+  temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), Domaine_IJK::ELEM, 4);
   nalloc += 1;
 
   for (int next_time = 0; next_time < 2; next_time++)
     {
-      flux_interface_ft_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
-      flux_interface_ns_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ns(), IJK_Splitting::ELEM, 2);
-      flux_interface_ft_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ft(), IJK_Splitting::ELEM, 2);
-      flux_interface_ns_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_splitting_ns(), IJK_Splitting::ELEM, 2);
+      flux_interface_ft_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), IJK_Splitting::ELEM, 2);
+      flux_interface_ns_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), IJK_Splitting::ELEM, 2);
+      flux_interface_ft_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), IJK_Splitting::ELEM, 2);
+      flux_interface_ns_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), IJK_Splitting::ELEM, 2);
       flux_interface_ft_scalar_old_.data() = 0.;
       flux_interface_ns_scalar_old_.data() = 0.;
       flux_interface_ft_scalar_next_.data() = 0.;
@@ -177,11 +177,11 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   diffusive_correction_.associer(flux_interface_efficace_scalar_);
 
   Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
-  cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2);
+  cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
   nalloc += 1;
 
   Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
-  cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
+  cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
 
 
   if (temperature_diffusion_op_.non_nul())
@@ -216,7 +216,7 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   // Already allocated if rho_cp_post
   if (!rho_cp_post_)
     {
-      rho_cp_.allocate(splitting, IJK_Splitting::ELEM, 2);
+      rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
       nalloc += 1;
     }
 
@@ -228,8 +228,8 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
     }
   if (type_temperature_convection_form_==1)
     {
-      rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 2);
-      div_rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
+      div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 2;
     }
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
@@ -746,10 +746,10 @@ void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(const Cut_field_double& cut_
     }
 }
 
-void IJK_Thermal_cut_cell::lire_temperature(const IJK_Splitting& splitting, int idx)
+void IJK_Thermal_cut_cell::lire_temperature(const Domaine_IJK& geom, int idx)
 {
   Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
-  const Nom& geom_name = splitting.get_grid_geometry().le_nom();
+  const Nom& geom_name = geom.le_nom();
   lire_dans_lata_cut_cell(true, fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
                           temperature_); // fonction qui lit un champ a partir d'un lata .
   temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.

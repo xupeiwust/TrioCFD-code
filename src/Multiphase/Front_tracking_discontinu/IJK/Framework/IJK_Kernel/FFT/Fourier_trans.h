@@ -29,7 +29,7 @@
 // NBR DE TERMES DE SORTIE  !!!
 // #define N_RES 21
 
-class IJK_Grid_Geometry;
+class Domaine_IJK;
 class Fourier_trans : public Objet_U
 {
   Declare_instanciable(Fourier_trans);
@@ -43,8 +43,8 @@ public:
               const IJK_Field_double& masse_vol,
               const IJK_Field_double& champ_mu);
 
-  void initialize( const IJK_Splitting&  /* splitting d'origine */
-                   , const IJK_Splitting&  /* splitting de post-traitement*/
+  void initialize( const Domaine_IJK&  /* splitting d'origine */
+                   , const Domaine_IJK&  /* splitting de post-traitement*/
                    , VECT(ArrOfDouble) /* tableau des v mo */
                    , ArrOfDouble rhomoy
                    , ArrOfDouble numoy
@@ -71,7 +71,7 @@ protected:
 
   /* ici penser a fixer le resultat en fonction du nombre de param que l'on veux changer */
   FixedVector<IJK_Field_double, 27> resultat_ ;
-  IJK_Splitting Post_splitting_;
+  Domaine_IJK post_splitting_;
   VECT(ArrOfDouble) vit_moy_;
   ArrOfDouble rho_moy_;
   ArrOfDouble nu_moy_;

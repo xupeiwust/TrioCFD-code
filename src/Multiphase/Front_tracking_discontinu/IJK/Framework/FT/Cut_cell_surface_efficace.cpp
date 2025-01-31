@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Cut_cell_surface_efficace.cpp
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <Cut_cell_surface_efficace.h>
 #include <IJK_Field_vector.h>
@@ -179,7 +173,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
   DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = vitesse_deplacement_interface.get_cut_cell_disc();
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
 
   // Calculer la coordonnee correspondant au deplacement de l'interface :
   //    x_depl_interf = (I[new]*bary[new] - I[old]*bary[old])/(delta I)
@@ -218,7 +212,7 @@ void Cut_cell_surface_efficace::calcul_vitesse_interface(
 
           // Passage a un systeme de coordonnees dimensionel et absolue
           const int i_dir = select_dir(dir, i, j, k);
-          const int offset_dir = cut_cell_disc.get_splitting().get_offset_local(dir);
+          const int offset_dir = cut_cell_disc.get_domaine().get_offset_local(dir);
           const double origin_dir = geom.get_origin(dir);
           const double delta_dir = geom.get_constant_delta(dir);
           const double coord_dir  = origin_dir + (i_dir + offset_dir + bary_depl_interf) * delta_dir;
@@ -254,11 +248,11 @@ void Cut_cell_surface_efficace::calcul_surface_interface_efficace(
   statistiques().begin_count(calculer_surface_efficace_interface_counter_);
 
   const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface.get_cut_cell_disc();
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
 
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
-  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = cut_cell_disc.get_domaine().get_offset_local(DIRECTION_K);
   const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
 
   // Calcul de la correction de surface efficace de l'interface
@@ -472,10 +466,10 @@ void Cut_cell_surface_efficace::calcul_surface_face_efficace_iteratif(
   statistiques().begin_count(calculer_surface_efficace_face_counter_);
 
   const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face.get_cut_cell_disc();
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
-  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = cut_cell_disc.get_domaine().get_offset_local(DIRECTION_K);
   const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
 
   for (int n = 0; n < cut_cell_disc.get_n_loc(); n++)
@@ -739,10 +733,10 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_interface
   const DoubleTabFT_cut_cell_vector3& vitesse_deplacement_interface)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = surface_efficace_interface.get_cut_cell_disc();
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
-  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = cut_cell_disc.get_domaine().get_offset_local(DIRECTION_K);
   const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
 
   // Impression des resultats
@@ -908,10 +902,10 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
   const DoubleTabFT_cut_cell_vector3& indicatrice_surfacique_efficace_face_initial)
 {
   const Cut_cell_FT_Disc& cut_cell_disc = indicatrice_surfacique_efficace_face.get_cut_cell_disc();
-  const IJK_Grid_Geometry& geom = cut_cell_disc.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
   const double delta_x = geom.get_constant_delta(0);
   const double delta_y = geom.get_constant_delta(1);
-  const int offset = cut_cell_disc.get_splitting().get_offset_local(DIRECTION_K);
+  const int offset = cut_cell_disc.get_domaine().get_offset_local(DIRECTION_K);
   const ArrOfDouble& delta_z_all = geom.get_delta(DIRECTION_K);
 
   // Impression des resultats
@@ -1091,6 +1085,7 @@ void Cut_cell_surface_efficace::imprimer_informations_surface_efficace_face(
     }
 }
 
+
 void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, const DoubleTab& bounding_box_bulles, double timestep,
                                                                     const IJK_Field_double& indicatrice_avant_deformation,
                                                                     const IJK_Field_double& indicatrice_apres_deformation,
@@ -1106,8 +1101,7 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
   const int nj = delta_volume_theorique_bilan.nj();
   const int nk = delta_volume_theorique_bilan.nk();
 
-  const IJK_Splitting& splitting = delta_volume_theorique_bilan.get_splitting();
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
+  const Domaine_IJK& geom = delta_volume_theorique_bilan.get_domaine();
   assert(geom.is_uniform(0));
   assert(geom.is_uniform(1));
   assert(geom.is_uniform(2));
@@ -1120,9 +1114,9 @@ void Cut_cell_surface_efficace::calcul_delta_volume_theorique_bilan(int compo, c
   double origin_y = geom.get_origin(DIRECTION_J);
   double origin_z = geom.get_origin(DIRECTION_K);
 
-  const int offset_x = splitting.get_offset_local(DIRECTION_I);
-  const int offset_y = splitting.get_offset_local(DIRECTION_J);
-  const int offset_z = splitting.get_offset_local(DIRECTION_K);
+  const int offset_x = geom.get_offset_local(DIRECTION_I);
+  const int offset_y = geom.get_offset_local(DIRECTION_J);
+  const int offset_z = geom.get_offset_local(DIRECTION_K);
 
   int imin = std::max(0,  (int)((bounding_box_bulles(compo, 0, 0) - origin_x)/delta_x - offset_x - 2));
   int imax = std::min(ni, (int)((bounding_box_bulles(compo, 0, 1) - origin_x)/delta_x - offset_x + 2));

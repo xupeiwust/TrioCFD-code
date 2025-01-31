@@ -189,7 +189,7 @@ void FT_Field::update_gradient_laplacien_FT(const Maillage_FT_IJK& mesh)
   OpFTDisc_.Operator_Laplacian_FT_element(FT_field_Array_,mesh, Laplacian_FT_field_Array_, Grad_FT_field_Array_);
 }
 
-void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const IJK_Splitting& splitting)
+void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting)
 {
   // on calcule les variations de sigma associees aux variations de FT_field_Array_
   const int nbsom=mesh.nb_sommets();
@@ -214,7 +214,7 @@ void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const IJK_Sp
       // on teste le cas analytique de Young (voir Muradoglu & Trygvason 2008)
       const DoubleTab& sommets=mesh.sommets();
       const IntTab& facettes=mesh.facettes();
-      double Lx =  splitting.get_grid_geometry().get_domain_length(0);
+      double Lx =  splitting.get_domain_length(0);
       for (int fa=0 ; fa<nbfa7 ; fa++)
         {
           if(! mesh.facette_virtuelle(fa))
@@ -1528,7 +1528,7 @@ void FT_Field::update_FT_Field_local_from_full_compo(const Maillage_FT_IJK& mesh
 }
 
 
-void FT_Field::completer_compo_connexe_partielle(const Maillage_FT_IJK& mesh, const IJK_Splitting& splitting, const DoubleTab& liste_sommets_apres_deplacement, const DoubleTab& liste_sommets_avant_deplacement, const ArrOfInt& compo_connexe_sommets_deplace)
+void FT_Field::completer_compo_connexe_partielle(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting, const DoubleTab& liste_sommets_apres_deplacement, const DoubleTab& liste_sommets_avant_deplacement, const ArrOfInt& compo_connexe_sommets_deplace)
 {
 // Version de la methode qui prend en argument :
 // la liste des coordonnees de sommets avant deplacement

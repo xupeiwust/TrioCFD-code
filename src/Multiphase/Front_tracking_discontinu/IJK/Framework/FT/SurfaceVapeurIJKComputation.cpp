@@ -16,7 +16,7 @@
 #include <SurfaceVapeurIJKComputation.h>
 
 
-void SurfaceVapeurIJKComputation::initialize(const IJK_Splitting& splitting)
+void SurfaceVapeurIJKComputation::initialize(const Domaine_IJK& splitting)
 {
   maillage_bulles_med_ = MEDCouplingUMesh::New("bubbles_surf_mesh", 2);
   desactive_med_ = true;
@@ -475,8 +475,8 @@ void SurfaceVapeurIJKComputation::calculer_surfaces_et_barys_faces_mouillees_vap
   set_maillage_MED(maillage_ft_ijk);
 
   // Pass through 3 dimensions to cut the mesh of the bubble with multiple plans
-  const auto& geom = surfaces[0].get_splitting().get_grid_geometry();
-  const auto& splitting = surfaces[0].get_splitting();
+  const auto& geom = surfaces[0].get_domaine();
+  const auto& splitting = surfaces[0].get_domaine();
   std::vector<int> N = {splitting.get_nb_elem_local(0) + 1, splitting.get_nb_elem_local(1) + 1,
                         splitting.get_nb_elem_local(2) + 1
                        };
@@ -806,7 +806,7 @@ int SurfaceVapeurIJKComputation::rempli_surface_vapeur_par_face_interieur_bulles
       for (int c = 0; c < 3; c++)
         {
           if (c != dir)
-            surf_cell *= ref_splitting_->get_grid_geometry().get_constant_delta(c);
+            surf_cell *= ref_splitting_->get_constant_delta(c);
         }
       for (int i = 0; i < ni; i++)
         for (int j = 0; j < nj; j++)

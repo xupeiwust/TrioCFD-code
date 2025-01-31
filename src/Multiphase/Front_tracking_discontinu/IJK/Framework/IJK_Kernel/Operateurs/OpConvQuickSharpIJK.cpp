@@ -27,10 +27,10 @@ Entree& OpConvQuickSharpIJK_double::readOn(Entree& is)
   return is;
 }
 
-void OpConvQuickSharpIJK_double::initialize(const IJK_Splitting& splitting)
+void OpConvQuickSharpIJK_double::initialize(const Domaine_IJK& splitting)
 {
   Operateur_IJK_faces_conv_base_double::initialize(splitting);
-  delta_x_ = splitting.get_grid_geometry().get_constant_delta(DIRECTION_I);
-  delta_y_ = splitting.get_grid_geometry().get_constant_delta(DIRECTION_J);
-  delta_z_ = splitting.get_grid_geometry().get_constant_delta(DIRECTION_K);
+  delta_x_ = splitting.get_constant_delta(DIRECTION_I);
+  delta_y_ = splitting.get_constant_delta(DIRECTION_J);
+  delta_z_ = splitting.get_constant_delta(DIRECTION_K);
 }

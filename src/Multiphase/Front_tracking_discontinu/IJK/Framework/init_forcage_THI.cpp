@@ -94,9 +94,9 @@ Entree& init_forcage_THI::readOn( Entree& is )
 }
 
 void init_forcage_THI::compute_initial_chouippe(int my_nproc_tot,
-                                                const IJK_Grid_Geometry& my_geom,
+                                                const Domaine_IJK& my_geom,
                                                 int my_ni, int my_nj, int my_nk,
-                                                const IJK_Splitting& splitting_,
+                                                const Domaine_IJK& splitting_,
                                                 Nom nom_sauvegarde)
 // IJK_Field_vector3_double v_)
 {
@@ -138,7 +138,7 @@ void init_forcage_THI::compute_initial_chouippe(int my_nproc_tot,
 void init_forcage_THI::compute_THI_force(const int time_iteration,
                                          const double tstep,
                                          const double current_time,
-                                         const IJK_Splitting& my_splitting
+                                         const Domaine_IJK& my_splitting
                                          // const int rk_step,
                                         )
 {

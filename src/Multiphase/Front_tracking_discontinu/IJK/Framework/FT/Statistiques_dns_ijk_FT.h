@@ -21,7 +21,7 @@
 #include <TRUST_Ref.h>
 
 class Probleme_FTD_IJK_base;
-class IJK_Grid_Geometry;
+class Domaine_IJK;
 
 class Statistiques_dns_ijk_FT : public Statistiques_dns_ijk
 {
@@ -30,8 +30,8 @@ public:
   Statistiques_dns_ijk_FT(); // Je ne sais pas compiler le Vect(Statistiques_dns_ijk_FT) sans lui...
   Statistiques_dns_ijk_FT(Probleme_FTD_IJK_base& ijk_ft);
   using Statistiques_dns_ijk::initialize;
-  void initialize(const Probleme_FTD_IJK_base& ijk_ft,const IJK_Grid_Geometry&);
-  int initialize(const Probleme_FTD_IJK_base& ijk_ft,const IJK_Splitting& splitting,
+  void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK&);
+  int initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK& splitting,
                  const int check_stats);
   Sortie& completer_print(Sortie& os) const override;
   void completer_read(Param& param) override;
@@ -41,7 +41,7 @@ public:
 
   void postraiter(Sortie&, int flag_valeur_instantanee = 0) const;
   void postraiter_thermique(const double t) const;
-  double compute_desequil_alpha(const IJK_Grid_Geometry& geom_NS,
+  double compute_desequil_alpha(const Domaine_IJK& geom_NS,
                                 const double portee_wall_repulsion) const;
 
   const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;

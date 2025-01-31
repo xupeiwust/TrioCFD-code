@@ -376,11 +376,11 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
 
   if (_DIR_ == DIRECTION::Z)
     {
-      if (cut_cell_disc.get_splitting().get_grid_geometry().get_periodic_flag(dir))
+      if (cut_cell_disc.get_domaine().get_periodic_flag(dir))
         {
           const int kmax = cut_cell_disc.get_interfaces().I().nk();
-          int n_dir = cut_cell_disc.get_splitting().get_nb_elem_local(dir);
-          int n_dir_tot = cut_cell_disc.get_splitting().get_grid_geometry().get_nb_elem_tot(dir);
+          int n_dir = cut_cell_disc.get_domaine().get_nb_elem_local(dir);
+          int n_dir_tot = cut_cell_disc.get_domaine().get_nb_elem_tot(dir);
 
           // Le processeur contient deux fois les valeurs sur les bords
           if (n_dir == n_dir_tot)

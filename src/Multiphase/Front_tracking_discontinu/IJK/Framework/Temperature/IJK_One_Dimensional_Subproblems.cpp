@@ -288,7 +288,7 @@ void IJK_One_Dimensional_Subproblems::associate_sub_problem_to_inputs(IJK_Therma
   const double curvature = (*ref_thermal_subresolution.eulerian_curvature_ns_)(i, j ,k);
   const double interfacial_area = (*ref_thermal_subresolution.eulerian_interfacial_area_ns_)(i, j ,k);
 
-  //IJK_Splitting splitting = (*ref_thermal_subresolution.eulerian_compo_connex_from_interface_int_ns_).get_splitting();
+  //Domaine_IJK splitting = (*ref_thermal_subresolution.eulerian_compo_connex_from_interface_int_ns_).get_domaine();
   const double bubble_rising_velocity = (*ref_thermal_subresolution.rising_velocities_)(compo_connex);
 
   for (int dir=0; dir < 3; dir++)
@@ -351,7 +351,7 @@ void IJK_One_Dimensional_Subproblems::store_previous_temperature_indicator_veloc
 
 void IJK_One_Dimensional_Subproblems::share_previous_temperature_indicator_velocities()
 {
-  const int nk_tot = ref_ijk_ft_->get_splitting_ns().get_grid_geometry().get_nb_elem_tot(2);
+  const int nk_tot = ref_ijk_ft_->get_domaine().get_nb_elem_tot(2);
 
   if (ref_ijk_ft_->get_tstep() == 0)
     {
@@ -417,9 +417,9 @@ void IJK_One_Dimensional_Subproblems::retrieve_boundary_previous_values()
   const int nj = ref_ijk_ft_->itfce().I().nj();
   const int nk = ref_ijk_ft_->itfce().I().nk();
 
-  const int offset_i = ref_ijk_ft_->get_splitting_ns().get_offset_local(0);
-  const int offset_j = ref_ijk_ft_->get_splitting_ns().get_offset_local(1);
-  const int offset_k = ref_ijk_ft_->get_splitting_ns().get_offset_local(2);
+  const int offset_i = ref_ijk_ft_->get_domaine().get_offset_local(0);
+  const int offset_j = ref_ijk_ft_->get_domaine().get_offset_local(1);
+  const int offset_k = ref_ijk_ft_->get_domaine().get_offset_local(2);
 
   for (int itr=0; itr < subproblems_counter_; itr++)
     {
@@ -533,13 +533,13 @@ void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
   const int nj = ref_ijk_ft_->itfce().I().nj();
   const int nk = ref_ijk_ft_->itfce().I().nk();
 
-  const int offset_i = ref_ijk_ft_->get_splitting_ns().get_offset_local(0);
-  const int offset_j = ref_ijk_ft_->get_splitting_ns().get_offset_local(1);
-  const int offset_k = ref_ijk_ft_->get_splitting_ns().get_offset_local(2);
+  const int offset_i = ref_ijk_ft_->get_domaine().get_offset_local(0);
+  const int offset_j = ref_ijk_ft_->get_domaine().get_offset_local(1);
+  const int offset_k = ref_ijk_ft_->get_domaine().get_offset_local(2);
 
-  const int ni_tot = ref_ijk_ft_->get_splitting_ns().get_grid_geometry().get_nb_elem_tot(0);
-  const int nj_tot = ref_ijk_ft_->get_splitting_ns().get_grid_geometry().get_nb_elem_tot(1);
-  const int nk_tot = ref_ijk_ft_->get_splitting_ns().get_grid_geometry().get_nb_elem_tot(2);
+  const int ni_tot = ref_ijk_ft_->get_domaine().get_nb_elem_tot(0);
+  const int nj_tot = ref_ijk_ft_->get_domaine().get_nb_elem_tot(1);
+  const int nk_tot = ref_ijk_ft_->get_domaine().get_nb_elem_tot(2);
 
   const int nb_procs = Process::nproc();
   int counter_prev = subproblems_counter_;
@@ -776,7 +776,7 @@ void IJK_One_Dimensional_Subproblems::retrieve_interfacial_heat_flux_correction_
   const int nj = ref_ijk_ft_->itfce().I().nj();
   const int nk = ref_ijk_ft_->itfce().I().nk();
 
-  const IJK_Splitting& splitting_ns = ref_ijk_ft_->itfce().I().get_splitting();
+  const Domaine_IJK& splitting_ns = ref_ijk_ft_->itfce().I().get_domaine();
   const int offset_i = splitting_ns.get_offset_local(0);
   const int offset_j = splitting_ns.get_offset_local(1);
   const int offset_k = splitting_ns.get_offset_local(2);

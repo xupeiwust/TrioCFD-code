@@ -59,7 +59,7 @@ class SurfaceVapeurIJKComputation
 public:
   SurfaceVapeurIJKComputation() {}
   ~SurfaceVapeurIJKComputation() {}
-  void initialize(const IJK_Splitting& splitting);
+  void initialize(const Domaine_IJK& splitting);
   // Met à jour les valeurs de surface_vapeur_par_face_ et
   // barycentre_vapeur_par_face_.
   int compute_surf_and_barys(
@@ -71,7 +71,7 @@ public:
   );
   // Permet de recuperer un mcu qui est une vue de maillage_bulles_ft_ijk. Il
   // n'y a pas de copie memoire, seulement des passages de case memoire.
-  // splitting.get_grid_geometry().get_origin, get_constant_delta(DIRECTION_X),
+  // splitting.get_origin, get_constant_delta(DIRECTION_X),
   // ...
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
@@ -180,7 +180,7 @@ protected:
   MCU maillage_bulles_med_;
   // Ref to maillage_ft_ijk
   // const FixedVector<IJK_Field_double, 3> normale_of_interf_;
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_splitting_;
   bool desactive_med_;
   bool compute_surf_mouillees_;
   bool debug_printing_;

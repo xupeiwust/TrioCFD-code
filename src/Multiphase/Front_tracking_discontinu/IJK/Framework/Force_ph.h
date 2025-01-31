@@ -29,7 +29,7 @@
 #include <Force_sp.h>
 #include <IJK_Field_vector.h>
 // #include <fftw3.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <communications.h>
 #include <Objet_U.h>
 
@@ -44,11 +44,11 @@ public:
 
   // void initialise(int nproc_tot, int ni, int nj, int nk, int nl,int nm,int nn,
   // 		double Lx, double Ly, double Lz, double Ox,double Oy,double Oz, int momin, int momax, double kmin, double kmax,
-  // 	  std::string nom_fichier, const IJK_Splitting& splitting
+  // 	  std::string nom_fichier, const Domaine_IJK& splitting
   // 	);
   void initialise(int nproc_tot, int ni, int nj, int nk, int nl,int nm,int nn,
                   double Lx, double Ly, double Lz, double Ox,double Oy,double Oz, int momin, int momax, double kmin, double kmax,
-                  std::string nom_fichier, const IJK_Splitting& splitting,
+                  std::string nom_fichier, const Domaine_IJK& splitting,
                   int a_i_offset, int a_j_offset, int a_k_offset
                  );
   void from_spect_to_phys2(const std:: vector <double >& coeff_force);
@@ -60,7 +60,7 @@ public:
   // void from_spect_to_phys_fftw(fftw_complex* in);
   void write(std::string nom_fichier_sortie, double t);
   void write_separate(std::string nom_fichier_sortie, double t);
-  void write_offset_index_position( const IJK_Splitting& my_splitting);
+  void write_offset_index_position( const Domaine_IJK& my_splitting);
   void compute_energie();
   double get_energie();
   IJK_Field_vector3_double get_force_attribute();

@@ -26,7 +26,7 @@
 #include <TRUSTTabs.h>
 #include <TRUSTArrays.h>
 #include <Array_tools.h>
-#include <IJK_Splitting.h>
+#include <Domaine_IJK.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -53,14 +53,14 @@ Entree& Maillage_FT_IJK::readOn(Entree& is)
   return is;
 }
 
-void Maillage_FT_IJK::initialize(const IJK_Splitting& s, const Domaine_dis_base& domaine_dis, const Parcours_interface& parcours)
+void Maillage_FT_IJK::initialize(const Domaine_IJK& dom, const Domaine_dis_base& domaine_dis, const Parcours_interface& parcours)
 {
-  ref_splitting_ = s;
+  ref_domaine_ = dom;
   // Mise a jour des tableaux de processeurs voisins :
   initialize_processor_neighbourhood();
-  nbmailles_euler_i_ = s.get_nb_elem_local(DIRECTION_I);
-  nbmailles_euler_j_ = s.get_nb_elem_local(DIRECTION_J);
-  nbmailles_euler_k_ = s.get_nb_elem_local(DIRECTION_K);
+  nbmailles_euler_i_ = dom.get_nb_elem_local(DIRECTION_I);
+  nbmailles_euler_j_ = dom.get_nb_elem_local(DIRECTION_J);
+  nbmailles_euler_k_ = dom.get_nb_elem_local(DIRECTION_K);
 
   associer_domaine_dis_parcours(domaine_dis, parcours);
 }
@@ -77,7 +77,6 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
                                        ArrOfInt& numero_face_sortie, int skip_facettes)
 {
   if (Comm_Group::check_enabled()) check_mesh();
-  const IJK_Splitting& splitting = ref_splitting_.valeur();
   assert(deplacement.dimension(0) == liste_sommets.size_array());
   assert(deplacement.dimension(1) == 3);
 
@@ -88,13 +87,13 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
   //int i;
   for (int i = 0; i < 3; i++)
     {
-      splitting.get_slice_offsets(i, slice_offsets[i]);
+      ref_domaine_->get_slice_offsets(i, slice_offsets[i]);
       // On ajoute un dernier element au tableau, une tranche virtuelle tout a la fin
       // pour que la taille d'une tranche soit calculable par offset[n+1] - offset[n]
       const int n = slice_offsets[i].size_array();
       slice_offsets[i].resize_array(n+1);
-      slice_offsets[i][n] = splitting.get_nb_items_global(IJK_Splitting::ELEM, i);
-      my_slice[i] = splitting.get_local_slice_index(i);
+      slice_offsets[i][n] = ref_domaine_->get_nb_items_global(Domaine_IJK::ELEM, i);
+      my_slice[i] = ref_domaine_->get_local_slice_index(i);
     }
   // Pour chaque sommet, changer sa coordonnee et trouver l'indice de maille ou il se trouve,
   // puis faire les echanges de donnees paralleles pour attribuer le sommet au bon processeur s'il change
@@ -161,7 +160,7 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
               compo_connexe_sommets_deplace(i_sommet) = compo_connexe_sommet(num_sommet);
             }
 
-          surfactant.completer_compo_connexe_partielle(*this, splitting, liste_sommets_apres_deplacement, liste_sommets_avant_deplacement, compo_connexe_sommets_deplace);
+          surfactant.completer_compo_connexe_partielle(*this, ref_domaine_.valeur(), liste_sommets_apres_deplacement, liste_sommets_avant_deplacement, compo_connexe_sommets_deplace);
           DoubleTab& facettes_sommets_full_compo = surfactant.get_facettes_sommets_full_compo_non_const();
           DoubleTab& liste_sommets_et_deplacements_full_compo = surfactant.get_liste_sommets_et_deplacements_non_const();
           ArrOfInt sorted_index = surfactant.get_sorted_index();
@@ -170,12 +169,12 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
           int nbsom_compo_complete = liste_sommets_et_deplacements_full_compo.dimension(0);
 
           /*Process::barrier();
-          int nb_proc = splitting.get_nprocessor_per_direction(0)*splitting.get_nprocessor_per_direction(1)*splitting.get_nprocessor_per_direction(2);
-          int ny = splitting.get_nprocessor_per_direction(1);
-          int nz = splitting.get_nprocessor_per_direction(2);
-          int x = splitting.get_local_slice_index(0);
-          int y = splitting.get_local_slice_index(1);
-          int z = splitting.get_local_slice_index(2);
+          int nb_proc = ref_domaine_->get_nprocessor_per_direction(0)*ref_domaine_->get_nprocessor_per_direction(1)*ref_domaine_->get_nprocessor_per_direction(2);
+          int ny = ref_domaine_->get_nprocessor_per_direction(1);
+          int nz = ref_domaine_->get_nprocessor_per_direction(2);
+          int x = ref_domaine_->get_local_slice_index(0);
+          int y = ref_domaine_->get_local_slice_index(1);
+          int z = ref_domaine_->get_local_slice_index(2);
           int proc_index = z + y * nz + x * ny * nz ;
           int index_global = 0;
           for (int proc = 0; proc < nb_proc; proc++)
@@ -278,8 +277,8 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
       for (int direction = 0; direction < 3; direction++)
         {
           double coord = pos[direction];
-          int i_maille = ijk_pos[direction] + splitting.get_offset_local(direction);
-          const ArrOfDouble& coord_noeuds = splitting.get_grid_geometry().get_node_coordinates(direction);
+          int i_maille = ijk_pos[direction] + ref_domaine_->get_offset_local(direction);
+          const ArrOfDouble& coord_noeuds = ref_domaine_->get_node_coordinates(direction);
           const int derniere_maille = coord_noeuds.size_array() - 2;
           // Avancer vers la droite si besoin
           while (coord_noeuds[i_maille+1] < coord)
@@ -329,7 +328,7 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
           nbmailles_euler_in_new_slice[direction] = slice_offsets[direction][new_slice+1] - slice_offsets[direction][new_slice] ;
           // Si on n'a pas change de slice dans cette direction, on doit retrouver nbmailles_euler_ijk_
           assert(!( (my_slice[direction] == my_new_slice[direction]) &&
-                    (nbmailles_euler_in_new_slice[direction] != splitting.get_nb_elem_local(direction))));
+                    (nbmailles_euler_in_new_slice[direction] != ref_domaine_->get_nb_elem_local(direction))));
         }
 #if 0
       assert((ijk_pos[0] < 0 && ijk_pos[1] < 0 && ijk_pos[2] < 0)
@@ -347,7 +346,7 @@ void Maillage_FT_IJK::deplacer_sommets(const ArrOfInt& liste_sommets,
 
 #endif
       // Traitement des changements de processeurs :
-      int new_processor = splitting.get_processor_by_ijk(my_new_slice[0],my_new_slice[1],my_new_slice[2]);
+      int new_processor = ref_domaine_->get_processor_by_ijk(my_new_slice[0],my_new_slice[1],my_new_slice[2]);
       if (new_processor != my_processor)
         {
           // Le sommet change de processeur
@@ -489,7 +488,6 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
 {
   Cerr << "Maillage_FT_IJK::lire_maillage_ft_dans_lata fichier " << filename_with_path << " tstep=" << tstep
        << " geom=" << geometryname << finl;
-  const IJK_Splitting& splitting = ref_splitting_.valeur();
   reset();
 
   const int master = Process::je_suis_maitre();
@@ -500,7 +498,7 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
 
   Vecteur3 origine;
   for (int j = 0; j < 3; j++)
-    origine[j] = splitting.get_grid_geometry().get_origin(j);
+    origine[j] = ref_domaine_->get_origin(j);
 
   int nbsom = 0;
 
@@ -976,17 +974,16 @@ void Maillage_FT_IJK::creer_facettes_virtuelles(const ArrOfInt& liste_facettes,
 
 void Maillage_FT_IJK::initialize_processor_neighbourhood()
 {
-  const IJK_Splitting& splitting = ref_splitting_.valeur();
   int np = Process::nproc();
-  int npx = splitting.get_nprocessor_per_direction(0);
-  int npy = splitting.get_nprocessor_per_direction(1);
-  int npz = splitting.get_nprocessor_per_direction(2);
+  int npx = ref_domaine_->get_nprocessor_per_direction(0);
+  int npy = ref_domaine_->get_nprocessor_per_direction(1);
+  int npz = ref_domaine_->get_nprocessor_per_direction(2);
   voisinage_processeur_.resize_array(np);
 
   voisinage_processeur_ = 4; // On initialize le tableau comme non-voisins.
   Int3 my_ijk, voisin_ijk;
   for (int i = 0; i < 3; i++)
-    my_ijk[i] = splitting.get_local_slice_index(i);
+    my_ijk[i] = ref_domaine_->get_local_slice_index(i);
 
   for (int i = -1; i< 2; i++)
     {
@@ -1002,7 +999,7 @@ void Maillage_FT_IJK::initialize_processor_neighbourhood()
                   voisin_ijk[1] >=0 && voisin_ijk[1]<npy &&
                   voisin_ijk[2] >=0 && voisin_ijk[2]<npz )
                 {
-                  int rang_voisin = splitting.get_processor_by_ijk(voisin_ijk[0],voisin_ijk[1],voisin_ijk[2]);
+                  int rang_voisin = ref_domaine_->get_processor_by_ijk(voisin_ijk[0],voisin_ijk[1],voisin_ijk[2]);
                   int max_voisinage = abs(i)+abs(j)+abs(k);
                   voisinage_processeur_[rang_voisin] = max_voisinage;
                   if (max_voisinage == 0)

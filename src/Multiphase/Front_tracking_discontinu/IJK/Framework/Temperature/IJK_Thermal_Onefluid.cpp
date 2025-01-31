@@ -78,32 +78,32 @@ void IJK_Thermal_Onefluid::set_param( Param& param )
   param.ajouter_flag("deprecated_rho_cp", &deprecated_rho_cp_);
 }
 
-int IJK_Thermal_Onefluid::initialize(const IJK_Splitting& splitting, const int idx)
+int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
   int nalloc = 0;
   nalloc = IJK_Thermal_base::initialize(splitting, idx);
   temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, lambda_, *temperature_, *temperature_, *temperature_);
-  lambda_.allocate(splitting, IJK_Splitting::ELEM, 1);
+  lambda_.allocate(splitting, Domaine_IJK::ELEM, 1);
   nalloc += 2;
 
   if (rho_cp_moy_harmonic_)
     {
-      rho_cp_inv_.allocate(splitting, IJK_Splitting::ELEM, 2);
+      rho_cp_inv_.allocate(splitting, Domaine_IJK::ELEM, 2);
       nalloc += 1;
     }
   else
     {
       if (deprecated_rho_cp_)
         {
-          cp_.allocate(splitting, IJK_Splitting::ELEM, 2);
+          cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
           nalloc += 1;
         }
       else
         {
           if (!rho_cp_post_)
             {
-              rho_cp_.allocate(splitting, IJK_Splitting::ELEM, 2);
+              rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
               nalloc += 1;
             }
         }
@@ -113,11 +113,11 @@ int IJK_Thermal_Onefluid::initialize(const IJK_Splitting& splitting, const int i
   if (conserv_energy_global_)
     {
       E0_ = compute_global_energy(*temperature_);
-      d_T_rustine_.allocate(splitting, IJK_Splitting::ELEM, 1);
+      d_T_rustine_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
       if (ref_ijk_ft_.non_nul() && ref_ijk_ft_->get_time_scheme()== ref_ijk_ft_->RK3_FT)
         {
-          RK3_F_rustine_.allocate(splitting, IJK_Splitting::ELEM, 0);
+          RK3_F_rustine_.allocate(splitting, Domaine_IJK::ELEM, 0);
           nalloc +=1;
         }
       Cout << "Initial energy at time t=" << ref_ijk_ft_->get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
@@ -125,8 +125,8 @@ int IJK_Thermal_Onefluid::initialize(const IJK_Splitting& splitting, const int i
     }
   if (type_temperature_convection_form_==1)
     {
-      rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 2);
-      div_rho_cp_T_.allocate(splitting, IJK_Splitting::ELEM, 0);
+      rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
+      div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc += 2;
     }
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
