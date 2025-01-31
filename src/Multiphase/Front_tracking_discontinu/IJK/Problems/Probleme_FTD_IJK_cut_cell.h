@@ -33,13 +33,11 @@ class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
   friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
-  Declare_instanciable_sans_constructeur(Probleme_FTD_IJK_cut_cell) ;
+  Declare_instanciable(Probleme_FTD_IJK_cut_cell) ;
 
 public :
-  Probleme_FTD_IJK_cut_cell();
-  Entree& interpreter(Entree&) override;
   void set_param(Param& param) override;
-  void run() override;
+  bool run() override;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
 

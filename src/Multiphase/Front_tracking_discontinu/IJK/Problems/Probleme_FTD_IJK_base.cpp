@@ -45,7 +45,7 @@
 // static Stat_Counter_Id cnt_SourceInterf;
 //#define SMOOTHING_RHO
 
-Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Interprete);
+Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Probleme_FT_Disc_gen);
 
 Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():
   thermals_(IJK_Thermals(*this)),
@@ -68,7 +68,7 @@ Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():
 }
 
 Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
-  Interprete(x), post_(IJK_FT_Post(*this))
+    Probleme_FT_Disc_gen(x), post_(IJK_FT_Post(*this))
 {
   exit();
 }
@@ -283,7 +283,7 @@ Probleme_FTD_IJK_base::TimeScheme Probleme_FTD_IJK_base::get_time_scheme() const
 }
 
 // XD Probleme_FTD_IJK_base interprete Probleme_FTD_IJK_base 1 not_set
-Entree& Probleme_FTD_IJK_base::interpreter(Entree& is)
+Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
 {
   // On force l'attribut dimension a 3 pour ne pas avoir besoin de le mettre dans le jeu de donnees.
   // Cet attribut est utilise dans les routines front-tracking issues de triou
@@ -827,11 +827,6 @@ Sortie& Probleme_FTD_IJK_base::printOn(Sortie& os) const
   return os;
 }
 
-Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
-{
-  // Objet_U::readOn(is);
-  return is;
-}
 
 const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) const
 {

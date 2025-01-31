@@ -24,11 +24,7 @@
 #include <Cut_cell_tools.h>
 #include <Cut_cell_diffusion_flux_interface.h>
 
-
-Implemente_instanciable_sans_constructeur(Probleme_FTD_IJK_cut_cell, "Probleme_FTD_IJK_cut_cell", Probleme_FTD_IJK_base);
-Probleme_FTD_IJK_cut_cell::Probleme_FTD_IJK_cut_cell()
-{
-}
+Implemente_instanciable(Probleme_FTD_IJK_cut_cell, "Probleme_FTD_IJK_cut_cell", Probleme_FTD_IJK_base);
 
 Sortie& Probleme_FTD_IJK_cut_cell::printOn(Sortie& os) const
 {
@@ -37,12 +33,7 @@ Sortie& Probleme_FTD_IJK_cut_cell::printOn(Sortie& os) const
 
 Entree& Probleme_FTD_IJK_cut_cell::readOn(Entree& is)
 {
-  return is;
-}
-
-Entree& Probleme_FTD_IJK_cut_cell::interpreter(Entree& is)
-{
-  Probleme_FTD_IJK_base::interpreter(is);
+  Probleme_FTD_IJK_base::readOn(is);
 
   // Determination pour le seuil des petites cellules en cut-cell
   if ((seuil_indicatrice_petite_fixe_ == -1) && (seuil_indicatrice_petite_facsec_ == -1))
@@ -62,9 +53,9 @@ Entree& Probleme_FTD_IJK_cut_cell::interpreter(Entree& is)
   interfaces_.set_seuil_indicatrice_petite(seuil_indicatrice_petite);
   Cerr << "Le seuil pour l'indicatrice des petites cellules est : " << seuil_indicatrice_petite << finl;
 
-  run();
   return is;
 }
+
 
 void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
 {
@@ -87,7 +78,7 @@ void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
   param.ajouter("facettes_interpolation", &cut_cell_facettes_interpolation_);
 }
 
-void Probleme_FTD_IJK_cut_cell::run()
+bool Probleme_FTD_IJK_cut_cell::run()
 {
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
   cut_cell_disc_.initialise(interfaces_, splitting_, IJK_Splitting::ELEM);
@@ -1087,6 +1078,7 @@ void Probleme_FTD_IJK_cut_cell::run()
   statistiques().reset_counters();
   statistiques().begin_count(temps_total_execution_counter_);
 
+  return true;
 }
 
 void Probleme_FTD_IJK_cut_cell::update_indicator_field()

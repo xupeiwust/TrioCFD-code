@@ -19,7 +19,6 @@
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
 
-
 Implemente_instanciable(Probleme_FTD_IJK, "Probleme_FTD_IJK", Probleme_FTD_IJK_base);
 
 Sortie& Probleme_FTD_IJK::printOn(Sortie& os) const
@@ -29,18 +28,10 @@ Sortie& Probleme_FTD_IJK::printOn(Sortie& os) const
 
 Entree& Probleme_FTD_IJK::readOn(Entree& is)
 {
-  return is;
+  return Probleme_FTD_IJK_base::readOn(is);
 }
 
-Entree& Probleme_FTD_IJK::interpreter(Entree& is)
-{
-  Probleme_FTD_IJK_base::interpreter(is);
-
-  run();
-  return is;
-}
-
-void Probleme_FTD_IJK::run()
+bool Probleme_FTD_IJK::run()
 {
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
@@ -1007,6 +998,8 @@ void Probleme_FTD_IJK::run()
 
   statistiques().reset_counters();
   statistiques().begin_count(temps_total_execution_counter_);
+
+  return true;
 
 }
 

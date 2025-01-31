@@ -41,28 +41,69 @@
 #include <TRUST_Ref.h>
 #include <Objet_U.h>
 #include <Cut_cell_surface_efficace.h>
-
-class Probleme_base;
+#include <Probleme_FT_Disc_gen.h>
 
 // #define SMOOTHING_RHO
 
-class Probleme_FTD_IJK_base : public Interprete
+class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
 {
-  Declare_base(Probleme_FTD_IJK_base) ;
+  Declare_base_sans_constructeur(Probleme_FTD_IJK_base) ;
+  Probleme_FTD_IJK_base();
   Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x);
+
 public :
   // We take too much advantage of it ...:
   friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
 
-
-  Entree& interpreter(Entree&) override;
-
-
   /*
    * ===============================================================
    */
+
+  /*
+     * ===============================================================
+     */
+  void preparer_calcul() override { }
+
+   void typer_lire_milieu(Entree& is) override { }
+
+   void completer() override { }
+   void mettre_a_jour(double temps) override { }
+   virtual bool updateGivenFields() override { return false; }
+
+
+  //////////////////////////////////////////////////
+  //                                              //
+  // Implementation de l'interface de Probleme_U  //
+  //                                              //
+  //////////////////////////////////////////////////
+
+  // interface Problem
+  void initialize() override { run(); }
+  void terminate() override {  }
+
+  // interface UnsteadyProblem
+  double presentTime() const override { return 0.; }
+  double computeTimeStep(bool& stop) const override { return 0.0; }
+  bool initTimeStep(double dt) override { return true; }
+  bool solveTimeStep() override { return true; }
+  void validateTimeStep() override {  }
+  void setStationary(bool flag) override {  }
+  void abortTimeStep() override {  }
+  void resetTime(double time) override { }
+
+  // interface IterativeUnsteadyProblem
+  bool iterateTimeStep(bool& converged) override { return iterateTimeStep_impl(*this, converged); }
+
+
+
+  /*
+     * ===============================================================
+     *//*
+     * ===============================================================
+     */
+
 
   /*
    * This
@@ -224,6 +265,10 @@ public :
   double cfl_ = 1.;
   double fo_ = 1.;
   double oh_ = 1.;
+
+
+
+  OBS_PTR(Schema_Temps_base) schema_temps_;
 
   /*
    * NS
@@ -674,12 +719,6 @@ public:
    */
 
 
-
-
-
-
-
-  virtual void run() = 0;
 
   Nom expression_derivee_acceleration_ = "0"; // par defaut pas de terme d'acceleration
   Parser parser_derivee_acceleration_;

@@ -33,12 +33,10 @@ class Probleme_FTD_IJK : public Probleme_FTD_IJK_base
   Declare_instanciable(Probleme_FTD_IJK) ;
 
 public :
-  Entree& interpreter(Entree&) override;
-  void run() override;
+
+  bool run() override;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
-
-protected:
 };
 
 #endif /* Probleme_FTD_IJK_included */
