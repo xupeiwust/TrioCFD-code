@@ -685,7 +685,7 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   initialise_thermal_subproblems_list();
 
 
-  is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep()==0);
+  is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->schema_temps_ijk().get_tstep()==0);
   first_time_step_temporal_ = first_time_step_temporal_ && is_first_time_step_;
   first_time_step_explicit_ = !first_time_step_implicit_;
   if (first_time_step_varying_probes_)
@@ -859,9 +859,9 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
 double IJK_Thermal_Subresolution::get_modified_time()
 {
   if (!disable_spherical_diffusion_start_)
-    return modified_time_init_; // ref_ijk_ft_->get_current_time();
+    return modified_time_init_; // ref_ijk_ft_->schema_temps_ijk().get_current_time();
   else
-    return ref_ijk_ft_->get_current_time();
+    return ref_ijk_ft_->schema_temps_ijk().get_current_time();
 }
 
 static int decoder_numero_bulle(const int code)
@@ -875,7 +875,7 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
   /*
    * Theses Thiam et Euzenat
    */
-  if (!ref_ijk_ft_->get_reprise() || ref_ijk_ft_->get_current_time() > 0.)
+  if (!ref_ijk_ft_->get_reprise() || ref_ijk_ft_->schema_temps_ijk().get_current_time() > 0.)
     {
       if (!disable_spherical_diffusion_start_)
         {
@@ -1202,12 +1202,12 @@ void IJK_Thermal_Subresolution::compute_Nusselt_spherical_diffusion()
   { return Tinfty * R / pow(r,2) * (1- erf( (r - R)/(2 * sqrt(alpha * (t + 1e-16))))) ; };
   auto hlambda = [](const double& r, const double& R, const double& alpha, const double& t, const double& Tinfty)
   { return Tinfty * R / r / (2 * sqrt(alpha * (t + 1e-16))) * (2 / sqrt(M_PI)) * (exp(-pow((r - R)/(2 * sqrt(alpha * (t + 1e-16))),2))) ; };
-  const double temperature_derivative_interface = glambda(R0, R0, alpha_liq, ref_ijk_ft_->get_current_time(), T1)
-                                                  + hlambda(R0, R0, alpha_liq, ref_ijk_ft_->get_current_time(), T1);
+  const double temperature_derivative_interface = glambda(R0, R0, alpha_liq, ref_ijk_ft_->schema_temps_ijk().get_current_time(), T1)
+                                                  + hlambda(R0, R0, alpha_liq, ref_ijk_ft_->schema_temps_ijk().get_current_time(), T1);
   heat_flux_spherical_ = lambda_liquid_ * temperature_derivative_interface;
   nusselt_spherical_diffusion_ = abs(temperature_derivative_interface * (2 * single_centred_bubble_radius_ini_) / T1);
-  const double temperature_derivative_interface_liquid = glambda(R0, R0, alpha_liq, ref_ijk_ft_->get_current_time(), mean_liquid_temperature_)
-                                                         + hlambda(R0, R0, alpha_liq, ref_ijk_ft_->get_current_time(), mean_liquid_temperature_);
+  const double temperature_derivative_interface_liquid = glambda(R0, R0, alpha_liq, ref_ijk_ft_->schema_temps_ijk().get_current_time(), mean_liquid_temperature_)
+                                                         + hlambda(R0, R0, alpha_liq, ref_ijk_ft_->schema_temps_ijk().get_current_time(), mean_liquid_temperature_);
   nusselt_spherical_diffusion_liquid_ = abs(temperature_derivative_interface_liquid * (2 * single_centred_bubble_radius_ini_)
                                             / mean_liquid_temperature_);
 }
@@ -1315,7 +1315,7 @@ void IJK_Thermal_Subresolution::set_field_T_ana()
     {
       if (spherical_diffusion_)
         {
-          Nom expression_T_ana = compute_quasi_static_spherical_diffusion_expression(ref_ijk_ft_->get_current_time(), 0, 0);
+          Nom expression_T_ana = compute_quasi_static_spherical_diffusion_expression(ref_ijk_ft_->schema_temps_ijk().get_current_time(), 0, 0);
           set_field_data(temperature_ana_, expression_T_ana);
           correct_any_temperature_field_for_visu(temperature_ana_);
           if (liste_post_instantanes_.contient_("ECART_T_ANA"))
@@ -1417,7 +1417,7 @@ void IJK_Thermal_Subresolution::store_temperature_before_extrapolation()
           const double indic = ref_ijk_ft_->itfce().I(i,j,k);
           if (fabs(indic) > VAPOUR_INDICATOR_TEST)
             {
-              if (ref_ijk_ft_->get_current_time() == 0 && !ref_ijk_ft_->get_reprise())
+              if (ref_ijk_ft_->schema_temps_ijk().get_current_time() == 0 && !ref_ijk_ft_->get_reprise())
                 temperature_before_extrapolation_(i,j,k) = delta_T_subcooled_overheated_;
               else
                 {
@@ -1639,8 +1639,8 @@ void IJK_Thermal_Subresolution::compute_thermal_subproblems()
   static Stat_Counter_Id cnt_lrs_post = statistiques().new_counter(3, "Thermal Subresolution LRS - Miscellaneous post");
   static Stat_Counter_Id cnt_lrs_prepare_corr = statistiques().new_counter(3, "Thermal Subresolution LRS - Prepare temp-flux correction");
 
-  is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep()==0);
-  first_step_thermals_post_ = (first_step_thermals_post_ && !ref_ijk_ft_->get_tstep());
+  is_first_time_step_ = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->schema_temps_ijk().get_tstep()==0);
+  first_step_thermals_post_ = (first_step_thermals_post_ && !ref_ijk_ft_->schema_temps_ijk().get_tstep());
   if (is_first_time_step_)
     first_time_step_temporal_ = first_time_step_temporal_ && is_first_time_step_;
 
@@ -1873,8 +1873,8 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
                 thermal_local_subproblems_.associate_sub_problem_to_inputs((*this),
                                                                            i,j,k,
                                                                            indicator(i,j,k),
-                                                                           ref_ijk_ft_->get_timestep(),
-                                                                           ref_ijk_ft_->get_current_time(),
+                                                                           ref_ijk_ft_->schema_temps_ijk().get_timestep(),
+                                                                           ref_ijk_ft_->schema_temps_ijk().get_current_time(),
                                                                            ref_ijk_ft_->itfce(),
                                                                            ref_ijk_ft_->get_velocity(),
                                                                            ref_ijk_ft_->get_velocity_ft(),
@@ -1908,7 +1908,7 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_any_matrices(
 
 void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
 {
-  if (ref_ijk_ft_->get_tstep()==0 && pre_initialise_thermal_subproblems_list_)
+  if (ref_ijk_ft_->schema_temps_ijk().get_tstep()==0 && pre_initialise_thermal_subproblems_list_)
     {
       if (!disable_subresolution_)
         {
@@ -2063,7 +2063,7 @@ void IJK_Thermal_Subresolution::initialise_identity_matrices_sparse(Matrice& ide
   /*
    * Compute the convection matrices for Finite-Differences
    */
-  const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
+  const int first_initialisation = (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Identity sparse matrix" << finl;
   // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
@@ -2103,7 +2103,7 @@ void IJK_Thermal_Subresolution::initialise_radial_convection_operator_sparse(Mat
   /*
    * Compute the convection matrices for Finite-Differences
    */
-  const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
+  const int first_initialisation = (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Radial convection sparse operator" << finl;
   // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
@@ -2141,7 +2141,7 @@ void IJK_Thermal_Subresolution::initialise_radial_diffusion_operator_sparse(Matr
   /*
    * Compute the diffusion matrices for Finite-Differences
    */
-  const int first_initialisation = (ref_ijk_ft_->get_tstep() == 0);
+  const int first_initialisation = (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0);
   if (debug_)
     Cerr << "Initialise the Radial diffusion sparse operator" << finl;
   // const int nb_subproblems = thermal_local_subproblems_.get_subproblems_counter();
@@ -2174,19 +2174,19 @@ void IJK_Thermal_Subresolution::compute_local_substep()
         local_cfl_time_step_probe_length_ = thermal_local_subproblems_.get_local_min_cfl_time_step_probe_length();
         local_dt_cfl_ = thermal_local_subproblems_.get_local_dt_cfl();
         local_dt_cfl_min_delta_xyz_ = thermal_local_subproblems_.get_local_dt_cfl_min_delta_xyz();
-        local_dt_cfl_counter_ += (ref_ijk_ft_->get_timestep() / local_dt_cfl_min_delta_xyz_);
-        local_dt_fourier_counter_ += (ref_ijk_ft_->get_timestep() / local_fourier_time_step_probe_length_);
+        local_dt_cfl_counter_ += (ref_ijk_ft_->schema_temps_ijk().get_timestep() / local_dt_cfl_min_delta_xyz_);
+        local_dt_fourier_counter_ += (ref_ijk_ft_->schema_temps_ijk().get_timestep() / local_fourier_time_step_probe_length_);
         if (debug_)
           {
             Cerr << "Compare the thermal time-steps" << finl;
-            Cerr << "Current time: "<< ref_ijk_ft_->get_current_time() << finl;
+            Cerr << "Current time: "<< ref_ijk_ft_->schema_temps_ijk().get_current_time() << finl;
             Cerr << "local_fourier_time_step_probe_length: " << local_fourier_time_step_probe_length_ << finl;
             Cerr << "local_cfl_time_step_probe_length: " << local_cfl_time_step_probe_length_ << finl;
             Cerr << "local_dt_cfl: " << local_dt_cfl_ << finl;
             Cerr << "local_dt_cfl_min_delta_xyz: " << local_dt_cfl_min_delta_xyz_ << finl;
             Cerr << "local_dt_cfl_counter: " << local_dt_cfl_counter_ << finl;
             Cerr << "local_dt_fourier_counter: " << local_dt_fourier_counter_ << finl;
-            Cerr << "dt_cfl: " << ref_ijk_ft_->get_dt_cfl_liq() << finl;
+            Cerr << "dt_cfl: " << ref_ijk_ft_->schema_temps_ijk().get_dt_cfl_liq() << finl;
           }
         /*
          * Activate Quasi-static when convection is significant
@@ -2520,7 +2520,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres(const int first
 void IJK_Thermal_Subresolution::compute_temperature_cell_centres_first_correction()
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
-                            && ref_ijk_ft_->get_tstep() == 1
+                            && ref_ijk_ft_->schema_temps_ijk().get_tstep() == 1
                             && ref_ijk_ft_->get_reprise() == 0);
   if (debug_)
     Cerr << "Set correction cell neighbours" << finl;
@@ -2572,7 +2572,7 @@ void IJK_Thermal_Subresolution::compute_temperature_cell_centres_second_correcti
 void IJK_Thermal_Subresolution::replace_temperature_cell_centres_neighbours(const int& use_neighbours_temperature_to_correct_trimmed)
 {
   int correct_first_iter = (correct_temperature_cell_neighbours_first_iter_
-                            && ref_ijk_ft_->get_tstep() == 0
+                            && ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0
                             && ref_ijk_ft_->get_reprise() == 0);
   if (use_temperature_cell_neighbours_)
     {
@@ -2737,7 +2737,7 @@ void IJK_Thermal_Subresolution::set_zero_temperature_increment()
 
 void IJK_Thermal_Subresolution::clean_thermal_subproblems()
 {
-  if (ref_ijk_ft_->get_tstep() > 0)
+  if (ref_ijk_ft_->schema_temps_ijk().get_tstep() > 0)
     {
       if (!disable_subresolution_ || reference_gfm_on_probes_)
         thermal_local_subproblems_.clean();
@@ -3438,7 +3438,7 @@ void IJK_Thermal_Subresolution::interpolate_temperature_increment_on_downstream_
                                         ref_ijk_ft_->get_velocity(),
                                         values,
                                         0);
-  // values *= ref_ijk_ft_->get_timestep();
+  // values *= ref_ijk_ft_->schema_temps_ijk().get_timestep();
 }
 
 void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const Nom& local_quantities_thermal_lines_time_index_folder,
@@ -3466,8 +3466,8 @@ void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const N
     {
       Cerr << "Post-processing on the lines - INI" << finl;
       const int reset = 1;
-      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
-      const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
+      const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
+      const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + latastep_reprise_ini_;
       const int max_digit = 3;
       const int max_digit_time = 8;
       const int max_rank_digit = rang_ < 1 ? 1 : (int) (log10(rang_) + 1);
@@ -4143,8 +4143,8 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);
-  // values *= (1 / ref_ijk_ft_->get_timestep());
-  // values *= ref_ijk_ft_->get_timestep();
+  // values *= (1 / ref_ijk_ft_->schema_temps_ijk().get_timestep());
+  // values *= ref_ijk_ft_->schema_temps_ijk().get_timestep();
 }
 
 void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const int& slice,
@@ -4165,8 +4165,8 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
     {
       Cerr << "Post-processing on the slices - INI" << finl;
       const int reset = 1;
-      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
-      const int last_time_index = ref_ijk_ft_->get_tstep() + latastep_reprise_ini_;
+      const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
+      const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + latastep_reprise_ini_;
       const int max_digit = 3;
       const int max_digit_time = 8;
       const int max_rank_digit = rang_ < 1 ? 1 : (int) (log10(rang_) + 1);

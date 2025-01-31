@@ -596,14 +596,15 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
     {
       double ct = current_time;
-      if (ref_ijk_ft_.get_time_scheme() == Probleme_FTD_IJK_base::EULER_EXPLICITE)
+      if ( sub_type(Schema_Euler_explicite_IJK, ref_ijk_ft_.schema_temps_ijk()) )
         {
-          ct -= ref_ijk_ft_.timestep_;
+          ct -= ref_ijk_ft_.schema_temps_ijk().get_timestep();
         }
-      else if (ref_ijk_ft_.get_time_scheme() == Probleme_FTD_IJK_base::RK3_FT)
+      else if ( sub_type(Schema_RK3_IJK, ref_ijk_ft_.schema_temps_ijk()) )
         {
-          Cerr << "rkstep " << ref_ijk_ft_.rk_step_ << finl;
-          int rk_step_before = ref_ijk_ft_.rk_step_;
+          Schema_RK3_IJK& rk3 = ref_cast(Schema_RK3_IJK, ref_ijk_ft_.schema_temps_ijk());
+          Cerr << "rkstep " << rk3.get_rk_step() << finl;
+          int rk_step_before = rk3.get_rk_step();
           if ((rk_step_before == 0) || (rk_step_before == 3))
             rk_step_before = 2;
           else if (rk_step_before == 1)
@@ -612,7 +613,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
             /* ici, c'est rk_step_before=2 */
             rk_step_before = 1;
           Cerr << "rkstep_before " << rk_step_before << finl;
-          const double intermediate_dt = compute_fractionnal_timestep_rk3(ref_ijk_ft_.timestep_, rk_step_before);
+          const double intermediate_dt = compute_fractionnal_timestep_rk3(rk3.get_timestep(), rk_step_before);
           ct -= intermediate_dt;
         }
       else

@@ -940,7 +940,7 @@ void Sonde_IJK::postraiter()
             }
         }
 
-      double temps_courant = ref_ijk_ft_->get_current_time();
+      double temps_courant = ref_ijk_ft_->schema_temps_ijk().get_current_time();
 
       if (dim==0 || dim==1)
         {

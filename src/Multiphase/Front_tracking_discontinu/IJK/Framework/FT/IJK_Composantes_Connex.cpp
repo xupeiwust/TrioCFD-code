@@ -416,7 +416,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
         use_bubbles_velocities_from_interface_tmp = 0;
 
       int use_bubbles_velocities_from_barycentres_tmp = use_bubbles_velocities_from_barycentres_;
-      if (ref_ijk_ft_->get_tstep() == 0)
+      if (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0)
         use_bubbles_velocities_from_barycentres_tmp = 0;
 
       compute_rising_velocity(ref_ijk_ft_->get_velocity(),

@@ -21,9 +21,25 @@
 class Schema_RK3_IJK: public Schema_Temps_IJK_base
 {
   Declare_instanciable(Schema_RK3_IJK);
-
 public :
   int faire_un_pas_de_temps_eqn_base(Equation_base&) override;
+
+  double& get_store_RK3_source_acc() { return store_RK3_source_acc_; }
+  double get_store_RK3_source_acc() const { return store_RK3_source_acc_; }
+
+  double& get_store_RK3_fac_sv() { return store_RK3_fac_sv_; }
+  double get_store_RK3_fac_sv() const { return store_RK3_fac_sv_; }
+
+  double& get_current_time_at_rk3_step() { return current_time_at_rk3_step_; }
+  double get_current_time_at_rk3_step() const { return current_time_at_rk3_step_; }
+
+  int& get_rk_step() { return rk_step_; }
+  int get_rk_step() const { return rk_step_; }
+
+protected:
+  double store_RK3_source_acc_ = 0., store_RK3_fac_sv_ = 1.;
+  double current_time_at_rk3_step_ = 0.;
+  int rk_step_ = -1; // default value
 };
 
 #endif /* Schema_RK3_IJK_included */

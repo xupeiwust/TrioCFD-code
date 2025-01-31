@@ -115,13 +115,13 @@ int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx
       E0_ = compute_global_energy(*temperature_);
       d_T_rustine_.allocate(splitting, Domaine_IJK::ELEM, 1);
       nalloc += 1;
-      if (ref_ijk_ft_.non_nul() && ref_ijk_ft_->get_time_scheme()== ref_ijk_ft_->RK3_FT)
+      if (ref_ijk_ft_.non_nul() && sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()))
         {
           RK3_F_rustine_.allocate(splitting, Domaine_IJK::ELEM, 0);
           nalloc +=1;
         }
-      Cout << "Initial energy at time t=" << ref_ijk_ft_->get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
-      Cerr << "Initial energy at time t=" << ref_ijk_ft_->get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
+      Cout << "Initial energy at time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
+      Cerr << "Initial energy at time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
     }
   if (type_temperature_convection_form_==1)
     {

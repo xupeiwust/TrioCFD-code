@@ -43,6 +43,8 @@
 #include <Cut_cell_surface_efficace.h>
 #include <Probleme_FT_Disc_gen.h>
 #include <Fluide_Diphasique_IJK.h>
+#include <Schema_Euler_explicite_IJK.h>
+#include <Schema_RK3_IJK.h>
 
 class Domaine_IJK;
 
@@ -174,54 +176,10 @@ public :
    *
    *    */
   // Methodes d'acces :
-  enum TimeScheme { EULER_EXPLICITE, RK3_FT };
-  TimeScheme get_time_scheme() const;
-  const double& get_current_time() const
-  {
-    return current_time_ ;
-  }
-  const double& get_timestep() const
-  {
-    return timestep_ ;
-  }
-  const int& get_nb_timesteps() const
-  {
-    return nb_timesteps_ ;
-  }
 
-  int get_tstep() const
-  {
-    return tstep_;
-  }
-  const double& get_dt_cfl() const
-  {
-    return dt_cfl_;
-  }
+  const Schema_Temps_IJK_base& schema_temps_ijk() const { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
+  Schema_Temps_IJK_base& schema_temps_ijk() { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
 
-  const double& get_dt_fo() const
-  {
-    return dt_fo_;
-  }
-  const double& get_dt_oh() const
-  {
-    return dt_oh_;
-  }
-  const double& get_dt_cfl_liq() const
-  {
-    return dt_cfl_liq_;
-  }
-  const double& get_dt_cfl_vap_() const
-  {
-    return dt_cfl_vap_;
-  }
-  const double& get_dt_fo_liq() const
-  {
-    return dt_fo_liq_;
-  }
-  const double& get_dt_fo_vap_() const
-  {
-    return dt_fo_vap_;
-  }
   virtual void euler_time_step(ArrOfDouble& var_volume_par_bulle) = 0;
   virtual void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) = 0;
   // MODIF Aymeric : c'est plus pratique de mettre cette methode publique,
@@ -229,44 +187,8 @@ public :
   void euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
                              const int k_layer) const;
 
-
   void write_check_etapes_et_termes(const int rk_step);
 
-  double find_timestep(const double max_timestep, const double cfl, const double fo, const double oh);
-
-  double dt_cfl_ = 1.e20;
-  double dt_fo_ = 1.e20;
-  double dt_oh_ = 1.e20;
-  double dt_fo_liq_ = 1.e20;
-  double dt_fo_vap_ = 1.e20;
-  double dt_cfl_liq_ = 1.e20;
-  double dt_cfl_vap_ = 1.e20;
-
-
-  int enable_dt_oh_ideal_length_factor_ = 0;
-
-  int first_step_interface_smoothing_ = 0;
-  int time_scheme_ = EULER_EXPLICITE;
-  double store_RK3_source_acc_ = 0.;
-  double store_RK3_fac_sv_ = 1.;
-  double modified_time_ini_ = 0.;
-  double current_time_ = 0.;
-  double current_time_at_rk3_step_ = 0;
-  int tstep_ = 0; // The iteration number
-  int tstep_sauv_ = 0;
-  int nb_timesteps_ = 0;
-  double max_simu_time_ = 1e6;
-  int tstep_init_ = 0;
-  int use_tstep_init_ = 0;
-  double timestep_ = 0.;
-  double timestep_facsec_ = 1.;
-  double cfl_ = 1.;
-  double fo_ = 1.;
-  double oh_ = 1.;
-
-
-
-  OBS_PTR(Schema_Temps_base) schema_temps_;
 
   /*
    * NS
@@ -492,8 +414,8 @@ public :
   int harmonic_nu_in_diff_operator_ = 0;
   int harmonic_nu_in_calc_with_indicatrice_ = 0;
 
-
-
+  Nom lata_name_;
+  bool stop_ = false;
 
 public:
 
@@ -515,6 +437,16 @@ public:
                                             const Domaine_IJK& my_splitting,
                                             const int facteur
                                            );
+
+  const LIST(IJK_Thermique)& get_list_thermique() const { return thermique_; }
+  LIST(IJK_Thermique)& get_list_thermique() { return thermique_; }
+
+  const LIST(IJK_Energie)& get_list_energie() const { return energie_; }
+  LIST(IJK_Energie)& get_list_energie() { return energie_; }
+
+  const IJK_Thermals& get_ijk_thermals() const { return thermals_; }
+  IJK_Thermals& get_ijk_thermals() { return thermals_; }
+
   // Dealing with thermal aspects:
   LIST(IJK_Thermique) thermique_;
   LIST(IJK_Energie) energie_;
@@ -712,7 +644,8 @@ public:
   IJK_FT_Post post_;
 
   int check_divergence_ = 0;
-  int rk_step_ = -1; // default value
+
+  const Nom& get_check_stop_file() const { return check_stop_file_; }
 
   Nom check_stop_file_; // Nom du fichier stop
 

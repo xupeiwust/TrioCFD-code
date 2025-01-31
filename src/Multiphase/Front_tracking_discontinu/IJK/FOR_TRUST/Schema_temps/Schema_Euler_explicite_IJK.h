@@ -25,7 +25,6 @@
 class Schema_Euler_explicite_IJK: public Schema_Temps_IJK_base
 {
   Declare_instanciable(Schema_Euler_explicite_IJK);
-
 public :
   int faire_un_pas_de_temps_eqn_base(Equation_base&) override;
 };

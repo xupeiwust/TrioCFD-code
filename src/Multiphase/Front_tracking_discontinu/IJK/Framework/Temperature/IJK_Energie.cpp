@@ -282,7 +282,7 @@ void IJK_Energie::update_thermal_properties()
   // transport de l'interface:
   const double ene_post = compute_global_energy();
   Cerr << "[Energy-Budget-T" << rang_
-       << "-2-TransportIndic] time t=" << ref_ijk_ft_->get_current_time() << " "
+       << "-2-TransportIndic] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " "
        << ene_ini << " " << ene_post << " delta=" << ene_post - ene_ini
        << " [W.m-3]." << finl;
 }
@@ -317,7 +317,7 @@ void IJK_Energie::euler_time_step(
   temperature_.echange_espace_virtuel(temperature_.ghost());
   const double ene_post = compute_global_energy();
   Cerr << "[Energy-Budget-T" << rang_
-       << "] time t=" << ref_ijk_ft_->get_current_time() << " " << ene_ini
+       << "] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " " << ene_ini
        << " " << ene_post << " [W.m-3]." << finl;
 }
 
@@ -325,7 +325,7 @@ void IJK_Energie::euler_time_step(
 void IJK_Energie::calculer_dT(
   const IJK_Field_vector3_double& velocity)
 {
-  const double current_time = ref_ijk_ft_->get_current_time();
+  const double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   const double ene_ini = compute_global_energy(d_temperature_);
   compute_energy_convection(velocity);
   const double ene_postConv = compute_global_energy(d_temperature_);
@@ -673,7 +673,7 @@ void IJK_Energie::set_field_T_ana()
   Cerr << "Setting analytical temperature " << rang_ << " field to "
        << expression_T_ana_ << finl;
   set_field_data(temperature_ana_, expression_T_ana_,
-                 ref_ijk_ft_->get_current_time());
+                 ref_ijk_ft_->schema_temps_ijk().get_current_time());
 }
 
 void IJK_Energie::calculer_ecart_T_ana()
@@ -683,11 +683,11 @@ void IJK_Energie::calculer_ecart_T_ana()
       if (!liste_post_instantanes_.contient_("TEMPERATURE_ANA"))
         {
           set_field_data(temperature_ana_, expression_T_ana_,
-                         ref_ijk_ft_->get_current_time());
+                         ref_ijk_ft_->schema_temps_ijk().get_current_time());
         }
       // do some work
 
-      double ct = ref_ijk_ft_->get_current_time();
+      double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
       Cerr << "GB: ERROR T FIELD " << ct;
       double err = 0.;
       set_field_data(temperature_ana_, expression_T_ana_, ct);

@@ -53,9 +53,6 @@ public :
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
 
 private:
-  double max_timestep_ = -123.;
-  bool stop_ = false;
-  Nom lata_name_;
   void solveTimeStep_Euler(DoubleTrav&);
   void solveTimeStep_RK3(DoubleTrav&);
 };

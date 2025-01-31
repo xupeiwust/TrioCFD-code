@@ -38,26 +38,34 @@ class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
 public :
   void set_param(Param& param) override;
   bool run() override;
+
+  void initialize() override;
+  void preparer_calcul() override;
+
+  double computeTimeStep(bool& stop) const override;
+
+  bool solveTimeStep() override;
+  void validateTimeStep() override;
+
+  void sauver() const override;
+  int postraiter(int force = 1) override;
+
+  void terminate() override;
+
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
 
-  void deplacer_interfaces(const double timestep,
-                           const int rk_step,
-                           ArrOfDouble& var_volume_par_bulle,
-                           const int first_step_interface_smoothing) override;
+  void deplacer_interfaces(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle, const int first_step_interface_smoothing) override;
   void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle) override;
 
   void update_indicator_field() override;
   void update_twice_indicator_field() override;
 
-  Cut_cell_FT_Disc* get_cut_cell_disc() override
-  {
-    return &cut_cell_disc_;
-  }
+  Cut_cell_FT_Disc* get_cut_cell_disc() override { return &cut_cell_disc_; }
+
   const Cut_field_vector3_double& get_cut_field_velocity() const
   {
-    const Cut_field_vector3_double& cut_field_velocity = static_cast<const Cut_field_vector3_double&>(velocity_);
-    return cut_field_velocity;
+    return static_cast<const Cut_field_vector3_double&>(velocity_);
   }
   // Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   const Facettes_Interp_FT& get_cut_cell_facettes_interpolation() const
@@ -91,6 +99,10 @@ protected :
 
   // Stockage des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   Facettes_Interp_FT cut_cell_facettes_interpolation_;
+
+private:
+  void solveTimeStep_Euler(DoubleTrav&);
+  void solveTimeStep_RK3(DoubleTrav&);
 };
 
 #endif /* Probleme_FTD_IJK_cut_cell_included */

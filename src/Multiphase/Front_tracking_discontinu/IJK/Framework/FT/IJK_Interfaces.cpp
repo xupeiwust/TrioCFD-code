@@ -1845,7 +1845,7 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
   const Domaine_IJK& geom = I().get_domaine();
   if (store_values && !has_computed_bubble_barycentres_)
     {
-      if (ref_ijk_ft_->get_tstep() == 0)
+      if (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0)
         {
           if (!has_readen_barycentres_prev_)
             bubbles_bary_old_ = barycentres;
@@ -1878,7 +1878,7 @@ void IJK_Interfaces::compute_bubbles_volume_and_barycentres(ArrOfDouble& volumes
               bubbles_velocities_bary_(i, dir) = bubbles_bary_old_(i, dir);
               const double vel_old = bubbles_velocities_bary_(i, dir);
               bubbles_velocities_bary_(i, dir) = bubbles_bary_new_(i, dir) - vel_old;
-              bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->get_timestep());
+              bubbles_velocities_bary_(i, dir) *= (1 / ref_ijk_ft_->schema_temps_ijk().get_timestep());
               bubbles_velocities_bary_magnitude_(i) += pow(bubbles_velocities_bary_(i, dir), 2);
             }
           bubbles_velocities_bary_magnitude_(i) = sqrt(bubbles_velocities_bary_magnitude_(i));
@@ -2775,7 +2775,7 @@ void IJK_Interfaces::calculer_vecteurs_de_deplacement_rigide(DoubleTab& vitesses
                                                  vitesses_translation_bulles);
   bubbles_velocities_ = vitesses_translation_bulles;
 
-  if (use_barycentres_velocity_ && ref_ijk_ft_->get_tstep())
+  if (use_barycentres_velocity_ && ref_ijk_ft_->schema_temps_ijk().get_tstep())
     vitesses_translation_bulles = bubbles_velocities_bary_;
 
   // Calcul de la vitesse due a la rotation de chaque composante connexe :
@@ -8521,7 +8521,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
           if (Process::je_suis_maitre())
             {
               double norm_ur = std::sqrt(vrx * vrx + vry * vry + vrz * vrz);
-              const double dt = ref_ijk_ft_->get_timestep();
+              const double dt = ref_ijk_ft_->schema_temps_ijk().get_timestep();
               double cfl = dt * std::min(std::min(std::fabs(vrx) / dx, std::fabs(vry) / dy), std::fabs(vrz) / dz);
               int reset = (!reprise_) && (itstep == 0);
               SFichier fic = Ouvrir_fichier(

@@ -427,10 +427,8 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
     itr.associer(*this);
 
   thermals_.associer(*this);
-  first_step_interface_smoothing_ = (first_step_interface_smoothing_ &&
-                                     (!(*this).reprise_ && current_time_ == 0.));
-  if (tstep_init_)
-    use_tstep_init_ = 1;
+
+  schema_temps_ijk().completer();
 
   // Register domains for post processing object
   post_.associer_domaines(domaine_ijk_.valeur(), domaine_ft_);
@@ -613,8 +611,7 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
 
 Sortie& Probleme_FTD_IJK_base::printOn(Sortie& os) const
 {
-  // Objet_U::printOn(os);
-  return os;
+  return os << " " << que_suis_je() << finl;
 }
 
 
@@ -1166,11 +1163,12 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
 {
   statistiques().begin_count(sauvegarde_counter_);
 
+  const double current_time = schema_temps_ijk().get_current_time();
   Nom lata_name(fichier_sauvegarde);
   Nom interf_name = lata_name + ".interfaces";
   lata_name += ".lata";
   dumplata_header(lata_name, velocity_[0] /* on passe un champ pour ecrire la geometrie */);
-  dumplata_newtime(lata_name, current_time_);
+  dumplata_newtime(lata_name, current_time);
   dumplata_vector(lata_name, "VELOCITY", velocity_[0], velocity_[1], velocity_[2], 0);
 
   post_.sauvegarder_post(lata_name);
@@ -1212,7 +1210,7 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
   if (Process::je_suis_maitre())
     {
       fichier.ouvrir(fichier_sauvegarde);
-      Cerr << "T= " << current_time_ << " Checkpointing dans le fichier " << fichier_sauvegarde << finl;
+      Cerr << "T= " << current_time << " Checkpointing dans le fichier " << fichier_sauvegarde << finl;
       fichier.precision(17);
       fichier.setf(std::ios_base::scientific);
 
@@ -1233,9 +1231,9 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       param.print(fichier);
 #else
       fichier << "{\n";
-      if (use_tstep_init_)
-        fichier << " tstep_init " << (tstep_ + tstep_init_ + 1) << "\n";
-      fichier << " tinit " << current_time_ << "\n"
+      if (schema_temps_ijk().get_use_tstep_init())
+        fichier << " tstep_init " << (schema_temps_ijk().get_tstep() + schema_temps_ijk().get_tstep_init() + 1) << "\n";
+      fichier << " tinit " << current_time << "\n"
               << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
               // GAB : qdm_source. Les valeurs des attributs utiles pour le calcul de source_qdm_gr sont
               //       ecrits dans la reprise. Ils sont ecrits avec des mots-clefs qui n'ont pas vocation a
@@ -1303,7 +1301,7 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       post_.sauvegarder_post_maitre(lata_name, fichier);
       fichier << "}\n" ;
 #endif
-      Cerr << "T= " << current_time_ << " Checkpointing dans le fichier l.1168 " << fichier_sauvegarde << finl;
+      Cerr << "T= " << current_time << " Checkpointing dans le fichier l.1168 " << fichier_sauvegarde << finl;
     }
   statistiques().end_count(sauvegarde_counter_);
 
@@ -1314,8 +1312,7 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   // Lecture par tous les processeurs, on retire les commentaires etc...
   LecFicDiffuse_JDD fichier(fichier_reprise);
   Param param(que_suis_je());
-  param.ajouter("tinit", &current_time_);
-  param.ajouter("tstep_init", &tstep_init_);
+  schema_temps_ijk().set_param_reprise_pb(param);
   param.ajouter("terme_acceleration_init", &terme_source_acceleration_);
   param.ajouter("fichier_reprise_vitesse", &fichier_reprise_vitesse_);
   param.ajouter("timestep_reprise_vitesse", &timestep_reprise_vitesse_);
@@ -1352,8 +1349,8 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   param.lire_avec_accolades(fichier);
 
   // Appeler ensuite initialize() pour lire les fichiers lata etc...
-  Cerr << "Reprise des donnees a t=" << current_time_ << "\n" << finl;
-  IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+  Cerr << "Reprise des donnees a t=" << schema_temps_ijk().get_current_time() << "\n" << finl;
+  IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(schema_temps_ijk().get_current_time() + boundary_conditions_.get_t0_shear());
   reprise_ = 1;
   interfaces_.set_reprise(1);
   Nom prefix = dirname(fichier_reprise);
@@ -1363,145 +1360,7 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   fichier_reprise_vitesse_= prefix + fichier_reprise_vitesse_;
 }
 
-// Methode de calcul du pas de temps max base sur CFL, Oh et Fo
-// Pour les maillages uniformes uniquement.
-// On choisi de mettre le facteur 0.5 dans dt_cfl et dt_fo
-// pour que le calcul soit stable avec un CFL <=1.0 et Fo <= 1.0.
-// Sinon, il faudrait recommander CFL <= 0.5 et Fo <=0.5 ce qui n'est pas la valeur par defaut...
-double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
-                                            const double cfl,
-                                            const double fo,
-                                            const double oh)
-{
-  statistiques().begin_count(dt_counter_);
 
-  dt_cfl_ = 1.e20;
-  double dxmin = 1.e20;
-  // On ne connait pas la longueur minimum du maillage lagrangien, mais on en prend une approximation :
-  // lg \approx 1.7 delta
-  double lg_cube = 1.;
-  double lg_cube_raw = 1.;
-  for (int dir = 0; dir < 3; dir++)
-    {
-      const IJK_Field_double& v = velocity_[dir];
-      double max_v = 1.e-20; // Pas zero pour la division a la fin...
-      const int ni = v.ni();
-      const int nj = v.nj();
-      const int nk = v.nk();
-      for (int k = 0; k < nk; k++)
-        for (int j = 0; j < nj; j++)
-          for (int i = 0; i < ni; i++)
-            max_v = std::max(max_v, fabs(v(i,j,k)));
-      max_v = Process::mp_max(max_v);
-      const Domaine_IJK& geom = v.get_domaine();
-#ifndef VARIABLE_DZ
-      const double delta = geom.get_constant_delta(dir);
-#else
-      const ArrOfDouble& tab_dz=geom.get_delta(dir);
-      const double delta = Process::mp_min(min_array(tab_dz));
-#endif
-      lg_cube *= 1.7*delta;
-      lg_cube_raw *= delta;
-      dxmin = std::min(delta, dxmin);
-      // QUESTION GAB : pourquoi on ne reprend pas dxmin ?
-      if (max_v>0)
-        dt_cfl_ = std::min(dt_cfl_, delta / max_v * 0.5);
-    }
-  dt_cfl_ *= cfl;
-  dt_cfl_liq_ = dt_cfl_;
-  dt_cfl_vap_ = dt_cfl_;
-
-  const double mu_l = milieu_ijk().get_mu_liquid(),
-               rho_l = milieu_ijk().get_rho_liquid(),
-               mu_v = milieu_ijk().get_mu_vapour(),
-               rho_v = milieu_ijk().get_rho_vapour();
-
-  dt_fo_liq_ = dxmin * dxmin / ((mu_l / rho_l) + 1.e-20) * fo * 0.125;
-  dt_fo_vap_ = dxmin * dxmin / ((mu_v / rho_v) + 1.e-20) * fo * 0.125;
-  dt_fo_ = std::min(dt_fo_liq_, dt_fo_vap_);
-  if (disable_diffusion_qdm_)
-    dt_fo_ = 1.e20;
-
-  /*
-   * Popinet et.al 2018 (review surface tension calculation)
-   * Au cas ou sigma = 0, on utilise (sigma + 1e-20)
-   */
-  double ideal_length_factor = get_remaillage_ft_ijk().get_facteur_longueur_ideale();
-  ideal_length_factor = (ideal_length_factor == -1) ? 1.7 : ideal_length_factor;
-
-  double max_sigma = -1e10 ;
-  /*if (!interfaces_.maillage_ft_ijk().Surfactant_facettes().get_disable_surfactant())
-    {
-      // alors on a une tension de surface variable
-      // Il faut prendre le max de la tension de surface dans le critere de stabilite ?
-      const int nb_som=interfaces_.maillage_ft_ijk().nb_sommets();
-      const ArrOfDouble& sigma_sommets = interfaces_.maillage_ft_ijk().Surfactant_facettes().get_sigma_sommets();
-      for (int i = 0; i < nb_som; i++)
-        {
-          if (max_sigma<sigma_sommets[i])
-            max_sigma= sigma_sommets[i];
-        }
-      max_sigma=Process::mp_max(max_sigma);
-    }
-  else*/
-  max_sigma = milieu_ijk().sigma();
-
-  if (enable_dt_oh_ideal_length_factor_)
-    dt_oh_ = sqrt((rho_l + rho_v) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (max_sigma + 1e-20)) * oh;
-  else
-    dt_oh_ = sqrt((rho_l + rho_v) / 2. * lg_cube / (max_sigma + 1e-20)) * oh;
-  if (disable_convection_qdm_)
-    dt_oh_ = 1.e20;
-
-  // Seems underestimated !
-  //  const double dt_oh  = sqrt((rho_liquide_+rho_vapeur_)/2. * lg_cube/(sigma_+1e-20) ) * oh;
-
-  const double dt_eq_velocity = 1. / (1./dt_cfl_ + 1./dt_fo_ + 1./dt_oh_);
-
-  /*
-   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-   */
-  double dt_thermique = 1.e20;
-  for (const auto& itr : thermique_)
-    {
-      const double dt_th = itr.compute_timestep(dt_thermique, dxmin);
-      // We take the most restrictive of all thermal problems and use it for all:
-      dt_thermique= std::min(dt_thermique, dt_th);
-    }
-
-  double dt_energie = 1.e20;
-  for (const auto& itr : energie_)
-    {
-      const double dt_en = itr.compute_timestep(dt_energie, dxmin);
-      // We take the most restrictive of all thermal problems and use it for all:
-      dt_energie= std::min(dt_energie, dt_en);
-    }
-  const double dt_thermique_energie = std::min(dt_energie, dt_thermique);
-
-  double dt_thermals = 1.e20;
-  thermals_.compute_timestep(dt_thermals, dxmin);
-  dt_thermals = std::min(dt_thermals, dt_thermique_energie);
-
-  const double dt = std::min(max_timestep, timestep_facsec_*std::min(dt_eq_velocity, dt_thermals));
-
-  if (Process::je_suis_maitre())
-    {
-      int reset = (!reprise_) && (tstep_==0);
-      SFichier fic = Ouvrir_fichier(".dt_ev","tstep\ttime\ttimestep\tdt_cfl\tdt_fo\tdt_oh\tdt_diff_th",reset);
-      fic << tstep_ << " " << current_time_ << " " << dt;
-      fic << " " << dt_cfl_ << " " << dt_fo_ << " " << dt_oh_;
-      fic << " " << dt_thermique; // If no thermal equation, value will be large.
-      fic << " " << dt_energie; // If no thermal equation, value will be large.
-      fic << " " << dt_thermals; // If no thermal equation, value will be large.
-      fic << finl;
-      fic.close();
-    }
-  statistiques().end_count(dt_counter_);
-
-  assert(dt > 0);
-
-  return dt;
-}
 
 // Methode appelee par run() une fois la memoire alouee pour les champs.
 // Cette fonction remplit les valeurs initiales de vitesse
@@ -1605,7 +1464,7 @@ int Probleme_FTD_IJK_base::initialise()
   // Maj des grandeurs shear perio
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(schema_temps_ijk().get_current_time() + boundary_conditions_.get_t0_shear());
       redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
       redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
       rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
@@ -1687,7 +1546,7 @@ int Probleme_FTD_IJK_base::initialise()
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
-      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+      IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(schema_temps_ijk().get_current_time() + boundary_conditions_.get_t0_shear());
       redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(interfaces_.I_ft(), I_ns_);
       redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(interfaces_.I_ft(), I_ns_);
       rho_field_.get_shear_BC_helpler().set_indicatrice_ghost_zmin_(I_ns_, 0);
@@ -2107,9 +1966,10 @@ void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay
 
   // On met a jour l'integrale du deplacement du barycentre
 
-  int_x_ += (centre_moyx-Lx/2)*timestep_;
-  int_y_ += (centre_moyy-Ly/2)*timestep_;
-  int_z_ += (centre_moyz-Lz/2)*timestep_;
+  const double timestep = schema_temps_ijk().get_timestep();
+  int_x_ += (centre_moyx-Lx/2)*timestep;
+  int_y_ += (centre_moyy-Ly/2)*timestep;
+  int_z_ += (centre_moyz-Lz/2)*timestep;
 
   ax = -Kp_*(centre_moyx-Lx/2)-Ki_*int_x_-Kd_*uvx;
   ay = -Kp_*(centre_moyy-Ly/2)-Ki_*int_y_-Kd_*uvy;
@@ -2216,7 +2076,7 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
           // calcul de terme_source_acceleration_ et de terme_source_acceleration_
 
           // ON NE VEUT PAS METTRE A JOUR TERME_SOURCE_ACCELERATION_ AVEC CETTE METHODE
-          if ( get_time_scheme() == EULER_EXPLICITE)
+          if ( sub_type(Schema_Euler_explicite_IJK, schema_temps_ijk()) )
             {
               terme_source_acceleration_ += derivee_acceleration * timestep;
               //terme_source_acceleration_ += 0;//derivee_acceleration * timestep;
@@ -2224,27 +2084,29 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
               //facteur_variable_source_ += 0;//derivee_facteur_sv * timestep;
               new_time += timestep;
             }
-          else if ( get_time_scheme() == RK3_FT )
+          else if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
             {
               const double intermediate_dt = compute_fractionnal_timestep_rk3( timestep, rk_step);
-              runge_kutta3_update_for_float(derivee_acceleration, store_RK3_source_acc_,
+              Schema_RK3_IJK& rk3 = ref_cast(Schema_RK3_IJK, schema_temps_ijk());
+              runge_kutta3_update_for_float(derivee_acceleration, rk3.get_store_RK3_source_acc(),
                                             terme_source_acceleration_, rk_step, timestep);
               Cout << "terme_source_acceleration_" << terme_source_acceleration_ << finl;
               //terme_source_acceleration_ += 0;
-              runge_kutta3_update_for_float(derivee_facteur_sv, store_RK3_fac_sv_,
+              runge_kutta3_update_for_float(derivee_facteur_sv, rk3.get_store_RK3_fac_sv(),
                                             facteur_variable_source_, rk_step, timestep);
               Cout << "facteur_variable_source_" << facteur_variable_source_ << finl;
               //facteur_variable_source_ += 0;
               new_time += intermediate_dt;
             }
         }
-      else if ( get_time_scheme() == RK3_FT )
+      else if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
         {
           const double intermediate_dt = compute_fractionnal_timestep_rk3( timestep/*total */, rk_step);
-          runge_kutta3_update_for_float(derivee_acceleration, store_RK3_source_acc_,
+          Schema_RK3_IJK& rk3 = ref_cast(Schema_RK3_IJK, schema_temps_ijk());
+          runge_kutta3_update_for_float(derivee_acceleration, rk3.get_store_RK3_source_acc(),
                                         terme_source_acceleration_, rk_step, timestep/*total */);
 
-          runge_kutta3_update_for_float(derivee_facteur_sv, store_RK3_fac_sv_,
+          runge_kutta3_update_for_float(derivee_facteur_sv, rk3.get_store_RK3_fac_sv(),
                                         facteur_variable_source_, rk_step, timestep/*total */);
           new_time += intermediate_dt;
         }
@@ -2290,12 +2152,12 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
       // GR : 07.01.22 : ce serai pas mal de mettre une condition if (tstep % dt_post_stats_acc_ == dt_post_stats_acc_ - 1 || stop)
       //      pour alleger le dossier OUT. Voir avec GB et AB.
       // double ff=0.;
-      int reset = (!reprise_) && (tstep_==0);
+      int reset = (!reprise_) && (schema_temps_ijk().get_tstep()==0);
       SFichier fic=Ouvrir_fichier("_acceleration.out",
                                   "1.tstep\t2.time\t3.Vx\t4.rhoVx\t5.tauw\t6.da/dt\t7.NewT\t8.acceleration\t9.fac_var_source\t10.qdm_source\t11.vap_velocity_tmoy_\t12.liq_velocity_tmoy_\t13.qdm_patch_correction_[0]\t14.qdm_patch_correction_[1]\t15.qdm_patch_correction_[2]\t16.F_sigma_moyen[0]\t17.F_sigma_moyen[1]\t18.F_sigma_moyen[2]\t19.y.F_sigma\t20.u.u\t21.F_THI[0]\t22.F_THI[1]\t23.F_THI[2]\t24.A_THI.A_THI\t25.F_THI.F_THI\t26.u.F_THI\t27.u.rho.u",
                                   reset);
       // la derivee_acceleration n'est connue que sur le maitre
-      fic<< tstep_<<" "<< time<<" "<<v_moy<<" "<<rhov_moy <<" "<<tauw ;
+      fic<< schema_temps_ijk().get_tstep()<<" "<< time<<" "<<v_moy<<" "<<rhov_moy <<" "<<tauw ;
       fic  <<" "<<derivee_acceleration <<" "<<new_time <<" "<<terme_source_acceleration_;
       fic <<" "<< facteur_variable_source_;
       fic <<" "<< 0.; //qdm_source_;
@@ -2385,15 +2247,12 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
   const double drho_alpha = -(rho_l-rho_v)*vol_gaz/vol_NS;
   const double un_sur_h = 2./ geom_NS.get_domain_length(DIRECTION_K);
   double fractional_dt;
-  if ( get_time_scheme() == RK3_FT )
-    {
-      fractional_dt = compute_fractionnal_timestep_rk3(timestep_ /* total*/, rk_step);
-    }
-  else
-    {
-      // On suppose que c'est euler :
-      fractional_dt = timestep_;
-    }
+  const double timestep = schema_temps_ijk().get_timestep();
+
+  if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
+    fractional_dt = compute_fractionnal_timestep_rk3(timestep /* total*/, rk_step);
+  else // On suppose que c'est euler :
+    fractional_dt = timestep;
 
   // Convertir en des contributions volumiques (homogene au terme source) :
   for (int direction = 0; direction < 3; direction++)
@@ -2438,7 +2297,9 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
       tauw[direction] *= -un_sur_h;
     }
 
-  if (tstep_ == 0)
+  const int tstep = schema_temps_ijk().get_tstep();
+
+  if (tstep == 0)
     {
       // L'acceleration n'est pas valide car  store_rhov_moy_^0 = rhov_moy^0 .. donc on ferait (0-0)/0...
       // Donc le residu est invalide.
@@ -2471,12 +2332,12 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
   // Impression dans un fichier dedie :
   if (Process::je_suis_maitre())
     {
-      int reset = (!reprise_) && (tstep_==0);
+      int reset = (!reprise_) && (tstep==0);
       SFichier fic=Ouvrir_fichier("_bilan_qdm.out",
                                   "tstep\ttime\tFs_theo\tFtot\trhov\ttauw\tS\tacceleration\tres\tcumul_res\tCorrFs\nConvection\tDiffusion\tPression\n# Forces have 3 components.",
                                   reset, 20/*prec*/);
 
-      fic << tstep_<<" "<< current_time_<<" "
+      fic << tstep<<" "<< schema_temps_ijk().get_current_time()<<" "
           << force_theo[0] << " "
           << force_theo[1] << " "
           << force_theo[2] << " ";
@@ -2778,6 +2639,9 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
       //
     }
 
+  const double sch_timestep = schema_temps_ijk().get_timestep();
+  const int sch_tstep = schema_temps_ijk().get_tstep();
+
   // Calcul du terme source aux interfaces pour l'ajouter a dv :
   // ATTENZIONE : Questa è una bugia. I termini di interfaccia vengono aggiunti direttamente a velocity_!
   if (!disable_diphasique_)
@@ -2884,7 +2748,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
                     {
                       // puis
                       // comme euler_explicit_update mais avec un pas de temps partiel :
-                      const double delta_t = compute_fractionnal_timestep_rk3(timestep_ /* total*/, rk_step);
+                      const double delta_t = compute_fractionnal_timestep_rk3(sch_timestep /* total*/, rk_step);
                       const int imax = terme_source_interfaces_ns_[dir].ni();
                       const int jmax = terme_source_interfaces_ns_[dir].nj();
                       for (int j = 0; j < jmax; j++)
@@ -3080,13 +2944,13 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
   if (forcage_.get_type_forcage() > 0)// && (rk_step==-1 || rk_step==0))
     {
       if (rk_step==-1)
-        compute_add_THI_force_sur_d_velocity(velocity_, tstep_, timestep_, time,
+        compute_add_THI_force_sur_d_velocity(velocity_, sch_tstep, sch_timestep, time,
                                              d_velocity_.get_domaine(),
                                              forcage_.get_facteur_forcage());//, rk_step);
       else
         {
-          const double intermediate_dt = compute_fractionnal_timestep_rk3(timestep_, rk_step);
-          compute_add_THI_force_sur_d_velocity(velocity_, tstep_, intermediate_dt, time,
+          const double intermediate_dt = compute_fractionnal_timestep_rk3(sch_timestep, rk_step);
+          compute_add_THI_force_sur_d_velocity(velocity_, sch_tstep, intermediate_dt, time,
                                                d_velocity_.get_domaine(),
                                                forcage_.get_facteur_forcage());//, rk_step);
         }
@@ -3116,7 +2980,7 @@ void Probleme_FTD_IJK_base::compute_add_external_forces(const int dir)
       integration_time=std::max(1.,integration_time); // if integrated_timescale is missing, the value of integration will be -1.e30;
       //                                            The trick is to set it to 1, as it is in fact numbers ot timesteps stored (see dirty code)
       interfaces_.compute_external_forces_(force_rappel_ft_, force_rappel_, velocity_,interfaces_.I(),interfaces_.I_ft(),
-                                           coef_immobilisation_, tstep_, current_time_,
+                                           coef_immobilisation_, schema_temps_ijk().get_tstep(), schema_temps_ijk().get_current_time(),
                                            coef_ammortissement_, coef_rayon_force_rappel_,
                                            integration_time, coef_mean_force_, coef_force_time_n_);
 
@@ -3304,7 +3168,7 @@ void Probleme_FTD_IJK_base::terme_source_gravite(IJK_Field_double& dv, int k_ind
 void Probleme_FTD_IJK_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
                                                   const int k_layer) const
 {
-  const double delta_t = timestep_;
+  const double delta_t = schema_temps_ijk().get_timestep();
   const int imax = v.ni();
   const int jmax = v.nj();
   for (int j = 0; j < jmax; j++)
@@ -3388,7 +3252,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
 
       update_pre_remeshing_indicator_field();
 
-      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, schema_temps_ijk().get_current_time());
 
       update_post_remeshing_indicator_field();
 
@@ -3410,7 +3274,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
 
       interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step, first_step_interface_smoothing);
 
-      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, schema_temps_ijk().get_current_time());
 
       interfaces_.transferer_bulle_perio();
       interfaces_.creer_duplicata_bulles();
@@ -3494,7 +3358,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const
 
       update_pre_remeshing_indicator_field();
 
-      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, schema_temps_ijk().get_current_time());
 
       update_post_remeshing_indicator_field();
 
@@ -3506,7 +3370,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const
 
       interfaces_.transporter_maillage_deformation(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep/* total meme si RK3*/, var_volume_par_bulle, rk_step);
 
-      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, current_time_);
+      interfaces_.transporter_maillage_remaillage(correction_semi_locale_volume_bulle_, vitesses_translation_bulles_, mean_bubble_rotation_vector_, centre_gravite_bulles_, timestep, var_volume_par_bulle, rk_step, schema_temps_ijk().get_current_time());
     }
 
   statistiques().end_count(deplacement_interf_counter_);
@@ -3880,13 +3744,15 @@ void Probleme_FTD_IJK_base::write_check_etapes_et_termes(int rk_step)
     {
       if (test_etapes_et_bilan_)
         {
-          int reset_test = (!reprise_) && (tstep_==0);
+          int reset_test = (!reprise_) && ( schema_temps_ijk().get_tstep() == 0 );
+
           // GAB, qdm RK3 : accurate_current_time_ = t0(1+ 1/4); t0(1+ 1/4 + 5/12); t0(1+ 1/4 + 5/12 + 1/3)
+
           double accurate_current_time = 0.0;
-          if (get_time_scheme()==EULER_EXPLICITE)
-            accurate_current_time = current_time_;
-          else if (get_time_scheme()==RK3_FT)
-            accurate_current_time = current_time_at_rk3_step_;
+          if ( sub_type(Schema_Euler_explicite_IJK, schema_temps_ijk()) )
+            accurate_current_time = schema_temps_ijk().get_current_time();
+          else if ( sub_type(Schema_Euler_explicite_IJK, schema_temps_ijk()) )
+            accurate_current_time = ref_cast(Schema_RK3_IJK, schema_temps_ijk()).get_current_time_at_rk3_step();
 
           SFichier fic_test=Ouvrir_fichier("_check_etapes_et_termes.out",
                                            "tstep\tcurrent_time\trk_step"
@@ -3907,7 +3773,7 @@ void Probleme_FTD_IJK_base::write_check_etapes_et_termes(int rk_step)
 
           // GAB, qdm
           Cout << "check etapes et termes" << finl;
-          fic_test << tstep_ << " " << accurate_current_time << " ";
+          fic_test << schema_temps_ijk().get_tstep() << " " << accurate_current_time << " ";
           fic_test << rk_step << " ";
           // Inspection a gros grain
           fic_test << rho_u_euler_av_prediction_[0] << " "
@@ -4081,7 +3947,7 @@ double Probleme_FTD_IJK_base::calculer_moyenne_de_phase_vap(const IJK_Field_doub
 
 void Probleme_FTD_IJK_base::set_time_for_corrections()
 {
-  qdm_corrections_.set_time(current_time_,timestep_,tstep_);
+  qdm_corrections_.set_time(schema_temps_ijk().get_current_time(), schema_temps_ijk().get_timestep(), schema_temps_ijk().get_tstep());
 }
 
 void Probleme_FTD_IJK_base::compute_and_add_qdm_corrections()
@@ -4270,7 +4136,7 @@ void Probleme_FTD_IJK_base::update_indicator_field()
                                         milieu_ijk().sigma(),
                                         /*Pour post-traitement : post_.rebuilt_indic()
                                         */
-                                        current_time_, tstep_
+                                        schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep()
                                        );
 }
 
@@ -4301,8 +4167,9 @@ void Probleme_FTD_IJK_base::update_old_intersections()
 void Probleme_FTD_IJK_base::write_qdm_corrections_information()
 {
   // Impression dans le fichier qdm_correction.out
-  if (get_time_scheme() == RK3_FT) // && (rk3_sub_step!=0)
-    Cout << "in write_qdm_corrections_information, rk_step_ = "<<rk_step_<<finl;
+  if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) ) // && (rk3_sub_step!=0)
+    Cout << "in write_qdm_corrections_information, rk_step = " << ref_cast(Schema_RK3_IJK, schema_temps_ijk()).get_rk_step() << finl;
+
   Vecteur3 qdm_cible = qdm_corrections_.get_correction_values();
   Vecteur3 velocity_correction = qdm_corrections_.get_velocity_corrections();
   Vecteur3 rho_vel;
@@ -4310,13 +4177,13 @@ void Probleme_FTD_IJK_base::write_qdm_corrections_information()
 
   if (Process::je_suis_maitre())
     {
-      int reset = (!reprise_) && (tstep_==0);
+      int reset = (!reprise_) && (schema_temps_ijk().get_tstep()==0);
       SFichier fic=Ouvrir_fichier("_qdm_correction.out",
                                   "1.iteration\t2.time\t3.qdm_cible[0]\t4.qdm_cible[1]\t5.qdm_cible[2]\t6.velocity_correction[0]\t7.velocity_correction[1]\t8.velocity_correction[2]\t9.qdm[0]\t10.qdm[1]\t11.qdm[2]",
                                   reset);
       // temps
-      fic << tstep_ << " ";
-      fic << current_time_ << " ";
+      fic << schema_temps_ijk().get_tstep() << " ";
+      fic << schema_temps_ijk().get_current_time() << " ";
       // CIBLE CONSTANE : qdm_cible = al.rl.u_cible
       fic << qdm_cible[0] << " ";
       fic << qdm_cible[1] << " ";
@@ -4334,7 +4201,6 @@ void Probleme_FTD_IJK_base::write_qdm_corrections_information()
       //     << finl;
     }
 }
-
 
 // -----------------------------------------------------------------------------------
 //  PRODUITS DE CHAMPS

@@ -121,7 +121,7 @@ double IJK_Thermals::get_modified_time()
 {
   double modified_time;
   if (est_vide())
-    modified_time = ref_ijk_ft_->get_current_time();
+    modified_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   else
     modified_time = 0.;
   for (auto& itr : *this)
@@ -487,7 +487,7 @@ void IJK_Thermals::set_latastep_reprise(const bool stop)
 {
   if (stop)
     for (auto& itr : (*this))
-      itr->set_latastep_reprise(ref_ijk_ft_->get_tstep() + 1);
+      itr->set_latastep_reprise(ref_ijk_ft_->schema_temps_ijk().get_tstep() + 1);
 }
 
 void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_probes)
@@ -503,7 +503,7 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
       int rank = 0;
       for (auto& itr : (*this))
         {
-          const int last_time = ref_ijk_ft_->get_tstep() + lata_step_reprise_ini_[rank];
+          const int last_time = ref_ijk_ft_->schema_temps_ijk().get_tstep() + lata_step_reprise_ini_[rank];
           const int max_digit_time = 8;
           const int nb_digit_tstep = last_time < 1 ? 1 : (int) (log10(last_time) + 1);
           Nom prefix_local_quantities = thermal_rank_folder_[rank] + "/";
@@ -535,9 +535,9 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
                                             local_quantities_thermal_slices_time_index_folder,
                                             local_quantities_thermal_lines_time_index_folder);
           // .sauv written before the post-processing on probes
-          int latastep_reprise = lata_step_reprise_ini_[rank] + ref_ijk_ft_->get_tstep() + 2;
-          const int nb_dt_max = ref_ijk_ft_->get_nb_timesteps();
-          if ((ref_ijk_ft_->get_tstep() + dt_post_thermals_probes) >= nb_dt_max)
+          int latastep_reprise = lata_step_reprise_ini_[rank] + ref_ijk_ft_->schema_temps_ijk().get_tstep() + 2;
+          const int nb_dt_max = ref_ijk_ft_->schema_temps_ijk().get_nb_timesteps();
+          if ((ref_ijk_ft_->schema_temps_ijk().get_tstep() + dt_post_thermals_probes) >= nb_dt_max)
             latastep_reprise = nb_dt_max + 1;
           itr->set_latastep_reprise(latastep_reprise);
           rank++;

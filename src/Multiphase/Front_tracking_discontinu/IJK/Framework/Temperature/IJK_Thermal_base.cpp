@@ -451,7 +451,7 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
    * RK3 sub-steps
    * Check that pointer is not null:
    */
-  if (ref_ijk_ft_.non_nul() && ref_ijk_ft_->get_time_scheme()== ref_ijk_ft_->RK3_FT)
+  if (ref_ijk_ft_.non_nul() && sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()))
     {
       RK3_F_temperature_->allocate(splitting, Domaine_IJK::ELEM, 0);
       nalloc +=1;
@@ -723,7 +723,7 @@ void IJK_Thermal_base::remplir_tableau_pure_cellules_diphasiques(bool next_time)
 
 double IJK_Thermal_base::get_modified_time()
 {
-  return ref_ijk_ft_->get_current_time();
+  return ref_ijk_ft_->schema_temps_ijk().get_current_time();
 }
 
 void IJK_Thermal_base::get_rising_velocities_parameters(int& compute_rising_velocities,
@@ -856,7 +856,7 @@ void IJK_Thermal_base::update_thermal_properties()
 
   // Semble un endroit approprie pour calculer la variation d'energie due au transport de l'interface:
   const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<"-2-TransportIndic] time t=" << ref_ijk_ft_->get_current_time()
+  Cerr << "[Energy-Budget-T"<<rang_<<"-2-TransportIndic] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
        << " " << ene_ini
        << " " << ene_post
        << " delta=" << ene_post-ene_ini << " [W.m-3]." << finl;
@@ -956,7 +956,7 @@ void IJK_Thermal_base::euler_time_step(const double timestep)
   temperature_->echange_espace_virtuel(temperature_->ghost());
   const double ene_post = compute_global_energy();
   Cerr << "[Energy-Budget-T" << rang_ << "]"
-       << " time t=" << ref_ijk_ft_->get_current_time()
+       << " time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
        << " " << ene_ini
        << " " << ene_post << " [W.m-3]." << finl;
   source_callback();
@@ -977,7 +977,7 @@ void IJK_Thermal_base::rk3_sub_step(const int rk_step, const double total_timest
     }
   temperature_->echange_espace_virtuel(temperature_->ghost());
   const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<"] time t=" << ref_ijk_ft_->get_current_time()
+  Cerr << "[Energy-Budget-T"<<rang_<<"] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
        << " " << ene_ini
        << " " << ene_post << " [W.m-3]. [step"<< rk_step << "]" << finl;
   source_callback();
@@ -989,7 +989,7 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
   timestep_reprise_temperature_ = 1;
   dumplata_scalar(lata_name, Nom("TEMPERATURE_") + Nom(idx) , *temperature_, 0 /*we store a 0 */);
   if (stop)
-    latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->get_tstep() + 1;
+    latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->schema_temps_ijk().get_tstep() + 1;
 }
 
 /********************************************
@@ -1018,7 +1018,7 @@ void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
   static Stat_Counter_Id cnt_upstream_temperature = statistiques().new_counter(2, "Upstream temperature");
   // static Stat_Counter_Id cnt_cell_temperature_second = statistiques().new_counter(1, "Temperature Cell centre - Second call");
 
-  const double current_time = ref_ijk_ft_->get_current_time();
+  const double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   const double ene_ini = compute_global_energy(*d_temperature_);
 
   /*
@@ -1793,7 +1793,7 @@ void IJK_Thermal_base::add_temperature_source()
           Cerr << "AY-test_source 111 : " <<  source_temperature_(1,1,1) << finl;
           Cerr << "AY-test_source vol : " <<  vol_ << finl;
           Cerr << "source_temp " << " " << d_temperature(1,1,1) << finl;
-          const double current_time = ref_ijk_ft_->get_current_time();
+          const double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
 
           // GB : Ma comprehension est que ce ne sont pas des champs, mais un scalaire unique
           const double Sl = source_temperature_l_(0,0,0);
@@ -1906,7 +1906,7 @@ void IJK_Thermal_base::calculer_temperature_adim_bulles()
   const int ntot = temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_I)
                    *temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_J)
                    *temperature.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
-  const double time = ref_ijk_ft_->get_current_time();
+  const double time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   Cerr << "Tl_test : time= "<< time << " alpha_l= " << Vl/ntot<< "  TI=" <<Tl*Vl/ntot<< " Tl="<< Tl << finl;
   Cerr << "Tv_test : time= "<< time << " alpha_v= " << Vv/ntot<< " TIv=" <<Tv*Vv/ntot<< " Tv="<< Tv << finl;
 
@@ -1936,12 +1936,12 @@ void IJK_Thermal_base::calculer_temperature_adim_bulles()
   // Impression dans le fichier temperature_bulles.out
   if (Process::je_suis_maitre())
     {
-      int reset = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep()==0);
+      int reset = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->schema_temps_ijk().get_tstep()==0);
       SFichier fic=Ouvrir_fichier(Nom("_source_temperature_")+Nom(rang_)+Nom("_bulles.out"),
                                   "tstep\ttime\tTl\tTv\tEtot\tElpu\tEl\tEvpu\tEv\tEm",
                                   reset);
       // la derivee_acceleration n'est connue que sur le maitre
-      fic<< ref_ijk_ft_->get_tstep()<<" "<< ref_ijk_ft_->get_current_time() <<" "<< Tl << " " << Tv << " " << E_tot;
+      fic<< ref_ijk_ft_->schema_temps_ijk().get_tstep()<<" "<< ref_ijk_ft_->schema_temps_ijk().get_current_time() <<" "<< Tl << " " << Tv << " " << E_tot;
       fic<< " " << E_liq_pure <<  " " << E_liq;
       fic<< " " << E_vap_pure <<  " " << E_vap;
       fic<< " " << E_mixt;
@@ -2008,10 +2008,10 @@ void IJK_Thermal_base::calculer_source_temperature_ana()
   if (liste_post_instantanes_.contient_("ECART_SOURCE_TEMPERATURE_ANA"))
     {
       if (!liste_post_instantanes_.contient_("SOURCE_TEMPERATURE_ANA"))
-        set_field_data(source_temperature_ana_, expression_source_temperature_, ref_ijk_ft_->get_velocity()[0], ref_ijk_ft_->get_current_time());
+        set_field_data(source_temperature_ana_, expression_source_temperature_, ref_ijk_ft_->get_velocity()[0], ref_ijk_ft_->schema_temps_ijk().get_current_time());
       // do some work
 
-      double ct = ref_ijk_ft_->get_current_time();
+      double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
       Cerr << "MR: ERROR SOURCE T FIELD " << ct;
       double err = 0.;
       //set_field_data(source_temperature_ana_, curseur->expression_source_T_ana_, ct);
@@ -2122,12 +2122,12 @@ void IJK_Thermal_base::calculer_Nusselt(const IJK_Field_double& vx)
   // Impression dans le fichier source_temperature.out
   if (Process::je_suis_maitre())
     {
-      int reset = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->get_tstep() == 0);
+      int reset = (!ref_ijk_ft_->get_reprise()) && (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0);
       const Nom name = Nom("_temperature_") + Nom(rang_) + Nom(".out");
       SFichier fic = Ouvrir_fichier(name,
                                     "tstep\ttime\ttheta_adim_moy\tNu\trho_cp_u",
                                     reset);
-      fic << ref_ijk_ft_->get_tstep() << " " << ref_ijk_ft_->get_current_time() << " " << theta_adim_moy << " " << Nu << " " << rho_cp_u_moy  << finl;
+      fic << ref_ijk_ft_->schema_temps_ijk().get_tstep() << " " << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " " << theta_adim_moy << " " << Nu << " " << rho_cp_u_moy  << finl;
       fic.close();
     }
 }
@@ -2135,7 +2135,7 @@ void IJK_Thermal_base::calculer_Nusselt(const IJK_Field_double& vx)
 void IJK_Thermal_base::set_field_T_ana()
 {
   Cerr << "Setting analytical temperature "<< rang_ <<" field to "<< expression_T_ana_ << finl;
-  set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->get_current_time());
+  set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
 }
 
 void IJK_Thermal_base::calculer_ecart_T_ana()
@@ -2146,11 +2146,11 @@ void IJK_Thermal_base::calculer_ecart_T_ana()
 
       if (!liste_post_instantanes_.contient_("TEMPERATURE_ANA"))
         {
-          set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->get_current_time());
+          set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
         }
       // do some work
 
-      double ct = ref_ijk_ft_->get_current_time();
+      double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
       Cerr << "GB: ERROR T FIELD " << ct;
       double err = 0.;
       set_field_data(temperature_ana_, expression_T_ana_, ct);
@@ -2374,7 +2374,7 @@ void IJK_Thermal_base::euler_rustine_step(const double timestep, const double dE
     ref_ijk_ft_->euler_explicit_update(d_T_rustine_, *temperature_, k);
   temperature_->echange_espace_virtuel(temperature_->ghost());
   const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<" euler rustine] time t=" << ref_ijk_ft_->get_current_time()
+  Cerr << "[Energy-Budget-T"<<rang_<<" euler rustine] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
        << " " << ene_ini
        << " " << ene_post << " [W.m-3]."
        << " dE "<< dE
@@ -2426,7 +2426,7 @@ void IJK_Thermal_base::rk3_rustine_sub_step(const int rk_step, const double tota
     }
   temperature_->echange_espace_virtuel(temperature_->ghost());
   const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<"RK3 rustine step "<<rk_step<<"] time t=" << ref_ijk_ft_->get_current_time()
+  Cerr << "[Energy-Budget-T"<<rang_<<"RK3 rustine step "<<rk_step<<"] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
        << " " << ene_ini
        << " " << ene_post << " [W.m-3]. [step"<< rk_step << "]" << finl;
   source_callback();

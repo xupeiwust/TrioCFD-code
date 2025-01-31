@@ -282,7 +282,7 @@ void Corrige_flux_FT_temperature_subresolution::compute_temperature_cell_centre(
 
       if (debug_)
         {
-          Cerr << "Time-step: " << ref_ijk_ft_->get_tstep() << "--" << ref_ijk_ft_->get_timestep() << " s" << finl;
+          Cerr << "Time-step: " << ref_ijk_ft_->schema_temps_ijk().get_tstep() << "--" << ref_ijk_ft_->schema_temps_ijk().get_timestep() << " s" << finl;
           if (!distance_cell_faces_from_lrs_)
             {
               Cerr << "Distance at cell : " << intersection_ijk_cell_index <<
@@ -569,7 +569,7 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
   else
     nb_k_layer = ref_ijk_ft_->itfce().I().nk();
 
-  const int first_iter = !(ref_ijk_ft_->get_tstep());
+  const int first_iter = !(ref_ijk_ft_->schema_temps_ijk().get_tstep());
 
   int dir, l;
   if (first_iter)
@@ -604,7 +604,7 @@ void Corrige_flux_FT_temperature_subresolution::initialise_any_cell_neighbours_i
   else
     nb_k_layer = ref_ijk_ft_->itfce().I().nk();
 
-  const int first_iter = !(ref_ijk_ft_->get_tstep());
+  const int first_iter = !(ref_ijk_ft_->schema_temps_ijk().get_tstep());
 
   if (first_iter)
     {

@@ -353,7 +353,7 @@ void IJK_One_Dimensional_Subproblems::share_previous_temperature_indicator_veloc
 {
   const int nk_tot = ref_ijk_ft_->get_domaine().get_nb_elem_tot(2);
 
-  if (ref_ijk_ft_->get_tstep() == 0)
+  if (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0)
     {
       for (int ij = 0; ij<2; ij++)
         index_ij_subproblems_local_perio_[ij].resize(nk_tot);
@@ -1332,7 +1332,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs_parallel(con
    * Post-process all probes for interfacial quantities
    */
   const int reset = 1;
-  const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
+  const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + (*latastep_reprise_);
   const int max_digit = 3;
   const int max_digit_time = 8;
   const int max_rank_digit = rank < 1 ? 1 : (int) (log10(rank) + 1);
@@ -1386,7 +1386,7 @@ void IJK_One_Dimensional_Subproblems::thermal_subresolution_outputs(const int& r
    */
   Cerr << "Post-processing on the probes" << finl;
   const int reset = 1;
-  const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
+  const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + (*latastep_reprise_);
   Nom probe_header = Nom("tstep\tthermal_rank\tpost_pro_index\tglobal_subproblem\tlocal_subproblem\ttime"
                          "\tcoord\tnx\tny\tnz\tt1x\tt1y\tt2z\tt2x\tt2y\tt2z\ts1x\ts1y\ts1z\ts2x\ts2y\ts2z"
                          "\tr_sph\ttheta_sph\tphi_sph"
@@ -2858,7 +2858,7 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
   if (Process::je_suis_maitre())
     {
       const int reset = 1;
-      const int last_time_index = (*latastep_reprise_) + ref_ijk_ft_->get_tstep();
+      const int last_time_index = (*latastep_reprise_) + ref_ijk_ft_->schema_temps_ijk().get_tstep();
       const int max_digit = 3;
       const int max_digit_time = 8;
       const int max_rank_digit = rank < 1 ? 1 : (int) (log10(rank) + 1);
@@ -2930,7 +2930,7 @@ void IJK_One_Dimensional_Subproblems::post_process_overall_bubbles_quantities(co
                              "\tnusselt_number_lrs_entering_face_fluxes\tnusselt_number_lrs_entering_face_fluxes_liquid");
       SFichier fic = Open_file_folder(overall_bubbles_quantities, probe_name, probe_header, reset);
       int max_counter = nb_bubbles_;
-      const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
+      const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
       const double dimensionless_time = caracteristic_length_ / (1e-16 + sqrt(M_PI * last_time * uniform_alpha_));
       /*
        * TODO: fill the Array in parallel

@@ -346,7 +346,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
 
   const Cut_field_vector3_double& cut_field_total_velocity = ref_ijk_ft_cut_cell_->get_cut_field_velocity();
 
-  const double current_time = ref_ijk_ft_cut_cell_->get_current_time();
+  const double current_time = ref_ijk_ft_cut_cell_->schema_temps_ijk().get_current_time();
 
   // Toujours necessaire, ou presque
   calculer_flux_interface_old(methode_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_->get_cut_cell_facettes_interpolation(), flux_interface_ft_scalar_old_);
@@ -586,7 +586,7 @@ void IJK_Thermal_cut_cell::sauvegarder_temperature(Nom& lata_name, int idx, cons
   timestep_reprise_temperature_ = 1;
   dumplata_scalar_cut_cell(true, lata_name, Nom("TEMPERATURE_") + Nom(idx) , temperature_, 0 /*we store a 0 */);
   if (stop)
-    latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->get_tstep() + 1;
+    latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->schema_temps_ijk().get_tstep() + 1;
 }
 
 

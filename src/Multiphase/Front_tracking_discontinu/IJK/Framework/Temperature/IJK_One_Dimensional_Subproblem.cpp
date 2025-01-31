@@ -1188,7 +1188,7 @@ void IJK_One_Dimensional_Subproblem::compute_modified_probe_length_vertex_condit
 
 void IJK_One_Dimensional_Subproblem::compute_modified_probe_length_temporal_condition()
 {
-  const double current_time = ref_ijk_ft_->get_current_time();
+  const double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   cfl_probe_length_ = (max_u_ * current_time) / local_cfl_; // Add 3D constants ?
   fourier_probe_length_ = sqrt(((*alpha_ * (current_time + global_time_step_))) / local_fourier_); // Add 3D constants ?
   max_cfl_fourier_probe_length_ = std::max(cfl_probe_length_, fourier_probe_length_);
@@ -2198,14 +2198,14 @@ void IJK_One_Dimensional_Subproblem::retrieve_previous_temperature_on_probe()
     temperature_previous_ = temperature_interp_;
   else
     {
-      if (ref_ijk_ft_->get_tstep() == 0)
+      if (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0)
         {
           temperature_previous_.resize((*points_per_thermal_subproblem_));
           const double radius_ini = osculating_radius_;
           for (int i=0; i<(*points_per_thermal_subproblem_); i++)
             temperature_previous_[i] = delta_T_subcooled_overheated_ - delta_T_subcooled_overheated_
                                        * (radius_ini / osculating_radial_coordinates_[i])
-                                       * (1 - erf( (*radial_coordinates_)[i] / (2 * sqrt((*alpha_) * ref_ijk_ft_->get_current_time())) ) );
+                                       * (1 - erf( (*radial_coordinates_)[i] / (2 * sqrt((*alpha_) * ref_ijk_ft_->schema_temps_ijk().get_current_time())) ) );
         }
       else
         {
@@ -4166,8 +4166,8 @@ void IJK_One_Dimensional_Subproblem::retrieve_interfacial_quantities(const int r
                                                                      std::map<std::string, ArrOfDouble>& results_probes_double,
                                                                      const int& coord)
 {
-  const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
-  const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
+  const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
+  const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + (*latastep_reprise_);
   std::vector<int> results_int =
   {
     last_time_index, rank, index_post_processing_, global_subproblem_index_, sub_problem_index_
@@ -4253,8 +4253,8 @@ void IJK_One_Dimensional_Subproblem::post_process_interfacial_quantities(SFichie
   {
     if (is_updated_)
       {
-        const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
-        const int last_time_index = ref_ijk_ft_->get_tstep() + (*latastep_reprise_);
+        const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
+        const int last_time_index = ref_ijk_ft_->schema_temps_ijk().get_tstep() + (*latastep_reprise_);
         fic << last_time_index << " ";
         fic << rank << " " << index_post_processing_ << " " << global_subproblem_index_ << " " << sub_problem_index_ << " ";
         fic << last_time << " ";
@@ -4328,7 +4328,7 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
       {
         const int reset = 1;
         const int max_digit = 8;
-        const int last_time_index = (*latastep_reprise_) + ref_ijk_ft_->get_tstep();
+        const int last_time_index = (*latastep_reprise_) + ref_ijk_ft_->schema_temps_ijk().get_tstep();
         const int nb_digit_index_post_pro = index_post_processing_ < 1 ? 1 : (int) (log10(index_post_processing_) + 1);
         const int nb_digit_index_global = global_subproblem_index_ < 1 ? 1 : (int) (log10(global_subproblem_index_) + 1);
         const int nb_digit_tstep = last_time_index < 1 ? 1 : (int) (log10(last_time_index) + 1);
@@ -4379,7 +4379,7 @@ void IJK_One_Dimensional_Subproblem::post_process_radial_quantities(const int ra
                                "\trising_vel_x\trising_vel_y\trising_vel_z"
                                "\trising_vel");
         SFichier fic = Open_file_folder(local_quantities_thermal_probes_time_index_folder, probe_name, probe_header, reset);
-        const double last_time = ref_ijk_ft_->get_current_time() - ref_ijk_ft_->get_timestep();
+        const double last_time = ref_ijk_ft_->schema_temps_ijk().get_current_time() - ref_ijk_ft_->schema_temps_ijk().get_timestep();
         for (int i=0; i<(*points_per_thermal_subproblem_); i++)
           {
             fic << last_time_index << " ";

@@ -39,7 +39,52 @@ public :
   double temps_defaut() const override { return temps_courant() + pas_de_temps(); }
 
   // a surcharger si utile
-  void completer() override { /* Do nothing */ }
+  void completer() override;
+  double computeTimeStep(bool& stop) const override;
+
+  void set_param(Param& ) override;
+  void set_param_reprise_pb(Param& );
+
+  double get_dt_cfl() const { return dt_cfl_; }
+  double get_dt_fo() const { return dt_fo_; }
+  double get_dt_oh() const { return dt_oh_; }
+  double get_dt_cfl_liq() const { return dt_cfl_liq_; }
+  double get_dt_cfl_vap_() const { return dt_cfl_vap_; }
+  double get_dt_fo_liq() const { return dt_fo_liq_; }
+  double get_dt_fo_vap_() const { return dt_fo_vap_; }
+  double get_timestep_facsec() const { return timestep_facsec_; }
+  double get_modified_time_ini() const { return modified_time_ini_; }
+  double get_max_simu_time() const { return max_simu_time_; }
+  double get_current_time() const { return temps_courant(); }
+  double get_timestep() const { return pas_de_temps(); } // en double
+  double& set_timestep() { return set_dt(); } // en double
+
+  int get_nb_timesteps() const { return nb_pas_dt_max() ; }
+  int get_tstep() const { return nb_pas_dt(); }
+  int& get_tstep() { return nb_pas_dt_; }
+  int get_tstep_init() const { return tstep_init_; }
+  int get_tstep_sauv() const { return tstep_sauv_; }
+  int get_use_tstep_init() const { return use_tstep_init_; }
+  int& get_first_step_interface_smoothing() { return first_step_interface_smoothing_; }
+  int get_first_step_interface_smoothing() const { return first_step_interface_smoothing_; }
+  int get_enable_dt_oh_ideal_length_factor() const { return enable_dt_oh_ideal_length_factor_; }
+
+  double find_timestep(const double max_timestep, const double cfl, const double fo, const double oh);
+
+  void set_modified_time_ini(const double t) { modified_time_ini_ = t; }
+  void set_max_timestep(const double t) { max_timestep_ = t; }
+  void set_current_time(const double t) { changer_temps_courant(t); }
+  void set_tstep_sauv(const int ts) { tstep_sauv_ = ts; }
+
+protected:
+  double dt_cfl_ = 1.e20, dt_fo_ = 1.e20, dt_oh_ = 1.e20, dt_fo_liq_ = 1.e20;
+  double dt_fo_vap_ = 1.e20, dt_cfl_liq_ = 1.e20, dt_cfl_vap_ = 1.e20;
+  double timestep_facsec_ = 1., max_simu_time_ = 1e6;
+  double modified_time_ini_ = 0., max_timestep_ = -123.;
+  double cfl_ = 1., fo_ = 1., oh_ = 1.;
+
+  int enable_dt_oh_ideal_length_factor_ = 0, first_step_interface_smoothing_ = 0;
+  int tstep_sauv_ = 0, tstep_init_ = 0, use_tstep_init_ = 0;
 };
 
 #endif /* Schema_Temps_IJK_base_included */
