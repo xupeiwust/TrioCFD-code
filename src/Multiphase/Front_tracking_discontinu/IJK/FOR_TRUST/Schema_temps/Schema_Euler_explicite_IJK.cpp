@@ -14,51 +14,14 @@
 *****************************************************************************/
 
 #include <Schema_Euler_explicite_IJK.h>
-#include <Equation_base.h>
 
-Implemente_instanciable(Schema_Euler_explicite_IJK,"Schema_euler_explicite_IJK",Schema_Euler_explicite);
+Implemente_instanciable(Schema_Euler_explicite_IJK, "Schema_euler_explicite_IJK", Schema_Temps_IJK_base);
 
 Sortie& Schema_Euler_explicite_IJK::printOn(Sortie& s) const { return  Schema_Temps_base::printOn(s); }
 
 Entree& Schema_Euler_explicite_IJK::readOn(Entree& s) { return Schema_Temps_base::readOn(s) ; }
 
-/*! @brief Effectue un pas de temps d'Euler explicite sur l'equation passee en parametre.
- *
- */
 int Schema_Euler_explicite_IJK::faire_un_pas_de_temps_eqn_base(Equation_base& eqn)
 {
-//  DoubleTab& present = eqn.inconnue().valeurs(); // Un
-//  DoubleTab& futur = eqn.inconnue().futur();   // Un+1
-//  DoubleTrav dudt(futur); // just for initializing the array structure ... Trav is highly recommanded!! Otherwise we allocate at each time step!!
-//
-//  /*
-//   * The strategy done in the explicit schemes is to prescribe CL at time n+1
-//   *  at the begining of the time step, turning the wheel (avancer/reculer) to use
-//   *  it in derivee_en_temps_inco (so that valeurs() points to futur() only for BC).
-//   *
-//   * It influences only two cases
-//   *     - Time dependent BCs (champ_fonc_txyz ou ICoCo) or function (champ_fonc_fonction) => Here it only shifts the
-//   *        applied BC by one time step, but does not change the order of the scheme
-//   *
-//   *     - Coupled cases (paroi contact) => Here it is mandatory to have the equality of the fluxes at the coupled boundary
-//   *
-//   *     See the out files of docond/docond_vef
-//   */
-//
-//  // Boundary conditions applied on Un+1:
-//  eqn.domaine_Cl_dis().imposer_cond_lim(eqn.inconnue(), temps_courant() + pas_de_temps());
-//
-//  eqn.inconnue().avancer();
-//  eqn.derivee_en_temps_inco(dudt);
-//  eqn.inconnue().reculer();
-//
-//  // Un+1=Un+dt_*dU/dt
-//  futur = dudt;
-//  futur *= dt_;
-//  futur += present;
-//
-//  eqn.domaine_Cl_dis().imposer_cond_lim(eqn.inconnue(), temps_courant() + pas_de_temps());
-//  update_critere_statio(dudt, eqn);
-
   return 1;
 }

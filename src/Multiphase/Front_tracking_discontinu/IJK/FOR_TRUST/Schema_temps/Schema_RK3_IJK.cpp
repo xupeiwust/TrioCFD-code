@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2022, CEA
+* Copyright (c) 2024, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -13,21 +13,14 @@
 *
 *****************************************************************************/
 
-#ifndef Schema_Euler_explicite_IJK_included
-#define Schema_Euler_explicite_IJK_included
+#include <Schema_RK3_IJK.h>
 
-#include <Schema_Temps_IJK_base.h>
+Implemente_instanciable(Schema_RK3_IJK, "Schema_RK3_IJK", Schema_Temps_IJK_base);
 
-/*! @brief Explicit Euler scheme for IJK setups.
- *
- * @sa Schema_Temps_base
- */
-class Schema_Euler_explicite_IJK: public Schema_Temps_IJK_base
+Sortie& Schema_RK3_IJK::printOn(Sortie& s) const { return Schema_Temps_IJK_base::printOn(s); }
+Entree& Schema_RK3_IJK::readOn(Entree& s) { return Schema_Temps_IJK_base::readOn(s); }
+
+int Schema_RK3_IJK::faire_un_pas_de_temps_eqn_base(Equation_base& eqn)
 {
-  Declare_instanciable(Schema_Euler_explicite_IJK);
-
-public :
-  int faire_un_pas_de_temps_eqn_base(Equation_base&) override;
-};
-
-#endif /* Schema_Euler_explicite_IJK_included */
+  return 1;
+}

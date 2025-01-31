@@ -13,21 +13,33 @@
 *
 *****************************************************************************/
 
-#ifndef Schema_Euler_explicite_IJK_included
-#define Schema_Euler_explicite_IJK_included
+#ifndef Schema_Temps_IJK_base_included
+#define Schema_Temps_IJK_base_included
 
-#include <Schema_Temps_IJK_base.h>
+#include <Schema_Temps_base.h>
 
-/*! @brief Explicit Euler scheme for IJK setups.
- *
- * @sa Schema_Temps_base
- */
-class Schema_Euler_explicite_IJK: public Schema_Temps_IJK_base
+class Schema_Temps_IJK_base: public Schema_Temps_base
 {
-  Declare_instanciable(Schema_Euler_explicite_IJK);
-
+  Declare_base(Schema_Temps_IJK_base);
 public :
-  int faire_un_pas_de_temps_eqn_base(Equation_base&) override;
+  // Renvoie le nombre de valeurs temporelles a conserver. Ici : n et n+1, donc 2.
+  int nb_valeurs_temporelles() const override { return 2 ; }
+
+  // Renvoie le nombre de valeurs temporelles futures. Ici : n+1, donc 1.
+  int nb_valeurs_futures() const override { return 1 ; }
+
+  // Renvoie le le temps a la i-eme valeur future. Ici : t(n+1)
+  double temps_futur(int i) const override
+  {
+    assert(i == 1);
+    return temps_courant() + pas_de_temps();
+  }
+
+  // Renvoie le le temps le temps que doivent rendre les champs a l'appel de valeurs(). Ici : t(n+1)
+  double temps_defaut() const override { return temps_courant() + pas_de_temps(); }
+
+  // a surcharger si utile
+  void completer() override { /* Do nothing */ }
 };
 
-#endif /* Schema_Euler_explicite_IJK_included */
+#endif /* Schema_Temps_IJK_base_included */
