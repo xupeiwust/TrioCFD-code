@@ -141,8 +141,8 @@ void IJK_Thermal_Onefluid::update_thermal_properties()
   const int nx = indic.ni();
   const int ny = indic.nj();
   const int nz = indic.nk();
-  const double rho_l = ref_ijk_ft_->get_rho_l();
-  const double rho_v = ref_ijk_ft_->get_rho_v();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   const bool harmonic_mean = ((!lambda_moy_arith_) and (lambda_liquid_ > DMINFLOAT) and (lambda_vapour_ >DMINFLOAT));
   const bool rho_cp_harmonic_mean = ((rho_cp_moy_harmonic_) and (rho_l*cp_liquid_ > DMINFLOAT) and (rho_v*cp_vapour_ >DMINFLOAT));
   for (int k=0; k < nz ; k++)
@@ -241,8 +241,8 @@ double IJK_Thermal_Onefluid::compute_rho_cp_u_mean(const IJK_Field_double& vx)
   double rho_cp_u_mean = 0.;
   if (rho_cp_moy_harmonic_)
     {
-      const double rho_l = ref_ijk_ft_->get_rho_l();
-      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       const bool rho_cp_harmonic_mean = ((rho_cp_moy_harmonic_) and (rho_l*cp_liquid_ > DMINFLOAT) and (rho_v*cp_vapour_ >DMINFLOAT));
       if (rho_cp_harmonic_mean)
         rho_cp_u_mean = calculer_rho_cp_u_moyen(vx, rho_cp_inv_, vx, 0., 3);
@@ -268,8 +268,8 @@ double IJK_Thermal_Onefluid::get_rho_cp_ijk(int i, int j, int k) const
   double rho_cp = 0.;
   if (rho_cp_moy_harmonic_)
     {
-      const double rho_l = ref_ijk_ft_->get_rho_l();
-      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       const bool rho_cp_harmonic_mean = ((rho_cp_moy_harmonic_) and (rho_l*cp_liquid_ > DMINFLOAT) and (rho_v*cp_vapour_ >DMINFLOAT));
       if (rho_cp_harmonic_mean)
         rho_cp = 1 / rho_cp_inv_(i,j,k);
@@ -305,8 +305,8 @@ double IJK_Thermal_Onefluid::compute_temperature_dimensionless_theta_mean(const 
   double theta_adim_moy = 0.;
   if (rho_cp_moy_harmonic_)
     {
-      const double rho_l = ref_ijk_ft_->get_rho_l();
-      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       const bool rho_cp_harmonic_mean = ((rho_cp_moy_harmonic_) and (rho_l*cp_liquid_ > DMINFLOAT) and (rho_v*cp_vapour_ >DMINFLOAT));
       if (rho_cp_harmonic_mean)
         theta_adim_moy = calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, rho_cp_inv_, vx, 0., 3);

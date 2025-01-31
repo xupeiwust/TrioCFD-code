@@ -422,7 +422,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
       compute_rising_velocity(ref_ijk_ft_->get_velocity(),
                               ref_ijk_ft_->itfce(),
                               eulerian_compo_connex_from_interface_int_ns_,
-                              ref_ijk_ft_->get_direction_gravite(),
+                              ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
                               rising_velocities_,
                               rising_vectors_,
                               liquid_velocity_,

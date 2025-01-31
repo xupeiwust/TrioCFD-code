@@ -244,8 +244,8 @@ void IJK_Thermal_cut_cell::update_thermal_properties()
   const int nx = indic.ni();
   const int ny = indic.nj();
   const int nz = indic.nk();
-  const double rho_l = ref_ijk_ft_cut_cell_->get_rho_l();
-  const double rho_v = ref_ijk_ft_cut_cell_->get_rho_v();
+  const double rho_l = ref_ijk_ft_cut_cell_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_cut_cell_->milieu_ijk().get_rho_vapour();
   for (int k=0; k < nz ; k++)
     for (int j=0; j< ny; j++)
       for (int i=0; i < nx; i++)
@@ -588,6 +588,7 @@ void IJK_Thermal_cut_cell::sauvegarder_temperature(Nom& lata_name, int idx, cons
   if (stop)
     latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->get_tstep() + 1;
 }
+
 
 void cut_cell_reinit_streamObj(std::ostringstream& streamObj, const double& param)
 {

@@ -42,7 +42,6 @@
 #include <vector>
 #include <map>
 
-// #define SMOOTHING_RHO
 // #define GB_VERBOSE
 
 // permet de preciser la methode utilisee pour mettre a jour l'indicatrice
@@ -6254,13 +6253,6 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                               // Calcul du gradient a la face :
                               double gradient_indic = (indic_voisin - indic) / delta_dir * signe;
 
-#ifdef SMOOTHING_RHO
-                              if ((fabs(gradient_indic) > 1e-6) && (fabs(phi_face) < 1e-6))
-                                {
-                                  Cerr << " Est-ce un point lisse? " << finl;
-                                  //    Process::exit();
-                                }
-#endif
 
                               // terme de repulsion
                               // parcourir les elements voisins jusqu'a une distance d (en
@@ -7998,9 +7990,6 @@ void IJK_Interfaces::calculer_indicatrice_next(
   // force par exemple).
 
   val_par_compo_in_cell_computation_.calculer_valeur_par_compo(
-#ifdef SMOOTHING_RHO
-    delta_rho,
-#endif
     time, itstep,
     nb_compo_traversante_[next()],
     compos_traversantes_[next()],

@@ -142,7 +142,7 @@ int IJK_Energie::initialize(const IJK_Splitting& splitting, const int idx)
 
   cp_.initialize(cp_liquid_, cp_vapor_);
   lda_.initialize(lambda_liquid_, lambda_vapor_);
-  rho_.initialize(ref_ijk_ft_->get_rho_l(), ref_ijk_ft_->get_rho_v());
+  rho_.initialize(ref_ijk_ft_->milieu_ijk().get_rho_liquid(), ref_ijk_ft_->milieu_ijk().get_rho_vapour());
   rho_cp_ = rho_ * cp_;
 
   int nalloc = 0;

@@ -42,8 +42,7 @@
 #include <Objet_U.h>
 #include <Cut_cell_surface_efficace.h>
 #include <Probleme_FT_Disc_gen.h>
-
-// #define SMOOTHING_RHO
+#include <Fluide_Diphasique_IJK.h>
 
 class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
 {
@@ -66,11 +65,18 @@ public :
      */
   void preparer_calcul() override { }
 
-  void typer_lire_milieu(Entree& is) override { }
+  void typer_lire_milieu(Entree& is) override;
+  void lire_solved_equations(Entree& is) override;
 
   void completer() override { }
   void mettre_a_jour(double temps) override { }
   virtual bool updateGivenFields() override { return false; }
+
+  /*
+   * Milieu_IJK
+   */
+  inline Fluide_Diphasique_IJK& milieu_ijk() { return ref_cast(Fluide_Diphasique_IJK, le_milieu_[0].valeur()); }
+  inline const Fluide_Diphasique_IJK& milieu_ijk() const { return ref_cast(Fluide_Diphasique_IJK, le_milieu_[0].valeur()); }
 
 
   //////////////////////////////////////////////////
@@ -531,14 +537,8 @@ public:
   {
     return rho_field_;
   }
-  double get_rho_l() const
-  {
-    return rho_liquide_;
-  }
-  double get_rho_v() const
-  {
-    return rho_vapeur_;
-  }
+
+
   double get_rho_field_ijk(int i, int j, int k) const
   {
     return rho_field_(i,j,k);
@@ -547,35 +547,10 @@ public:
   {
     return disable_diphasique_;
   }
-  int get_direction_gravite() const
-  {
-    return direction_gravite_;
-  }
-  double get_gravite_norm() const
-  {
-    Vecteur3 gravite = {gravite_[0], gravite_[1], gravite_[2]};
-    return gravite.length();
-  }
 
-
-  const double& get_mu_liquid() const
-  {
-    return mu_liquide_;
-  }
-  const double& get_mu_vapour() const
-  {
-    return mu_vapeur_;
-  }
-  double rho_liquide_ = 0.;
-  double rho_vapeur_ = -1.;
 
   double rho_moyen_ = 0.;
   //
-  double mu_liquide_ = 0.;
-  double mu_vapeur_ = -1.;
-  double sigma_ = 0.;
-  ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
-  int direction_gravite_ = 0;
 
 
 
@@ -687,13 +662,6 @@ public:
   IJK_Interfaces interfaces_;
   IJK_Field_vector3_double velocity_ft_;
 
-#ifdef SMOOTHING_RHO
-  int smooth_density_;
-  double ratio_density_max_;
-  // Redistribute_Field redistribute_to_splitting_ft_elem_; // pour le smoothing de rho..
-  IJK_Field_double rho_field_ft_;
-#endif
-
   Redistribute_Field redistribute_to_splitting_ft_elem_;
 
 
@@ -708,7 +676,6 @@ public:
   IJK_Field_double scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2);
   IJK_Field_vector3_double scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec);
   IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
-  int get_direction(const ArrOfDouble& vecteur);
 
 
 

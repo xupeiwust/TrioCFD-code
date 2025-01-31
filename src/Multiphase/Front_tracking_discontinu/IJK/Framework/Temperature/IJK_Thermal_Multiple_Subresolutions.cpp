@@ -56,14 +56,14 @@ Entree& IJK_Thermal_Multiple_Subresolutions::readOn( Entree& is )
   if (main_phase_)
     {
       uniform_lambda_vap_ = lambda_vapour_;
-      uniform_alpha_vap_ = lambda_vapour_ / (ref_ijk_ft_->get_rho_v() * cp_vapour_);
+      uniform_alpha_vap_ = lambda_vapour_ / (ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_);
     }
   else
     {
       uniform_lambda_vap_ = lambda_liquid_;
       uniform_lambda_ = lambda_vapour_;
-      uniform_alpha_vap_ = lambda_liquid_ / (ref_ijk_ft_->get_rho_l() * cp_liquid_);
-      uniform_alpha_ = lambda_vapour_ / (ref_ijk_ft_->get_rho_v() * cp_vapour_);
+      uniform_alpha_vap_ = lambda_liquid_ / (ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_);
+      uniform_alpha_ = lambda_vapour_ / (ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_);
     }
   return is;
 }

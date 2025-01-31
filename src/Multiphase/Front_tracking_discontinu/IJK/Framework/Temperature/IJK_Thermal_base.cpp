@@ -838,8 +838,8 @@ void IJK_Thermal_base::update_thermal_properties()
   const int nx = indic.ni();
   const int ny = indic.nj();
   const int nz = indic.nk();
-  const double rho_l = ref_ijk_ft_->get_rho_l();
-  const double rho_v = ref_ijk_ft_->get_rho_v();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   for (int k=0; k < nz ; k++)
     for (int j=0; j< ny; j++)
       for (int i=0; i < nx; i++)
@@ -870,8 +870,8 @@ double IJK_Thermal_base::compute_timestep(const double timestep,
                                           const double dxmin)
 {
   double alpha_max;
-  double rho_l = ref_ijk_ft_->get_rho_l();
-  double rho_v= ref_ijk_ft_->get_rho_v();
+  double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  double rho_v= ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   if (single_phase_)
     alpha_max = lambda_liquid_ / (rho_l * cp_liquid_);
   else
@@ -1123,7 +1123,7 @@ void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
   if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
     force_upstream_temperature(*temperature_, upstream_temperature_,
                                ref_ijk_ft_->get_interface(), nb_diam_upstream_,
-                               ref_ijk_ft_->get_upstream_dir(), ref_ijk_ft_->get_direction_gravite(),
+                               ref_ijk_ft_->get_upstream_dir(), ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
                                ref_ijk_ft_->get_upstream_stencil());
   statistiques().end_count(cnt_upstream_temperature);
 
@@ -1579,13 +1579,13 @@ double IJK_Thermal_base::compute_rho_cp_u_mean(const IJK_Field_double& vx)
    * By default use only the liquid phase (same for subresolution)
    * Overridden in Onefluid and others
    */
-  const double rho_cp = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  const double rho_cp = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
   return calculer_rho_cp_u_moyen(vx, vx, vx, rho_cp, 2);
 }
 
 double IJK_Thermal_base::get_rho_cp_u_ijk(const IJK_Field_double& vx, int i, int j, int k) const
 {
-  return ref_ijk_ft_->get_rho_l() * cp_liquid_ * vx(i,j,k);
+  return ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_ * vx(i,j,k);
 }
 
 void IJK_Thermal_base::add_temperature_source()
@@ -1599,7 +1599,7 @@ void IJK_Thermal_base::add_temperature_source()
       const IJK_Field_double& temperature = *temperature_;
       IJK_Field_double& d_temperature     = *d_temperature_;
 
-      // int gravity_dir = ref_ijk_ft_->get_direction_gravite();
+      // int gravity_dir = ref_ijk_ft_->milieu_ijk().get_direction_gravite();
       const int gravity_dir=0;
       /*
        * Modifications un jour peut-être ?!
@@ -1699,8 +1699,8 @@ void IJK_Thermal_base::add_temperature_source()
           const double wall_flux = boundary_conditions_.get_flux_kmax();
           const double qw = wall_flux;
           const double liquid_fraction = calculer_v_moyen(ref_ijk_ft_->itfce().I());
-          const double rho_cp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
-          const double rho_cp_v = ref_ijk_ft_->get_rho_v() * cp_vapour_;
+          const double rho_cp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
+          const double rho_cp_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_;
           const double rhocp_moy =  rho_cp_l*liquid_fraction + rho_cp_v*(1-liquid_fraction);
           const double dTm = -2*qw/(2*h*rhocp_moy) ;
           for (int k = 0; k < nk; k++)
@@ -1760,8 +1760,8 @@ void IJK_Thermal_base::add_temperature_source()
           const double kl = kl_;
           const double T0v = T0v_;
           const double T0l = T0l_;
-          const double rho_cp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
-          const double rho_cp_v = ref_ijk_ft_->get_rho_v() * cp_vapour_;
+          const double rho_cp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
+          const double rho_cp_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_;
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
@@ -1966,8 +1966,8 @@ void IJK_Thermal_base::calculer_energies(double& E_liq_pure,
   const int ni = temperature.ni();
   const int nj = temperature.nj();
   const IJK_Field_double& chi = ref_ijk_ft_->itfce().I(); // rappel : chi vaut 1. dans le liquide et 0 dans la vapeur
-  const double rhocpl = ref_ijk_ft_->get_rho_l()*cp_liquid_;
-  const double rhocpv = ref_ijk_ft_->get_rho_v()*cp_vapour_;
+  const double rhocpl = ref_ijk_ft_->milieu_ijk().get_rho_liquid()*cp_liquid_;
+  const double rhocpv = ref_ijk_ft_->milieu_ijk().get_rho_vapour()*cp_vapour_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -2048,7 +2048,7 @@ void IJK_Thermal_base::calculer_source_temperature_ana()
 
 double IJK_Thermal_base::compute_variable_wall_temperature(const int kmin, const int kmax)
 {
-  return calculer_variable_wall(*temperature_, *temperature_, *temperature_, cp_liquid_ * ref_ijk_ft_->get_rho_l(), kmin, kmax, 2);
+  return calculer_variable_wall(*temperature_, *temperature_, *temperature_, cp_liquid_ * ref_ijk_ft_->milieu_ijk().get_rho_liquid(), kmin, kmax, 2);
 }
 
 void IJK_Thermal_base::calculer_temperature_adimensionnelle_theta(const IJK_Field_double& vx, const double wall_flux)
@@ -2112,7 +2112,7 @@ void IJK_Thermal_base::calculer_temperature_adimensionnelle_theta(const IJK_Fiel
 
 double IJK_Thermal_base::compute_temperature_dimensionless_theta_mean(const IJK_Field_double& vx)
 {
-  return calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, vx, vx, ref_ijk_ft_->get_rho_l() * cp_liquid_, 2);
+  return calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, vx, vx, ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_, 2);
 }
 
 void IJK_Thermal_base::calculer_Nusselt(const IJK_Field_double& vx)
@@ -2239,12 +2239,12 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
 
 double IJK_Thermal_base::get_rhocp_l() const
 {
-  return ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  return ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
 }
 
 double IJK_Thermal_base::get_rhocp_v() const
 {
-  return ref_ijk_ft_->get_rho_v() * cp_vapour_;
+  return ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_;
 }
 
 /*
@@ -2391,8 +2391,8 @@ void IJK_Thermal_base::compute_dT_rustine(const double dE)
   const int ni = T_rust_.ni();
   const int nj = T_rust_.nj();
   const int nk = T_rust_.nk();
-  const double rho_l = ref_ijk_ft_->get_rho_l();
-  const double rho_v = ref_ijk_ft_->get_rho_v();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   const IJK_Field_double indic = ref_ijk_ft_->itfce().I();
   double int_rhocpTrust = 0;
   for (int k = 0; k < nk; k++)

@@ -3419,7 +3419,7 @@ void IJK_One_Dimensional_Subproblem::compute_local_shear_stress()
       local_shear_stress += local_shear_stress_second;
       shear_stress_from_rising_dir_(i) = local_shear_stress.length();
     }
-  const double mu_liquid = ref_ijk_ft_->get_mu_liquid();
+  const double mu_liquid = ref_ijk_ft_->milieu_ijk().get_mu_liquid();
   shear_stress_ *= mu_liquid;
   shear_stress_from_rising_dir_ *= mu_liquid;
   velocity_shear_stress_ = shear_stress_[0];
@@ -4483,7 +4483,7 @@ void IJK_One_Dimensional_Subproblem::complete_frame_of_reference_lrs_fluxes_eval
       const IJK_Grid_Geometry& geom = ref_ijk_ft_->get_splitting_ns().get_grid_geometry();
       const int face_dir[6] = FACES_DIR;
       const int flux_out[6] = FLUXES_OUT;
-      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      const double rho_cp = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * (*cp_liquid_);
       FixedVector<double, 6> convective_term_frame_of_ref = temperature_interp_conv_flux_;
       for (int l=0; l<6; l++)
         convective_term_frame_of_ref[l] *= bubble_rising_velocity_compo_[face_dir[l]];
@@ -4521,7 +4521,7 @@ void IJK_One_Dimensional_Subproblem::set_pure_flux_corrected(const double& flux_
   const double sign_temp = signbit(*delta_temperature_) ? -1. : 1.;
   if (flux_type==0)
     {
-      const double rho_cp = ref_ijk_ft_->get_rho_l() * (*cp_liquid_);
+      const double rho_cp = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * (*cp_liquid_);
       const double rho_cp_flux = rho_cp * flux_face * sign_temp;
       convective_flux_op_lrs_[l] = rho_cp_flux;
       sum_convective_flux_op_lrs_ += rho_cp_flux;
@@ -4637,7 +4637,7 @@ void IJK_One_Dimensional_Subproblem::compute_weighting_coefficient(const int& l,
   else
     {
       const int flux_out[6] = FLUXES_OUT;
-      const double kinematic_viscosity = ref_ijk_ft_->get_mu_liquid() / ref_ijk_ft_->get_rho_l();
+      const double kinematic_viscosity = ref_ijk_ft_->milieu_ijk().get_mu_liquid() / ref_ijk_ft_->milieu_ijk().get_rho_liquid();
       const double velocity = (*first_tangential_velocity_solver_)[0] * (*first_tangential_vector_compo_solver_)[dir]
                               + (*second_tangential_velocity_solver_)[0] * (*second_tangential_vector_compo_solver_)[dir];
       Vecteur3 first_vel = (*first_tangential_vector_compo_solver_);

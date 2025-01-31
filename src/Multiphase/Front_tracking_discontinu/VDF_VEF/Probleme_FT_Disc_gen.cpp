@@ -64,7 +64,7 @@ void Probleme_FT_Disc_gen::lire_solved_equations(Entree& is)
 
   if (read_mc != "SOLVED_EQUATIONS")
     {
-      Cerr << "Error in Probleme_FT_Disc_gen::typer_lire_milieu !!! We expected reading the SOLVED_EQUATIONS bloc instead of " << read_mc << " !!!" << finl;
+      Cerr << "Error in Probleme_FT_Disc_gen::lire_solved_equations !!! We expected reading the SOLVED_EQUATIONS bloc instead of " << read_mc << " !!!" << finl;
       Cerr << "Fix your data file !!!" << finl;
       Process::exit();
     }
@@ -72,7 +72,7 @@ void Probleme_FT_Disc_gen::lire_solved_equations(Entree& is)
   is >> read_mc;
   if (read_mc != "{")
     {
-      Cerr << "Error in Probleme_FT_Disc_gen::typer_lire_milieu !!! We expected { instead of " << read_mc << " !!!" << finl;
+      Cerr << "Error in Probleme_FT_Disc_gen::lire_solved_equations !!! We expected { instead of " << read_mc << " !!!" << finl;
       Cerr << "Fix your data file !!!" << finl;
       Process::exit();
     }
@@ -83,7 +83,7 @@ void Probleme_FT_Disc_gen::lire_solved_equations(Entree& is)
     {
       if (noms_eq_maj.rang(read_mc) == -1 || (!read_mc.contient("_FT") && !read_mc.debute_par("CONVECTION_DIFFUSION_CONCENTRATION") && !read_mc.debute_par("CONVECTION_DIFFUSION_TEMPERATURE")))
         {
-          Cerr << "Error in Probleme_FT_Disc_gen::typer_lire_milieu !!! The equation " << read_mc << " could not be used with a problem of type " << que_suis_je() << " !!!" << finl;
+          Cerr << "Error in Probleme_FT_Disc_gen::lire_solved_equations !!! The equation " << read_mc << " could not be used with a problem of type " << que_suis_je() << " !!!" << finl;
           Cerr << "You can only use the following equations :" << finl;
           for (auto &itr : noms_eq_maj)
             if (itr.contient("_FT") || itr.debute_par("CONVECTION_DIFFUSION_CONCENTRATION") || itr.debute_par("CONVECTION_DIFFUSION_TEMPERATURE"))

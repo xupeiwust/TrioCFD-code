@@ -1965,7 +1965,7 @@ void IJK_One_Dimensional_Subproblems::compute_overall_bubbles_quantities(IJK_The
   velocity_upstream_ = ref_ijk_ft_->get_vitesse_upstream();
   if (velocity_upstream_ < -1.e20)
     velocity_upstream_ = 0.;
-  gravity_dir_ = ref_ijk_ft_->get_direction_gravite();
+  gravity_dir_ = ref_ijk_ft_->milieu_ijk().get_direction_gravite();
   compute_overall_quantities_per_bubbles(ref_thermal_subresolution.eulerian_grad_T_interface_ns_,
                                          ref_thermal_subresolution.delta_T_subcooled_overheated_,
                                          ref_thermal_subresolution.uniform_lambda_);
@@ -2040,7 +2040,7 @@ void IJK_One_Dimensional_Subproblems::compute_dynamics_per_bubbles()
 
       //--------------------------------------------------------------------------------------------
 
-      const double reynolds_coeff = (caracteristic_length_ * ref_ijk_ft_->get_rho_l()) / ref_ijk_ft_->get_mu_liquid();
+      const double reynolds_coeff = (caracteristic_length_ * ref_ijk_ft_->milieu_ijk().get_rho_liquid()) / ref_ijk_ft_->milieu_ijk().get_mu_liquid();
 
       bubbles_rising_relative_velocities_(i) = rising_relative_velocity;
       bubbles_reynolds_numbers_per_bubble_(i) = (rising_relative_velocity * reynolds_coeff);
@@ -2579,8 +2579,8 @@ void IJK_One_Dimensional_Subproblems::compute_overall_quantities()
       bubbles_total_reynolds_numbers_barycentres_ += bubbles_reynolds_numbers_per_bubble_barycentres_(i) * (*bubbles_volume_)(i);
       bubbles_total_reynolds_numbers_barycentres_upstream_ += bubbles_reynolds_numbers_per_bubble_barycentres_upstream_(i) * (*bubbles_volume_)(i);
 
-      const double reynolds_surface = (caracteristic_length_from_surfaces_per_bubble_(i) * ref_ijk_ft_->get_rho_l()) / ref_ijk_ft_->get_mu_liquid();
-      const double reynolds_volume = (caracteristic_length_from_volumes_per_bubble_(i) * ref_ijk_ft_->get_rho_l()) / ref_ijk_ft_->get_mu_liquid();
+      const double reynolds_surface = (caracteristic_length_from_surfaces_per_bubble_(i) * ref_ijk_ft_->milieu_ijk().get_rho_liquid()) / ref_ijk_ft_->milieu_ijk().get_mu_liquid();
+      const double reynolds_volume = (caracteristic_length_from_volumes_per_bubble_(i) * ref_ijk_ft_->milieu_ijk().get_rho_liquid()) / ref_ijk_ft_->milieu_ijk().get_mu_liquid();
 
       bubbles_reynolds_numbers_from_surface_per_bubble_(i) = (bubbles_rising_relative_velocities_(i) * reynolds_surface);
       bubbles_reynolds_numbers_from_volume_per_bubble_(i) = (bubbles_rising_relative_velocities_(i) * reynolds_volume);

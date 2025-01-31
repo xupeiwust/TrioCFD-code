@@ -41,9 +41,7 @@
 #define COMPLEMENT_ANTI_DEVIATION_RESIDU
 // #define VARIABLE_DZ
 // #define PROJECTION_DE_LINCREMENT_DV
-// #define SMOOTHING_RHO
 // static Stat_Counter_Id cnt_SourceInterf;
-//#define SMOOTHING_RHO
 
 Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Probleme_FT_Disc_gen);
 
@@ -51,10 +49,6 @@ Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():
   thermals_(IJK_Thermals(*this)),
   post_(IJK_FT_Post(*this))
 {
-  // GAB, qdm
-  gravite_.resize_array(3);
-  gravite_ = 0.;
-
   terme_source_correction_.resize_array(3); // Initialement a zero, puis sera calcule a chaque iter.
   terme_source_correction_ = 0.;
   correction_force_.resize_array(3); // Par defaut, les flags d'activations sont a zero (ie inactif).
@@ -73,213 +67,49 @@ Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
   exit();
 }
 
-// Fonctions mutualisees avec IJK_switch.
-// Pour cela, deplacement vers IJK_Navier_Stokes_tools.cpp.P
-// static void extend_array(const IJK_Grid_Geometry &geom1, ...
-// void build_extended_splitting(const IJK_Splitting &split1, ...
-// Probleme_FT_Disc_gen & creer_domaine_vdf(const IJK_Splitting & splitting, const Nom & nom_domaine)
-
-#ifdef SMOOTHING_RHO
-static void smoothing_field(IJK_Field_double& field,
-                            const double rhol, const double  rhov,
-                            const double ratio_density_max)
-{
-  const int nx = field.ni();
-  const int ny = field.nj();
-  const int nz = field.nk();
-  const int ng= field.ghost();
-  IJK_Field_local_double smooth_rho;
-  smooth_rho.allocate(nx, ny, nz, ng);
-  double ratio=std::max(rhol/rhov, rhov/rhol);
-  int nb_loop_smoothing = 0;
-  while (ratio>ratio_density_max)
-    {
-      nb_loop_smoothing++;
-      ratio /=ratio_density_max;
-    }
-  Cerr << "Density smoothing activated... nb_loops : "
-       << nb_loop_smoothing << " -- Ratio density max : "
-       << ratio_density_max << finl;
-
-
-  for (int iloop = 0; iloop <nb_loop_smoothing; iloop++)
-    {
-      int ncells = 0;
-      for (int k=0; k < nz ; k++)
-        for (int j=0; j< ny; j++)
-          for (int i=0; i < nx; i++)
-            {
-              double x = field(i,j,k);
-              double xmax = x;
-              double xmin = x;
-              for (int idx=-1; idx < 2; idx+=2)
-                {
-                  double val;
-                  val = field(i+idx,j,k);
-                  xmax=std::max(xmax,val);
-                  xmin=std::min(xmin,val);
-                  val = field(i,j+idx,k);
-                  xmax=std::max(xmax,val);
-                  xmin=std::min(xmin,val);
-                  val = field(i,j,k+idx);
-                  xmax=std::max(xmax,val);
-                  xmin=std::min(xmin,val);
-                }
-              if (xmax/x > ratio_density_max || x/xmin > ratio_density_max )
-                {
-                  ncells++;
-                  //          Cerr << "   i,j,k,xmin,x,xmax " << i << " " << j << " "
-                  //           << k << " " << xmin  << " " << x << " " << xmax << finl;
-                  smooth_rho(i,j,k) = sqrt(xmin*xmax);// prendre la moyenne geometrique du min et du max des voisins.
-                }
-              else
-                {
-                  smooth_rho(i,j,k) = x;
-                }
-            }
-      // On utilise le smoothed_rho :
-      for (int k=0; k < nz ; k++)
-        for (int j=0; j< ny; j++)
-          for (int i=0; i < nx; i++)
-            field(i,j,k) =  smooth_rho(i,j,k);
-      field.echange_espace_virtuel(ng);
-      Cerr << "Counted cells : " << ncells << " -- Fin loop " << iloop << finl;
-    }
-
-  {
-    double mmax = 1.;
-    for (int k=0; k < nz ; k++)
-      for (int j=0; j< ny; j++)
-        for (int i=0; i < nx; i++)
-          {
-            double xmin = field(i,j,k);
-            double xmax = xmin;
-            double x = field(i,j,k);
-            for (int idx=-1; idx < 2; idx+=2)
-              {
-                double val;
-                val = field(i+idx,j,k);
-                xmax=std::max(xmax,val);
-                xmin=std::min(xmin,val);
-                val = field(i,j+idx,k);
-                xmax=std::max(xmax,val);
-                xmin=std::min(xmin,val);
-                val = field(i,j,k+idx);
-                xmax=std::max(xmax,val);
-                xmin=std::min(xmin,val);
-              }
-            mmax=std::max(mmax,std::max(xmax/x,x/xmin));
-          }
-    Cerr << "Ratio max sur le rho filtre : " << mmax << finl;
-  }
-
-}
-#endif
-
-#if 0
-// Codage optimise de copy_field_to_extended_domain
-
-
-// Attention: algorithme ne supporte pas une extension plus grande
-// que la taille d'un sous-domaine. Ne supporte pas non plus un process_grouping
-// different de 1,1,1 dans le splitting.
-void copy_field_to_extended_domain(const IJK_Field_double& input_field,
-                                   IJK_Field_double& output_field,
-                                   const int nextension)
-{
-  // Algorithme vite ecrit mais lent pour redistribuer:
-  // Creation d'une copie de input field avec nextension cellules ghost,
-  // ensuite, on a localement toutes les donnees dont on a besoin
-  IJK_Field_double input_field2;
-  input_field2.allocate(input_field.get_splitting(), // sur decoupage initial
-                        input_field.get_localisation(), // meme localisation
-                        nextension+1); // mais avec nextension ghost cells
-  // copie input_field dans input field2:
-  int i, j, k;
-  const int ni = input_field.ni();
-  const int nj = input_field.nj();
-  const int nk = input_field.nk();
-  for (k = 0; k < nk; k++)
-    for (j = 0; j < nj; j++)
-      for (i = 0; i < ni; i++)
-        {
-          input_field2(i,j,k) = input_field(i,j,k);
-        }
-  // Echange espace virtuel pour avoir les valeurs sur nextension mailles
-  // autour du domaine local initial.
-  // On espere que le domaine etendu sur ce processeur est a l'interieur...
-  // Il nous faut une epaisseur supplementaire car les faces de droite du
-  // maillage etendu portent une inconnue qui n'existe pas dans le maillage
-  // d'origine, s'il est periodique.
-  input_field2.echange_espace_virtuel(nextension+1);
-  // On va recopier les donnees de input_field2 dans output_field, en
-  // decalant comme il faut.
-
-  // Taille du maillage destination:
-  const int ni2 = output_field.ni();
-  const int nj2 = output_field.nj();
-  const int nk2 = output_field.nk();
-  const IJK_Grid_Geometry& geom = input_field.get_splitting().get_grid_geometry();
-  const int di = (geom.get_periodic_flag(DIRECTION_I) ? (-nextension) : 0)
-                 - input_field.get_splitting().get_offset_local(DIRECTION_I)
-                 + output_field.get_splitting().get_offset_local(DIRECTION_I);
-  const int dj = (geom.get_periodic_flag(DIRECTION_J) ? (-nextension) : 0)
-                 - input_field.get_splitting().get_offset_local(DIRECTION_J)
-                 + output_field.get_splitting().get_offset_local(DIRECTION_J);
-  const int dk = (geom.get_periodic_flag(DIRECTION_K) ? (-nextension) : 0)
-                 - input_field.get_splitting().get_offset_local(DIRECTION_K)
-                 + output_field.get_splitting().get_offset_local(DIRECTION_K);
-
-  for (k = 0; k < nk2; k++)
-    for (j = 0; j < nj2; j++)
-      for (i = 0; i < ni2; i++)
-        {
-          output_field(i, j, k) = input_field2(i+di, j+dj, k+dk);
-        }
-  // L'espace virtuel de output_field doit etre rempli.
-  // C'est delicat sur les ex-bords periodiques qui ne le sont plus.
-  const int ghost = output_field.ghost();
-  output_field.echange_espace_virtuel(ghost);
-  // L'espace virtuel est a jour. Il est remplit correctement si les
-  // flags periodiques sur l'extended splitting sont a faux.
-}
-
-
-void add_field_from_extended_domain(const IJK_Field_double& input_field,
-                                    IJK_Field_double& output_field,
-                                    const int nextension)
-{
-  if (nextension > 0 && Process::nproc() > 1)
-    {
-      Cerr << "Erreur : pas encore code (parallele + nextension>0)" << finl;
-      Process::exit();
-    }
-  for (int k = 0; k < output_field.nk(); k++)
-    for (int j = 0; j < output_field.nj(); j++)
-      for (int i = 0; i < output_field.ni(); i++)
-        output_field(i,j,k) += input_field(i + nextension, j + nextension, k);
-}
-
-void copy_field_from_extended_domain(const IJK_Field_double& input_field,
-                                     IJK_Field_double& output_field,
-                                     const int nextension)
-{
-  if (nextension > 0 && Process::nproc() > 1)
-    {
-      Cerr << "Erreur : pas encore code (parallele + nextension>0)" << finl;
-      Process::exit();
-    }
-  for (int k = 0; k < output_field.nk(); k++)
-    for (int j = 0; j < output_field.nj(); j++)
-      for (int i = 0; i < output_field.ni(); i++)
-        output_field(i,j,k) = input_field(i + nextension, j + nextension, k);
-}
-
-#endif
-
 Probleme_FTD_IJK_base::TimeScheme Probleme_FTD_IJK_base::get_time_scheme() const
 {
   return (TimeScheme) time_scheme_;
+}
+
+void Probleme_FTD_IJK_base::lire_solved_equations(Entree& is)
+{
+  Motcle read_mc;
+  is >> read_mc;
+
+  if (read_mc != "SOLVED_EQUATIONS")
+    {
+      Cerr << "Error in Probleme_FTD_IJK_base::lire_solved_equations !!! We expected reading the SOLVED_EQUATIONS bloc instead of " << read_mc << " !!!" << finl;
+      Cerr << "Fix your data file !!!" << finl;
+      Process::exit();
+    }
+
+  is >> read_mc;
+  if (read_mc != "{")
+    {
+      Cerr << "Error in Probleme_FTD_IJK_base::lire_solved_equations !!! We expected { instead of " << read_mc << " !!!" << finl;
+      Cerr << "Fix your data file !!!" << finl;
+      Process::exit();
+    }
+
+  // XXX TODO FIXME : missing code ... to use the mother class when equations are introduced
+
+  is >> read_mc;
+  if (read_mc != "}")
+    {
+      Cerr << "Error in Probleme_FTD_IJK_base::lire_solved_equations !!! We expected } instead of " << read_mc << " !!!" << finl;
+      Cerr << "Fix your data file !!!" << finl;
+      Process::exit();
+    }
+}
+
+void Probleme_FTD_IJK_base::typer_lire_milieu(Entree& is)
+{
+  const int nb_milieu = 1;
+  le_milieu_.resize(nb_milieu);
+
+  for (int i = 0; i < nb_milieu; i++)
+    is >> le_milieu_[i]; // On commence par la lecture du milieu
 }
 
 // XD Probleme_FTD_IJK_base interprete Probleme_FTD_IJK_base 1 not_set
@@ -288,69 +118,34 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   // On force l'attribut dimension a 3 pour ne pas avoir besoin de le mettre dans le jeu de donnees.
   // Cet attribut est utilise dans les routines front-tracking issues de triou
   Objet_U::dimension=3;
+
+  Cerr << "Reading of the problem " << le_nom() << finl;
+  Motcle motlu;
+  is >> motlu;
+  if (motlu != "{")
+    {
+      Cerr << "We expected { to start to read the problem" << finl;
+      Process::exit();
+    }
+
+  /* 1 : solved_equations + milieu : NEW SYNTAX */
+  lire_solved_equations(is);
+  typer_lire_milieu(is);
+
+  /* 2 : les restes va changer plus tard */
   Param param(que_suis_je());
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
 
-#ifdef SMOOTHING_RHO
-  smooth_density_ = 0;
-  ratio_density_max_ = 15;
-#endif
-
   set_param(param);
-  post_.complete_interpreter(param, is);
 
-  // XD attr check_stats rien check_stats 1 Flag to compute additional (xy)-plane averaged statistics
-  // XD attr dt_post entier dt_post 1 Post-processing frequency (for lata output)
-  // XD attr dt_post_stats_plans entier dt_post_stats_plans 1 Post-processing frequency for averaged statistical files (txt files containing averaged information on (xy) planes for each z-center) both instantaneous, or cumulated time-integration (see file header for variables list)
-  // XD attr dt_post_stats_bulles entier dt_post_stats_bulles 1 Post-processing frequency for bubble information (for out files as bubble area, centroid position, etc...)
-  // XD attr champs_a_postraiter listchaine champs_a_postraiter 1 List of variables to post-process in lata files.
-  // XD attr expression_vx_ana chaine expression_vx_ana 1 Analytical Vx (parser of x,y,z, t) used for post-processing only
-  // XD attr expression_vy_ana chaine expression_vy_ana 1 Analytical Vy (parser of x,y,z, t) used for post-processing only
-  // XD attr expression_vz_ana chaine expression_vz_ana 1 Analytical Vz (parser of x,y,z, t) used for post-processing only
-  // XD attr expression_p_ana chaine expression_p_ana 1 analytical pressure solution (parser of x,y,z, t) used for post-processing only
-  // XD attr expression_dPdx_ana chaine expression_dPdx_ana 1 analytical expression dP/dx=f(x,y,z,t), for post-processing only
-  // XD attr expression_dPdy_ana chaine expression_dPdy_ana 1 analytical expression dP/dy=f(x,y,z,t), for post-processing only
-  // XD attr expression_dPdz_ana chaine expression_dPdz_ana 1 analytical expression dP/dz=f(x,y,z,t), for post-processing only
-  // XD attr expression_dUdx_ana chaine expression_dUdx_ana 1 analytical expression dU/dx=f(x,y,z,t), for post-processing only
-  // XD attr expression_dUdy_ana chaine expression_dUdy_ana 1 analytical expression dU/dy=f(x,y,z,t), for post-processing only
-  // XD attr expression_dUdz_ana chaine expression_dUdz_ana 1 analytical expression dU/dz=f(x,y,z,t), for post-processing only
-  // XD attr expression_dVdx_ana chaine expression_dVdx_ana 1 analytical expression dV/dx=f(x,y,z,t), for post-processing only
-  // XD attr expression_dVdy_ana chaine expression_dVdy_ana 1 analytical expression dV/dy=f(x,y,z,t), for post-processing only
-  // XD attr expression_dVdz_ana chaine expression_dVdz_ana 1 analytical expression dV/dz=f(x,y,z,t), for post-processing only
-  // XD attr expression_dWdx_ana chaine expression_dWdx_ana 1 analytical expression dW/dx=f(x,y,z,t), for post-processing only
-  // XD attr expression_dWdy_ana chaine expression_dWdy_ana 1 analytical expression dW/dy=f(x,y,z,t), for post-processing only
-  // XD attr expression_dWdz_ana chaine expression_dWdz_ana 1 analytical expression dW/dz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdxdx_ana chaine expression_ddPdxdx_ana 1 analytical expression d2P/dx2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdydy_ana chaine expression_ddPdydy_ana 1 analytical expression d2P/dy2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdzdz_ana chaine expression_ddPdzdz_ana 1 analytical expression d2P/dz2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdxdy_ana chaine expression_ddPdxdy_ana 1 analytical expression d2P/dxdy=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdxdz_ana chaine expression_ddPdxdz_ana 1 analytical expression d2P/dxdz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddPdydz_ana chaine expression_ddPdydz_ana 1 analytical expression d2P/dydz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdxdx_ana chaine expression_ddUdxdx_ana 1 analytical expression d2U/dx2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdydy_ana chaine expression_ddUdydy_ana 1 analytical expression d2U/dy2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdzdz_ana chaine expression_ddUdzdz_ana 1 analytical expression d2U/dz2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdxdy_ana chaine expression_ddUdxdy_ana 1 analytical expression d2U/dxdy=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdxdz_ana chaine expression_ddUdxdz_ana 1 analytical expression d2U/dxdz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddUdydz_ana chaine expression_ddUdydz_ana 1 analytical expression d2U/dydz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdxdx_ana chaine expression_ddVdxdx_ana 1 analytical expression d2V/dx2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdydy_ana chaine expression_ddVdydy_ana 1 analytical expression d2V/dy2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdzdz_ana chaine expression_ddVdzdz_ana 1 analytical expression d2V/dz2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdxdy_ana chaine expression_ddVdxdy_ana 1 analytical expression d2V/dxdy=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdxdz_ana chaine expression_ddVdxdz_ana 1 analytical expression d2V/dxdz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddVdydz_ana chaine expression_ddVdydz_ana 1 analytical expression d2V/dydz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdxdx_ana chaine expression_ddWdxdx_ana 1 analytical expression d2W/dx2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdydy_ana chaine expression_ddWdydy_ana 1 analytical expression d2W/dy2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdzdz_ana chaine expression_ddWdzdz_ana 1 analytical expression d2W/dz2=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdxdy_ana chaine expression_ddWdxdy_ana 1 analytical expression d2W/dxdy=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdxdz_ana chaine expression_ddWdxdz_ana 1 analytical expression d2W/dxdz=f(x,y,z,t), for post-processing only
-  // XD attr expression_ddWdydz_ana chaine expression_ddWdydz_ana 1 analytical expression d2W/dydz=f(x,y,z,t), for post-processing only
-  // XD attr t_debut_statistiques floattant t_debut_statistiques 1 Initial time for computation, printing and accumulating time-integration
-  // XD attr sondes bloc_lecture sondes 1 probes
+  ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
+
+  post_.complete_interpreter(param, is);
 
   param.lire_avec_accolades(is);
 
-  // GAB, rotation
-  direction_gravite_ = get_direction(gravite_);
+  milieu_ijk().calculate_direction_gravite(); // pour rotation
+
   if (frozen_velocity_)
     {
       disable_solveur_poisson_=1; // automatically force the suppression of the poisson solver
@@ -402,26 +197,16 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   // On utilise inv_rho pour l'un ou l'autre... Il faut donc le calculer :
   use_inv_rho_ = use_inv_rho_for_mass_solver_and_calculer_rho_v_ + use_inv_rho_in_poisson_solver_;
 
-  if (rho_vapeur_ < 0. )
-    rho_vapeur_ = rho_liquide_;
-  if (mu_vapeur_ < 0. )
-    mu_vapeur_ = mu_liquide_;
 
   // Avec cette option, on travaille avec nu :
   if (diffusion_alternative_)
     {
       Cerr << "Option diffusion_alternative activee : le champ mu contient nu (la viscosite dynamique)" << finl;
-      mu_liquide_ /= rho_liquide_;
-      mu_vapeur_ /= rho_vapeur_;
+      Cerr << "TODO FIXME " << finl;
+      Process::exit();
     }
 
-  if (gravite_.size_array() != 3)
-    {
-      Cerr << "Erreur: la gravite doit etre un vecteur de 3 composantes" << finl;
-      exit();
-    }
-
-  splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name_));
+  splitting_ = ref_cast(IJK_Splitting, Interprete_bloc::objet_global(ijk_splitting_name));
 
   const IJK_Grid_Geometry& geom = splitting_.get_grid_geometry();
   if (vol_bulle_monodisperse_ != -1 || diam_bulle_monodisperse_ != -1)
@@ -656,6 +441,14 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   if (tstep_init_)
     use_tstep_init_ = 1;
 
+
+
+  is >> motlu;
+  if (motlu != "}")
+    {
+      Cerr << "We expected } to start to read the problem" << finl;
+      Process::exit();
+    }
   return is;
 }
 
@@ -674,7 +467,7 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("coef_force_time_n", &coef_force_time_n_); // XD_ADD_P floattant not_set
   param.ajouter("coef_rayon_force_rappel", &coef_rayon_force_rappel_); // XD_ADD_P floattant not_set
 
-  param.ajouter("ijk_splitting", &ijk_splitting_name_, Param::REQUIRED); // XD_ADD_P chaine(into=["grid_splitting"]) Definition of domain decomposition for parallel computations
+  param.ajouter("ijk_splitting", &ijk_splitting_name, Param::REQUIRED); // XD_ADD_P chaine(into=["grid_splitting"]) Definition of domain decomposition for parallel computations
   param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
 
   param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
@@ -709,8 +502,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("upstream_velocity_bubble_factor_integral", &upstream_velocity_bubble_factor_integral_);
   param.ajouter("velocity_bubble_scope", &velocity_bubble_scope_);
 
-  param.ajouter("rho_liquide", &rho_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid density
-  param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED); // XD_ADD_P floattant liquid viscosity
 
   param.ajouter("check_stop_file", &check_stop_file_); // XD_ADD_P chaine stop file to check (if 1 inside this file, stop computation)
   param.ajouter("dt_sauvegarde", &dt_sauvegarde_); // XD_ADD_P entier saving frequency (writing files for computation restart)
@@ -718,7 +509,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
 
-  param.ajouter("gravite", &gravite_); // XD_ADD_P list gravity vector [gx, gy, gz]
   param.ajouter("expression_vx_init", &expression_vitesse_initiale_[0]); // XD_ADD_P chaine initial field for x-velocity component (parser of x,y,z)
   param.ajouter("expression_vy_init", &expression_vitesse_initiale_[1]); // XD_ADD_P chaine initial field for y-velocity component (parser of x,y,z)
   param.ajouter("expression_vz_init", &expression_vitesse_initiale_[2]); // XD_ADD_P chaine initial field for z-velocity component (parser of x,y,z)
@@ -749,10 +539,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
 
   param.ajouter("velocity_diffusion_op", &velocity_diffusion_op_);
   param.ajouter("velocity_convection_op", &velocity_convection_op_); // XD_ADD_P chaine Type of velocity convection scheme
-
-  param.ajouter("sigma", &sigma_); // XD_ADD_P floattant surface tension
-  param.ajouter("rho_vapeur", &rho_vapeur_); // XD_ADD_P floattant vapour density
-  param.ajouter("mu_vapeur", &mu_vapeur_); // XD_ADD_P floattant vapour viscosity
 
   param.ajouter("interfaces", &interfaces_); // XD_ADD_P interfaces not_set
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
@@ -792,7 +578,7 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter_flag("use_harmonic_viscosity", &use_harmonic_viscosity_);
   // param.ajouter_flag("use_inv_rho", &use_inv_rho_);
   param.ajouter_flag("use_inv_rho_for_mass_solver_and_calculer_rho_v", &use_inv_rho_for_mass_solver_and_calculer_rho_v_); // XD_ADD_P chaine not_set
-  param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P chaine not_set
+  param.ajouter_flag("use_inv_rho_in_poisson_solver", &use_inv_rho_in_poisson_solver_); // XD_ADD_P flag not_set
   param.ajouter_flag("diffusion_alternative", &diffusion_alternative_); // XD_ADD_P chaine not_set
   param.ajouter_flag("suppression_rejetons", &suppression_rejetons_); // XD_ADD_P chaine not_set
   // param.ajouter("correction_bilan_qdm", &correction_bilan_qdm_); // XD_ADD_P chaine not_set
@@ -816,6 +602,18 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("Kd", &Kd_);
   param.ajouter("Ki", &Ki_);
   param.ajouter("epaisseur_maille",&epaisseur_maille_);
+
+  param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
+  param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
+  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
+  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
+  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
+  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
+  param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
 
   param.ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
 }
@@ -1623,10 +1421,13 @@ double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
   dt_cfl_liq_ = dt_cfl_;
   dt_cfl_vap_ = dt_cfl_;
 
-  // const double nu_max = std::max(mu_liquide_/rho_liquide_, mu_vapeur_/rho_vapeur_);
-  // dt_fo_  = dxmin*dxmin/(nu_max + 1.e-20) * fo * 0.125;
-  dt_fo_liq_ = dxmin*dxmin/((mu_liquide_/rho_liquide_) + 1.e-20) * fo * 0.125;
-  dt_fo_vap_ =dxmin*dxmin/((mu_vapeur_/rho_vapeur_) + 1.e-20) * fo * 0.125;
+  const double mu_l = milieu_ijk().get_mu_liquid(),
+               rho_l = milieu_ijk().get_rho_liquid(),
+               mu_v = milieu_ijk().get_mu_vapour(),
+               rho_v = milieu_ijk().get_rho_vapour();
+
+  dt_fo_liq_ = dxmin * dxmin / ((mu_l / rho_l) + 1.e-20) * fo * 0.125;
+  dt_fo_vap_ = dxmin * dxmin / ((mu_v / rho_v) + 1.e-20) * fo * 0.125;
   dt_fo_ = std::min(dt_fo_liq_, dt_fo_vap_);
   if (disable_diffusion_qdm_)
     dt_fo_ = 1.e20;
@@ -1653,13 +1454,12 @@ double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
       max_sigma=Process::mp_max(max_sigma);
     }
   else*/
-  {
-    max_sigma = sigma_;
-  }
+  max_sigma = milieu_ijk().sigma();
+
   if (enable_dt_oh_ideal_length_factor_)
-    dt_oh_  = sqrt((rho_liquide_ + rho_vapeur_) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (max_sigma + 1e-20)) * oh;
+    dt_oh_ = sqrt((rho_l + rho_v) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (max_sigma + 1e-20)) * oh;
   else
-    dt_oh_  = sqrt((rho_liquide_+rho_vapeur_)/2. * lg_cube/(max_sigma+1e-20) ) * oh;
+    dt_oh_ = sqrt((rho_l + rho_v) / 2. * lg_cube / (max_sigma + 1e-20)) * oh;
   if (disable_convection_qdm_)
     dt_oh_ = 1.e20;
 
@@ -1774,18 +1574,19 @@ int Probleme_FTD_IJK_base::initialise()
       const int ni = interfaces_.I().ni();
       const int nj = interfaces_.I().nj();
       const int nk = interfaces_.I().nk();
+      const double rho_l = milieu_ijk().get_rho_liquid(), rho_v = milieu_ijk().get_rho_vapour();
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
               const double indic = interfaces_.I(i,j,k);
               indicator_sum += indic;
-              terme_source_acceleration_increment = rho_liquide_ * indic + rho_vapeur_ * (1-indic);
+              terme_source_acceleration_increment = rho_l * indic + rho_v * (1-indic);
               terme_source_acceleration_ += terme_source_acceleration_increment;
             }
       indicator_sum = Process::mp_sum(indicator_sum);
       terme_source_acceleration_ = Process::mp_sum(terme_source_acceleration_);
-      const double gravite_norm = sqrt(gravite_[0]*gravite_[0] + gravite_[1]*gravite_[1] + gravite_[2]*gravite_[2]);
+      const double gravite_norm = milieu_ijk().get_gravite_norm();
       terme_source_acceleration_ /= indicator_sum;
       terme_source_acceleration_ *= gravite_norm;
       Cout << "Calculation of force init due to gravity mean(rho_g): " << terme_source_acceleration_ << finl;
@@ -2265,7 +2066,7 @@ void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay
   double rhov_moyy = calculer_v_moyen(rho_v_[DIRECTION_J]);
   double rhov_moyz = calculer_v_moyen(rho_v_[DIRECTION_K]);
 
-  const IJK_Grid_Geometry& geom = velocity_[direction_gravite_].get_splitting().get_grid_geometry();
+  const IJK_Grid_Geometry& geom = velocity_[milieu_ijk().get_direction_gravite()].get_splitting().get_grid_geometry();
   double Lz =  geom.get_domain_length(DIRECTION_K);
   double Lx =  geom.get_domain_length(DIRECTION_I);
   double Ly =  geom.get_domain_length(DIRECTION_J);
@@ -2277,15 +2078,15 @@ void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay
   else
     alv = 1.-calculer_v_moyen(interfaces_.I());
 
-  double drho = rho_liquide_-rho_vapeur_;
+  const double drho = milieu_ijk().get_delta_rho(), rho_l =  milieu_ijk().get_rho_liquid();
   double facv = 0.;
   if (std::fabs(alv*drho)>DMINFLOAT)
     {
       facv=1./(alv*drho);
     }
-  double uvx = facv*(rho_liquide_*v_moyx-rhov_moyx);
-  double uvy = facv*(rho_liquide_*v_moyy-rhov_moyy);
-  double uvz = facv*(rho_liquide_*v_moyz-rhov_moyz);
+  double uvx = facv*(rho_l*v_moyx-rhov_moyx);
+  double uvy = facv*(rho_l*v_moyy-rhov_moyy);
+  double uvz = facv*(rho_l*v_moyz-rhov_moyz);
 
   // On evalue la position de chaque bulles pour trouver le barycentre de la phase vapeur
 
@@ -2352,22 +2153,25 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
     }
 
   update_rho_v();
+  const int direction_gravite = milieu_ijk().get_direction_gravite();
+
   // GAB, rotation : pas sur de mon coup la
   // double rhov_moy = calculer_v_moyen(rho_v_[DIRECTION_I]);
-  double rhov_moy = calculer_v_moyen(rho_v_[direction_gravite_]);
+  double rhov_moy = calculer_v_moyen(rho_v_[direction_gravite]);
 
   double moy_rappel = 0.;
   // GAB, rotation
-  const IJK_Grid_Geometry& geom = velocity_[direction_gravite_].get_splitting().get_grid_geometry();
+  const IJK_Grid_Geometry& geom = velocity_[direction_gravite].get_splitting().get_grid_geometry();
   double vol_dom =  geom.get_domain_length(DIRECTION_I)*geom.get_domain_length(DIRECTION_J)*geom.get_domain_length(DIRECTION_K);
   if (coef_immobilisation_ > 1e-16)
     {
       // GAB, rotation, pas sur de mon coup
       // moy_rappel=calculer_v_moyen(force_rappel_[DIRECTION_I])*vol_dom;
-      moy_rappel=calculer_v_moyen(force_rappel_[direction_gravite_])*vol_dom;
+      moy_rappel=calculer_v_moyen(force_rappel_[direction_gravite])*vol_dom;
     }
 
-  double tauw = calculer_tau_wall(vx, mu_liquide_);
+  const double rho_l = milieu_ijk().get_rho_liquid(), rho_v = milieu_ijk().get_rho_vapour(), mu_l = milieu_ijk().get_mu_liquid();
+  double tauw = calculer_tau_wall(vx, mu_l);
   double derivee_acceleration = 0.;
   double derivee_facteur_sv = 0.;
 
@@ -2380,15 +2184,15 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
   if (Process::je_suis_maitre())
     {
       //
-      double drho = rho_liquide_-rho_vapeur_;
+      double drho = rho_l-rho_v;
       double facv = 0., facl=1.;
       if (std::fabs(alv*drho)>DMINFLOAT)
         {
           facv=1./(alv*drho);
           facl=1./((1.-alv)*drho);
         }
-      double ul = facl*(rhov_moy-rho_vapeur_*v_moy);
-      double uv = facv*(rho_liquide_*v_moy-rhov_moy);
+      double ul = facl*(rhov_moy-rho_v*v_moy);
+      double uv = facv*(rho_l*v_moy-rhov_moy);
 
       // Mise a jour de l'acceleration
       parser_derivee_acceleration_.setVar("rappel_moyen", moy_rappel);
@@ -2586,7 +2390,9 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
 #endif
   tauw = 0.;
   // Flottaison opposee a la gravite :
-  const double drho_alpha = -(rho_liquide_-rho_vapeur_)*vol_gaz/vol_NS;
+  const double rho_l = milieu_ijk().get_rho_liquid(), rho_v = milieu_ijk().get_rho_vapour(), mu_l = milieu_ijk().get_mu_liquid();
+
+  const double drho_alpha = -(rho_l-rho_v)*vol_gaz/vol_NS;
   const double un_sur_h = 2./ geom_NS.get_domain_length(DIRECTION_K);
   double fractional_dt;
   if ( get_time_scheme() == RK3_FT )
@@ -2605,14 +2411,14 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
       if (direction != DIRECTION_K)
         {
           // Calcul du frottement moyen sur un mur (selon X ou Y)
-          tauw[direction] = calculer_tau_wall(velocity_[direction], mu_liquide_);
+          tauw[direction] = calculer_tau_wall(velocity_[direction], mu_l);
 #ifdef COMPLEMENT_ANTI_DEVIATION_RESIDU
         }
       else
         {
           // On n'est pas certain qu'il (le gradient normal de Uz moyenne sur un mur)
           // soit nul en instantane. Pour verifier, on le calcule:
-          tauw[direction] = calculer_tau_wall(velocity_[direction], mu_liquide_);
+          tauw[direction] = calculer_tau_wall(velocity_[direction], mu_l);
           // La fonction calculer_tau_wall suppose que le champ de vitesse est a dz/2 du mur.
           // Pour la vitesse uz, il est en fait situe a dz. Donc il faut le doubler:
           tauw[direction] *=2. ;
@@ -2629,7 +2435,7 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
         }
       else
         {
-          force_theo[direction] = drho_alpha*gravite_[direction];
+          force_theo[direction] = drho_alpha*milieu_ijk().gravite().valeurs()[direction];
         }
       rhov_moy[direction] = calculer_v_moyen(rho_v_[direction]);
       acc[direction] =  (rhov_moy[direction]-store_rhov_moy_[direction]) /fractional_dt;
@@ -2660,13 +2466,13 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
           //   {
           //     residu[dir] -= terme_source_acceleration_;
           //   }
-          if (dir == direction_gravite_)
+          if (dir == milieu_ijk().get_direction_gravite())
             {
               residu[dir] -= terme_source_acceleration_;
             }
           if (interfaces_.is_terme_gravite_rhog())
             {
-              residu[dir] = -(rho_liquide_-(rho_liquide_-rho_vapeur_)*vol_gaz/vol_NS)*gravite_[dir];
+              residu[dir] = -(rho_l-(rho_l-rho_v)*vol_gaz/vol_NS)*milieu_ijk().gravite().valeurs()[dir];
             }
           integrated_residu_[dir] += residu[dir] * fractional_dt;
         }
@@ -2691,9 +2497,9 @@ void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk
          << rhov_moy[1] << " "
          << rhov_moy[2] << " "
          << tauw[0] << " " ;
-      fic   << tauw[1] << " "
-            << tauw[2] << " ";
-      switch (direction_gravite_)
+      fic << tauw[1] << " "
+          << tauw[2] << " ";
+      switch (milieu_ijk().get_direction_gravite())
         {
         case 0:
           fic  << terme_source_acceleration_ << " "
@@ -2785,6 +2591,8 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
   statistiques().begin_count(calcul_dv_counter);
   // Calcul d_velocity = convection
 
+  const double rho_l = milieu_ijk().get_rho_liquid();
+
   if (!disable_convection_qdm_)
     {
       if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_simple)
@@ -2873,7 +2681,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
                   for (int k=0; k<d_velocity_[dir].nk(); k++)
                     for (int j=0; j<d_velocity_[dir].nj(); j++)
                       for (int i=0; i<d_velocity_[dir].ni(); i++)
-                        terme_convection_mass_solver_[dir](i,j,k) = terme_convection_mass_solver_[dir](i,j,k) / (rho_liquide_ * volume_cell_uniforme);
+                        terme_convection_mass_solver_[dir](i,j,k) = terme_convection_mass_solver_[dir](i,j,k) / (rho_l * volume_cell_uniforme);
                 }
 
               terme_moyen_convection_mass_solver_[dir] = calculer_v_moyen(terme_convection_mass_solver_[dir]);
@@ -2926,7 +2734,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
                     for (int j=0; j<terme_diffusion_mass_solver_[dir].nj(); j++ )
                       for (int i=0; i<terme_diffusion_mass_solver_[dir].ni(); i++)
                         {
-                          terme_diffusion_mass_solver_[dir](i,j,k) = terme_diffusion_mass_solver_[dir](i,j,k) / (rho_liquide_*volume_cell_uniforme);
+                          terme_diffusion_mass_solver_[dir](i,j,k) = terme_diffusion_mass_solver_[dir](i,j,k) / (rho_l*volume_cell_uniforme);
                           terme_diffusion_mass_solver_[dir](i,j,k) = terme_diffusion_mass_solver_[dir](i,j,k) - terme_convection_mass_solver_[dir](i,j,k);
                         }
                 }
@@ -3166,10 +2974,8 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
       //     force_volumique += terme_source_acceleration_;
       //   }
       // GAB, rotation
-      if (dir == direction_gravite_)
-        {
-          force_volumique += terme_source_acceleration_;
-        }
+      if (dir == milieu_ijk().get_direction_gravite())
+        force_volumique += terme_source_acceleration_;
 
 #ifndef VARIABLE_DZ
       double volume = 1.;
@@ -3229,7 +3035,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
           // est bien homogene a g, et ainsi (jespere) dv est bien homogene a g.
           if (interfaces_.is_terme_gravite_rhog())
             {
-              const double g = gravite_[dir];
+              const double g = milieu_ijk().gravite().valeurs()[dir];
               for (int j = 0; j < nj; j++)
                 for (int i = 0; i < ni; i++)
                   dv(i,j,k) += g;  // c'est rho*g qu'il faut pour GR, 18.08.2021
@@ -3495,7 +3301,7 @@ void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field
 // Hard coded constant pressure gradient in i direction, add contribution in m/s*volume of control volume
 void Probleme_FTD_IJK_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const
 {
-  const double constant = gravite_[dir];
+  const double constant = milieu_ijk().gravite().valeurs()[dir];
   const int imax = dv.ni();
   const int jmax = dv.nj();
   for (int j = 0; j < jmax; j++)
@@ -3650,8 +3456,8 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
           interfaces_.calculer_kappa_ft(kappa_ft_);
           redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
           redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, milieu_ijk().sigma(), 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, milieu_ijk().sigma(), pressure_.nk()-4);
         }
     }
 
@@ -3741,8 +3547,8 @@ void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const
           interfaces_.calculer_kappa_ft(kappa_ft_);
           redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
           redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, milieu_ijk().sigma(), 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, milieu_ijk().sigma(), pressure_.nk()-4);
         }
     }
 
@@ -3784,17 +3590,20 @@ void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
   static Stat_Counter_Id calculer_rho_mu_indicatrice_counter_= statistiques().new_counter(2, "Calcul Rho Mu Indicatrice");
   statistiques().begin_count(calculer_rho_mu_indicatrice_counter_);
 
+  const double rho_l = milieu_ijk().get_rho_liquid(), rho_v = milieu_ijk().get_rho_vapour(),
+               mu_l = milieu_ijk().get_mu_liquid(), mu_v = milieu_ijk().get_mu_vapour();
+
   // En diphasique sans bulle (pour cas tests)
   if (interfaces_.get_nb_bulles_reelles() == 0)
     {
-      rho_field_.data() = rho_liquide_;
+      rho_field_.data() = rho_l;
       rho_field_.echange_espace_virtuel(rho_field_.ghost());
       if (use_inv_rho_)
         {
-          inv_rho_field_.data() = 1./rho_liquide_;
+          inv_rho_field_.data() = 1./rho_l;
           inv_rho_field_.echange_espace_virtuel(inv_rho_field_.ghost());
         }
-      molecular_mu_.data() = mu_liquide_;
+      molecular_mu_.data() = mu_l;
       molecular_mu_.echange_espace_virtuel(molecular_mu_.ghost());
 
       if (parcourir)
@@ -3814,14 +3623,14 @@ void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
       for (int i=0; i < nx; i++)
         {
           double chi_l = interfaces_.I(i,j,k);
-          rho_field_(i,j,k)    = rho_liquide_ * chi_l + (1.- chi_l) * rho_vapeur_;
+          rho_field_(i,j,k)    = rho_l * chi_l + (1.- chi_l) * rho_v;
           if(harmonic_nu_in_calc_with_indicatrice_==1 and chi_l!=0. and chi_l!=1.)
             {
-              molecular_mu_(i,j,k) = 1. /  ( mu_liquide_/ chi_l + mu_vapeur_/(1.- chi_l) ) ;
+              molecular_mu_(i,j,k) = 1. /  ( mu_l/ chi_l + mu_v/(1.- chi_l) ) ;
             }
           else
             {
-              molecular_mu_(i,j,k) = mu_liquide_ * chi_l + (1.- chi_l) * mu_vapeur_ ;
+              molecular_mu_(i,j,k) = mu_l * chi_l + (1.- chi_l) * mu_v ;
             }
         }
 
@@ -3832,7 +3641,7 @@ void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
           for (int i=0; i < nx; i++)
             {
               double chi_l = interfaces_.I(i,j,k);
-              inv_rho_field_(i,j,k) = 1./rho_liquide_ * chi_l + (1.- chi_l) * 1./rho_vapeur_;
+              inv_rho_field_(i,j,k) = 1./rho_l * chi_l + (1.- chi_l) * 1./rho_v;
             }
     }
 
@@ -3862,15 +3671,6 @@ void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
     inv_rho_field_.echange_espace_virtuel(inv_rho_field_.ghost());
   molecular_mu_.echange_espace_virtuel(molecular_mu_.ghost());
 
-#ifdef SMOOTHING_RHO
-  if (smooth_density_)
-    {
-      smoothing_field(rho_field_, rho_liquide_, rho_vapeur_,
-                      ratio_density_max_);
-
-      redistribute_to_splitting_ft_elem_.redistribute(rho_field_, rho_field_ft_);
-    }
-#endif
   statistiques().end_count(calculer_rho_mu_indicatrice_counter_);
 }
 
@@ -3997,16 +3797,6 @@ void Probleme_FTD_IJK_base::fill_variable_source_and_potential_phi(const double 
     }
 }
 
-// GAB, rotation
-int Probleme_FTD_IJK_base::get_direction(const ArrOfDouble& vecteur)
-{
-  if (vecteur[0]==0. && vecteur[1]==0. && vecteur[2]!=0)
-    return DIRECTION_K;
-  else if (vecteur[0]==0. && vecteur[1]!=0. && vecteur[2]==0.)
-    return DIRECTION_J;
-  else
-    return DIRECTION_I;
-}
 
 // GAB, qdm : construction du terme de pression pour le bilan de qdm. Je trouve ea plus logique de bouger cette fonction dans
 //            IJK_Navier_Stokes_tool, mais etant donne qu'elle se trouve dans IJK_kernel, je ne sais pas trop si c'est propre que j'y touche
@@ -4316,7 +4106,7 @@ void Probleme_FTD_IJK_base::compute_and_add_qdm_corrections()
   double alpha_l = calculer_v_moyen(interfaces_.I());
   double rho_moyen = calculer_v_moyen(rho_field_);
   qdm_corrections_.set_rho_moyen_alpha_l(rho_moyen,alpha_l);
-  qdm_corrections_.set_rho_liquide(rho_liquide_);
+  qdm_corrections_.set_rho_liquide(milieu_ijk().get_rho_liquid());
   for (int dir=0; dir<3; dir++)
     {
       IJK_Field_double& vel = velocity_[dir];
@@ -4356,9 +4146,9 @@ void Probleme_FTD_IJK_base::compute_and_add_qdm_corrections_monophasic()
    * u_corrected and u_corrrection are computed in the qdm_corrections_ object.
    * */
   double alpha_l = 1.; // calculer_v_moyen(interfaces_.I())
-  double rho_moyen = rho_liquide_; // calculer_v_moyen(rho_field_)
+  double rho_moyen = milieu_ijk().get_rho_liquid(); // calculer_v_moyen(rho_field_)
   qdm_corrections_.set_rho_moyen_alpha_l(rho_moyen,alpha_l);
-  qdm_corrections_.set_rho_liquide(rho_liquide_);
+  qdm_corrections_.set_rho_liquide(milieu_ijk().get_rho_liquid());
   for (int dir=0; dir<3; dir++)
     {
       IJK_Field_double& vel = velocity_[dir];
@@ -4471,20 +4261,14 @@ void Probleme_FTD_IJK_base::copy_field_values(IJK_Field_double& field, const IJK
 
 void Probleme_FTD_IJK_base::update_indicator_field()
 {
-  const double delta_rho = rho_liquide_ - rho_vapeur_;
+  const double delta_rho = milieu_ijk().get_delta_rho();
   interfaces_.switch_indicatrice_next_old();
   interfaces_.calculer_indicatrice_next(post_.potentiel(),
-                                        gravite_,
+                                        milieu_ijk().gravite().valeurs(),
                                         delta_rho,
-                                        sigma_,
+                                        milieu_ijk().sigma(),
                                         /*Pour post-traitement : post_.rebuilt_indic()
                                         */
-#ifdef SMOOTHING_RHO
-                                        /* Pour le smoothing : */
-                                        rho_field_ft_,
-                                        rho_vapeur_,
-                                        smooth_density_,
-#endif
                                         current_time_, tstep_
                                        );
 }

@@ -509,8 +509,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   Cout << que_suis_je() << "::initialize()" << finl;
 
   uniform_lambda_ = lambda_liquid_;
-  uniform_alpha_ =	lambda_liquid_ / (ref_ijk_ft_->get_rho_l() * cp_liquid_);
-  prandtl_number_ = (ref_ijk_ft_->get_mu_liquid() / ref_ijk_ft_->get_rho_l()) / uniform_alpha_;
+  uniform_alpha_ =	lambda_liquid_ / (ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_);
+  prandtl_number_ = (ref_ijk_ft_->milieu_ijk().get_mu_liquid() / ref_ijk_ft_->milieu_ijk().get_rho_liquid()) / uniform_alpha_;
   //  calulate_grad_T_ = 1;
   calulate_grad_T_=0;
   /*
@@ -701,8 +701,8 @@ int IJK_Thermal_Subresolution::initialize(const IJK_Splitting& splitting, const 
   /*
    * Considered constant values
    */
-  corrige_flux_->set_physical_parameters(cp_liquid_ * ref_ijk_ft_->get_rho_l(),
-                                         cp_vapour_ * ref_ijk_ft_->get_rho_v(),
+  corrige_flux_->set_physical_parameters(cp_liquid_ * ref_ijk_ft_->milieu_ijk().get_rho_liquid(),
+                                         cp_vapour_ * ref_ijk_ft_->milieu_ijk().get_rho_vapour(),
                                          lambda_liquid_,
                                          lambda_vapour_);
   corrige_flux_->initialize_with_subproblems(
@@ -882,7 +882,7 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
           if (single_centred_bubble_)
             {
               double time_ini = 0.;
-              const double rho_l = ref_ijk_ft_->get_rho_l();
+              const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
               const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
               switch(temperature_ini_type_)
                 {
@@ -1053,7 +1053,7 @@ void reinit_streamObj(std::ostringstream& streamObj, const double& param)
 
 Nom IJK_Thermal_Subresolution::generate_expression_temperature_ini(const double& time_scope, const double x, const double y, const double z)
 {
-  const double rho_l = ref_ijk_ft_->get_rho_l();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
   std::ostringstream streamObj;
   Nom expression_T = "(";
@@ -1144,7 +1144,7 @@ double IJK_Thermal_Subresolution::find_time_dichotomy_integral(const double& tem
   const double T1 = delta_T_subcooled_overheated_;
   const double R0 = single_centred_bubble_radius_ini_;
   const double R1 = get_probes_length() + R0;
-  const double rho_l = ref_ijk_ft_->get_rho_l();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double Delta_R = R1 - R0;
   const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
   double time_tmp = time_integral / 2;
@@ -1196,7 +1196,7 @@ void IJK_Thermal_Subresolution::compute_Nusselt_spherical_diffusion()
 {
   const double T1 = delta_T_subcooled_overheated_;
   const double R0 = single_centred_bubble_radius_ini_;
-  const double rho_l = ref_ijk_ft_->get_rho_l();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
   auto glambda = [](const double& r, const double& R, const double& alpha, const double& t, const double& Tinfty)
   { return Tinfty * R / pow(r,2) * (1- erf( (r - R)/(2 * sqrt(alpha * (t + 1e-16))))) ; };
@@ -1218,7 +1218,7 @@ double IJK_Thermal_Subresolution::get_time_inflection_derivative(double& tempera
   const double T1 = delta_T_subcooled_overheated_;
   const double R0 = single_centred_bubble_radius_ini_;
   const double R1 = get_probes_length() + R0;
-  const double rho_l = ref_ijk_ft_->get_rho_l();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
   // Solve dphidt(dphidr(T)) == 0
   const double inflection_time_temperature_derivative = 0.5 * (pow(R0,2) * R1 - 2 * R0 * pow(R1,2) + pow(R1,3)) / (R0*alpha_liq);
@@ -1240,7 +1240,7 @@ double IJK_Thermal_Subresolution::find_time_dichotomy_derivative(const double& t
   const double T1 = delta_T_subcooled_overheated_;
   const double R0 = single_centred_bubble_radius_ini_;
   const double R1 = get_probes_length() + R0;
-  const double rho_l = ref_ijk_ft_->get_rho_l();
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double alpha_liq = lambda_liquid_ / (rho_l * cp_liquid_);
   double temperature_end_min = 0.;
   // Solve dphidt(dphidr(T)) == 0
@@ -1362,7 +1362,7 @@ void IJK_Thermal_Subresolution::compute_diffusion_increment()
   const int ni = div_coeff_grad_T_volume.ni();
   const int nj = div_coeff_grad_T_volume.nj();
   const int nk = div_coeff_grad_T_volume.nk();
-  const double rhocp_l = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+  const double rhocp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
   const double rhocpVol = rhocp_l * vol_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
@@ -2477,7 +2477,7 @@ void IJK_Thermal_Subresolution::complete_convective_flux_frame_of_reference()
           const int ni = cell_faces_neighbours_corrected_velocity_temperature_[0].ni();
           const int nj = cell_faces_neighbours_corrected_velocity_temperature_[0].nj();
           const int nk = cell_faces_neighbours_corrected_velocity_temperature_[0].nk();
-          const double rho_cp = ref_ijk_ft_->get_rho_l() * cp_liquid_;
+          const double rho_cp = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
           for (int c=0; c<3; c++)
             {
               const int ni_max = (c==0) ? ni + 1: ni;
@@ -2810,7 +2810,7 @@ void IJK_Thermal_Subresolution::post_process_thermal_downstream_lines(const Nom&
   const int nb_real_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
   if (post_process_thermal_lines_ && nb_real_bubbles==1)
     {
-      int line_dir = ref_ijk_ft_->get_direction_gravite();
+      int line_dir = ref_ijk_ft_->milieu_ijk().get_direction_gravite();
       if (upstream_dir_line_ > 0)
         line_dir = upstream_dir_line_;
 
@@ -3393,7 +3393,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
       Cerr << "Rising vector sign" << (*rising_vectors_)(0, dir) << finl;
     }
   values *= velocity_line_frame_of_ref;
-  values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+  values *= (ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_);
 }
 
 void IJK_Thermal_Subresolution::interpolate_diffusive_term_on_downstream_line(const int& dir,
@@ -3491,10 +3491,10 @@ void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const N
                             "\ttemperature_incr");
       SFichier fic = Open_file_folder(local_quantities_thermal_lines_time_index_folder, line_name, line_header, reset);
       const int nb_points = temperature_line.size_array();
-      const double gravite_norm = ref_ijk_ft_->get_gravite_norm();
+      const double gravite_norm = ref_ijk_ft_->milieu_ijk().get_gravite_norm();
       const double characteristic_time = (gravite_norm > 1e-6) ? last_time / sqrt(diameter_approx * gravite_norm) : last_time;
-      const double rho_l = ref_ijk_ft_->get_rho_l();
-      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       const double archimedes_time = sqrt(gravite_norm * (rho_l - rho_v)  / (diameter_approx * rho_l));
       const double dimensionless_time = (archimedes_time > 1e-6) ? last_time  / archimedes_time  : last_time;
       for (int l=0; l<nb_points; l++)
@@ -3596,7 +3596,7 @@ void IJK_Thermal_Subresolution::post_process_thermal_wake_slice(const int& slice
                                                                      dir,
                                                                      nb_diam_slice,
                                                                      upstream_dir_slice_,
-                                                                     ref_ijk_ft_->get_direction_gravite(),
+                                                                     ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
                                                                      diameter_approx);
   DoubleTab slice_values(n_cross_section_1, n_cross_section_2);
   DoubleTab slice_velocity_values(n_cross_section_1, n_cross_section_2);
@@ -4100,7 +4100,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
     }
   velocity_values_frame_of_ref -= (*rising_velocity_overall_)[dir];
   values *= velocity_values_frame_of_ref;
-  values *= (ref_ijk_ft_->get_rho_l() * cp_liquid_);
+  values *= (ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_);
 }
 
 void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_diffusion(const int& slice,
@@ -4190,10 +4190,10 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
       const int nb_elem = n_cross_section_1 * n_cross_section_2;
       if (debug_)
         Cerr << "Number of elements per slice" << nb_elem << finl;
-      const double gravite_norm = ref_ijk_ft_->get_gravite_norm();
+      const double gravite_norm = ref_ijk_ft_->milieu_ijk().get_gravite_norm();
       const double characteristic_time = (gravite_norm > 1e-6) ? last_time / sqrt(diameter_approx * gravite_norm) : last_time;
-      const double rho_l = ref_ijk_ft_->get_rho_l();
-      const double rho_v = ref_ijk_ft_->get_rho_v();
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       const double archimedes_time = sqrt(gravite_norm * (rho_l - rho_v)  / (diameter_approx * rho_l));
       const double dimensionless_time = (archimedes_time > 1e-6) ? last_time  / archimedes_time  : last_time;
       int counter = 0;

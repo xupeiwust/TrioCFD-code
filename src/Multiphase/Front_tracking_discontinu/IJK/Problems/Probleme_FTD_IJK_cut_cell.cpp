@@ -149,7 +149,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
   // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
   if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide()==1)
     {
-      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_vapeur_, rho_liquide_, use_inv_rho_in_poisson_solver_);
+      pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3, 0 ,1, false, 1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
     }
   else
     pressure_.allocate(splitting_, IJK_Splitting::ELEM, 3);
@@ -177,24 +177,24 @@ bool Probleme_FTD_IJK_cut_cell::run()
   kappa_ns_.allocate(splitting_, IJK_Splitting::ELEM, 2);
   if (!disable_diphasique_ && (boundary_conditions_.get_correction_interp_monofluide()==1 || boundary_conditions_.get_correction_interp_monofluide()==2))
     {
-      molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, mu_vapeur_, mu_liquide_);
-      rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, rho_vapeur_, rho_liquide_);
+      molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, mu_v, mu_l);
+      rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, rho_v, rho_l);
       nalloc += 2;
-      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_vapeur_;
-      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_liquide_;
+      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_v;
+      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_l;
       if (use_inv_rho_)
         {
-          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_vapeur_, 1./rho_liquide_);
-          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_vapeur_;
-          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_liquide_;
+          inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2, 0 ,1, false, 2, 1./rho_v, 1./rho_l);
+          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_v;
+          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_l;
           nalloc += 1;
         }
     }
   else
     {
 
-      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_vapeur_;
-      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_liquide_;
+      IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=rho_v;
+      IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=rho_l;
       molecular_mu_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
       nalloc += 2;
@@ -202,8 +202,8 @@ bool Probleme_FTD_IJK_cut_cell::run()
         {
           inv_rho_field_.allocate(splitting_, IJK_Splitting::ELEM, 2);
           nalloc += 1;
-          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_vapeur_;
-          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_liquide_;
+          IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_=1./rho_v;
+          IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_=1./rho_l;
         }
     }
 
@@ -235,11 +235,6 @@ bool Probleme_FTD_IJK_cut_cell::run()
   allocate_velocity(psi_velocity_, splitting_, 2);
   nalloc += 3;
 
-#ifdef SMOOTHING_RHO
-  // Pour le smoothing :
-  rho_field_ft_.allocate(splitting_ft_, IJK_Splitting::ELEM, 2);
-  nalloc += 1;
-#endif
   // champs pour post-traitement :
   // post_.alloc_fields();
   nalloc += post_.alloc_fields();
@@ -377,7 +372,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
                   terme_repulsion_interfaces_ft_[dir].data() = 0.;
                   terme_abs_repulsion_interfaces_ft_[dir].data() = 0.;
                 }
-              const double delta_rho = rho_liquide_ - rho_vapeur_;
+              const double delta_rho = milieu_ijk().get_delta_rho();
               interfaces_.ajouter_terme_source_interfaces(
                 terme_source_interfaces_ft_,
                 terme_repulsion_interfaces_ft_,
@@ -392,6 +387,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
                                  - bounding_box(0, 0, 0);
               const double kappa = 2. / (Dbx / 2.);
 
+              const auto& gravite = milieu_ijk().gravite().valeurs();
               const int ni = pressure_.ni();
               const int nj = pressure_.nj();
               const int nk = pressure_.nk();
@@ -399,14 +395,10 @@ bool Probleme_FTD_IJK_cut_cell::run()
                 for (int j = 0; j < nj; j++)
                   for (int i = 0; i < ni; i++)
                     {
-                      double phi = gravite_[0] * coords[0](i, j, k)
-                                   + gravite_[1] * coords[1](i, j, k)
-                                   + gravite_[2] * coords[2](i, j, k);
-                      double potentiel_elem = sigma_ * kappa
-                                              - delta_rho * phi;
+                      double phi = gravite(0, 0) * coords[0](i, j, k) + gravite(0, 1) * coords[1](i, j, k) + gravite(0, 2) * coords[2](i, j, k);
+                      double potentiel_elem = milieu_ijk().sigma() * kappa - delta_rho * phi;
                       // La pression est hydrostatique, cad : pressure_ = P - rho g z
-                      pressure_(i, j, k) = potentiel_elem
-                                           * interfaces_.I(i, j, k); // - rho_field_(i,j,k) * phi;
+                      pressure_(i, j, k) = potentiel_elem * interfaces_.I(i, j, k); // - rho_field_(i,j,k) * phi;
                     }
 
               // pressure gradient requires the "left" value in all directions:
@@ -468,9 +460,9 @@ bool Probleme_FTD_IJK_cut_cell::run()
 // Si calcul monophasique, on initialise correctement rho, mu, I une fois pour toute :
   if (disable_diphasique_)
     {
-      rho_field_.data() = rho_liquide_;
-      rho_moyen_ = rho_liquide_;
-      molecular_mu_.data() = mu_liquide_;
+      rho_field_.data() = rho_l;
+      rho_moyen_ = rho_l;
+      molecular_mu_.data() = mu_l;
 
       // C'est deja fait dans l'initialize (aucune raison de ne pas le faire)
       // indicatrice_ns_.data() = 1.;
@@ -507,7 +499,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
       thermals_.update_thermal_properties();
 
       const double indic_moyen = calculer_v_moyen(interfaces_.I());
-      rho_moyen_ = indic_moyen*rho_liquide_ + (1-indic_moyen)*rho_vapeur_;
+      rho_moyen_ = indic_moyen*rho_l + (1-indic_moyen)*rho_v;
       if (post_.get_liste_post_instantanes().contient_("EXTERNAL_FORCE"))
         {
           for (int dir=0; dir<3; dir++)
@@ -604,7 +596,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
       // On creer de nouveaux fichiers :
       Cout << "BF ecrire_statistiques_bulles" << finl;
       post_.ecrire_statistiques_bulles(1 /* reset files */, nom_du_cas(),
-                                       gravite_, current_time_);
+                                       milieu_ijk().gravite().valeurs(), current_time_);
       Cout << "AF ecrire_statistiques_bulles" << finl;
     }
 
@@ -707,7 +699,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
           // GAB : question a Guillaume, on fait time + time_step ? 'est pas homogene non ?'
           // GAB, rotation
           // /!\ On  laisse ce calcul active meme pour source_qdm_gr_!=-1 pour toujours avoir un fichier acceleration.out rempli correctement
-          calculer_terme_source_acceleration(velocity_[direction_gravite_],
+          calculer_terme_source_acceleration(velocity_[milieu_ijk().get_direction_gravite()],
                                              current_time_ + timestep_, timestep_, -1);
 
           // Deplacement des interfaces par le champ de vitesse :
@@ -837,7 +829,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
                 }
               // Calcul du terme source force acceleration :
               // GAB, rotation
-              calculer_terme_source_acceleration(velocity_[direction_gravite_],
+              calculer_terme_source_acceleration(velocity_[milieu_ijk().get_direction_gravite()],
                                                  current_time_at_rk3_step, timestep_ /*total*/, rk_step_);
 
 
@@ -1011,20 +1003,14 @@ bool Probleme_FTD_IJK_cut_cell::run()
               //   a l'etat MINIMAL. Pour les post-tt sur l'interface (eg ai_ft_), il faut que le statut du maillage
               //   soit >= PARCOURU. C'est fait au debut de maj_indicatrice_rho_mu dans
               //   IJK_Interfaces::calculer_indicatrice.
-              const double delta_rho = rho_liquide_ - rho_vapeur_;
+              const double delta_rho = milieu_ijk().get_delta_rho();
               interfaces_.calculer_indicatrice_next(
                 post_.potentiel(),
-                gravite_,
+                milieu_ijk().gravite().valeurs(),
                 delta_rho,
-                sigma_,
+                milieu_ijk().sigma(),
                 /*Pour post-traitement : post_.rebuilt_indic()
                 */
-#ifdef SMOOTHING_RHO
-                /* Pour le smoothing : */
-                rho_field_ft_,
-                rho_vapeur_,
-                smooth_density_,
-#endif
                 current_time_, tstep_
               );
             }
@@ -1041,7 +1027,7 @@ bool Probleme_FTD_IJK_cut_cell::run()
       cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
       post_.postraiter_fin(stop, tstep_, tstep_init_, current_time_, timestep_, lata_name,
-                           gravite_, nom_du_cas());
+                           milieu_ijk().gravite().valeurs(), nom_du_cas());
       statistiques().end_count(timestep_counter_);
 
       if(JUMP_3_FIRST_STEPS && tstep_ < 3)
@@ -1343,7 +1329,7 @@ void Probleme_FTD_IJK_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bull
               int dir = 0;
               if (upstream_dir_ == -1)
                 {
-                  dir = get_direction_gravite();
+                  dir = milieu_ijk().get_direction_gravite();
                   if (dir == -1)
                     dir=0;
                 }
@@ -1396,7 +1382,7 @@ void Probleme_FTD_IJK_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bull
             {
               force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
                                       vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
+                                      upstream_dir_, milieu_ijk().get_direction_gravite(), upstream_stencil_);
             }
 
         }
@@ -1625,7 +1611,7 @@ void Probleme_FTD_IJK_cut_cell::rk3_sub_step(const int rk_step, const double tot
             {
               force_upstream_velocity(velocity_[0], velocity_[1], velocity_[2],
                                       vitesse_upstream_, interfaces_, nb_diam_upstream_,
-                                      upstream_dir_, get_direction_gravite(), upstream_stencil_);
+                                      upstream_dir_, milieu_ijk().get_direction_gravite(), upstream_stencil_);
             }
         }
 

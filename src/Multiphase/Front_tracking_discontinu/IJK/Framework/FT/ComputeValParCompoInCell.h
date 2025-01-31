@@ -44,9 +44,6 @@ public:
   }
 
   void calculer_valeur_par_compo(
-#ifdef SMOOTHING_RHO
-    const double delta_rho,
-#endif
     const double time,
     const int itstep,
     IJK_Field_int& nb_compo_trav,
@@ -82,9 +79,6 @@ protected:
   int calculer_indic_elem_pour_compo(const int icompo, const int elem, double& indic) const;
 
   void calculer_moy_par_compo(
-#ifdef SMOOTHING_RHO
-    const double delta_rho,
-#endif
     IJK_Field_int& nb_compo_traversante,
     FixedVector<IJK_Field_int, max_authorized_nb_of_components_>& compos_traversantes,
     FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& normale_par_compo,

@@ -120,9 +120,6 @@ void ComputeValParCompoInCell::calculer_moyennes_interface_element_pour_compo(
 }
 
 void ComputeValParCompoInCell::calculer_moy_par_compo(
-#ifdef SMOOTHING_RHO
-  const double delta_rho,
-#endif
   IJK_Field_int& nb_compo_traversante,
   FixedVector<IJK_Field_int, max_authorized_nb_of_components_>& compos_traversantes,
   FixedVector<IJK_Field_double, 3 * max_authorized_nb_of_components_>& normale_par_compo,
@@ -202,27 +199,6 @@ void ComputeValParCompoInCell::calculer_moy_par_compo(
             }
         }
 
-#ifdef SMOOTHING_RHO
-  if (smooth_density)
-    {
-      for (int icompo = 0; icompo < max_authorized_nb_of_components_; icompo++)
-        {
-          const int nx = indic_par_compo[icompo].ni();
-          const int ny = indic_par_compo[icompo].nj();
-          const int nz = indic_par_compo[icompo].nk();
-          // Attention, rho n'est pas par compo, donc ca ne marche pas en
-          // multi-bulles.
-          for (int k = 0; k < nz; k++)
-            for (int j = 0; j < ny; j++)
-              for (int i = 0; i < nx; i++)
-                {
-                  //      double rho = smooth_rho(i,j,k);
-                  double rho = rho_field(i, j, k);
-                  indic_par_compo[icompo](i, j, k) = (rho - rho_v) / delta_rho;
-                }
-        }
-    }
-#endif
 
   // Mise a jour des espaces virtuels :
   nb_compo_traversante.echange_espace_virtuel(nb_compo_traversante.ghost());
@@ -235,9 +211,6 @@ void ComputeValParCompoInCell::calculer_moy_par_compo(
 
 
 void ComputeValParCompoInCell::calculer_valeur_par_compo(
-#ifdef SMOOTHING_RHO
-  const double delta_rho,
-#endif
   const double time,
   const int itstep,
   IJK_Field_int& nb_compo_trav,
@@ -251,9 +224,6 @@ void ComputeValParCompoInCell::calculer_valeur_par_compo(
 {
 
   calculer_moy_par_compo(
-#ifdef SMOOTHING_RHO
-    const double delta_rho,
-#endif
     nb_compo_trav,
     compos_trav,
     normale_par_compo,

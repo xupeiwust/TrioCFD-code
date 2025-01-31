@@ -400,8 +400,8 @@ void IJK_Thermique::update_thermal_properties()
   const int nx = indic.ni();
   const int ny = indic.nj();
   const int nz = indic.nk();
-  const double rho_l = ref_ijk_ft_->rho_liquide_;
-  const double rho_v = ref_ijk_ft_->rho_vapeur_;
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   const bool geometric_mean = ((!lambda_moy_arith_) and (lambda_liquid_ > DMINFLOAT) and (lambda_vapor_ >DMINFLOAT));
   for (int k=0; k < nz ; k++)
     for (int j=0; j< ny; j++)
@@ -449,8 +449,8 @@ double IJK_Thermique::compute_timestep(const double timestep,
                                        const double dxmin) const
 {
   // alpha = lambda/(rho*cp)
-  double rho_l = ref_ijk_ft_->get_rho_l();
-  double rho_v = ref_ijk_ft_->get_rho_v();
+  double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   const double alpha_max = std::max(lambda_liquid_/(rho_l*cp_liquid_), lambda_vapor_/(rho_v*cp_vapor_));
   double dt_fo  = dxmin*dxmin/(alpha_max + 1.e-20) * fo_ * (1./6.); // Attention 0.125 vient du 3D. (1/6 au lieu de 1/8)
   if (diff_temp_negligible_) dt_fo = 1.e20;
@@ -757,8 +757,8 @@ void IJK_Thermique::compute_temperature_convection_conservative(const IJK_Field_
       const double dy = geom.get_constant_delta(DIRECTION_J);
       const double dz = geom.get_constant_delta(DIRECTION_K);
       const double vol = dx*dy*dz;
-      const double rho_l = ref_ijk_ft_->rho_liquide_;
-      const double rho_v = ref_ijk_ft_->rho_vapeur_;
+      const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
       for (int k = 0; k < nk; k++)
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
@@ -855,8 +855,8 @@ void IJK_Thermique::add_temperature_diffusion()
   const double dz = geom.get_constant_delta(DIRECTION_K);
   const double vol = dx*dy*dz;
   const double vol_inv = 1./vol;
-  const double rhocp_l = ref_ijk_ft_->rho_liquide_*cp_liquid_;
-  const double rhocp_v = ref_ijk_ft_->rho_vapeur_*cp_vapor_;
+  const double rhocp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid()*cp_liquid_;
+  const double rhocp_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour()*cp_vapor_;
   const bool geometric_mean = ((rho_cp_inv_) and (rhocp_l > DMINFLOAT) and (rhocp_v >DMINFLOAT));
   double d_temp_sum=0.;
   for (int k = 0; k < nk; k++)
@@ -1024,8 +1024,8 @@ void IJK_Thermique::add_temperature_source()
           const double wall_flux = boundary_conditions_.get_flux_kmax();
           const double qw = wall_flux;
           const double liquid_fraction = calculer_v_moyen(ref_ijk_ft_->itfce().I());
-          const double rho_cp_l = ref_ijk_ft_->rho_liquide_ * cp_liquid_;
-          const double rho_cp_v = ref_ijk_ft_->rho_vapeur_ * cp_vapor_;
+          const double rho_cp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
+          const double rho_cp_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapor_;
           const double rhocp_moy =  rho_cp_l*liquid_fraction + rho_cp_v*(1-liquid_fraction);
           const double dTm = -2*qw/(2*h*rhocp_moy) ;
           for (int k = 0; k < nk; k++)
@@ -1088,8 +1088,8 @@ void IJK_Thermique::add_temperature_source()
           const double kl = kl_;
           const double T0v = T0v_;
           const double T0l = T0l_;
-          const double rho_cp_l = ref_ijk_ft_->rho_liquide_ * cp_liquid_;
-          const double rho_cp_v = ref_ijk_ft_->rho_vapeur_ * cp_vapor_;
+          const double rho_cp_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
+          const double rho_cp_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapor_;
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
@@ -1280,8 +1280,8 @@ void IJK_Thermique::calculer_energies(double& E_liq_pure, double& E_lta, double&
   const int nj = temperature_.nj();
 
   const IJK_Field_double& chi = ref_ijk_ft_->itfce().I(); // rappel : chi vaut 1. dans le liquide et 0 dans la vapeur
-  const double rhocpl = ref_ijk_ft_->rho_liquide_*cp_liquid_;
-  const double rhocpv = ref_ijk_ft_->rho_vapeur_*cp_vapor_;
+  const double rhocpl = ref_ijk_ft_->milieu_ijk().get_rho_liquid()*cp_liquid_;
+  const double rhocpv = ref_ijk_ft_->milieu_ijk().get_rho_vapour()*cp_vapor_;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
@@ -1809,8 +1809,8 @@ double IJK_Thermique::compute_global_energy(const IJK_Field_double& temperature)
   double global_energy = 0.;
   const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
   //const IJK_Grid_Geometry& geom = indic.get_splitting().get_grid_geometry();
-  const double rhocpl = ref_ijk_ft_->rho_liquide_ *cp_liquid_;
-  const double rhocpv = ref_ijk_ft_->rho_vapeur_ *cp_vapor_;
+  const double rhocpl = ref_ijk_ft_->milieu_ijk().get_rho_liquid() *cp_liquid_;
+  const double rhocpv = ref_ijk_ft_->milieu_ijk().get_rho_vapour() *cp_vapor_;
   const int nx = temperature.ni();
   const int ny = temperature.nj();
   const int nz = temperature.nk();
@@ -1837,8 +1837,8 @@ void IJK_Thermique::compute_T_rust(const IJK_Field_vector3_double& velocity)
   statistiques().begin_count(cnt_conv_temp);
   // To be sure we're on a regular mesh
   assert(temperature_.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) >0);
-  const double rho_l = ref_ijk_ft_->rho_liquide_;
-  const double rho_v = ref_ijk_ft_->rho_vapeur_;
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
 
   // DONE: remplacer rho_cp par un champ rho_cp_ mis a jour dans update_thermal_properties. Necessaire pour que ca marche.
   //On calcule div(rho_cp*v) qu'on stocke dans T_rust
@@ -1895,8 +1895,8 @@ void IJK_Thermique::compute_dT_rustine(const double dE)
   const int ni = T_rust_.ni();
   const int nj = T_rust_.nj();
   const int nk = T_rust_.nk();
-  const double rho_l = ref_ijk_ft_->rho_liquide_;
-  const double rho_v = ref_ijk_ft_->rho_vapeur_;
+  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
+  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
   const IJK_Field_double indic = ref_ijk_ft_->itfce().I();
   double int_rhocpTrust = 0;
   for (int k = 0; k < nk; k++)
@@ -1994,7 +1994,7 @@ void IJK_Thermique::ecrire_reprise_thermique(SFichier& fichier )
 #endif
 
 double IJK_Thermique::get_rhocp_l() const
-{ return  ref_ijk_ft_->rho_liquide_ * cp_liquid_; }
+{ return  ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_; }
 
 double IJK_Thermique::get_rhocp_v() const
-{ return  ref_ijk_ft_->rho_vapeur_ * cp_vapor_; }
+{ return  ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapor_; }

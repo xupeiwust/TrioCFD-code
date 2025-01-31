@@ -68,7 +68,7 @@ public:
   const bool& get_is_solid_particle() const { return is_solid_particle_; }
   const int& get_id_fluid_phase() const { return id_fluid_phase_; }
 
-private:
+protected:
   OWN_PTR(Milieu_base) phase0_, phase1_;
   OWN_PTR(Champ_Don_base) sigma_; // Tension de surface (J/m^2)
   OWN_PTR(Champ_Don_base) chaleur_latente_; // Enthalpie de changement de phase h(phase1_) - h(phase0_) (J/kg/K)

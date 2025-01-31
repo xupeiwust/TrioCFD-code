@@ -13,10 +13,38 @@
 *
 *****************************************************************************/
 
+#include <IJK_Composantes_Connex.h>
 #include <Fluide_Diphasique_IJK.h>
+#include <Champ_Don_base.h>
+#include <Vecteur3.h>
 
 Implemente_instanciable(Fluide_Diphasique_IJK, "Fluide_Diphasique_IJK", Fluide_Diphasique);
 
 Sortie& Fluide_Diphasique_IJK::printOn(Sortie& os) const { return os; }
 
 Entree& Fluide_Diphasique_IJK::readOn(Entree& is) { return Fluide_Diphasique::readOn(is); }
+
+double Fluide_Diphasique_IJK::get_gravite_norm() const
+{
+  if (!a_gravite())
+    return 0.;
+
+  Vecteur3 g = {gravite().valeurs()(0,0), gravite().valeurs()(0,1), gravite().valeurs()(0,2)};
+  return g.length();
+}
+
+void Fluide_Diphasique_IJK::calculate_direction_gravite()
+{
+  if (gravite().valeurs().size_array() != 3)
+    {
+      Cerr << "Erreur: la gravite doit etre un vecteur de 3 composantes" << finl;
+      Process::exit();
+    }
+
+  if (gravite().valeurs()(0, 0) == 0. && gravite().valeurs()(0, 1) == 0. && gravite().valeurs()(0, 2) != 0)
+    direction_gravite_ = DIRECTION_K;
+  else if (gravite().valeurs()(0, 0) == 0 && gravite().valeurs()(0, 1) != 0. && gravite().valeurs()(0, 2) == 0.)
+    direction_gravite_ = DIRECTION_J;
+  else
+    direction_gravite_ = DIRECTION_I;
+}
