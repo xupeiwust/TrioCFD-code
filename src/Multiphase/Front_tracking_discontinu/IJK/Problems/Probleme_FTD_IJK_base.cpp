@@ -39,6 +39,7 @@
 #include <Vecteur3.h>
 #include <Domaine_IJK.h>
 #include <IJK_discretisation.h>
+#include <Probleme_FTD_IJK_tools.h>
 
 #define COMPLEMENT_ANTI_DEVIATION_RESIDU
 // #define VARIABLE_DZ
@@ -2129,14 +2130,14 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
       // terme_source_interfaces_ns_       est homogene a [du/dt]=[m.s^{-2}]
       //   -> in calculer_dv : "~ velocity_ += force_interf * dt ~"
       //   --> force_interf a bien eu un mass_solver_with_rho plus haut
-      fs0=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[0],0));
-      fs1=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[1],1));
-      fs2=calculer_v_moyen(scalar_fields_product(rho_field_,terme_source_interfaces_ns_[2],2));
-      psn=calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,terme_source_interfaces_ns_)));
+      fs0=calculer_v_moyen(scalar_fields_product(*this, rho_field_,terme_source_interfaces_ns_[0],0));
+      fs1=calculer_v_moyen(scalar_fields_product(*this, rho_field_,terme_source_interfaces_ns_[1],1));
+      fs2=calculer_v_moyen(scalar_fields_product(*this, rho_field_,terme_source_interfaces_ns_[2],2));
+      psn=calculer_v_moyen(scalar_product(*this, velocity_,scalar_times_vector(*this, rho_field_,terme_source_interfaces_ns_)));
     }
   // energie cinetique (monophasique) et diphasique
-  double uu(calculer_v_moyen(scalar_product(velocity_,velocity_)));
-  double uru(calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,velocity_))));
+  double uu(calculer_v_moyen(scalar_product(*this, velocity_,velocity_)));
+  double uru(calculer_v_moyen(scalar_product(*this, velocity_,scalar_times_vector(*this, rho_field_,velocity_))));
   // Force exterieur (:"force thi") selon x,y,z et acceleration_thi.acceleration_thi, force_thi.foce_thi, u.Force_THI
   double ft0(0),ft1(0),ft2(0),atat(0),ftft(0),ptn(0);
   if (forcage_.get_type_forcage() > 0)
@@ -2144,12 +2145,12 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
       // FORCE IMPOSEE : on veut un terme homogene a [rho.g]=[N.m^{-3}]
       // forcage_.get_force_ph2()     est homogene a [du/dt]=[m.s^{-2}]
       //   -> in compute_add_THI_force_sur_d_velocity : "~ d_velocity += forcage_.get_force_ph2() ~"
-      ft0 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[0],0));
-      ft1 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[1],1));
-      ft2 = calculer_v_moyen(scalar_fields_product(rho_field_,forcage_.get_force_ph2()[2],2));
-      atat = calculer_v_moyen(scalar_product(forcage_.get_force_ph2(),forcage_.get_force_ph2()));
-      ftft = calculer_v_moyen(scalar_product(scalar_times_vector(rho_field_,forcage_.get_force_ph2()),scalar_times_vector(rho_field_,forcage_.get_force_ph2())));
-      ptn = calculer_v_moyen(scalar_product(velocity_,scalar_times_vector(rho_field_,forcage_.get_force_ph2())));
+      ft0 = calculer_v_moyen(scalar_fields_product(*this, rho_field_,forcage_.get_force_ph2()[0],0));
+      ft1 = calculer_v_moyen(scalar_fields_product(*this, rho_field_,forcage_.get_force_ph2()[1],1));
+      ft2 = calculer_v_moyen(scalar_fields_product(*this, rho_field_,forcage_.get_force_ph2()[2],2));
+      atat = calculer_v_moyen(scalar_product(*this, forcage_.get_force_ph2(),forcage_.get_force_ph2()));
+      ftft = calculer_v_moyen(scalar_product(*this, scalar_times_vector(*this, rho_field_,forcage_.get_force_ph2()),scalar_times_vector(*this, rho_field_,forcage_.get_force_ph2())));
+      ptn = calculer_v_moyen(scalar_product(*this, velocity_,scalar_times_vector(*this, rho_field_,forcage_.get_force_ph2())));
     }
   // -----------------------------------------------------------
 
@@ -4112,27 +4113,6 @@ void Probleme_FTD_IJK_base::redistribute_from_splitting_ft_elem(const IJK_Field_
   redistribute_from_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
-void Probleme_FTD_IJK_base::copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy)
-{
-  const int ni = field.ni();
-  const int nj = field.nj();
-  const int nk = field.nk();
-  const int ni_to_copy = field_to_copy.ni();
-  const int nj_to_copy = field_to_copy.nj();
-  const int nk_to_copy = field_to_copy.nk();
-  int bool_dim = (ni == ni_to_copy && nj == nj_to_copy && nk == nk_to_copy);
-  assert(bool_dim);
-  if (!bool_dim)
-    Process::exit();
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        field(i,j,k) = field_to_copy(i,j,k);
-  // TODO: M.G. Test with the following operator
-  // field.data() = field_to_copy.data();
-  field.echange_espace_virtuel(field.ghost());
-}
-
 void Probleme_FTD_IJK_base::update_indicator_field()
 {
   const double delta_rho = milieu_ijk().get_delta_rho();
@@ -4180,7 +4160,7 @@ void Probleme_FTD_IJK_base::write_qdm_corrections_information()
   Vecteur3 qdm_cible = qdm_corrections_.get_correction_values();
   Vecteur3 velocity_correction = qdm_corrections_.get_velocity_corrections();
   Vecteur3 rho_vel;
-  for (int dir=0; dir<3; ++dir) rho_vel[dir] =  calculer_v_moyen(scalar_fields_product(rho_field_,velocity_[dir],dir));
+  for (int dir=0; dir<3; ++dir) rho_vel[dir] =  calculer_v_moyen(scalar_fields_product(*this, rho_field_,velocity_[dir],dir));
 
   if (Process::je_suis_maitre())
     {
@@ -4209,129 +4189,6 @@ void Probleme_FTD_IJK_base::write_qdm_corrections_information()
     }
 }
 
-// -----------------------------------------------------------------------------------
-//  PRODUITS DE CHAMPS
-IJK_Field_double Probleme_FTD_IJK_base::scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2)
-{
-  /*
-   * * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
-   */
-  IJK_Field_double resu;
-  resu.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
-  int nk = V1[0].nk();
-  if (nk != V2[0].nk())
-    {
-      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (nk): " << nk << " and " << V2[0].nk() << finl;
-      // Process::exit();
-    }
-  int nj = V1[0].nj();
-  if (nj != V2[0].nj())
-    {
-      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (nj): " << nj << " and " << V2[0].nj() << finl;
-      // Process::exit();
-    }
-  int ni = V1[0].ni();
-  if (ni != V2[0].ni())
-    {
-      Cerr << "In IJK_FT_base::scalar_product, scalar product of fields with different dimensions (ni): " << ni << " and " << V2[0].ni() << finl;
-      // Process::exit();
-    }
-
-  for (int k=0; k<nk; ++k)
-    for (int j=0; j<nj; ++j)
-      for (int i=0; i<ni; ++i)
-        {
-          resu(i,j,k) = 0.25*(
-                          (V1[0](i,j,k)+V1[0](i+1,j,k))*(V2[0](i,j,k)+V2[0](i+1,j,k))
-                          +(V1[1](i,j,k)+V1[1](i,j+1,k))*(V2[1](i,j,k)+V2[1](i,j+1,k))
-                          +(V1[2](i,j,k)+V1[2](i,j,k+1))*(V2[2](i,j,k)+V2[2](i,j,k+1))
-                        );
-        }
-  // Communication avec tous les process ?
-  return resu;
-}
-
-IJK_Field_vector3_double Probleme_FTD_IJK_base::scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec)
-{
-  /*
-   * Produit d'un champ scalaire (Sca) par un champ de vecteur (Vec).
-   * Le champ scalaire est aux centre des elements, le champ de vecteur est aux faces
-   * Le resultat reste localise au meme endroit que le champ de vecteur passe en entree.
-   * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
-   */
-
-  IJK_Field_vector3_double resu;
-  allocate_velocity(resu,domaine_ijk_.valeur(),3); // j'ai besoin de mettre des cellules ghost ? non, je ne pense pas
-  int nk = Vec[0].nk();
-  if (nk != (Sca.nk()))
-    {
-      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (nk): " << nk << " and " << Sca.nk() << finl;
-      // Process::exit();
-    }
-  int nj = Vec[0].nj();
-  if (nj != (Sca.nj()))
-    {
-      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (nj): " << nj << " and " << Sca.nj() << finl;
-      // Process::exit();
-    }
-  int ni = Vec[0].ni();
-  if (ni != (Sca.ni()))
-    {
-      Cerr << "In IJK_FT_base::scalar_times_vector, scalar fields has different dimension from vector field  (ni): " << ni << " and " << Sca.ni() << finl;
-      // Process::exit();
-    }
-
-  for (int k=0; k<nk; ++k)
-    for (int j=0; j<nj; ++j)
-      for (int i=0; i<ni; ++i)
-        {
-          resu[0](i,j,k) = 0.5*(Sca(i-1,j,k)+Sca(i,j,k))*Vec[0](i,j,k);
-          resu[1](i,j,k) = 0.5*(Sca(i,j-1,k)+Sca(i,j,k))*Vec[1](i,j,k);
-          resu[2](i,j,k) = 0.5*(Sca(i,j,k-1)+Sca(i,j,k))*Vec[2](i,j,k);
-        }
-  // Communication avec tous les process ?
-  return resu;
-}
-
-IJK_Field_double Probleme_FTD_IJK_base::scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir)
-{
-  /*
-   * Produit d'un champ scalaire aux centres (S1) par une des composantes d'un champ de vecteur (S2).
-   * Le resultat est localise au meme endroit que le champ de vecteur dont est issu S2.
-   * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
-   */
-  IJK_Field_double resu;
-  resu.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
-  int nk = S1.nk();
-  if (nk != S2.nk())
-    {
-      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (nk): " << nk << " and " << S2.nk() << finl;
-      // Process::exit();
-    }
-  int nj = S1.nj();
-  if (nj != S2.nj())
-    {
-      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (nj): " << nj << " and " << S2.nj() << finl;
-      // Process::exit();
-    }
-  int ni = S1.ni();
-  if (ni != S2.ni())
-    {
-      Cerr << "In IJK_FT_base::scalar_fields_product, scalar fields has different dimension from vector field (ni): " << ni << " and " << S2.ni() << finl;
-      // Process::exit();
-    }
-
-  for (int k=0; k<nk; ++k)
-    for (int j=0; j<nj; ++j)
-      for (int i=0; i<ni; ++i)
-        {
-          if (dir==0) {resu(i,j,k) = 0.5*(S1(i-1,j,k)+S1(i,j,k))*S2(i,j,k);}
-          if (dir==1) {resu(i,j,k) = 0.5*(S1(i,j-1,k)+S1(i,j,k))*S2(i,j,k);}
-          if (dir==2) {resu(i,j,k) = 0.5*(S1(i,j,k-1)+S1(i,j,k))*S2(i,j,k);}
-        }
-  // Communication avec tous les process ?
-  return resu;
-}
 
 /*! Nothing to be done here for now ...
  */

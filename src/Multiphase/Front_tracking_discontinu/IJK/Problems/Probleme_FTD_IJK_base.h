@@ -610,20 +610,6 @@ public:
 
 
 
-
-  /*
-   * Tools
-   */
-  void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
-
-  IJK_Field_double scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2);
-  IJK_Field_vector3_double scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec);
-  IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
-
-
-
-
-
   /*
    * ===============================================================
    */
