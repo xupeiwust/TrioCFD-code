@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2015 - 2016, CEA
+* Copyright (c) 2025, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,43 +17,13 @@
 #define Probleme_FTD_IJK_cut_cell_included
 
 #include <Probleme_FTD_IJK_base.h>
-#include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
-#include <IJK_FT_Post.h>
-#include <Cut_field.h>
-#include <Cut_cell_convection_auxiliaire.h>
-#include <Cut_cell_diffusion_auxiliaire.h>
 
-/*! @brief : class Probleme_FTD_IJK_cut_cell
- *
- *  La classe Probleme_FTD_IJK_cut_cell herite de la classe Probleme_FTD_IJK_base.
- */
 class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
 {
-  friend class IJK_Thermique;
-  friend class IJK_Thermique_cut_cell;
-  friend class Statistiques_dns_ijk_FT;
   Declare_instanciable(Probleme_FTD_IJK_cut_cell) ;
-
-public :
+public:
   void set_param(Param& param) override;
-  bool run() override;
-
-  void initialize() override;
-  void preparer_calcul() override;
-
-  double computeTimeStep(bool& stop) const override;
-
-  bool solveTimeStep() override;
-  void validateTimeStep() override;
-
-  void sauver() const override;
-  int postraiter(int force = 1) override;
-
-  void terminate() override;
-
-  void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
-  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
 
   void deplacer_interfaces(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle, const int first_step_interface_smoothing) override;
   void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle) override;
@@ -67,28 +37,19 @@ public :
   {
     return static_cast<const Cut_field_vector3_double&>(velocity_);
   }
-  // Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
-  const Facettes_Interp_FT& get_cut_cell_facettes_interpolation() const
+
+  const Cut_field_vector3_double& get_cut_field_remeshing_velocity() const
   {
-    return cut_cell_facettes_interpolation_;
-  }
-  void cut_cell_perform_interpolation_facettes()
-  {
-    cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_next(interfaces_.next());
+    return static_cast<const Cut_field_vector3_double&>(remeshing_velocity_);
   }
 
-  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
-  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
-  // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
-  IJK_Field_int treatment_count_;
+  const Cut_field_vector3_double& get_cut_field_total_velocity() const
+  {
+    return static_cast<const Cut_field_vector3_double&>(total_velocity_);
+  }
 
-  // Compteur du dernier traitement effectue dans treatment_count_
-  int new_treatment_ = 0;
-
-protected :
-  friend class IJK_FT_Post;
+protected:
   Cut_cell_FT_Disc cut_cell_disc_;
-
   DoubleTabFT_cut_cell_vector3 velocity_interface_;
 
   TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
@@ -100,9 +61,8 @@ protected :
   // Stockage des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   Facettes_Interp_FT cut_cell_facettes_interpolation_;
 
-private:
-  void solveTimeStep_Euler(DoubleTrav&);
-  void solveTimeStep_RK3(DoubleTrav&);
+
+  void initialize() override;
 };
 
 #endif /* Probleme_FTD_IJK_cut_cell_included */

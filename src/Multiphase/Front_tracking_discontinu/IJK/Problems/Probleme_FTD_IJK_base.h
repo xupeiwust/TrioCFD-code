@@ -51,23 +51,25 @@ class Domaine_IJK;
 class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
 {
   Declare_base_sans_constructeur(Probleme_FTD_IJK_base) ;
-  Probleme_FTD_IJK_base();
-  Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x);
-
 public :
   // We take too much advantage of it ...:
   friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
 
-  /*
-   * ===============================================================
-   */
+  Probleme_FTD_IJK_base();
+  Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x);
+  int associer_(Objet_U&) override;
 
-  /*
-     * ===============================================================
-     */
-  void preparer_calcul() override { }
+  virtual void set_param(Param& param);
+
+  const Domaine_IJK& get_domaine_ft() const { return domaine_ft_ ; }
+  const Domaine_IJK& get_domaine() const { return domaine_ijk_.valeur(); }
+  const Domaine_IJK& domaine_ijk() const { return domaine_ijk_.valeur(); }
+  Domaine_IJK& domaine_ijk() { return domaine_ijk_.valeur(); }
+
+  void discretiser(Discretisation_base& dis) override;
+  void preparer_calcul() override;
 
   void typer_lire_milieu(Entree& is) override;
   void lire_solved_equations(Entree& is) override;
@@ -76,29 +78,24 @@ public :
   void mettre_a_jour(double temps) override { }
   virtual bool updateGivenFields() override { return false; }
 
-  /*
-   * Milieu_IJK
-   */
   inline Fluide_Diphasique_IJK& milieu_ijk() { return ref_cast(Fluide_Diphasique_IJK, le_milieu_[0].valeur()); }
   inline const Fluide_Diphasique_IJK& milieu_ijk() const { return ref_cast(Fluide_Diphasique_IJK, le_milieu_[0].valeur()); }
-
-
-  //////////////////////////////////////////////////
-  //                                              //
-  // Implementation de l'interface de Probleme_U  //
-  //                                              //
-  //////////////////////////////////////////////////
+  const Schema_Temps_IJK_base& schema_temps_ijk() const { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
+  Schema_Temps_IJK_base& schema_temps_ijk() { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
 
   // interface Problem
-  void initialize() override {  }
-  void terminate() override {  }
+  bool run() override;
+  void initialize() override;
+  void terminate() override;
+  int postraiter(int force=1) override;
+  void sauver() const override;
 
   // interface UnsteadyProblem
   double presentTime() const override { return 0.; }
-  double computeTimeStep(bool& stop) const override { return 0.0; }
+  double computeTimeStep(bool& stop) const override;
   bool initTimeStep(double dt) override { return true; }
-  bool solveTimeStep() override { return true; }
-  void validateTimeStep() override {  }
+  bool solveTimeStep() override;
+  void validateTimeStep() override;
   void setStationary(bool flag) override {  }
   void abortTimeStep() override {  }
   void resetTime(double time) override { }
@@ -106,14 +103,45 @@ public :
   // interface IterativeUnsteadyProblem
   bool iterateTimeStep(bool& converged) override { return iterateTimeStep_impl(*this, converged); }
 
+  IJK_Field_int& treatment_count() { return treatment_count_; }
+
+protected:
+  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
+  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
+  // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
+  IJK_Field_int treatment_count_;
+
+  // Compteur du dernier traitement effectue dans treatment_count_
+  int new_treatment_ = 0;
+
+
+  OBS_PTR(Domaine_IJK) domaine_ijk_;
+  Domaine_IJK domaine_ft_;
+
+  void euler_time_step(ArrOfDouble& var_volume_par_bulle);
+  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time);
+  virtual void create_forced_dilation() { }
+  void solveTimeStep_Euler(DoubleTrav&);
+  void solveTimeStep_RK3(DoubleTrav&);
+
+
+
+
+
+
+
+
+
+
+
 
 
   /*
      * ===============================================================
-     *//*
+     *//*  OLD OLD OLD
 * ===============================================================
 */
-
+public:
 
   /*
    * This
@@ -138,7 +166,7 @@ public :
 
 
 
-  void discretiser(Discretisation_base& dis) override;
+
 
 
   /*
@@ -147,9 +175,7 @@ public :
    */
 
 
-  int associer_(Objet_U&) override;
-  const Domaine_IJK& get_domaine_ft() const { return domaine_ft_ ; }
-  const Domaine_IJK& get_domaine() const { return domaine_ijk_.valeur(); }
+
 
   void redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                          IJK_Field_double& output_field);
@@ -157,11 +183,8 @@ public :
   void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                            IJK_Field_double& output_field);
 
-  const Domaine_IJK& domaine_ijk() const { return domaine_ijk_.valeur(); }
-  Domaine_IJK& domaine_ijk() { return domaine_ijk_.valeur(); }
 
-  OBS_PTR(Domaine_IJK) domaine_ijk_;
-  Domaine_IJK domaine_ft_;
+
 
   // Classe outil pour passer entre domain_ijk_ et domain_ft_
   // Une instance par direction des faces:
@@ -177,11 +200,7 @@ public :
    *    */
   // Methodes d'acces :
 
-  const Schema_Temps_IJK_base& schema_temps_ijk() const { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
-  Schema_Temps_IJK_base& schema_temps_ijk() { return ref_cast(Schema_Temps_IJK_base, le_schema_en_temps_.valeur()); }
 
-  virtual void euler_time_step(ArrOfDouble& var_volume_par_bulle) = 0;
-  virtual void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) = 0;
   // MODIF Aymeric : c'est plus pratique de mettre cette methode publique,
   // c'est une methode generique cont.
   void euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,

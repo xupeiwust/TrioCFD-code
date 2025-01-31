@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2015 - 2016, CEA
+* Copyright (c) 2025, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -18,43 +18,12 @@
 
 #include <Probleme_FTD_IJK_base.h>
 
-/*! @brief : class Probleme_FTD_IJK
- *
- *  <Description of class Probleme_FTD_IJK>
- *
- *
- *  La classe Probleme_FTD_IJK herite de la classe Probleme_FTD_IJK_base.
- *
- */
 class Probleme_FTD_IJK : public Probleme_FTD_IJK_base
 {
-  friend class IJK_Thermique;
-  friend class Statistiques_dns_ijk_FT;
   Declare_instanciable(Probleme_FTD_IJK) ;
-
-public :
-
-  bool run() override;
-
+protected :
   void initialize() override;
-  void preparer_calcul() override;
-
-  double computeTimeStep(bool& stop) const override ;
-
-  bool solveTimeStep() override ;
-  void validateTimeStep() override;
-
-  void sauver() const override;
-  int postraiter(int force=1) override;
-
-  void terminate() override;
-
-  void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
-  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
-
-private:
-  void solveTimeStep_Euler(DoubleTrav&);
-  void solveTimeStep_RK3(DoubleTrav&);
+  void create_forced_dilation() override;
 };
 
 #endif /* Probleme_FTD_IJK_included */
