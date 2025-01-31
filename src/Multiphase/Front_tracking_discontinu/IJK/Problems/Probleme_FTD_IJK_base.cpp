@@ -38,6 +38,7 @@
 #include <Force_ph.h>
 #include <Vecteur3.h>
 #include <Domaine_IJK.h>
+#include <IJK_discretisation.h>
 
 #define COMPLEMENT_ANTI_DEVIATION_RESIDU
 // #define VARIABLE_DZ
@@ -4457,4 +4458,13 @@ IJK_Field_double Probleme_FTD_IJK_base::scalar_fields_product(const IJK_Field_do
         }
   // Communication avec tous les process ?
   return resu;
+}
+
+/*! Nothing to be done here for now ...
+ */
+void Probleme_FTD_IJK_base::discretiser(Discretisation_base& dis)
+{
+  Cerr << "Discretization (IJK) of the domain associated with the problem '" << le_nom() << "' (nothing to do ...)" << finl;
+  if (!sub_type(IJK_discretisation, dis))
+    Process::exit("Error!! IJK problem must be associated with an IJK discretisation!!");
 }

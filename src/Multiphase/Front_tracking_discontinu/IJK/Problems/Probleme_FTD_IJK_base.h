@@ -136,6 +136,8 @@ public :
 
 
 
+  void discretiser(Discretisation_base& dis) override;
+
 
   /*
    *
