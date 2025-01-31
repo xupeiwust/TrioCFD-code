@@ -35,8 +35,29 @@ class Probleme_FTD_IJK : public Probleme_FTD_IJK_base
 public :
 
   bool run() override;
+
+  void initialize() override;
+  void preparer_calcul() override;
+
+  double computeTimeStep(bool& stop) const override ;
+
+  bool solveTimeStep() override ;
+  void validateTimeStep() override;
+
+  void sauver() const override;
+  int postraiter(int force=1) override;
+
+  void terminate() override;
+
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
+
+private:
+  double max_timestep_ = -123.;
+  bool stop_ = false;
+  Nom lata_name_;
+  void solveTimeStep_Euler(DoubleTrav&);
+  void solveTimeStep_RK3(DoubleTrav&);
 };
 
 #endif /* Probleme_FTD_IJK_included */

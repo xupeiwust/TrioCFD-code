@@ -1115,8 +1115,8 @@ void Probleme_FTD_IJK_cut_cell::update_twice_indicator_field()
 }
 
 void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
-                                          ArrOfDouble& var_volume_par_bulle,
-                                          const int first_step_interface_smoothing)
+                                                    ArrOfDouble& var_volume_par_bulle,
+                                                    const int first_step_interface_smoothing)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
 
@@ -1154,7 +1154,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
 }
 
 void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
-                                              ArrOfDouble& var_volume_par_bulle)
+                                                        ArrOfDouble& var_volume_par_bulle)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
 
@@ -1508,7 +1508,7 @@ void Probleme_FTD_IJK_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bull
 // rk_step = 0, 1 or 2
 // total_timestep = not the fractionnal timestep !
 void Probleme_FTD_IJK_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
-                                   const double fractionnal_timestep, const double time )
+                                             const double fractionnal_timestep, const double time )
 {
   assert(rk_step>=0 && rk_step<3);
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");

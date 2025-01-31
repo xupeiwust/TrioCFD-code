@@ -66,11 +66,11 @@ public :
      */
   void preparer_calcul() override { }
 
-   void typer_lire_milieu(Entree& is) override { }
+  void typer_lire_milieu(Entree& is) override { }
 
-   void completer() override { }
-   void mettre_a_jour(double temps) override { }
-   virtual bool updateGivenFields() override { return false; }
+  void completer() override { }
+  void mettre_a_jour(double temps) override { }
+  virtual bool updateGivenFields() override { return false; }
 
 
   //////////////////////////////////////////////////
@@ -80,7 +80,7 @@ public :
   //////////////////////////////////////////////////
 
   // interface Problem
-  void initialize() override { run(); }
+  void initialize() override {  }
   void terminate() override {  }
 
   // interface UnsteadyProblem
@@ -101,8 +101,8 @@ public :
   /*
      * ===============================================================
      *//*
-     * ===============================================================
-     */
+* ===============================================================
+*/
 
 
   /*
@@ -118,7 +118,7 @@ public :
     Process::exit();
     return refprobleme_ns_.valeur();
   }
-  const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base&a) { throw ; }
+  const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base& a) { throw ; }
   int initialise();
 
   void ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const;

@@ -68,7 +68,7 @@ Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():
 }
 
 Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
-    Probleme_FT_Disc_gen(x), post_(IJK_FT_Post(*this))
+  Probleme_FT_Disc_gen(x), post_(IJK_FT_Post(*this))
 {
   exit();
 }
@@ -874,12 +874,12 @@ const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) con
 }
 
 void Probleme_FTD_IJK_base::force_entry_velocity(IJK_Field_double& vx,
-                                       IJK_Field_double& vy,
-                                       IJK_Field_double& vz,
-                                       double v_imposed,
-                                       const int& dir,
-                                       const int& compo,
-                                       const int& stencil)
+                                                 IJK_Field_double& vy,
+                                                 IJK_Field_double& vz,
+                                                 double v_imposed,
+                                                 const int& dir,
+                                                 const int& compo,
+                                                 const int& stencil)
 {
   const IJK_Splitting& splitting = select_dir(dir, vx.get_splitting(), vy.get_splitting(), vz.get_splitting());
   const int offset_ijk = splitting.get_offset_local(dir);
@@ -908,10 +908,10 @@ void Probleme_FTD_IJK_base::force_entry_velocity(IJK_Field_double& vx,
 
 
 void Probleme_FTD_IJK_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                                      double v_imposed,
-                                                      const IJK_Interfaces& interfaces,
-                                                      double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,
-                                                      double Ux0,double Uy0,double Uz0,int epaisseur_maille)
+                                                                double v_imposed,
+                                                                const IJK_Interfaces& interfaces,
+                                                                double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,
+                                                                double Ux0,double Uy0,double Uz0,int epaisseur_maille)
 {
   assert(interfaces.get_nb_bulles_reelles() == 1);
   DoubleTab bounding_box;
@@ -1137,12 +1137,12 @@ void Probleme_FTD_IJK_base::force_upstream_velocity_shear_perio(IJK_Field_double
 }
 
 void Probleme_FTD_IJK_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                          double v_imposed,
-                                          const IJK_Interfaces& interfaces,
-                                          double nb_diam,
-                                          int upstream_dir,
-                                          int gravity_dir,
-                                          int upstream_stencil)
+                                                    double v_imposed,
+                                                    const IJK_Interfaces& interfaces,
+                                                    double nb_diam,
+                                                    int upstream_dir,
+                                                    int gravity_dir,
+                                                    int upstream_stencil)
 {
   int dir = 0;
   if (upstream_dir == -1)
@@ -1374,7 +1374,7 @@ void Probleme_FTD_IJK_base::dumpxyz_vector(const IJK_Field_vector3_double& f3com
 
 
 void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
-                                       const int& stop)//  const
+                                                 const int& stop)//  const
 {
   statistiques().begin_count(sauvegarde_counter_);
 
@@ -1581,9 +1581,9 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 // pour que le calcul soit stable avec un CFL <=1.0 et Fo <= 1.0.
 // Sinon, il faudrait recommander CFL <= 0.5 et Fo <=0.5 ce qui n'est pas la valeur par defaut...
 double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
-                                  const double cfl,
-                                  const double fo,
-                                  const double oh)
+                                            const double cfl,
+                                            const double fo,
+                                            const double oh)
 {
   statistiques().begin_count(dt_counter_);
 
@@ -2326,7 +2326,7 @@ void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay
 }
 
 void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
-                                                     const int rk_step)
+                                                               const int rk_step)
 {
   /*
    * Cette methode calcule la source de qdm a appliquer pour que les bulles soient
@@ -3351,12 +3351,12 @@ void Probleme_FTD_IJK_base::compute_add_external_forces(const int dir)
 // -----------------------------------------------------------------------------------
 //  FORCAGE EXTERIEUR, DEFINI DANS L'ESPACE SPECTRAL
 void Probleme_FTD_IJK_base::compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
-                                        const int time_iteration,
-                                        const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
-                                        const double current_time,
-                                        const IJK_Splitting& my_splitting
-                                        // const int rk_step
-                                       )
+                                                  const int time_iteration,
+                                                  const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
+                                                  const double current_time,
+                                                  const IJK_Splitting& my_splitting
+                                                  // const int rk_step
+                                                 )
 {
   statistiques().begin_count(m2_counter_);
   if (forcage_.get_forced_advection()==-1)
@@ -3404,13 +3404,13 @@ void Probleme_FTD_IJK_base::compute_add_THI_force(const IJK_Field_vector3_double
 }
 
 void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
-                                                       const int time_iteration,
-                                                       const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
-                                                       const double current_time,
-                                                       const IJK_Splitting& my_splitting,
-                                                       const int facteur
-                                                       // const int rk_step
-                                                      )
+                                                                 const int time_iteration,
+                                                                 const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
+                                                                 const double current_time,
+                                                                 const IJK_Splitting& my_splitting,
+                                                                 const int facteur
+                                                                 // const int rk_step
+                                                                )
 {
   statistiques().begin_count(m2_counter_);
   if (forcage_.get_forced_advection()==-1)
@@ -3506,7 +3506,7 @@ void Probleme_FTD_IJK_base::terme_source_gravite(IJK_Field_double& dv, int k_ind
 }
 
 void Probleme_FTD_IJK_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
-                                        const int k_layer) const
+                                                  const int k_layer) const
 {
   const double delta_t = timestep_;
   const int imax = v.ni();
@@ -3530,8 +3530,8 @@ void Probleme_FTD_IJK_base::euler_explicit_update(const IJK_Field_double& dv, IJ
 //
 // Mettre rk_step = -1 si schema temps different de rk3.
 void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int rk_step,
-                                      ArrOfDouble& var_volume_par_bulle,
-                                      const int first_step_interface_smoothing)
+                                                ArrOfDouble& var_volume_par_bulle,
+                                                const int first_step_interface_smoothing)
 {
   static Stat_Counter_Id deplacement_interf_counter_ = statistiques().new_counter(1, "Deplacement de l'interface");
   statistiques().begin_count(deplacement_interf_counter_);
@@ -3660,7 +3660,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
 
 // Nouvelle version ou le transport se fait avec les ghost...
 void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const int rk_step,
-                                          ArrOfDouble& var_volume_par_bulle)
+                                                    ArrOfDouble& var_volume_par_bulle)
 {
   if (disable_diphasique_ || interfaces_.is_frozen())
     return;
@@ -4437,13 +4437,13 @@ void Probleme_FTD_IJK_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume
 }
 
 void Probleme_FTD_IJK_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
-                                                    IJK_Field_double& output_field)
+                                                              IJK_Field_double& output_field)
 {
   redistribute_to_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
 void Probleme_FTD_IJK_base::redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
-                                                      IJK_Field_double& output_field)
+                                                                IJK_Field_double& output_field)
 {
   redistribute_from_splitting_ft_elem_.redistribute(input_field, output_field);
 }

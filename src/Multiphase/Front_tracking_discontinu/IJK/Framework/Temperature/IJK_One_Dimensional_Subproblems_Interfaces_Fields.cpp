@@ -16,6 +16,7 @@
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
 #include <Probleme_FTD_IJK.h>
 #include <IJK_One_Dimensional_Subproblems.h>
+#include <IJK_Navier_Stokes_tools.h>
 
 Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblems_Interfaces_Fields, "IJK_One_Dimensional_Subproblems_Interfaces_Fields", Objet_U ) ;
 
