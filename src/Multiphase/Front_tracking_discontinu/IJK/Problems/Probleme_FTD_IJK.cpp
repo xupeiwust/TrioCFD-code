@@ -15,12 +15,12 @@
 
 #include <Probleme_FTD_IJK.h>
 #include <IJK_Field_vector.h>
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
 
 
-Implemente_instanciable(Probleme_FTD_IJK, "Probleme_FTD_IJK", IJK_FT_base);
+Implemente_instanciable(Probleme_FTD_IJK, "Probleme_FTD_IJK", Probleme_FTD_IJK_base);
 
 Sortie& Probleme_FTD_IJK::printOn(Sortie& os) const
 {
@@ -34,7 +34,7 @@ Entree& Probleme_FTD_IJK::readOn(Entree& is)
 
 Entree& Probleme_FTD_IJK::interpreter(Entree& is)
 {
-  IJK_FT_base::interpreter(is);
+  Probleme_FTD_IJK_base::interpreter(is);
 
   run();
   return is;
@@ -1325,7 +1325,7 @@ void Probleme_FTD_IJK::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 // rk_step = 0, 1 or 2
 // total_timestep = not the fractionnal timestep !
 void Probleme_FTD_IJK::rk3_sub_step(const int rk_step, const double total_timestep,
-                          const double fractionnal_timestep, const double time )
+                                    const double fractionnal_timestep, const double time )
 {
   assert(rk_step>=0 && rk_step<3);
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");

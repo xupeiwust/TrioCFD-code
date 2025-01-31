@@ -17,7 +17,7 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <Ouvrir_fichier.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_Thermal_base.h>
 #include <IJK_Thermal_Subresolution.h>
 #include <IJK_One_Dimensional_Subproblems.h>
@@ -27,7 +27,7 @@ Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblem, "IJK_
 
 IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem() : Objet_U() { }
 
-IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const IJK_FT_base& ijk_ft) : IJK_One_Dimensional_Subproblem()
+IJK_One_Dimensional_Subproblem::IJK_One_Dimensional_Subproblem(const Probleme_FTD_IJK_base& ijk_ft) : IJK_One_Dimensional_Subproblem()
 {
   associer(ijk_ft);
 }

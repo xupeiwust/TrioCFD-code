@@ -32,17 +32,17 @@ class Sondes_IJK : public LIST(Sonde_IJK)
 public :
   inline void ouvrir_fichiers();
   inline void fermer_fichiers();
-  inline void completer_IJK(const IJK_FT_base& ijk_ft);
+  inline void completer_IJK(const Probleme_FTD_IJK_base& ijk_ft);
   //  void associer_post(const Postraitement&);
   void postraiter();
   void mettre_a_jour(double temps, double tinit);
 
 protected :
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
 
 };
 
-inline void Sondes_IJK::completer_IJK(const IJK_FT_base& ijk_ft)
+inline void Sondes_IJK::completer_IJK(const Probleme_FTD_IJK_base& ijk_ft)
 {
   for(auto& itr : *this) itr.completer_IJK(ijk_ft);
 }

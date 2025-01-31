@@ -34,24 +34,25 @@
 #include <OpConvDiscQuickIJKScalar.h>
 #include <OpConvCentre4IJK.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 
 class IJK_Thermique : public Objet_U
 {
 
-  friend class IJK_FT_Post;
-  friend class IJK_FT_base;
-  friend class IJK_FT;
-  friend class IJK_FT_cut_cell;
   Declare_instanciable( IJK_Thermique ) ;
 
 public :
+
+  friend class IJK_FT_Post;
+  friend class Probleme_FTD_IJK_base;
+  friend class Probleme_FTD_IJK;
+  friend class Probleme_FTD_IJK_cut_cell;
 
   int initialize(const IJK_Splitting& splitting, const int idx);
   void update_thermal_properties();
   double compute_timestep(const double timestep,
                           const double dxmin) const;
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void euler_time_step(const double timestep);
   void euler_rustine_step(const double timestep, const double dE);
   void rk3_sub_step(const int rk_step, const double total_timestep,
@@ -158,7 +159,7 @@ protected :
     ArrOfDouble& interfacial_temperature,
     ArrOfDouble& flux_normal_interp); //const ;
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   int rang_;
 
   Boundary_Conditions_Thermique boundary_conditions_;

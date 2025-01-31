@@ -34,7 +34,7 @@
 
 #include <Corrige_flux_FT_base.h>
 #include <DebogIJK.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Thermique.h>
 #include <Intersection_Interface_ijk.h>
@@ -63,7 +63,7 @@ Entree& Corrige_flux_FT_base::readOn( Entree& is )
 void Corrige_flux_FT_base::initialize(const IJK_Splitting& splitting,
                                       const IJK_Field_double& field,
                                       const IJK_Interfaces& interfaces,
-                                      const IJK_FT_base& ijk_ft,
+                                      const Probleme_FTD_IJK_base& ijk_ft,
                                       Intersection_Interface_ijk_face& intersection_ijk_face,
                                       Intersection_Interface_ijk_cell& intersection_ijk_cell)
 {
@@ -83,7 +83,7 @@ void Corrige_flux_FT_base::initialize(const IJK_Splitting& splitting,
 void Corrige_flux_FT_base::initialize_with_subproblems(const IJK_Splitting& splitting,
                                                        const IJK_Field_double& field,
                                                        const IJK_Interfaces& interfaces,
-                                                       const IJK_FT_base& ijk_ft,
+                                                       const Probleme_FTD_IJK_base& ijk_ft,
                                                        Intersection_Interface_ijk_face& intersection_ijk_face,
                                                        Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                                        IJK_One_Dimensional_Subproblems& thermal_local_subproblems)

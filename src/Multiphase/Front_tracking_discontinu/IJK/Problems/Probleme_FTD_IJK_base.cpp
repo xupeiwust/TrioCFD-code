@@ -13,7 +13,7 @@
 *
 *****************************************************************************/
 
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Field_vector.h>
 #include <Param.h>
 #include <Interprete_bloc.h>
@@ -45,11 +45,11 @@
 // static Stat_Counter_Id cnt_SourceInterf;
 //#define SMOOTHING_RHO
 
-Implemente_base_sans_constructeur(IJK_FT_base, "IJK_FT_base", Interprete);
+Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Interprete);
 
-IJK_FT_base::IJK_FT_base():
-  post_(IJK_FT_Post(*this)),
-  thermals_(IJK_Thermals(*this))
+Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():
+  thermals_(IJK_Thermals(*this)),
+  post_(IJK_FT_Post(*this))
 {
   // GAB, qdm
   gravite_.resize_array(3);
@@ -67,7 +67,7 @@ IJK_FT_base::IJK_FT_base():
   expression_vitesse_initiale_.dimensionner_force(3);
 }
 
-IJK_FT_base::IJK_FT_base(const IJK_FT_base& x):
+Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
   Interprete(x), post_(IJK_FT_Post(*this))
 {
   exit();
@@ -277,13 +277,13 @@ void copy_field_from_extended_domain(const IJK_Field_double& input_field,
 
 #endif
 
-IJK_FT_base::TimeScheme IJK_FT_base::get_time_scheme() const
+Probleme_FTD_IJK_base::TimeScheme Probleme_FTD_IJK_base::get_time_scheme() const
 {
   return (TimeScheme) time_scheme_;
 }
 
-// XD IJK_FT_base interprete IJK_FT_base 1 not_set
-Entree& IJK_FT_base::interpreter(Entree& is)
+// XD Probleme_FTD_IJK_base interprete Probleme_FTD_IJK_base 1 not_set
+Entree& Probleme_FTD_IJK_base::interpreter(Entree& is)
 {
   // On force l'attribut dimension a 3 pour ne pas avoir besoin de le mettre dans le jeu de donnees.
   // Cet attribut est utilise dans les routines front-tracking issues de triou
@@ -659,7 +659,7 @@ Entree& IJK_FT_base::interpreter(Entree& is)
   return is;
 }
 
-void IJK_FT_base::set_param(Param& param)
+void Probleme_FTD_IJK_base::set_param(Param& param)
 {
 #ifdef SMOOTHING_RHO
   param.ajouter_flag("smooth_density", &smooth_density_);
@@ -820,24 +820,25 @@ void IJK_FT_base::set_param(Param& param)
   param.ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
 }
 
-Sortie& IJK_FT_base::printOn(Sortie& os) const
+
+Sortie& Probleme_FTD_IJK_base::printOn(Sortie& os) const
 {
   // Objet_U::printOn(os);
   return os;
 }
 
-Entree& IJK_FT_base::readOn(Entree& is)
+Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
 {
   // Objet_U::readOn(is);
   return is;
 }
 
-const IJK_Field_double& IJK_FT_base::get_IJK_field(const Nom& nom) const
+const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) const
 {
   /*
   const Motcles & liste_fields = liste_post_instantanes_;
   if (!liste_fields.contient_(nom)) {
-    Cerr << "Erreur dans IJK_FT_base::get_IJK_field : "
+    Cerr << "Erreur dans Probleme_FTD_IJK_base::get_IJK_field : "
    << "Champ demande : " << nom
    << "Liste des champs possibles : " << liste_fields << finl;
     Process::exit();
@@ -877,7 +878,7 @@ const IJK_Field_double& IJK_FT_base::get_IJK_field(const Nom& nom) const
   return post_.get_IJK_field(nom);
 }
 
-void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx,
+void Probleme_FTD_IJK_base::force_entry_velocity(IJK_Field_double& vx,
                                        IJK_Field_double& vy,
                                        IJK_Field_double& vz,
                                        double v_imposed,
@@ -911,7 +912,7 @@ void IJK_FT_base::force_entry_velocity(IJK_Field_double& vx,
 }
 
 
-void IJK_FT_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+void Probleme_FTD_IJK_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
                                                       double v_imposed,
                                                       const IJK_Interfaces& interfaces,
                                                       double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,
@@ -1140,7 +1141,7 @@ void IJK_FT_base::force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_
   Cerr << "Upstream Velocity has been forced" << finl;
 }
 
-void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+void Probleme_FTD_IJK_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
                                           double v_imposed,
                                           const IJK_Interfaces& interfaces,
                                           double nb_diam,
@@ -1278,7 +1279,7 @@ void IJK_FT_base::force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double
   Cerr << "Upstream Velocity has been forced" << finl;
 }
 
-void IJK_FT_base::ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const
+void Probleme_FTD_IJK_base::ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const
 {
   const IJK_Field_double& f =  f3compo[compo];
 
@@ -1339,7 +1340,7 @@ void IJK_FT_base::ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichi
 }
 
 // Initialize field with specified string expression (must be understood by Parser class)
-void IJK_FT_base::dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const char * filename, bool binary) const
+void Probleme_FTD_IJK_base::dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const char * filename, bool binary) const
 {
   int np = Process::nproc();
   int rank = Process::me();
@@ -1377,7 +1378,7 @@ void IJK_FT_base::dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const 
 }
 
 
-void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
+void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
                                        const int& stop)//  const
 {
   statistiques().begin_count(sauvegarde_counter_);
@@ -1525,7 +1526,7 @@ void IJK_FT_base::sauvegarder_probleme(const char *fichier_sauvegarde,
 
 }
 
-void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
+void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 {
   // Lecture par tous les processeurs, on retire les commentaires etc...
   LecFicDiffuse_JDD fichier(fichier_reprise);
@@ -1584,7 +1585,7 @@ void IJK_FT_base::reprendre_probleme(const char *fichier_reprise)
 // On choisi de mettre le facteur 0.5 dans dt_cfl et dt_fo
 // pour que le calcul soit stable avec un CFL <=1.0 et Fo <= 1.0.
 // Sinon, il faudrait recommander CFL <= 0.5 et Fo <=0.5 ce qui n'est pas la valeur par defaut...
-double IJK_FT_base::find_timestep(const double max_timestep,
+double Probleme_FTD_IJK_base::find_timestep(const double max_timestep,
                                   const double cfl,
                                   const double fo,
                                   const double oh)
@@ -1720,7 +1721,7 @@ double IJK_FT_base::find_timestep(const double max_timestep,
 // Methode appelee par run() une fois la memoire alouee pour les champs.
 // Cette fonction remplit les valeurs initiales de vitesse
 // Elle debute aussi les compteurs.
-int IJK_FT_base::initialise()
+int Probleme_FTD_IJK_base::initialise()
 {
   Cout << que_suis_je() << "::initialise()" << finl;
   int nalloc = 0;
@@ -1866,7 +1867,7 @@ int IJK_FT_base::initialise()
     }
 
   statistiques().end_count(calculer_thermique_prop_counter_);
-  Cout << "End of IJK_FT_base::initialise()" << finl;
+  Cout << "End of Probleme_FTD_IJK_base::initialise()" << finl;
 
   /*
    * Thermal problems
@@ -2173,7 +2174,7 @@ static void runge_kutta3_update_for_float(const double dx, double& store, double
     };
 }
 
-void IJK_FT_base::calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
+void Probleme_FTD_IJK_base::calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
 {
   /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
   /* Ne fonctionne que pour des maillages uniformes */
@@ -2215,7 +2216,7 @@ void IJK_FT_base::calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_
   return;
 }
 
-void IJK_FT_base::calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
+void Probleme_FTD_IJK_base::calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy)
 {
   /* Renvoie le vecteur vitesse moyen (spatial) en z = 0 */
   /* Ne fonctionne que pour des maillages uniformes */
@@ -2256,7 +2257,7 @@ void IJK_FT_base::calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_
   return;
 }
 
-void IJK_FT_base::calculer_terme_asservissement(double& ax, double& ay, double& az)
+void Probleme_FTD_IJK_base::calculer_terme_asservissement(double& ax, double& ay, double& az)
 {
   // On trouve la vitesse moyenne de la phase vapeur pour la partie derivee du correcteur
 
@@ -2329,7 +2330,7 @@ void IJK_FT_base::calculer_terme_asservissement(double& ax, double& ay, double& 
   az = -Kp_*(centre_moyz-Lz/2)-Ki_*int_z_-Kd_*uvz;
 }
 
-void IJK_FT_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
+void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
                                                      const int rk_step)
 {
   /*
@@ -2559,7 +2560,7 @@ static int decoder_numero_bulle(const int code)
 // ce qu'on evalue ici.
 // Attention, cette methode ne fait pas que des evaluations, elle calcule aussi
 // terme_source_correction_x_ ou _y_
-void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
+void Probleme_FTD_IJK_base::compute_correction_for_momentum_balance(const int rk_step)
 {
   // Toutes les interfaces etant fermees, on a donc la somme des forces
   // donnee par la poussee d'archimede : delta_rho * g * alpha
@@ -2755,7 +2756,7 @@ void IJK_FT_base::compute_correction_for_momentum_balance(const int rk_step)
 
 // Mettre rk_step = -1 si schema temps different de rk3.
 // /!\ rk_step = 0 signifie qu'on est en RK3, mais n'indique pas a quelle ss pas de temps de RK3 on se place !!!
-void IJK_FT_base::calculer_dv(const double timestep, const double time, const int rk_step)
+void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time, const int rk_step)
 {
   // GAB : initialisation. On initialise que pour rk_step<=0, mais on pourrai initialiser a chaque ss pdt
   // Avec le post-traitement que je fais de mes termes, je dois les re-initialiser a chaque ss pdt,
@@ -3315,7 +3316,7 @@ void IJK_FT_base::calculer_dv(const double timestep, const double time, const in
   statistiques().end_count(calcul_dv_counter);
 }
 
-void IJK_FT_base::compute_add_external_forces(const int dir)
+void Probleme_FTD_IJK_base::compute_add_external_forces(const int dir)
 {
   if (coef_immobilisation_ > 1e-16)
     {
@@ -3354,7 +3355,7 @@ void IJK_FT_base::compute_add_external_forces(const int dir)
 
 // -----------------------------------------------------------------------------------
 //  FORCAGE EXTERIEUR, DEFINI DANS L'ESPACE SPECTRAL
-void IJK_FT_base::compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
+void Probleme_FTD_IJK_base::compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
                                         const int time_iteration,
                                         const double dt, //tstep, /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                         const double current_time,
@@ -3407,7 +3408,7 @@ void IJK_FT_base::compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
   statistiques().end_count(m3_counter_);
 }
 
-void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
+void Probleme_FTD_IJK_base::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
                                                        const int time_iteration,
                                                        const double dt, //tstep,  /!\ ce dt est faux, je ne sais pas pk mais en comparant sa valeur avec celle du dt_ev, je vois que c'est faux
                                                        const double current_time,
@@ -3497,7 +3498,7 @@ void IJK_FT_base::compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_d
 // -----------------------------------------------------------------------------------
 
 // Hard coded constant pressure gradient in i direction, add contribution in m/s*volume of control volume
-void IJK_FT_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const
+void Probleme_FTD_IJK_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const
 {
   const double constant = gravite_[dir];
   const int imax = dv.ni();
@@ -3509,7 +3510,7 @@ void IJK_FT_base::terme_source_gravite(IJK_Field_double& dv, int k_index, int di
       }
 }
 
-void IJK_FT_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
+void Probleme_FTD_IJK_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_double& v,
                                         const int k_layer) const
 {
   const double delta_t = timestep_;
@@ -3533,7 +3534,7 @@ void IJK_FT_base::euler_explicit_update(const IJK_Field_double& dv, IJK_Field_do
 // ATTENTION : rho_mu_indicatrice ne sont pas mis a jours.
 //
 // Mettre rk_step = -1 si schema temps different de rk3.
-void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
+void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int rk_step,
                                       ArrOfDouble& var_volume_par_bulle,
                                       const int first_step_interface_smoothing)
 {
@@ -3663,7 +3664,7 @@ void IJK_FT_base::deplacer_interfaces(const double timestep, const int rk_step,
 }
 
 // Nouvelle version ou le transport se fait avec les ghost...
-void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_step,
+void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const int rk_step,
                                           ArrOfDouble& var_volume_par_bulle)
 {
   if (disable_diphasique_ || interfaces_.is_frozen())
@@ -3756,7 +3757,7 @@ void IJK_FT_base::deplacer_interfaces_rk3(const double timestep, const int rk_st
 //  Pour maintenir un tableau a jour entre avant et apres,
 //  il suffit de resizer le tableau a la sortie de la methode
 //  (forcement plus grand qu'avant) et de faire un echange_espace_virtuel.
-void IJK_FT_base::parcourir_maillage()
+void Probleme_FTD_IJK_base::parcourir_maillage()
 {
   //const int nbsom_before = interfaces_.maillage_ft_ijk().nb_sommets();
   interfaces_.parcourir_maillage();
@@ -3779,7 +3780,7 @@ void IJK_FT_base::parcourir_maillage()
 
 // Maj indicatrice rho mu met indicatrice a indicatrice next
 // et maj rho et mu en fonction de la nouvelle indicatrice
-void IJK_FT_base::maj_indicatrice_rho_mu(const bool parcourir)
+void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
 {
   // En monophasique, les champs sont a jours donc on zap :
   if (disable_diphasique_)
@@ -3878,7 +3879,7 @@ void IJK_FT_base::maj_indicatrice_rho_mu(const bool parcourir)
   statistiques().end_count(calculer_rho_mu_indicatrice_counter_);
 }
 
-void IJK_FT_base::update_rho_v()
+void Probleme_FTD_IJK_base::update_rho_v()
 {
   if (use_inv_rho_for_mass_solver_and_calculer_rho_v_)
     {
@@ -3896,7 +3897,7 @@ void IJK_FT_base::update_rho_v()
   rho_v_[2].echange_espace_virtuel(rho_v_[2].ghost());
 }
 
-void IJK_FT_base::update_v_ghost_from_rho_v()
+void Probleme_FTD_IJK_base::update_v_ghost_from_rho_v()
 {
   for (int dir = 0 ; dir < 3 ; dir++)
     {
@@ -3962,7 +3963,7 @@ void IJK_FT_base::update_v_ghost_from_rho_v()
 
 
 // Transfert du maillage ft vers ns de champs aux faces :
-void IJK_FT_base::transfer_ft_to_ns()
+void Probleme_FTD_IJK_base::transfer_ft_to_ns()
 {
   for (int dir = 0; dir < 3; dir++)
     {
@@ -3973,7 +3974,7 @@ void IJK_FT_base::transfer_ft_to_ns()
     }
 }
 
-void IJK_FT_base::fill_variable_source_and_potential_phi(const double time)
+void Probleme_FTD_IJK_base::fill_variable_source_and_potential_phi(const double time)
 {
   // Ajout du terme source (force acceleration)
   // Solveur masse pour chaque composante du bilan de QdM
@@ -4002,7 +4003,7 @@ void IJK_FT_base::fill_variable_source_and_potential_phi(const double time)
 }
 
 // GAB, rotation
-int IJK_FT_base::get_direction(const ArrOfDouble& vecteur)
+int Probleme_FTD_IJK_base::get_direction(const ArrOfDouble& vecteur)
 {
   if (vecteur[0]==0. && vecteur[1]==0. && vecteur[2]!=0)
     return DIRECTION_K;
@@ -4016,7 +4017,7 @@ int IJK_FT_base::get_direction(const ArrOfDouble& vecteur)
 //            IJK_Navier_Stokes_tool, mais etant donne qu'elle se trouve dans IJK_kernel, je ne sais pas trop si c'est propre que j'y touche
 //            voir avec Guillaume ce qu'il en dit.
 //            inspire de : void IJK_FT_Post::calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic)
-Vecteur3 IJK_FT_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,const IJK_Field_double& pression)
+Vecteur3 Probleme_FTD_IJK_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,const IJK_Field_double& pression)
 {
   IJK_Field_vector3_double champ;
   allocate_velocity(champ, splitting_, 1);
@@ -4043,7 +4044,7 @@ Vecteur3 IJK_FT_base::calculer_inv_rho_grad_p_moyen(const IJK_Field_double& rho,
 }
 
 
-Vecteur3 IJK_FT_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
+Vecteur3 Probleme_FTD_IJK_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
 {
   IJK_Field_vector3_double champ;
   allocate_velocity(champ, splitting_, 1);
@@ -4068,7 +4069,7 @@ Vecteur3 IJK_FT_base::calculer_grad_p_moyen(const IJK_Field_double& pression)
   return resu;
 }
 
-Vecteur3 IJK_FT_base::calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression)
+Vecteur3 Probleme_FTD_IJK_base::calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression)
 {
   /*
    * Calcule Moyenne_spatiale{ 1/rho * grad(p) }
@@ -4096,7 +4097,7 @@ Vecteur3 IJK_FT_base::calculer_grad_p_over_rho_moyen(const IJK_Field_double& pre
   return resu;
 }
 
-void IJK_FT_base::write_check_etapes_et_termes(int rk_step)
+void Probleme_FTD_IJK_base::write_check_etapes_et_termes(int rk_step)
 {
   // GR : 07.01.22 : mettre une condition if (tstep % dt_post_stats_check_ == dt_post_stats_check_ - 1 || stop)
   //                 serai vraiment une bonne chose pour alleger les _check_....out... voir avec AB et GB.
@@ -4203,7 +4204,7 @@ void IJK_FT_base::write_check_etapes_et_termes(int rk_step)
 
 // -----------------------------------------------------------------------------------
 //  CORRECTION DE QdM
-double IJK_FT_base::calculer_true_moyenne_de_phase_liq(const IJK_Field_double& vx)
+double Probleme_FTD_IJK_base::calculer_true_moyenne_de_phase_liq(const IJK_Field_double& vx)
 {
   /* Au 04.11.21 : Renvoi vx_liq */
   double alpha_liq_vx_liq = calculer_moyenne_de_phase_liq(vx);
@@ -4211,7 +4212,7 @@ double IJK_FT_base::calculer_true_moyenne_de_phase_liq(const IJK_Field_double& v
   return alpha_liq_vx_liq/alpha_liq;
 }
 
-double IJK_FT_base::calculer_moyenne_de_phase_liq(const IJK_Field_double& vx)
+double Probleme_FTD_IJK_base::calculer_moyenne_de_phase_liq(const IJK_Field_double& vx)
 {
   /* Au 04.11.21 : Renvoi alpha_liq * vx_liq
    * */
@@ -4254,7 +4255,7 @@ double IJK_FT_base::calculer_moyenne_de_phase_liq(const IJK_Field_double& vx)
   return v_moy;
 }
 
-double IJK_FT_base::calculer_true_moyenne_de_phase_vap(const IJK_Field_double& vx)
+double Probleme_FTD_IJK_base::calculer_true_moyenne_de_phase_vap(const IJK_Field_double& vx)
 {
   /* Au 04.11.21 : Renvoi vx_vap */
   double alpha_vap_vx_vap = calculer_moyenne_de_phase_vap(vx);
@@ -4262,7 +4263,7 @@ double IJK_FT_base::calculer_true_moyenne_de_phase_vap(const IJK_Field_double& v
   return alpha_vap_vx_vap/alpha_vap;
 }
 
-double IJK_FT_base::calculer_moyenne_de_phase_vap(const IJK_Field_double& vx)
+double Probleme_FTD_IJK_base::calculer_moyenne_de_phase_vap(const IJK_Field_double& vx)
 {
   /* Au 04.11.21 : Renvoi alpha_vap * vx_vap
    * */
@@ -4305,12 +4306,12 @@ double IJK_FT_base::calculer_moyenne_de_phase_vap(const IJK_Field_double& vx)
   return v_moy;
 }
 
-void IJK_FT_base::set_time_for_corrections()
+void Probleme_FTD_IJK_base::set_time_for_corrections()
 {
   qdm_corrections_.set_time(current_time_,timestep_,tstep_);
 }
 
-void IJK_FT_base::compute_and_add_qdm_corrections()
+void Probleme_FTD_IJK_base::compute_and_add_qdm_corrections()
 {
   /*
    * Corrections to comply with the momentum budget
@@ -4351,7 +4352,7 @@ void IJK_FT_base::compute_and_add_qdm_corrections()
   Cout << "AF : compute_and_add_qdm_corrections" << finl;
 }
 
-void IJK_FT_base::compute_and_add_qdm_corrections_monophasic()
+void Probleme_FTD_IJK_base::compute_and_add_qdm_corrections_monophasic()
 {
   /* For monophasic corrections only */
   /*
@@ -4392,7 +4393,7 @@ void IJK_FT_base::compute_and_add_qdm_corrections_monophasic()
   Cout << "AF : compute_and_add_qdm_corrections_monophasic" << finl;
 }
 
-void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle)
+void Probleme_FTD_IJK_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle)
 {
   if (vol_bulles_.size_array() > 0.)
     {
@@ -4440,19 +4441,19 @@ void IJK_FT_base::compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle
     }
 }
 
-void IJK_FT_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
+void Probleme_FTD_IJK_base::redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
                                                     IJK_Field_double& output_field)
 {
   redistribute_to_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
-void IJK_FT_base::redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
+void Probleme_FTD_IJK_base::redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
                                                       IJK_Field_double& output_field)
 {
   redistribute_from_splitting_ft_elem_.redistribute(input_field, output_field);
 }
 
-void IJK_FT_base::copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy)
+void Probleme_FTD_IJK_base::copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy)
 {
   const int ni = field.ni();
   const int nj = field.nj();
@@ -4473,7 +4474,7 @@ void IJK_FT_base::copy_field_values(IJK_Field_double& field, const IJK_Field_dou
   field.echange_espace_virtuel(field.ghost());
 }
 
-void IJK_FT_base::update_indicator_field()
+void Probleme_FTD_IJK_base::update_indicator_field()
 {
   const double delta_rho = rho_liquide_ - rho_vapeur_;
   interfaces_.switch_indicatrice_next_old();
@@ -4493,17 +4494,17 @@ void IJK_FT_base::update_indicator_field()
                                        );
 }
 
-void IJK_FT_base::update_pre_remeshing_indicator_field()
+void Probleme_FTD_IJK_base::update_pre_remeshing_indicator_field()
 {
   interfaces_.calculer_indicatrice_avant_remaillage();
 }
 
-void IJK_FT_base::update_post_remeshing_indicator_field()
+void Probleme_FTD_IJK_base::update_post_remeshing_indicator_field()
 {
   interfaces_.calculer_indicatrice_apres_remaillage();
 }
 
-void IJK_FT_base::update_twice_indicator_field()
+void Probleme_FTD_IJK_base::update_twice_indicator_field()
 {
   for(int i=0; i<2; i++)
     {
@@ -4512,12 +4513,12 @@ void IJK_FT_base::update_twice_indicator_field()
     }
 }
 
-void IJK_FT_base::update_old_intersections()
+void Probleme_FTD_IJK_base::update_old_intersections()
 {
   interfaces_.update_old_intersections();
 }
 
-void IJK_FT_base::write_qdm_corrections_information()
+void Probleme_FTD_IJK_base::write_qdm_corrections_information()
 {
   // Impression dans le fichier qdm_correction.out
   if (get_time_scheme() == RK3_FT) // && (rk3_sub_step!=0)
@@ -4557,7 +4558,7 @@ void IJK_FT_base::write_qdm_corrections_information()
 
 // -----------------------------------------------------------------------------------
 //  PRODUITS DE CHAMPS
-IJK_Field_double IJK_FT_base::scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2)
+IJK_Field_double Probleme_FTD_IJK_base::scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2)
 {
   /*
    * * ATTENTION : valide pour un maillage cartesien, de maille cubiques uniquement !
@@ -4597,7 +4598,7 @@ IJK_Field_double IJK_FT_base::scalar_product(const IJK_Field_vector3_double& V1,
   return resu;
 }
 
-IJK_Field_vector3_double IJK_FT_base::scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec)
+IJK_Field_vector3_double Probleme_FTD_IJK_base::scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec)
 {
   /*
    * Produit d'un champ scalaire (Sca) par un champ de vecteur (Vec).
@@ -4639,7 +4640,7 @@ IJK_Field_vector3_double IJK_FT_base::scalar_times_vector(const IJK_Field_double
   return resu;
 }
 
-IJK_Field_double IJK_FT_base::scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir)
+IJK_Field_double Probleme_FTD_IJK_base::scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir)
 {
   /*
    * Produit d'un champ scalaire aux centres (S1) par une des composantes d'un champ de vecteur (S2).

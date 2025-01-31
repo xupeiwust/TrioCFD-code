@@ -28,7 +28,7 @@
 #include <System.h>
 
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 
 class IJK_Thermals : public LIST(IJK_Thermal)
@@ -37,10 +37,10 @@ class IJK_Thermals : public LIST(IJK_Thermal)
   Declare_instanciable( IJK_Thermals ) ;
 
 public :
-  IJK_Thermals(const IJK_FT_base& ijk_ft);
+  IJK_Thermals(const Probleme_FTD_IJK_base& ijk_ft);
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise();
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell_,
@@ -111,7 +111,7 @@ public :
   void copy_previous_interface_state();
 
 protected :
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;

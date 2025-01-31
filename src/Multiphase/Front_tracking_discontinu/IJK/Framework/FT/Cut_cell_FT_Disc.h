@@ -25,6 +25,10 @@
 #include <IJK_Field_simd_tools.h>
 #include <IJK_Navier_Stokes_tools.h>
 
+class IJK_FT_Post;
+class Probleme_FTD_IJK_cut_cell;
+class IJK_Interfaces;
+
 /*! @brief : class Cut_cell_FT_Disc
  *
  *  <Description of class Cut_cell_FT_Disc>
@@ -147,7 +151,7 @@ protected:
   static bool verifier_si_ordonne(const IntTabFT_cut_cell& array, int imin, int imax);
 
   friend IJK_FT_Post;
-  friend IJK_FT_cut_cell;
+  friend Probleme_FTD_IJK_cut_cell;
 
   // Champ IJK_Field utilise pour le post-traitement des champs cut-cell
   mutable IJK_Field_double write_buffer_;

@@ -16,7 +16,7 @@
 #ifndef Probleme_FTD_IJK_included
 #define Probleme_FTD_IJK_included
 
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 
 /*! @brief : class Probleme_FTD_IJK
  *
@@ -26,7 +26,7 @@
  *  La classe Probleme_FTD_IJK herite de la classe Probleme_FTD_IJK_base.
  *
  */
-class Probleme_FTD_IJK : public IJK_FT_base
+class Probleme_FTD_IJK : public Probleme_FTD_IJK_base
 {
   friend class IJK_Thermique;
   friend class Statistiques_dns_ijk_FT;
@@ -37,6 +37,8 @@ public :
   void run() override;
   void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
   void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
+
+protected:
 };
 
 #endif /* Probleme_FTD_IJK_included */

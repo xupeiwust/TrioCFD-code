@@ -12,17 +12,11 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_FT_cut_cell.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
-#ifndef IJK_FT_cut_cell_included
-#define IJK_FT_cut_cell_included
+#ifndef Probleme_FTD_IJK_cut_cell_included
+#define Probleme_FTD_IJK_cut_cell_included
 
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Field_vector.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_Post.h>
@@ -30,23 +24,19 @@
 #include <Cut_cell_convection_auxiliaire.h>
 #include <Cut_cell_diffusion_auxiliaire.h>
 
-/*! @brief : class IJK_FT_cut_cell
+/*! @brief : class Probleme_FTD_IJK_cut_cell
  *
- *  <Description of class IJK_FT_cut_cell>
- *
- *
- *  La classe IJK_FT_cut_cell herite de la classe IJK_FT_base.
- *
+ *  La classe Probleme_FTD_IJK_cut_cell herite de la classe Probleme_FTD_IJK_base.
  */
-class IJK_FT_cut_cell : public IJK_FT_base
+class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
 {
   friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
-  Declare_instanciable_sans_constructeur(IJK_FT_cut_cell) ;
+  Declare_instanciable_sans_constructeur(Probleme_FTD_IJK_cut_cell) ;
 
 public :
-  IJK_FT_cut_cell();
+  Probleme_FTD_IJK_cut_cell();
   Entree& interpreter(Entree&) override;
   void set_param(Param& param) override;
   void run() override;
@@ -105,4 +95,4 @@ protected :
   Facettes_Interp_FT cut_cell_facettes_interpolation_;
 };
 
-#endif /* IJK_FT_cut_cell_included */
+#endif /* Probleme_FTD_IJK_cut_cell_included */

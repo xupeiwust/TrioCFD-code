@@ -30,7 +30,7 @@
 #include <ParcoursIJKDir.h>
 #include <IJK_One_Dimensional_Subproblems.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 
 /*! @brief : class Corrige_flux_FT
  * API pour modifier un champ de flux à partir de donnees à l'interface. Cette
@@ -49,14 +49,14 @@ public:
   virtual void initialize(const IJK_Splitting& splitting,
                           const IJK_Field_double& field,
                           const IJK_Interfaces& interfaces,
-                          const IJK_FT_base& ijk_ft,
+                          const Probleme_FTD_IJK_base& ijk_ft,
                           Intersection_Interface_ijk_face& intersection_ijk_face,
                           Intersection_Interface_ijk_cell& intersection_ijk_cell);
 
   virtual void initialize_with_subproblems(const IJK_Splitting& splitting,
                                            const IJK_Field_double& field,
                                            const IJK_Interfaces& interfaces,
-                                           const IJK_FT_base& ijk_ft,
+                                           const Probleme_FTD_IJK_base& ijk_ft,
                                            Intersection_Interface_ijk_face& intersection_ijk_face,
                                            Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                            IJK_One_Dimensional_Subproblems& thermal_local_subproblems);
@@ -166,10 +166,10 @@ public:
                                                                               const int& copy_temperature_on_every_procs) { ; };
 
 protected:
-  const IJK_Interfaces *interfaces_;
-  const IJK_Field_double *field_;
-  const IJK_Splitting *splitting_;
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  const IJK_Interfaces *interfaces_ = nullptr;
+  const IJK_Field_double *field_ = nullptr;
+  const IJK_Splitting *splitting_ = nullptr;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
 
 
   double rhocp_l_= 0.;

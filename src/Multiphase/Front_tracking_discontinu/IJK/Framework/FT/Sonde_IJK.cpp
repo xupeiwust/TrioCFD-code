@@ -21,7 +21,7 @@
 #include <Domaine_VF.h>
 #include <Champ_Generique_Interpolation.h>
 #include <communications.h>
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 
 // #include <string>
 // #include <fstream>
@@ -37,7 +37,7 @@ Sortie& Sonde_IJK::printOn(Sortie& s ) const
 
 // Surcharge de la methode en remplacant la notion Pb.get_champ
 // par
-void Sonde_IJK::completer_IJK(const IJK_FT_base& ijk_ft)
+void Sonde_IJK::completer_IJK(const Probleme_FTD_IJK_base& ijk_ft)
 {
   const Nom bidon("bidon");
   //On devrait acceder au domaine par le champ generique

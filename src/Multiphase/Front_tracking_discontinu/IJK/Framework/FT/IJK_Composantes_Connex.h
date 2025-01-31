@@ -28,7 +28,7 @@
 #define NEIGHBOURS_J {0, 0, -1, 1, 0, 0}
 #define NEIGHBOURS_K {0, 0, 0, 0, -1, 1}
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class IJK_Interfaces;
 class IJK_Composantes_Connex : public Objet_U
 {
@@ -40,7 +40,7 @@ public :
                  const bool is_switch);
   int allocate_fields(const IJK_Splitting& splitting,
                       const int& compute_compo_fields);
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void initialise_bubbles_params();
   int associate_rising_velocities_parameters(const IJK_Splitting& splitting,
                                              const int& compute_rising_velocities,
@@ -138,8 +138,7 @@ public :
 
 protected :
   void fill_mixed_cell_compo();
-
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   IJK_Interfaces * interfaces_ = nullptr;
   bool is_switch_=false;
   int compute_compo_fields_=0;

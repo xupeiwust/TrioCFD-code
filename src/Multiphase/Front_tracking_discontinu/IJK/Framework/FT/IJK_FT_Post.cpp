@@ -18,14 +18,14 @@
 #include <EFichier.h>
 #include <SFichier.h>
 #include <IJK_FT_Post.h>
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Splitting.h>
 #include <Process.h>    // Process::Journal()
 #include <stat_counters.h>
 #include <Cut_cell_FT_Disc.h>
-#include <IJK_FT_cut_cell.h>
+#include <Probleme_FTD_IJK_cut_cell.h>
 #include <sstream>
 #include <IJK_Thermals.h>
 #include <IJK_Thermal_cut_cell.h>
@@ -33,7 +33,7 @@
 /*
  * Take as main parameter reference to FT to be able to use its members.
  */
-IJK_FT_Post::IJK_FT_Post(IJK_FT_base& ijk_ft) :
+IJK_FT_Post::IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft) :
   statistiques_FT_(ijk_ft),
   ref_ijk_ft_(ijk_ft),
   disable_diphasique_(ijk_ft.disable_diphasique_),
@@ -591,11 +591,11 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
     {
       double ct = current_time;
-      if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::EULER_EXPLICITE)
+      if (ref_ijk_ft_.get_time_scheme() == Probleme_FTD_IJK_base::EULER_EXPLICITE)
         {
           ct -= ref_ijk_ft_.timestep_;
         }
-      else if (ref_ijk_ft_.get_time_scheme() == IJK_FT_base::RK3_FT)
+      else if (ref_ijk_ft_.get_time_scheme() == Probleme_FTD_IJK_base::RK3_FT)
         {
           Cerr << "rkstep " << ref_ijk_ft_.rk_step_ << finl;
           int rk_step_before = ref_ijk_ft_.rk_step_;

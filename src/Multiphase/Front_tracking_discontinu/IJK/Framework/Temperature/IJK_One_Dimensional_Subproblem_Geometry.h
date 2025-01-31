@@ -44,7 +44,7 @@
 #define FLUX_SIGN_CONV {1, 1, 1, 1, 1, 1}
 
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class IJK_One_Dimensional_Subproblem_Geometry : public Objet_U
 {
 
@@ -103,7 +103,7 @@ protected :
                                double& tangential_distance_vertex_centre,
                                Vecteur3& tangential_distance_vector_vertex_centre);
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   const IJK_Interfaces * interfaces_;
   int debug_ = 0;
 

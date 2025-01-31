@@ -53,7 +53,7 @@
 #define INVALID_INDEX -100
 #define MAX_FLUX_TEST 1.e16
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class IJK_Thermal_base;
 class IJK_Thermal_Subresolution;
 class IJK_One_Dimensional_Subproblems;
@@ -66,8 +66,8 @@ class IJK_One_Dimensional_Subproblem : public Objet_U
   Declare_instanciable( IJK_One_Dimensional_Subproblem ) ;
   // friend class Corrige_flux_FT_temperature_subresolution;
 public :
-  IJK_One_Dimensional_Subproblem(const IJK_FT_base& ijk_ft);
-  void associer(const IJK_FT_base& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
+  IJK_One_Dimensional_Subproblem(const Probleme_FTD_IJK_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
   void associate_sub_problem_to_inputs(IJK_Thermal_Subresolution& ref_thermal_subresolution,
                                        IJK_One_Dimensional_Subproblems& ref_one_dimensional_subproblems,
                                        int i, int j, int k,
@@ -1143,7 +1143,7 @@ protected :
   int order_approx_temperature_ext_=1;
   int avoid_post_processing_all_terms_=0;
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   bool is_updated_ = false;
   bool is_post_processed_local_ = false;
 

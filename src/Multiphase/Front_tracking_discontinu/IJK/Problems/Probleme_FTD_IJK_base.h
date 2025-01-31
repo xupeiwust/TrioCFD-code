@@ -13,8 +13,8 @@
 *
 *****************************************************************************/
 
-#ifndef IJK_FT_base_included
-#define IJK_FT_base_included
+#ifndef Probleme_FTD_IJK_base_included
+#define Probleme_FTD_IJK_base_included
 
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
@@ -46,15 +46,16 @@ class Probleme_base;
 
 // #define SMOOTHING_RHO
 
-class IJK_FT_base : public Interprete
+class Probleme_FTD_IJK_base : public Interprete
 {
+  Declare_base(Probleme_FTD_IJK_base) ;
+  Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x);
+public :
   // We take too much advantage of it ...:
   friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
-  Declare_base(IJK_FT_base) ;
-  IJK_FT_base(const IJK_FT_base& x) = delete;
-public :
+
 
   Entree& interpreter(Entree&) override;
 
@@ -76,7 +77,7 @@ public :
     Process::exit();
     return refprobleme_ns_.valeur();
   }
-  const IJK_FT_base& operator=(const IJK_FT_base&)  = delete;
+  const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base&a) { throw ; }
   int initialise();
 
   void ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const;
@@ -115,20 +116,20 @@ public :
     return splitting_.get_grid_geometry();
   }
   void redistribute_to_splitting_ft_elem(const IJK_Field_double& input_field,
-                                            IJK_Field_double& output_field);
+                                         IJK_Field_double& output_field);
 
-     void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
-                                              IJK_Field_double& output_field);
-     int ijk_splitting_ft_extension_ = 0;
-     IJK_Splitting splitting_ft_;
-     // Classe outil pour passer entre splitting_ et splitting_ft_
-     // Une instance par direction des faces:
-     FixedVector<Redistribute_Field, 3> redistribute_to_splitting_ft_faces_;
-     FixedVector<Redistribute_Field, 3> redistribute_from_splitting_ft_faces_;
-     Redistribute_Field redistribute_from_splitting_ft_elem_;
-     Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_;
-     Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_min_;
-     Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_max_;
+  void redistribute_from_splitting_ft_elem(const IJK_Field_double& input_field,
+                                           IJK_Field_double& output_field);
+  int ijk_splitting_ft_extension_ = 0;
+  IJK_Splitting splitting_ft_;
+  // Classe outil pour passer entre splitting_ et splitting_ft_
+  // Une instance par direction des faces:
+  FixedVector<Redistribute_Field, 3> redistribute_to_splitting_ft_faces_;
+  FixedVector<Redistribute_Field, 3> redistribute_from_splitting_ft_faces_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_min_;
+  Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_max_;
   /*
    * TIME SCHEME
    *
@@ -301,183 +302,182 @@ public :
   void terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const;
   void calculer_dv(const double timestep, const double time, const int rk_step);
   static void force_entry_velocity(IJK_Field_double& vx,
-                                    IJK_Field_double& vy,
-                                    IJK_Field_double& vz,
-                                    double v_imposed,
-                                    const int& dir,
-                                    const int& compo,
-                                    const int& stencil);
-   static void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                       double v_imposed,const IJK_Interfaces& interfaces, double nb_diam,
-                                       int upstream_dir, int gravity_dir, int upstream_stencil);
-   static void force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                                   double v_imposed,
-                                                   const IJK_Interfaces& interfaces,
-                                                   double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,double Ux0,double Uy0,double Uz0,
-                                                   int epaisseur_maille);
+                                   IJK_Field_double& vy,
+                                   IJK_Field_double& vz,
+                                   double v_imposed,
+                                   const int& dir,
+                                   const int& compo,
+                                   const int& stencil);
+  static void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+                                      double v_imposed,const IJK_Interfaces& interfaces, double nb_diam,
+                                      int upstream_dir, int gravity_dir, int upstream_stencil);
+  static void force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
+                                                  double v_imposed,
+                                                  const IJK_Interfaces& interfaces,
+                                                  double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,double Ux0,double Uy0,double Uz0,
+                                                  int epaisseur_maille);
 
 
-   void calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
-                                            const int rk_step);
-    // Correcteur PID
-    void calculer_terme_asservissement(double& ax, double& ay, double& az);
-    void calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
-    void calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
+  void calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,
+                                          const int rk_step);
+  // Correcteur PID
+  void calculer_terme_asservissement(double& ax, double& ay, double& az);
+  void calculer_vitesse_gauche(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
+  void calculer_vitesse_droite(const IJK_Field_double& vx, const IJK_Field_double& vy, const IJK_Field_double& vz, double& vx_moy, double& vy_moy, double& vz_moy);
 
-    void compute_correction_for_momentum_balance(const int rk_step);
-    void compute_add_external_forces(const int dir);
-    void fill_variable_source_and_potential_phi(const double time);
-
-
-    protected:
-
-
-    Vecteur3 calculer_inv_rho_grad_p_moyen(const IJK_Field_double& inv_rho, const IJK_Field_double& pression);
-    Vecteur3 calculer_grad_p_moyen(const IJK_Field_double& pression);
-    Vecteur3 calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression);
-    IJK_Field_vector3_double terme_convection_mass_solver_;
-    IJK_Field_vector3_double terme_diffusion_mass_solver_;
-    IJK_Field_vector3_double rho_u_euler_av_prediction_champ_;
-    IJK_Field_vector3_double rho_du_euler_ap_prediction_champ_;
-    IJK_Field_vector3_double rho_u_euler_ap_projection_champ_;
-    IJK_Field_vector3_double rho_du_euler_ap_projection_champ_;
-    IJK_Field_vector3_double rho_u_euler_av_rho_mu_ind_champ_;
-    IJK_Field_vector3_double rho_u_euler_ap_rho_mu_ind_champ_;
-    IJK_Field_vector3_double terme_diffusion_local_;
-    IJK_Field_vector3_double terme_pression_local_;
-    IJK_Field_vector3_double terme_pression_in_ustar_local_;
-    IJK_Field_vector3_double d_v_diff_et_conv_;
-    Vecteur3 rho_u_euler_av_prediction_ = {0.,0.,0.};
-    Vecteur3 rho_du_euler_ap_prediction_ = {0.,0.,0.};
-    Vecteur3 rho_u_euler_ap_projection_ = {0.,0.,0.};
-    Vecteur3 rho_du_euler_ap_projection_ = {0.,0.,0.};
-    Vecteur3 rho_u_euler_av_rho_mu_ind_ = {0.,0.,0.};
-    Vecteur3 rho_u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
-    Vecteur3 u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
-    Vecteur3 terme_diffusion_ = {0.,0.,0.};
-    Vecteur3 terme_convection_ = {0.,0.,0.};
-    Vecteur3 terme_pression_ = {0.,0.,0.};
-    Vecteur3 terme_pression_bis_ = {0.,0.,0.};
-    Vecteur3 terme_pression_ter_ = {0.,0.,0.};
-    Vecteur3 terme_interfaces_;
-    Vecteur3 terme_pression_in_ustar_ = {0.,0.,0.};
-    Vecteur3 terme_moyen_convection_mass_solver_ = {0.,0.,0.};
-    Vecteur3 terme_moyen_diffusion_mass_solver_ = {0.,0.,0.};
-    double pression_ap_proj_ = 0.;
-    double vap_velocity_tmoy_ = 0.;
-    double reprise_vap_velocity_tmoy_ = 0.;
-    double liq_velocity_tmoy_ = 0.;
-    double reprise_liq_velocity_tmoy_ = 0.;
-
-    int compute_rising_velocities_ = 0;
-    int fill_rising_velocities_ = 0;
-    corrections_qdm qdm_corrections_;
-
-
-
-    int disable_solveur_poisson_ = 0;
-    int resolution_fluctuations_ = 0;
-    int projection_initiale_demandee_ = 0;
-    int disable_diffusion_qdm_ = 0;
-    int disable_convection_qdm_ = 0;
-    int disable_source_interf_ = 0;
-    int frozen_velocity_ = 0;
-    int velocity_reset_ = 0;
-
-    // Correcteur PID
-    double Kp_ = 0.;
-    double Kd_ = 0.;
-    double Ki_ = 0.;
-    double int_x_ = 0.;
-    double int_y_ = 0.;
-    double int_z_ = 0.;
-    int epaisseur_maille_ = 8;
-
-    int vitesse_entree_dir_ = DIRECTION_I;
-    int vitesse_entree_compo_to_force_ = -1;
-    double vitesse_entree_ = -1.1e20;
-    int stencil_vitesse_entree_ = 3;
-    double vitesse_upstream_ = -1.1e20;
-    double vitesse_upstream_reprise_ = -1.1e20;
-    double velocity_bubble_new_ = 0.;
-    double velocity_bubble_old_ = -1.1e20;
-    double velocity_bubble_integral_err_ = 0.;
-    double velocity_bubble_scope_ = 0.;
-    double upstream_velocity_bubble_factor_ = 1.;
-    double upstream_velocity_bubble_factor_deriv_ = 0.;
-    double upstream_velocity_bubble_factor_integral_ = 0.;
-    Nom expression_vitesse_upstream_ = "??";
-    // Molecular diffusivity (see diffusion operator)
-     IJK_Field_double molecular_mu_;
-     // right hand side for pressure solver
-     IJK_Field_double pressure_rhs_;
-     // Operators and pressure solver
-
-     /* Velocity diffusion operator:
-      * simple_arithmetic : div(mu grad(u))
-      * full_arithmetic    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
-      *                      mu : moyenne arithmetique
-      * full_adaptative    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
-      *     mu : switch from arithmetic to geometric mean depending on the direction (Not available yet)
-      */
-     int use_harmonic_viscosity_ = 0;
-     Operateur_IJK_faces_diff velocity_diffusion_op_;
-     enum velocity_diffusion_options_ { simple_arithmetic, full_arithmetic, full_adaptative};
-
-     /*
-      * Velocity convection operator
-      * non_conservative_simple : rho div(u u)
-      * non_conservative_rhou   : div(rho u u) - u div(rho u)
-      * conservative            : div(rho u u)
-      */
-     Operateur_IJK_faces_conv velocity_convection_op_;
-     enum velocity_convection_options_ { non_conservative_simple, non_conservative_rhou, conservative};
-
-     Multigrille_Adrien poisson_solver_;
-     // Simulation parameters
-
-     // Pressure field
-     IJK_Field_double pressure_;
-     IJK_Field_double pressure_ghost_cells_;
-
-     int upstream_dir_ = -1; // static
-     int upstream_stencil_ = 3;
-     int upstream_velocity_measured_ = 0;
-     double nb_diam_upstream_ = 0.;
-     double nb_diam_ortho_shear_perio_= -1.1e20;
-
-     int harmonic_nu_in_diff_operator_ = 0;
-     int harmonic_nu_in_calc_with_indicatrice_ = 0;
+  void compute_correction_for_momentum_balance(const int rk_step);
+  void compute_add_external_forces(const int dir);
+  void fill_variable_source_and_potential_phi(const double time);
 
 
 
 
-    public:
+  Vecteur3 calculer_inv_rho_grad_p_moyen(const IJK_Field_double& inv_rho, const IJK_Field_double& pression);
+  Vecteur3 calculer_grad_p_moyen(const IJK_Field_double& pression);
+  Vecteur3 calculer_grad_p_over_rho_moyen(const IJK_Field_double& pression);
+  IJK_Field_vector3_double terme_convection_mass_solver_;
+  IJK_Field_vector3_double terme_diffusion_mass_solver_;
+  IJK_Field_vector3_double rho_u_euler_av_prediction_champ_;
+  IJK_Field_vector3_double rho_du_euler_ap_prediction_champ_;
+  IJK_Field_vector3_double rho_u_euler_ap_projection_champ_;
+  IJK_Field_vector3_double rho_du_euler_ap_projection_champ_;
+  IJK_Field_vector3_double rho_u_euler_av_rho_mu_ind_champ_;
+  IJK_Field_vector3_double rho_u_euler_ap_rho_mu_ind_champ_;
+  IJK_Field_vector3_double terme_diffusion_local_;
+  IJK_Field_vector3_double terme_pression_local_;
+  IJK_Field_vector3_double terme_pression_in_ustar_local_;
+  IJK_Field_vector3_double d_v_diff_et_conv_;
+  Vecteur3 rho_u_euler_av_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_prediction_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_du_euler_ap_projection_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_av_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 rho_u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 u_euler_ap_rho_mu_ind_ = {0.,0.,0.};
+  Vecteur3 terme_diffusion_ = {0.,0.,0.};
+  Vecteur3 terme_convection_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ = {0.,0.,0.};
+  Vecteur3 terme_pression_bis_ = {0.,0.,0.};
+  Vecteur3 terme_pression_ter_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_;
+  Vecteur3 terme_pression_in_ustar_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_convection_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_moyen_diffusion_mass_solver_ = {0.,0.,0.};
+  double pression_ap_proj_ = 0.;
+  double vap_velocity_tmoy_ = 0.;
+  double reprise_vap_velocity_tmoy_ = 0.;
+  double liq_velocity_tmoy_ = 0.;
+  double reprise_liq_velocity_tmoy_ = 0.;
+
+  int compute_rising_velocities_ = 0;
+  int fill_rising_velocities_ = 0;
+  corrections_qdm qdm_corrections_;
+
+
+
+  int disable_solveur_poisson_ = 0;
+  int resolution_fluctuations_ = 0;
+  int projection_initiale_demandee_ = 0;
+  int disable_diffusion_qdm_ = 0;
+  int disable_convection_qdm_ = 0;
+  int disable_source_interf_ = 0;
+  int frozen_velocity_ = 0;
+  int velocity_reset_ = 0;
+
+  // Correcteur PID
+  double Kp_ = 0.;
+  double Kd_ = 0.;
+  double Ki_ = 0.;
+  double int_x_ = 0.;
+  double int_y_ = 0.;
+  double int_z_ = 0.;
+  int epaisseur_maille_ = 8;
+
+  int vitesse_entree_dir_ = DIRECTION_I;
+  int vitesse_entree_compo_to_force_ = -1;
+  double vitesse_entree_ = -1.1e20;
+  int stencil_vitesse_entree_ = 3;
+  double vitesse_upstream_ = -1.1e20;
+  double vitesse_upstream_reprise_ = -1.1e20;
+  double velocity_bubble_new_ = 0.;
+  double velocity_bubble_old_ = -1.1e20;
+  double velocity_bubble_integral_err_ = 0.;
+  double velocity_bubble_scope_ = 0.;
+  double upstream_velocity_bubble_factor_ = 1.;
+  double upstream_velocity_bubble_factor_deriv_ = 0.;
+  double upstream_velocity_bubble_factor_integral_ = 0.;
+  Nom expression_vitesse_upstream_ = "??";
+  // Molecular diffusivity (see diffusion operator)
+  IJK_Field_double molecular_mu_;
+  // right hand side for pressure solver
+  IJK_Field_double pressure_rhs_;
+  // Operators and pressure solver
+
+  /* Velocity diffusion operator:
+   * simple_arithmetic : div(mu grad(u))
+   * full_arithmetic    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
+   *                      mu : moyenne arithmetique
+   * full_adaptative    : Tenseur des contraintes complet : div[mu (grad(u)+grad^T(u))]
+   *     mu : switch from arithmetic to geometric mean depending on the direction (Not available yet)
+   */
+  int use_harmonic_viscosity_ = 0;
+  Operateur_IJK_faces_diff velocity_diffusion_op_;
+  enum velocity_diffusion_options_ { simple_arithmetic, full_arithmetic, full_adaptative};
+
+  /*
+   * Velocity convection operator
+   * non_conservative_simple : rho div(u u)
+   * non_conservative_rhou   : div(rho u u) - u div(rho u)
+   * conservative            : div(rho u u)
+   */
+  Operateur_IJK_faces_conv velocity_convection_op_;
+  enum velocity_convection_options_ { non_conservative_simple, non_conservative_rhou, conservative};
+
+  Multigrille_Adrien poisson_solver_;
+  // Simulation parameters
+
+  // Pressure field
+  IJK_Field_double pressure_;
+  IJK_Field_double pressure_ghost_cells_;
+
+  int upstream_dir_ = -1; // static
+  int upstream_stencil_ = 3;
+  int upstream_velocity_measured_ = 0;
+  double nb_diam_upstream_ = 0.;
+  double nb_diam_ortho_shear_perio_= -1.1e20;
+
+  int harmonic_nu_in_diff_operator_ = 0;
+  int harmonic_nu_in_calc_with_indicatrice_ = 0;
+
+
+
+
+public:
 
 
   /*
    * Thermique
    */
 
-   void compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
-                              const int time_iteration,
-                              const double dt,
-                              const double current_time,
-                              const IJK_Splitting& my_splitting
-                             );
-   void compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
-                                             const int time_iteration,
-                                             const double dt,
-                                             const double current_time,
-                                             const IJK_Splitting& my_splitting,
-                                             const int facteur
-                                            );
-   // Dealing with thermal aspects:
-   LIST(IJK_Thermique) thermique_;
-   LIST(IJK_Energie) energie_;
-   IJK_Thermals thermals_;
-   int thermal_probes_ghost_cells_ = 2;
-   init_forcage_THI forcage_;
+  void compute_add_THI_force(const IJK_Field_vector3_double& vitesse,
+                             const int time_iteration,
+                             const double dt,
+                             const double current_time,
+                             const IJK_Splitting& my_splitting
+                            );
+  void compute_add_THI_force_sur_d_velocity(const IJK_Field_vector3_double& vitesse,
+                                            const int time_iteration,
+                                            const double dt,
+                                            const double current_time,
+                                            const IJK_Splitting& my_splitting,
+                                            const int facteur
+                                           );
+  // Dealing with thermal aspects:
+  LIST(IJK_Thermique) thermique_;
+  LIST(IJK_Energie) energie_;
+  IJK_Thermals thermals_;
+  int thermal_probes_ghost_cells_ = 2;
+  init_forcage_THI forcage_;
 
   /*
    * Milieu
@@ -487,50 +487,50 @@ public :
     return rho_field_;
   }
   double get_rho_l() const
-   {
-     return rho_liquide_;
-   }
-   double get_rho_v() const
-   {
-     return rho_vapeur_;
-   }
-   double get_rho_field_ijk(int i, int j, int k) const
-   {
-     return rho_field_(i,j,k);
-   }
-   int get_disable_diphasique() const
-   {
-     return disable_diphasique_;
-   }
-   int get_direction_gravite() const
-   {
-     return direction_gravite_;
-   }
-   double get_gravite_norm() const
-   {
-     Vecteur3 gravite = {gravite_[0], gravite_[1], gravite_[2]};
-     return gravite.length();
-   }
+  {
+    return rho_liquide_;
+  }
+  double get_rho_v() const
+  {
+    return rho_vapeur_;
+  }
+  double get_rho_field_ijk(int i, int j, int k) const
+  {
+    return rho_field_(i,j,k);
+  }
+  int get_disable_diphasique() const
+  {
+    return disable_diphasique_;
+  }
+  int get_direction_gravite() const
+  {
+    return direction_gravite_;
+  }
+  double get_gravite_norm() const
+  {
+    Vecteur3 gravite = {gravite_[0], gravite_[1], gravite_[2]};
+    return gravite.length();
+  }
 
 
-   const double& get_mu_liquid() const
-   {
-     return mu_liquide_;
-   }
-   const double& get_mu_vapour() const
-   {
-     return mu_vapeur_;
-   }
-   double rho_liquide_ = 0.;
-   double rho_vapeur_ = -1.;
+  const double& get_mu_liquid() const
+  {
+    return mu_liquide_;
+  }
+  const double& get_mu_vapour() const
+  {
+    return mu_vapeur_;
+  }
+  double rho_liquide_ = 0.;
+  double rho_vapeur_ = -1.;
 
-   double rho_moyen_ = 0.;
-   //
-   double mu_liquide_ = 0.;
-   double mu_vapeur_ = -1.;
-   double sigma_ = 0.;
-   ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
-   int direction_gravite_ = 0;
+  double rho_moyen_ = 0.;
+  //
+  double mu_liquide_ = 0.;
+  double mu_vapeur_ = -1.;
+  double sigma_ = 0.;
+  ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
+  int direction_gravite_ = 0;
 
 
 
@@ -545,14 +545,14 @@ public :
 
 
   double t_debut_statistiques() const
-    {
-      return post_.t_debut_statistiques();
-    }
-    int get_reprise() const
-    {
-      return reprise_;
-    }
-    const IJK_FT_Post& get_post() const {return post_;}
+  {
+    return post_.t_debut_statistiques();
+  }
+  int get_reprise() const
+  {
+    return reprise_;
+  }
+  const IJK_FT_Post& get_post() const {return post_;}
 
 
 
@@ -562,85 +562,85 @@ public :
 
 
 
-    const Maillage_FT_IJK& get_maillage_ft_ijk() const
-    {
-      return interfaces_.maillage_ft_ijk();
-    }
-    const Remaillage_FT_IJK& get_remaillage_ft_ijk() const
-    {
-      return interfaces_.remaillage_ft_ijk();
-    }
+  const Maillage_FT_IJK& get_maillage_ft_ijk() const
+  {
+    return interfaces_.maillage_ft_ijk();
+  }
+  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const
+  {
+    return interfaces_.remaillage_ft_ijk();
+  }
 
-    const IJK_Interfaces& get_interface() const
-    {
-      return interfaces_;
-    }
+  const IJK_Interfaces& get_interface() const
+  {
+    return interfaces_;
+  }
 
-    virtual void update_indicator_field();
-    void update_pre_remeshing_indicator_field();
-    void update_post_remeshing_indicator_field();
-    virtual void update_twice_indicator_field();
+  virtual void update_indicator_field();
+  void update_pre_remeshing_indicator_field();
+  void update_post_remeshing_indicator_field();
+  virtual void update_twice_indicator_field();
 
-    void update_old_intersections();
+  void update_old_intersections();
 
-    virtual Cut_cell_FT_Disc* get_cut_cell_disc()
-    {
-      Cerr << "No cut fields are found." << finl;
-      Process::exit();
-      return nullptr;
-    }
-    const IJK_Interfaces& itfce() const {return interfaces_;}
-    IJK_Interfaces& get_set_interface() {return interfaces_;}
-
-
-    void parcourir_maillage();
-    void calculer_rho_mu_indicatrice(const bool parcourir = true);
-    void maj_indicatrice_rho_mu(const bool parcourir = true);
-    Redistribute_Field& redistrib_to_ft_elem() {return redistribute_to_splitting_ft_elem_;}
-    Redistribute_Field& redistrib_from_ft_elem() {return redistribute_from_splitting_ft_elem_;}
-    // FixedVector<Redistribute_Field, 3>& redistrib_from_ft_face() const {return redistribute_from_splitting_ft_faces_;}
-    void get_redistribute_from_splitting_ft_faces(
-      const IJK_Field_vector3_double& faces_ft,
-      IJK_Field_vector3_double& faces_ns
-    )
-    {
-      for (int dir = 0; dir < 3; dir++)
-        {
-          redistribute_from_splitting_ft_faces_[dir].redistribute(
-            faces_ft[dir],
-            faces_ns[dir]);
-        }
-    }
+  virtual Cut_cell_FT_Disc* get_cut_cell_disc()
+  {
+    Cerr << "No cut fields are found." << finl;
+    Process::exit();
+    return nullptr;
+  }
+  const IJK_Interfaces& itfce() const {return interfaces_;}
+  IJK_Interfaces& get_set_interface() {return interfaces_;}
 
 
-    virtual void deplacer_interfaces(const double timestep,
-                                     const int rk_step,
-                                     ArrOfDouble& var_volume_par_bulle,
-                                     const int first_step_interface_smoothing);
-    virtual void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
-    void calculer_gradient_indicatrice_et_repul_ns(const IJK_Field_double& indic);
+  void parcourir_maillage();
+  void calculer_rho_mu_indicatrice(const bool parcourir = true);
+  void maj_indicatrice_rho_mu(const bool parcourir = true);
+  Redistribute_Field& redistrib_to_ft_elem() {return redistribute_to_splitting_ft_elem_;}
+  Redistribute_Field& redistrib_from_ft_elem() {return redistribute_from_splitting_ft_elem_;}
+  // FixedVector<Redistribute_Field, 3>& redistrib_from_ft_face() const {return redistribute_from_splitting_ft_faces_;}
+  void get_redistribute_from_splitting_ft_faces(
+    const IJK_Field_vector3_double& faces_ft,
+    IJK_Field_vector3_double& faces_ns
+  )
+  {
+    for (int dir = 0; dir < 3; dir++)
+      {
+        redistribute_from_splitting_ft_faces_[dir].redistribute(
+          faces_ft[dir],
+          faces_ns[dir]);
+      }
+  }
 
 
-    void transfer_ft_to_ns();
-    // att
-    Vecteur3 terme_interfaces_bf_mass_solver_ = {0.,0.,0.};
-    Vecteur3 terme_interfaces_bf_mass_solver_bis_ = {0.,0.,0.};
-    Vecteur3 terme_interfaces_af_mass_solver_ = {0.,0.,0.};
-    Vecteur3 terme_interfaces_conv_diff_mass_solver_ = {0.,0.,0.};
-    int use_bubbles_velocities_from_interface_ = 0;
-    int use_bubbles_velocities_from_barycentres_ = 0;
-    TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
-      TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
-      int deactivate_remeshing_velocity_ = 0;
-
-      DoubleTab vitesses_translation_bulles_; // Vecteur de translation rigide pour chaque bulle
-      DoubleTab mean_bubble_rotation_vector_; // Vecteur de rotation rigide pour chaque bulle
-      DoubleTab centre_gravite_bulles_;       // Position du centre de gravite pour chaque bulle (associee a la rotation)
-      int correction_semi_locale_volume_bulle_ = 0;
+  virtual void deplacer_interfaces(const double timestep,
+                                   const int rk_step,
+                                   ArrOfDouble& var_volume_par_bulle,
+                                   const int first_step_interface_smoothing);
+  virtual void deplacer_interfaces_rk3(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle);
+  void calculer_gradient_indicatrice_et_repul_ns(const IJK_Field_double& indic);
 
 
-      IJK_Interfaces interfaces_;
-      IJK_Field_vector3_double velocity_ft_;
+  void transfer_ft_to_ns();
+  // att
+  Vecteur3 terme_interfaces_bf_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_bf_mass_solver_bis_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_af_mass_solver_ = {0.,0.,0.};
+  Vecteur3 terme_interfaces_conv_diff_mass_solver_ = {0.,0.,0.};
+  int use_bubbles_velocities_from_interface_ = 0;
+  int use_bubbles_velocities_from_barycentres_ = 0;
+  TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face_ = TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE;
+  TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface_ = TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE;
+  int deactivate_remeshing_velocity_ = 0;
+
+  DoubleTab vitesses_translation_bulles_; // Vecteur de translation rigide pour chaque bulle
+  DoubleTab mean_bubble_rotation_vector_; // Vecteur de rotation rigide pour chaque bulle
+  DoubleTab centre_gravite_bulles_;       // Position du centre de gravite pour chaque bulle (associee a la rotation)
+  int correction_semi_locale_volume_bulle_ = 0;
+
+
+  IJK_Interfaces interfaces_;
+  IJK_Field_vector3_double velocity_ft_;
 
 #ifdef SMOOTHING_RHO
   int smooth_density_;
@@ -655,15 +655,15 @@ public :
 
 
 
-    /*
-     * Tools
-     */
-    void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
+  /*
+   * Tools
+   */
+  void copy_field_values(IJK_Field_double& field, const IJK_Field_double& field_to_copy);
 
-    IJK_Field_double scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2);
-    IJK_Field_vector3_double scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec);
-    IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
-    int get_direction(const ArrOfDouble& vecteur);
+  IJK_Field_double scalar_product(const IJK_Field_vector3_double& V1, const IJK_Field_vector3_double& V2);
+  IJK_Field_vector3_double scalar_times_vector(const IJK_Field_double& Sca, const IJK_Field_vector3_double& Vec);
+  IJK_Field_double scalar_fields_product(const IJK_Field_double& S1, const IJK_Field_double& S2, int dir);
+  int get_direction(const ArrOfDouble& vecteur);
 
 
 
@@ -846,4 +846,4 @@ public :
 
 };
 
-#endif /* IJK_FT_base_included */
+#endif /* Probleme_FTD_IJK_base_included */

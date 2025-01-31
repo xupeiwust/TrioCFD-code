@@ -23,7 +23,7 @@
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_Thermal_base.h>
 #include <Process.h>
-#include <IJK_FT_cut_cell.h>
+#include <Probleme_FTD_IJK_cut_cell.h>
 #include <stat_counters.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Navier_Stokes_tools_cut_cell.h>

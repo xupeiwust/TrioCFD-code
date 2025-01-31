@@ -27,7 +27,7 @@
 #include <IJK_Interfaces.h>
 #include <Multigrille_Adrien.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class IJK_Splitting;
 
 /*
@@ -38,7 +38,7 @@ class IJK_Energie;
 class IJK_Thermals;
 
 /**
- * All the post-processing stuff of IJK_FT_base delegated into this helper class:
+ * All the post-processing stuff of Probleme_FTD_IJK_base delegated into this helper class:
  */
 class IJK_FT_Post
 {
@@ -46,7 +46,7 @@ class IJK_FT_Post
   friend class Statistiques_dns_ijk_FT;
 
 public:
-  IJK_FT_Post(IJK_FT_base& ijk_ft);
+  IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft);
   void complete_interpreter(Param& param, Entree& e);
   int initialise(int reprise);
   void complete(int reprise);
@@ -159,7 +159,7 @@ public:
 
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
-  // Part of the run() method in IJK_FT_base:
+  // Part of the run() method in Probleme_FTD_IJK_base:
   int alloc_fields();
   int alloc_velocity_and_co(bool flag_variable_source);
   void completer_sondes();
@@ -375,9 +375,9 @@ protected:
   Sondes_IJK les_sondes_;  // Sondes a traiter
 
   /*
-   * References to various members of IJK_FT_base that are heavily used in the post:
+   * References to various members of Probleme_FTD_IJK_base that are heavily used in the post:
    */
-  IJK_FT_base& ref_ijk_ft_;
+  Probleme_FTD_IJK_base& ref_ijk_ft_;
 
   const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;

@@ -17,8 +17,9 @@
 #include <IJK_Field_vector.h>
 #include <Connex_components_FT.h>
 #include <EcrFicPartageBin.h>
-#include <IJK_FT_base.h>
-#include <IJK_FT_cut_cell.h>
+#include <Probleme_FTD_IJK_base.h>
+#include <Probleme_FTD_IJK_cut_cell.h>
+#include <Cut_cell_tools.h>
 #include <IJK_Interfaces.h>
 #include <IJK_Lata_writer.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -353,7 +354,7 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 Entree& IJK_Interfaces::readOn(Entree& is)
 {
   Param param(que_suis_je());
-  lata_interfaces_meshname_ = nom_par_defaut_interfaces; // This line is necessary for reprendre_probleme in IJK_FT_base
+  lata_interfaces_meshname_ = nom_par_defaut_interfaces; // This line is necessary for reprendre_probleme in Probleme_FTD_IJK_base
 
   param.ajouter("bubble_groups", &compo_to_group_);
   param.ajouter("fichier_reprise_interface", &fichier_reprise_interface_, Param::REQUIRED); // XD_ADD_P  chaine not_set
@@ -1080,7 +1081,7 @@ int IJK_Interfaces::initialize(const IJK_Splitting& splitting_FT,
   return nalloc;
 }
 
-void IJK_Interfaces::associer(const IJK_FT_base& ijk_ft)
+void IJK_Interfaces::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   is_diphasique_ =  1 - ref_ijk_ft_->disable_diphasique();
@@ -2682,7 +2683,7 @@ void IJK_Interfaces::calculer_var_volume_remaillage(double timestep,
   // Calculer un champ de vitesse de deformation unique devrait restreindre le rapprochement des bulles.
   for (int icompo = 0; icompo < nbulles_tot; icompo++)
     {
-      const IJK_FT_cut_cell& ref_ijk_ft_cut_cell_ = ref_cast(IJK_FT_cut_cell, ref_ijk_ft_.valeur());
+      const Probleme_FTD_IJK_cut_cell& ref_ijk_ft_cut_cell_ = ref_cast(Probleme_FTD_IJK_cut_cell, ref_ijk_ft_.valeur());
       calculer_vitesse_de_deformation(icompo, bounding_box, ref_ijk_ft_cut_cell_.get_cut_field_velocity(), vitesses_translation_bulles, mean_bubble_rotation_vector, centre_gravite);
       //cut_field_deformation_velocity.echange_espace_virtuel(ghost);
 
@@ -8280,7 +8281,7 @@ void IJK_Interfaces::verif_indic()
   Process::Journal() << indic.get_str() << group_indic.get_str() << finl;
   if (!egalite)
     {
-      Cerr << "IJK_FT_base:: calcul de l'indicatrice faux ! (iteration " << tstep_ << " sur " << nb_timesteps_ << " )"
+      Cerr << "Probleme_FTD_IJK_base:: calcul de l'indicatrice faux ! (iteration " << tstep_ << " sur " << nb_timesteps_ << " )"
            << finl;
       Process::exit();
     }

@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Cut_cell_diffusion_auxiliaire.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Cut_cell_diffusion_auxiliaire_included
 #define Cut_cell_diffusion_auxiliaire_included
@@ -33,7 +27,7 @@
 #include <Facettes_Interp_FT.h>
 #include <Cut_cell_diffusion_flux_interface.h>
 
-class IJK_FT_cut_cell;
+class Probleme_FTD_IJK_cut_cell;
 
 class Cut_cell_diffusion_auxiliaire : public Cut_cell_schema_auxiliaire
 {

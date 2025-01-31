@@ -15,7 +15,7 @@
 
 #include <Corrige_flux_FT_temperature_subresolution.h>
 #include <IJK_Field_vector.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 
 Implemente_instanciable_sans_constructeur( Corrige_flux_FT_temperature_subresolution, "Corrige_flux_FT_temperature_subresolution", Corrige_flux_FT_base ) ;
 
@@ -159,7 +159,7 @@ static int compute_periodic_index(const int index, const int n)
 void Corrige_flux_FT_temperature_subresolution::initialize_with_subproblems(const IJK_Splitting& splitting,
                                                                             const IJK_Field_double& field,
                                                                             const IJK_Interfaces& interfaces,
-                                                                            const IJK_FT_base& ijk_ft,
+                                                                            const Probleme_FTD_IJK_base& ijk_ft,
                                                                             Intersection_Interface_ijk_face& intersection_ijk_face,
                                                                             Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                                                             IJK_One_Dimensional_Subproblems& thermal_subproblems)

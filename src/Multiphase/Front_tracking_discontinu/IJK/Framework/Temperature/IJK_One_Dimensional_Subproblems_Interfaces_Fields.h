@@ -40,7 +40,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class IJK_One_Dimensional_Subproblems;
 // class Intersections_Elem_Facettes;
 // class IJK_Interfaces;
@@ -54,7 +54,7 @@ public :
   int initialise(const IJK_Splitting& splitting,
                  IJK_One_Dimensional_Subproblems& thermal_local_subproblems,
                  const int& debug);
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void set_subproblems_interfaces_fields(const int& interface_field_type);
   void copy_previous_interface_state();
   void reset_flags();
@@ -63,7 +63,7 @@ public :
                                      const char *lata_name,
                                      const int lata_step);
 protected :
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
 
   IJK_One_Dimensional_Subproblems * thermal_local_subproblems_ = nullptr;

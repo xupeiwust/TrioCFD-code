@@ -25,7 +25,7 @@
 #include <communications.h>
 #include <Param.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 
 #define CREATE_STR(sum_id) #sum_id    // turn the enum value into a string.
 
@@ -53,7 +53,7 @@ Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT():
   Cerr << "The ref to the correct IJK_FT is filled later" << finl;
 }
 
-Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT(IJK_FT_base& ijk_ft):
+Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT(Probleme_FTD_IJK_base& ijk_ft):
   check_stats_(0),
   nb_thermal_fields_(0),
   nvalt_(0),
@@ -975,7 +975,7 @@ double Calculer_valeur_seuil(double p_seuil, double pressionijk, double p_seuil_
   return p_seuil;
 }
 
-void Statistiques_dns_ijk_FT::update_stat(IJK_FT_base& cas, const double dt)
+void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const double dt)
 {
   IJK_Field_vector3_double& vitesse=cas.velocity_;
   // GR262753 : travail des forces d'interfaces
@@ -2783,7 +2783,7 @@ void Statistiques_dns_ijk_FT::completer_read(Param& param)
 
 // Attention, cette methode est appelee apres readOn(),
 // il ne faut pas casser les donnees lues
-void Statistiques_dns_ijk_FT::initialize(const IJK_FT_base& ijk_ft, const IJK_Grid_Geometry& geom)
+void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const IJK_Grid_Geometry& geom)
 {
   ref_ijk_ft_=ijk_ft;
   dx_=geom.get_constant_delta(0); //modif AT 20/06/2013
@@ -2856,7 +2856,7 @@ void Statistiques_dns_ijk_FT::initialize(const IJK_FT_base& ijk_ft, const IJK_Gr
   check_stats_ = 0;
 }
 
-int Statistiques_dns_ijk_FT::initialize(const IJK_FT_base& ijk_ft, const IJK_Splitting& splitting,
+int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const IJK_Splitting& splitting,
                                         const int check_stats)
 {
   initialize(ijk_ft,splitting.get_grid_geometry());

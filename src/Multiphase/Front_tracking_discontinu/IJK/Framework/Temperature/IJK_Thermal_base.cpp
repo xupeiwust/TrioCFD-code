@@ -19,7 +19,7 @@
 #include <stat_counters.h>
 #include <DebogIJK.h>
 #include <Corrige_flux_FT_base.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_FT_Post.h>
 #include <IJK_switch_FT.h>
 #include <IJK_Ghost_Fluid_tools.h>
@@ -881,7 +881,7 @@ double IJK_Thermal_base::compute_timestep(const double timestep,
   return dt_fo_;
 }
 
-void IJK_Thermal_base::associer(const IJK_FT_base& ijk_ft)
+void IJK_Thermal_base::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.get_post().get_liste_post_instantanes();

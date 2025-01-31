@@ -42,7 +42,7 @@
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
 
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 class IJK_Interfaces;
 
@@ -63,7 +63,7 @@ public:
                           const double dxmin);
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise() const { return fichier_reprise_temperature_; }
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
@@ -547,7 +547,7 @@ protected:
   IJK_Field_double d_T_rustine_; // Temperature increment to conserve the energy.
   IJK_Field_double RK3_F_rustine_; // Temporary storage for substeps in the RK3 algorithm for the rustine calculation.
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;

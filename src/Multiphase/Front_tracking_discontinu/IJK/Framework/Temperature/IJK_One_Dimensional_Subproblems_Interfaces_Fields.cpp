@@ -14,7 +14,7 @@
 *****************************************************************************/
 
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_One_Dimensional_Subproblems.h>
 
 Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblems_Interfaces_Fields, "IJK_One_Dimensional_Subproblems_Interfaces_Fields", Objet_U ) ;
@@ -100,7 +100,7 @@ Entree& IJK_One_Dimensional_Subproblems_Interfaces_Fields::readOn( Entree& is )
   return is;
 }
 
-void IJK_One_Dimensional_Subproblems_Interfaces_Fields::associer(const IJK_FT_base& ijk_ft)
+void IJK_One_Dimensional_Subproblems_Interfaces_Fields::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.get_post().get_liste_post_instantanes();

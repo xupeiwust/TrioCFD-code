@@ -153,7 +153,7 @@ public :
   int get_need_for_rho_l() {return 1;};
 
 protected :
-  // Fetch from IJK_FT_base
+  // Fetch from Probleme_FTD_IJK_base
   double timestep_;
   double time_;
   int time_iteration_;

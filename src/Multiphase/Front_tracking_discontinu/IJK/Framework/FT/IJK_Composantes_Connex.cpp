@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Composantes_Connex.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_Interfaces.h>
 #include <IJK_Bubble_tools.h>
 
@@ -114,7 +114,7 @@ int IJK_Composantes_Connex::allocate_fields(const IJK_Splitting& splitting,
   return nalloc;
 }
 
-void IJK_Composantes_Connex::associer(const IJK_FT_base& ijk_ft)
+void IJK_Composantes_Connex::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
 }

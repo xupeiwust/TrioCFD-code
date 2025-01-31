@@ -20,7 +20,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermal_Onefluid.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <DebogIJK.h>
 #include <IJK_Navier_Stokes_tools.h>
 

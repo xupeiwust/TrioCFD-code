@@ -24,7 +24,7 @@
 #include <IJK_Navier_Stokes_tools.h>
 #include <DebogIJK.h>
 #include <stat_counters.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <Corrige_flux_FT_base.h>
 #include <OpConvDiscQuickIJKScalar.h>
 

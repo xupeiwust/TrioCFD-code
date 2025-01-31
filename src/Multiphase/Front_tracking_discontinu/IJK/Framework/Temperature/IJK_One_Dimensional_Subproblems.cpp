@@ -15,7 +15,7 @@
 
 #include <IJK_One_Dimensional_Subproblems.h>
 #include <IJK_Field_vector.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_switch_FT.h>
 #include <IJK_Bubble_tools.h>
 #include <IJK_Thermal_base.h>
@@ -28,7 +28,7 @@ IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems()
   subproblem_to_ijk_indices_.clear();
 }
 
-IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems(const IJK_FT_base& ijk_ft) : IJK_One_Dimensional_Subproblems()
+IJK_One_Dimensional_Subproblems::IJK_One_Dimensional_Subproblems(const Probleme_FTD_IJK_base& ijk_ft) : IJK_One_Dimensional_Subproblems()
 {
   ref_ijk_ft_ = ijk_ft;
 }

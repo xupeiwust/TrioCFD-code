@@ -30,7 +30,7 @@
 #include <Maillage_FT_IJK.h>
 #include <Objet_U.h>
 
-class IJK_FT_cut_cell;
+class Probleme_FTD_IJK_cut_cell;
 
 enum class METHODE_TEMPERATURE_REMPLISSAGE : int
 {

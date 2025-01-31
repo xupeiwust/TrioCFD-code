@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Cut_cell_convection_auxiliaire.h
-// Directory : $IJK_ROOT/src/FT
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef Cut_cell_convection_auxiliaire_included
 #define Cut_cell_convection_auxiliaire_included
@@ -29,6 +23,8 @@
 #include <Cut_cell_correction_petites_cellules.h>
 #include <Cut_cell_schema_auxiliaire.h>
 #include <Maillage_FT_IJK.h>
+
+class Probleme_FTD_IJK_cut_cell;
 
 enum class CUT_CELL_SCHEMA_CONVECTION : int
 {

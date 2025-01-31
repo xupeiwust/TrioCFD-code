@@ -14,8 +14,9 @@
 *****************************************************************************/
 
 #include <IJK_Thermal_cut_cell.h>
-#include <IJK_FT_cut_cell.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK_cut_cell.h>
+#include <Cut_cell_tools.h>
+#include <Probleme_FTD_IJK.h>
 #include <DebogIJK.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Navier_Stokes_tools_cut_cell.h>
@@ -115,7 +116,7 @@ int IJK_Thermal_cut_cell::initialize(const IJK_Splitting& splitting, const int i
   Cout << que_suis_je() << "::initialize()" << finl;
 
   // Cut-cell variables
-  ref_ijk_ft_cut_cell_ = ref_cast(IJK_FT_cut_cell, ref_ijk_ft_.valeur());
+  ref_ijk_ft_cut_cell_ = ref_cast(Probleme_FTD_IJK_cut_cell, ref_ijk_ft_.valeur());
 
   Cut_field_double& cut_field_temperature                = static_cast<Cut_field_double&>(*temperature_);
   cut_field_temperature.allocate_persistant(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, IJK_Splitting::ELEM, ghost_cells_); // Overrides the allocate in IJK_Thermal_base::initialize

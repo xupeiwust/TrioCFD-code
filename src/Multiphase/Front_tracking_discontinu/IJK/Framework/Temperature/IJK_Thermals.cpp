@@ -20,13 +20,13 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermals.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_switch_FT.h>
 #include <IJK_switch.h>
 
 Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(IJK_Thermal) ) ;
 
-IJK_Thermals::IJK_Thermals(const IJK_FT_base& ijk_ft) : IJK_Thermals()
+IJK_Thermals::IJK_Thermals(const Probleme_FTD_IJK_base& ijk_ft) : IJK_Thermals()
 {
   ref_ijk_ft_ = ijk_ft;
 }
@@ -57,7 +57,7 @@ const Nom& IJK_Thermals::get_fichier_reprise()
   return (*this)[0]->get_fichier_reprise();
 }
 
-void IJK_Thermals::associer(const IJK_FT_base& ijk_ft)
+void IJK_Thermals::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   associer_post(ijk_ft.get_post());
   associer_interface_intersections(ijk_ft.itfce().get_intersection_ijk_cell(), ijk_ft.itfce().get_intersection_ijk_face());

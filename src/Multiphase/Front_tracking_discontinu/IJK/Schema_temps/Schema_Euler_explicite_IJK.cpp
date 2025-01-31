@@ -16,7 +16,7 @@
 #include <Schema_Euler_explicite_IJK.h>
 #include <Equation_base.h>
 
-Implemente_instanciable(Schema_Euler_explicite_IJK,"Schema_euler_explicite_IJK",Schema_Temps_base);
+Implemente_instanciable(Schema_Euler_explicite_IJK,"Schema_euler_explicite_IJK",Schema_Euler_explicite);
 
 Sortie& Schema_Euler_explicite_IJK::printOn(Sortie& s) const { return  Schema_Temps_base::printOn(s); }
 

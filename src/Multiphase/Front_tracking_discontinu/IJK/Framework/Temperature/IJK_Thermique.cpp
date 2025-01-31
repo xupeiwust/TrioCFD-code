@@ -19,7 +19,7 @@
 #include <IJK_Navier_Stokes_tools.h>
 #include <DebogIJK.h>
 #include <stat_counters.h>
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <Corrige_flux_FT_base.h>
 #include <OpConvDiscQuickIJKScalar.h>
 
@@ -379,7 +379,7 @@ int IJK_Thermique::initialize(const IJK_Splitting& splitting, const int idx)
   return nalloc;
 }
 
-void IJK_Thermique::associer(const IJK_FT_base& ijk_ft)
+void IJK_Thermique::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   liste_post_instantanes_ = ijk_ft.post_.get_liste_post_instantanes();

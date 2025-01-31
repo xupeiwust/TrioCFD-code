@@ -22,7 +22,16 @@
 #include <TRUSTList.h>
 #include <TRUST_List.h>
 
-class IJK_FT_base;
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// .DESCRIPTION : class IJK_One_Dimensional_Subproblems
+//
+// <Description of class IJK_One_Dimensional_Subproblems>
+//
+/////////////////////////////////////////////////////////////////////////////
+
+class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 class IJK_Thermal_base;
 class IJK_Thermal_Subresolution;
@@ -35,8 +44,8 @@ class IJK_One_Dimensional_Subproblems : public LIST(IJK_One_Dimensional_Subprobl
   friend class IJK_One_Dimensional_Subproblems_Interfaces_Fields;
 
 public :
-  IJK_One_Dimensional_Subproblems(const IJK_FT_base& ijk_ft);
-  void associer(const IJK_FT_base& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
+  IJK_One_Dimensional_Subproblems(const Probleme_FTD_IJK_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft) { ref_ijk_ft_ = ijk_ft; };
   void initialise_thermal_subproblems_list_params(const int& pre_initialise_thermal_subproblems_list,
                                                   const double& pre_factor_subproblems_number,
                                                   const int& remove_append_subproblems,
@@ -245,7 +254,7 @@ protected :
   int index_end_=0;
   int reallocate_subproblems_ = 1;
   bool is_updated_ = 0;
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
 
   FixedVector<ArrOfInt, 3> ijk_indices_to_subproblem_;
 

@@ -20,7 +20,7 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 
 class IJK_Ghost_Fluid_Fields : public Objet_U
 {
@@ -29,7 +29,7 @@ class IJK_Ghost_Fluid_Fields : public Objet_U
 
 public :
 
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void initialize(int& nalloc, const IJK_Splitting& splitting);
 
   void compute_eulerian_distance();
@@ -169,7 +169,7 @@ protected :
   IJK_Field_int dummy_int_field_;
   IJK_Field_double dummy_double_field_;
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   int compute_distance_ = 1;
   int compute_curvature_ = 1;
   int n_iter_distance_ = 8;

@@ -15,7 +15,7 @@
 
 #include <IJK_Thermal.h>
 #include <IJK_Field_vector.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <Cut_cell_tools.h>
 
 Implemente_instanciable_sans_constructeur( IJK_Thermal, "IJK_Thermal", OWN_PTR(IJK_Thermal_base) );

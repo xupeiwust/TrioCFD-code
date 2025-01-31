@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_cut_cell.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Thermal_cut_cell_included
 #define IJK_Thermal_cut_cell_included
@@ -42,13 +36,6 @@
 #include <Cut_cell_convection_auxiliaire.h>
 #include <Cut_cell_diffusion_auxiliaire.h>
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// .DESCRIPTION : class IJK_Thermal_cut_cell
-//
-// <Description of class IJK_Thermal_cut_cell>
-//
-/////////////////////////////////////////////////////////////////////////////
 
 class IJK_Thermal_cut_cell : public IJK_Thermal_base
 {
@@ -206,7 +193,7 @@ protected :
 
   int type_temperature_convection_form_ = 0;
 
-  OBS_PTR(IJK_FT_cut_cell) ref_ijk_ft_cut_cell_;
+  OBS_PTR(Probleme_FTD_IJK_cut_cell) ref_ijk_ft_cut_cell_;
 
   IJK_Field_double div_rho_cp_T_;
   IJK_Field_double lambda_;

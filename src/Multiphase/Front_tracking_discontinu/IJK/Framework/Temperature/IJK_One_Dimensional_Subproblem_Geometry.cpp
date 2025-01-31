@@ -21,7 +21,7 @@
 
 #include <IJK_One_Dimensional_Subproblem_Geometry.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 
 Implemente_instanciable_sans_constructeur( IJK_One_Dimensional_Subproblem_Geometry, "IJK_One_Dimensional_Subproblem_Geometry", Objet_U ) ;
 

@@ -47,7 +47,7 @@ void Switch_FT_double::set_param(Param& param)
   /*
    * GAB : gabriel.ramirez@cea.fr
    * Parametres pour le forcage spectral
-   * Voir reprendre probleme dans IJK_FT_base.cpp
+   * Voir reprendre probleme dans Probleme_FTD_IJK_base.cpp
    */
   param.ajouter("forcage", &old_forcage_);
   // Parametres pour la correction de qdm 
@@ -71,7 +71,7 @@ void Switch_FT_double::prepare_run()
 
 void Switch_FT_double::initialise()
 {
-  Cout << que_suis_je() <<"::initialise() Pb of type IJK_FT_base detected." << finl;
+  Cout << que_suis_je() <<"::initialise() Pb of type Probleme_FTD_IJK_base detected." << finl;
 
   // Probleme of type FT:
   // old_mesh_ and new_mesh_ are acutally splittings...
@@ -258,7 +258,7 @@ void Switch_FT_double::set_param_reprise(Param& param)
   param.ajouter("thermique", & thermique_);
   param.ajouter("thermals", & thermals_);
   // GAB : gabriel.rmairez@cea.fr
-  /* Voir reprendre probleme dans IJK_FT_base.cpp */
+  /* Voir reprendre probleme dans Probleme_FTD_IJK_base.cpp */
   param.ajouter("forcage", &new_forcage_);
   param.ajouter("corrections_qdm", &new_qdm_corrections_);
   param.ajouter("reprise_vap_velocity_tmoy", &vap_velocity_tmoy_);

@@ -37,7 +37,7 @@
 #include <Cut_cell_surface_efficace.h>
 #include <Domaine_dis_base.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 
 #define VERIF_INDIC 0
@@ -62,7 +62,7 @@ public :
                  const int thermal_probes_ghost_cells=0,
                  const bool compute_vint=true,
                  const bool is_switch=false);
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
@@ -665,7 +665,7 @@ public :
     return phase;
   }
 
-  // Indicatrice non-zero : Cette indicatrice est utilisee pour calculer l'energie vol*indicatrice*T d'une cellule coupee en IJK_FT_cut_cell.
+  // Indicatrice non-zero : Cette indicatrice est utilisee pour calculer l'energie vol*indicatrice*T d'une cellule coupee en Probleme_FTD_IJK_cut_cell.
   // Pour ne pas perdre d'information, le volume de l'autre temps est utilise si le volume est zero pour le temps consideree.
   inline double I_nonzero(const int phase, const int i, const int j, const int k) const
   {
@@ -1062,7 +1062,7 @@ protected:
 // reference vers le splitting_ft_ pour les interfaces :
   OBS_PTR(IJK_Splitting) ref_splitting_;
   OBS_PTR(Domaine_dis_base) refdomaine_dis_;
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   // Interdit le constructeur par copie (car constructeurs par copie interdits
   // pour parcours_ et autres

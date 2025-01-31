@@ -32,19 +32,19 @@
 #include <Corrige_flux_FT_temperature_conv.h>
 #include <Operateur_IJK_elem_diff_base.h>
 
-class IJK_FT_base;
+class Probleme_FTD_IJK_base;
 
 class IJK_Energie : public Objet_U
 {
   friend class IJK_FT_Post;
-  friend class IJK_FT_base;
+  friend class Probleme_FTD_IJK_base;
   Declare_instanciable(IJK_Energie);
 
 public:
   int initialize(const IJK_Splitting& splitting, const int idx);
   void update_thermal_properties();
   double compute_timestep(const double timestep, const double dxmin) const;
-  void associer(const IJK_FT_base& ijk_ft);
+  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void euler_time_step(const IJK_Field_vector3_double& velocity);
   const IJK_Field_double& get_temperature() const { return temperature_; }
   int calculer_k_pour_bord(const IJK_Field_double& temperature, const bool bord_kmax);
@@ -105,7 +105,7 @@ protected:
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,
                                         ArrOfDouble& interfacial_phin_ai) const;
 
-  OBS_PTR(IJK_FT_base) ref_ijk_ft_;
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   int rang_;
 
   Boundary_Conditions_Thermique boundary_conditions_;

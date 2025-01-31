@@ -13,9 +13,9 @@
 *
 *****************************************************************************/
 
-#include <IJK_FT_base.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Field_vector.h>
-#include <IJK_FT_cut_cell.h>
+#include <Probleme_FTD_IJK_cut_cell.h>
 #include <Cut_cell_FT_Disc.h>
 #include <IJK_FT_Post.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -25,24 +25,24 @@
 #include <Cut_cell_diffusion_flux_interface.h>
 
 
-Implemente_instanciable_sans_constructeur(IJK_FT_cut_cell, "IJK_FT_cut_cell", IJK_FT_base);
-IJK_FT_cut_cell::IJK_FT_cut_cell()
+Implemente_instanciable_sans_constructeur(Probleme_FTD_IJK_cut_cell, "Probleme_FTD_IJK_cut_cell", Probleme_FTD_IJK_base);
+Probleme_FTD_IJK_cut_cell::Probleme_FTD_IJK_cut_cell()
 {
 }
 
-Sortie& IJK_FT_cut_cell::printOn(Sortie& os) const
+Sortie& Probleme_FTD_IJK_cut_cell::printOn(Sortie& os) const
 {
   return os;
 }
 
-Entree& IJK_FT_cut_cell::readOn(Entree& is)
+Entree& Probleme_FTD_IJK_cut_cell::readOn(Entree& is)
 {
   return is;
 }
 
-Entree& IJK_FT_cut_cell::interpreter(Entree& is)
+Entree& Probleme_FTD_IJK_cut_cell::interpreter(Entree& is)
 {
-  IJK_FT_base::interpreter(is);
+  Probleme_FTD_IJK_base::interpreter(is);
 
   // Determination pour le seuil des petites cellules en cut-cell
   if ((seuil_indicatrice_petite_fixe_ == -1) && (seuil_indicatrice_petite_facsec_ == -1))
@@ -66,9 +66,9 @@ Entree& IJK_FT_cut_cell::interpreter(Entree& is)
   return is;
 }
 
-void IJK_FT_cut_cell::set_param(Param& param)
+void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
 {
-  IJK_FT_base::set_param(param);
+  Probleme_FTD_IJK_base::set_param(param);
 
   param.ajouter("seuil_indicatrice_petite_fixe", &seuil_indicatrice_petite_fixe_);
   param.ajouter("seuil_indicatrice_petite_facsec", &seuil_indicatrice_petite_facsec_);
@@ -87,7 +87,7 @@ void IJK_FT_cut_cell::set_param(Param& param)
   param.ajouter("facettes_interpolation", &cut_cell_facettes_interpolation_);
 }
 
-void IJK_FT_cut_cell::run()
+void Probleme_FTD_IJK_cut_cell::run()
 {
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
   cut_cell_disc_.initialise(interfaces_, splitting_, IJK_Splitting::ELEM);
@@ -97,7 +97,7 @@ void IJK_FT_cut_cell::run()
 
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
-  Cerr << "IJK_FT_cut_cell::run()" << finl;
+  Cerr << "Probleme_FTD_IJK_cut_cell::run()" << finl;
   int nalloc = 0;
   thermal_probes_ghost_cells_ = 4;
   thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
@@ -502,7 +502,7 @@ void IJK_FT_cut_cell::run()
     }
   else
     {
-      Cerr << "Cas normal diphasique IJK_FT_cut_cell::run()" << finl;
+      Cerr << "Cas normal diphasique Probleme_FTD_IJK_cut_cell::run()" << finl;
 
       /*
        * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
@@ -1040,7 +1040,7 @@ void IJK_FT_cut_cell::run()
         }
 
       // TODO: on pourrait mutualiser tous les parcourir maillages dans IJK_Interface au moment du transport de l'interface
-      // et le supprimer de IJK_FT_cut_cell
+      // et le supprimer de Probleme_FTD_IJK_cut_cell
       // interfaces_.parcourir_maillage();
       if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")))
         interfaces_.compute_vinterp();
@@ -1089,17 +1089,17 @@ void IJK_FT_cut_cell::run()
 
 }
 
-void IJK_FT_cut_cell::update_indicator_field()
+void Probleme_FTD_IJK_cut_cell::update_indicator_field()
 {
   // La suppression des cellules mortes est vraiment au tout dernier moment,
   // pour laisser la possibilite d'utiliser ces cellules lors des bilans
   // pour determiner l'indicatrice cible du remaillage.
   cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
 
-  IJK_FT_base::update_indicator_field();
+  Probleme_FTD_IJK_base::update_indicator_field();
 }
 
-void IJK_FT_cut_cell::update_twice_indicator_field()
+void Probleme_FTD_IJK_cut_cell::update_twice_indicator_field()
 {
   for(int i=0; i<2; i++)
     {
@@ -1122,7 +1122,7 @@ void IJK_FT_cut_cell::update_twice_indicator_field()
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 }
 
-void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
+void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const int rk_step,
                                           ArrOfDouble& var_volume_par_bulle,
                                           const int first_step_interface_smoothing)
 {
@@ -1136,7 +1136,7 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
-  IJK_FT_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
+  Probleme_FTD_IJK_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
@@ -1161,7 +1161,7 @@ void IJK_FT_cut_cell::deplacer_interfaces(const double timestep, const int rk_st
     }
 }
 
-void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
+void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
                                               ArrOfDouble& var_volume_par_bulle)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
@@ -1174,7 +1174,7 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
-  IJK_FT_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
+  Probleme_FTD_IJK_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
 
   // Mise a jour des structures cut-cell
   cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
@@ -1201,7 +1201,7 @@ void IJK_FT_cut_cell::deplacer_interfaces_rk3(const double timestep, const int r
     }
 }
 
-void IJK_FT_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bulle)
+void Probleme_FTD_IJK_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 {
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
   statistiques().begin_count(euler_rk3_counter_);
@@ -1515,7 +1515,7 @@ void IJK_FT_cut_cell::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 // Perform one sub-step of rk3 for FT algorithm, called 3 times per time step.
 // rk_step = 0, 1 or 2
 // total_timestep = not the fractionnal timestep !
-void IJK_FT_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
+void Probleme_FTD_IJK_cut_cell::rk3_sub_step(const int rk_step, const double total_timestep,
                                    const double fractionnal_timestep, const double time )
 {
   assert(rk_step>=0 && rk_step<3);

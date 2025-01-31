@@ -16,13 +16,13 @@
 #ifndef Schema_Euler_explicite_IJK_included
 #define Schema_Euler_explicite_IJK_included
 
-#include <Schema_Temps_base.h>
+#include <Schema_Euler_explicite.h>
 
 /*! @brief Explicit Euler scheme for IJK setups.
  *
  * @sa Schema_Temps_base
  */
-class Schema_Euler_explicite_IJK: public Schema_Temps_base
+class Schema_Euler_explicite_IJK: public Schema_Euler_explicite
 {
   Declare_instanciable(Schema_Euler_explicite_IJK);
 
