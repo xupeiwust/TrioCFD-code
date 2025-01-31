@@ -142,3 +142,101 @@ IJK_Field_double scalar_fields_product(const Probleme_FTD_IJK_base& pb, const IJ
   // Communication avec tous les process ?
   return resu;
 }
+
+void ecrire_donnees(const Probleme_FTD_IJK_base& pb, const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary)
+{
+  const IJK_Field_double& f =  f3compo[compo];
+
+  ArrOfDouble coord_i, coord_j, coord_k;
+  build_local_coords(f, coord_i, coord_j, coord_k);
+
+  const int ni = f.ni();
+  const int nj = f.nj();
+  const int nk = f.nk();
+
+  int cnt = 0;
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          // le_fichier << coord_i[i] << Separateur::SPACE << coord_j[j] << Separateur::SPACE << coord_k[k] << f(i,j,k) << Separateur::SPACE;
+          le_fichier << coord_i[i] << coord_j[j] << coord_k[k] << f(i,j,k);
+          cnt++;
+        }
+
+  const Domaine_IJK& geom = pb.get_domaine();
+  const int idx_min = f.get_domaine().get_offset_local(compo);
+  if ((idx_min == 0) &&  (geom.get_periodic_flag(compo)))
+    {
+      double l = geom.get_domain_length(compo) + geom.get_origin(compo);
+      if (compo == 0)
+        {
+          Cerr << "compo 0: " << l << " " << coord_i[0] << finl;
+          for (int k = 0; k < nk; k++)
+            for (int j = 0; j < nj; j++)
+              {
+                le_fichier << l << coord_j[j] << coord_k[k] << f(0,j,k);
+                cnt++;
+              }
+        }
+      if (compo == 1)
+        {
+          Cerr << "compo 1: " << l << " " << coord_j[0] << finl;
+          for (int k = 0; k < nk; k++)
+            for (int i = 0; i < ni; i++)
+              {
+                le_fichier << coord_i[i] << l << coord_k[k] << f(i,0,k);
+                cnt++;
+              }
+        }
+      if (compo == 2)
+        {
+          for (int j = 0; j < nj; j++)
+            for (int i = 0; i < ni; i++)
+              {
+                le_fichier << coord_i[i] << coord_j[j] << l << f(i,j,0);
+                cnt++;
+              }
+        }
+    }
+  le_fichier.flush();
+  Cerr << "Written " << cnt << " items with (ni, nj, nk)." << ni << " " << nj << " " << nk << finl;
+}
+
+// Initialize field with specified string expression (must be understood by Parser class)
+void dumpxyz_vector(const Probleme_FTD_IJK_base& pb, const IJK_Field_vector3_double& f3compo, const char * filename, bool binary)
+{
+  int np = Process::nproc();
+  int rank = Process::me();
+
+  Process::barrier();
+  int token = 1;
+  if (Process::je_suis_maitre())
+    {
+      // Write and send token to rank+1
+      SFichier le_fichier;
+      le_fichier.set_bin(1);
+      le_fichier.ouvrir(filename);
+      for (unsigned compo=0; compo<3; compo++)
+        ecrire_donnees(pb, f3compo, le_fichier, compo, binary);
+      if (np > 1)
+        envoyer(token, rank, rank+1, 2345);
+    }
+  else
+    {
+      int rcv;
+      recevoir(rcv, rank-1, rank, 2345);
+
+      SFichier le_fichier;
+      le_fichier.set_bin(1);
+      le_fichier.ouvrir(filename, ios::app);  // in append mode!
+      for (unsigned compo=0; compo<3; compo++)
+        ecrire_donnees(pb, f3compo, le_fichier, compo, binary);
+
+      if (rank != np-1)
+        envoyer(token, rank, rank+1, 2345);
+    }
+
+  Process::barrier();
+  Cerr << "Fin de l ecriture dans le fichier XYZ: " << filename << finl;
+}

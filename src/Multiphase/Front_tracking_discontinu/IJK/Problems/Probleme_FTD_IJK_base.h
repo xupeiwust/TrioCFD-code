@@ -157,8 +157,8 @@ public:
   const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base& a) { throw ; }
   int initialise();
 
-  void ecrire_donnees(const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary) const;
-  void dumpxyz_vector(const IJK_Field_vector3_double& f3compo, const char * filename, bool binary) const;
+
+
   void sauvegarder_probleme(const char *fichier_sauvegarde,
                             const int& stop); //  const;
 
@@ -285,21 +285,6 @@ public:
   void update_pressure_phase();
   void terme_source_gravite(IJK_Field_double& dv, int k_index, int dir) const;
   void calculer_dv(const double timestep, const double time, const int rk_step);
-  static void force_entry_velocity(IJK_Field_double& vx,
-                                   IJK_Field_double& vy,
-                                   IJK_Field_double& vz,
-                                   double v_imposed,
-                                   const int& dir,
-                                   const int& compo,
-                                   const int& stencil);
-  static void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                      double v_imposed,const IJK_Interfaces& interfaces, double nb_diam,
-                                      int upstream_dir, int gravity_dir, int upstream_stencil);
-  static void force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz,
-                                                  double v_imposed,
-                                                  const IJK_Interfaces& interfaces,
-                                                  double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio,double Ux0,double Uy0,double Uz0,
-                                                  int epaisseur_maille);
 
 
   void calculer_terme_source_acceleration(IJK_Field_double& vx, const double time, const double timestep,

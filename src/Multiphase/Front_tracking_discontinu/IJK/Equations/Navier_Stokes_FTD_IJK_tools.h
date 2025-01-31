@@ -13,20 +13,18 @@
 *
 *****************************************************************************/
 
-#ifndef Probleme_FTD_IJK_tools_included
-#define Probleme_FTD_IJK_tools_included
+#ifndef Navier_Stokes_FTD_IJK_tools_included
+#define Navier_Stokes_FTD_IJK_tools_included
 
-#include <IJK_Field_vector.h>
 #include <IJK_Field.h>
 
-class Probleme_FTD_IJK_base;
+class Boundary_Conditions;
+class IJK_Interfaces;
 
-void copy_field_values(IJK_Field_double& , const IJK_Field_double& );
-IJK_Field_double scalar_product(const Probleme_FTD_IJK_base&, const IJK_Field_vector3_double&, const IJK_Field_vector3_double&);
-IJK_Field_vector3_double scalar_times_vector(const Probleme_FTD_IJK_base&, const IJK_Field_double&, const IJK_Field_vector3_double&);
-IJK_Field_double scalar_fields_product(const Probleme_FTD_IJK_base&, const IJK_Field_double&, const IJK_Field_double&, int);
+void force_upstream_velocity(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed, const IJK_Interfaces& interfaces,
+                             double nb_diam, int upstream_dir, int gravity_dir, int upstream_stencil);
 
-void ecrire_donnees(const Probleme_FTD_IJK_base&, const IJK_Field_vector3_double& f3compo, SFichier& le_fichier, const int compo, bool binary);
-void dumpxyz_vector(const Probleme_FTD_IJK_base&, const IJK_Field_vector3_double& f3compo, const char * filename, bool binary);
+void force_upstream_velocity_shear_perio(IJK_Field_double& vx, IJK_Field_double& vy, IJK_Field_double& vz, double v_imposed, const IJK_Interfaces& interfaces,
+                                         double nb_diam, Boundary_Conditions& bc, double nb_diam_ortho_shear_perio, double Ux0, double Uy0, double Uz0, int epaisseur_maille);
 
-#endif /* Probleme_FTD_IJK_tools_included */
+#endif /* Navier_Stokes_FTD_IJK_tools_included */
