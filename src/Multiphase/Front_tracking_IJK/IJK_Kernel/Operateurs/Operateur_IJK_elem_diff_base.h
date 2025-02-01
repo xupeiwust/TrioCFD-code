@@ -151,7 +151,7 @@ class OpDiffUniformIJKScalarCorrection_double : public Operateur_IJK_elem_diff_b
 public:
   OpDiffUniformIJKScalarCorrection_double() : Operateur_IJK_elem_diff_base_double() { is_uniform_ = true, is_corrected_ = true; }
 private:
-  void correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir) override;
+  void correct_flux(IJK_Field_local_double *const flux, int k_layer, const int dir) override;
   void correct_flux_spherical(Simd_double& a, Simd_double& b, const int& i, const int& j, int k_layer, int dir) override;
 };
 
@@ -223,10 +223,10 @@ public:
   }
 
 private:
-  void correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir) override;
+  void correct_flux(IJK_Field_local_double *const flux, int k_layer, const int dir) override;
 
   template <DIRECTION _DIR_>
-  inline void correct_flux_(IJK_Field_local_double *const flux, const int k_layer);
+  inline void correct_flux_(IJK_Field_local_double *const flux, int k_layer);
 
 
   bool ignore_small_cells_;

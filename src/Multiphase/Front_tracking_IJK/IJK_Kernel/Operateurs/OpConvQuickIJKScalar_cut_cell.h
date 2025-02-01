@@ -123,10 +123,10 @@ private:
   template <DIRECTION _DIR_>
   Vecteur3 compute_curv_fram_local_(int k_layer, double input_left, double input_centre, double input_right);
 
-  void correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir) override;
+  void correct_flux(IJK_Field_local_double *const flux, int k_layer, const int dir) override;
 
   template <DIRECTION _DIR_>
-  inline void correct_flux_(IJK_Field_local_double *const flux, const int k_layer);
+  inline void correct_flux_(IJK_Field_local_double *const flux, int k_layer);
 
   bool ignore_small_cells_ = true;
   Cut_cell_conv_scheme cut_cell_conv_scheme_;

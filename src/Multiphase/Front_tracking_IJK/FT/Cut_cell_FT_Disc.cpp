@@ -624,7 +624,6 @@ int Cut_cell_FT_Disc::initialise_communications()
   int shift_y_max = + (right_neighbour_y != ref_splitting_->me())*(right_neighbour_y != left_neighbour_y);
   int shift_z_max = + (right_neighbour_z != ref_splitting_->me())*(right_neighbour_z != left_neighbour_z);
 
-  ArrOfIntFT pe_list;
   for (int shift_x = shift_x_min; shift_x <= shift_x_max; shift_x++)
     {
       for (int shift_y = shift_y_min; shift_y <= shift_y_max; shift_y++)

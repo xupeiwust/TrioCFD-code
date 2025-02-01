@@ -28,7 +28,7 @@ Entree& OpConvQuickIJKScalar_cut_cell_double::readOn(Entree& is)
   return is;
 }
 
-void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *const flux, const int k_layer, const int dir)
+void OpConvQuickIJKScalar_cut_cell_double::correct_flux(IJK_Field_local_double *const flux, int k_layer, const int dir)
 {
   if (dir == 0)
     {
