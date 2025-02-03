@@ -160,7 +160,7 @@ protected:
                                const double vitesse_entree) const;
 #endif
 protected:
-  OBS_PTR(Domaine_IJK) ref_splitting_; // cette variable est initialisee dans la methode initialize()
+  OBS_PTR(Domaine_IJK) ref_domaine_; // cette variable est initialisee dans la methode initialize()
 
   int lissage_;
   double epaisseur_lissage_;

@@ -147,9 +147,9 @@ void ComputeValParCompoInCell::calculer_moy_par_compo(
     }
 
   // Boucle sur les elements:
-  const int ni = ref_splitting_->get_nb_elem_local(DIRECTION_I);
-  const int nj = ref_splitting_->get_nb_elem_local(DIRECTION_J);
-  const int nk = ref_splitting_->get_nb_elem_local(DIRECTION_K);
+  const int ni = ref_domaine_->get_nb_elem_local(DIRECTION_I);
+  const int nj = ref_domaine_->get_nb_elem_local(DIRECTION_J);
+  const int nk = ref_domaine_->get_nb_elem_local(DIRECTION_K);
 
   ArrOfInt liste_composantes_connexes_dans_element;
   for (int k = 0; k < nk; k++)
@@ -157,7 +157,7 @@ void ComputeValParCompoInCell::calculer_moy_par_compo(
       for (int i = 0; i < ni; i++)
         {
           // A present, elle est dans le splitting :
-          const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
+          const int elem = ref_domaine_->convert_ijk_cell_to_packed(i, j, k);
           // Pour chaque element, est-il traverse par une ou plusieurs interface ?
           // (seules les surfaces non-nulles sont comptees)
           const int nb_compo_traversantes =
@@ -262,7 +262,7 @@ void ComputeValParCompoInCell::calculer_moy_field_sommet_par_compo(
       for (int i = 0; i < ni; i++)
         {
           // A present, elle est dans le splitting :
-          const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
+          const int elem = ref_domaine_->convert_ijk_cell_to_packed(i, j, k);
           const int nb_compo_traversantes =
             compute_list_compo_connex_in_element(elem, liste_composantes_connexes_dans_element);
           // Pour chaque element, est-il traverse par une ou plusieurs interface ?
@@ -344,7 +344,7 @@ void ComputeValParCompoInCell::calculer_moy_field_fa7_par_compo(
       for (int i = 0; i < ni; i++)
         {
           // A present, elle est dans le splitting :
-          const int elem = ref_splitting_->convert_ijk_cell_to_packed(i, j, k);
+          const int elem = ref_domaine_->convert_ijk_cell_to_packed(i, j, k);
           const int nb_compo_traversantes =
             compute_list_compo_connex_in_element(elem, liste_composantes_connexes_dans_element);
           // Pour chaque element, est-il traverse par une ou plusieurs interface ?

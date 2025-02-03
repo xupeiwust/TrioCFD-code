@@ -124,7 +124,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_dying_cells(const Cut_field_vector
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -243,7 +243,7 @@ void Cut_cell_schema_auxiliaire::compute_flux_small_nascent_cells(const Cut_fiel
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -359,7 +359,7 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_copie_directe(const 
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -397,7 +397,7 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_ponderation_voisin(b
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);
@@ -559,7 +559,7 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien(doub
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -676,7 +676,7 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_inte
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -695,9 +695,9 @@ void Cut_cell_schema_auxiliaire::calcule_valeur_remplissage_semi_lagrangien_inte
       double next_bary_deplace_y = next_bary_y - velocity_y*timestep;
       double next_bary_deplace_z = next_bary_z - velocity_z*timestep;
 
-      double coordinates_x = next_bary_deplace_x + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_I, i, IJK_Splitting::NODES);
-      double coordinates_y = next_bary_deplace_y + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_J, j, IJK_Splitting::NODES);
-      double coordinates_z = next_bary_deplace_z + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_K, k, IJK_Splitting::NODES);
+      double coordinates_x = next_bary_deplace_x + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_I, i, Domaine_IJK::NODES);
+      double coordinates_y = next_bary_deplace_y + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_J, j, Domaine_IJK::NODES);
+      double coordinates_z = next_bary_deplace_z + cut_cell_disc.get_domaine().get_coord_of_dof_along_dir(DIRECTION_K, k, Domaine_IJK::NODES);
       Vecteur3 coordinates(coordinates_x, coordinates_y, coordinates_z);
 
       int status = -2;
@@ -781,7 +781,7 @@ void Cut_cell_schema_auxiliaire::add_dying_cells(const Cut_field_vector3_double&
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i,j,k);
@@ -924,7 +924,7 @@ void Cut_cell_schema_auxiliaire::add_small_nascent_cells(const Cut_field_vector3
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 1, 1))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 1, 1))
         continue;
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);

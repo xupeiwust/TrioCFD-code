@@ -77,7 +77,7 @@ void Cut_field_template<_TYPE_,_TYPE_ARRAY_>::echange_pure_vers_diph_cellules_in
           int j = ijk[1];
           int k = ijk[2];
 
-          if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+          if (!cut_cell_disc_->get_domaine().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
             continue;
 
           double old_indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
@@ -113,7 +113,7 @@ bool Cut_field_template<_TYPE_,_TYPE_ARRAY_>::check_agreement_diph_pure_cellules
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+      if (!cut_cell_disc_->get_domaine().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
         continue;
 
       double indicatrice = cut_cell_disc_->get_interfaces().I(i,j,k);
@@ -148,7 +148,7 @@ bool Cut_field_template<_TYPE_,_TYPE_ARRAY_>::check_agreement_diph_pure_cellules
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+      if (!cut_cell_disc_->get_domaine().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
         continue;
 
       double indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k); // Note : In car on est avant l'inversion
@@ -192,7 +192,7 @@ void Cut_field_template<_TYPE_,_TYPE_ARRAY_>::echange_diph_vers_pure_cellules_fi
           int j = ijk[1];
           int k = ijk[2];
 
-          if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+          if (!cut_cell_disc_->get_domaine().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
             continue;
 
           double indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k);
@@ -234,7 +234,7 @@ void Cut_field_template<_TYPE_,_TYPE_ARRAY_>::vide_phase_invalide_cellules_dipha
           int j = ijk[1];
           int k = ijk[2];
 
-          if (!cut_cell_disc_->get_splitting().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
+          if (!cut_cell_disc_->get_domaine().within_ghost(i, j, k, IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost(), IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::ghost()))
             continue;
 
           double next_indicatrice = cut_cell_disc_->get_interfaces().In(i,j,k);
@@ -375,9 +375,9 @@ void Cut_field_template<double,ArrOfDouble>::set_field_data(const Nom& parser_ex
                 {
                   double vol_l = input_f(i, j, k);
 
-                  double dx = cut_cell_disc_->get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_I);
-                  double dy = cut_cell_disc_->get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_J);
-                  double dz = cut_cell_disc_->get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K);
+                  double dx = cut_cell_disc_->get_domaine().get_constant_delta(DIRECTION_I);
+                  double dy = cut_cell_disc_->get_domaine().get_constant_delta(DIRECTION_J);
+                  double dz = cut_cell_disc_->get_domaine().get_constant_delta(DIRECTION_K);
 
                   assert(input_f.get_localisation() == localisation_);
                   double bary_x = cut_cell_disc_->get_interfaces().get_barycentre_phase1_next()[0](i,j,k);
@@ -581,13 +581,13 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_signed_independent_index(int signed_independent_index)
 {
   bool liquid = (signed_independent_index < 0);
-  int independent_index = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_->get_independent_index_from_signed_independent_index(signed_independent_index);
-  Int3 ijk = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_->get_ijk_from_independent_index(independent_index);
+  int independent_index = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_->get_independent_index_from_signed_independent_index(signed_independent_index);
+  Int3 ijk = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_->get_ijk_from_independent_index(independent_index);
   int i = ijk[0];
   int j = ijk[1];
   int k = ijk[2];
   int n = cut_cell_disc_->get_n(i,j,k);
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   _TYPE_& value = (liquid && n >= 0) ? diph_l_(n) : ((n < 0) ? pure_(i,j,k) : diph_v_(n));
   return value;
@@ -597,13 +597,13 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 const _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_signed_independent_index(int signed_independent_index) const
 {
   bool liquid = (signed_independent_index < 0);
-  int independent_index = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_->get_independent_index_from_signed_independent_index(signed_independent_index);
-  Int3 ijk = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_->get_ijk_from_independent_index(independent_index);
+  int independent_index = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_->get_independent_index_from_signed_independent_index(signed_independent_index);
+  Int3 ijk = Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_->get_ijk_from_independent_index(independent_index);
   int i = ijk[0];
   int j = ijk[1];
   int k = ijk[2];
   int n = cut_cell_disc_->get_n(i,j,k);
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   const _TYPE_& value = (liquid && n >= 0) ? diph_l_(n) : ((n < 0) ? pure_(i,j,k) : diph_v_(n));
   return value;
@@ -613,7 +613,7 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_ijk_and_phase(int i, int j, int k, bool phase)
 {
   assert((phase == 0) || (phase == 1));
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   int n = cut_cell_disc_->get_n(i, j, k);
   if (n < 0)
@@ -630,7 +630,7 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 const _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_ijk_and_phase(int i, int j, int k, bool phase) const
 {
   assert((phase == 0) || (phase == 1));
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   int n = cut_cell_disc_->get_n(i, j, k);
   if (n < 0)
@@ -647,7 +647,7 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_n_num_face_and_phase(int n, int num_face, bool phase)
 {
   assert((phase == 0) || (phase == 1));
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   assert(n >= 0);
   return (phase == 0) ? diph_v_(n) : diph_l_(n);
@@ -657,7 +657,7 @@ template<typename _TYPE_, typename _TYPE_ARRAY_>
 const _TYPE_& Cut_field_template<_TYPE_,_TYPE_ARRAY_>::from_n_num_face_and_phase(int n, int num_face, bool phase) const
 {
   assert((phase == 0) || (phase == 1));
-  assert((cut_cell_disc_->get_splitting() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::splitting_ref_));
+  assert((cut_cell_disc_->get_domaine() == Cut_field_template<_TYPE_,_TYPE_ARRAY_>::domaine_ref_));
 
   assert(n >= 0);
   return (phase == 0) ? diph_v_(n) : diph_l_(n);
@@ -691,8 +691,6 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_norm_cut_cell
   const int nx = IJK_Field_template<double,ArrOfDouble>::ni();
   const int ny = IJK_Field_template<double,ArrOfDouble>::nj();
   const int nz = IJK_Field_template<double,ArrOfDouble>::nk();
-  //const IJK_Grid_Geometry& geom = indic_next.get_splitting().get_grid_geometry();
-  //assert(geom.get_constant_delta(DIRECTION_K) >0); // To be sure we're on a regular mesh
   for (int k=0; k < nz ; k++)
     {
       for (int j=0; j< ny; j++)
@@ -828,9 +826,9 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_norm_cut_cell
   count_diph_regular = Process::mp_sum(count_diph_regular);
   count_diph_nascent = Process::mp_sum(count_diph_nascent);
   count_diph_dying = Process::mp_sum(count_diph_dying);
-  assert(count_overall == splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K));
+  assert(count_overall == domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_I)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_J)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K));
   norm_overall      = Process::mp_sum(norm_overall);
   norm_overall_l    = Process::mp_sum(norm_overall_l);
   norm_overall_v    = Process::mp_sum(norm_overall_v);
@@ -884,7 +882,7 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_d_global_ener
   const int nx = IJK_Field_template<double,ArrOfDouble>::ni();
   const int ny = IJK_Field_template<double,ArrOfDouble>::nj();
   const int nz = IJK_Field_template<double,ArrOfDouble>::nk();
-  const IJK_Grid_Geometry& geom = indic_next.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = indic_next.get_domaine();
   assert(geom.get_constant_delta(DIRECTION_K) >0); // To be sure we're on a regular mesh
   for (int k=0; k < nz ; k++)
     {
@@ -1021,9 +1019,9 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_d_global_ener
   count_diph_regular = Process::mp_sum(count_diph_regular);
   count_diph_nascent = Process::mp_sum(count_diph_nascent);
   count_diph_dying = Process::mp_sum(count_diph_dying);
-  assert(count_overall == splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K));
+  assert(count_overall == domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_I)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_J)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K));
   const double vol_cell = geom.get_constant_delta(DIRECTION_I)*geom.get_constant_delta(DIRECTION_J)*geom.get_constant_delta(DIRECTION_K);
   global_energy_overall      = vol_cell * mp_sum(global_energy_overall);
   global_energy_overall_l    = vol_cell * mp_sum(global_energy_overall_l);
@@ -1066,7 +1064,7 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_global_energy
   const int nx = IJK_Field_template<double,ArrOfDouble>::ni();
   const int ny = IJK_Field_template<double,ArrOfDouble>::nj();
   const int nz = IJK_Field_template<double,ArrOfDouble>::nk();
-  const IJK_Grid_Geometry& geom = indic_next.get_splitting().get_grid_geometry();
+  const Domaine_IJK& geom = indic_next.get_domaine();
   assert(geom.get_constant_delta(DIRECTION_K) >0); // To be sure we're on a regular mesh
   for (int k=0; k < nz ; k++)
     {
@@ -1207,9 +1205,9 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_global_energy
   count_diph_regular = Process::mp_sum(count_diph_regular);
   count_diph_nascent = Process::mp_sum(count_diph_nascent);
   count_diph_dying = Process::mp_sum(count_diph_dying);
-  assert(count_overall == splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_I)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_J)
-         *splitting_ref_->get_nb_items_global(IJK_Splitting::ELEM, DIRECTION_K));
+  assert(count_overall == domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_I)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_J)
+         *domaine_ref_->get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K));
   const double vol_cell = geom.get_constant_delta(DIRECTION_I)*geom.get_constant_delta(DIRECTION_J)*geom.get_constant_delta(DIRECTION_K);
   global_energy_overall      = vol_cell * mp_sum(global_energy_overall);
   global_energy_overall_l    = vol_cell * mp_sum(global_energy_overall_l);
@@ -1243,7 +1241,7 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_min_cut_cell(
   const int nx = IJK_Field_template<double,ArrOfDouble>::ni();
   const int ny = IJK_Field_template<double,ArrOfDouble>::nj();
   const int nz = IJK_Field_template<double,ArrOfDouble>::nk();
-  assert(indic.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) >0); // To be sure we're on a regular mesh
+  assert(indic.get_domaine().get_constant_delta(DIRECTION_K) >0); // To be sure we're on a regular mesh
   for (int k=0; k < nz ; k++)
     {
       for (int j=0; j< ny; j++)
@@ -1359,7 +1357,7 @@ CutCell_GlobalInfo Cut_field_template<double,ArrOfDouble>::compute_max_cut_cell(
   const int ny = IJK_Field_template<double,ArrOfDouble>::nj();
   const int nz = IJK_Field_template<double,ArrOfDouble>::nk();
   // To be sure we're on a regular mesh
-  assert(indic.get_splitting().get_grid_geometry().get_constant_delta(DIRECTION_K) >0);
+  assert(indic.get_domaine().get_constant_delta(DIRECTION_K) >0);
   for (int k=0; k < nz ; k++)
     {
       for (int j=0; j< ny; j++)

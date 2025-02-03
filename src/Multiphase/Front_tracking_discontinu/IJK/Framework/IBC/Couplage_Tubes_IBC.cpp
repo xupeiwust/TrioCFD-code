@@ -72,9 +72,9 @@ Entree& Couplage_Tubes_IBC::readOn(Entree& is)
   return is;
 }
 
-void Couplage_Tubes_IBC::initialize(const Domaine_IJK& splitting)
+void Couplage_Tubes_IBC::initialize(const Domaine_IJK& dom)
 {
-  ref_splitting_ = splitting; // copie de splitting pour l'utiliser dans la class Couplage_Tubes_IBC
+  ref_domaine_ = dom; // copie de splitting pour l'utiliser dans la class Couplage_Tubes_IBC
 
   const int n_tubes_total = faisceau_.size();
   integrale_force_.resize(n_tubes_total , 3);
@@ -89,7 +89,7 @@ void Couplage_Tubes_IBC::initialize(const Domaine_IJK& splitting)
   masse_fluide_cylindres_.resize(n_tubes_total, 3);
 
   for (int i = 0; i < n_tubes_total; i++)
-    faisceau_[i]->initialize(splitting); // la fonction initialize() appartient a la class Tube_base, on l'appelle ici pour pouvoir accader a splitting dans cette class
+    faisceau_[i]->initialize(dom); // la fonction initialize() appartient a la class Tube_base, on l'appelle ici pour pouvoir accader a splitting dans cette class
 }
 
 void Couplage_Tubes_IBC::sauvegarder_probleme(SFichier& f)
@@ -3155,7 +3155,7 @@ void Couplage_Tubes_IBC::update(double current_time,
       const Vecteur3 v = tube.get_current_velocity();
 
       // Calcul de la hauteur du tube
-      const Domaine_IJK& geom = ref_splitting_.valeur();
+      const Domaine_IJK& geom = ref_domaine_.valeur();
       ArrOfDouble noeuds_y;
       noeuds_y = geom.get_node_coordinates(1); // rentre les coordonnees des noeuds selon y dans le tableau noeuds_y
       const int n_element_y = noeuds_y.size_array()-1; // nombre d'elements selon y = nombre de noeuds -1

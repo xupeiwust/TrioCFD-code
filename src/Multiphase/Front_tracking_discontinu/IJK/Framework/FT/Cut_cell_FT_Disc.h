@@ -650,7 +650,7 @@ inline bool Cut_cell_FT_Disc::within_ghost(int n, int negative_ghost_size, int p
   int j = ijk[1];
   int k = ijk[2];
 
-  return ref_splitting_->within_ghost(i, j, k, negative_ghost_size, positive_ghost_size);
+  return ref_domaine_->within_ghost(i, j, k, negative_ghost_size, positive_ghost_size);
 }
 
 template <int _DIR_>

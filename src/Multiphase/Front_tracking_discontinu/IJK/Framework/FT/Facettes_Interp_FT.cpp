@@ -49,11 +49,11 @@ void Facettes_Interp_FT::set_param(Param& param)
   param.ajouter("scaled_distance_interpolation_2", &scaled_distance_interpolation_2_);
 }
 
-void Facettes_Interp_FT::associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting_ft, const Maillage_FT_IJK& maillage_ft_ijk, const Maillage_FT_IJK& old_maillage_ft_ijk)
+void Facettes_Interp_FT::associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& domaine_ft, const Maillage_FT_IJK& maillage_ft_ijk, const Maillage_FT_IJK& old_maillage_ft_ijk)
 {
   ref_interfaces_ = interfaces;
   ref_cut_cell_disc_ = cut_cell_disc;
-  ref_splitting_ = splitting_ft;
+  ref_domaine_ = domaine_ft;
   ref_maillage_ft_ijk_ = maillage_ft_ijk;
   ref_old_maillage_ft_ijk_ = old_maillage_ft_ijk;
 }
@@ -66,7 +66,7 @@ void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes_next(int old_en
 
   cut_cell_perform_interpolation_facettes(true,
                                           ref_cut_cell_disc_,
-                                          ref_splitting_->get_grid_geometry(),
+                                          ref_domaine_.valeur(),
                                           ref_maillage_ft_ijk_.valeur(),
                                           interpolation_coord_[next()],
                                           signed_independent_index_[next()],
@@ -81,7 +81,7 @@ void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes_old(bool not_ol
 
   cut_cell_perform_interpolation_facettes(false,
                                           ref_cut_cell_disc_,
-                                          ref_splitting_->get_grid_geometry(),
+                                          ref_domaine_.valeur(),
                                           ref_old_maillage_ft_ijk_.valeur(),
                                           interpolation_coord_[old()],
                                           signed_independent_index_[old()],
@@ -90,7 +90,7 @@ void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes_old(bool not_ol
 
 void Facettes_Interp_FT::cut_cell_perform_interpolation_facettes(bool next_time,
                                                                  const Cut_cell_FT_Disc& cut_cell_disc,
-                                                                 const IJK_Grid_Geometry& geom,
+                                                                 const Domaine_IJK& geom,
                                                                  const Maillage_FT_IJK& maillage,
                                                                  FixedVector<DoubleTabFT, 4>& interpolation_coord,
                                                                  FixedVector<IntTabFT, 4>& interpolation_signed_independent_index,
@@ -229,7 +229,7 @@ void Facettes_Interp_FT::calcul_coefficient_interpolation_facette_cut_cell_secon
 
 double Facettes_Interp_FT::get_distance_interpolation_1() const
 {
-  const IJK_Grid_Geometry& geom = ref_splitting_->get_grid_geometry();
+  const Domaine_IJK& geom = ref_domaine_.valeur();
   const double dist_1 = scaled_distance_interpolation_1_/sqrt(3) * std::pow(std::pow(geom.get_constant_delta(DIRECTION_I), 2.) +
                                                                             std::pow(geom.get_constant_delta(DIRECTION_J), 2.) +
                                                                             std::pow(geom.get_constant_delta(DIRECTION_K), 2.),
@@ -239,7 +239,7 @@ double Facettes_Interp_FT::get_distance_interpolation_1() const
 
 double Facettes_Interp_FT::get_distance_interpolation_2() const
 {
-  const IJK_Grid_Geometry& geom = ref_splitting_->get_grid_geometry();
+  const Domaine_IJK& geom = ref_domaine_.valeur();
   const double dist_2 = scaled_distance_interpolation_2_/sqrt(3) * std::pow(std::pow(geom.get_constant_delta(DIRECTION_I), 2.) +
                                                                             std::pow(geom.get_constant_delta(DIRECTION_J), 2.) +
                                                                             std::pow(geom.get_constant_delta(DIRECTION_K), 2.),

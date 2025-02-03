@@ -105,7 +105,6 @@ public :
 
   IJK_Field_int& treatment_count() { return treatment_count_; }
 
-protected:
   // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
   // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
   // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
@@ -115,6 +114,7 @@ protected:
   int new_treatment_ = 0;
 
 
+protected:
   OBS_PTR(Domaine_IJK) domaine_ijk_;
   Domaine_IJK domaine_ft_;
 
@@ -155,9 +155,11 @@ public:
     return refprobleme_ns_.valeur();
   }
   const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base& a) { throw ; }
-  int initialise();
+  int initialise_ijk_fields();
 
-
+  int initialise_interfaces();
+  void initialise_velocity_from_file(const Nom& fichier_reprise_vitesse);
+  void initialise_velocity_using_expression(const Noms& expression_vitesse_initiale);
 
   void sauvegarder_probleme(const char *fichier_sauvegarde,
                             const int& stop); //  const;

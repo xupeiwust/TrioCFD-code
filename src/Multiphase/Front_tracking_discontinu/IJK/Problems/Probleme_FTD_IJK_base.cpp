@@ -71,11 +71,6 @@ Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
   exit();
 }
 
-Probleme_FTD_IJK_base::TimeScheme Probleme_FTD_IJK_base::get_time_scheme() const
-{
-  return (TimeScheme) time_scheme_;
-}
-
 void Probleme_FTD_IJK_base::lire_solved_equations(Entree& is)
 {
   Motcle read_mc;
@@ -466,20 +461,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("coef_force_time_n", &coef_force_time_n_); // XD_ADD_P floattant not_set
   param.ajouter("coef_rayon_force_rappel", &coef_rayon_force_rappel_); // XD_ADD_P floattant not_set
 
-  param.ajouter("ijk_splitting", &ijk_splitting_name, Param::REQUIRED); // XD_ADD_P chaine(into=["grid_splitting"]) Definition of domain decomposition for parallel computations
-  param.ajouter("ijk_splitting_ft_extension", &ijk_splitting_ft_extension_, Param::REQUIRED); // XD_ADD_P entier Number of element used to extend the computational domain at each side of periodic boundary to accommodate for bubble evolution.
-
-  param.ajouter("tinit", &current_time_); // XD_ADD_P floattant initial time
-  param.ajouter("timestep", &timestep_, Param::REQUIRED); // XD_ADD_P floattant Upper limit of the timestep
-  param.ajouter("timestep_facsec", &timestep_facsec_); // XD_ADD_P floattant Security factor on timestep
-  param.ajouter("cfl", &cfl_); // XD_ADD_P floattant  To provide a value of the limiting CFL number used for setting the timestep
-  param.ajouter("fo", &fo_); // XD_ADD_P floattant not_set
-  param.ajouter("oh", &oh_); // XD_ADD_P floattant not_set
-  param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
-  param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED); // XD_ADD_P entier maximum limit for the number of timesteps
-  param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P double maximum limit for the simulation time
-  param.ajouter("tstep_init", &tstep_init_); // XD_ADD_P entier index first interation for recovery
-  param.ajouter("use_tstep_init", &use_tstep_init_); // XD_ADD_P entier use tstep init for constant post-processing step
 
 
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
@@ -521,10 +502,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("coeff_evol_volume", &coeff_evol_volume_); // XD_ADD_P chaine not_set
   param.ajouter("vol_bulles", &vol_bulles_); // XD_ADD_P chaine not_set
 
-  param.ajouter("time_scheme", &time_scheme_); // XD_ADD_P chaine(into=["euler_explicit","RK3_FT"]) Type of time scheme
-  param.dictionnaire("euler_explicit", EULER_EXPLICITE);
-  param.dictionnaire("RK3_FT", RK3_FT);
-
   // GAB question : pourquoi expression_variable_source_ est de type nom et pas de type Vecteur3 ??
   param.ajouter("expression_variable_source_x", &expression_variable_source_[0]); // XD_ADD_P chaine not_set
   param.ajouter("expression_variable_source_y", &expression_variable_source_[1]); // XD_ADD_P chaine not_set
@@ -540,7 +517,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("velocity_convection_op", &velocity_convection_op_); // XD_ADD_P chaine Type of velocity convection scheme
 
   param.ajouter("interfaces", &interfaces_); // XD_ADD_P interfaces not_set
-  param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
 
   // GAB, THI
   param.ajouter("forcage", &forcage_);  // XD_ADD_P chaine not_set
@@ -602,17 +578,17 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("Ki", &Ki_);
   param.ajouter("epaisseur_maille",&epaisseur_maille_);
 
-  param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
-  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
-  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
-  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
-  param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
-  param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
-  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
-  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
-  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
-  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
-  param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
+//  param.ajouter("type_surface_efficace_face", (int*)&type_surface_efficace_face_);
+//  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_FACE::NON_INITIALISE);
+//  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_FACE::EXPLICITE);
+//  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_FACE::ALGEBRIQUE_SIMPLE);
+//  param.dictionnaire("conservation_volume_iteratif", (int)TYPE_SURFACE_EFFICACE_FACE::CONSERVATION_VOLUME_ITERATIF);
+//  param.ajouter("type_surface_efficace_interface", (int*)&type_surface_efficace_interface_);
+//  param.dictionnaire("non_initialise",(int)TYPE_SURFACE_EFFICACE_INTERFACE::NON_INITIALISE);
+//  param.dictionnaire("explicite",(int)TYPE_SURFACE_EFFICACE_INTERFACE::EXPLICITE);
+//  param.dictionnaire("algebrique_simple",(int)TYPE_SURFACE_EFFICACE_INTERFACE::ALGEBRIQUE_SIMPLE);
+//  param.dictionnaire("conservation_volume", (int)TYPE_SURFACE_EFFICACE_INTERFACE::CONSERVATION_VOLUME);
+//  param.ajouter_flag("deactivate_remeshing_velocity", &deactivate_remeshing_velocity_);
 
   param.ajouter_flag("correction_semi_locale_volume_bulle", &correction_semi_locale_volume_bulle_);
 }
@@ -669,7 +645,7 @@ const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) con
   return post_.get_IJK_field(nom);
 }
 
-void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde, const int &stop)  //  const
+void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde, const int& stop)  //  const
 {
   statistiques().begin_count(sauvegarde_counter_);
 
@@ -875,7 +851,7 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 // Methode appelee par run() une fois la memoire alouee pour les champs.
 // Cette fonction remplit les valeurs initiales de vitesse
 // Elle debute aussi les compteurs.
-int Probleme_FTD_IJK_base::initialise()
+int Probleme_FTD_IJK_base::initialise_ijk_fields()
 {
   Cout << que_suis_je() << "::initialise()" << finl;
   int nalloc = 0;
@@ -905,13 +881,9 @@ int Probleme_FTD_IJK_base::initialise()
     }
 
   if (fichier_reprise_vitesse_ == "??")   // si on ne fait pas une reprise on initialise V
-    {
-      initialise_velocity_using_expression(expression_vitesse_initiale_);
-    }
+    initialise_velocity_using_expression(expression_vitesse_initiale_);
   else
-    {
-      initialise_velocity_from_file(fichier_reprise_vitesse_);
-    }
+    initialise_velocity_from_file(fichier_reprise_vitesse_);
 #endif
 
   // Pour le check_stats_ ou pour travailler en increment de pression, il faut connaitre la pression initiale :
@@ -991,8 +963,8 @@ int Probleme_FTD_IJK_base::initialise()
           interfaces_.calculer_kappa_ft(kappa_ft_);
           redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
           redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, milieu_ijk().sigma(), 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, milieu_ijk().sigma(), pressure_.nk()-4);
         }
     }
   maj_indicatrice_rho_mu();
@@ -1073,8 +1045,8 @@ int Probleme_FTD_IJK_base::initialise()
           interfaces_.calculer_kappa_ft(kappa_ft_);
           redistribute_from_splitting_ft_elem_ghostz_min_.redistribute(kappa_ft_, kappa_ns_);
           redistribute_from_splitting_ft_elem_ghostz_max_.redistribute(kappa_ft_, kappa_ns_);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, sigma_, 0);
-          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, sigma_, pressure_.nk()-4);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmin_(I_ns_, kappa_ns_, milieu_ijk().sigma(), 0);
+          pressure_.get_shear_BC_helpler().set_I_sig_kappa_zmax_(I_ns_, kappa_ns_, milieu_ijk().sigma(), pressure_.nk()-4);
         }
     }
   return nalloc;
@@ -1110,26 +1082,7 @@ static double calculer_force_rappel_moy(const IJK_Field_double& vx, const IJK_Fi
 }
 */
 
-int IJK_FT_base::initialise_interfaces()
-{
-  Cout << que_suis_je() << "::initialise_interfaces()" << finl;
-  int nalloc = 0;
-
-  // On peut recuperer le domainevf:
-  const Domaine_dis_base& domaine_dis_ft = refprobleme_ft_disc_->domaine_dis();
-
-  // TODO: a valider
-  // if (!disable_diphasique_)
-  nalloc += interfaces_.initialize(splitting_ft_, splitting_, domaine_dis_ft, thermal_probes_ghost_cells_);
-
-  // On la met a jour 2 fois, une fois next et une fois old
-  if (!disable_diphasique_)
-    update_twice_indicator_field();
-
-  return nalloc;
-}
-
-void IJK_FT_base::initialise_velocity_using_expression(const Noms& expression_vitesse_initiale)
+void Probleme_FTD_IJK_base::initialise_velocity_using_expression(const Noms& expression_vitesse_initiale)
 {
   if (expression_vitesse_initiale_.size() != 3)
     {
@@ -1178,10 +1131,10 @@ void IJK_FT_base::initialise_velocity_using_expression(const Noms& expression_vi
     }
 }
 
-void IJK_FT_base::initialise_velocity_from_file(const Nom& fichier_reprise_vitesse)
+void Probleme_FTD_IJK_base::initialise_velocity_from_file(const Nom& fichier_reprise_vitesse)
 {
   Cout << "Lecture vitesse initiale dans fichier " << fichier_reprise_vitesse << " timestep= " << timestep_reprise_vitesse_ << finl;
-  const Nom& geom_name = velocity_[0].get_splitting().get_grid_geometry().le_nom();
+  const Nom& geom_name = velocity_[0].get_domaine().le_nom();
   lire_dans_lata(fichier_reprise_vitesse, timestep_reprise_vitesse_, geom_name, "VELOCITY",
                  velocity_[0], velocity_[1], velocity_[2]); // fonction qui lit un champ a partir d'un lata .
 
@@ -3701,20 +3654,29 @@ void Probleme_FTD_IJK_base::discretiser(Discretisation_base& dis)
     Process::exit("Error!! IJK problem must be associated with an IJK discretisation!!");
 }
 
+int Probleme_FTD_IJK_base::initialise_interfaces()
+{
+  Cout << que_suis_je() << "::initialise_interfaces()" << finl;
+  int nalloc = 0;
+
+  // On peut recuperer le domainevf:
+  const Domaine_dis_base& domaine_dis_ft = refprobleme_ft_disc_->domaine_dis();
+
+  // TODO: a valider
+  // if (!disable_diphasique_)
+  nalloc += interfaces_.initialize(domaine_ft_, domaine_ijk_.valeur(), domaine_dis_ft, thermal_probes_ghost_cells_);
+
+  // On la met a jour 2 fois, une fois next et une fois old
+  if (!disable_diphasique_)
+    update_twice_indicator_field();
+
+  return nalloc;
+}
+
+
 void Probleme_FTD_IJK_base::initialize()
 {
   Cerr << "Probleme_FTD_IJK_base::initialize()" << finl;
-
-  domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
-
-  thermal_probes_ghost_cells_ = 4;
-  thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
-  thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
-
-  if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-    allocate_velocity(velocity_, domaine_ijk_.valeur(), 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
-  else
-    allocate_velocity(velocity_, domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
 
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
     {
@@ -3910,26 +3872,19 @@ void Probleme_FTD_IJK_base::initialize()
   velocity_diffusion_op_->set_bc(boundary_conditions_);
   velocity_convection_op_.initialize(domaine_ijk_.valeur());
 
-  if (sub_type(*this, Probleme_FTD_IJK_cut_cell))
+  if (que_suis_je() == "Probleme_FTD_IJK_cut_cell") // TODO should do virtual method here ?
     {
-      treatment_count_.allocate(splitting_, IJK_Splitting::ELEM, 2);
+      treatment_count_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
       nalloc += 1;
-
-      // Economise la memoire si pas besoin
-      if (!disable_solveur_poisson_)
-        poisson_solver_.initialize(domaine_ijk_.valeur());
-
-      nalloc += initialise_interfaces();
     }
-  else
-    {
-      // Economise la memoire si pas besoin
-      if (!disable_solveur_poisson_)
-        poisson_solver_.initialize(domaine_ijk_.valeur());
-    }
+  // Economise la memoire si pas besoin
+  if (!disable_solveur_poisson_)
+    poisson_solver_.initialize(domaine_ijk_.valeur());
+
+  nalloc += initialise_interfaces();
 
   // C'est ici aussi qu'on alloue les champs de temperature.
-  nalloc += initialise();
+  nalloc += initialise_ijk_fields();
 
   Cerr << " Allocating " << nalloc << " arrays, approx total size= " << (double) (molecular_mu_.data().size_array() * (int) sizeof(double) * nalloc) * 9.537E-07 << " MB per core" << finl;
 

@@ -161,10 +161,10 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
 
   for (int next_time = 0; next_time < 2; next_time++)
     {
-      flux_interface_ft_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), IJK_Splitting::ELEM, 2);
-      flux_interface_ns_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), IJK_Splitting::ELEM, 2);
-      flux_interface_ft_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), IJK_Splitting::ELEM, 2);
-      flux_interface_ns_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), IJK_Splitting::ELEM, 2);
+      flux_interface_ft_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
+      flux_interface_ns_scalar_old_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), Domaine_IJK::ELEM, 2);
+      flux_interface_ft_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
+      flux_interface_ns_scalar_next_.allocate(ref_ijk_ft_cut_cell_->get_domaine(), Domaine_IJK::ELEM, 2);
       flux_interface_ft_scalar_old_.data() = 0.;
       flux_interface_ns_scalar_old_.data() = 0.;
       flux_interface_ft_scalar_next_.data() = 0.;
@@ -699,8 +699,8 @@ void IJK_Thermal_cut_cell::add_temperature_diffusion()
       // Cela ne sert a rien a part conserver le comportement historique de ces champs.
       cut_field_div_coeff_grad_T_volume.copy_from(cut_field_d_temperature);
 
-      const double rho_l = ref_ijk_ft_cut_cell_->get_rho_l();
-      const double rho_v = ref_ijk_ft_cut_cell_->get_rho_v();
+      const double rho_l = ref_ijk_ft_cut_cell_->milieu_ijk().get_rho_liquid();
+      const double rho_v = ref_ijk_ft_cut_cell_->milieu_ijk().get_rho_vapour();
       cut_field_d_temperature.divide_by_scalar(rho_l*cp_liquid_*vol_, rho_v*cp_vapour_*vol_);
 
       statistiques().end_count(cnt_diff_temp);

@@ -413,7 +413,7 @@ void OpDiffIJKScalar_cut_cell_double::correct_flux_(IJK_Field_local_double *cons
               int k = ijk_no_per[2] + (_DIR_ == DIRECTION::Z)*decalage;
               assert(k_layer == k);
 
-              if (!cut_cell_disc.get_splitting().within_ghost_<dir>(i, j, k, 0, 1))
+              if (!cut_cell_disc.get_domaine().within_ghost_<dir>(i, j, k, 0, 1))
                 continue;
 
               if (treatment_count(i,j,k) == new_treatment)

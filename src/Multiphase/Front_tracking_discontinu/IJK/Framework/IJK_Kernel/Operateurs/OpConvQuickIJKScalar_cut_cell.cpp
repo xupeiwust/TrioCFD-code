@@ -168,7 +168,7 @@ void OpConvQuickIJKScalar_cut_cell_double::compute_cut_cell_divergence(const Fix
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 0, 0))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 0, 0))
         continue;
 
       if (flux_determined_by_wall_<DIRECTION::Z>(k))

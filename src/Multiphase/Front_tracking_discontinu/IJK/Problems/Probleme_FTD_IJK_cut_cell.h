@@ -18,6 +18,7 @@
 
 #include <Probleme_FTD_IJK_base.h>
 #include <Cut_cell_FT_Disc.h>
+#include <Facettes_Interp_FT.h>
 
 class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
 {
@@ -38,15 +39,18 @@ public:
     return static_cast<const Cut_field_vector3_double&>(velocity_);
   }
 
-  const Cut_field_vector3_double& get_cut_field_remeshing_velocity() const
+  /*! Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
+   */
+  const Facettes_Interp_FT& get_cut_cell_facettes_interpolation() const
   {
-    return static_cast<const Cut_field_vector3_double&>(remeshing_velocity_);
+    return cut_cell_facettes_interpolation_;
   }
 
-  const Cut_field_vector3_double& get_cut_field_total_velocity() const
+  void cut_cell_perform_interpolation_facettes()
   {
-    return static_cast<const Cut_field_vector3_double&>(total_velocity_);
+    cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_next(interfaces_.next());
   }
+
 
 protected:
   Cut_cell_FT_Disc cut_cell_disc_;
@@ -61,8 +65,8 @@ protected:
   // Stockage des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   Facettes_Interp_FT cut_cell_facettes_interpolation_;
 
-
   void initialize() override;
+
 };
 
 #endif /* Probleme_FTD_IJK_cut_cell_included */

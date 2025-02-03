@@ -21,7 +21,7 @@ void SurfaceVapeurIJKComputation::initialize(const Domaine_IJK& splitting)
   maillage_bulles_med_ = MEDCouplingUMesh::New("bubbles_surf_mesh", 2);
   desactive_med_ = true;
   compute_surf_mouillees_ = false;
-  ref_splitting_ = splitting;
+  ref_domaine_ = splitting;
 }
 
 void SurfaceVapeurIJKComputation::get_maillage_MED_from_IJK_FT(
@@ -806,7 +806,7 @@ int SurfaceVapeurIJKComputation::rempli_surface_vapeur_par_face_interieur_bulles
       for (int c = 0; c < 3; c++)
         {
           if (c != dir)
-            surf_cell *= ref_splitting_->get_constant_delta(c);
+            surf_cell *= ref_domaine_->get_constant_delta(c);
         }
       for (int i = 0; i < ni; i++)
         for (int j = 0; j < nj; j++)

@@ -33,7 +33,9 @@ Entree& Schema_Temps_IJK_base::readOn(Entree& is)
 
 void Schema_Temps_IJK_base::set_param(Param& param)
 {
-  param.ajouter("tinit", &temps_courant_); // XD_ADD_P floattant initial time
+//  Schema_Temps_base::set_param(param);
+
+  param.ajouter("tinit", &tinit_, Param::REQUIRED); // XD_ADD_P floattant initial time
   param.ajouter("timestep", &dt_, Param::REQUIRED); // XD_ADD_P floattant Upper limit of the timestep
   param.ajouter("timestep_facsec", &timestep_facsec_); // XD_ADD_P floattant Security factor on timestep
   param.ajouter("cfl", &cfl_); // XD_ADD_P floattant  To provide a value of the limiting CFL number used for setting the timestep

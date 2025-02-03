@@ -165,7 +165,7 @@ void calculer_flux_interface_sur_maillage_ft(bool next_time,
                   if (next_time ? (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().In(i,j,k))) : (!cut_cell_disc.get_interfaces().est_pure(cut_cell_disc.get_interfaces().I(i,j,k))))
                     {
                       double somme_contrib = 0.;
-                      const int num_elem = mesh.ref_splitting()->convert_ijk_cell_to_packed(i,j,k);
+                      const int num_elem = mesh.get_domaine().convert_ijk_cell_to_packed(i,j,k);
 
                       int index = index_elem[num_elem];
                       // Boucle sur les facettes qui traversent cet element
@@ -211,7 +211,7 @@ void calculer_flux_interface_efficace(const IJK_Field_double& flux_interface_ns_
       else
         {
           assert(flux_interface_ns_old.ghost() == flux_interface_ns_next.ghost());
-          if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, flux_interface_ns_old.ghost(), flux_interface_ns_old.ghost()))
+          if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, flux_interface_ns_old.ghost(), flux_interface_ns_old.ghost()))
             continue;
 
           double old_indicatrice = cut_cell_disc.get_interfaces().I(i,j,k);

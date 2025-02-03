@@ -26,13 +26,11 @@ Entree& Probleme_FTD_IJK_cut_cell::readOn(Entree& is)
 
   // Determination pour le seuil des petites cellules en cut-cell
   if ((seuil_indicatrice_petite_fixe_ == -1) && (seuil_indicatrice_petite_facsec_ == -1))
-    {
-      seuil_indicatrice_petite_facsec_ = 0.125; // Default value = facsec/8. -- Note: The value facsec/20. = 0.01 would often work but not always be stable
-    }
+    seuil_indicatrice_petite_facsec_ = 0.125; // Default value = facsec/8. -- Note: The value facsec/20. = 0.01 would often work but not always be stable
 
   double seuil_indicatrice_petite;
   if (seuil_indicatrice_petite_facsec_ != -1)
-    seuil_indicatrice_petite = timestep_facsec_*seuil_indicatrice_petite_facsec_;
+    seuil_indicatrice_petite = schema_temps_ijk().get_timestep_facsec()*seuil_indicatrice_petite_facsec_;
   else
     seuil_indicatrice_petite = seuil_indicatrice_petite_fixe_;
   interfaces_.set_seuil_indicatrice_petite(seuil_indicatrice_petite);
@@ -71,7 +69,7 @@ void Probleme_FTD_IJK_cut_cell::initialize()
   post_.activate_cut_cell();
   interfaces_.activate_cut_cell();
 
-  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, domaine_ijk_.valeur(), interfaces_.maillage_ft_ijk(), interfaces_.old_maillage_ft_ijk());
+  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, domaine_ft_, interfaces_.maillage_ft_ijk(), interfaces_.old_maillage_ft_ijk());
 
   domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
 
@@ -195,3 +193,4 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, c
   if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && schema_temps_ijk().get_tstep() % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
     interfaces_.imprime_bilan_indicatrice();
 }
+

@@ -305,7 +305,7 @@ void OpDiffIJKScalar_cut_cell_double::compute_cut_cell_divergence(const FixedVec
       int j = ijk[1];
       int k = ijk[2];
 
-      if (!cut_cell_disc.get_splitting().within_ghost(i, j, k, 0, 0))
+      if (!cut_cell_disc.get_domaine().within_ghost(i, j, k, 0, 0))
         continue;
 
       BOUNDARY_FLUX type_boundary_flux = flux_determined_by_boundary_condition_<DIRECTION::Z>(k);

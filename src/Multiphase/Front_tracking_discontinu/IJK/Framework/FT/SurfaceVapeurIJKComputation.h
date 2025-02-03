@@ -180,7 +180,7 @@ protected:
   MCU maillage_bulles_med_;
   // Ref to maillage_ft_ijk
   // const FixedVector<IJK_Field_double, 3> normale_of_interf_;
-  OBS_PTR(Domaine_IJK) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
   bool desactive_med_;
   bool compute_surf_mouillees_;
   bool debug_printing_;

@@ -39,7 +39,7 @@ public:
   ~ComputeValParCompoInCell() {}
   void initialize(const Domaine_IJK& splitting, const Maillage_FT_IJK& maillage_ft_ijk)
   {
-    ref_splitting_ = splitting;
+    ref_domaine_ = splitting;
     mesh_ = &maillage_ft_ijk;
   }
 
@@ -91,7 +91,7 @@ protected:
     const int elem,
     ArrOfInt& liste_composantes_connexes_dans_element) const;
 
-  OBS_PTR(Domaine_IJK) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
   const Maillage_FT_IJK * mesh_;
 };
 

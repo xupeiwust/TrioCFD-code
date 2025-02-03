@@ -154,9 +154,9 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
   const double z = coordinates[2];
 
   const Domaine_IJK& geom = cut_cell_disc.get_domaine();
-  const int ni = geom.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int nj = geom.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int nk = geom.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const int ni = geom.get_nb_items_local(Domaine_IJK::ELEM, 0);
+  const int nj = geom.get_nb_items_local(Domaine_IJK::ELEM, 1);
+  const int nk = geom.get_nb_items_local(Domaine_IJK::ELEM, 2);
 
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
@@ -177,9 +177,9 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
-  const int index_j = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
-  const int index_k = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
+  const int index_i = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_I, x, Domaine_IJK::ELEM);
+  const int index_j = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_J, y, Domaine_IJK::ELEM);
+  const int index_k = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_K, z, Domaine_IJK::ELEM);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -reduced_ghost && index_i < ni + reduced_ghost) && (index_j >= -reduced_ghost && index_j < nj + reduced_ghost) && (index_k >= -reduced_ghost && index_k < nk + reduced_ghost);
@@ -211,9 +211,9 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
       int k_candidate_aperio = index_k + candidate_offset[i][2];
 
       // Prise en compte de la periodicite
-      int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
-      int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
-      int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
+      int i_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(0, i_candidate_aperio);
+      int j_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(1, j_candidate_aperio);
+      int k_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(2, k_candidate_aperio);
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
@@ -246,7 +246,7 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
               assert((!next_time) || (cut_cell_disc.get_interfaces().In(i_candidate,j_candidate,k_candidate) == (double)phase));
               assert((next_time) || (cut_cell_disc.get_interfaces().I(i_candidate,j_candidate,k_candidate) == (double)phase));
             }
-          candidates[number_of_candidates].signed_independent_index = cut_cell_disc.get_splitting().get_signed_independent_index(phase, i_candidate, j_candidate, k_candidate);
+          candidates[number_of_candidates].signed_independent_index = cut_cell_disc.get_domaine().get_signed_independent_index(phase, i_candidate, j_candidate, k_candidate);
           number_of_candidates += 1;
         }
 
@@ -444,9 +444,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
 
   // On travaille sur le maillage NS, on va donc corrige les indices de la periodicite.
   // Note : on ne corrige que l'index et pas les coordonnees, car on n'utilise plus les coordonnees par la suite.
-  const int index_i = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_I, x, IJK_Splitting::ELEM);
-  const int index_j = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_J, y, IJK_Splitting::ELEM);
-  const int index_k = cut_cell_disc.get_splitting().get_i_along_dir_perio(DIRECTION_K, z, IJK_Splitting::ELEM);
+  const int index_i = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_I, x, Domaine_IJK::ELEM);
+  const int index_j = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_J, y, Domaine_IJK::ELEM);
+  const int index_k = cut_cell_disc.get_domaine().get_i_along_dir_perio(DIRECTION_K, z, Domaine_IJK::ELEM);
 
   // is point in the domain ? (ghost cells ok...)
   bool ok = (index_i >= -ghost && index_i < ni + ghost) && (index_j >= -ghost && index_j < nj + ghost) && (index_k >= -ghost && index_k < nk + ghost);
@@ -484,9 +484,9 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
       int k_candidate_aperio = index_k + candidate_offset[i][2];
 
       // Prise en compte de la periodicite
-      int i_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(0, i_candidate_aperio);
-      int j_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(1, j_candidate_aperio);
-      int k_candidate = cut_cell_disc.get_splitting().correct_perio_i_local(2, k_candidate_aperio);
+      int i_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(0, i_candidate_aperio);
+      int j_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(1, j_candidate_aperio);
+      int k_candidate = cut_cell_disc.get_domaine().correct_perio_i_local(2, k_candidate_aperio);
 
       double old_indicatrice = cut_cell_disc.get_interfaces().I(i_candidate, j_candidate, k_candidate);
       double next_indicatrice = cut_cell_disc.get_interfaces().In(i_candidate, j_candidate, k_candidate);
@@ -852,12 +852,11 @@ double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const
 static void ijk_interpolate_one_value(bool next_time, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, int skip_unknown_points, double value_for_bad_points)
 {
   const int ghost = cut_cell_disc.get_ghost_size();
-  const IJK_Splitting& splitting = cut_cell_disc.get_splitting();
-  const int ni = splitting.get_nb_items_local(IJK_Splitting::ELEM, 0);
-  const int nj = splitting.get_nb_items_local(IJK_Splitting::ELEM, 1);
-  const int nk = splitting.get_nb_items_local(IJK_Splitting::ELEM, 2);
+  const Domaine_IJK& geom = cut_cell_disc.get_domaine();
+  const int ni = geom.get_nb_items_local(Domaine_IJK::ELEM, 0);
+  const int nj = geom.get_nb_items_local(Domaine_IJK::ELEM, 1);
+  const int nk = geom.get_nb_items_local(Domaine_IJK::ELEM, 2);
 
-  const IJK_Grid_Geometry& geom = splitting.get_grid_geometry();
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);
@@ -871,9 +870,9 @@ static void ijk_interpolate_one_value(bool next_time, const Cut_cell_FT_Disc& cu
   const double x2 = (x - origin_x) / dx;
   const double y2 = (y - origin_y) / dy;
   const double z2 = (z - origin_z) / dz;
-  const int index_i = (int) (floor(x2)) - splitting.get_offset_local(DIRECTION_I);
-  const int index_j = (int) (floor(y2)) - splitting.get_offset_local(DIRECTION_J);
-  const int index_k = (int) (floor(z2)) - splitting.get_offset_local(DIRECTION_K);
+  const int index_i = (int) (floor(x2)) - geom.get_offset_local(DIRECTION_I);
+  const int index_j = (int) (floor(y2)) - geom.get_offset_local(DIRECTION_J);
+  const int index_k = (int) (floor(z2)) - geom.get_offset_local(DIRECTION_K);
   // Coordonnes barycentriques du points dans la cellule :
   const double xfact = x2 - floor(x2);
   const double yfact = y2 - floor(y2);
@@ -917,112 +916,112 @@ static void ijk_interpolate_one_value(bool next_time, const Cut_cell_FT_Disc& cu
   if (indic_0 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j,   index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i,   index_j,   index_k);
       coefficient(output_index)               = indic_0  * (1.-xfact) * (1.-yfact) * (1.-zfact);
     }
 
   if (indic_1 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j,   index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i+1, index_j,   index_k);
       coefficient(output_index)               = indic_1  * (xfact)    * (1.-yfact) * (1.-zfact);
     }
 
   if (indic_2 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j+1, index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i,   index_j+1, index_k);
       coefficient(output_index)               = indic_2  * (1.-xfact) * (yfact)    * (1.-zfact);
     }
 
   if (indic_3 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j+1, index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i+1, index_j+1, index_k);
       coefficient(output_index)               = indic_3  * (xfact)    * (yfact)    * (1.-zfact);
     }
 
   if (indic_4 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j,   index_k+1);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i,   index_j,   index_k+1);
       coefficient(output_index)               = indic_4  * (1.-xfact) * (1.-yfact) * (zfact);
     }
 
   if (indic_5 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j,   index_k+1);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i+1, index_j,   index_k+1);
       coefficient(output_index)               = indic_5  * (xfact)    * (1.-yfact) * (zfact);
     }
 
   if (indic_6 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i,   index_j+1, index_k+1);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i,   index_j+1, index_k+1);
       coefficient(output_index)               = indic_6  * (1.-xfact) * (yfact)    * (zfact);
     }
 
   if (indic_7 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(0, index_i+1, index_j+1, index_k+1);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(0, index_i+1, index_j+1, index_k+1);
       coefficient(output_index)               = indic_7  * (xfact)    * (yfact)    * (zfact);
     }
 
   if (indic_8 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(1, index_i,   index_j,   index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(1, index_i,   index_j,   index_k);
       coefficient(output_index)               = indic_8  * (1.-xfact) * (1.-yfact) * (1.-zfact);
     }
 
   if (indic_9 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index)  = splitting.get_signed_independent_index(1, index_i+1, index_j,   index_k);
+      signed_independent_index(output_index)  = geom.get_signed_independent_index(1, index_i+1, index_j,   index_k);
       coefficient(output_index)               = indic_9  * (xfact)    * (1.-yfact) * (1.-zfact);
     }
 
   if (indic_10 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j+1, index_k);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i,   index_j+1, index_k);
       coefficient(output_index)              = indic_10 * (1.-xfact) * (yfact)    * (1.-zfact);
     }
 
   if (indic_11 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j+1, index_k);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i+1, index_j+1, index_k);
       coefficient(output_index)              = indic_11 * (xfact)    * (yfact)    * (1.-zfact);
     }
 
   if (indic_12 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j,   index_k+1);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i,   index_j,   index_k+1);
       coefficient(output_index)              = indic_12 * (1.-xfact) * (1.-yfact) * (zfact);
     }
 
   if (indic_13 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j,   index_k+1);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i+1, index_j,   index_k+1);
       coefficient(output_index)              = indic_13 * (xfact)    * (1.-yfact) * (zfact);
     }
 
   if (indic_14 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i,   index_j+1, index_k+1);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i,   index_j+1, index_k+1);
       coefficient(output_index)              = indic_14 * (1.-xfact) * (yfact)    * (zfact);
     }
 
   if (indic_15 != 0)
     {
       output_index += 1;
-      signed_independent_index(output_index) = splitting.get_signed_independent_index(1, index_i+1, index_j+1, index_k+1);
+      signed_independent_index(output_index) = geom.get_signed_independent_index(1, index_i+1, index_j+1, index_k+1);
       coefficient(output_index)              = indic_15 * (xfact)    * (yfact)    * (zfact);
     }
 
@@ -1748,10 +1747,10 @@ void runge_kutta3_update_surfacic_fluxes(Cut_field_double& dv, Cut_field_double&
 // pas la bonne unite.
 void add_flux_times_vol_over_dt_surface(double fractional_timestep, const Cut_field_vector3_double& cut_field_current_fluxes, Cut_field_vector3_double& cut_field_RK3_F_fluxes)
 {
-  const IJK_Grid_Geometry& geom = cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry();
-  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(0));
-  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(1));
-  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_splitting().get_grid_geometry().is_uniform(2));
+  const Domaine_IJK& geom = cut_field_current_fluxes[0].get_cut_cell_disc().get_domaine();
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_domaine().is_uniform(0));
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_domaine().is_uniform(1));
+  assert(cut_field_current_fluxes[0].get_cut_cell_disc().get_domaine().is_uniform(2));
   const double dx = geom.get_constant_delta(DIRECTION_I);
   const double dy = geom.get_constant_delta(DIRECTION_J);
   const double dz = geom.get_constant_delta(DIRECTION_K);

@@ -60,7 +60,7 @@ public:
     return nom_;
   }
 protected:
-  OBS_PTR(Domaine_IJK) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
   double omega_; // vitesse de rotation du tube en rad/s
   double rayon_; // rayon du tube
   Vecteur3 pos_;

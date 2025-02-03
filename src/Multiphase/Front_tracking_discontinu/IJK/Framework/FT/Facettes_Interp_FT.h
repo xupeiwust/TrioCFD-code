@@ -30,14 +30,14 @@
 
 class IJK_Interfaces;
 class Cut_cell_FT_Disc;
-class IJK_Splitting;
+class Domaine_IJK;
 
 class Facettes_Interp_FT : public Objet_U
 {
   Declare_instanciable(Facettes_Interp_FT);
 
 public:
-  void associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const IJK_Splitting& splitting_ft, const Maillage_FT_IJK& maillage_ft_ijk, const Maillage_FT_IJK& old_maillage_ft_ijk);
+  void associer(const IJK_Interfaces& interfaces, const Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting_ft, const Maillage_FT_IJK& maillage_ft_ijk, const Maillage_FT_IJK& old_maillage_ft_ijk);
   void set_param(Param& param);
 
   void cut_cell_perform_interpolation_facettes_next(int old_en_premier /* next() */);
@@ -66,7 +66,7 @@ protected:
 
   void cut_cell_perform_interpolation_facettes(bool next_time,
                                                const Cut_cell_FT_Disc& cut_cell_disc,
-                                               const IJK_Grid_Geometry& geom,
+                                               const Domaine_IJK& geom,
                                                const Maillage_FT_IJK& maillage,
                                                FixedVector<DoubleTabFT, 4>& interpolation_coord,
                                                FixedVector<IntTabFT, 4>& interpolation_signed_independent_index,
@@ -107,7 +107,7 @@ protected:
   bool old_en_premier_ = true; // Doit etre synchronise avec old_en_premier_ dans IJK_Interfaces
   OBS_PTR(IJK_Interfaces) ref_interfaces_;
   OBS_PTR(Cut_cell_FT_Disc) ref_cut_cell_disc_;
-  OBS_PTR(IJK_Splitting) ref_splitting_;
+  OBS_PTR(Domaine_IJK) ref_domaine_;
   OBS_PTR(Maillage_FT_IJK) ref_maillage_ft_ijk_;
   OBS_PTR(Maillage_FT_IJK) ref_old_maillage_ft_ijk_;
 
