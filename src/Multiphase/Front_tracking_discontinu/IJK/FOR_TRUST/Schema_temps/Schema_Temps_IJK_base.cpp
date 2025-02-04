@@ -200,10 +200,10 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
   return dt;
 }
 
-double Schema_Temps_IJK_base::computeTimeStep(bool& stop) const
+void Schema_Temps_IJK_base::check_stop_criteria(bool& stop) const
 {
-  // verification du fichier stop
   stop = false;
+  // verification du fichier stop
   int stop_i = 0;
   const Probleme_FTD_IJK_base& pb_ijk = ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
   const Nom& check_stop_file = pb_ijk.get_check_stop_file();
@@ -222,15 +222,21 @@ double Schema_Temps_IJK_base::computeTimeStep(bool& stop) const
 
   if (get_tstep() == get_nb_timesteps() - 1)
     stop_i = 1;
-  if (get_current_time() >= max_simu_time_)
+  if (get_current_time() >= get_max_simu_time())
     stop_i = 1;
 
   stop = stop_i;
+}
+
+double Schema_Temps_IJK_base::computeTimeStep(bool& stop) const
+{
+  const Probleme_FTD_IJK_base& pb_ijk = ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
 
   if (timestep_facsec_ > 0. && !stop)
     {
       Schema_Temps_IJK_base& sh_non_cst = const_cast<Schema_Temps_IJK_base&>(*this); // FIXME
       double max_post_simu_timestep = pb_ijk.get_post().get_timestep_simu_post(get_current_time(), max_simu_time_);
+      // WTF - find_timestep non const ?!!
       sh_non_cst.dt_ = sh_non_cst.find_timestep(std::min(max_timestep_, max_post_simu_timestep), cfl_, fo_, oh_);
     }
 

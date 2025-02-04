@@ -4723,6 +4723,9 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
   if (qdm_corrections_.write_me())
     write_qdm_corrections_information();
 
+  //
+  // !!!  TODO - the below should not be done here !!! solveTimeStep() should not update current time:
+  //
   schema_temps_ijk().set_current_time(schema_temps_ijk().get_current_time() + schema_temps_ijk().get_timestep()); // update tn
 
   // stock dans le spliting le decallage periodique total avec condition de shear (current_time_) et celui du pas de temps (timestep_)
@@ -5012,6 +5015,10 @@ bool Probleme_FTD_IJK_base::run()
 
       // Solve the next time step
       ok = solveTimeStep();
+
+      // Should we stop the computation ? TODO This should be all done in computeTimeStep above ... not ICoCo compliant at the moment ...
+      schema_temps_ijk().check_stop_criteria(stop_);
+
       sauver();
 
       if (!ok)   // The resolution failed, try with a new time interval.
@@ -5050,3 +5057,4 @@ bool Probleme_FTD_IJK_base::run()
 
   return ok;
 }
+;

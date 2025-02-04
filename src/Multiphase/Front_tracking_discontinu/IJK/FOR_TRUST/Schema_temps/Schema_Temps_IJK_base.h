@@ -76,6 +76,8 @@ public :
   void set_current_time(const double t) { changer_temps_courant(t); }
   void set_tstep_sauv(const int ts) { tstep_sauv_ = ts; }
 
+  void check_stop_criteria(bool& stop) const;
+
 protected:
   double dt_cfl_ = 1.e20, dt_fo_ = 1.e20, dt_oh_ = 1.e20, dt_fo_liq_ = 1.e20;
   double dt_fo_vap_ = 1.e20, dt_cfl_liq_ = 1.e20, dt_cfl_vap_ = 1.e20;
