@@ -5045,8 +5045,11 @@ bool Probleme_FTD_IJK_base::run()
 
       schema_temps_ijk().set_timestep() = computeTimeStep(stop_);
 
-      if (stop_) /* stop file detected ? */
-        break;
+      /* Contrary to what is done in the classical Probleme_base::run() method, here we do not stop directly
+       * we still go through the end of the loop:
+       */
+      //      if (stop_) /* stop file detected ? */
+      //        break;
 
       // Prepare the next time step
       if (!initTimeStep(schema_temps_ijk().get_timestep()))
