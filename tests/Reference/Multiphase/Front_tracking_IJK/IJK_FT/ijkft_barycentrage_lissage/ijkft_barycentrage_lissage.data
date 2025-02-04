@@ -8,40 +8,72 @@ system "touch toto_0000.Zones toto_0001.Zones toto_0002.Zones toto_0003.Zones"
 system "touch toto_0004.Zones toto_0005.Zones toto_0006.Zones toto_0007.Zones"
 Fin
   FIN DECOUPAGE #
+dimension 3
+Probleme_FTD_IJK pb
 
-IJK_Grid_Geometry DOM
-
+Domaine_IJK DOM
 Lire DOM
 {
-  nbelem_i 32
-  nbelem_j 32
-  nbelem_k 32
-  uniform_domain_size_i 0.20245
-  uniform_domain_size_j 0.2065
-  uniform_domain_size_k 0.2014
-  perio_i
-  perio_j
+  nbelem 32 32 32
+  size_dom 0.20245 0.2065 0.2014
+  perio 1 1 0
+  # DEBUT MAILLAGE #
+  nproc 1 1 1
+  # FIN MAILLAGE #
+  # DEBUT LECTURE
+  nproc 2 2 2
+  FIN LECTURE #
+  ijk_splitting_ft_extension 7
 }
 
-IJK_Splitting grid_splitting
-# DEBUT MAILLAGE #
-Lire grid_splitting { ijk_grid_geometry DOM  nproc_i 1  nproc_j 1  nproc_k 1 }
-# FIN MAILLAGE #
-# DEBUT LECTURE 
-Lire grid_splitting { ijk_grid_geometry DOM  nproc_i 2  nproc_j 2  nproc_k 2 }
-  FIN LECTURE #
+Schema_euler_explicite_IJK sch
 
-IJK_FT_double
-{
-  ijk_splitting grid_splitting
-  ijk_splitting_ft_extension 7
+lire sch {
+  tinit 0.0
   timestep 0.01
   timestep_facsec 0.4
+  nb_pas_dt_max 2
+}
+
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1e-3
+        rho Champ_Uniforme 1 1000
+    }
+    fluide1 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1e-3
+        rho Champ_Uniforme 1 1000
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0. 
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0 0. 0.
+  }
+
+  {
   dt_post 100
   champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE
   check_stop_file stop.txt
   dt_sauvegarde 1000
-  nb_pas_dt_max 2
+
   Boundary_Conditions {
                 bctype_kmin Paroi
                 bctype_kmax Paroi
@@ -75,11 +107,12 @@ IJK_FT_double
     }
   }
   check_divergence
-  gravite 3 0. 0. 0. 
-  rho_liquide 1000
-  mu_liquide 1e-3
+
+
   expression_vx_init 0.
   expression_vy_init 0.
   expression_vz_init 0.
+      }
 }
+solve pb 
 Fin
