@@ -1,0 +1,9 @@
+# field0 : dist. carac. (m)
+# field1 : Nusselt (local)
+# field2 : h (Conv. W/m2/K)
+# field3 : Tf cote paroi (K)
+# field4 : T face de bord (K)
+# field5 : Tparoi equiv.(K)
+# Time   	Mean(field0) 	Mean(field1) 	Mean(field2) 	Mean(field3) 	Mean(field4) 	Mean(field5) 	Haut(field0) 	Haut(field1) 	Haut(field2) 	Haut(field3) 	Haut(field4) 	Haut(field5) 	Bas(field0) 	Bas(field1) 	Bas(field2) 	Bas(field3) 	Bas(field4) 	Bas(field5)
+4.44455004e-05 	3.38166990e-03 	1.20664842e+00 	2.61131505e+01 	4.39264104e+02 	0.00000000e+00 	0.00000000e+00 	3.91255003e-03 	1.17885307e+00 	2.39058976e+01 	3.08215147e+02 	0.00000000e+00 	0.00000000e+00 	2.85078977e-03 	1.23444377e+00 	2.83204033e+01 	5.70313060e+02 	0.00000000e+00 	0.00000000e+00
+4.93260862e-03 	6.20219081e-03 	1.18122129e+00 	2.54262525e+01 	4.34821552e+02 	0.00000000e+00 	0.00000000e+00 	5.13765846e-03 	1.15021425e+00 	2.52353130e+01 	3.79047742e+02 	0.00000000e+00 	0.00000000e+00 	7.26672315e-03 	1.21222833e+00 	2.56171921e+01 	4.90595362e+02 	0.00000000e+00 	0.00000000e+00
