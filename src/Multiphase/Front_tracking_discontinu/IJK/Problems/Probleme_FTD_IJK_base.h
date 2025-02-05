@@ -635,8 +635,6 @@ public:
   friend class IJK_FT_Post;
   IJK_FT_Post post_;
 
-  int check_divergence_ = 0;
-
   const Nom& get_check_stop_file() const { return check_stop_file_; }
 
   Nom check_stop_file_; // Nom du fichier stop

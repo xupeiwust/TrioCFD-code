@@ -10134,7 +10134,6 @@ void DNS_QC_double::run()
 
           pressure_projection_with_rho(rho_,velocity_[0], velocity_[1], velocity_[2],
                                        pressure_, 1.0 /* dt */, pressure_rhs_,
-                                       1 /* check divergence */,
                                        poisson_solver_);
           pressure_.data() = 0.;
           pressure_rhs_.data() = 0.;

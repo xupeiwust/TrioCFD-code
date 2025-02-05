@@ -166,7 +166,6 @@ protected:
   double rho_liquide_;
   double rho_gaz_;
   ArrOfDouble gravite_; // vecteur de taille 3 a lire dans le jeu de donnees
-  int check_divergence_;
 
   Couplage_Tubes_IBC couplage_tubes_ibc_;
 

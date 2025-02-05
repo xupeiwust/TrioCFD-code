@@ -41,6 +41,7 @@
 #include <IJK_discretisation.h>
 #include <Probleme_FTD_IJK_tools.h>
 #include <Navier_Stokes_FTD_IJK_tools.h>
+#include <Option_IJK.h>
 
 #define COMPLEMENT_ANTI_DEVIATION_RESIDU
 // #define VARIABLE_DZ
@@ -464,7 +465,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
 
 
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED); // XD_ADD_P multigrid_solver not_set
-  param.ajouter_flag("check_divergence", &check_divergence_); // XD_ADD_P rien Flag to compute and print the value of div(u) after each pressure-correction
 
   param.ajouter("vitesse_entree_dir", &vitesse_entree_dir_);
   param.ajouter("vitesse_entree_compo_to_force", &vitesse_entree_compo_to_force_);
@@ -3977,12 +3977,12 @@ void Probleme_FTD_IJK_base::preparer_calcul()
                 }
 
               if (use_inv_rho_in_poisson_solver_)
-                pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, check_divergence_, poisson_solver_);
+                pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
               else
-                pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, check_divergence_, poisson_solver_);
+                pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
             }
           else
-            pressure_projection(velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, check_divergence_, poisson_solver_);
+            pressure_projection(velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
 
           copy_field_values(pressure_ghost_cells_, pressure_);
         }
@@ -4059,7 +4059,7 @@ void Probleme_FTD_IJK_base::preparer_calcul()
                << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
                << "*****************************************************************************" << finl;
 
-          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, check_divergence_, poisson_solver_);
+          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
           pressure_.data() = 0.;
           pressure_rhs_.data() = 0.;
         }
@@ -4348,7 +4348,7 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
             {
 
               pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, schema_temps_ijk().get_timestep(),
-                                               pressure_rhs_, check_divergence_, poisson_solver_);
+                                               pressure_rhs_, poisson_solver_);
 
             }
           else
@@ -4358,7 +4358,7 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 #else
 
               pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], d_pressure_, schema_temps_ijk().get_timestep(),
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
+                                           pressure_rhs_, poisson_solver_);
 #endif
 
             }
@@ -4381,7 +4381,7 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
             {
 
               pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, schema_temps_ijk().get_timestep(),
-                                               pressure_rhs_, check_divergence_, poisson_solver_);
+                                               pressure_rhs_, poisson_solver_);
 
             }
           else
@@ -4390,7 +4390,7 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 #else
 
               pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, schema_temps_ijk().get_timestep(),
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
+                                           pressure_rhs_, poisson_solver_);
 
 #endif
             }
@@ -4574,7 +4574,7 @@ void Probleme_FTD_IJK_base::rk3_sub_step(const int rk_step, const double total_t
 
           pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
                                            fractionnal_timestep,
-                                           pressure_rhs_, check_divergence_, poisson_solver_);
+                                           pressure_rhs_, poisson_solver_);
         }
       else
         {
@@ -4583,7 +4583,7 @@ void Probleme_FTD_IJK_base::rk3_sub_step(const int rk_step, const double total_t
 #else
           pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_,
                                        fractionnal_timestep,
-                                       pressure_rhs_, check_divergence_, poisson_solver_);
+                                       pressure_rhs_, poisson_solver_);
 
           // GAB TODO : cest a peu pres ici qu'il faudra travailler pour recuperer le
           // terme de pression

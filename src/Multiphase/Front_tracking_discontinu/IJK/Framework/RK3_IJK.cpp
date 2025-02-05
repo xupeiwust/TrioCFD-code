@@ -33,7 +33,6 @@
 Implemente_instanciable(IJK_problem_double, "IJK_problem_double", Interprete);
 Entree& IJK_problem_double::interpreter(Entree& is)
 {
-  check_divergence_ = 0;
   Param param(que_suis_je());
   Nom ijk_splitting_name;
   compteur_post_instantanes_ = 0;
@@ -61,7 +60,6 @@ Entree& IJK_problem_double::interpreter(Entree& is)
   param.ajouter("nb_pas_dt_max", &nb_timesteps_, Param::REQUIRED);
   param.ajouter("pressure_gradient", &source_pressure_gradient_, Param::REQUIRED);
   param.ajouter("multigrid_solver", &poisson_solver_, Param::REQUIRED);
-  param.ajouter_flag("check_divergence", &check_divergence_);
   param.ajouter("mu_liquide", &mu_liquide_, Param::REQUIRED);
   param.ajouter("mu_gaz", &mu_gaz_, Param::REQUIRED);
   param.ajouter("vitesse_entree", &vitesse_entree_, Param::REQUIRED);
@@ -464,7 +462,7 @@ void IJK_problem_double::run()
   recalculer_mu_de_rho(rho_field_, molecular_mu_, 2);
 
   pressure_projection(velocity_[0], velocity_[1],  velocity_[2], pressure_, 1.,
-                      pressure_rhs_, check_divergence_, poisson_solver_);
+                      pressure_rhs_, poisson_solver_);
   const double max_timestep = timestep_;
 
   couplage_tubes_ibc_.initialize(domaine_);
@@ -772,7 +770,7 @@ void IJK_problem_double::euler_time_step()
   //(le compteur statistique est deja present dans la fonction de projection)
   //statistiques().begin_count(projection_);
   pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1],  velocity_[2], pressure_, timestep_,
-                               pressure_rhs_, check_divergence_, poisson_solver_);
+                               pressure_rhs_, poisson_solver_);
 
   //statistiques().end_count(projection_);
 
