@@ -65,7 +65,7 @@ Lire pb
     masse_ajoutee coef_constant { }
     portance_interfaciale Tomiyama { }
     dispersion_bulles turbulente_burns { } 
-    diametre_bulles champ champ_fonc_xyz dom 2 0 1.e-3*(0.+((X*X+Y*Y)<(0.00127*0.00127))*2.74+((X*X+Y*Y)](0.023749*0.023749))*2.6550000000000002+((X*X+Y*Y)](0.00127*0.00127))*((X*X+Y*Y)<(0.023749*0.023749))*(0.+(-17555594.727405805)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(731071.7354254207)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(-8609.147158197353)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(27.191490284377696)*sqrt(x*x+y*y)+(2.7308303341251037))) 
+    diametre_bulles champ champ_fonc_xyz dom 2 0 1.e-3*(0.+((X*X+Y*Y)<(1.27000000e-03*1.27000000e-03))*2.74000000e+00+((X*X+Y*Y)](2.37490000e-02*2.37490000e-02))*2.65500000e+00+((X*X+Y*Y)](1.27000000e-03*1.27000000e-03))*((X*X+Y*Y)<(2.37490000e-02*2.37490000e-02))*(0.+(-1.75555947e+07)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(7.31071735e+05)*sqrt(x*x+y*y)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(-8.60914716e+03)*sqrt(x*x+y*y)*sqrt(x*x+y*y)+(2.71914903e+01)*sqrt(x*x+y*y)+(2.73083033e+00))) 
   }
   QDM_Multiphase
   {
