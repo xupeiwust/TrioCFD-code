@@ -33,8 +33,11 @@ lire sch
   timestep 0.01
   timestep_facsec 1
   nb_pas_dt_max 24
+      check_stop_file stop.txt
+        dt_sauvegarde 1000
 }
 
+option_ijk { check_divergence }
 IJK dis
 
 associer sch pb
@@ -45,7 +48,8 @@ lire pb
 {
   SOLVED_EQUATIONS
   {
-    
+    Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
   }
 
   Fluide_Diphasique_IJK
@@ -68,12 +72,8 @@ lire pb
     gravite Champ_Uniforme 3 0. 0. 0. 
   }
 
+  hydraulique
   {
-  dt_sauvegarde 1000
-    dt_post 1000
-    champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE NUM_COMPO
-    check_stop_file stop.txt
-
     Boundary_Conditions 
     {
       bctype_kmin Paroi
@@ -95,19 +95,34 @@ lire pb
       nb_full_mg_steps 2 4 1
       
     }
-    # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-    interfaces 
-    {
-      fichier_reprise_interface init.lata
-      timestep_reprise_interface       1
-      lata_meshname   FTMESH
-    }
-    check_divergence
 
     expression_vx_init 0.2
     expression_vy_init 0.2
     expression_vz_init 0.
 	}
+
+    # LECTURE DES INTERFACES DANS UN FICHIER LATA #
+    interf
+    {
+       /* Boundary_Conditions 
+        {
+          bctype_kmin Paroi
+          bctype_kmax Paroi
+        } */
+
+      fichier_reprise_interface init.lata
+      timestep_reprise_interface       1
+      lata_meshname   FTMESH
+    }
+
+  {
+      dt_post 1000
+    champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE NUM_COMPO
+
+
+  }
+
+
 }
 solve pb
 Fin
