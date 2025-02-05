@@ -34,10 +34,7 @@ public:
 
   Cut_cell_FT_Disc* get_cut_cell_disc() override { return &cut_cell_disc_; }
 
-  const Cut_field_vector3_double& get_cut_field_velocity() const
-  {
-    return static_cast<const Cut_field_vector3_double&>(velocity_);
-  }
+  const Cut_field_vector3_double& get_cut_field_velocity() const;
 
   /*! Getter des objets Facettes_Interp_FT, permettant d'acceder aux indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
    */

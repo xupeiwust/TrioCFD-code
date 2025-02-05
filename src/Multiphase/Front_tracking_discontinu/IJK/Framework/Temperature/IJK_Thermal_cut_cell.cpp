@@ -352,7 +352,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
   calculer_flux_interface_old(methode_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_->get_cut_cell_facettes_interpolation(), flux_interface_ft_scalar_old_);
 
   // Calcul du flux interface sur le domaine NS :
-  ref_ijk_ft_cut_cell_->redistrib_from_ft_elem().redistribute(flux_interface_ft_scalar_old_, flux_interface_ns_scalar_old_);
+  ref_ijk_ft_cut_cell_->eq_ns().redistrib_from_ft_elem().redistribute(flux_interface_ft_scalar_old_, flux_interface_ns_scalar_old_);
   flux_interface_ns_scalar_old_.echange_espace_virtuel(flux_interface_ns_scalar_old_.ghost());
 
   if (!conv_temperature_negligible_)
@@ -457,7 +457,7 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
       calculer_flux_interface_next(methode_flux_interface_, lambda_liquid_, lambda_vapour_, interfacial_temperature_, interfacial_phin_ai_, cut_field_temperature, ref_ijk_ft_cut_cell_->get_cut_cell_facettes_interpolation(), flux_interface_ft_scalar_next_);
 
       // Calcul du flux interface sur le domaine NS :
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(flux_interface_ft_scalar_next_, flux_interface_ns_scalar_next_);
+      ref_ijk_ft_->eq_ns().redistrib_from_ft_elem().redistribute(flux_interface_ft_scalar_next_, flux_interface_ns_scalar_next_);
       flux_interface_ns_scalar_next_.echange_espace_virtuel(flux_interface_ns_scalar_next_.ghost());
 
       calculer_flux_interface_efficace(flux_interface_ns_scalar_old_, flux_interface_ns_scalar_next_, flux_interface_efficace_scalar_);

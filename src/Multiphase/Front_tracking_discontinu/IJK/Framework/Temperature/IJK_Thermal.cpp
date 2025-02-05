@@ -154,7 +154,7 @@ void IJK_Thermal::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   ArrOfDouble interfacial_phin_ai;
   // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
   IJK_Field_double& temperature_ft = valeur().get_temperature_ft();
-  ref_ijk_ft_->redistribute_to_splitting_ft_elem(*valeur().get_temperature(), temperature_ft);
+  ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem(*valeur().get_temperature(), temperature_ft);
   temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
   //compute_interfacial_temperature(interfacial_temperature, interfacial_phin_ai, get_storage());
   valeur().compute_interfacial_temperature2(interfacial_temperature, interfacial_phin_ai);
@@ -1625,7 +1625,7 @@ int IJK_Thermal::posttraiter_champs_instantanes_thermal_interface_ref(const Motc
       ArrOfDouble interfacial_phin;
       // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
       IJK_Field_double& temperature_ft = valeur().get_temperature_ft();
-      ref_ijk_ft_->redistribute_to_splitting_ft_elem(*valeur().get_temperature(), temperature_ft);
+      ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem(*valeur().get_temperature(), temperature_ft);
       temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
       // results are prop to the area :
       //itr.compute_interfacial_temperature(interfacial_temperature, interfacial_phin, itr.get_storage());

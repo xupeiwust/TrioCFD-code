@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Probleme_FTD_IJK_cut_cell.h>
+#include <Navier_Stokes_FTD_IJK.h>
 #include <Cut_cell_tools.h>
 
 Implemente_instanciable(Probleme_FTD_IJK_cut_cell, "Probleme_FTD_IJK_cut_cell", Probleme_FTD_IJK_base);
@@ -77,13 +78,22 @@ void Probleme_FTD_IJK_cut_cell::initialize()
   thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
 
-  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
+  // TODO : FIXME : faut boucler plus tard sur les equations IJK
+  Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
+  const auto& bc = eq_ns.get_boundary_conditions();
+
+  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(eq_ns.get_velocity());
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-    allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, domaine_ijk_.valeur(), 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+    allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, domaine_ijk_.valeur(), 2, bc.get_dU_perio(bc.get_resolution_u_prime_()));
   else
     allocate_velocity_persistant(cut_cell_disc_, cut_field_velocity, domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
 
   Probleme_FTD_IJK_base::initialize();
+}
+
+const Cut_field_vector3_double& Probleme_FTD_IJK_cut_cell::get_cut_field_velocity() const
+{
+  return static_cast<const Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
 }
 
 void Probleme_FTD_IJK_cut_cell::update_indicator_field()
@@ -113,7 +123,7 @@ void Probleme_FTD_IJK_cut_cell::update_twice_indicator_field()
   // Calcul pour le temps old() egalement, de telle maniere a ce que les coefficients next() et old() sont initialises
   cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_old(interfaces_.old());
 
-  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
+  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
@@ -123,7 +133,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
                                                     ArrOfDouble& var_volume_par_bulle,
                                                     const int first_step_interface_smoothing)
 {
-  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
+  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
 
   thermals_.echange_diph_vers_pure_cellules_finalement_pures();
   thermals_.vide_phase_invalide_cellules_diphasiques();
@@ -159,7 +169,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
 void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
                                                         ArrOfDouble& var_volume_par_bulle)
 {
-  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(velocity_);
+  Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
 
   thermals_.echange_diph_vers_pure_cellules_finalement_pures();
   thermals_.vide_phase_invalide_cellules_diphasiques();

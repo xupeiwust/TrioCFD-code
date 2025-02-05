@@ -1876,9 +1876,9 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
                                                                            ref_ijk_ft_->schema_temps_ijk().get_timestep(),
                                                                            ref_ijk_ft_->schema_temps_ijk().get_current_time(),
                                                                            ref_ijk_ft_->itfce(),
-                                                                           ref_ijk_ft_->get_velocity(),
-                                                                           ref_ijk_ft_->get_velocity_ft(),
-                                                                           ref_ijk_ft_->get_pressure_ghost_cells());
+                                                                           ref_ijk_ft_->eq_ns().get_velocity(),
+                                                                           ref_ijk_ft_->eq_ns().get_velocity_ft(),
+                                                                           ref_ijk_ft_->eq_ns().get_pressure_ghost_cells());
                 counter++;
               }
       thermal_local_subproblems_.set_effective_subproblems(enable_probe_collision_detection_);
@@ -1914,7 +1914,7 @@ void IJK_Thermal_Subresolution::pre_initialise_thermal_subproblems_matrices()
         {
           // int nb_subproblems_ini = thermal_local_subproblems_.get_subproblems_counter();
           int nb_subproblems_ini = thermal_local_subproblems_.get_effective_subproblems_counter();
-          if (!(ref_ijk_ft_->get_disable_convection_qdm() && ref_ijk_ft_->get_disable_diffusion_qdm()))
+          if (!(ref_ijk_ft_->eq_ns().get_disable_convection_qdm() && ref_ijk_ft_->eq_ns().get_disable_diffusion_qdm()))
             nb_subproblems_ini = Process::check_int_overflow(Process::mp_sum(nb_subproblems_ini));
           const int max_subproblems_predicted = (int) ((double) nb_subproblems_ini * pre_factor_subproblems_number_);
           finite_difference_assembler_.pre_initialise_matrix_subproblems(thermal_subproblems_matrix_assembly_,
@@ -3311,7 +3311,7 @@ void IJK_Thermal_Subresolution::interpolate_temperature_on_downstream_line(const
                                         coordinates_sides,
                                         *temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         values,
                                         0);
 }
@@ -3334,7 +3334,7 @@ void IJK_Thermal_Subresolution::interpolate_velocity_on_downstream_line(const in
                                         coordinates_sides,
                                         *temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         values,
                                         2);
 }
@@ -3357,7 +3357,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         coordinates_sides,
                                         *temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         values,
                                         0);
 
@@ -3374,7 +3374,7 @@ void IJK_Thermal_Subresolution::interpolate_convective_term_on_downstream_line(c
                                         coordinates_sides,
                                         *temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         velocity_line,
                                         2);
   DoubleTab velocity_line_frame_of_ref = velocity_line;
@@ -3411,7 +3411,7 @@ void IJK_Thermal_Subresolution::interpolate_diffusive_term_on_downstream_line(co
                                         coordinates_sides,
                                         *temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         values,
                                         1);
   values *= uniform_lambda_;
@@ -3435,7 +3435,7 @@ void IJK_Thermal_Subresolution::interpolate_temperature_increment_on_downstream_
                                         coordinates_sides,
                                         *d_temperature_,
                                         grad_T_elem_,
-                                        ref_ijk_ft_->get_velocity(),
+                                        ref_ijk_ft_->eq_ns().get_velocity(),
                                         values,
                                         0);
   // values *= ref_ijk_ft_->schema_temps_ijk().get_timestep();
@@ -3993,7 +3993,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_indices_coo
                                                   ij_coords,
                                                   *temperature_,
                                                   grad_T_elem_,
-                                                  ref_ijk_ft_->get_velocity(),
+                                                  ref_ijk_ft_->eq_ns().get_velocity(),
                                                   values,
                                                   -1,
                                                   !disable_slice_to_nearest_plane_,
@@ -4021,7 +4021,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               ij_coords,
                                               *temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);
@@ -4043,7 +4043,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_velocity(co
                                               ij_coords,
                                               *temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               velocity_values,
                                               2,
                                               !disable_slice_to_nearest_plane_);
@@ -4066,7 +4066,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               ij_coords,
                                               *temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);
@@ -4079,7 +4079,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_convection(
                                               ij_coords,
                                               *temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               velocity_values,
                                               2,
                                               !disable_slice_to_nearest_plane_);
@@ -4115,7 +4115,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_diffusion(c
                                               ij_coords,
                                               *temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               values,
                                               1,
                                               !disable_slice_to_nearest_plane_);
@@ -4139,7 +4139,7 @@ void IJK_Thermal_Subresolution::complete_field_thermal_wake_slice_ij_temperature
                                               ij_coords,
                                               *d_temperature_,
                                               grad_T_elem_,
-                                              ref_ijk_ft_->get_velocity(),
+                                              ref_ijk_ft_->eq_ns().get_velocity(),
                                               values,
                                               0,
                                               !disable_slice_to_nearest_plane_);

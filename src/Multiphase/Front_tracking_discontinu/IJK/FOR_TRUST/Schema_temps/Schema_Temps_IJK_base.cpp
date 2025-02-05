@@ -86,7 +86,7 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
   double lg_cube_raw = 1.;
   for (int dir = 0; dir < 3; dir++)
     {
-      const IJK_Field_double& v = pb_ijk.get_velocity()[dir];
+      const IJK_Field_double& v = pb_ijk.eq_ns().get_velocity()[dir];
       double max_v = 1.e-20; // Pas zero pour la division a la fin...
       const int ni = v.ni();
       const int nj = v.nj();
@@ -119,7 +119,7 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
   dt_fo_liq_ = dxmin * dxmin / ((mu_l / rho_l) + 1.e-20) * fo * 0.125;
   dt_fo_vap_ = dxmin * dxmin / ((mu_v / rho_v) + 1.e-20) * fo * 0.125;
   dt_fo_ = std::min(dt_fo_liq_, dt_fo_vap_);
-  if (pb_ijk.get_disable_diffusion_qdm())
+  if (pb_ijk.eq_ns().get_disable_diffusion_qdm())
     dt_fo_ = 1.e20;
 
   /*
@@ -150,7 +150,7 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
     dt_oh_ = sqrt((rho_l + rho_v) / (2 * M_PI) * lg_cube_raw * pow(ideal_length_factor, 3) / (max_sigma + 1e-20)) * oh;
   else
     dt_oh_ = sqrt((rho_l + rho_v) / 2. * lg_cube / (max_sigma + 1e-20)) * oh;
-  if (pb_ijk.get_disable_convection_qdm())
+  if (pb_ijk.eq_ns().get_disable_convection_qdm())
     dt_oh_ = 1.e20;
 
   // Seems underestimated !

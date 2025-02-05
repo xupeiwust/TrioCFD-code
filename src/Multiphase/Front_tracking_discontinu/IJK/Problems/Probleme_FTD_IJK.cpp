@@ -13,6 +13,7 @@
 *
 *****************************************************************************/
 
+#include <Navier_Stokes_FTD_IJK.h>
 #include <Probleme_FTD_IJK.h>
 
 Implemente_instanciable(Probleme_FTD_IJK, "Probleme_FTD_IJK", Probleme_FTD_IJK_base);
@@ -30,10 +31,14 @@ void Probleme_FTD_IJK::initialize()
   thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
   thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
 
+  // TODO : FIXME : faut boucler plus tard sur les equations IJK
+  Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
+  const auto& bc = eq_ns.get_boundary_conditions();
+
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-    allocate_velocity(velocity_, domaine_ijk_.valeur(), 2, boundary_conditions_.get_dU_perio(boundary_conditions_.get_resolution_u_prime_()));
+    allocate_velocity(eq_ns.get_velocity(), domaine_ijk_.valeur(), 2, bc.get_dU_perio(bc.get_resolution_u_prime_()));
   else
-    allocate_velocity(velocity_, domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
+    allocate_velocity(eq_ns.get_velocity(), domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
 
   Probleme_FTD_IJK_base::initialize();
 }
@@ -41,11 +46,5 @@ void Probleme_FTD_IJK::initialize()
 // Pour creer une dilatation forcee (cas test champs FT)
 void Probleme_FTD_IJK::create_forced_dilation()
 {
-  if (coeff_evol_volume_ != 0.)
-    {
-      vol_bulle_monodisperse_ = vol_bulle_monodisperse_ * (1. + coeff_evol_volume_ * schema_temps_ijk().get_timestep());
-      const int nb_reelles = interfaces_.get_nb_bulles_reelles();
-      for (int ib = 0; ib < nb_reelles; ib++)
-        vol_bulles_[ib] = vol_bulle_monodisperse_;
-    }
+  ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).create_forced_dilation();
 }

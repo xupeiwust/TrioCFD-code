@@ -198,6 +198,8 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
     {
       if (compute_distance_)
         {
+          Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
+
           // TODO: Do we need to perform an echange_virtuel with interfaces ?
           compute_eulerian_normal_distance_facet_barycentre_field(ref_ijk_ft_->get_interface(),
                                                                   eulerian_distance_ft_,
@@ -217,12 +219,12 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_distance()
           eulerian_distance_ft_.echange_espace_virtuel(eulerian_distance_ft_.ghost());
           eulerian_distance_ns_.data() = 0.;
           eulerian_distance_ns_.echange_espace_virtuel(eulerian_distance_ns_.ghost());
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_distance_ft_, eulerian_distance_ns_);
+          ns.redistribute_from_splitting_ft_elem(eulerian_distance_ft_, eulerian_distance_ns_);
           eulerian_distance_ns_.echange_espace_virtuel(eulerian_distance_ns_.ghost());
           for(int dir=0; dir<3; dir++)
             {
-              ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_normal_vectors_ft_[dir], eulerian_normal_vectors_ns_[dir]);
-              ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_facets_barycentre_ft_[dir], eulerian_facets_barycentre_ns_[dir]);
+              ns.redistribute_from_splitting_ft_elem(eulerian_normal_vectors_ft_[dir], eulerian_normal_vectors_ns_[dir]);
+              ns.redistribute_from_splitting_ft_elem(eulerian_facets_barycentre_ft_[dir], eulerian_facets_barycentre_ns_[dir]);
             }
           eulerian_normal_vectors_ns_normed_[0].data() = 0.;
           eulerian_normal_vectors_ns_normed_[1].data() = 0.;
@@ -290,7 +292,7 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_curvature()
                                                            boundary_flux_kmin_,
                                                            boundary_flux_kmax_);
       eulerian_curvature_ft_.echange_espace_virtuel(eulerian_curvature_ft_.ghost());
-      ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_curvature_ft_, eulerian_curvature_ns_);
+      ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_curvature_ft_, eulerian_curvature_ns_);
     }
   else
     Cerr << "Don't compute the eulerian curvature field" << finl;
@@ -322,8 +324,8 @@ void IJK_Ghost_Fluid_Fields::compute_eulerian_curvature_from_interface()
             }
           eulerian_interfacial_area_ft_.echange_espace_virtuel(eulerian_interfacial_area_ft_.ghost());
           eulerian_curvature_ft_.echange_espace_virtuel(eulerian_curvature_ft_.ghost());
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_interfacial_area_ft_, eulerian_interfacial_area_ns_);
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_curvature_ft_, eulerian_curvature_ns_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_interfacial_area_ft_, eulerian_interfacial_area_ns_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_curvature_ft_, eulerian_curvature_ns_);
           // has_computed_curvature_ = true;
         }
       else

@@ -172,12 +172,12 @@ void IJK_Composantes_Connex::compute_bounding_box_fill_compo_connex()
 
           eulerian_compo_connex_ns_.data() = -1;
           eulerian_compo_connex_ns_.echange_espace_virtuel(eulerian_compo_connex_ns_.ghost());
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_compo_connex_ft_, eulerian_compo_connex_ns_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_compo_connex_ft_, eulerian_compo_connex_ns_);
           eulerian_compo_connex_ns_.echange_espace_virtuel(eulerian_compo_connex_ns_.ghost());
 
           eulerian_compo_connex_ghost_ns_.data() = -1;
           eulerian_compo_connex_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_ghost_ns_.ghost());
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_compo_connex_ghost_ft_, eulerian_compo_connex_ghost_ns_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_compo_connex_ghost_ft_, eulerian_compo_connex_ghost_ns_);
           eulerian_compo_connex_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_ghost_ns_.ghost());
         }
     }
@@ -372,8 +372,8 @@ void IJK_Composantes_Connex::fill_mixed_cell_compo()
   eulerian_compo_connex_from_interface_ghost_ft_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ft_.ghost());
   eulerian_compo_connex_from_interface_ns_.data() = -1;
   eulerian_compo_connex_from_interface_ghost_ns_.data() = -1;
-  ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_compo_connex_from_interface_ft_, eulerian_compo_connex_from_interface_ns_);
-  ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_compo_connex_from_interface_ghost_ft_, eulerian_compo_connex_from_interface_ghost_ns_);
+  ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_compo_connex_from_interface_ft_, eulerian_compo_connex_from_interface_ns_);
+  ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_compo_connex_from_interface_ghost_ft_, eulerian_compo_connex_from_interface_ghost_ns_);
   eulerian_compo_connex_from_interface_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ns_.ghost());
   eulerian_compo_connex_from_interface_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ns_.ghost());
   const int nx = eulerian_compo_connex_from_interface_int_ns_.ni();
@@ -419,7 +419,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
       if (ref_ijk_ft_->schema_temps_ijk().get_tstep() == 0)
         use_bubbles_velocities_from_barycentres_tmp = 0;
 
-      compute_rising_velocity(ref_ijk_ft_->get_velocity(),
+      compute_rising_velocity(ref_ijk_ft_->eq_ns().get_velocity(),
                               ref_ijk_ft_->itfce(),
                               eulerian_compo_connex_from_interface_int_ns_,
                               ref_ijk_ft_->milieu_ijk().get_direction_gravite(),

@@ -977,14 +977,16 @@ double Calculer_valeur_seuil(double p_seuil, double pressionijk, double p_seuil_
 
 void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const double dt)
 {
-  IJK_Field_vector3_double& vitesse=cas.velocity_;
+  Navier_Stokes_FTD_IJK& ns = cas.eq_ns();
+
+  IJK_Field_vector3_double& vitesse=ns.velocity_;
   // GR262753 : travail des forces d'interfaces
-  IJK_Field_vector3_double& force_interfaces=cas.terme_source_interfaces_ft_;
-  const IJK_Field_vector3_double& repulsion_interfaces=cas.terme_repulsion_interfaces_ft_;
+  IJK_Field_vector3_double& force_interfaces=ns.terme_source_interfaces_ft_;
+  const IJK_Field_vector3_double& repulsion_interfaces=ns.terme_repulsion_interfaces_ft_;
   // ---
-  IJK_Field_double& extended_pressure_liq= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pl_: cas.pressure_;
-  IJK_Field_double& extended_pressure_vap= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pv_: cas.pressure_;
-  IJK_Field_double& pression=cas.pressure_;
+  IJK_Field_double& extended_pressure_liq= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pl_: ns.pressure_;
+  IJK_Field_double& extended_pressure_vap= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pv_: ns.pressure_;
+  IJK_Field_double& pression=ns.pressure_;
   const IJK_Field_double& indicatrice=cas.itfce().I();
   IJK_Field_vector3_double& gradP=cas.post_.grad_P_;
 
@@ -1012,9 +1014,9 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   //allocate_velocity()
 
   IJK_Field_vector3_double& gradI=cas.post_.grad_I_ns_;
-  IJK_Field_vector3_double& sourceI=cas.terme_source_interfaces_ns_;
-  IJK_Field_vector3_double& repuls=cas.terme_repulsion_interfaces_ns_;
-  IJK_Field_vector3_double& absrepuls=cas.terme_abs_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double& sourceI=ns.terme_source_interfaces_ns_;
+  IJK_Field_vector3_double& repuls=ns.terme_repulsion_interfaces_ns_;
+  IJK_Field_vector3_double& absrepuls=ns.terme_abs_repulsion_interfaces_ns_;
   IJK_Field_double& field_ai=cas.post_.ai_ns_;
   IJK_Field_double& field_kappa_ai=cas.post_.kappa_ai_ns_;
   IJK_Field_vector3_double& normale_cell=cas.post_.normale_cell_ns_;
@@ -1028,13 +1030,13 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_vector3_double& rot=cas.post_.rot_ ;
   IJK_Field_double& critere_Q=cas.post_.critere_Q_;
 
-  double coef_immobilisation_=cas.coef_immobilisation_;
+  double coef_immobilisation_=ns.coef_immobilisation_;
   IJK_Field_double& indicatrice_np=cas.post_.indicatrice_non_perturbe_;
   IJK_Field_vector3_double& integral_vitesse=cas.post_.integrated_velocity_;
   IJK_Field_double& integral_pression=cas.post_.integrated_pressure_;
-  IJK_Field_vector3_double force_rappel=cas.force_rappel_;
-  double p_seuil_max = cas.p_seuil_max_;
-  double p_seuil_min = cas.p_seuil_min_;
+  IJK_Field_vector3_double force_rappel=ns.force_rappel_;
+  double p_seuil_max = ns.p_seuil_max_;
+  double p_seuil_min = ns.p_seuil_min_;
   const IJK_Field_double& integral_vitesse_i = integral_vitesse[0];
   const IJK_Field_double& integral_vitesse_j = integral_vitesse[1];
   const IJK_Field_double& integral_vitesse_k = integral_vitesse[2];

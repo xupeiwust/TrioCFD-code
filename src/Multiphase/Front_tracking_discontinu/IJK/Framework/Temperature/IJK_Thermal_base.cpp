@@ -936,14 +936,14 @@ void IJK_Thermal_base::euler_time_step(const double timestep)
 
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
-  calculer_dT(ref_ijk_ft_->get_velocity());
+  calculer_dT(ref_ijk_ft_->eq_ns().get_velocity());
   // Update the temperature :
   const int kmax = temperature_->nk();
   const double ene_ini = compute_global_energy();
   if (debug_)
     Cerr << "Apply temperature increment d_temperature" << finl;
   for (int k = 0; k < kmax; k++)
-    ref_ijk_ft_->euler_explicit_update(*d_temperature_, *temperature_, k);
+    ref_ijk_ft_->eq_ns().euler_explicit_update(*d_temperature_, *temperature_, k);
 
   /*
    * Erase the temperature increment (second call)
@@ -968,7 +968,7 @@ void IJK_Thermal_base::euler_time_step(const double timestep)
 void IJK_Thermal_base::rk3_sub_step(const int rk_step, const double total_timestep,
                                     const double time)
 {
-  calculer_dT(ref_ijk_ft_->get_velocity());
+  calculer_dT(ref_ijk_ft_->eq_ns().get_velocity());
   // Update the temperature :
   const int kmax = temperature_->nk();
   const double ene_ini = compute_global_energy();
@@ -1115,16 +1115,18 @@ void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
 
 
   statistiques().begin_count(cnt_upstream_temperature);
+
+  Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
   if (debug_)
     Cerr << "Apply Upstream temperature" << finl;
-  double nb_diam_upstream_velocity = ref_ijk_ft_->get_nb_diam_upstream();
+  double nb_diam_upstream_velocity = ns.get_nb_diam_upstream();
   if (nb_diam_upstream_ == 0.)
     nb_diam_upstream_ = nb_diam_upstream_velocity;
-  if (upstream_temperature_ > -1e20 && ref_ijk_ft_->get_vitesse_upstream() > -1e20)
+  if (upstream_temperature_ > -1e20 && ns.get_vitesse_upstream() > -1e20)
     force_upstream_temperature(*temperature_, upstream_temperature_,
                                ref_ijk_ft_->get_interface(), nb_diam_upstream_,
-                               ref_ijk_ft_->get_upstream_dir(), ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
-                               ref_ijk_ft_->get_upstream_stencil());
+                               ns.get_upstream_dir(), ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
+                               ns.get_upstream_stencil());
   statistiques().end_count(cnt_upstream_temperature);
 
   if (debug_)
@@ -1207,7 +1209,7 @@ void IJK_Thermal_base::compute_eulerian_grad_T_interface(const int on_splitting_
       temperature_ft_.data() = 0.;
       temperature_ft_.echange_espace_virtuel(temperature_ft_.ghost());
       temperature_->echange_espace_virtuel(temperature_->ghost());
-      ref_ijk_ft_->redistribute_to_splitting_ft_elem(*temperature_, temperature_ft_);
+      ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem(*temperature_, temperature_ft_);
       temperature_ft_.echange_espace_virtuel(temperature_ft_.ghost());
 
       compute_eulerian_normal_temperature_gradient_interface(*eulerian_distance_ft_,
@@ -1228,7 +1230,7 @@ void IJK_Thermal_base::compute_eulerian_grad_T_interface(const int on_splitting_
                                                                  spherical_approx_);
         }
       else
-        ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
+        ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
 
     }
   else
@@ -1250,7 +1252,7 @@ void IJK_Thermal_base::propagate_eulerian_grad_T_interface()
                                                                gfm_vapour_mixed_only_,
                                                                gfm_smooth_factor_);
       eulerian_grad_T_interface_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
-      ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
+      ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
       eulerian_grad_T_interface_ns_.echange_espace_virtuel(eulerian_grad_T_interface_ns_.ghost());
     }
   else
@@ -1282,8 +1284,8 @@ void IJK_Thermal_base::compute_eulerian_temperature_ghost(const int on_splitting
         }
       else
         {
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
-          ref_ijk_ft_->redistribute_from_splitting_ft_elem(temperature_ft_, *temperature_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(eulerian_grad_T_interface_ft_, eulerian_grad_T_interface_ns_);
+          ref_ijk_ft_->eq_ns().redistribute_from_splitting_ft_elem(temperature_ft_, *temperature_);
         }
       temperature_->echange_espace_virtuel(temperature_->ghost());
     }
@@ -1606,7 +1608,7 @@ void IJK_Thermal_base::add_temperature_source()
        * Adaptation paroi dans une autre direction ?
        */
       const int wall_normal_dir = DIRECTION_K;
-      const IJK_Field_double& vx = ref_ijk_ft_->get_velocity()[gravity_dir];
+      const IJK_Field_double& vx = ref_ijk_ft_->eq_ns().get_velocity()[gravity_dir];
       double rho_cp_u_moy = compute_rho_cp_u_mean(vx);
       const Domaine_IJK& geom = temperature.get_domaine();
       const double dl = geom.get_constant_delta(gravity_dir);
@@ -1772,8 +1774,8 @@ void IJK_Thermal_base::add_temperature_source()
           // TODO: Remplacer euler_explicit_update par l'utilisation de timestep_ et utiliser d_source_Tv_ comme une constante
           for (int k = 0; k < nk; k++)
             {
-              ref_ijk_ft_->euler_explicit_update(d_source_Tv_, source_temperature_v_, k);
-              ref_ijk_ft_->euler_explicit_update(d_source_Tl_, source_temperature_l_, k);
+              ref_ijk_ft_->eq_ns().euler_explicit_update(d_source_Tv_, source_temperature_v_, k);
+              ref_ijk_ft_->eq_ns().euler_explicit_update(d_source_Tl_, source_temperature_l_, k);
             }
           Cerr << "AY-test_source2 : " <<  Tv << finl;
           for (int k = 0; k < nk; k++)
@@ -2009,7 +2011,7 @@ void IJK_Thermal_base::calculer_source_temperature_ana()
   if (liste_post_instantanes_.contient_("ECART_SOURCE_TEMPERATURE_ANA"))
     {
       if (!liste_post_instantanes_.contient_("SOURCE_TEMPERATURE_ANA"))
-        set_field_data(source_temperature_ana_, expression_source_temperature_, ref_ijk_ft_->get_velocity()[0], ref_ijk_ft_->schema_temps_ijk().get_current_time());
+        set_field_data(source_temperature_ana_, expression_source_temperature_, ref_ijk_ft_->eq_ns().get_velocity()[0], ref_ijk_ft_->schema_temps_ijk().get_current_time());
       // do some work
 
       double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
@@ -2372,7 +2374,7 @@ void IJK_Thermal_base::euler_rustine_step(const double timestep, const double dE
   const int kmax = temperature_->nk();
   const double ene_ini = compute_global_energy();
   for (int k = 0; k < kmax; k++)
-    ref_ijk_ft_->euler_explicit_update(d_T_rustine_, *temperature_, k);
+    ref_ijk_ft_->eq_ns().euler_explicit_update(d_T_rustine_, *temperature_, k);
   temperature_->echange_espace_virtuel(temperature_->ghost());
   const double ene_post = compute_global_energy();
   Cerr << "[Energy-Budget-T"<<rang_<<" euler rustine] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()

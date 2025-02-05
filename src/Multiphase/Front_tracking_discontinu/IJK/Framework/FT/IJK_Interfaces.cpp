@@ -39,6 +39,7 @@
 #include <stat_counters.h>
 #include <Cut_field.h>
 #include <Transport_Interfaces_FT_Disc.h>
+#include <Navier_Stokes_FTD_IJK.h>
 #include <vector>
 #include <map>
 
@@ -666,7 +667,7 @@ void IJK_Interfaces::calcul_surface_efficace_interface_initial(TYPE_SURFACE_EFFI
 
 void IJK_Interfaces::compute_vinterp()
 {
-  const IJK_Field_vector3_double& velocity_ft = ref_ijk_ft_->get_velocity_ft();
+  const IJK_Field_vector3_double& velocity_ft = ref_ijk_ft_->eq_ns().get_velocity_ft();
   Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   const DoubleTab& sommets = mesh.sommets(); // Tableau des coordonnees des marqueurs.
   int nbsom = sommets.dimension(0);
@@ -7727,6 +7728,8 @@ void IJK_Interfaces::calculer_indicatrice_next(
   if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
+  Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
+
   static Stat_Counter_Id calculer_indicatrice_next_counter_ = statistiques().new_counter(2, "Calcul Indicatrice Next");
   statistiques().begin_count(calculer_indicatrice_next_counter_);
   // En diphasique sans bulle (pour cas tests), on met tout a 1.
@@ -7756,7 +7759,7 @@ void IJK_Interfaces::calculer_indicatrice_next(
   indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
 
   // Calcul de l'indicatrice sur le domaine NS :
-  ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
+  ns.redistrib_from_ft_elem().redistribute(
     indicatrice_ft_[next()], indicatrice_ns_[next()]);
   indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
 
@@ -7772,7 +7775,7 @@ void IJK_Interfaces::calculer_indicatrice_next(
       groups_indicatrice_ft_[next()].echange_espace_virtuel();
 
       // Calcul de l'indicatrice sur le domaine NS :
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(groups_indicatrice_ft_[next()], groups_indicatrice_ns_[next()]);
+      ns.redistrib_from_ft_elem().redistribute(groups_indicatrice_ft_[next()], groups_indicatrice_ns_[next()]);
       groups_indicatrice_ns_[next()].echange_espace_virtuel();
     }
 
@@ -7814,10 +7817,10 @@ void IJK_Interfaces::calculer_indicatrice_next(
 
   for (int c=0; c < 3; c++)
     {
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
+      ns.redistrib_from_ft_elem().redistribute(
         normal_of_interf_[next()][c],
         normal_of_interf_ns_[next()][c]);
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
+      ns.redistrib_from_ft_elem().redistribute(
         bary_of_interf_[next()][c],
         bary_of_interf_ns_[next()][c]);
     }
@@ -7832,11 +7835,11 @@ void IJK_Interfaces::calculer_indicatrice_next(
                                 surface_vapeur_par_face_[next()],
                                 barycentre_vapeur_par_face_[next()]);
   // Passage au domaine NS
-  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+  ns.get_redistribute_from_splitting_ft_faces(
     surface_vapeur_par_face_[next()],
     surface_vapeur_par_face_ns_[next()]);
   for (int c=0; c<3; c++)
-    ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+    ns.get_redistribute_from_splitting_ft_faces(
       barycentre_vapeur_par_face_[next()][c],
       barycentre_vapeur_par_face_ns_[next()][c]);
 
@@ -7931,16 +7934,16 @@ void IJK_Interfaces::calculer_indicatrice_next(
     }
 
   // Passage au domaine NS
-  ref_ijk_ft_->redistrib_from_ft_elem().redistribute(surface_interface_ft_[next()], surface_interface_ns_[next()]);
+  ns.redistrib_from_ft_elem().redistribute(surface_interface_ft_[next()], surface_interface_ns_[next()]);
   surface_interface_ns_[next()].echange_espace_virtuel(surface_interface_ns_[next()].ghost());
 
   for (int d = 0; d < 3; d++)
     {
-      ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_ft_[next()][d], barycentre_phase1_ns_[next()][d]);
+      ns.redistrib_from_ft_elem().redistribute(barycentre_phase1_ft_[next()][d], barycentre_phase1_ns_[next()][d]);
       barycentre_phase1_ns_[next()][d].echange_espace_virtuel(barycentre_phase1_ns_[next()][d].ghost());
     }
 
-  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+  ns.get_redistribute_from_splitting_ft_faces(
     indicatrice_surfacique_face_ft_[next()],
     indicatrice_surfacique_face_ns_[next()]);
   indicatrice_surfacique_face_ns_[next()].echange_espace_virtuel();
@@ -7949,7 +7952,7 @@ void IJK_Interfaces::calculer_indicatrice_next(
     {
       for (int bary_compo = 0; bary_compo < 2; bary_compo++)
         {
-          ref_ijk_ft_->redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][face_dir][bary_compo], barycentre_phase1_face_ns_[next()][face_dir][bary_compo]);
+          ns.redistrib_from_ft_elem().redistribute(barycentre_phase1_face_ft_[next()][face_dir][bary_compo], barycentre_phase1_face_ns_[next()][face_dir][bary_compo]);
           barycentre_phase1_face_ns_[next()][face_dir][bary_compo].echange_espace_virtuel(barycentre_phase1_face_ns_[next()][face_dir][bary_compo].ghost());
         }
     }
@@ -8001,7 +8004,7 @@ void IJK_Interfaces::calculer_indicatrice_intermediaire(
   indicatrice_intermediaire_ft.echange_espace_virtuel(indicatrice_intermediaire_ft.ghost());
 
   // Calcul de l'indicatrice sur le domaine NS :
-  ref_ijk_ft_->redistrib_from_ft_elem().redistribute(
+  ref_ijk_ft_->eq_ns().redistrib_from_ft_elem().redistribute(
     indicatrice_intermediaire_ft, indicatrice_intermediaire_ns);
   indicatrice_intermediaire_ns.echange_espace_virtuel(indicatrice_intermediaire_ns.ghost());
 
@@ -8009,7 +8012,7 @@ void IJK_Interfaces::calculer_indicatrice_intermediaire(
   calculer_indicatrice_surfacique_face(indicatrice_surfacique_intermediaire_face_ft, indicatrice_intermediaire_ft, normal_of_interf_[next()]);
   indicatrice_surfacique_intermediaire_face_ft.echange_espace_virtuel();
 
-  ref_ijk_ft_->get_redistribute_from_splitting_ft_faces(
+  ref_ijk_ft_->eq_ns().get_redistribute_from_splitting_ft_faces(
     indicatrice_surfacique_intermediaire_face_ft,
     indicatrice_surfacique_intermediaire_face_ns);
   indicatrice_surfacique_intermediaire_face_ns.echange_espace_virtuel();

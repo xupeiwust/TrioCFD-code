@@ -22,6 +22,7 @@ class Fluide_Diphasique_IJK: public Fluide_Diphasique
 {
   Declare_instanciable(Fluide_Diphasique_IJK);
 public:
+
   /*
    * ATTENTION : phase0_ => VAPEUR, phase1_ => LIQUIDE
    */

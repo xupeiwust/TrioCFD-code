@@ -59,9 +59,11 @@ public:
 
   inline const LIST(OWN_PTR(Equation_base))& get_list_equations() const { return equations_; }
 
-private:
+protected:
   void add_FT_equation(const Nom& , const Nom& );
   LIST(OWN_PTR(Equation_base)) equations_; // Par convention : dans le vecteur, N.S. en premier, puis Transport_Interfaces, puis ConvDiff.
+
+private:
   OBS_PTR(Chimie) la_chimie_;
   Triple_Line_Model_FT_Disc tcl_;
 };

@@ -136,7 +136,7 @@ void Corrige_flux_FT_temperature_conv::remplace_flux_par_quick_ghost_amont_1(
   double T_interp;
 
   const auto elem_i = parcours_.elem(0);
-  const double velocity = ref_ijk_ft_->get_velocity(
+  const double velocity = ref_ijk_ft_->eq_ns().get_velocity(
                           )[parcours_.face()](elem_i[0], elem_i[1], elem_i[2]);
   double decal = -0.5;
   if (velocity > 0.)
@@ -304,7 +304,7 @@ void Corrige_flux_FT_temperature_conv::remplace_flux_par_somme_rhocpf_Tf_v_Sf(
   const int& j = parcours_.j();
   const int& k_layer = parcours_.k();
   const int& dir = parcours_.face();
-  const double velocity = ref_ijk_ft_->get_velocity()[dir](i, j, k_layer);
+  const double velocity = ref_ijk_ft_->eq_ns().get_velocity()[dir](i, j, k_layer);
   const int i_diph = (*intersection_ijk_face_)(i, j, k_layer, dir);
 
   // Maintenant j'ajoute les valeurs pour chaque phase (liquide et vapeur)

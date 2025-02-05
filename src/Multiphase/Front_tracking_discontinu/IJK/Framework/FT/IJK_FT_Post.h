@@ -27,6 +27,7 @@
 #include <Multigrille_Adrien.h>
 
 class Probleme_FTD_IJK_base;
+class Navier_Stokes_FTD_IJK;
 class Domaine_IJK;
 
 /*
@@ -41,7 +42,6 @@ class IJK_Thermals;
  */
 class IJK_FT_Post
 {
-
   friend class Statistiques_dns_ijk_FT;
 
 public:

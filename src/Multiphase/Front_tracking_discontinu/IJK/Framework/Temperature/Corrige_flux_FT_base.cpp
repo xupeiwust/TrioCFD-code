@@ -87,7 +87,7 @@ bool Corrige_flux_FT_base::test_if_stencil_inclut_bout_interface_liquide() const
 {
   const int& dir= parcours_.face();
 
-  const double velocity = ref_ijk_ft_->get_velocity(
+  const double velocity = ref_ijk_ft_->eq_ns().get_velocity(
                           )[dir](parcours_.i(), parcours_.j(), parcours_.k());
   double stencil_inclut_interface = 1.;
   int decal = 0;
@@ -111,7 +111,7 @@ bool Corrige_flux_FT_base::test_if_stencil_inclut_bout_interface_vapeur() const
 {
   const int& dir= parcours_.face();
 
-  const double velocity = ref_ijk_ft_->get_velocity(
+  const double velocity = ref_ijk_ft_->eq_ns().get_velocity(
                           )[dir](parcours_.i(), parcours_.j(), parcours_.k());
   double stencil_inclut_interface = 1.;
   int decal = 0;

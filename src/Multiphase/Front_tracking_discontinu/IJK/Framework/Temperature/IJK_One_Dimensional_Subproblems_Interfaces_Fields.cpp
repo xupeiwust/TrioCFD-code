@@ -264,7 +264,7 @@ bool IJK_One_Dimensional_Subproblems_Interfaces_Fields::retrieve_interfacial_sur
             }
         }
 
-      ref_ijk_ft_->redistribute_to_splitting_ft_elem(tmp_field_val_, tmp_ft_field_val_);
+      ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem(tmp_field_val_, tmp_ft_field_val_);
       tmp_ft_field_val_.echange_espace_virtuel(tmp_ft_field_val_.ghost());
 
       const int nb_elem = mon_dom_dis.domaine().nb_elem();

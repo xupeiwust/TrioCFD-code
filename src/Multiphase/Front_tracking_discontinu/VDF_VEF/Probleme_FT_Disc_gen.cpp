@@ -98,7 +98,7 @@ void Probleme_FT_Disc_gen::lire_solved_equations(Entree& is)
 
   if (eq_types.size() != eq_name.size())
     {
-      Cerr << "Error in Probleme_FT_Disc_gen::typer_lire_milieu !!! The number of strings read in the bloc SOLVED_EQUATIONS is not correct !!!" << finl;
+      Cerr << "Error in Probleme_FT_Disc_gen::lire_solved_equations !!! The number of strings read in the bloc SOLVED_EQUATIONS is not correct !!!" << finl;
       Cerr << "Fix your data file !!!" << finl;
       Process::exit();
     }

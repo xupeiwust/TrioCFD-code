@@ -101,7 +101,7 @@ void IJK_One_Dimensional_Subproblems::complete_subproblems()
     {
       // int total_subproblems = subproblems_counter_;
       int total_subproblems = subproblems_counter_;
-      if (!(ref_ijk_ft_->get_disable_convection_qdm() && ref_ijk_ft_->get_disable_diffusion_qdm()))
+      if (!(ref_ijk_ft_->eq_ns().get_disable_convection_qdm() && ref_ijk_ft_->eq_ns().get_disable_diffusion_qdm()))
         total_subproblems = Process::check_int_overflow(Process::mp_sum(total_subproblems));
       max_subproblems_ = (int) (pre_factor_subproblems_number_ * total_subproblems);
       if (effective_subproblems_counter_ < max_subproblems_)//
@@ -1962,7 +1962,7 @@ void IJK_One_Dimensional_Subproblems::compute_overall_bubbles_quantities(IJK_The
   heat_flux_spherical_ = ref_thermal_subresolution.heat_flux_spherical_;
   mean_liquid_temperature_ = ref_thermal_subresolution.mean_liquid_temperature_;
 
-  velocity_upstream_ = ref_ijk_ft_->get_vitesse_upstream();
+  velocity_upstream_ = ref_ijk_ft_->eq_ns().get_vitesse_upstream();
   if (velocity_upstream_ < -1.e20)
     velocity_upstream_ = 0.;
   gravity_dir_ = ref_ijk_ft_->milieu_ijk().get_direction_gravite();

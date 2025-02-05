@@ -313,7 +313,7 @@ void IJK_Energie::euler_time_step(
   Cerr << "d_temperature(0,0,0) = " << d_temperature_(0, 0, 0) << finl;
   for (int k = 0; k < kmax; k++)
     {
-      ref_ijk_ft_->euler_explicit_update(d_temperature_, temperature_, k);
+      ref_ijk_ft_->eq_ns().euler_explicit_update(d_temperature_, temperature_, k);
     }
   temperature_.echange_espace_virtuel(temperature_.ghost());
   const double ene_post = compute_global_energy();

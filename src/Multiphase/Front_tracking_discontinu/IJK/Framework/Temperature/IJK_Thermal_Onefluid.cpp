@@ -221,7 +221,7 @@ void IJK_Thermal_Onefluid::compute_diffusion_increment()
               double rhocpV = 0;
               if (deprecated_rho_cp_)
                 {
-                  const double rho = ref_ijk_ft_->get_rho_field_ijk(i,j,k);
+                  const double rho = ref_ijk_ft_->eq_ns().get_rho_field_ijk(i,j,k);
                   const double cp = cp_(i,j,k);
                   rhocpV = rho * cp * vol_;
                 }
@@ -253,7 +253,7 @@ double IJK_Thermal_Onefluid::compute_rho_cp_u_mean(const IJK_Field_double& vx)
     {
       if (deprecated_rho_cp_)
         {
-          rho_cp_u_mean = calculer_rho_cp_u_moyen(vx, cp_, ref_ijk_ft_->get_rho_field(), 0., 0);
+          rho_cp_u_mean = calculer_rho_cp_u_moyen(vx, cp_, ref_ijk_ft_->eq_ns().get_rho_field(), 0., 0);
         }
       else
         {
@@ -280,7 +280,7 @@ double IJK_Thermal_Onefluid::get_rho_cp_ijk(int i, int j, int k) const
     {
       if (deprecated_rho_cp_)
         {
-          rho_cp = cp_(i,j,k) * (ref_ijk_ft_->get_rho_field_ijk(i,j,k));
+          rho_cp = cp_(i,j,k) * (ref_ijk_ft_->eq_ns().get_rho_field_ijk(i,j,k));
         }
       else
         {
@@ -317,7 +317,7 @@ double IJK_Thermal_Onefluid::compute_temperature_dimensionless_theta_mean(const 
     {
       if (deprecated_rho_cp_)
         {
-          theta_adim_moy = calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, cp_, ref_ijk_ft_->get_rho_field(), 0., 0);
+          theta_adim_moy = calculer_temperature_adimensionnelle_theta_moy(vx, temperature_adimensionnelle_theta_, cp_, ref_ijk_ft_->eq_ns().get_rho_field(), 0., 0);
         }
       else
         {
