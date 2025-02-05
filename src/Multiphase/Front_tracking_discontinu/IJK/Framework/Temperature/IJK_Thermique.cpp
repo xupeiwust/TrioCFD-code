@@ -255,7 +255,7 @@ int IJK_Thermique::initialize(const Domaine_IJK& splitting, const int idx)
   div_lambda_grad_T_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
   nalloc += 5;
 
-  if ((ref_ijk_ft_.non_nul()) and (!ref_ijk_ft_->disable_diphasique_))
+  if ((ref_ijk_ft_.non_nul()) and (!Option_IJK::DISABLE_DIPHASIQUE))
     {
       Cout << "Allocating fields temperature_ft_ and storage" << finl;
       allocate_cell_vector(storage_, ref_ijk_ft_->get_domaine_ft(), 1);

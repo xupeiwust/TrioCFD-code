@@ -29,6 +29,7 @@
 #include <sstream>
 #include <IJK_Thermals.h>
 #include <IJK_Thermal_cut_cell.h>
+#include <Option_IJK.h>
 
 /*
  * Take as main parameter reference to FT to be able to use its members.
@@ -36,7 +37,6 @@
 IJK_FT_Post::IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft) :
   statistiques_FT_(ijk_ft),
   ref_ijk_ft_(ijk_ft),
-  disable_diphasique_(ijk_ft.disable_diphasique_),
   interfaces_(ijk_ft.interfaces_),
   pressure_(ijk_ft.pressure_),
   velocity_(ijk_ft.velocity_),
@@ -438,7 +438,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       liste_post_instantanes_.add("GRAD_W");
       if (ref_ijk_ft_.forcage_.get_type_forcage() > 0)
         liste_post_instantanes_.add("FORCE_PH");
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         interfaces_.posttraiter_tous_champs(liste_post_instantanes_);
 
       {
@@ -923,7 +923,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
                            interfaces_.get_barycentre_vapeur_par_face()[2][2], latastep);
     }
 
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       interfaces_.update_surface_normale(); // necessaire avant posttraiter_champs_instantanes_thermique_interfaciaux
       n -= interfaces_.posttraiter_champs_instantanes(liste_post_instantanes_, lata_name, latastep);
@@ -945,7 +945,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       {
         int nb = posttraiter_champs_instantanes_thermique(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
         // Interfacial thermal fields :
-        if (!disable_diphasique_)
+        if (!Option_IJK::DISABLE_DIPHASIQUE)
           nb += posttraiter_champs_instantanes_thermique_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
 
         if (idx_therm == 0)
@@ -958,7 +958,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       {
         int nb = posttraiter_champs_instantanes_energie(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_en);
         // Interfacial thermal fields :
-        if (!disable_diphasique_)
+        if (!Option_IJK::DISABLE_DIPHASIQUE)
           nb += posttraiter_champs_instantanes_energie_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_en);
 
         if (idx_en == 0)
@@ -997,7 +997,7 @@ void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
       // (si calcul monophasique, on devrait avoir chi=1)
       for (int flag_valeur_instantanee = 0; flag_valeur_instantanee < 2; flag_valeur_instantanee++)
         {
-          if (disable_diphasique_)
+          if (Option_IJK::DISABLE_DIPHASIQUE)
             n = "monophasique_";
           else
             n = "diphasique_";
@@ -1017,7 +1017,7 @@ void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
               statistiques_FT_.postraiter_thermique(current_time); /* moyenne instantanee et temporelle */
 
               // S'il n'y a pas qu'un group, on posttraite les objets stats pour chaque group:
-              if ((!disable_diphasique_) && (interfaces_.nb_groups() > 1))
+              if ((!Option_IJK::DISABLE_DIPHASIQUE) && (interfaces_.nb_groups() > 1))
                 {
                   for (int igroup = 0; igroup < interfaces_.nb_groups(); igroup++)
                     {
@@ -1041,7 +1041,7 @@ void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
 // Si reset!=0, on efface le fichier avant d'ecrire, sinon on ajoute...
 void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const
 {
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
   statistiques().begin_count(postraitement_counter_);
@@ -1357,7 +1357,7 @@ statistiques().end_count(postraitement_counter_);
 
 void IJK_FT_Post::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const
 {
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
   statistiques().begin_count(postraitement_counter_);
@@ -1413,7 +1413,7 @@ void IJK_FT_Post::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas
 
 void IJK_FT_Post::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const
 {
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
   statistiques().begin_count(postraitement_counter_);
@@ -1470,7 +1470,7 @@ void IJK_FT_Post::update_stat_ft(const double dt)
   //interfaces_.calculer_volume_bulles(volume, position);
   static Stat_Counter_Id updtstat_counter_ = statistiques().new_counter(2, "update statistiques");
   statistiques().begin_count(updtstat_counter_);
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     {
       // Calcul du champ grad_P_:
       for (int dir = 0; dir < 3; dir++)
@@ -1828,7 +1828,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
         return source_spectrale_[2];
     }
   //
-  // if (disable_diphasique_)
+  // if (Option_IJK::DISABLE_DIPHASIQUE)
   {
     if (nom == "VELOCITY_ANA_X")
       return velocity_ana_[0];
@@ -2062,13 +2062,13 @@ int IJK_FT_Post::alloc_fields()
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   nalloc += 2;
-  if ((!disable_diphasique_) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
       ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       nalloc += 1;
     }
   // Pour les stats, on calcule kappa*ai :
-  if ((!disable_diphasique_) && ((t_debut_statistiques_ < 1.e10)))
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((t_debut_statistiques_ < 1.e10)))
     {
       kappa_ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       kappa_ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
@@ -2078,7 +2078,7 @@ int IJK_FT_Post::alloc_fields()
     }
 
   // For the pressure field extension:
-  if ((!disable_diphasique_)
+  if ((!Option_IJK::DISABLE_DIPHASIQUE)
       && ((liste_post_instantanes_.contient_("PRESSURE_LIQ")) || (liste_post_instantanes_.contient_("PRESSURE_VAP")) || (liste_post_instantanes_.contient_("TOUS")) || (t_debut_statistiques_ < 1.e10)))
     {
       extended_pressure_computed_ = 1;
@@ -2093,9 +2093,9 @@ int IJK_FT_Post::alloc_fields()
     extended_pressure_computed_ = 0;
 
   // Allocation du champ de normale aux cellules :
-  if ((!disable_diphasique_) && ((liste_post_instantanes_.contient_("NORMALE_INTERF")) || (liste_post_instantanes_.contient_("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
-                                 || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
-                                 || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((liste_post_instantanes_.contient_("NORMALE_INTERF")) || (liste_post_instantanes_.contient_("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
+                                            || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
+                                            || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
       allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
       nalloc += 3;
@@ -2899,9 +2899,9 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
   const double rho_phase = (phase==1) ? ref_ijk_ft_.rho_liquide_ : ref_ijk_ft_.rho_vapeur_;
   molecular_mu_.data() = mu_phase;
   rho_field_.data() = rho_phase;
-  const int store_value_disable_diphasique = ref_ijk_ft_.disable_diphasique_;
+  const int store_value_disable_diphasique = Option_IJK::DISABLE_DIPHASIQUE;
   IJK_Field_double& extended_p = (phase==1) ? extended_pl_ : extended_pv_;
-  ref_ijk_ft_.disable_diphasique_ = true;
+  Option_IJK::DISABLE_DIPHASIQUE = 1;
 
   ref_ijk_ft_.calculer_dv(virtual_timestep, ref_ijk_ft_.current_time_, -1 /* rk_step -> not in RK3 */);
   IJK_Field_vector3_double& dvdt = ref_ijk_ft_.d_velocity_; //
@@ -2910,7 +2910,7 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
   // Poisson solver applied to the calculated projection field
   pressure_projection(dvdt[0], dvdt[1],  dvdt[2], extended_p, 1/rho_phase,
                       rhs, ref_ijk_ft_.check_divergence_, poisson_solver_post_);
-  ref_ijk_ft_.disable_diphasique_ = store_value_disable_diphasique;
+  Option_IJK::DISABLE_DIPHASIQUE = store_value_disable_diphasique;
   {
     // Restore the one-fluid variables
     for (int k=0; k < interfaces_.In().nk() ; k++)

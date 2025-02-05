@@ -23,6 +23,7 @@
 #include <Probleme_FTD_IJK.h>
 #include <IJK_switch_FT.h>
 #include <IJK_switch.h>
+#include <Option_IJK.h>
 
 Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(IJK_Thermal) ) ;
 
@@ -195,14 +196,14 @@ void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
       for (auto& itr : (*this))
         {
           nalloc += itr->initialize(splitting, idth);
-          if (!ref_ijk_ft_->disable_diphasique())
+          if (!Option_IJK::DISABLE_DIPHASIQUE)
             itr->update_thermal_properties();
           const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
           thermal_rank_folder_.add(thermal_outputs_rank_base
                                    + Nom(std::string(max_digit - max_rank_digit, '0')) + Nom(idth));
           idth++;
         }
-      if (!ref_ijk_ft_->get_disable_diphasique())
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         {
           overall_bubbles_quantities_folder_ = Nom("overall_bubbles_quantities");
           interfacial_quantities_thermal_probes_folder_ = Nom("interfacial_quantities_thermal_probes");
@@ -347,7 +348,7 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
                                                           current_time,
                                                           idx_th);
       // Interfacial thermal fields :
-      if (!(ref_ijk_ft_->disable_diphasique()))
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         nb += itr.posttraiter_champs_instantanes_thermal_interface(liste_post_instantanes,
                                                                    lata_name,
                                                                    latastep,

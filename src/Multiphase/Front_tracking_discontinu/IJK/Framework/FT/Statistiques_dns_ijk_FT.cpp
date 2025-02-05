@@ -1005,7 +1005,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   const int offset = pression.get_domaine().get_offset_local(DIRECTION_K);
   const int periok = pression.get_domaine().get_periodic_flag(DIRECTION_K);
 
-  const bool dipha = (!cas.disable_diphasique_);
+  const bool dipha = (!Option_IJK::DISABLE_DIPHASIQUE);
   IJK_Field_local_double zero, zeros;
   zero.allocate(imax, jmax, kmax, 1 /* ghost pour le grad */, 1. /* additional_layers */, 1 /*nb compo*/);
   zeros.allocate(imax, jmax, kmax, 1 /* ghost pour le grad */, 1. /* additional_layers */, 3 /*nb compo*/);
@@ -1053,7 +1053,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   const IJK_Field_double& vitesse_k = vitesse[2];
 
   // GR262753 : travail forces interfaces
-  if (!cas.disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     compute_vecA_minus_vecB_in_vecA(force_interfaces, repulsion_interfaces);
 
   /*
@@ -1184,7 +1184,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
                                                               dVdx, dVdy, dVdz,
                                                               dWdx, dWdy, dWdz);
               double travail_Force_interfaces_vitesse = 0.;
-              if (!cas.disable_diphasique_)
+              if (!Option_IJK::DISABLE_DIPHASIQUE)
                 {
                   travail_Force_interfaces_vitesse = calculer_produit_scalaire_faces_to_center (
                                                        vitesse_i, vitesse_j, vitesse_k,
@@ -2615,7 +2615,7 @@ void Statistiques_dns_ijk_FT::postraiter_thermique(const double current_time) co
       Nom n("");
       for (int flag_valeur_instantanee=0; flag_valeur_instantanee<2; flag_valeur_instantanee++)
         {
-          if (ref_ijk_ft_->disable_diphasique_)
+          if (Option_IJK::DISABLE_DIPHASIQUE)
             n="monophasique_";
           else
             n="diphasique_";

@@ -897,7 +897,7 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       nalloc += 3;
     }
 
-  if (!is_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     return nalloc;
 
   refdomaine_dis_ = domaine_dis;
@@ -1080,7 +1080,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
 void IJK_Interfaces::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
-  is_diphasique_ =  1 - ref_ijk_ft_->disable_diphasique();
   ijk_compo_connex_.associer(ijk_ft);
   // liste_post_instantanes_ = ijk_ft.post_.get_liste_post_instantanes();
 }
@@ -7725,10 +7724,8 @@ void IJK_Interfaces::calculer_indicatrice_next(
 )
 {
   // En monophasique, les champs sont a jours donc on zap :
-  if (!is_diphasique_)
-    {
-      return;
-    }
+  if (Option_IJK::DISABLE_DIPHASIQUE)
+    return;
 
   static Stat_Counter_Id calculer_indicatrice_next_counter_ = statistiques().new_counter(2, "Calcul Indicatrice Next");
   statistiques().begin_count(calculer_indicatrice_next_counter_);
@@ -7972,10 +7969,8 @@ void IJK_Interfaces::calculer_indicatrice_intermediaire(
 )
 {
   // En monophasique, les champs sont a jours donc on zap :
-  if (!is_diphasique_)
-    {
-      return;
-    }
+  if (Option_IJK::DISABLE_DIPHASIQUE)
+    return;
 
   static Stat_Counter_Id calculer_indicatrice_next_counter_ = statistiques().new_counter(2, "Calcul Indicatrice Next");
   statistiques().begin_count(calculer_indicatrice_next_counter_);
@@ -8236,10 +8231,8 @@ void IJK_Interfaces::update_old_intersections()
 
 void IJK_Interfaces::switch_indicatrice_next_old()
 {
-  if (!is_diphasique_)
-    {
-      return;
-    }
+  if (Option_IJK::DISABLE_DIPHASIQUE)
+    return;
 
   old_en_premier_ = not old_en_premier_;
 

@@ -20,6 +20,7 @@
 #include <IJK_Navier_Stokes_tools.h>
 #include <Param.h>
 #include <stat_counters.h>
+#include <Option_IJK.h>
 
 Implemente_instanciable(IJK_Energie, "IJK_Energie", Objet_U);
 
@@ -172,7 +173,7 @@ int IJK_Energie::initialize(const Domaine_IJK& splitting, const int idx)
   energy_convection_op_quick_interface_.initialize(splitting);
 
 
-  if ((ref_ijk_ft_.non_nul()) and (!ref_ijk_ft_->disable_diphasique()))
+  if ((ref_ijk_ft_.non_nul()) and (!Option_IJK::DISABLE_DIPHASIQUE))
     {
       temperature_ft_.allocate(ref_ijk_ft_->get_domaine_ft(),
                                Domaine_IJK::ELEM, 1);

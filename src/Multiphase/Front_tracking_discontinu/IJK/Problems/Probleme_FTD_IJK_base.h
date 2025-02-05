@@ -281,7 +281,6 @@ public:
   void compute_var_volume_par_bulle(ArrOfDouble& var_volume_par_bulle);
 
   void write_qdm_corrections_information();
-  int disable_diphasique() const {return disable_diphasique_;}
   void update_rho_v();
   void update_v_ghost_from_rho_v();
   void update_pressure_phase();
@@ -473,10 +472,6 @@ public:
   {
     return rho_field_(i,j,k);
   }
-  int get_disable_diphasique() const
-  {
-    return disable_diphasique_;
-  }
 
 
   double rho_moyen_ = 0.;
@@ -635,14 +630,13 @@ public:
   friend class IJK_FT_Post;
   IJK_FT_Post post_;
 
-  const Nom& get_check_stop_file() const { return check_stop_file_; }
 
-  Nom check_stop_file_; // Nom du fichier stop
+
+
 
   //ab-sauv/repr-deb
 
   Nom fichier_post_ = "??"; // Nom du fichier post
-  int dt_sauvegarde_ = 2000000000;
   int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
   Nom nom_sauvegarde_;
   Nom nom_reprise_;
@@ -760,7 +754,6 @@ public:
   // Supprime l'appel a quelques fonctions qui n'ont pas de sens en monophasique :
   // comme par exemple : deplacer_interfaces,
   // calculer_rho_mu_indicatrice, ecrire_statistiques_bulles
-  int disable_diphasique_ = 0;
 
 
 

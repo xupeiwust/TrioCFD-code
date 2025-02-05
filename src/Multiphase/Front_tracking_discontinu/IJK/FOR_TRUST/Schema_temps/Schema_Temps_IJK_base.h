@@ -68,6 +68,7 @@ public :
   int& get_first_step_interface_smoothing() { return first_step_interface_smoothing_; }
   int get_first_step_interface_smoothing() const { return first_step_interface_smoothing_; }
   int get_enable_dt_oh_ideal_length_factor() const { return enable_dt_oh_ideal_length_factor_; }
+  int get_dt_sauvegarde() const { return dt_sauvegarde_; }
 
   double find_timestep(const double max_timestep, const double cfl, const double fo, const double oh);
 
@@ -78,6 +79,8 @@ public :
 
   void check_stop_criteria(bool& stop) const;
 
+  const Nom& get_check_stop_file() const { return check_stop_file_; }
+
 protected:
   double dt_cfl_ = 1.e20, dt_fo_ = 1.e20, dt_oh_ = 1.e20, dt_fo_liq_ = 1.e20;
   double dt_fo_vap_ = 1.e20, dt_cfl_liq_ = 1.e20, dt_cfl_vap_ = 1.e20;
@@ -87,6 +90,9 @@ protected:
 
   int enable_dt_oh_ideal_length_factor_ = 0, first_step_interface_smoothing_ = 0;
   int tstep_sauv_ = 0, tstep_init_ = 0, use_tstep_init_ = 0;
+  int dt_sauvegarde_ = 2000000000;
+
+  Nom check_stop_file_; // Nom du fichier stop
 };
 
 #endif /* Schema_Temps_IJK_base_included */

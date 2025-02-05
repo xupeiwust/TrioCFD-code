@@ -24,6 +24,7 @@
 #include <IJK_switch_FT.h>
 #include <IJK_Ghost_Fluid_tools.h>
 #include <IJK_Bubble_tools.h>
+#include <Option_IJK.h>
 
 Implemente_base_sans_constructeur( IJK_Thermal_base, "IJK_Thermal_base", Objet_U ) ;
 
@@ -408,7 +409,7 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   /*
    * Storage for temperature gradient post-processing or method
    */
-  if ((ref_ijk_ft_.non_nul()) && (!ref_ijk_ft_->get_disable_diphasique()))
+  if ((ref_ijk_ft_.non_nul()) && (!Option_IJK::DISABLE_DIPHASIQUE))
     {
       Cout << "Allocating fields temperature_ft_ and storage" << finl;
       allocate_cell_vector(storage_, ref_ijk_ft_->get_domaine_ft(), 1);

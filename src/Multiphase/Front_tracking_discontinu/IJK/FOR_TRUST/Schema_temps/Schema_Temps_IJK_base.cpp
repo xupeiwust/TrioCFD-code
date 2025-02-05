@@ -45,6 +45,9 @@ void Schema_Temps_IJK_base::set_param(Param& param)
   param.ajouter("max_simu_time", &max_simu_time_); // XD_ADD_P double maximum limit for the simulation time
   param.ajouter("tstep_init", &tstep_init_); // XD_ADD_P entier index first interation for recovery
   param.ajouter("use_tstep_init", &use_tstep_init_); // XD_ADD_P entier use tstep init for constant post-processing step
+  param.ajouter("check_stop_file", &check_stop_file_); // XD_ADD_P chaine stop file to check (if 1 inside this file, stop computation)
+  param.ajouter("dt_sauvegarde", &dt_sauvegarde_); // XD_ADD_P entier saving frequency (writing files for computation restart)
+
   param.ajouter_flag("enable_dt_oh_ideal_length_factor", &enable_dt_oh_ideal_length_factor_);
   param.ajouter_flag("first_step_interface_smoothing", &first_step_interface_smoothing_);
 }
@@ -205,15 +208,13 @@ void Schema_Temps_IJK_base::check_stop_criteria(bool& stop) const
   stop = false;
   // verification du fichier stop
   int stop_i = 0;
-  const Probleme_FTD_IJK_base& pb_ijk = ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
-  const Nom& check_stop_file = pb_ijk.get_check_stop_file();
 
-  if (check_stop_file != "??")
+  if (check_stop_file_ != "??")
     {
       if (je_suis_maitre())
         {
           EFichier f;
-          stop_i = f.ouvrir(check_stop_file);
+          stop_i = f.ouvrir(check_stop_file_);
           if (stop_i) // file exists, check if it contains 1
             f >> stop_i;
         }

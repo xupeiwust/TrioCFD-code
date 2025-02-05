@@ -154,7 +154,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   if (frozen_velocity_)
     {
       disable_solveur_poisson_=1; // automatically force the suppression of the poisson solver
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         {
           interfaces_.freeze();  // Stop the interfacial displacement.
           Cout << "The option frozen_velocity automatically freeze the interface motion "
@@ -483,8 +483,7 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("velocity_bubble_scope", &velocity_bubble_scope_);
 
 
-  param.ajouter("check_stop_file", &check_stop_file_); // XD_ADD_P chaine stop file to check (if 1 inside this file, stop computation)
-  param.ajouter("dt_sauvegarde", &dt_sauvegarde_); // XD_ADD_P entier saving frequency (writing files for computation restart)
+
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
   param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
@@ -544,7 +543,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter_flag("disable_diffusion_qdm", &disable_diffusion_qdm_); // XD_ADD_P rien Disable diffusion operator in momentum
   param.ajouter_flag("disable_source_interf", &disable_source_interf_); // XD_ADD_P rien Disable computation of the interfacial source term
   param.ajouter_flag("disable_convection_qdm", &disable_convection_qdm_); // XD_ADD_P rien Disable convection operator in momentum
-  param.ajouter_flag("disable_diphasique", &disable_diphasique_); // XD_ADD_P rien Disable all calculations related to interfaces (phase properties, interfacial force, ... )
   param.ajouter_flag("frozen_velocity", &frozen_velocity_); // XD_ADD_P chaine not_set
   param.ajouter_flag("velocity_reset", &velocity_reset_); // XD_ADD_P chaine not_set
   param.ajouter_flag("improved_initial_pressure_guess", &improved_initial_pressure_guess_); // XD_ADD_P chaine not_set
@@ -615,7 +613,7 @@ const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) con
   // IJK_Field_double & velocity = select_dir(direction, vx, vy, vz);
 
   // Dans ce cas, le champ velocity_ft_ n'est pas utilise :
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     {
       if (nom== "VELOCITY_X")
         return velocity_[0];
@@ -667,7 +665,7 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       dumpxyz_vector(*this, velocity_, xyz_name, true);
       // dumpxyz_vector(velocity_, xyz_name_ascii, false);
     }
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     interfaces_.sauvegarder_interfaces(lata_name, interf_name);
 
   // thermique_->sauvegarder_temperature(lata_name);
@@ -979,7 +977,7 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
   for (auto& itr : thermique_)
     {
       nalloc += itr.initialize(domaine_ijk_.valeur(), idx);
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         itr.update_thermal_properties();
       idx++;
     }
@@ -988,7 +986,7 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
   for (auto& itr : energie_)
     {
       nalloc += itr.initialize(domaine_ijk_.valeur(), idx2);
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         itr.update_thermal_properties();
       idx2++;
     }
@@ -1579,7 +1577,7 @@ void Probleme_FTD_IJK_base::calculer_terme_source_acceleration(IJK_Field_double&
   // -----------------------------------------------------------
   // Force interface (:"force sigma") seloon x,y,z et u.Force_interface
   double fs0(0),fs1(0),fs2(0),psn(0);
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       // FORCE INTERFACIALE : on veut un terme homogene a [rho.g]=[N.m^{-3}]
       // terme_source_interfaces_ns_       est homogene a [du/dt]=[m.s^{-2}]
@@ -1983,7 +1981,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
           if (test_etapes_et_bilan_)
             {
               terme_convection_mass_solver_[dir] = d_velocity_[dir];
-              if(!disable_diphasique_)
+              if(!Option_IJK::DISABLE_DIPHASIQUE)
                 {
                   for (int k=0; k<d_velocity_[dir].nk(); k++)
                     {
@@ -2029,7 +2027,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
             {
               terme_diffusion_mass_solver_[dir] = d_velocity_[dir];
               // terme_diffusion_mass_solver_ contient la diffusion et la convection
-              if (!disable_diphasique_)
+              if (!Option_IJK::DISABLE_DIPHASIQUE)
                 {
                   for (int k=0; k<terme_diffusion_mass_solver_[dir].nk(); k++)
                     {
@@ -2107,7 +2105,7 @@ void Probleme_FTD_IJK_base::calculer_dv(const double timestep, const double time
 
   // Calcul du terme source aux interfaces pour l'ajouter a dv :
   // ATTENZIONE : Questa è una bugia. I termini di interfaccia vengono aggiunti direttamente a velocity_!
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       for (int dir = 0; dir < 3; dir++)
         {
@@ -2659,7 +2657,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
   static Stat_Counter_Id deplacement_interf_counter_ = statistiques().new_counter(1, "Deplacement de l'interface");
   statistiques().begin_count(deplacement_interf_counter_);
 
-  if (disable_diphasique_ || interfaces_.is_frozen())
+  if (Option_IJK::DISABLE_DIPHASIQUE || interfaces_.is_frozen())
     return;
   //  Calculer vitesse_ft (etendue) a partir du champ de vitesse.
   {
@@ -2785,7 +2783,7 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
 void Probleme_FTD_IJK_base::deplacer_interfaces_rk3(const double timestep, const int rk_step,
                                                     ArrOfDouble& var_volume_par_bulle)
 {
-  if (disable_diphasique_ || interfaces_.is_frozen())
+  if (Option_IJK::DISABLE_DIPHASIQUE || interfaces_.is_frozen())
     return;
   //  Calculer vitesse_ft (etendue) a partir du champ de vitesse.
   static Stat_Counter_Id deplacement_interf_counter_ = statistiques().new_counter(1, "Deplacement de l'interface");
@@ -2901,7 +2899,7 @@ void Probleme_FTD_IJK_base::parcourir_maillage()
 void Probleme_FTD_IJK_base::maj_indicatrice_rho_mu(const bool parcourir)
 {
   // En monophasique, les champs sont a jours donc on zap :
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
   static Stat_Counter_Id calculer_rho_mu_indicatrice_counter_= statistiques().new_counter(2, "Calcul Rho Mu Indicatrice");
@@ -3663,11 +3661,11 @@ int Probleme_FTD_IJK_base::initialise_interfaces()
   const Domaine_dis_base& domaine_dis_ft = refprobleme_ft_disc_->domaine_dis();
 
   // TODO: a valider
-  // if (!disable_diphasique_)
+  // if (!Option_IJK::DISABLE_DIPHASIQUE)
   nalloc += interfaces_.initialize(domaine_ft_, domaine_ijk_.valeur(), domaine_dis_ft, thermal_probes_ghost_cells_);
 
   // On la met a jour 2 fois, une fois next et une fois old
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     update_twice_indicator_field();
 
   return nalloc;
@@ -3723,7 +3721,7 @@ void Probleme_FTD_IJK_base::initialize()
                rho_v = milieu_ijk().get_rho_vapour();
 
   // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
-  if (!disable_diphasique_ && boundary_conditions_.get_correction_interp_monofluide() == 1)
+  if (!Option_IJK::DISABLE_DIPHASIQUE && boundary_conditions_.get_correction_interp_monofluide() == 1)
     pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3, 0, 1, false, 1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
   else
     pressure_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 3);
@@ -3750,7 +3748,7 @@ void Probleme_FTD_IJK_base::initialize()
   I_ns_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
   kappa_ns_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
 
-  if (!disable_diphasique_ && (boundary_conditions_.get_correction_interp_monofluide() == 1 || boundary_conditions_.get_correction_interp_monofluide() == 2))
+  if (!Option_IJK::DISABLE_DIPHASIQUE && (boundary_conditions_.get_correction_interp_monofluide() == 1 || boundary_conditions_.get_correction_interp_monofluide() == 2))
     {
       molecular_mu_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2, 0, 1, false, 2, mu_v, mu_l);
       rho_field_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2, 0, 1, false, 2, rho_v, rho_l);
@@ -3841,7 +3839,7 @@ void Probleme_FTD_IJK_base::initialize()
 
   kappa_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 2);
 
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       auto fields = { &backup_terme_source_interfaces_ft_, &terme_source_interfaces_ns_, &backup_terme_source_interfaces_ns_, &terme_repulsion_interfaces_ns_, &terme_abs_repulsion_interfaces_ns_ };
 
@@ -3905,7 +3903,7 @@ void Probleme_FTD_IJK_base::preparer_calcul()
         {
           Cerr << "Improved initial pressure" << finl;
           maj_indicatrice_rho_mu();
-          if (!disable_diphasique_)
+          if (!Option_IJK::DISABLE_DIPHASIQUE)
             {
               /*
                * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
@@ -3922,7 +3920,7 @@ void Probleme_FTD_IJK_base::preparer_calcul()
           // Avec cette option, on essaye une initialisation basee sur le champ de pression diphasique
           // a l'equilibre, cad sans vitesse, ou a minima pour un champ a div(u)=0.
 
-          if (!disable_diphasique_)
+          if (!Option_IJK::DISABLE_DIPHASIQUE)
             {
               IJK_Field_vector3_double& coords = post_.coords();
 
@@ -3988,13 +3986,12 @@ void Probleme_FTD_IJK_base::preparer_calcul()
         }
     }
 
-
   const double mu_l = milieu_ijk().get_mu_liquid(),
                rho_l = milieu_ijk().get_rho_liquid(),
                rho_v = milieu_ijk().get_rho_vapour();
 
   // Si calcul monophasique, on initialise correctement rho, mu, I une fois pour toute :
-  if (disable_diphasique_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     {
       rho_field_.data() = rho_l;
       rho_moyen_ = rho_l;
@@ -4065,7 +4062,7 @@ void Probleme_FTD_IJK_base::preparer_calcul()
         }
     }
 
-  if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI") || post_.get_liste_post_instantanes().contient_("TOUS")))
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && (post_.get_liste_post_instantanes().contient_("VI") || post_.get_liste_post_instantanes().contient_("TOUS")))
     interfaces_.compute_vinterp();
 
   post_.postraiter_ci(lata_name_, schema_temps_ijk().get_current_time());
@@ -4084,8 +4081,8 @@ void Probleme_FTD_IJK_base::preparer_calcul()
       Cout << "AF posttraiter_champs_instantanes" << finl;
     }
 
-  // GB 2019.01.01 Why immobilisation? if (!disable_diphasique_ && coef_immobilisation_==0.)
-  if ((!disable_diphasique_) && suppression_rejetons_)
+  // GB 2019.01.01 Why immobilisation? if (!Option_IJK::DISABLE_DIPHASIQUE && coef_immobilisation_==0.)
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && suppression_rejetons_)
     interfaces_.detecter_et_supprimer_rejeton(true);
   if (reprise_)
     {
@@ -4617,15 +4614,17 @@ void Probleme_FTD_IJK_base::sauver() const
   Schema_Temps_IJK_base& sh_non_cst = const_cast<Schema_Temps_IJK_base&>(schema_temps_ijk()); // FIXME
 
   sh_non_cst.set_tstep_sauv(schema_temps_ijk().get_tstep() + schema_temps_ijk().get_tstep_init());
-  if (schema_temps_ijk().get_tstep_sauv() % dt_sauvegarde_ == dt_sauvegarde_ - 1 || stop_)
+  const int dt_sauvegarde = schema_temps_ijk().get_dt_sauvegarde();
+
+  if (schema_temps_ijk().get_tstep_sauv() % dt_sauvegarde == dt_sauvegarde - 1 || stop_)
     {
       // Choix : On supprime les duplicatas pour la sauvegarde.
       // On pourrait tres bien tout garder. ca serait plus leger en CPU, plus lourd en espace disque.
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         pb_non_cst.interfaces_.supprimer_duplicata_bulles();
 
       pb_non_cst.sauvegarder_probleme(nom_sauvegarde_, stop_);
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         {
           // On les recree :
           pb_non_cst.interfaces_.creer_duplicata_bulles();
@@ -4661,7 +4660,7 @@ void Probleme_FTD_IJK_base::validateTimeStep()
   // TODO: on pourrait mutualiser tous les parcourir maillages dans IJK_Interface au moment du transport de l'interface
   // et le supprimer de IJK_FT
   // interfaces_.parcourir_maillage();
-  if ((!disable_diphasique_) && (post_.get_liste_post_instantanes().contient_("VI")))
+  if ((!Option_IJK::DISABLE_DIPHASIQUE) && (post_.get_liste_post_instantanes().contient_("VI")))
     interfaces_.compute_vinterp();
 }
 
@@ -4691,7 +4690,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
 
   // Au cas ou on soit dans un cas ou des duplicatas sont necessaires mais n'ont pas ete
   // crees, on les cree :
-  if (!interfaces_.get_nb_bulles_ghost() && !disable_diphasique_)
+  if (!interfaces_.get_nb_bulles_ghost() && !Option_IJK::DISABLE_DIPHASIQUE)
     interfaces_.creer_duplicata_bulles();
 
   if ( sub_type(Schema_Euler_explicite_IJK, schema_temps_ijk()) )
@@ -4709,7 +4708,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
   if (!(qdm_corrections_.is_type_none()))
     {
       set_time_for_corrections();
-      if (disable_diphasique_)
+      if (Option_IJK::DISABLE_DIPHASIQUE)
         compute_and_add_qdm_corrections_monophasic();
       else
         compute_and_add_qdm_corrections();
@@ -4753,7 +4752,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
       pressure_.echange_espace_virtuel(1);
 
       post_.update_stat_ft(schema_temps_ijk().get_timestep());
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         post_.compute_extended_pressures(interfaces_.maillage_ft_ijk());
     }
 
@@ -4763,7 +4762,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
 void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle)
 {
   // Deplacement des interfaces par le champ de vitesse de l'instant n :
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       int counter_first_iter = 1;
       int& first_step_interface_smoothing = schema_temps_ijk().get_first_step_interface_smoothing(); // attention ref
@@ -4800,7 +4799,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle
   // met a jour la position des marqueurs, la vitesse_ft, et gere les duplicatas.
   // Ne met pas a jour rho_mu_indicatrice
 
-  if (!disable_diphasique_) // && !marker_advection_first_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE) // && !marker_advection_first_)
     {
       // Les sous-pas de temps sont termines. Il n'est plus necessaire de gerer le tableau
       // RK3_G_store_vi_. On peut donc transferer les bulles et re-creer les duplicatas :
@@ -4880,7 +4879,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
 
       // Mise a jour des positions des marqueurs.
       // Deplacement des interfaces par le champ de vitesse au sous pas de temps k :
-      if (!disable_diphasique_)
+      if (!Option_IJK::DISABLE_DIPHASIQUE)
         {
           deplacer_interfaces_rk3(timestep /* total */, rk_step, var_volume_par_bulle);
           parcourir_maillage();
@@ -4903,7 +4902,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
       // (sauf au dernier sous pas de temps pour lequel c'est fait a la fin du pas de temps)
       // TODO: verifier qu'on doit bien le faire aussi au dernier sous pas de temps : rk_step != 2 &&
       // TODO aym: verifier ce bloc, qui applique les sous pas de temps RK3 de la rustine a la temperature
-      if (rk_step != 2 && !disable_diphasique_)
+      if (rk_step != 2 && !Option_IJK::DISABLE_DIPHASIQUE)
         {
           // Attention, il faut que les duplicatas soient present pour faire maj_indicatrice_rho_mu :
           maj_indicatrice_rho_mu();
@@ -4937,7 +4936,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
           post_.posttraiter_champs_instantanes(lata_name_, current_time_at_rk3_step, rk3.get_tstep());
         }
     }
-  if (!disable_diphasique_)
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
       // Les sous-pas de temps sont termines. Il n'est plus necessaire de gerer le tableau
       // RK3_G_store_vi_. On peut donc transferer les bulles et re-creer les duplicatas :
@@ -5057,4 +5056,3 @@ bool Probleme_FTD_IJK_base::run()
 
   return ok;
 }
-;

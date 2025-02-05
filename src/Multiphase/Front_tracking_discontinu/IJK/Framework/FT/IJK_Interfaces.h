@@ -36,6 +36,7 @@
 #include <Cut_field.h>
 #include <Cut_cell_surface_efficace.h>
 #include <Domaine_dis_base.h>
+#include <Option_IJK.h>
 
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
@@ -883,28 +884,28 @@ public :
 
   void compute_compo_connex_from_bounding_box()
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return;
     ijk_compo_connex_.compute_bounding_box_fill_compo_connex();
   }
 
   void compute_compo_connex_from_interface()
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return;
     ijk_compo_connex_.compute_compo_connex_from_interface();
   }
 
   void initialise_ijk_compo_connex_bubbles_params()
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return;
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
   int allocate_ijk_compo_connex_fields(const Domaine_IJK& splitting, const int& allocate_compo_fields)
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return 0;
     return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
   }
@@ -915,7 +916,7 @@ public :
                                              const int& use_bubbles_velocities_from_interface,
                                              const int& use_bubbles_velocities_from_barycentres)
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return 0;
     return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
                                                                     compute_rising_velocities,
@@ -926,7 +927,7 @@ public :
 
   void compute_rising_velocities_from_compo()
   {
-    if (!is_diphasique_)
+    if (Option_IJK::DISABLE_DIPHASIQUE)
       return;
     ijk_compo_connex_.compute_rising_velocities();
   }
@@ -1208,8 +1209,6 @@ protected:
   // ou il y a des champs thermique ou d energie.
   // attention, ca desactive seulement le calcul, pas l'allocation.
   FixedVector<int,2> n_faces_mouilles_;
-
-  bool is_diphasique_ = true;
 
   // Surfaces vapeur des faces du maillage IJK
   FixedVector<IJK_Field_vector3_double, 2> surface_vapeur_par_face_;

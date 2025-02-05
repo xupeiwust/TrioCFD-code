@@ -380,7 +380,6 @@ protected:
    */
   Probleme_FTD_IJK_base& ref_ijk_ft_;
 
-  const int& disable_diphasique_;    // yes a ref, not a const value.
   const IJK_Interfaces& interfaces_;
   IJK_Field_double& pressure_;                   // non-const because some echange_espace_virtuel()
   IJK_Field_vector3_double& velocity_;   // non-const because some echange_espace_virtuel()
