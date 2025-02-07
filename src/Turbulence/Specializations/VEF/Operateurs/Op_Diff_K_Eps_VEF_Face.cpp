@@ -20,20 +20,10 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Op_Diff_K_Eps_VEF_Face.h>
-#include <Modele_turbulence_hyd_K_Eps.h>
-#include <Modele_turbulence_hyd_K_Eps_Realisable.h>
-#include <Modele_turbulence_hyd_K_Eps_Bicephale.h>
-#include <Champ_P1NC.h>
-#include <Periodique.h>
-#include <Neumann_paroi.h>
 #include <Paroi_hyd_base_VEF.h>
-
-#include <Champ_Uniforme.h>
-#include <Fluide_Incompressible.h>
-#include <Check_espace_virtuel.h>
 #include <Debog.h>
 
-Implemente_instanciable(Op_Diff_K_Eps_VEF_Face,"Op_Diff_K_Eps_VEF_P1NC",Op_Dift_VEF_base);
+Implemente_instanciable(Op_Diff_K_Eps_VEF_Face,"Op_Diff_K_Eps_VEF_P1NC",Op_Diff_K_Eps_VEF_base);
 
 Sortie& Op_Diff_K_Eps_VEF_Face::printOn(Sortie& s ) const
 {
@@ -42,16 +32,6 @@ Sortie& Op_Diff_K_Eps_VEF_Face::printOn(Sortie& s ) const
 Entree& Op_Diff_K_Eps_VEF_Face::readOn(Entree& s )
 {
   return s ;
-}
-
-void Op_Diff_K_Eps_VEF_Face::completer()
-{
-  Op_Dift_VEF_base::completer();
-
-  const RefObjU& modele_turbulence = equation().get_modele(TURBULENCE);
-  const Modele_turbulence_hyd_K_Eps& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps, modele_turbulence.valeur());
-  Prdt[0] = mod_turb.get_Prandtl_K();
-  Prdt[1] = mod_turb.get_Prandtl_Eps();
 }
 
 DoubleTab& Op_Diff_K_Eps_VEF_Face::ajouter(const DoubleTab& inconnue_org, DoubleTab& resu) const
@@ -72,22 +52,6 @@ DoubleTab& Op_Diff_K_Eps_VEF_Face::ajouter(const DoubleTab& inconnue_org, Double
       nu_turb_m(k,0) = nu_turb(k)/Prdt[0];
       nu_turb_m(k,1) = nu_turb(k)/Prdt[1];
     }
-
-//  int marq = phi_psi_diffuse(equation());
-//  const DoubleVect& porosite_face = equation().milieu().porosite_face(), &porosite_elem = equation().milieu().porosite_elem();
-//
-//  // soit on a div(phi nu grad inco) OU on a div(nu grad phi inco) : cela depend si on diffuse phi_psi ou psi
-//  modif_par_porosite_si_flag(nu_, nu, !marq, porosite_elem);
-//  modif_par_porosite_si_flag(nu_turb, nu_turb_m, !marq, porosite_elem);
-//  const DoubleTab& inconnue = modif_par_porosite_si_flag(inconnue_org, tab_inconnue, marq, porosite_face);
-
-//  assert_espace_virtuel_vect(nu);
-//  assert_espace_virtuel_vect(inconnue);
-//  assert_espace_virtuel_vect(nu_turb_m);
-
-//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter nu", nu_);
-//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter nu_turb", nu_turb_m);
-//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter inconnue_org", inconnue_org);
 
   ajouter_bord_gen<Type_Champ::SCALAIRE, true>(inconnue_org, resu, flux_bords_, nu_, nu_turb_m);
   ajouter_interne_gen<Type_Champ::SCALAIRE, true>(inconnue_org, resu, flux_bords_, nu_, nu_turb_m);
@@ -113,12 +77,7 @@ void Op_Diff_K_Eps_VEF_Face::contribuer_a_avec(const DoubleTab& inco, Matrice_Mo
     }
 
   int marq = phi_psi_diffuse(equation());
-//  const DoubleVect& porosite_elem = equation().milieu().porosite_elem();
-//
-//  // soit on a div(phi nu grad inco) OU on a div(nu grad phi inco) : cela depend si on diffuse phi_psi ou psi
-//  modif_par_porosite_si_flag(nu_, nu, !marq, porosite_elem);
-//  modif_par_porosite_si_flag(nu_turb_, nu_turb, !marq, porosite_elem);
-//
+
   DoubleVect porosite_eventuelle(equation().milieu().porosite_face());
   if (!marq) porosite_eventuelle = 1;
 

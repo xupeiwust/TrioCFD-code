@@ -32,7 +32,7 @@
 
 extern Stat_Counter_Id diffusion_counter_;
 
-Implemente_base(Op_Diff_K_Eps_VDF_base,"Op_Diff_K_Eps_VDF_base",Op_Diff_K_Eps_base);
+Implemente_base(Op_Diff_K_Eps_VDF_base,"Op_Diff_K_Eps_VDF_base",Op_Dift_VDF_base);
 
 Sortie& Op_Diff_K_Eps_VDF_base::printOn(Sortie& s) const { return s << que_suis_je(); }
 Entree& Op_Diff_K_Eps_VDF_base::readOn(Entree& s) { return s; }
@@ -45,9 +45,6 @@ void Op_Diff_K_Eps_VDF_base::completer()
   iter->set_name_champ_inco(equation().inconnue().le_nom().getString());
   iter->set_convective_op_pb_type(false /* diff op */, 0 /* pas pb_multiphase */);
 
-  diffuse_k_seul   = false;
-  diffuse_eps_seul = false;
-
   if(sub_type(Transport_K_Eps,mon_equation.valeur()))
     {
       const Transport_K_Eps& eqn_transport = ref_cast(Transport_K_Eps,mon_equation.valeur());
@@ -55,7 +52,9 @@ void Op_Diff_K_Eps_VDF_base::completer()
         {
           const Modele_turbulence_hyd_K_Eps& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps,eqn_transport.modele_turbulence());
           Eval_Diff_K_Eps_VDF_Elem& eval_diff = static_cast<Eval_Diff_K_Eps_VDF_Elem&> (iter->evaluateur());
+          const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
           eval_diff.associer_Pr_K_Eps(mod_turb.get_Prandtl_K(),mod_turb.get_Prandtl_Eps());
+          eval_diff.associer_diff_turb(diff_turb);
         }
     }
   else if(sub_type(Transport_K_Eps_Realisable,mon_equation.valeur()))
@@ -65,31 +64,40 @@ void Op_Diff_K_Eps_VDF_base::completer()
         {
           const Modele_turbulence_hyd_K_Eps_Realisable& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Realisable,eqn_transport.modele_turbulence());
           Eval_Diff_K_Eps_VDF_Elem& eval_diff = static_cast<Eval_Diff_K_Eps_VDF_Elem&> (iter->evaluateur());
+          const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
           eval_diff.associer_Pr_K_Eps(mod_turb.get_Prandtl_K(),mod_turb.get_Prandtl_Eps());
+          eval_diff.associer_diff_turb(diff_turb);
         }
     }
   else if(sub_type(Transport_K_ou_Eps,mon_equation.valeur())) // Bicephale
     {
       const Transport_K_ou_Eps& eqn_transport = ref_cast(Transport_K_ou_Eps,mon_equation.valeur());
 
-      if ( eqn_transport.transporte_t_il_K( ) ) diffuse_k_seul = true;
-      else diffuse_eps_seul = true;
-
       if(sub_type( Modele_turbulence_hyd_K_Eps_Bicephale,eqn_transport.modele_turbulence()))
         {
           const Modele_turbulence_hyd_K_Eps_Bicephale& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Bicephale,eqn_transport.modele_turbulence());
-          if ( diffuse_k_seul )
+          const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
+          if ( eqn_transport.transporte_t_il_K( ) )
             {
               Eval_Diff_K_VDF_Elem& eval_diff = static_cast<Eval_Diff_K_VDF_Elem&> (iter->evaluateur());
               eval_diff.associer_Pr_K_Eps(mod_turb.get_Prandtl_K(),mod_turb.get_Prandtl_Eps());
+              eval_diff.associer_diff_turb(diff_turb);
             }
           else
             {
               Eval_Diff_Eps_VDF_Elem& eval_diff = static_cast<Eval_Diff_Eps_VDF_Elem&> (iter->evaluateur());
               eval_diff.associer_Pr_K_Eps(mod_turb.get_Prandtl_K(),mod_turb.get_Prandtl_Eps());
+              eval_diff.associer_diff_turb(diff_turb);
             }
         }
     }
+  // association de la masse_volumique (pour le QC)
+  {
+    Eval_Diff_K_Eps_VDF& eval_diff = dynamic_cast<Eval_Diff_K_Eps_VDF&> (iter->evaluateur());
+    const Fluide_base& mil = ref_cast(Fluide_base,mon_equation->milieu());
+    const Champ_base& mvol = mil.masse_volumique();
+    eval_diff.associer_mvolumique(mvol);
+  }
 }
 
 void Op_Diff_K_Eps_VDF_base::associer_diffusivite(const Champ_base& ch_diff)
@@ -102,51 +110,6 @@ const Champ_base& Op_Diff_K_Eps_VDF_base::diffusivite() const
 {
   const Eval_Diff_K_Eps_VDF& eval_diff_turb = dynamic_cast<const Eval_Diff_K_Eps_VDF&> (iter->evaluateur());
   return eval_diff_turb.diffusivite();
-}
-
-void Op_Diff_K_Eps_VDF_base::associer_diffusivite_turbulente()
-{
-  assert(mon_equation.non_nul());
-  if(sub_type(Transport_K_Eps_base,mon_equation.valeur()))
-    {
-      const Transport_K_Eps_base& eqn_transport = ref_cast(Transport_K_Eps_base,mon_equation.valeur());
-      {
-        const Modele_turbulence_hyd_RANS_K_Eps_base& mod_turb = ref_cast(Modele_turbulence_hyd_RANS_K_Eps_base,eqn_transport.modele_turbulence());
-        const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
-        Eval_Diff_K_Eps_VDF& eval_diff = dynamic_cast<Eval_Diff_K_Eps_VDF&> (iter->evaluateur());
-        eval_diff.associer_diff_turb(diff_turb);
-      }
-    }
-  else if(sub_type(Transport_K_ou_Eps_base,mon_equation.valeur()))
-    {
-      const Transport_K_ou_Eps_base& eqn_transport = ref_cast(Transport_K_ou_Eps_base,mon_equation.valeur());
-      {
-        const Modele_turbulence_hyd_RANS_Bicephale_base& mod_turb = ref_cast(Modele_turbulence_hyd_RANS_Bicephale_base,eqn_transport.modele_turbulence());
-        const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
-        if ( eqn_transport.transporte_t_il_K( ) )
-          {
-            Eval_Diff_K_VDF_Elem& eval_diff = static_cast<Eval_Diff_K_VDF_Elem&> (iter->evaluateur());
-            eval_diff.associer_diff_turb(diff_turb);
-          }
-        else
-          {
-            Eval_Diff_Eps_VDF_Elem& eval_diff = static_cast<Eval_Diff_Eps_VDF_Elem&> (iter->evaluateur());
-            eval_diff.associer_diff_turb(diff_turb);
-          }
-      }
-    }
-  else
-    {
-      Cerr<<" erreur dans Op_Diff_K_Eps_VDF_base::associer_diffusivite ... cas non prevu "<<finl;
-      Process::exit();
-    }
-  // association de la masse_volumique (pour le QC)
-  {
-    Eval_Diff_K_Eps_VDF& eval_diff = dynamic_cast<Eval_Diff_K_Eps_VDF&> (iter->evaluateur());
-    const Fluide_base& mil = ref_cast(Fluide_base,mon_equation->milieu());
-    const Champ_base& mvol = mil.masse_volumique();
-    eval_diff.associer_mvolumique(mvol);
-  }
 }
 
 const Champ_Fonc_base& Op_Diff_K_Eps_VDF_base::diffusivite_turbulente() const

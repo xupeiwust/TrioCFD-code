@@ -74,7 +74,7 @@ DoubleTab& Source_Transport_VDF_Elem_base::ajouter_keps(DoubleTab& resu) const
       calcul_D_E(vit,visco_turb,ch_visco_cin,D,E); // voir les classes filles
       D.echange_espace_virtuel();
       E.echange_espace_virtuel();
-      const Champ_base& ch_visco_cin_ou_dyn =ref_cast(Op_Diff_K_Eps_base, equation().operateur(0).l_op_base()).diffusivite();
+      const Champ_base& ch_visco_cin_ou_dyn =ref_cast(Operateur_Diff_base, equation().operateur(0).l_op_base()).diffusivite();
       DoubleTab P_tab;
       P_tab.ref(P);
       calcul_F1_F2(ch_visco_cin_ou_dyn,P_tab,D,F1,F2); // voir les classes filles

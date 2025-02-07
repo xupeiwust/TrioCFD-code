@@ -18,32 +18,42 @@
  *   Les methodes pour l'implicite sont codees.
  *
  */
-#ifndef Op_Diff_K_Eps_VEF_Face_included
-#define Op_Diff_K_Eps_VEF_Face_included
+#ifndef Op_Diff_K_Eps_VEF_base_included
+#define Op_Diff_K_Eps_VEF_base_included
 
-#include <Op_Dift_VEF_Face_Gen.h>
-#include <Op_Diff_K_Eps_VEF_base.h>
+#define PRDT_K_DEFAUT 1
+#define PRDT_EPS_DEFAUT 1.3
+
+#include <Op_Dift_VEF_base.h>
+#include <Op_VEF_Face.h>
+#include <TRUST_Ref.h>
 
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// CLASS: Op_Diff_K_Eps_VEF_Face
+// CLASS: Op_Diff_K_Eps_VEF_base
 //
 //////////////////////////////////////////////////////////////////////////////
 
-class Op_Diff_K_Eps_VEF_Face : public Op_Diff_K_Eps_VEF_base, public Op_Dift_VEF_Face_Gen<Op_Diff_K_Eps_VEF_Face>
+class Op_Diff_K_Eps_VEF_base : public Op_Dift_VEF_base
 {
 
-  Declare_instanciable(Op_Diff_K_Eps_VEF_Face);
+  Declare_instanciable_sans_constructeur(Op_Diff_K_Eps_VEF_base);
+
+  Op_Diff_K_Eps_VEF_base(double Prandt_K = PRDT_K_DEFAUT, double Prandt_Eps = PRDT_EPS_DEFAUT ) : Prdt_K(Prandt_K) , Prdt_Eps(Prandt_Eps)
+  {
+    Prdt[0]=Prandt_K;
+    Prdt[1]=Prandt_Eps;
+  }
 
 public:
 
-  DoubleTab& ajouter(const DoubleTab&, DoubleTab&) const override; // pour l'explicite
+  void completer() override;
 
-  void contribuer_a_avec(const DoubleTab&, Matrice_Morse&) const override; // pour l'implicite
-
-  void modifier_pour_Cl(Matrice_Morse& matrice, DoubleTab& secmem) const override;
-
+protected:
+  double Prdt_K;
+  double Prdt_Eps;
+  double Prdt[2];
 
 };
 
