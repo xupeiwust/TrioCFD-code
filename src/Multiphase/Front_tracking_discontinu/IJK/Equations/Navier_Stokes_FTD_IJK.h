@@ -252,7 +252,7 @@ protected:
   Redistribute_Field redistribute_from_splitting_ft_elem_ghostz_max_;
   Redistribute_Field redistribute_to_splitting_ft_elem_;
 
-  OBS_PTR(Fluide_base) le_fluide;
+  OBS_PTR(Milieu_base) le_fluide;
   Multigrille_Adrien poisson_solver_;
 
   Noms expression_vitesse_initiale_; // on attend trois expressions

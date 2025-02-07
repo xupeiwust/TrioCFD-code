@@ -48,10 +48,10 @@
 Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Probleme_FT_Disc_gen);
 // XD Probleme_FTD_IJK_base interprete Probleme_FTD_IJK_base 1 not_set
 
-Probleme_FTD_IJK_base::Probleme_FTD_IJK_base():  post_(IJK_FT_Post(*this)) , thermals_(IJK_Thermals(*this)) {  }
+Probleme_FTD_IJK_base::Probleme_FTD_IJK_base() {  }
 
 Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
-  Probleme_FT_Disc_gen(x), post_(IJK_FT_Post(*this))
+  Probleme_FT_Disc_gen(x)
 {
   exit();
 }
@@ -225,7 +225,12 @@ void Probleme_FTD_IJK_base::completer()
   milieu_ijk().calculate_direction_gravite(); // pour rotation
 
   for (auto& itr : equations_)
-    itr->completer(); // NS pour le moment
+    {
+      itr->associer_milieu_base(milieu_ijk()); // NS pour le moment
+      itr->completer(); // NS pour le moment
+    }
+
+  post_.associer_probleme(*this);
 
   build_vdf_domaine();
 
@@ -243,6 +248,7 @@ void Probleme_FTD_IJK_base::completer()
     itr.associer(*this);
 
   thermals_.associer(*this);
+
 
   schema_temps_ijk().completer();
 

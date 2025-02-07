@@ -27,11 +27,6 @@
 
 Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(IJK_Thermal) ) ;
 
-IJK_Thermals::IJK_Thermals(const Probleme_FTD_IJK_base& ijk_ft) : IJK_Thermals()
-{
-  ref_ijk_ft_ = ijk_ft;
-}
-
 Sortie& IJK_Thermals::printOn( Sortie& os ) const
 {
   return os;
@@ -60,6 +55,7 @@ const Nom& IJK_Thermals::get_fichier_reprise()
 
 void IJK_Thermals::associer(const Probleme_FTD_IJK_base& ijk_ft)
 {
+  ref_ijk_ft_ = ijk_ft;
   associer_post(ijk_ft.get_post());
   associer_interface_intersections(ijk_ft.itfce().get_intersection_ijk_cell(), ijk_ft.itfce().get_intersection_ijk_face());
   for (auto& itr : *this)

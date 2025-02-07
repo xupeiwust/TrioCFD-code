@@ -228,7 +228,7 @@ void Navier_Stokes_FTD_IJK::associer_milieu_base(const Milieu_base& un_milieu)
 {
   if (sub_type(Fluide_Diphasique_IJK, un_milieu))
     {
-      const Fluide_base& un_fluide = ref_cast(Fluide_base, un_milieu);
+      const Milieu_base& un_fluide = ref_cast(Milieu_base, un_milieu);
       le_fluide = un_fluide;
     }
   else
@@ -3728,7 +3728,7 @@ void Navier_Stokes_FTD_IJK::sauvegarder_equation(SFichier& fichier) const
           << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
           << " fichier_reprise_vitesse " << basename(probleme_ijk().get_lata_name()) << "\n";
   fichier << " timestep_reprise_vitesse 1" << "\n"
-          << " interfaces " << interfaces_  << "\n";
+          << " interfaces " << interfaces_.valeur()  << "\n";
   fichier << " forcage " << forcage_ << "\n"
           << " corrections_qdm " << qdm_corrections_;
 

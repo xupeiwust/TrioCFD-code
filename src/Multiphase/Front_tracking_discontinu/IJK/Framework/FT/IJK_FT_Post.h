@@ -45,8 +45,9 @@ class IJK_FT_Post
   friend class Statistiques_dns_ijk_FT;
 
 public:
-  IJK_FT_Post(Probleme_FTD_IJK_base& ijk_ft);
+  IJK_FT_Post();
   void complete_interpreter(Param& param, Entree& e);
+  void associer_probleme(const Probleme_FTD_IJK_base& );
 
   void associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft);
   int initialise(int reprise);
@@ -378,23 +379,23 @@ protected:
   /*
    * References to various members of Probleme_FTD_IJK_base that are heavily used in the post:
    */
-  Probleme_FTD_IJK_base& ref_ijk_ft_;
+  OBS_PTR( Probleme_FTD_IJK_base) ref_ijk_ft_;
 
-  const IJK_Interfaces& interfaces_;
-  IJK_Field_double& pressure_;                   // non-const because some echange_espace_virtuel()
-  IJK_Field_vector3_double& velocity_;   // non-const because some echange_espace_virtuel()
-  IJK_Field_vector3_double& source_spectrale_;   // non-const because some echange_espace_virtuel()
-  IJK_Field_vector3_double& bk_tsi_ns_;
+  OBS_PTR( IJK_Interfaces) interfaces_;
+  OBS_PTR(IJK_Field_double) pressure_;                   // non-const because some echange_espace_virtuel()
+  OBS_PTR(IJK_Field_vector3_double) velocity_;   // non-const because some echange_espace_virtuel()
+  OBS_PTR(IJK_Field_vector3_double) source_spectrale_;   // non-const because some echange_espace_virtuel()
+  OBS_PTR(IJK_Field_vector3_double) bk_tsi_ns_;
   IJK_Field_vector3_double source_interface_ft_;   // non-const because some echange_espace_virtuel()
   IJK_Field_vector3_double source_interface_ns_;   // non-const because some echange_espace_virtuel()
   IJK_Field_vector3_double repulsion_interface_ns_;   // non-const because some echange_espace_virtuel()
-  const IJK_Field_vector3_double& d_velocity_;
+  OBS_PTR(IJK_Field_vector3_double) d_velocity_;
 
   OBS_PTR(Domaine_IJK) domaine_ijk_;
   OBS_PTR(Domaine_IJK) domaine_ft_;
-  LIST(IJK_Thermique)& thermique_;
-  LIST(IJK_Energie)& energie_;
-  IJK_Thermals& thermals_;
+  OBS_PTR(LIST(IJK_Thermique)) thermique_;
+  OBS_PTR(LIST(IJK_Energie)) energie_;
+  OBS_PTR(IJK_Thermals) thermals_;
   int first_step_thermals_post_=0;
 
   /* IJK_Field_double temperature_ana_, ecart_t_ana_;

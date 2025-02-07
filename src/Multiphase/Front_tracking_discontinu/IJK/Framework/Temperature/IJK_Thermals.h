@@ -37,7 +37,6 @@ class IJK_Thermals : public LIST(IJK_Thermal)
   Declare_instanciable( IJK_Thermals ) ;
 
 public :
-  IJK_Thermals(const Probleme_FTD_IJK_base& ijk_ft);
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise();
   void associer(const Probleme_FTD_IJK_base& ijk_ft);

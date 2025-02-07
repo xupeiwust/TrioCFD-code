@@ -50,15 +50,6 @@ Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT():
   nb_thermal_fields_(0),
   nvalt_(0)
 {
-  Cerr << "The ref to the correct IJK_FT is filled later" << finl;
-}
-
-Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT(Probleme_FTD_IJK_base& ijk_ft):
-  check_stats_(0),
-  nb_thermal_fields_(0),
-  nvalt_(0),
-  ref_ijk_ft_(ijk_ft)
-{
 // I : Indicatrice.
 // Iv : Indicatrice vapeur (1. - chi)
   const char *noms_moyennes_prov[] =
@@ -949,6 +940,13 @@ Statistiques_dns_ijk_FT::Statistiques_dns_ijk_FT(Probleme_FTD_IJK_base& ijk_ft):
     noms_moyennes_temperature_[i]=noms_moyennes_provt[i];
 
 }
+
+
+void Statistiques_dns_ijk_FT::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
+{
+  ref_ijk_ft_ = ijk_ft;
+}
+
 
 // Les champs doivent tous etre sur le domaine ns normalement...
 // y compris ceux-ci :

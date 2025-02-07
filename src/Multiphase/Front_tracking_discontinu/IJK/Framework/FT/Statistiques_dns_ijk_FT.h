@@ -28,7 +28,7 @@ class Statistiques_dns_ijk_FT : public Statistiques_dns_ijk
   Declare_instanciable_sans_constructeur(Statistiques_dns_ijk_FT);
 public:
   Statistiques_dns_ijk_FT(); // Je ne sais pas compiler le Vect(Statistiques_dns_ijk_FT) sans lui...
-  Statistiques_dns_ijk_FT(Probleme_FTD_IJK_base& ijk_ft);
+  void associer_probleme(const Probleme_FTD_IJK_base&);
   using Statistiques_dns_ijk::initialize;
   void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK&);
   int initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK& splitting,
