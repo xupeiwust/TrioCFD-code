@@ -44,7 +44,7 @@ void IJK_FT_Post::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   statistiques_FT_.associer_probleme(ijk_ft);
-  interfaces_ = ref_ijk_ft_->interfaces_;
+  interfaces_ = ref_ijk_ft_->get_interface();
   pressure_ = ref_ijk_ft_->eq_ns().pressure_;
   velocity_ = ref_ijk_ft_->eq_ns().velocity_;
   source_spectrale_ = ref_ijk_ft_->eq_ns().forcage_.get_force_ph2();
@@ -484,7 +484,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       n--;
       if ( ns.coef_immobilisation_ > 1e-16)
         {
-          if (!ref_ijk_ft_->interfaces_.get_forcing_method())
+          if (!ref_ijk_ft_->get_interface().get_forcing_method())
             for (int dir = 0; dir < 3; dir++)
               ns.redistribute_from_splitting_ft_faces_[dir].redistribute( ns.force_rappel_ft_[dir], ns.force_rappel_[dir]);
           dumplata_vector(lata_name, "EXTERNAL_FORCE",  ns.force_rappel_[0],  ns.force_rappel_[1],  ns.force_rappel_[2], latastep);

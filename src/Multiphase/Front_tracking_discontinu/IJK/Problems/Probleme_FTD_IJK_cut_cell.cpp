@@ -34,7 +34,7 @@ Entree& Probleme_FTD_IJK_cut_cell::readOn(Entree& is)
     seuil_indicatrice_petite = schema_temps_ijk().get_timestep_facsec()*seuil_indicatrice_petite_facsec_;
   else
     seuil_indicatrice_petite = seuil_indicatrice_petite_fixe_;
-  interfaces_.set_seuil_indicatrice_petite(seuil_indicatrice_petite);
+  get_interface().set_seuil_indicatrice_petite(seuil_indicatrice_petite);
   Cerr << "Le seuil pour l'indicatrice des petites cellules est : " << seuil_indicatrice_petite << finl;
 
   return is;
@@ -64,13 +64,14 @@ void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
 void Probleme_FTD_IJK_cut_cell::initialize()
 {
   Cerr << "Probleme_FTD_IJK_cut_cell::initialize()" << finl;
+  IJK_Interfaces& interf = get_interface();
 
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
-  cut_cell_disc_.initialise(interfaces_, domaine_ijk_.valeur(), Domaine_IJK::ELEM);
+  cut_cell_disc_.initialise(interf, domaine_ijk_.valeur(), Domaine_IJK::ELEM);
   post_.activate_cut_cell();
-  interfaces_.activate_cut_cell();
+  interf.activate_cut_cell();
 
-  cut_cell_facettes_interpolation_.associer(interfaces_, cut_cell_disc_, domaine_ft_, interfaces_.maillage_ft_ijk(), interfaces_.old_maillage_ft_ijk());
+  cut_cell_facettes_interpolation_.associer(interf, cut_cell_disc_, domaine_ft_, interf.maillage_ft_ijk(), interf.old_maillage_ft_ijk());
 
   domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
 
@@ -101,7 +102,7 @@ void Probleme_FTD_IJK_cut_cell::update_indicator_field()
   // La suppression des cellules mortes est vraiment au tout dernier moment,
   // pour laisser la possibilite d'utiliser ces cellules lors des bilans
   // pour determiner l'indicatrice cible du remaillage.
-  cut_cell_disc_.remove_dead_and_virtual_cells(interfaces_.In());
+  cut_cell_disc_.remove_dead_and_virtual_cells(get_interface().In());
 
   Probleme_FTD_IJK_base::update_indicator_field();
 }
@@ -113,15 +114,16 @@ void Probleme_FTD_IJK_cut_cell::update_twice_indicator_field()
       update_indicator_field();
       update_old_intersections();
     }
+  IJK_Interfaces& interf = get_interface();
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interf.I(), interf.In());
 
   // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   cut_cell_perform_interpolation_facettes();
 
   // Calcul pour le temps old() egalement, de telle maniere a ce que les coefficients next() et old() sont initialises
-  cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_old(interfaces_.old());
+  cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_old(interf.old());
 
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
@@ -134,6 +136,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
                                                     const int first_step_interface_smoothing)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
+  IJK_Interfaces& interf = get_interface();
 
   thermals_.echange_diph_vers_pure_cellules_finalement_pures();
   thermals_.vide_phase_invalide_cellules_diphasiques();
@@ -146,7 +149,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
   Probleme_FTD_IJK_base::deplacer_interfaces(timestep, rk_step, var_volume_par_bulle, first_step_interface_smoothing);
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interf.I(), interf.In());
 
   // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   cut_cell_perform_interpolation_facettes();
@@ -156,20 +159,21 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
-  interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
-  interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
+  interf.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
+  interf.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
 
-  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, schema_temps_ijk().get_timestep(), cut_field_velocity);
-  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, schema_temps_ijk().get_timestep(), cut_field_velocity);
+  interf.calcul_surface_efficace_face(type_surface_efficace_face_, schema_temps_ijk().get_timestep(), cut_field_velocity);
+  interf.calcul_surface_efficace_interface(type_surface_efficace_interface_, schema_temps_ijk().get_timestep(), cut_field_velocity);
 
-  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && schema_temps_ijk().get_tstep() % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
-    interfaces_.imprime_bilan_indicatrice();
+  if (interf.get_dt_impression_bilan_indicatrice() >= 0 && schema_temps_ijk().get_tstep() % interf.get_dt_impression_bilan_indicatrice() == interf.get_dt_impression_bilan_indicatrice() - 1)
+    interf.imprime_bilan_indicatrice();
 }
 
 void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, const int rk_step,
                                                         ArrOfDouble& var_volume_par_bulle)
 {
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
+  IJK_Interfaces& interf = get_interface();
 
   thermals_.echange_diph_vers_pure_cellules_finalement_pures();
   thermals_.vide_phase_invalide_cellules_diphasiques();
@@ -182,7 +186,7 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, c
   Probleme_FTD_IJK_base::deplacer_interfaces_rk3(timestep, rk_step, var_volume_par_bulle);
 
   // Mise a jour des structures cut-cell
-  cut_cell_disc_.update(interfaces_.I(), interfaces_.In());
+  cut_cell_disc_.update(interf.I(), interf.In());
 
   // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   cut_cell_perform_interpolation_facettes();
@@ -192,15 +196,15 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, c
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
 
-  interfaces_.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
-  interfaces_.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
+  interf.calcul_surface_efficace_face_initial(type_surface_efficace_face_);
+  interf.calcul_surface_efficace_interface_initial(type_surface_efficace_interface_);
 
   const double fractionnal_timestep = compute_fractionnal_timestep_rk3(timestep, ref_cast(Schema_RK3_IJK, schema_temps_ijk()).get_rk_step());
 
-  interfaces_.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_velocity);
-  interfaces_.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity);
+  interf.calcul_surface_efficace_face(type_surface_efficace_face_, fractionnal_timestep, cut_field_velocity);
+  interf.calcul_surface_efficace_interface(type_surface_efficace_interface_, fractionnal_timestep, cut_field_velocity);
 
-  if (interfaces_.get_dt_impression_bilan_indicatrice() >= 0 && schema_temps_ijk().get_tstep() % interfaces_.get_dt_impression_bilan_indicatrice() == interfaces_.get_dt_impression_bilan_indicatrice() - 1)
-    interfaces_.imprime_bilan_indicatrice();
+  if (interf.get_dt_impression_bilan_indicatrice() >= 0 && schema_temps_ijk().get_tstep() % interf.get_dt_impression_bilan_indicatrice() == interf.get_dt_impression_bilan_indicatrice() - 1)
+    interf.imprime_bilan_indicatrice();
 }
 

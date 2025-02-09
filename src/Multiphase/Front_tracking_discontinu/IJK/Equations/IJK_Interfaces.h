@@ -21,7 +21,7 @@
 #include <IJK_Field.h> // est-ce que j'en ai vraiment besoin ?
 #include <Linear_algebra_tools_impl.h>
 #include <Maillage_FT_IJK.h>
-#include <Objet_U.h>
+#include <Equation_base.h>
 #include <Parcours_interface.h>
 #include <Remaillage_FT_IJK.h>
 #include <SFichier.h>
@@ -49,19 +49,37 @@ class Switch_FT_double;
  *  (le maillage, les algo de remaillage, sauvegarde, reprise, etc)
  *
  */
-class IJK_Interfaces : public Objet_U
+class IJK_Interfaces : public Equation_base
 {
-
   Declare_instanciable(IJK_Interfaces);
   friend class IJK_Composantes_Connex;
 public :
+  /*
+   * Surcharge de l'eq base
+   */
+  void set_param(Param& titi) override { /* Do nothing */ }
+  void completer() override { /* Do nothing */ }
+  void associer_pb_base(const Probleme_base&) override;
+  void discretiser() override { /* Do nothing */ }
+  int preparer_calcul() override { return 1; }
+  const Milieu_base& milieu() const override;
+  Milieu_base& milieu() override;
+  void associer_milieu_base(const Milieu_base& ) override { /* Do nothing */ }
+  int nombre_d_operateurs() const override { return -123; }
+  const Operateur& operateur(int) const override { throw; }
+  Operateur& operateur(int) override { throw; }
+  const Champ_Inc_base& inconnue() const override { throw; }
+  Champ_Inc_base& inconnue() override { throw; }
+
+  Probleme_FTD_IJK_base& probleme_ijk();
+  const Probleme_FTD_IJK_base& probleme_ijk() const;
+
   int initialize(const Domaine_IJK& splitting_FT,
                  const Domaine_IJK& splitting_NS,
                  const Domaine_dis_base& domaine_dis,
                  const int thermal_probes_ghost_cells=0,
                  const bool compute_vint=true,
                  const bool is_switch=false);
-  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
@@ -128,6 +146,8 @@ public :
   void transferer_bulle_perio(); // Les bulles trop proche du bord sont
   // deplacees a l'oppose, vers l'autre bord perio.
 
+  void update_indicatrice_variables_monofluides();
+
   void compute_vinterp();
   // methode pour bulles fixes
   void compute_external_forces_(IJK_Field_vector3_double& rappel_ft,
@@ -165,6 +185,12 @@ public :
 
   void activate_cut_cell();
   void imprime_bilan_indicatrice();
+
+  void set_fichier_reprise_interface(const Nom& prefix)
+  {
+    set_reprise(1);
+    fichier_reprise_interface_ = prefix + fichier_reprise_interface_;
+  }
 
   void calcul_surface_efficace_face(TYPE_SURFACE_EFFICACE_FACE type_surface_efficace_face, double timestep, const Cut_field_vector3_double& total_velocity);
   void calcul_surface_efficace_interface(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface, double timestep, const Cut_field_vector3_double& velocity);

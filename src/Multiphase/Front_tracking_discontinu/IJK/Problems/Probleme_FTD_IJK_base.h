@@ -140,13 +140,6 @@ public :
   const IJK_FT_Post& get_post() const { return post_; }
   IJK_FT_Post& get_post() { return post_; }
 
-  const Maillage_FT_IJK& get_maillage_ft_ijk() const { return interfaces_.maillage_ft_ijk(); }
-  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { return interfaces_.remaillage_ft_ijk(); }
-
-  const IJK_Interfaces& get_interface() const { return interfaces_; }
-  const IJK_Interfaces& itfce() const { return interfaces_; }
-  IJK_Interfaces& get_set_interface() { return interfaces_; }
-
   ArrOfDouble_with_ghost& get_delta_z_local() { return delta_z_local_; }
   const ArrOfDouble_with_ghost& get_delta_z_local() const { return delta_z_local_; }
 
@@ -180,9 +173,18 @@ public :
   const Navier_Stokes_FTD_IJK& eq_ns() const { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
   Navier_Stokes_FTD_IJK& eq_ns() { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
 
+  bool has_interface() const { return has_interface_; }
+  const Maillage_FT_IJK& get_maillage_ft_ijk() const { return get_interface().maillage_ft_ijk(); }
+  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { return get_interface().remaillage_ft_ijk(); }
+
+  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
+  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
+  const IJK_Interfaces& itfce() const { return get_interface(); }
+  IJK_Interfaces& get_set_interface() { return get_interface(); }
+
 protected:
+  bool has_interface_ = false;
   ArrOfDouble_with_ghost delta_z_local_;
-  IJK_Interfaces interfaces_;
   OBS_PTR(Domaine_IJK) domaine_ijk_;
   Domaine_IJK domaine_ft_;
   Nom lata_name_;

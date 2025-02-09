@@ -1676,7 +1676,7 @@ void IJK_Thermique::compute_interfacial_temperature(
   storage[DIRECTION_I].echange_espace_virtuel(storage[DIRECTION_I].ghost());
   storage[DIRECTION_J].echange_espace_virtuel(storage[DIRECTION_J].ghost());
   storage[DIRECTION_K].echange_espace_virtuel(storage[DIRECTION_K].ghost());
-  const Maillage_FT_IJK& maillage = ref_ijk_ft_->interfaces_.maillage_ft_ijk();
+  const Maillage_FT_IJK& maillage = ref_ijk_ft_->get_interface().maillage_ft_ijk();
   Cerr << "ca passe" << finl;
   const Intersections_Elem_Facettes& intersections = maillage.intersections_elem_facettes();
   Cerr << "c'est passe" << finl;
@@ -1766,7 +1766,7 @@ void IJK_Thermique::compute_interfacial_temperature2(
   const double dist = 1.52 * std::pow(std::pow(geom.get_constant_delta(0), 2.) +
                                       std::pow(geom.get_constant_delta(1), 2.) +
                                       std::pow(geom.get_constant_delta(2), 2.), 0.5 );
-  const Maillage_FT_IJK& maillage = ref_ijk_ft_->interfaces_.maillage_ft_ijk();
+  const Maillage_FT_IJK& maillage = ref_ijk_ft_->get_interface().maillage_ft_ijk();
   const DoubleTab& normale_facettes = maillage.get_update_normale_facettes();
   const ArrOfDouble& surface_facettes = maillage.get_update_surface_facettes();
   const int nb_facettes=maillage.nb_facettes();

@@ -45,7 +45,7 @@ public:
 
   void cut_cell_perform_interpolation_facettes()
   {
-    cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_next(interfaces_.next());
+    cut_cell_facettes_interpolation_.cut_cell_perform_interpolation_facettes_next(get_interface().next());
   }
 
 

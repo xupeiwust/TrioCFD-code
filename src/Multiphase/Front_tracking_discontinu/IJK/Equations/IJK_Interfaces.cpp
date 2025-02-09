@@ -51,7 +51,7 @@
 #define CLASSIC_METHOD 1
 #define BORD -10000
 
-Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Objet_U);
+Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Equation_base);
 
 IJK_Interfaces::IJK_Interfaces()
 {
@@ -682,6 +682,29 @@ void IJK_Interfaces::compute_vinterp()
     }
 }
 
+Probleme_FTD_IJK_base& IJK_Interfaces::probleme_ijk()
+{
+  return ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
+}
+
+const Probleme_FTD_IJK_base& IJK_Interfaces::probleme_ijk() const
+{
+  return ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
+}
+
+
+void IJK_Interfaces::update_indicatrice_variables_monofluides()
+{
+  Cerr << "Reset bubble rising velocity calculations" << finl;
+  reset_flags_and_counters();
+  Cerr << "Compute compo_connex from bounding box" << finl;
+  compute_compo_connex_from_bounding_box();
+  Cerr << "Compute compo_connex from interface compo in mixed cells" << finl;
+  compute_compo_connex_from_interface();
+  Cerr << "Compute rising velocity from compo connex (barycentre calc)" << finl;
+  compute_rising_velocities_from_compo();
+}
+
 int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
                                const Domaine_IJK& domaine_NS,
                                const Domaine_dis_base& domaine_dis,
@@ -1074,10 +1097,36 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
   return nalloc;
 }
 
-void IJK_Interfaces::associer(const Probleme_FTD_IJK_base& ijk_ft)
+const Milieu_base& IJK_Interfaces::milieu() const
 {
-  ref_ijk_ft_ = ijk_ft;
-  ijk_compo_connex_.associer(ijk_ft);
+  Cerr << "IJK_Interfaces::milieu not coded ! access it from NS. " << finl;
+  throw;
+}
+
+Milieu_base& IJK_Interfaces::milieu()
+{
+  Cerr << "IJK_Interfaces::milieu not coded ! access it from NS. " << finl;
+  throw;
+}
+
+void IJK_Interfaces::associer_pb_base(const Probleme_base& pb)
+{
+  if (!sub_type(Probleme_FTD_IJK_base, pb))
+    {
+      Cerr << "Error for the method IJK_Interfaces::associer_pb_base\n";
+      Cerr << " IJK_Interfaces equation must be associated to\n";
+      Cerr << " a Probleme_FTD_IJK_base problem type\n";
+      Process::exit();
+    }
+  mon_probleme = pb;
+  if (nom_ == "??")
+    {
+      nom_ = pb.le_nom();
+      nom_ += que_suis_je();
+    }
+
+  ref_ijk_ft_ = ref_cast(Probleme_FTD_IJK_base, pb);
+  ijk_compo_connex_.associer(ref_ijk_ft_.valeur());
   // liste_post_instantanes_ = ijk_ft.post_.get_liste_post_instantanes();
 }
 

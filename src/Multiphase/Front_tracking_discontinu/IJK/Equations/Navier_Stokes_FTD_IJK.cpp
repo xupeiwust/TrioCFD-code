@@ -193,7 +193,7 @@ void Navier_Stokes_FTD_IJK::associer_pb_base(const Probleme_base& pb)
     {
       Cerr << "Error for the method Navier_Stokes_FTD_IJK::associer_pb_base\n";
       Cerr << " Navier_Stokes_FTD_IJK equation must be associated to\n";
-      Cerr << " a Navier_Stokes_FTD_IJK problem type\n";
+      Cerr << " a Probleme_FTD_IJK_base problem type\n";
       Process::exit();
     }
   mon_probleme = pb;
