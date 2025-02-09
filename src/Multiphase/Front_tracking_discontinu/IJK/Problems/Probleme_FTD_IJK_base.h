@@ -111,6 +111,8 @@ public :
 
   IJK_Field_int& treatment_count() { return treatment_count_; }
   const IJK_Field_int& treatment_count() const { return treatment_count_; }
+  int new_treatment() const { return new_treatment_; }
+  int& new_treatment() { return new_treatment_; }
 
   const Nom& nom_sauvegarde() const { return nom_sauvegarde_; }
 
@@ -147,7 +149,6 @@ public :
   const IJK_Interfaces& itfce() const { return interfaces_; }
   IJK_Interfaces& get_set_interface() { return interfaces_; }
 
-
   ArrOfDouble_with_ghost& get_delta_z_local() { return delta_z_local_; }
   const ArrOfDouble_with_ghost& get_delta_z_local() const { return delta_z_local_; }
 
@@ -167,26 +168,16 @@ public :
   {
     if (dom == domaine_ft_)
       return refprobleme_ft_disc_.valeur();
-    Cerr << "Unrecognized domain provided" << finl;
-    Process::exit();
-    return refprobleme_ns_.valeur();
+    Process::exit("Unrecognized domain provided");
+    throw;
   }
   const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base& a) { throw ; }
 
   virtual Cut_cell_FT_Disc* get_cut_cell_disc()
   {
-    Cerr << "No cut fields are found." << finl;
-    Process::exit();
-    return nullptr;
+    Process::exit("No cut fields are found.");
+    throw;
   }
-
-  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
-  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
-  // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
-  IJK_Field_int treatment_count_;
-
-  // Compteur du dernier traitement effectue dans treatment_count_
-  int new_treatment_ = 0;
 
   const Navier_Stokes_FTD_IJK& eq_ns() const { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
   Navier_Stokes_FTD_IJK& eq_ns() { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
@@ -215,6 +206,14 @@ protected:
   void solveTimeStep_Euler(DoubleTrav&);
   void solveTimeStep_RK3(DoubleTrav&);
   void build_vdf_domaine();
+
+  // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
+  // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
+  // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
+  IJK_Field_int treatment_count_;
+
+  // Compteur du dernier traitement effectue dans treatment_count_
+  int new_treatment_ = 0;
 
   /*
    * XXX WILL BE REMOVED

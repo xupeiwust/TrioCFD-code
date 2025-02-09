@@ -292,17 +292,17 @@ void IJK_Thermal_cut_cell::recompute_temperature_init()
 void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_rk, int rk_step)
 {
   if (temperature_diffusion_op_.non_nul())
-    ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
+    ref_cast(OpDiffIJKScalar_cut_cell_double, temperature_diffusion_op_.valeur()).initialise_cut_cell(false, cut_cell_flux_diffusion_, ref_ijk_ft_cut_cell_->treatment_count(), ref_ijk_ft_cut_cell_->new_treatment());
   if (temperature_convection_op_.non_nul())
-    ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, false, cut_cell_flux_convection_, ref_ijk_ft_cut_cell_->treatment_count_, ref_ijk_ft_cut_cell_->new_treatment_);
+    ref_cast(OpConvQuickIJKScalar_cut_cell_double, temperature_convection_op_.valeur()).initialise_cut_cell(cut_cell_conv_scheme_, false, cut_cell_flux_convection_, ref_ijk_ft_cut_cell_->treatment_count(), ref_ijk_ft_cut_cell_->new_treatment());
 
   double fractional_timestep = (flag_rk) ? compute_fractionnal_timestep_rk3(total_timestep, rk_step) : total_timestep;
 
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
 
-  Cut_field_double& cut_field_temperature                   = static_cast<Cut_field_double&>(*temperature_);
-  Cut_field_double& cut_field_d_temperature                 = static_cast<Cut_field_double&>(*d_temperature_);
+  Cut_field_double &cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
+  Cut_field_double &cut_field_d_temperature = static_cast<Cut_field_double&>(*d_temperature_);
 
   CutCell_GlobalInfo ene_ini;
   CutCell_GlobalInfo d_ene_Conv;
