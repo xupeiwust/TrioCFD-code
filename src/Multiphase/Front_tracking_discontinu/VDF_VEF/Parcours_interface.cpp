@@ -24,6 +24,7 @@
 #include <Debog.h>
 #include <FTd_tools.h>
 #include <IJK_Navier_Stokes_tools.h>
+
 //#define EXTENSION_TRIANGLE_POUR_CALCUL_INDIC_AVEC_CONSERVATION_FACETTE_COIN
 Implemente_instanciable_sans_constructeur(Parcours_interface,"Parcours_interface",Objet_U);
 
@@ -62,22 +63,6 @@ Parcours_interface::Parcours_interface()
   parcours_sans_tolerance_ = 0;
 }
 
-/*! @brief La construction par copie est interdite !
- *
- */
-Parcours_interface::Parcours_interface(const Parcours_interface& a): Objet_U(a)
-{
-  Process::exit();
-}
-
-/*! @brief L'operateur = est interdit !
- *
- */
-const Parcours_interface& Parcours_interface::operator=(const Parcours_interface&)
-{
-  Process::exit();
-  return *this;
-}
 
 // Calcul de la valeur maximale des coordonnees du maillage fixe:
 void Parcours_interface::update_erreur_coords_max()

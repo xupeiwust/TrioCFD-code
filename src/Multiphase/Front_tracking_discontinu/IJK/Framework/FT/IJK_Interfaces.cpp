@@ -51,16 +51,12 @@
 #define CLASSIC_METHOD 1
 #define BORD -10000
 
-static const char *nom_par_defaut_interfaces = "INTERFACES";
 Implemente_instanciable_sans_constructeur(IJK_Interfaces, "IJK_Interfaces", Objet_U);
 
 IJK_Interfaces::IJK_Interfaces()
 {
-  lata_interfaces_meshname_ = nom_par_defaut_interfaces;
-
   positions_reference_.resize(0); // Par defaut, a dimensionner ensuite
   mean_force_.resize(0);          // Par defaut, a dimensionner ensuite
-
   compo_to_group_.resize(0); // Par defaut, a dimensionner ensuite par nb_bulles
 }
 
@@ -354,7 +350,7 @@ Sortie& IJK_Interfaces::printOn(Sortie& os) const
 Entree& IJK_Interfaces::readOn(Entree& is)
 {
   Param param(que_suis_je());
-  lata_interfaces_meshname_ = nom_par_defaut_interfaces; // This line is necessary for reprendre_probleme in Probleme_FTD_IJK_base
+  lata_interfaces_meshname_ = "INTERFACES"; // This line is necessary for reprendre_probleme in Probleme_FTD_IJK_base
 
   param.ajouter("bubble_groups", &compo_to_group_);
   param.ajouter("fichier_reprise_interface", &fichier_reprise_interface_, Param::REQUIRED); // XD_ADD_P  chaine not_set

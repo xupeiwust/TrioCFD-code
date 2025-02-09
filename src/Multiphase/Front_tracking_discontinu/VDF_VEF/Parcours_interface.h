@@ -53,22 +53,10 @@ public:
                                double x, double y, double z) const;
 
   double get_erreur_geometrique() const;
-  int get_correction_parcours_thomas() const
-  {
-    return correction_parcours_thomas_ ;
-  };
-  int get_parcours_sans_tolerance() const
-  {
-    return parcours_sans_tolerance_ ;
-  };
-  void set_correction_parcours_thomas()
-  {
-    correction_parcours_thomas_ = 1;
-  };
-  void set_parcours_sans_tolerance()
-  {
-    parcours_sans_tolerance_ = 1;
-  };
+  int get_correction_parcours_thomas() const { return correction_parcours_thomas_ ; }
+  int get_parcours_sans_tolerance() const { return parcours_sans_tolerance_ ; }
+  void set_correction_parcours_thomas() { correction_parcours_thomas_ = 1; }
+  void set_parcours_sans_tolerance() { parcours_sans_tolerance_ = 1; }
   void projeter_vecteur_sur_face(const int num_face, double& x_, double& y_, double& z_) const;
 
   void calculer_normale_face_bord(int num_face, double x, double y, double z,
@@ -80,9 +68,6 @@ protected:
   // Appel autorise uniquement a Maillage_FT_Disc::parcourir_maillage()
   void parcourir(Maillage_FT_Disc& maillage) const;
   friend void Maillage_FT_Disc::parcourir_maillage();
-
-  Parcours_interface(const Parcours_interface&);  // Interdit !
-  const Parcours_interface& operator=(const Parcours_interface&);   // Interdit !
 
   void parcours_facette(const Domaine_VF& domaine_vf,
                         Maillage_FT_Disc& maillage,
@@ -162,9 +147,9 @@ protected:
   // Variables persistantes de la classe :
   OBS_PTR(Domaine_VF) refdomaine_vf_;
   OBS_PTR(Connectivite_frontieres) refconnect_front_;
-  int nb_faces_elem_;
-  int nb_elements_reels_;
-  int nb_sommets_par_face_;
+  int nb_faces_elem_ = -123;
+  int nb_elements_reels_= -123;
+  int nb_sommets_par_face_= -123;
   enum { TRIANGLE, RECTANGLE, TETRA, HEXA } type_element_;
 
   // Une tableau de taille nb_faces * 4 contenant les coefficients du
@@ -183,11 +168,11 @@ protected:
   //
   // A des fins de statistiques (voir "calcul_intersection_facelem_*"
   // et "parcourir" )
-  mutable int compteur_erreur_grossiere;
+  mutable int compteur_erreur_grossiere= -123;
 
   // Raccourcis vers les elements et les sommets du maillage eulerien
-  mutable const IntTab * domaine_elem_ptr;
-  mutable const DoubleTab * domaine_sommets_ptr;
+  mutable const IntTab * domaine_elem_ptr = nullptr;
+  mutable const DoubleTab * domaine_sommets_ptr = nullptr;
 
   // Marqueurs des elements deja visites :
   mutable ArrOfBit drapeaux_elements_parcourus_;
@@ -197,19 +182,19 @@ protected:
   // suivante:
   double Erreur_relative_maxi_;
   // On suppose que toutes les coordonnees du domaine sont inferieures a cette valeur:
-  double Valeur_max_coordonnees_;
+  double Valeur_max_coordonnees_ = 0.;
   // Cette valeur est egale a Erreur_relative_maxi_ * valeur_max_coordonnees_ :
-  double Erreur_max_coordonnees_;
+  double Erreur_max_coordonnees_ = 0.;
 
   // Drapeau d'activation de la correction du parcours (par Thomas Fortin,
   //  pour corriger les problemes lies aux sommets qui tombent sur les faces du maillages eulerien
-  int correction_parcours_thomas_;
+  int correction_parcours_thomas_ = 0;
   int eloigner_sommets_des_faces(Maillage_FT_Disc& maillage) const;
   double uzawa2(const Domaine_VF& domaine_vf, const int elem,
                 double& x, double& y, double& z) const;
 
   // Drapeau de suppression de la tolerance sur la position dedans/dehors des points
-  int parcours_sans_tolerance_;
+  int parcours_sans_tolerance_ = 0;
 };
 
 #endif

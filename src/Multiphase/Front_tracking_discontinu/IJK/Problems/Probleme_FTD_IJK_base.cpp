@@ -45,16 +45,8 @@
 #include <SChaine.h>
 #include <Param.h>
 
-Implemente_base_sans_constructeur(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Probleme_FT_Disc_gen);
+Implemente_base(Probleme_FTD_IJK_base, "Probleme_FTD_IJK_base", Probleme_FT_Disc_gen);
 // XD Probleme_FTD_IJK_base interprete Probleme_FTD_IJK_base 1 not_set
-
-Probleme_FTD_IJK_base::Probleme_FTD_IJK_base() {  }
-
-Probleme_FTD_IJK_base::Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x):
-  Probleme_FT_Disc_gen(x)
-{
-  exit();
-}
 
 Sortie& Probleme_FTD_IJK_base::printOn(Sortie& os) const
 {

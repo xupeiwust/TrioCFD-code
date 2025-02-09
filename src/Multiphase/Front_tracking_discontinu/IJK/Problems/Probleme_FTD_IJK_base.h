@@ -51,7 +51,7 @@ class Domaine_IJK;
 
 class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
 {
-  Declare_base_sans_constructeur(Probleme_FTD_IJK_base) ;
+  Declare_base(Probleme_FTD_IJK_base) ;
 public :
   // We take too much advantage of it ...:
   friend class IJK_Thermique;
@@ -59,8 +59,6 @@ public :
   friend class Statistiques_dns_ijk_FT;
   friend class IJK_FT_Post;
 
-  Probleme_FTD_IJK_base();
-  Probleme_FTD_IJK_base(const Probleme_FTD_IJK_base& x);
   int associer_(Objet_U&) override;
 
   virtual void set_param(Param& param);

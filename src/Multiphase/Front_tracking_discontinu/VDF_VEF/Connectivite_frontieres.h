@@ -73,9 +73,6 @@ protected:
   //    num_sommet = domaine_vf.face_sommets(num_face, i_sommet); // numero du sommet dans le domaine
   IntTab def_face_aretes_;
 
-private:
-  Connectivite_frontieres(const Connectivite_frontieres&);  // Interdit
-  const Connectivite_frontieres& operator=(const Connectivite_frontieres&);   // Interdit
 };
 
 inline const IntTab& Connectivite_frontieres::faces_voisins() const

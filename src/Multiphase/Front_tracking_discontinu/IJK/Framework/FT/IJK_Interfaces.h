@@ -1063,19 +1063,7 @@ protected:
   OBS_PTR(Domaine_dis_base) refdomaine_dis_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
-  // Interdit le constructeur par copie (car constructeurs par copie interdits
-  // pour parcours_ et autres
-  IJK_Interfaces(const IJK_Interfaces& x) : Objet_U(x)
-  {
-    Cerr << "Erreur IJK_Interfaces(const IJK_Interfaces&)" << finl;
-    Process::exit();
-  }
-  const IJK_Interfaces& operator=(const IJK_Interfaces&)
-  {
-    Cerr << "Erreur IJK_Interfaces& operator=" << finl;
-    Process::exit();
-    return *this;
-  }
+
   // Ou lire le maillage initial, dans la methode initialize():
   // On peut reprendre un fichier lata ou sauv.lata :
 
@@ -1089,10 +1077,10 @@ protected:
 
   Nom fichier_reprise_interface_;
   int timestep_reprise_interface_ = 1;
-  Nom lata_interfaces_meshname_;
+  Nom lata_interfaces_meshname_ = "INTERFACES";
 
   // Pour ecrire dans le fichier sauv :
-  Nom fichier_sauvegarde_interface_ = "??";
+  Nom fichier_sauvegarde_interface_;
   int timestep_sauvegarde_interface_ = 1;
 
   // Activation du suivi des couleurs des bulles

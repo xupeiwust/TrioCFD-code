@@ -301,8 +301,8 @@ void IJK_Thermal_cut_cell::perform_thermal_step(double total_timestep, int flag_
   if (debug_)
     Cerr << "Thermal Euler time-step" << finl;
 
-  Cut_field_double &cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
-  Cut_field_double &cut_field_d_temperature = static_cast<Cut_field_double&>(*d_temperature_);
+  Cut_field_double& cut_field_temperature = static_cast<Cut_field_double&>(*temperature_);
+  Cut_field_double& cut_field_d_temperature = static_cast<Cut_field_double&>(*d_temperature_);
 
   CutCell_GlobalInfo ene_ini;
   CutCell_GlobalInfo d_ene_Conv;

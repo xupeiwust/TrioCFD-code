@@ -274,25 +274,3 @@ void Connectivite_frontieres::remplir_faces_voisins(const Domaine_VF& domaine_vf
         }
     }
 }
-
-/*! @brief Constructeur par copie : produit une erreur.
- *
- */
-Connectivite_frontieres::Connectivite_frontieres(const Connectivite_frontieres& a): Objet_U(a)
-{
-  Cerr << "Erreur : Connectivite_frontieres::Connectivite_frontieres(const Connectivite_frontieres &)"
-       << finl;
-  assert(0);
-  Process::exit();
-}
-
-/*! @brief Operateur copie : produit une erreur.
- *
- */
-const Connectivite_frontieres& Connectivite_frontieres::operator=(const Connectivite_frontieres&)
-{
-  Cerr << "Erreur : Connectivite_frontieres::operator=" << finl;
-  assert(0);
-  Process::exit();
-  return *this;
-}
