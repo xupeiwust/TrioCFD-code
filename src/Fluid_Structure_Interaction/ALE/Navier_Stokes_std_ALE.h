@@ -37,6 +37,8 @@ public :
   void update_pressure_matrix() override;
   void discretiser() override;
   void mettre_a_jour(double) override;
+
+  std::vector<YAML_data> data_a_sauvegarder() const override;
   virtual int sauvegarder(Sortie&) const override;
   virtual int reprendre(Entree&) override;
 

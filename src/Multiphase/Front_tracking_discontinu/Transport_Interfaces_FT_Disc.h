@@ -81,10 +81,15 @@ public:
   void assembler( Matrice_Morse& mat_morse, const DoubleTab& present, DoubleTab& secmem) override ;
 
   void    mettre_a_jour(double temps) override;
+  std::vector<YAML_data> data_a_sauvegarder() const override;
   int  sauvegarder(Sortie& ) const override;
   int  reprendre(Entree&) override;
   int impr(Sortie& os) const override;
   void update_critere_statio();
+
+  // To save front in a different file
+  void init_save_file() override;
+  void close_save_file() override;
 
   //
   // Nouvelles methodes
@@ -360,6 +365,7 @@ private:
   int interpolation_repere_local_;
   ArrOfDouble force_;
   ArrOfDouble moment_;
+
 };
 
 class Transport_Interfaces_FT_Disc_interne : public Objet_U
@@ -411,8 +417,12 @@ private:
   }; // Interdit
 
 public:
+  std::vector<YAML_data> data_a_sauvegarder() const;
   int sauvegarder(Sortie& os) const override;
   int reprendre(Entree& is) override;
+  void init_save_file();
+  void close_save_file();
+  Nom maillage_interface_xyz_filename(int restart) const;
 
   // Les membres suivantes sont sauvegardes et repris:
   OWN_PTR(Champ_Inc_base)        indicatrice_cache;     // L'indicatrice calculee par get_update_indicatrice
@@ -421,6 +431,23 @@ public:
   // quand il represente les positions de particules
   Remaillage_FT    remaillage_interface_;
   // Fin des membres sauvegardes / repris
+
+  // For now, the front can not be saved with the PDI format
+  // (as the mesh changes with every time step, which means the arrays do not have constant dimensions during the simulation
+  // and this configuration is not supported yet with the current implementation)
+  // so the front will be saved in a different file
+  OWN_PTR(Sortie_Fichier_base) fic_front_sauv_;
+
+  Nom pb_name_;
+  inline void set_pb_name(const Nom& name) { pb_name_ = name; }
+  Nom restart_fname_;
+  inline void set_restart_fname(const Nom& name) { restart_fname_ = name; }
+  Nom checkpoint_fname_;
+  inline void set_checkpoint_fname(const Nom& name) { checkpoint_fname_ = name; }
+  Nom ident_;
+  inline void set_ident(const Nom& name) { ident_ = name; }
+  double time_;
+  inline void set_time(double t) { time_ = t; }
 
   Proprietes_part_vol proprietes_particules_; //Proprietes physiques de particules
 

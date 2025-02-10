@@ -30,6 +30,7 @@
 #include <Discret_Thyd.h>
 #include <EcritureLectureSpecial.h>
 #include <Avanc.h>
+#include <TRUST_2_PDI.h>
 
 Implemente_instanciable(Navier_Stokes_std_ALE,"Navier_Stokes_standard_ALE",Navier_Stokes_std);
 // XD Navier_Stokes_std_ALE navier_stokes_standard Navier_Stokes_std_ALE -1 Resolution of hydraulic Navier-Stokes eq. on mobile domain (ALE)
@@ -44,13 +45,34 @@ Entree& Navier_Stokes_std_ALE::readOn(Entree& is )
   return Navier_Stokes_std::readOn(is);
 }
 
+
+/*! @brief for PDI IO: retrieve name, type and dimensions of the fields to save/restore
+ *
+ */
+std::vector<YAML_data> Navier_Stokes_std_ALE::data_a_sauvegarder() const
+{
+  std::vector<YAML_data> data = Navier_Stokes_std::data_a_sauvegarder();
+
+  std::string name = probleme().le_nom().getString() + "_JacobianOld";
+  int nb_dim = vitesse().valeurs().nb_dim(); // Initialize with same discretization
+  YAML_data jold(name, "double", nb_dim);
+  data.push_back(jold);
+
+  name = probleme().le_nom().getString() + "_JacobianNew";
+  nb_dim = vitesse().valeurs().nb_dim();
+  YAML_data jnew(name, "double", nb_dim);
+  data.push_back(jnew);
+
+  return data;
+}
+
 int Navier_Stokes_std_ALE::sauvegarder(Sortie& os) const
 {
   int bytes=0, a_faire,special;
   bytes += Navier_Stokes_std::sauvegarder(os);
   EcritureLectureSpecial::is_ecriture_special(special,a_faire);
   const Domaine_ALE& dom_ale=ref_cast(Domaine_ALE, probleme().domaine());
-  if (a_faire)
+  if (a_faire || TRUST_2_PDI::is_PDI_checkpoint())
     {
       OWN_PTR(Champ_Inc_base) JacobianOld = vitesse(); // Initialize with same discretization
       JacobianOld->nommer("JacobianOld");
@@ -68,9 +90,9 @@ int Navier_Stokes_std_ALE::sauvegarder(Sortie& os) const
           bytes += JacobianNew->sauvegarder(os);
         }
     }
-
   return bytes;
 }
+
 int Navier_Stokes_std_ALE::reprendre(Entree& is)
 {
 // start resuming
@@ -99,9 +121,11 @@ int Navier_Stokes_std_ALE::reprendre(Entree& is)
     }
   else
     {
-      avancer_fichier(is, field_tag_JOld);
+      if(!TRUST_2_PDI::is_PDI_restart())
+        avancer_fichier(is, field_tag_JOld);
       JacobianOld->reprendre(is);
-      avancer_fichier(is, field_tag_JNew);
+      if(!TRUST_2_PDI::is_PDI_restart())
+        avancer_fichier(is, field_tag_JNew);
       JacobianNew->reprendre(is);
     }
 

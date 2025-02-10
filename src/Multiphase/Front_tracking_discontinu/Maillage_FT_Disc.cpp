@@ -36,6 +36,7 @@
 #include <Array_tools.h>
 #include <Param.h>
 #include <stat_counters.h>
+#include <TRUST_2_PDI.h>
 
 #if TCL_MODEL
 #include <Domaine_VDF.h>
@@ -2181,6 +2182,12 @@ int Maillage_FT_Disc::sauvegarder(Sortie& os) const
       Sauvegarde_Reprise_Maillage_FT::ecrire_xyz(*this, domaine_vf, os);
       return 0;
     }
+  else if(TRUST_2_PDI::is_PDI_checkpoint())
+    {
+      Cerr << "Maillage_FT_Disc::sauvegarder Format PDI not supported yet" << finl;
+      Process::exit();
+      return 0;
+    }
   else
     {
       int bytes = 0;
@@ -2234,6 +2241,12 @@ int Maillage_FT_Disc::reprendre(Entree& is)
           // On est dans "avancer", equation non associee
           Sauvegarde_Reprise_Maillage_FT::lire_xyz(*this, 0, &is, 0);
         }
+    }
+  else if(TRUST_2_PDI::is_PDI_restart())
+    {
+      Cerr << "Maillage_FT_Disc::reprendre Format PDI not supported yet" << finl;
+      Process::exit();
+      return 0;
     }
   else
     {

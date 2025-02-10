@@ -30,6 +30,7 @@
 #include <Array_tools.h>
 #include <DebogFT.h>
 #include <stat_counters.h>
+#include <TRUST_2_PDI.h>
 
 Implemente_instanciable_sans_constructeur(Remaillage_FT,"Remaillage_FT",Objet_U);
 
@@ -110,6 +111,13 @@ int Remaillage_FT::reprendre(Entree& is)
       assert(0);
       Process::exit();
     }
+  if(TRUST_2_PDI::is_PDI_restart())
+    {
+      Cerr << "Remaillage_FT::reprendre Format PDI not supported yet" << finl;
+      Process::exit();
+      return 0;
+    }
+
   is >> temps_dernier_remaillage_;
   is >> temps_dernier_lissage_;
   return 1;
@@ -127,6 +135,11 @@ int Remaillage_FT::sauvegarder(Sortie& os) const
           os << temps_dernier_remaillage_ << finl;
           os << temps_dernier_lissage_ << finl;
         }
+    }
+  else if(TRUST_2_PDI::is_PDI_checkpoint())
+    {
+      Cerr << "Remaillage_FT::sauvegarder Format PDI not supported yet" << finl;
+      Process::exit();
     }
   else
     {

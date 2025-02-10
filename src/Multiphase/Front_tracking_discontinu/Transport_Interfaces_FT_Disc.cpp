@@ -57,6 +57,8 @@
 #include <Dirichlet_paroi_fixe.h>
 #include <Dirichlet_paroi_defilante.h>
 #include <Echange_contact_VDF_FT_Disc.h>
+#include <TRUST_2_PDI.h>
+#include <Avanc.h>
 
 Implemente_instanciable_sans_constructeur_ni_destructeur(Transport_Interfaces_FT_Disc,"Transport_Interfaces_FT_Disc",Transport_Interfaces_base);
 
@@ -228,6 +230,66 @@ Sortie& Transport_Interfaces_FT_Disc_interne::printOn(Sortie& os) const
   return os;
 }
 
+Nom Transport_Interfaces_FT_Disc_interne::maillage_interface_xyz_filename(int restart) const
+{
+  const Nom& fullname = restart ? restart_fname_ : checkpoint_fname_;
+  int index = fullname.find(".");
+  std::string fname = index ==-1 ? fullname.getString() : fullname.getString().substr(0, index); //removing file extension
+  Nom nom_fich_xyz(fname);
+  nom_fich_xyz += Nom("_") + pb_name_;
+  nom_fich_xyz += Nom("_") + ident_;
+  nom_fich_xyz += "_maillage_interface";
+  nom_fich_xyz += ".xyz";
+  return nom_fich_xyz;
+}
+
+void Transport_Interfaces_FT_Disc_interne::init_save_file()
+{
+  if (fic_front_sauv_.non_nul())
+    {
+      Cerr << "Transport_Interfaces_FT_Disc::init_save_file Backup file for the FT mesh has already been initialized!" << finl;
+      Process::exit();
+    }
+  else
+    {
+      const Nom& nom_fich_xyz = maillage_interface_xyz_filename(0 /*save mode*/);
+      fic_front_sauv_.typer(EcritureLectureSpecial::get_Output());
+      fic_front_sauv_->ouvrir(nom_fich_xyz);
+    }
+
+}
+
+void Transport_Interfaces_FT_Disc_interne::close_save_file()
+{
+  if (!fic_front_sauv_.non_nul())
+    {
+      Cerr << "Transport_Interfaces_FT_Disc::close_save_file Backup file for the FT mesh has not been initialized!" << finl;
+      Process::exit();
+    }
+  else
+    {
+      if (Process::je_suis_maitre())
+        fic_front_sauv_.valeur() << Nom("fin");
+      (fic_front_sauv_.valeur()).flush();
+      (fic_front_sauv_.valeur()).syncfile();
+    }
+}
+
+/*! @brief for PDI IO: retrieve name and type and dimensions of the indicatrice tag
+ *
+ */
+std::vector<YAML_data> Transport_Interfaces_FT_Disc_interne::data_a_sauvegarder() const
+{
+  std::vector<YAML_data> data = indicatrice_cache->data_a_sauvegarder();
+
+  // the indicatrice cache tag
+  std::string name = pb_name_.getString() + "_" + ident_.getString() + "_indicatrice_cache_tag";
+  YAML_data ictag(name, "int");
+  ictag.set_local(false /*same value for everyone*/);
+  data.push_back(ictag);
+  return data;
+}
+
 int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
 {
   // Il faut sauvegarder l'indicatrice_cache car elle ne peut pas toujours etre
@@ -235,6 +297,7 @@ int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
   // des inconsistances) :
   int bytes=0;
   bytes += indicatrice_cache->sauvegarder(os);
+
   int special, afaire;
   const int format_xyz = EcritureLectureSpecial::is_ecriture_special(special, afaire);
   if (format_xyz)
@@ -244,28 +307,109 @@ int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
           os << indicatrice_cache_tag << finl;
         }
     }
+  else if(TRUST_2_PDI::is_PDI_checkpoint())
+    {
+      std::string name = pb_name_.getString() + "_" + ident_.getString() + "_indicatrice_cache_tag";
+      int& ictag = const_cast<int&>(indicatrice_cache_tag);
+      TRUST_2_PDI pdi_interface;
+      pdi_interface.TRUST_start_sharing(name, &ictag);
+    }
+  else
+    os << indicatrice_cache_tag << finl;
+
+  if(TRUST_2_PDI::is_PDI_checkpoint())
+    {
+      Cerr << "Transport_Interfaces_FT_Disc_interne::sauvegarder : WARNING ! PDI format is not supported for the FT mesh so we save it in xyz format " << finl;
+      TRUST_2_PDI::set_PDI_checkpoint(0);
+      EcritureLectureSpecial::mode_ecr = 1;
+      Sortie_Fichier_base& xyz_os =  const_cast<Sortie_Fichier_base&>(fic_front_sauv_.valeur());
+      if(Process::je_suis_maitre())
+        {
+          Nom mon_ident(maillage_interface.que_suis_je());
+          mon_ident += Nom(time_,"%e");
+          xyz_os << mon_ident << finl;
+          xyz_os << maillage_interface.que_suis_je() << finl;
+        }
+      bytes += maillage_interface.sauvegarder(xyz_os);
+
+      if(Process::je_suis_maitre())
+        {
+          Nom mon_ident(remaillage_interface_.que_suis_je());
+          mon_ident += Nom(time_,"%e");
+          xyz_os << mon_ident << finl;
+          xyz_os << remaillage_interface_.que_suis_je() << finl;
+        }
+      bytes += remaillage_interface_.sauvegarder(xyz_os);
+      TRUST_2_PDI::set_PDI_checkpoint(1);
+      EcritureLectureSpecial::mode_ecr = 0;
+    }
   else
     {
-      os << indicatrice_cache_tag << finl;
+      bytes += maillage_interface.sauvegarder(os);
+      bytes += remaillage_interface_.sauvegarder(os); // Sauvegarde du temps du dernier remaillage...
     }
-  bytes += maillage_interface.sauvegarder(os);
-  bytes += remaillage_interface_.sauvegarder(os); // Sauvegarde du temps du dernier remaillage...
   return bytes;
 }
 
 int Transport_Interfaces_FT_Disc_interne::reprendre(Entree& is)
 {
   Nom ident, type;
-  is >> ident >> type;
+  if(TRUST_2_PDI::is_PDI_restart())
+    {
+      TRUST_2_PDI pdi_interface;
+      // getting type
+      Nom name = pb_name_ + "_" + indicatrice_cache.le_nom();
+      pdi_interface.get_type(name, type);
+
+      // getting indicatrice cache tag
+      name = pb_name_ + "_" + ident_ + "_indicatrice_cache_tag";
+      pdi_interface.read(name.getString(), &indicatrice_cache_tag);
+    }
+  else
+    is >> ident >> type;
+
   if (! indicatrice_cache.non_nul())
     {
       // Le champ n'est pas discretise, on lit ceci pour sauter le bloc
       indicatrice_cache.typer(type);
     }
   indicatrice_cache->reprendre(is);
-  is >> indicatrice_cache_tag;
-  maillage_interface.reprendre(is);
-  remaillage_interface_.reprendre(is);
+
+  if(TRUST_2_PDI::is_PDI_restart())
+    {
+      Cerr << "Transport_Interfaces_FT_Disc_interne::reprendre : WARNING ! PDI format is not supported for the FT mesh so we use xyz format" << finl;
+      TRUST_2_PDI::set_PDI_restart(0);
+      EcritureLectureSpecial::mode_lec = 1;
+      OWN_PTR(Entree_Fichier_base) xyz_is;
+      xyz_is.typer(EcritureLectureSpecial::Input);
+      const Nom& nomfic = maillage_interface_xyz_filename(1 /* restart mode */);
+      xyz_is->ouvrir(nomfic);
+      if (xyz_is->fail())
+        {
+          Cerr << "Error during the opening of the restart file : " << nomfic << finl;
+          Process::exit();
+        }
+      else
+        Cerr << "Reading interface in file " << nomfic << finl;
+
+      Nom mon_ident(maillage_interface.que_suis_je());
+      mon_ident += Nom(time_,"%e");
+      avancer_fichier(xyz_is, mon_ident);
+      maillage_interface.reprendre(xyz_is);
+
+      mon_ident=remaillage_interface_.que_suis_je();
+      mon_ident += Nom(time_,"%e");
+      avancer_fichier(xyz_is, mon_ident);
+      remaillage_interface_.reprendre(xyz_is);
+      TRUST_2_PDI::set_PDI_restart(1);
+      EcritureLectureSpecial::mode_lec = 0;
+    }
+  else
+    {
+      is >> indicatrice_cache_tag;
+      maillage_interface.reprendre(is);
+      remaillage_interface_.reprendre(is);
+    }
   return 1;
 }
 
@@ -1351,6 +1495,9 @@ void Transport_Interfaces_FT_Disc::associer_pb_base(const Probleme_base& un_prob
     }
   probleme_base_ = un_probleme;
   Equation_base::associer_pb_base(un_probleme);
+
+  Nom pb_name = un_probleme.le_nom();
+  variables_internes_->set_pb_name(pb_name);
 }
 
 /*! @brief Discretisation des champs: - indicatrice_ : champ scalaire discretise aux elements
@@ -1364,6 +1511,7 @@ void Transport_Interfaces_FT_Disc::discretiser()
   // suivi de "_nom_de_l_equation" :
   Nom suffix("_");
   suffix += le_nom();
+  variables_internes_->set_ident(le_nom());
 
   const Discretisation_base& dis = discretisation();
   const double temps = schema_temps().temps_courant();
@@ -1392,6 +1540,8 @@ void Transport_Interfaces_FT_Disc::discretiser()
                         variables_internes_->indicatrice_cache);
   variables_internes_->indicatrice_cache->associer_eqn(*this);
   champs_compris_.ajoute_champ(variables_internes_->indicatrice_cache);
+  variables_internes_->indicatrice_cache->PDI_save_type(true);
+
   //champs_compris_.liste_noms_compris()[1]+le_nom();
 
   fieldname = "INDICATRICE_FACES";
@@ -1623,6 +1773,9 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
   variables_internes_->normale_interface->changer_temps(temps);
   variables_internes_->surface_interface->changer_temps(temps);
 
+  const Nom& checkpoint_fname = get_probleme_base().checkpoint_filename();
+  variables_internes_->set_checkpoint_fname(checkpoint_fname);
+
   //calcul de l'indicatrice
   indicatrice_->valeurs() = get_update_indicatrice().valeurs();
   get_update_distance_interface();
@@ -1647,6 +1800,17 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
   if (calculate_time_derivative()) derivee_en_temps().changer_temps(temps);
   //Fin TF
   return 1;
+}
+
+void Transport_Interfaces_FT_Disc::init_save_file()
+{
+  // PDI not supported for FT so writing front in xyz format
+  variables_internes_->init_save_file();
+}
+
+void Transport_Interfaces_FT_Disc::close_save_file()
+{
+  variables_internes_->close_save_file();
 }
 
 void Transport_Interfaces_FT_Disc::preparer_pas_de_temps()
@@ -7361,6 +7525,16 @@ void Transport_Interfaces_FT_Disc::nettoyer_proprietes_particules(const ArrOfInt
   proprietes_particules().nettoyer(som_utilises);
 }
 
+/*! @brief for PDI IO: retrieve name and type and dimensions of the indicatrice tag
+ *
+ */
+std::vector<YAML_data> Transport_Interfaces_FT_Disc::data_a_sauvegarder() const
+{
+  std::vector<YAML_data> data = Equation_base::data_a_sauvegarder();
+  std::vector<YAML_data> dvi = variables_internes_->data_a_sauvegarder();
+  data.insert(data.end(), dvi.begin(), dvi.end());
+  return data;
+}
 
 /*! @brief
  *
@@ -7374,6 +7548,7 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
     double temps=inconnue().temps();
     Nom mon_ident("variables_internes_transport");
     mon_ident += Nom(temps,"%e");
+    variables_internes_->set_time(temps);
     if (format_xyz)
       {
         if (Process::je_suis_maitre())
@@ -7382,7 +7557,7 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
             os << variables_internes_->que_suis_je() << finl;
           }
       }
-    else
+    else if(!TRUST_2_PDI::is_PDI_checkpoint())
       {
         os << mon_ident << finl;
         os << variables_internes_->que_suis_je() << finl;
@@ -7393,20 +7568,27 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
 
   return bytes;
 }
+
 int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
 {
   Equation_base::reprendre(is);
   {
-    Nom id, type_name;
-    is >> id >> type_name;
-    if ( (! id.debute_par("variables_internes_transport"))
-         || type_name != variables_internes_->que_suis_je())
+    if(!TRUST_2_PDI::is_PDI_restart())
       {
-        Cerr << "Error for the method Transport_Interfaces_FT_Disc::reprendre" << finl;
-        Cerr << variables_internes_->que_suis_je() <<" was expected."<< finl;
-        Process::exit();
+        Nom id, type_name;
+        is >> id >> type_name;
+        if ( (! id.debute_par("variables_internes_transport"))
+             || type_name != variables_internes_->que_suis_je())
+          {
+            Cerr << "Error for the method Transport_Interfaces_FT_Disc::reprendre" << finl;
+            Cerr << variables_internes_->que_suis_je() <<" was expected."<< finl;
+            Process::exit();
+          }
       }
     variables_internes_->maillage_interface.associer_equation_transport(*this);
+    const Nom& restart_fname = get_probleme_base().restart_filename();
+    variables_internes_->set_restart_fname(restart_fname);
+    variables_internes_->set_time(schema_temps().temps_courant());
     variables_internes_->reprendre(is);
     variables_internes_->injection_interfaces_last_time_ = schema_temps().temps_courant();
   }
