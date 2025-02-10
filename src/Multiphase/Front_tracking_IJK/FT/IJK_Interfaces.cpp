@@ -111,6 +111,10 @@ void dumplata_ft_mesh(const char *filename, const char *meshname,
     for (int j = 0; j < 3; j++)
       tmp(i, j) = (float)sommets(i, j);
   EcrFicPartageBin file;
+
+  // See top doc above, we do everything in 32b
+  file.set_64b(false);
+
   file.ouvrir(fdsom);
   file.put(tmp.addr(), tmp.size_array(), 3);
   file.syncfile();
@@ -175,32 +179,28 @@ void dumplata_ft_mesh(const char *filename, const char *meshname,
     file.syncfile();
     file.close();
   }
-  Nom format = (sizeof(int) == 8 ? "INT64" : "INT32");
+
+  const Nom format = "INT32";
   if (Process::je_suis_maitre())
     {
       SFichier master_file;
       master_file.ouvrir(filename, ios::app);
       master_file << "Geom " << meshname << " type_elem=TRIANGLE_3D" << finl;
+
       master_file << "Champ SOMMETS " << basename(fdsom) << " geometrie=" << meshname;
-      if (sizeof(int) == 8)
-        master_file << " file_offset=6";
-      master_file << " size=" << (int)nsomtot << " composantes=3" << finl;
+      master_file << " size=" << nsomtot << " composantes=3" << finl;
+
       master_file << "Champ ELEMENTS " << basename(fdelem) << " geometrie=" << meshname;
-      if (sizeof(int) == 8)
-        master_file << " file_offset=6";
-      master_file << " size=" << (int)nelemtot << " composantes=3 format=" << format << finl;
+      master_file << " size=" << nelemtot << " composantes=3 format=" << format << finl;
+
       master_file << "Champ FACETTE_PE_LOCAL " << basename(fdpelocal) << " geometrie=" << meshname;
-      if (sizeof(int) == 8)
-        master_file << " file_offset=6";
-      master_file << " size=" << (int)nelemtot << " composantes=1 format=" << format << " localisation=ELEM" << finl;
+      master_file << " size=" << nelemtot << " composantes=1 format=" << format << " localisation=ELEM" << finl;
+
       master_file << "Champ FACETTE_PE_OWNER " << basename(fdpeowner) << " geometrie=" << meshname;
-      if (sizeof(int) == 8)
-        master_file << " file_offset=6";
-      master_file << " size=" << (int)nelemtot << " composantes=1 format=" << format << " localisation=ELEM" << finl;
+      master_file << " size=" << nelemtot << " composantes=1 format=" << format << " localisation=ELEM" << finl;
+
       master_file << "Champ INDEX_SOMMET_REEL " << basename(fd_sommet_reel) << " geometrie=" << meshname;
-      if (sizeof(int) == 8)
-        master_file << " file_offset=6";
-      master_file << " size=" << (int)nsomtot << " composantes=1 format=" << format << " localisation=SOM" << finl;
+      master_file << " size=" << nsomtot << " composantes=1 format=" << format << " localisation=SOM" << finl;
     }
 }
 
