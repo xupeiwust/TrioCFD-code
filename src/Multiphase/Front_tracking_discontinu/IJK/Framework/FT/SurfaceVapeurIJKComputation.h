@@ -78,20 +78,6 @@ public:
   void set_compute_surfaces_mouillees() { compute_surf_mouillees_ = true; }
 
 protected:
-  // Interdit le constructeur par copie (car constructeurs par copie interdits
-  // pour parcours_ et autres
-  // SurfaceVapeurIJKComputation(const SurfaceVapeurIJKComputation& x) :
-  //   maillage_ft_ijk_(x.maillage_ft_ijk_)
-  // {
-  //   Cerr << "Erreur IJK_Interfaces(const IJK_Interfaces&)" << finl;
-  //   Process::exit();
-  // }
-  const SurfaceVapeurIJKComputation& operator=(const SurfaceVapeurIJKComputation&)
-  {
-    Cerr << "Erreur IJK_Interfaces& operator=" << finl;
-    Process::exit();
-    return *this;
-  }
   int rempli_surface_vapeur_par_face_interieur_bulles(IJK_Field_vector3_double& surface_vapeur_par_face, const IJK_Field_double& indicatrice_ft);
   // Cette methode appelle la methode statique get_maillage_MED_from_IJK_FT sur ses propres membres. Elle met donc a jour le maillage maillage_bulles_med_.
   void set_maillage_MED(const Maillage_FT_IJK& maillage_ft_ijk);

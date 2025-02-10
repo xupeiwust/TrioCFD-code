@@ -1436,11 +1436,13 @@ void Navier_Stokes_FTD_IJK::calculer_terme_source_acceleration(IJK_Field_double&
   double derivee_facteur_sv = 0.;
 
   double alv = 0.;
-  if (vol_bulle_monodisperse_ >= 0.)
-    alv = interfaces_->get_nb_bulles_reelles() * vol_bulle_monodisperse_ / vol_dom;
-  else
-    alv = 1. - calculer_v_moyen(interfaces_->I());
-
+  if (probleme_ijk().has_interface())
+    {
+      if (vol_bulle_monodisperse_ >= 0.)
+        alv = interfaces_->get_nb_bulles_reelles() * vol_bulle_monodisperse_ / vol_dom;
+      else
+        alv = 1. - calculer_v_moyen(interfaces_->I());
+    }
   if (Process::je_suis_maitre())
     {
       //
@@ -2225,7 +2227,7 @@ void Navier_Stokes_FTD_IJK::calculer_dv(const double timestep, const double time
           // a moins que le mass_solver soit applique dans une des methodes...
           // mass_solver_with... est applique sur d_velocity_ juste au dessus de ce long commentaire. Donc d_velocity
           // est bien homogene a g, et ainsi (jespere) dv est bien homogene a g.
-          if (interfaces_->is_terme_gravite_rhog())
+          if (pb_ijk.has_interface() && interfaces_->is_terme_gravite_rhog())
             {
               const double g = milieu_ijk().gravite().valeurs()(0, dir);
               for (int j = 0; j < nj; j++)
@@ -3727,8 +3729,9 @@ void Navier_Stokes_FTD_IJK::sauvegarder_equation(SFichier& fichier) const
           << " reprise_vap_velocity_tmoy " << vap_velocity_tmoy_ << "\n"
           << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
           << " fichier_reprise_vitesse " << basename(probleme_ijk().get_lata_name()) << "\n";
-  fichier << " timestep_reprise_vitesse 1" << "\n"
-          << " interfaces " << interfaces_.valeur()  << "\n";
+  fichier << " timestep_reprise_vitesse 1" << "\n";
+  if (probleme_ijk().has_interface())
+    fichier     << " interfaces " << interfaces_.valeur()  << "\n";
   fichier << " forcage " << forcage_ << "\n"
           << " corrections_qdm " << qdm_corrections_;
 

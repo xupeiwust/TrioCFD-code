@@ -218,7 +218,8 @@ void Probleme_FTD_IJK_base::completer()
 
   // FIXME
   Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
-  ns.associer_interfaces(get_interface());
+  if (has_interface_)
+    ns.associer_interfaces(get_interface());
 //  ns.associer_domaine_ft(domaine_ft_);
 
   milieu_ijk().calculate_direction_gravite(); // pour rotation

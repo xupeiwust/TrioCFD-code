@@ -162,7 +162,6 @@ public :
     Process::exit("Unrecognized domain provided");
     throw;
   }
-  const Probleme_FTD_IJK_base& operator=(const Probleme_FTD_IJK_base& a) { throw ; }
 
   virtual Cut_cell_FT_Disc* get_cut_cell_disc()
   {
@@ -177,8 +176,10 @@ public :
   const Maillage_FT_IJK& get_maillage_ft_ijk() const { return get_interface().maillage_ft_ijk(); }
   const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { return get_interface().remaillage_ft_ijk(); }
 
-  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
-  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
+  // TODO FIXME FAUT TESTER HAS_INTERFACE .. MAIS LA URGENT
+  IJK_Interfaces bidon_;
+  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) :bidon_ /* throw */; }
+  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : bidon_/* throw */ ; }
   const IJK_Interfaces& itfce() const { return get_interface(); }
   IJK_Interfaces& get_set_interface() { return get_interface(); }
 
