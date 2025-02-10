@@ -303,7 +303,7 @@ void Source_Transport_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& a,
                               ? 2*(1 - turbulence_model->get_blenderF1()(face)*SIGMA_OMEGA2)
                               : (gradKgradOmega(face) > 0)*1/8;
 
-        const double coef_omega = ( -cALPHA*production_TKE(face)/tke + cBETA*omega - cSIGMA/(omega*omega)*gradKgradOmega(face) ) * volporo;//ALPHA_OMEGA*coef_k;
+        const double coef_omega = ( -cALPHA*production_TKE(face)/tke + cBETA*omega - cSIGMA/(omega*omega)*gradKgradOmega(face) ) * volporo;
         matrice(face*2 + 1, face*2 + 1) += coef_omega;
       }
 }
