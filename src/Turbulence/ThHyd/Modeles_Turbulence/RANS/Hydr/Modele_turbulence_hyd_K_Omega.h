@@ -69,7 +69,7 @@ public:
 
 protected:
   Transport_K_Omega eqn_transport_K_Omega_;
-  void fill_turbulent_viscosity_tab(const int n, const DoubleTab& , DoubleTab& );
+  void fill_turbulent_viscosity_tab(const DoubleTab& K_Omega, DoubleTab& turbulent_viscosity);
   DoubleTab blenderF1_; // Blending field for SST model
   DoubleTab fieldF2_; // for the turbulent viscosity in the SST model
   DoubleTab enstrophy_; // for the turbulent viscosity in the SST model

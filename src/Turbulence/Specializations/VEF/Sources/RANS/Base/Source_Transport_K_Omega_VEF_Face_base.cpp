@@ -90,10 +90,8 @@ void Source_Transport_K_Omega_VEF_Face_base::elem_to_face(const Domaine_VF& doma
 
   const DoubleVect& volumes_entrelaces = le_dom_VEF->volumes_entrelaces();
   if (nb_comp == 1)
-    {
-      for (int f = 0; f < domaine.nb_faces_tot(); ++f)
-        grad_faces(f) /= volumes_entrelaces(f)*nb_face_elem;
-    }
+    for (int f = 0; f < domaine.nb_faces_tot(); ++f)
+      grad_faces(f) /= volumes_entrelaces(f)*nb_face_elem;
   else
     for (int f = 0; f < domaine.nb_faces_tot(); ++f)
       for (int comp = 0; comp < nb_comp; ++comp)
@@ -108,10 +106,9 @@ DoubleTab& Source_Transport_K_Omega_VEF_Face_base::ajouter_komega(DoubleTab& res
   const DoubleTab& velocity = eq_hydraulique->inconnue().valeurs();
   const DoubleVect& volumes_entrelaces = le_dom_VEF->volumes_entrelaces();
   // const DoubleTab& tab = get_cisaillement_paroi(); // voir les classes filles
-  const int nb_faces_tot = le_dom_VEF->nb_faces_tot();
-  DoubleTrav production_TKE {nb_faces_tot};
+  DoubleTrav production_TKE {le_dom_VEF->nb_faces()};
 
-  DoubleTab gradKgradOmega(nb_faces_tot);
+  DoubleTab gradKgradOmega(le_dom_VEF->nb_faces_tot());
   compute_cross_diffusion(gradKgradOmega);
 
   if (turbulence_model->is_SST())

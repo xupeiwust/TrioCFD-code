@@ -116,9 +116,10 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
   elem_to_face(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
 
   // Loop on all faces (dimension_tot(0))
-  for (int face = 0; face < le_dom_VEF->nb_faces_tot(); face++)
+  for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
     {
-      double const dmin = std::max(distmin(face), 1e-20);
+      double dmin = std::max(distmin(face), 1e-12);
+      // dmin = 1e-3;
       double const enerK = K_Omega(face, 0);
       double const omega = K_Omega(face, 1);
 
@@ -223,11 +224,10 @@ void Source_Transport_K_Omega_VEF_Face::fill_resu(const DoubleVect& volumes_entr
   const DoubleTab& K_Omega = eqn_K_Omega->inconnue().valeurs();
   const double LeK_MIN = eqn_K_Omega->modele_turbulence().get_K_MIN();
 
-  for (int face = 0; face < le_dom_VEF->nb_faces_tot(); face++)
+  for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
     {
       const double tke = K_Omega(face, 0);
       const double omega = K_Omega(face, 1);
-
 
       resu(face, 0) += (ProdK(face) - BETA_K*tke*omega)*volumes_entrelaces(face);
 
@@ -266,8 +266,8 @@ void Source_Transport_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& a,
   const DoubleVect& porosite_face = eqn_K_Omega->milieu().porosite_face();
   const DoubleVect& volumes_entrelaces = le_dom_VEF->volumes_entrelaces();
 
-  const int nb_faces_tot = le_dom_VEF->nb_faces_tot();
-  DoubleTrav gradKgradOmega(nb_faces_tot),  production_TKE {nb_faces_tot};
+  DoubleTrav production_TKE {le_dom_VEF->nb_faces()};
+
   const Domaine_Cl_VEF& domaine_Cl_VEF = ref_cast(Domaine_Cl_VEF,
                                                   eq_hydraulique->domaine_Cl_dis());
   const DoubleTab& visco_turb = get_visc_turb(); // voir les classes filles
@@ -278,6 +278,7 @@ void Source_Transport_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& a,
                               _interpolation_viscosite_turbulente,
                               _coefficient_limiteur);
 
+  DoubleTrav gradKgradOmega(le_dom_VEF->nb_faces_tot());
   compute_cross_diffusion(gradKgradOmega);
 
   for (int face = 0; face < K_Omega.dimension(0); face++)

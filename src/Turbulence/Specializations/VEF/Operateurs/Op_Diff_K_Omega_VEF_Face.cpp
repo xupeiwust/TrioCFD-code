@@ -122,7 +122,7 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
       const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
       const Front_VF& le_bord = ref_cast(Front_VF, la_cl->frontiere_dis());;
       int num1 = 0;
-      int num2 = le_bord.nb_faces_tot();
+      int num2 = le_bord.nb_faces();
 
       if (sub_type(Periodique, la_cl.valeur()))
         {
@@ -308,7 +308,7 @@ void Op_Diff_K_Omega_VEF_Face::ajouter_contribution(const DoubleTab& transporte,
       const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
       const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
       int num1 = 0;
-      int num2 = le_bord.nb_faces_tot();
+      int num2 = le_bord.nb_faces();
       int nb_faces_bord_reel = le_bord.nb_faces();
       if (sub_type(Periodique,la_cl.valeur()))
         {
