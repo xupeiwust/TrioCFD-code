@@ -810,6 +810,9 @@ int Navier_Stokes_FTD_IJK::preparer_calcul()
 {
   projeter();
 
+  if (!probleme_ijk().domaine_ijk().get_periodic_flag(DIRECTION_K)) /* Apply BC */
+    force_zero_on_walls(velocity_[2]);
+
   const double mu_l = milieu_ijk().get_mu_liquid(), rho_l = milieu_ijk().get_rho_liquid(), rho_v = milieu_ijk().get_rho_vapour();
 
   // Si calcul monophasique, on initialise correctement rho, mu, I une fois pour toute :
@@ -3561,13 +3564,6 @@ void Navier_Stokes_FTD_IJK::build_redistribute_extended_splitting_ft()
       }
     redistribute_from_splitting_ft_elem_ghostz_max_.initialize(dom_ft, dom_ijk, loc, map);
   }
-}
-
-void Navier_Stokes_FTD_IJK::force_zero_on_walls_ns()
-{
-  // FIXME
-  if (!probleme_ijk().domaine_ijk().get_periodic_flag(DIRECTION_K))
-    force_zero_on_walls(velocity_[2]);
 }
 
 // Calcule vitesse_ft (etendue) a partir du champ de vitesse.

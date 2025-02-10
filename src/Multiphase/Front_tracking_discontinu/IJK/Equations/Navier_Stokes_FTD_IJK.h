@@ -190,8 +190,6 @@ public:
   // TODO FIXME DANS DOMAINE
   void build_redistribute_extended_splitting_ft();
 
-  void force_zero_on_walls_ns();
-
   void test_etapes_et_bilan_rho_u_euler(bool apres);
 
   void deplacer_interfaces(const double timestep, const int rk_step, ArrOfDouble& var_volume_par_bulle, const int first_step_interface_smoothing);

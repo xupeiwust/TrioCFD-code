@@ -224,6 +224,8 @@ void Probleme_FTD_IJK_base::completer()
 
   milieu_ijk().calculate_direction_gravite(); // pour rotation
 
+  build_vdf_domaine();
+
   for (auto& itr : equations_)
     {
       itr->associer_milieu_base(milieu_ijk());
@@ -232,7 +234,6 @@ void Probleme_FTD_IJK_base::completer()
 
   post_.associer_probleme(*this);
 
-  build_vdf_domaine();
 
   if (nom_reprise_ != "??")
     reprendre_probleme(nom_reprise_);
@@ -1102,10 +1103,6 @@ bool Probleme_FTD_IJK_base::run()
   for (tstep = 0; tstep < schema_temps_ijk().get_nb_timesteps() && !stop_; tstep++)
     {
       statistiques().begin_count(timestep_counter_);
-
-      // FIXME
-      if (!domaine_ijk_->get_periodic_flag(DIRECTION_K))
-        ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).force_zero_on_walls_ns();
 
       schema_temps_ijk().set_timestep() = computeTimeStep(stop_);
 
