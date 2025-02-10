@@ -17,9 +17,9 @@
 
 Implemente_instanciable(Schema_Euler_explicite_IJK, "Schema_euler_explicite_IJK", Schema_Temps_IJK_base);
 
-Sortie& Schema_Euler_explicite_IJK::printOn(Sortie& s) const { return  Schema_Temps_base::printOn(s); }
+Sortie& Schema_Euler_explicite_IJK::printOn(Sortie& s) const { return  Schema_Temps_IJK_base::printOn(s); }
 
-Entree& Schema_Euler_explicite_IJK::readOn(Entree& s) { return Schema_Temps_base::readOn(s) ; }
+Entree& Schema_Euler_explicite_IJK::readOn(Entree& s) { return Schema_Temps_IJK_base::readOn(s) ; }
 
 int Schema_Euler_explicite_IJK::faire_un_pas_de_temps_eqn_base(Equation_base& eqn)
 {

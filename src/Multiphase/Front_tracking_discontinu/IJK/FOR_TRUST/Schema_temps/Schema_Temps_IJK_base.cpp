@@ -20,7 +20,23 @@
 
 Implemente_base(Schema_Temps_IJK_base,"Schema_Temps_IJK_base",Schema_Temps_base);
 
-Sortie& Schema_Temps_IJK_base::printOn(Sortie& s) const { return  Schema_Temps_base::printOn(s); }
+Sortie& Schema_Temps_IJK_base::printOn(Sortie& os) const
+{
+  os << "dt " << dt_ << finl;
+  os << "temps_courant " << temps_courant_ << finl ;
+  os << "tinit " << tinit_ << finl;
+  os << "timestep_facsec " << timestep_facsec_ << finl ;
+  os << "nb_pas_dt_max " << nb_pas_dt_max_ << finl;
+  os << "max_simu_time " << max_simu_time_ << finl ;
+  os << "tstep_init " << tstep_init_ << finl;
+  os << "use_tstep_init " << use_tstep_init_ << finl ;
+  os << "dt_sauvegarde " << dt_sauvegarde_ << finl ;
+  os << "cfl " << cfl_ << finl ;
+  os << "fo " << fo_ << finl ;
+  os << "oh " << oh_ << finl ;
+  os << "fin " << finl;
+  return os;
+}
 
 Entree& Schema_Temps_IJK_base::readOn(Entree& is)
 {
@@ -28,6 +44,8 @@ Entree& Schema_Temps_IJK_base::readOn(Entree& is)
   Param param(que_suis_je());
   set_param(param);
   param.lire_avec_accolades_depuis(is);
+  temps_courant_ = tinit_;
+  lu_ = 1;
   return is;
 }
 
