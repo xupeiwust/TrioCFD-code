@@ -18,6 +18,7 @@
 #include <communications.h>
 #include <Array_tools.h>
 #include <Domaine.h>
+#include <EcrFicPartageMPIIO.h>
 
 void ecrire_tableau(Sortie& os, const DoubleTab& tab)
 {
@@ -29,14 +30,31 @@ void ecrire_tableau(Sortie& os, const DoubleTab& tab)
   os.syncfile();
 }
 
+void put_generic(Sortie& os, const ArrOfInt& arr, const int dim0)
+{
+#ifdef INT_is_64_
+  Sortie * sort_ptr = &os;
+  if (dynamic_cast<EcrFicPartageMPIIO*>(sort_ptr))
+    {
+      // put() can not always be used directly (for example EcrFicPartageMPIIO doesn't support put()
+      // with cross bitness 32/64b). So upcast here if needed:
+      ArrOfTID arr2(dim0);
+      std::copy(arr.addr(), arr.addr()+dim0, arr2.addr());
+      os.put(arr2.addr(), arr2.size_array());
+    }
+  else
+#endif
+    os.put(arr.addr(), arr.size_array());
+  os.syncfile();
+}
+
 void ecrire_tableau(Sortie& os, const IntTab& tab)
 {
   const int dim0 = tab.dimension(0);
   const int dimtot = Process::check_int_overflow(Process::mp_sum(dim0));
   if (Process::je_suis_maitre())
     os << dimtot << tspace << tab.dimension(1) << finl;
-  os.put(tab.addr(), tab.size_array());
-  os.syncfile();
+  put_generic(os, tab, tab.size_array());
 }
 
 void ecrire_tableau(Sortie& os, const ArrOfInt& tab)
@@ -45,8 +63,7 @@ void ecrire_tableau(Sortie& os, const ArrOfInt& tab)
   const int dimtot = Process::check_int_overflow(Process::mp_sum(dim0));
   if (Process::je_suis_maitre())
     os << dimtot << finl;
-  os.put(tab.addr(), tab.size_array());
-  os.syncfile();
+  put_generic(os, tab, tab.size_array());
 }
 
 void Sauvegarde_Reprise_Maillage_FT::ecrire_xyz(const Maillage_FT_Disc& mesh, const Domaine_VF& domaine_vf, Sortie& fichier)
