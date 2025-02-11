@@ -79,7 +79,7 @@ Entree& IJK_Thermal::typer_thermal(Entree& is)
       }
     case 3:
       {
-        type += "OnefluidEnergy";
+        type += "Onefluid_Energy";
         break;
       }
     case 4:

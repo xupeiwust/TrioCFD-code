@@ -42,6 +42,8 @@ public :
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
+  bool has_IJK_field(const Nom& nom) const;
+  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell_,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face_);
   void retrieve_ghost_fluid_params();

@@ -105,6 +105,39 @@ void IJK_Thermals::associer_switch(const Switch_FT_double& ijk_ft_switch)
     itr.associer_switch(ref_ijk_ft_switch_);
 }
 
+bool IJK_Thermals::has_IJK_field(const Nom& nom) const
+{
+  if (nom.contient("TEMPERATURE") || nom.contient("ECART_T") || nom== "INTERFACE_PHIN")
+    return true;
+  else
+    return false;
+}
+
+
+const IJK_Field_double& IJK_Thermals::get_IJK_field(const Nom& nom) const
+{
+  for (int i = 0; i < (int) (*this).size(); i++)
+    {
+      if (nom== Nom("TEMPERATURE_")+Nom(i))
+        return *(((*this).operator[](i))->get_temperature());
+
+      if (nom== Nom("TEMPERATURE_ANA_")+Nom(i))
+        return (((*this).operator[](i))->get_temperature_ana());
+
+      if (nom== Nom("ECART_T_ANA_")+Nom(i))
+        return (((*this).operator[](i))->get_ecart_t_ana());
+
+      if (nom== Nom("INTERFACE_PHIN_")+Nom(i))
+        return (((*this).operator[](i))->get_grad_T_interface_ns());
+
+    }
+
+
+  Cerr << "Erreur dans IJK_Thermals::get_IJK_field : " << finl;
+  Cerr << "Le champ demande " << nom << " n'est pas connu par  IJK_Thermals::get_IJK_field." << finl;
+  throw;
+}
+
 void IJK_Thermals::associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                                     const Intersection_Interface_ijk_face& intersection_ijk_face)
 {

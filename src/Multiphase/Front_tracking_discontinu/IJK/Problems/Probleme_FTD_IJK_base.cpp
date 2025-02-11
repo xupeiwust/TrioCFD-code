@@ -266,6 +266,9 @@ const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) con
   if (nom== "INDICATRICE")
     return get_interface().I_ft();
 
+  if (thermals_.has_IJK_field(nom))
+    return thermals_.get_IJK_field(nom);
+
   return post_.get_IJK_field(nom);
 }
 
