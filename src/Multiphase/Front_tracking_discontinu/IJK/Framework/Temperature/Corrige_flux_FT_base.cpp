@@ -17,7 +17,6 @@
 #include <DebogIJK.h>
 #include <Probleme_FTD_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <IJK_Thermique.h>
 #include <Intersection_Interface_ijk.h>
 #include <Param.h>
 #include <stat_counters.h>

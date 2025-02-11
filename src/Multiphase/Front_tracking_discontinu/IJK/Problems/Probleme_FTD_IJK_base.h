@@ -30,13 +30,11 @@
 #include <Redistribute_Field.h>
 #include <Parser.h>
 #include <IJK_FT_Post.h>
-#include <IJK_Thermique.h>
 #include <Cut_cell_FT_Disc.h>
 #include <init_forcage_THI.h>
 #include <corrections_qdm.h>
 #include <Force_sp.h>
 #include <TRUST_List.h>
-#include <IJK_Energie.h>
 #include <IJK_Thermals.h>
 #include <TRUST_Ref.h>
 #include <Objet_U.h>
@@ -54,7 +52,6 @@ class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
   Declare_base(Probleme_FTD_IJK_base) ;
 public :
   // We take too much advantage of it ...:
-  friend class IJK_Thermique;
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
   friend class IJK_FT_Post;
@@ -123,12 +120,6 @@ public :
   void reprendre_probleme(const char *fichier_reprise);
 
   void update_thermal_properties();
-
-  const LIST(IJK_Thermique)& get_list_thermique() const { return thermique_; }
-  LIST(IJK_Thermique)& get_list_thermique() { return thermique_; }
-
-  const LIST(IJK_Energie)& get_list_energie() const { return energie_; }
-  LIST(IJK_Energie)& get_list_energie() { return energie_; }
 
   const IJK_Thermals& get_ijk_thermals() const { return thermals_; }
   IJK_Thermals& get_ijk_thermals() { return thermals_; }
@@ -215,12 +206,6 @@ protected:
 
   // Compteur du dernier traitement effectue dans treatment_count_
   int new_treatment_ = 0;
-
-  /*
-   * XXX WILL BE REMOVED
-   */
-  LIST(IJK_Thermique) thermique_;
-  LIST(IJK_Energie) energie_;
 
   /*
    * PRIORITE

@@ -176,29 +176,9 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
 
   const double dt_eq_velocity = 1. / (1. / dt_cfl_ + 1. / dt_fo_ + 1. / dt_oh_);
 
-  /*
-   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-   */
-  double dt_thermique = 1.e20;
-  for (const auto &itr : pb_ijk.get_list_thermique())
-    {
-      const double dt_th = itr.compute_timestep(dt_thermique, dxmin);
-      // We take the most restrictive of all thermal problems and use it for all:
-      dt_thermique = std::min(dt_thermique, dt_th);
-    }
-
-  double dt_energie = 1.e20;
-  for (const auto &itr : pb_ijk.get_list_energie())
-    {
-      const double dt_en = itr.compute_timestep(dt_energie, dxmin);
-      // We take the most restrictive of all thermal problems and use it for all:
-      dt_energie = std::min(dt_energie, dt_en);
-    }
-  const double dt_thermique_energie = std::min(dt_energie, dt_thermique);
 
   double dt_thermals = 1.e20;
   pb_ijk.get_ijk_thermals().compute_timestep(dt_thermals, dxmin);
-  dt_thermals = std::min(dt_thermals, dt_thermique_energie);
 
   const double dt = std::min(max_timestep, timestep_facsec_ * std::min(dt_eq_velocity, dt_thermals));
 
@@ -208,8 +188,6 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
       SFichier fic = Ouvrir_fichier(".dt_ev", "tstep\ttime\ttimestep\tdt_cfl\tdt_fo\tdt_oh\tdt_diff_th", reset);
       fic << nb_pas_dt_ << " " << temps_courant_ << " " << dt;
       fic << " " << dt_cfl_ << " " << dt_fo_ << " " << dt_oh_;
-      fic << " " << dt_thermique; // If no thermal equation, value will be large.
-      fic << " " << dt_energie; // If no thermal equation, value will be large.
       fic << " " << dt_thermals; // If no thermal equation, value will be large.
       fic << finl;
       fic.close();

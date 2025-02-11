@@ -50,8 +50,6 @@ void IJK_FT_Post::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
   source_spectrale_ = ref_ijk_ft_->eq_ns().forcage_.get_force_ph2();
   bk_tsi_ns_ = ref_ijk_ft_->eq_ns().backup_terme_source_interfaces_ns_;
   d_velocity_ = ref_ijk_ft_->eq_ns().d_velocity_;
-  thermique_ = ref_ijk_ft_->thermique_;
-  energie_ = ref_ijk_ft_->energie_;
   thermals_ = ref_ijk_ft_->thermals_;
 }
 
@@ -447,22 +445,6 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       if (!Option_IJK::DISABLE_DIPHASIQUE)
         interfaces_->posttraiter_tous_champs(liste_post_instantanes_);
 
-      {
-        int idx_thermique = 0;
-        for (auto&& itr = thermique_->begin(); itr != thermique_->end(); ++itr)
-          {
-            posttraiter_tous_champs_thermique(liste_post_instantanes_, idx_thermique);
-            ++idx_thermique;
-          }
-      }
-      {
-        int idx_en = 0;
-        for (auto&& itr = energie_->begin(); itr != energie_->end(); ++itr)
-          {
-            posttraiter_tous_champs_energie(liste_post_instantanes_, idx_en);
-            ++idx_en;
-          }
-      }
       thermals_->posttraiter_tous_champs_thermal(liste_post_instantanes_);
     }
   // if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
@@ -945,38 +927,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_Z"), interfaces_->get_barycentre_phase1_old()[2], latastep);
     }
 
-  {
-    int idx_therm = 0;
-    for (auto &itr : thermique_.valeur())
-      {
-        int nb = posttraiter_champs_instantanes_thermique(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
-        // Interfacial thermal fields :
-        if (!Option_IJK::DISABLE_DIPHASIQUE)
-          nb += posttraiter_champs_instantanes_thermique_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_therm);
-
-        if (idx_therm == 0)
-          n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
-        ++idx_therm;
-      }
-    // TODO: finir post-traitement de l'energie, choisir a quel niveau le faire.
-    int idx_en = 0;
-    for (auto &itr : energie_.valeur())
-      {
-        int nb = posttraiter_champs_instantanes_energie(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_en);
-        // Interfacial thermal fields :
-        if (!Option_IJK::DISABLE_DIPHASIQUE)
-          nb += posttraiter_champs_instantanes_energie_interfaciaux(liste_post_instantanes_, lata_name, latastep, current_time, itr, idx_en);
-
-        if (idx_en == 0)
-          n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
-        ++idx_en;
-      }
-    /*
-     * TODO: Clean IJK_Thermique et IJK_Energie
-     */
-    thermals_->posttraiter_champs_instantanes_thermal(liste_post_instantanes_, lata_name, latastep, current_time, n);
-    Cerr << "les champs postraites sont: " << liste_post_instantanes_ << finl;
-  }
+  thermals_->posttraiter_champs_instantanes_thermal(liste_post_instantanes_, lata_name, latastep, current_time, n);
+  Cerr << "les champs postraites sont: " << liste_post_instantanes_ << finl;
 
   if (n > 0)
     {
@@ -1082,73 +1034,6 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
 
   DoubleTab poussee;
   interfaces_->calculer_poussee_bulles(gravite, poussee);
-  if (1)
-    {
-      int idx_th = 0;
-      for (auto& itr : const_cast<IJK_FT_Post*>(this)->thermique_.valeur())
-        {
-          ArrOfDouble interfacial_temperature;
-          ArrOfDouble interfacial_phin_ai;
-          // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
-          IJK_Field_double& temperature_ft = itr.get_temperature_ft();
-          const_cast<IJK_FT_Post*>(this)->ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem_.redistribute( itr.get_temperature(), temperature_ft);
-          temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
-          //itr.compute_interfacial_temperature(interfacial_temperature, interfacial_phin_ai, itr.get_storage());
-          itr.compute_interfacial_temperature2(interfacial_temperature, interfacial_phin_ai);
-
-          // Compute Bubble mean :
-          ArrOfDouble Ti_per_bubble;
-          ArrOfDouble phin_per_bubble;
-          interfaces_->compute_surface_average_per_bubble(surface, interfacial_phin_ai, phin_per_bubble);
-          interfaces_->compute_surface_average_per_bubble(surface, interfacial_temperature, Ti_per_bubble);
-          if (Process::je_suis_maitre())
-            {
-              char s[1000];
-              const char *nomcas = nom_cas;
-              SFichier fic;
-              const int n = Ti_per_bubble.size_array();
-              IOS_OPEN_MODE mode = (reset) ? ios::out : ios::app;
-
-#if INT_is_64_ == 1
-              snprintf(s, 1000, "%s_bulles_Ti_%ld.out", nomcas, idx_th);
-#else
-              snprintf(s, 1000, "%s_bulles_Ti_%d.out", nomcas, idx_th);
-#endif
-              // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-              fic.ouvrir(s, mode);
-              snprintf(s, 1000, "%.16e ", current_time);
-              fic << s;
-              for (int i = 0; i < n; i++)
-                {
-                  snprintf(s, 1000, "%.16e ", Ti_per_bubble[i]);
-                  fic << s;
-                }
-              fic << endl;
-              fic.close();
-
-              // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-#if INT_is_64_ == 1
-              snprintf(s, 1000, "%s_bulles_phin_%ld.out", nomcas, idx_th);
-#else
-              snprintf(s, 1000, "%s_bulles_phin_%d.out", nomcas, idx_th);
-#endif
-              fic.ouvrir(s, mode);
-              snprintf(s, 1000, "%.16e ", current_time);
-              fic << s;
-              for (int i = 0; i < n; i++)
-                {
-                  snprintf(s, 1000, "%.16e ", phin_per_bubble[i]);
-                  fic << s;
-                }
-              fic << endl;
-              fic.close();
-
-              Cerr << "Fin de l'ecriture des stats par bulles pour la temperature " << idx_th << endl;
-            }
-
-          ++idx_th;
-        }
-    }
 
   const_cast<IJK_FT_Post*>(this)->thermals_->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
 
@@ -1564,16 +1449,6 @@ void IJK_FT_Post::get_update_lambda2_and_rot_and_curl()
 
 const IJK_Field_vector3_double& IJK_FT_Post::get_IJK_vector_field(const Nom& nom) const
 {
-  //int idx_th = 0;
-  for (const auto &itr : ref_ijk_ft_->thermique_)
-    {
-      std::ostringstream oss;
-      oss << "GRAD_T"; // << idx_th;
-      if (nom == Nom(oss.str().c_str()))
-        return itr.grad_T_;
-      oss.str("");
-      // ++idx_th;
-    }
   Cerr << "Erreur dans IJK_FT_Post::get_IJK_vector_field : " << "Champ demande : " << nom << " Liste des champs possibles : " << finl;
   Process::exit();
   throw;
@@ -1877,44 +1752,8 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
       Process::exit();
     }
 
-  int idx_th = 0;
-  for (const auto &itr : ref_ijk_ft_->thermique_)
-    {
-      if (idx_th == idx_wanted)
-        {
-          if (field_name == Nom("TEMPERATURE"))
-            return itr.temperature_;
-          if (field_name == Nom("TEMPERATURE_ANA"))
-            return itr.temperature_ana_;
-          if (field_name == Nom("SOURCE_TEMPERATURE"))
-            return itr.source_temperature_;
-          if (field_name == Nom("TEMPERATURE_PHYSIQUE_T"))
-            return itr.temperature_physique_T_;
-          if (field_name == Nom("T_RUST"))
-            return itr.T_rust_;
-          if (field_name == Nom("div_rho_cp_T"))
-            return itr.div_rho_cp_T_;
-          if (field_name == Nom("ECART_T_ANA"))
-            return itr.ecart_t_ana_;
-          if (field_name == Nom("TEMPERATURE_ADIM_BULLES"))
-            return itr.temperature_adim_bulles_;
-          if (field_name == Nom("GRAD_T0"))
-            return itr.grad_T_[0];
-          if (field_name == Nom("GRAD_T1"))
-            return itr.grad_T_[1];
-          if (field_name == Nom("GRAD_T2"))
-            return itr.grad_T_[2];
-          break;
-        }
-      else
-        {
-          ++idx_th;
-        }
-    }
-
   Cerr << "Erreur dans IJK_FT_Post::get_IJK_field : " << endl;
   Cerr << "Champ demande : " << nom << endl;
-  Cerr << "Index maximal pour la temperature : " << idx_th - 1 << finl;
   Cerr << "Liste des champs possibles pour la thermique : " << liste_champs_thermiques_possibles << finl;
   Process::exit();
   throw;
@@ -1923,10 +1762,6 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
 
 const int& IJK_FT_Post::get_IJK_flag(const Nom& nom) const
 {
-  const auto& ii = ref_ijk_ft_->thermique_.front();
-  if (nom == "WALL_FLUX")
-    return ii.wall_flux_;
-
   Cerr << "Erreur dans IJK_FT_Post::get_IJK_variable : " << "Variable demandee : " << nom << " Liste des variables possibles : " << finl;
   Process::exit();
   throw;
@@ -2939,10 +2774,6 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
 // Elle ajoute a la liste tous les noms de champs postraitables par IJK_Interfaces
 
-/*
- * TODO: Clean IJK_Thermique et IJK_Energie
- */
-
 void IJK_FT_Post::posttraiter_tous_champs_thermique(Motcles& liste, const int idx) const
 {
   liste.add("TEMPERATURE");
@@ -2990,293 +2821,3 @@ void IJK_FT_Post::posttraiter_tous_champs_energie(Motcles& liste, const int idx)
   liste.add("DIV_RHO_CP_T_V");
 }
 
-// idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_thermique(const Motcles& liste_post_instantanes,
-                                                          const char *lata_name,
-                                                          const int latastep,
-                                                          const double current_time,
-                                                          IJK_Thermique& itr,
-                                                          const int idx)
-{
-  Cerr << liste_post_instantanes << endl;
-  int n = 0; // nombre de champs postraites
-  std::ostringstream oss;
-  oss << "TEMPERATURE_" << idx;
-  Nom nom_temp(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
-    {
-      n++, dumplata_scalar(lata_name, nom_temp, itr.temperature_, latastep);
-    }
-
-  oss.str("");
-  oss << "D_TEMPERATURE_" << idx;
-  Nom nom_dtemp(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("D_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_dtemp)))
-    {
-      n++, dumplata_scalar(lata_name, nom_dtemp, itr.d_temperature_, latastep);
-    }
-
-  oss.str("");
-  if (liste_post_instantanes.contient_("CP"))
-    n++, dumplata_scalar(lata_name, "CP", itr.cp_, latastep);
-  if (liste_post_instantanes.contient_("LAMBDA"))
-    n++, dumplata_scalar(lata_name, "LAMBDA", itr.lambda_, latastep);
-
-  //MR: temperature analytique
-  oss << "TEMPERATURE_" << idx << "_ANA";
-  Nom nom_ana(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE_ANA")) || (liste_post_instantanes.contient_(nom_ana)))
-    {
-      //set_field_data(itr.temperature_ana_, itr.expression_T_ana_, current_time);
-      itr.set_field_T_ana();
-      n++, dumplata_scalar(lata_name, nom_ana, itr.temperature_ana_, latastep);
-    }
-  oss.str("");
-
-  oss << "GRAD_T_" << idx;
-  Nom nom1(oss.str().c_str());
-
-  if (liste_post_instantanes_.contient_("GRAD_T") || (liste_post_instantanes.contient_(nom1)))
-    {
-      const IJK_Field_vector3_double& grad_T = itr.grad_T_;
-      n++, dumplata_vector(lata_name, "GRADT", grad_T[0], grad_T[1], grad_T[2], latastep);
-      //  IJK_Field_double& grad_T0 = itr.grad_T_[0];
-      //  IJK_Field_double& grad_T1 = itr.grad_T_[1];
-      // IJK_Field_double& grad_T2 = itr.grad_T_[2];
-      //IJK_Field_vector3_double& grad_T = [grad_T0, grad_T1, grad_T2];
-      // n++,dumplata_scalar(lata_name,"dTd", grad_T2, latastep);
-    }
-  oss.str("");
-
-  oss << "TEMPERATURE_" << idx << "_ADIMENSIONNELLE_THETA";
-  Nom nom2(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA")) || (liste_post_instantanes.contient_(nom2)))
-    {
-      //  set_field_data(temperature_ana_, itr.expression_T_ana_, current_time);
-      n++, dumplata_scalar(lata_name, nom2, itr.temperature_adimensionnelle_theta_, latastep);
-    }
-  oss.str("");
-
-  oss << "SOURCE_TEMPERATURE_" << idx;
-  Nom nom3(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("SOURCE_TEMPERATURE")) || liste_post_instantanes.contient_(nom3))
-    {
-      // set_field_data(source_temperature_ana_, itr.expression_source_temperature_, velocity_[0], current_time);
-      n++, dumplata_scalar(lata_name, nom3, itr.source_temperature_, latastep);
-    }
-  oss.str("");
-
-  oss << "TEMPERATURE_" << idx << "_ADIM_BULLES";
-  Nom nom20(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE_ADIM_BULLES")) || (liste_post_instantanes.contient_(nom20)))
-    {
-      n++, dumplata_scalar(lata_name, nom20, itr.temperature_adim_bulles_, latastep);
-    }
-  oss.str("");
-
-  oss << "TEMPERATURE_PHYSIQUE_T_" << idx;
-  Nom nom6(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE_PHYSIQUE_T")) || liste_post_instantanes.contient_(nom6))
-    {
-      // set_field_data(source_temperature_ana_, itr.expression_source_temperature_, velocity_[0], current_time);
-      n++, dumplata_scalar(lata_name, nom6, itr.temperature_physique_T_, latastep);
-    }
-  oss.str("");
-
-  oss << "ECART_T_ANA" << idx;
-  Nom nom4(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("ECART_T_ANA") || liste_post_instantanes.contient_(nom4)))
-    {
-      itr.calculer_ecart_T_ana();
-      n++, dumplata_scalar(lata_name, nom4, itr.ecart_t_ana_, latastep);
-    }
-  oss.str("");
-
-  oss << "DIV_LAMBDA_GRAD_T_VOLUME" << idx;
-  Nom nom5(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T_VOLUME") || liste_post_instantanes.contient_(nom5)))
-    {
-      n++, dumplata_scalar(lata_name, nom5, itr.div_lambda_grad_T_volume_, latastep);
-    }
-  oss.str("");
-
-  oss << "T_" << idx << "_RUST";
-  Nom nom7(oss.str().c_str());
-  if (((liste_post_instantanes.contient_("T_RUST")) || (liste_post_instantanes.contient_(nom7))) && (itr.conserv_energy_global_))
-    {
-      //  set_field_data(temperature_ana_, itr.expression_T_ana_, current_time);
-      n++, dumplata_scalar(lata_name, nom7, itr.T_rust_, latastep);
-    }
-  else if ((liste_post_instantanes.contient_("T_RUST")) || (liste_post_instantanes.contient_(nom7)))
-    {
-      n++;
-    }
-  oss.str("");
-
-  oss << "DIV_RHO_CP_T_" << idx << "_V";
-  Nom nom8(oss.str().c_str());
-  if (((liste_post_instantanes.contient_("DIV_RHO_CP_T_V")) || (liste_post_instantanes.contient_(nom8))) && (itr.type_temperature_convection_form_ == 2))
-    {
-      //  set_field_data(temperature_ana_, itr.expression_T_ana_, current_time);
-      n++, dumplata_scalar(lata_name, nom8, itr.div_rho_cp_T_, latastep);
-    }
-  else if ((liste_post_instantanes.contient_("DIV_RHO_CP_T_V")) || (liste_post_instantanes.contient_(nom8)))
-    {
-      n++;
-    }
-  oss.str("");
-
-  return n;
-}
-
-int IJK_FT_Post::posttraiter_champs_instantanes_energie(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, IJK_Energie& itr, const int idx)
-{
-  Cerr << liste_post_instantanes << endl;
-  int n = 0; // nombre de champs postraites
-  std::ostringstream oss;
-  oss << "TEMPERATURE_EN_" << idx;
-  Nom nom_temp(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
-    {
-      n++, dumplata_scalar(lata_name, nom_temp, itr.temperature_, latastep);
-    }
-  oss.str("");
-
-  //MR: temperature analytique
-  oss << "TEMPERATURE_EN_" << idx << "_ANA";
-  Nom nom_ana(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("TEMPERATURE_ANA")) || (liste_post_instantanes.contient_(nom_ana)))
-    {
-      //set_field_data(itr.temperature_ana_, itr.expression_T_ana_, current_time);
-      itr.set_field_T_ana();
-      n++, dumplata_scalar(lata_name, nom_ana, itr.temperature_ana_, latastep);
-    }
-  oss.str("");
-
-  oss << "GRAD_T_EN_" << idx;
-  Nom nom1(oss.str().c_str());
-
-  if (liste_post_instantanes_.contient_("GRAD_T") || (liste_post_instantanes.contient_(nom1)))
-    {
-      const IJK_Field_vector3_double& grad_T = itr.grad_T_;
-      n++, dumplata_vector(lata_name, "GRADT", grad_T[0], grad_T[1], grad_T[2], latastep);
-      //  IJK_Field_double& grad_T0 = itr.grad_T_[0];
-      //  IJK_Field_double& grad_T1 = itr.grad_T_[1];
-      // IJK_Field_double& grad_T2 = itr.grad_T_[2];
-      //IJK_Field_vector3_double& grad_T = [grad_T0, grad_T1, grad_T2];
-      // n++,dumplata_scalar(lata_name,"dTd", grad_T2, latastep);
-    }
-  oss.str("");
-
-  oss << "ECART_T_ANA_EN_" << idx;
-  Nom nom4(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("ECART_T_ANA") || liste_post_instantanes.contient_(nom4)))
-    {
-      itr.calculer_ecart_T_ana();
-      n++, dumplata_scalar(lata_name, nom4, itr.ecart_t_ana_, latastep);
-    }
-  oss.str("");
-
-  oss << "DIV_LAMBDA_GRAD_T_VOLUME_EN_" << idx;
-  Nom nom5(oss.str().c_str());
-  if ((liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T_VOLUME") || liste_post_instantanes.contient_(nom5)))
-    {
-      n++, dumplata_scalar(lata_name, nom5, itr.div_lambda_grad_T_volume_, latastep);
-    }
-  oss.str("");
-  return n;
-}
-
-// idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_thermique_interfaciaux(const Motcles& liste_post_instantanes,
-                                                                       const char *lata_name,
-                                                                       const int latastep,
-                                                                       const double current_time,
-                                                                       IJK_Thermique& itr,
-                                                                       const int idx)
-{
-  Cerr << liste_post_instantanes << endl;
-  int n = 0; // nombre de champs postraites
-  std::ostringstream oss;
-  oss << "INTERFACE_TEMPERATURE_" << idx;
-  Nom nom_temp(oss.str().c_str());
-  std::ostringstream oss2;
-  oss2 << "INTERFACE_PHIN_" << idx;
-  Nom nom_phin(oss2.str().c_str());
-  if ((liste_post_instantanes.contient_("INTERFACE_TEMPERATURE")) || (liste_post_instantanes.contient_("INTERFACE_PHIN")) || (liste_post_instantanes.contient_(nom_temp))
-      || (liste_post_instantanes.contient_(nom_phin)))
-    {
-      //  Computing interfacial temperature at fa7 centre :
-      const Maillage_FT_IJK& mesh = interfaces_->maillage_ft_ijk();
-      const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
-      const int nb_facettes = mesh.nb_facettes();
-      ArrOfDouble interfacial_temperature;
-      ArrOfDouble interfacial_phin;
-      // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
-      IJK_Field_double& temperature_ft = itr.get_temperature_ft();
-      ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem_.redistribute(itr.get_temperature(), temperature_ft);
-      temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
-      // results are prop to the area :
-      //itr.compute_interfacial_temperature(interfacial_temperature, interfacial_phin, itr.get_storage());
-      itr.compute_interfacial_temperature2(interfacial_temperature, interfacial_phin);
-      for (int fa7 = 0; fa7 < nb_facettes; fa7++)
-        {
-          const double sf = surface_facettes[fa7];
-          interfacial_temperature[fa7] /= sf;
-          interfacial_phin[fa7] /= sf;
-        }
-      if ((liste_post_instantanes.contient_("INTERFACE_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
-        n++, dumplata_ft_field(lata_name, "INTERFACES", nom_temp, "ELEM", interfacial_temperature, latastep);
-      if ((liste_post_instantanes.contient_("INTERFACE_PHIN")) || (liste_post_instantanes.contient_(nom_phin)))
-        n++, dumplata_ft_field(lata_name, "INTERFACES", nom_phin, "ELEM", interfacial_phin, latastep);
-    }
-  oss.str("");
-  return n;
-}
-
-// idx is the number of the temperature in the list
-int IJK_FT_Post::posttraiter_champs_instantanes_energie_interfaciaux(const Motcles& liste_post_instantanes,
-                                                                     const char *lata_name,
-                                                                     const int latastep,
-                                                                     const double current_time,
-                                                                     IJK_Energie& itr,
-                                                                     const int idx)
-{
-  Cerr << liste_post_instantanes << endl;
-  int n = 0; // nombre de champs postraites
-  std::ostringstream oss;
-  oss << "INTERFACE_TEMPERATURE_EN_" << idx;
-  Nom nom_temp(oss.str().c_str());
-  std::ostringstream oss2;
-  oss2 << "INTERFACE_PHIN_EN_" << idx;
-  Nom nom_phin(oss2.str().c_str());
-  if ((liste_post_instantanes.contient_("INTERFACE_TEMPERATURE")) || (liste_post_instantanes.contient_("INTERFACE_PHIN")) || (liste_post_instantanes.contient_(nom_temp))
-      || (liste_post_instantanes.contient_(nom_phin)))
-    {
-      //  Computing interfacial temperature at fa7 centre :
-      const Maillage_FT_IJK& mesh = interfaces_->maillage_ft_ijk();
-      const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
-      const int nb_facettes = mesh.nb_facettes();
-      ArrOfDouble interfacial_temperature;
-      ArrOfDouble interfacial_phin;
-      // To transfer the field to FT splitting (because interfaces are there...) !!! NEEDED for compute_interfacial_temperature
-      IJK_Field_double& temperature_ft = itr.get_temperature_ft();
-      ref_ijk_ft_->eq_ns().redistribute_to_splitting_ft_elem_.redistribute(itr.get_temperature(), temperature_ft);
-      temperature_ft.echange_espace_virtuel(temperature_ft.ghost());
-      // results are prop to the area :
-      //itr.compute_interfacial_temperature(interfacial_temperature, interfacial_phin, itr.get_storage());
-      itr.compute_interfacial_temperature2(interfacial_temperature, interfacial_phin);
-      for (int fa7 = 0; fa7 < nb_facettes; fa7++)
-        {
-          const double sf = surface_facettes[fa7];
-          interfacial_temperature[fa7] /= sf;
-          interfacial_phin[fa7] /= sf;
-        }
-      if ((liste_post_instantanes.contient_("INTERFACE_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
-        n++, dumplata_ft_field(lata_name, "INTERFACES", nom_temp, "ELEM", interfacial_temperature, latastep);
-      if ((liste_post_instantanes.contient_("INTERFACE_PHIN")) || (liste_post_instantanes.contient_(nom_phin)))
-        n++, dumplata_ft_field(lata_name, "INTERFACES", nom_phin, "ELEM", interfacial_phin, latastep);
-    }
-  oss.str("");
-  return n;
-}

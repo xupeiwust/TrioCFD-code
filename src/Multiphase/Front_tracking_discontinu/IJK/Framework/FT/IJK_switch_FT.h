@@ -19,7 +19,6 @@
 
 #include <IJK_switch.h>
 #include <IJK_Interfaces.h>
-#include <IJK_Thermique.h>
 #include <TRUST_List.h>
 #include <init_forcage_THI.h>
 #include <Force_sp.h>
@@ -85,10 +84,6 @@ protected:
   ArrOfDouble liste_liq_dl_;  // liste des v_l * dt
   double reprise_v_target_ = 0.;
   int list_index_ = 0.;
-  // GAB : gabriel.ramirez@cea.fr
-
-  // Dealing with thermal aspects:
-  LIST(IJK_Thermique) thermique_;
   IJK_Thermals thermals_;
 };
 

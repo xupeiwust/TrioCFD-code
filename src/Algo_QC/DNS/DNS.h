@@ -54,8 +54,8 @@
 #include <Parser.h>
 #include <Boundary_Conditions.h>
 #include <Statistiques_dns_qc_ijk.h>
-#include <IJK_Thermique.h>
 #include <Filter_kernel.h>
+#include <OpConvCentre2IJKScalar.h>
 
 #define WITH_FFTW
 

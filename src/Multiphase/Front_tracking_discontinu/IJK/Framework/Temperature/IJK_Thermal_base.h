@@ -409,9 +409,6 @@ public:
   }
   virtual void set_field_T_ana();
 
-  /*
-   * Patch from IJK_Thermique
-   */
   void euler_rustine_step(const double timestep, const double dE);
   void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
                             const double fractionnal_timestep, const double time, const double dE);

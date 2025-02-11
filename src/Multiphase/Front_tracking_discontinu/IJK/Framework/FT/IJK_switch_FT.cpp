@@ -41,7 +41,6 @@ void Switch_FT_double::set_param(Param& param)
   param.ajouter("old_ijk_splitting_ft_extension", &old_ijk_splitting_ft_extension_);
 
   // Parametres pour la thermique:
-  param.ajouter("thermique", &thermique_);
   param.ajouter("thermals", &thermals_);
 
   /*
@@ -120,16 +119,7 @@ void Switch_FT_double::initialise()
 int Switch_FT_double::init_thermique()
 // The Thermique.initialize does both the allocate and the initialize:
 {
-  int nb_allocated_arrays = 0;
-  int idx =0;
-    for (auto& itr : thermique_)
-    {
-      Cout << "Reading the old temperature field from " << Nom(itr.get_fichier_sauvegarde())
-           << " to fill the thermique_ field."<< finl;
-      nb_allocated_arrays += itr.initialize(old_mesh_, idx);
-      idx++;
-    }
-  return nb_allocated_arrays;
+  return 0;
 }
 
 int Switch_FT_double::init_thermals()
@@ -141,8 +131,6 @@ int Switch_FT_double::init_thermals()
 
 void Switch_FT_double::prepare_thermique(const Nom lata_name)
 {
-  for (auto& itr : thermique_)
-  	itr.set_fichier_sauvegarde(lata_name);
 }
 
 void Switch_FT_double::prepare_thermals(const Nom lata_name)
@@ -179,28 +167,6 @@ void Switch_FT_double::ecrire_fichier_reprise(const char *fichier_sauvegarde, co
       fichier <<  " corrections_qdm " << new_qdm_corrections_;
 
       Cerr << "  potentially saving temperature fields... " << finl;
-      int flag_list_not_empty = 0;
-      if ((int) thermique_.size() > 0)
-        {
-          fichier << " thermique {\n" ;
-          flag_list_not_empty = 1;
-        }
-      int idx =0;
-      for (auto itr = thermique_.begin(); itr != thermique_.end(); )
-        {
-          //curseur->sauvegarder_temperature(lata_name, idx);
-          (*itr).set_fichier_sauvegarde(lata_name);
-          fichier << *itr ;
-          ++itr;
-          if (itr != thermique_.end() )
-            fichier << ", \n" ;
-          else
-            fichier << "\n" ;
-          Cerr << "  end of temperature field #" << idx << "... " << finl;
-          ++idx;
-        }
-      if (flag_list_not_empty)
-        fichier << " } \n" ;
 
       thermals_.ecrire_fichier_reprise(fichier, lata_name);
 
@@ -231,7 +197,6 @@ void Switch_FT_double::set_param_reprise(Param& param)
 {
   Switch_double::set_param_reprise(param);
   param.ajouter("interfaces", & interfaces_);
-  param.ajouter("thermique", & thermique_);
   param.ajouter("thermals", & thermals_);
   // GAB : gabriel.rmairez@cea.fr
   /* Voir reprendre probleme dans Probleme_FTD_IJK_base.cpp */
@@ -249,48 +214,6 @@ void Switch_FT_double::compute_and_write_extra_fields(const Nom& lata_name,
                                                       DoubleTab& coeff_j, IntTab Indice_j,
                                                       DoubleTab& coeff_k, IntTab Indice_k)
 {
-	 // GAB : gabriel.ramirez@cea.fr
-  	/*Cout << "forcage2_.get_type_forcage() : " <<forcage2_.get_type_forcage() << finl;
-  	if (forcage2_.get_type_forcage() > 0)
-    {
-      const Domaine_IJK& gbz_splitting = velocity_[0].get_domaine();
-      const Domaine_IJK& my_geom = velocity_[0].get_domaine();
-
-      const int my_ni = velocity_[0].ni();
-      const int my_nj = velocity_[0].nj();
-      const int my_nk = velocity_[0].nk();
-      const int nproc_tot = Process::nproc();
-      forcage2_.compute_initial_chouippe(nproc_tot,my_geom,my_ni,my_nj,my_nk,gbz_splitting,nom_sauvegarde_);
-      statistiques().begin_count(m2);
-      Cout << "AF compute_initial_chouippe" << finl;
-    }*/
-    // GAB : gabriel.ramirez@cea.fr
-
-  IJK_Field_double new_temperature;
-  if (thermique_.size() > 0)
-    {
-      calculer_coords_elem();
-      calculer_coeff(coeff_i,Indice_i,
-                     coeff_j,Indice_j,
-                     coeff_k,Indice_k);
-      new_temperature.allocate(new_mesh_ /* it is in fact a splitting */, Domaine_IJK::ELEM, 0);
-    }
-  int idx = 0;
-  for (auto& itr : thermique_)
-    {
-      const IJK_Field_double& old_temperature = itr.get_temperature();
-      switch_scalar_field(old_temperature, new_temperature,
-                          coeff_i, Indice_i,
-                          coeff_j ,Indice_j,
-                          coeff_k ,Indice_k);
-      Cout << "Writing " <<Nom("TEMPERATURE_") + Nom(idx) << " into " << lata_name << finl;
-      dumplata_scalar(lata_name,Nom("TEMPERATURE_") + Nom(idx) , new_temperature, 0 /*we store a 0 */);
-      ++idx;
-    }
-
-  /*
-   * IJK_Thermals (LIST)
-   */
   thermals_.compute_new_thermal_field((*this),
   																		new_mesh_,
 																			lata_name,

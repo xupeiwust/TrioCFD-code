@@ -33,8 +33,6 @@ class Domaine_IJK;
 /*
  * TODO: Demander à Aymeric l'interet (obsolete ??)
  */
-class IJK_Thermique;
-class IJK_Energie;
 class IJK_Thermals;
 
 /**
@@ -183,28 +181,6 @@ public:
   void posttraiter_tous_champs_energie(Motcles& liste,  const int idx) const;
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
 
-  /*
-   * TODO:
-   */
-  int posttraiter_champs_instantanes_thermique(const Motcles& liste_post_instantanes,
-                                               const char *lata_name,
-                                               const int lata_step, const double current_time,
-                                               IJK_Thermique& itr, const int idx);
-  int posttraiter_champs_instantanes_energie(const Motcles& liste_post_instantanes,
-                                             const char *lata_name,
-                                             const int lata_step, const double current_time,
-                                             IJK_Energie& itr,  const int idx);
-  /*
-   * TODO:
-   */
-  int posttraiter_champs_instantanes_thermique_interfaciaux(const Motcles& liste_post_instantanes,
-                                                            const char *lata_name,
-                                                            const int lata_step, const double current_time,
-                                                            IJK_Thermique& ,  const int idx);
-  int posttraiter_champs_instantanes_energie_interfaciaux(const Motcles& liste_post_instantanes,
-                                                          const char *lata_name,
-                                                          const int lata_step, const double current_time,
-                                                          IJK_Energie& ,  const int idx);
 
 //  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
 
@@ -393,8 +369,6 @@ protected:
 
   OBS_PTR(Domaine_IJK) domaine_ijk_;
   OBS_PTR(Domaine_IJK) domaine_ft_;
-  OBS_PTR(LIST(IJK_Thermique)) thermique_;
-  OBS_PTR(LIST(IJK_Energie)) energie_;
   OBS_PTR(IJK_Thermals) thermals_;
   int first_step_thermals_post_=0;
 

@@ -2363,10 +2363,6 @@ int IJK_Thermal_base::imposer_flux_thermique_bord(const IJK_Field_double& temper
   return k;
 }
 
-/*
- * Patch coming from IJK_Thermique (Aymeric's thesis)
- */
-
 void IJK_Thermal_base::euler_rustine_step(const double timestep, const double dE)
 {
   compute_dT_rustine(dE);

@@ -110,8 +110,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   // TODO: Change this block with OWN_PTR CLASS IJK_Thermal
   // Read list of thermic equations:
   param.ajouter("thermals", &thermals_);
-  param.ajouter("thermique", &thermique_); // XD_ADD_P thermique not_set
-  param.ajouter("energie", &energie_); // XD_ADD_P chaine not_set
 }
 
 int Probleme_FTD_IJK_base::associer_(Objet_U& obj)
@@ -238,14 +236,6 @@ void Probleme_FTD_IJK_base::completer()
   if (nom_reprise_ != "??")
     reprendre_probleme(nom_reprise_);
 
-  /*
-   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-   */
-  for (auto& itr : thermique_)
-    itr.associer(*this);
-  for (auto& itr : energie_)
-    itr.associer(*this);
-
   thermals_.associer(*this);
 
 
@@ -302,25 +292,6 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     get_interface().sauvegarder_interfaces(lata_name, interf_name);
 
-  // thermique_->sauvegarder_temperature(lata_name);
-  int idx =0;
-  //TODO: sauvegarde des champs surfaces (vapeur) et barycentre,
-  // eventuellement du med pour voir si la conversion marche.
-  /*
-   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-   */
-  for (auto& itr : thermique_)
-    {
-      itr.sauvegarder_temperature(lata_name, idx);
-      ++idx;
-    }
-  int idx2 =0;
-  for (auto& itr : energie_)
-    {
-      itr.sauvegarder_temperature(lata_name, idx2);
-      ++idx2;
-    }
-
   thermals_.sauvegarder_temperature(lata_name, stop);
 
   // curseur = thermique_; // RAZ : Remise au depart du curseur. GB -> Anida : Ne marche pas sur une liste vide? Je dois grader le curseur_bis ensuite.
@@ -352,42 +323,6 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
 
       ns.sauvegarder_equation(fichier);
 
-      int flag_list_not_empty = 0;
-      if (thermique_.size() > 0)
-        {
-          fichier << " thermique {\n" ;
-          flag_list_not_empty = 1;
-        }
-      for(auto itr = thermique_.begin(); itr != thermique_.end(); )
-        {
-          fichier << *itr ;
-          ++itr;
-          if (itr != thermique_.end())
-            fichier << ", \n" ;
-          else
-            fichier << "\n" ;
-        }
-      if (flag_list_not_empty)
-        fichier << " } \n" ;
-
-      int flag_list_not_empty_en = 0;
-      if (energie_.size() > 0)
-        {
-          fichier << " energie {\n" ;
-          flag_list_not_empty_en = 1;
-        }
-      for(auto itr = energie_.begin(); itr != energie_.end(); )
-        {
-          fichier << *itr ;
-          ++itr;
-          if (itr != energie_.end())
-            fichier << ", \n" ;
-          else
-            fichier << "\n" ;
-        }
-      if (flag_list_not_empty_en)
-        fichier << " } \n" ;
-
       /*
        * Thermals problems
        */
@@ -414,8 +349,6 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   schema_temps_ijk().set_param_reprise_pb(param);
 
   param.ajouter("interfaces", &get_interface()); // on lit dans l'eq les params reprise
-  param.ajouter("thermique", &thermique_);
-  param.ajouter("energie", &energie_);
 
   post_.reprendre_post(param);
 
@@ -454,31 +387,6 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
   // L'indicatrice non-perturbee est remplie (si besoin, cad si post-traitement) par le post.complete()
   post_.complete(reprise_);
 
-  static Stat_Counter_Id calculer_thermique_prop_counter_ = statistiques().new_counter(2, "Calcul des prop thermiques");
-  statistiques().begin_count(calculer_thermique_prop_counter_);
-
-  /*
-   * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-   */
-  int idx = 0;
-  for (auto &itr : thermique_)
-    {
-      nalloc += itr.initialize(domaine_ijk_.valeur(), idx);
-      if (!Option_IJK::DISABLE_DIPHASIQUE)
-        itr.update_thermal_properties();
-      idx++;
-    }
-
-  int idx2 = 0;
-  for (auto &itr : energie_)
-    {
-      nalloc += itr.initialize(domaine_ijk_.valeur(), idx2);
-      if (!Option_IJK::DISABLE_DIPHASIQUE)
-        itr.update_thermal_properties();
-      idx2++;
-    }
-
-  statistiques().end_count(calculer_thermique_prop_counter_);
 
   /*
    * Thermal problems
@@ -493,11 +401,6 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
   nalloc += interf.associate_rising_velocities_parameters(domaine_ijk_.valeur(), eq_ns.get_compute_rising_velocities() || eq_ns.get_upstream_velocity_measured(),
                                                           eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(), eq_ns.get_use_bubbles_velocities_from_barycentres());
 
-  if ((energie_.size() > 0) or (thermals_.size_thermal_problem(Nom("onefluidenergy")) > 0))
-    {
-      interf.set_compute_surfaces_mouillees();
-      update_twice_indicator_field();
-    }
 
   eq_ns.complete_initialise_ijk_fields();
   return nalloc;
@@ -687,12 +590,6 @@ void Probleme_FTD_IJK_base::initialize()
  */
 void Probleme_FTD_IJK_base::update_thermal_properties()
 {
-  for (auto& itr : thermique_)
-    itr.update_thermal_properties(); // To fill in fields for cp (with cp_liq) and lambda (with lambda_liq)
-
-  for (auto& itr : energie_)
-    itr.update_thermal_properties();  // To fill in fields for cp (with cp_liq) and lambda (with lambda_liq)
-
   thermals_.update_thermal_properties();
 }
 
@@ -757,12 +654,6 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
   if (thermals_.size())
     ns.update_v_or_rhov();
 
-  for (auto& itr : thermique_)
-    itr.euler_time_step(schema_temps_ijk().get_timestep());
-
-  for (auto& itr : energie_)
-    itr.euler_time_step(ns.get_velocity());
-
   thermals_.euler_time_step(schema_temps_ijk().get_timestep());
 
   ns.euler_time_step(var_volume_par_bulle);
@@ -776,12 +667,6 @@ void Probleme_FTD_IJK_base::rk3_sub_step(const int rk_step, const double total_t
   assert(rk_step >= 0 && rk_step < 3);
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
   statistiques().begin_count(euler_rk3_counter_);
-
-  for (auto &itr : thermique_)
-    itr.rk3_sub_step(rk_step, total_timestep, time);
-
-  for (auto &&itr = energie_.begin(); itr != energie_.begin(); ++itr)
-    Process::exit("Le schema RK3 n est pas implemente avec des champs d energie !\n");
 
   thermals_.rk3_sub_step(rk_step, total_timestep, time);
 
@@ -968,16 +853,6 @@ void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle
       ns.test_etapes_et_bilan_rho_u_euler(false /* avant */);
       ns.maj_indicatrice_rho_mu();
 
-      for (auto &itr : thermique_)
-        {
-          itr.update_thermal_properties();
-          if (itr.conserv_energy_global_)
-            {
-              const double dE = itr.E0_ - itr.compute_global_energy();
-              itr.euler_rustine_step(schema_temps_ijk().get_timestep(), dE);
-            }
-        }
-
       thermals_.euler_rustine_step(schema_temps_ijk().get_timestep());
 
       ns.test_etapes_et_bilan_rho_u_euler(true /* apres */);
@@ -1026,15 +901,6 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
         {
           // Attention, il faut que les duplicatas soient present pour faire maj_indicatrice_rho_mu :
           ns.maj_indicatrice_rho_mu();
-          for (auto &itr : thermique_)
-            {
-              itr.update_thermal_properties();
-              if (itr.conserv_energy_global_)
-                {
-                  const double dE = itr.E0_ - itr.compute_global_energy();
-                  itr.rk3_rustine_sub_step(rk_step, timestep, fractionnal_timestep, current_time_at_rk3_step, dE);
-                }
-            }
 
           thermals_.rk3_rustine_sub_step(rk_step, timestep, fractionnal_timestep, current_time_at_rk3_step);
         }
@@ -1066,12 +932,6 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
 
       // Mise a jour rho, mu et l'indicatrice a partir de la nouvelle position de l'interface :
       ns.maj_indicatrice_rho_mu();
-
-      for (auto &itr : thermique_)
-        itr.update_thermal_properties();
-
-      for (auto &itr : energie_)
-        itr.update_thermal_properties();
 
       thermals_.update_thermal_properties();
     }
