@@ -31,15 +31,31 @@
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 
-class IJK_Thermals : public LIST(OWN_PTR(IJK_Thermal_base))
+class IJK_Thermals : public Equation_base
 {
 
   Declare_instanciable( IJK_Thermals ) ;
 
 public :
+  /*
+   * Surcharge de l'eq base
+   */
+  void set_param(Param& titi) override { /* Do nothing */ }
+  void completer() override { /* Do nothing */ }
+  void associer_pb_base(const Probleme_base&) override;
+  void discretiser() override { /* Do nothing */ }
+  int preparer_calcul() override { return 1; }
+  const Milieu_base& milieu() const override { throw; }
+  Milieu_base& milieu() override { throw; }
+  void associer_milieu_base(const Milieu_base& ) override { /* Do nothing */ }
+  int nombre_d_operateurs() const override { return -123; }
+  const Operateur& operateur(int) const override { throw; }
+  Operateur& operateur(int) override { throw; }
+  const Champ_Inc_base& inconnue() const override { throw; }
+  Champ_Inc_base& inconnue() override { throw; }
+
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise();
-  void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_post(const IJK_FT_Post& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   bool has_IJK_field(const Nom& nom) const;
@@ -111,7 +127,17 @@ public :
                                  IntTab Indice_k);
   void copy_previous_interface_state();
 
+  /*
+   * Pour simplifier la vie
+   */
+  const LIST(OWN_PTR(IJK_Thermal_base))& get_liste_eqs() const { return liste_thermique_; }
+  LIST(OWN_PTR(IJK_Thermal_base))& get_liste_eqs() { return liste_thermique_; }
+  int size() const { return (int)liste_thermique_.size(); }
+  int est_vide() const { return liste_thermique_.est_vide(); }
+
 protected :
+  // All Done here !!
+  LIST(OWN_PTR(IJK_Thermal_base)) liste_thermique_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
@@ -136,8 +162,7 @@ protected :
   int ini_folder_out_files_ = 0;
 
   bool is_diphasique_=false;
-  std::vector<int> lata_step_reprise_ini_;
-  std::vector<int> lata_step_reprise_;
+  std::vector<int> lata_step_reprise_ini_, lata_step_reprise_;
 };
 
 #endif /* IJK_Thermals_included */

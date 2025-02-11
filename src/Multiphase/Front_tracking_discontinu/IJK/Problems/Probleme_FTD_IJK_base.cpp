@@ -236,7 +236,7 @@ void Probleme_FTD_IJK_base::completer()
   if (nom_reprise_ != "??")
     reprendre_probleme(nom_reprise_);
 
-  thermals_.associer(*this);
+  thermals_.associer_pb_base(*this);
 
 
   schema_temps_ijk().completer();

@@ -25,7 +25,7 @@
 #include <IJK_switch.h>
 #include <Option_IJK.h>
 
-Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(OWN_PTR(IJK_Thermal_base))) ;
+Implemente_instanciable( IJK_Thermals, "IJK_Thermals", Equation_base) ;
 
 Sortie& IJK_Thermals::printOn( Sortie& os ) const
 {
@@ -34,8 +34,8 @@ Sortie& IJK_Thermals::printOn( Sortie& os ) const
 
 Entree& IJK_Thermals::readOn( Entree& is )
 {
-  if ((*this).size())
-    vide();
+  if (liste_thermique_.size())
+    liste_thermique_.vide();
 
   Nom accouverte = "{", accfermee = "}", virgule = ",";
   Motcle nom;
@@ -46,8 +46,8 @@ Entree& IJK_Thermals::readOn( Entree& is )
 
   while (1)
     {
-      add(OWN_PTR(IJK_Thermal_base)());
-      IJK_Thermal_base::typer_lire_thermal_equation(dernier(), is);
+      liste_thermique_.add(OWN_PTR(IJK_Thermal_base)());
+      IJK_Thermal_base::typer_lire_thermal_equation(liste_thermique_.dernier(), is);
       is >> nom;
       if (nom == "}") return is;
       if (nom != ",")
@@ -62,29 +62,43 @@ Entree& IJK_Thermals::readOn( Entree& is )
 
 void IJK_Thermals::set_fichier_reprise(const char *lataname)
 {
-  if (!est_vide())
-    for (auto& itr : *this)
+  if (!liste_thermique_.est_vide())
+    for (auto& itr : liste_thermique_)
       itr->set_fichier_reprise(lataname);
 }
 
 const Nom& IJK_Thermals::get_fichier_reprise()
 {
-  assert(!est_vide());
-  return (*this)[0]->get_fichier_reprise();
+  assert(!liste_thermique_.est_vide());
+  return liste_thermique_[0]->get_fichier_reprise();
 }
 
-void IJK_Thermals::associer(const Probleme_FTD_IJK_base& ijk_ft)
+void IJK_Thermals::associer_pb_base(const Probleme_base& pb)
 {
-  ref_ijk_ft_ = ijk_ft;
-  associer_post(ijk_ft.get_post());
-  associer_interface_intersections(ijk_ft.itfce().get_intersection_ijk_cell(), ijk_ft.itfce().get_intersection_ijk_face());
-  for (auto& itr : *this)
+  if (!sub_type(Probleme_FTD_IJK_base, pb))
     {
-      itr->associer(ijk_ft);
+      Cerr << "Error for the method IJK_Interfaces::associer_pb_base\n";
+      Cerr << " IJK_Thermals equation must be associated to\n";
+      Cerr << " a Probleme_FTD_IJK_base problem type\n";
+      Process::exit();
+    }
+  mon_probleme = pb;
+  if (nom_ == "??")
+    {
+      nom_ = pb.le_nom();
+      nom_ += que_suis_je();
+    }
+
+  ref_ijk_ft_ = ref_cast(Probleme_FTD_IJK_base, pb);
+  associer_post(ref_ijk_ft_->get_post());
+  associer_interface_intersections(ref_ijk_ft_->itfce().get_intersection_ijk_cell(), ref_ijk_ft_->itfce().get_intersection_ijk_face());
+  for (auto& itr : liste_thermique_)
+    {
+      itr->associer(ref_ijk_ft_.valeur());
       itr->associer_ghost_fluid_fields(ghost_fluid_fields_);
     }
-  ghost_fluid_fields_.associer(ijk_ft);
-  if (!est_vide())
+  ghost_fluid_fields_.associer(ref_ijk_ft_.valeur());
+  if (!liste_thermique_.est_vide())
     retrieve_ghost_fluid_params();
 }
 
@@ -96,9 +110,9 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
   int avoid_gfm_parallel_calls = 0;
   IJK_Field_local_double boundary_flux_kmin;
   IJK_Field_local_double boundary_flux_kmax;
-  assert(!est_vide());
-  (*this)[0]->get_boundary_fluxes(boundary_flux_kmin, boundary_flux_kmax);
-  for (auto& itr : *this)
+  assert(!liste_thermique_.est_vide());
+  liste_thermique_[0]->get_boundary_fluxes(boundary_flux_kmin, boundary_flux_kmax);
+  for (auto& itr : liste_thermique_)
     itr->retrieve_ghost_fluid_params(compute_distance,
                                      compute_curvature,
                                      n_iter_distance,
@@ -114,14 +128,14 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
 void IJK_Thermals::associer_post(const IJK_FT_Post& ijk_ft_post)
 {
   ref_ijk_ft_post_ = ijk_ft_post;
-  for (auto& itr : *this)
+  for (auto& itr : liste_thermique_)
     itr->associer_post(ijk_ft_post);
 }
 
 void IJK_Thermals::associer_switch(const Switch_FT_double& ijk_ft_switch)
 {
   ref_ijk_ft_switch_ = ijk_ft_switch;
-  for (auto& itr : *this)
+  for (auto& itr : liste_thermique_)
     itr->associer_switch(ref_ijk_ft_switch_);
 }
 
@@ -136,19 +150,19 @@ bool IJK_Thermals::has_IJK_field(const Nom& nom) const
 
 const IJK_Field_double& IJK_Thermals::get_IJK_field(const Nom& nom) const
 {
-  for (int i = 0; i < (int) (*this).size(); i++)
+  for (int i = 0; i < (int) liste_thermique_.size(); i++)
     {
       if (nom== Nom("TEMPERATURE_")+Nom(i))
-        return *(((*this).operator[](i))->get_temperature());
+        return *((liste_thermique_.operator[](i))->get_temperature());
 
       if (nom== Nom("TEMPERATURE_ANA_")+Nom(i))
-        return (((*this).operator[](i))->get_temperature_ana());
+        return ((liste_thermique_.operator[](i))->get_temperature_ana());
 
       if (nom== Nom("ECART_T_ANA_")+Nom(i))
-        return (((*this).operator[](i))->get_ecart_t_ana());
+        return ((liste_thermique_.operator[](i))->get_ecart_t_ana());
 
       if (nom== Nom("INTERFACE_PHIN_")+Nom(i))
-        return (((*this).operator[](i))->get_grad_T_interface_ns());
+        return ((liste_thermique_.operator[](i))->get_grad_T_interface_ns());
 
     }
 
@@ -163,18 +177,18 @@ void IJK_Thermals::associer_interface_intersections(const Intersection_Interface
 {
   ref_intersection_ijk_cell_ = intersection_ijk_cell;
   ref_intersection_ijk_face_ = intersection_ijk_face;
-  for (auto& itr : *this)
+  for (auto& itr : liste_thermique_)
     itr->associer_interface_intersections(intersection_ijk_cell, intersection_ijk_face);
 }
 
 double IJK_Thermals::get_modified_time()
 {
   double modified_time;
-  if (est_vide())
+  if (liste_thermique_.est_vide())
     modified_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
   else
     modified_time = 0.;
-  for (auto& itr : *this)
+  for (auto& itr : liste_thermique_)
     modified_time = std::max(modified_time, itr->get_modified_time());
   return modified_time;
 }
@@ -184,8 +198,8 @@ void IJK_Thermals::get_rising_velocities_parameters(int& compute_rising_velociti
                                                     int& use_bubbles_velocities_from_interface,
                                                     int& use_bubbles_velocities_from_barycentres)
 {
-  if (!est_vide())
-    for (auto& itr : *this)
+  if (!liste_thermique_.est_vide())
+    for (auto& itr : liste_thermique_)
       itr->get_rising_velocities_parameters(compute_rising_velocities,
                                             fill_rising_velocities,
                                             use_bubbles_velocities_from_interface,
@@ -196,7 +210,7 @@ void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
                                            const int& stop)
 {
   int idth = 0;
-  for (auto& itr : *this)
+  for (auto& itr : liste_thermique_)
     {
       itr->sauvegarder_temperature(lata_name, idth, stop);
       idth++;
@@ -206,16 +220,16 @@ void IJK_Thermals::sauvegarder_temperature(Nom& lata_name,
 void IJK_Thermals::sauvegarder_thermals(SFichier& fichier)
 {
   int flag_list_not_empty_th = 0;
-  if ((*this).size() > 0)
+  if (liste_thermique_.size() > 0)
     {
       fichier << " thermals {\n" ;
       flag_list_not_empty_th = 1;
     }
-  for(auto itr = (*this).begin(); itr != (*this).end(); )
+  for(auto itr = liste_thermique_.begin(); itr != liste_thermique_.end(); )
     {
       fichier << *itr ;
       ++itr;
-      if (itr != (*this).end())
+      if (itr != liste_thermique_.end())
         fichier << ", \n" ;
       else
         fichier << "\n" ;
@@ -226,7 +240,7 @@ void IJK_Thermals::sauvegarder_thermals(SFichier& fichier)
 
 void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       const double dt_th = itr->compute_timestep(dt_thermals, dxmin);
       // We take the most restrictive of all thermal problems and use it for all:
@@ -236,13 +250,13 @@ void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
 
 void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
 {
-  if (!est_vide())
+  if (!liste_thermique_.est_vide())
     {
       ghost_fluid_fields_.initialize(nalloc, splitting);
       int idth =0;
       Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
       const int max_digit = 3;
-      for (auto& itr : (*this))
+      for (auto& itr : liste_thermique_)
         {
           nalloc += itr->initialize(splitting, idth);
           if (!Option_IJK::DISABLE_DIPHASIQUE)
@@ -264,7 +278,7 @@ void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
           local_quantities_thermal_lines_folder_ = Nom("local_quantities_thermal_lines");
           local_quantities_thermal_lines_time_index_folder_ = Nom("local_quantities_thermal_lines_time_index_");
         }
-      for (auto& itr : (*this))
+      for (auto& itr : liste_thermique_)
         {
           lata_step_reprise_.push_back(itr->get_latastep_reprise());
           lata_step_reprise_ini_.push_back(itr->get_latastep_reprise_ini());
@@ -274,14 +288,14 @@ void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
 
 void IJK_Thermals::recompute_temperature_init()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->recompute_temperature_init();
 }
 
 int IJK_Thermals::size_thermal_problem(Nom thermal_problem)
 {
   int size=0;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       if (thermal_problem == itr->get_thermal_problem_type())
         size++;
@@ -291,20 +305,20 @@ int IJK_Thermals::size_thermal_problem(Nom thermal_problem)
 
 void IJK_Thermals::update_thermal_properties()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->update_thermal_properties();
 }
 
 void IJK_Thermals::euler_time_step(const double timestep)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->euler_time_step(timestep);
   ghost_fluid_fields_.enforce_distance_curvature_values_for_post_processings();
 }
 
 void IJK_Thermals::euler_rustine_step(const double timestep)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     if (itr->get_thermal_problem_type() == Nom("onefluid"))
       {
         itr->update_thermal_properties();
@@ -318,7 +332,7 @@ void IJK_Thermals::euler_rustine_step(const double timestep)
 
 void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, const double time)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       int thermal_rank = itr->get_thermal_rank();
       switch (thermal_rank)
@@ -349,7 +363,7 @@ void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, 
 void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_timestep,
                                         const double fractionnal_timestep, const double time)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     if (itr->get_thermal_problem_type() == Nom("onefluid") )
       {
         itr->update_thermal_properties();
@@ -364,7 +378,7 @@ void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_ti
 void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface)
 {
   int idx_th = 0;
-  for (auto &itr : (*this))
+  for (auto &itr : liste_thermique_)
     {
       itr->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface, idx_th);
       ++idx_th;
@@ -374,7 +388,7 @@ void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, con
 void IJK_Thermals::posttraiter_tous_champs_thermal(Motcles& liste_post_instantanes_)
 {
   int idx_th = 0;
-  for (auto &itr : (*this))
+  for (auto &itr : liste_thermique_)
     {
       itr->posttraiter_tous_champs_thermal(liste_post_instantanes_, idx_th);
       ++idx_th;
@@ -389,7 +403,7 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
 {
   Cerr << "Post-process Eulerian fields related to the temperature resolution" << finl;
   int idx_th = 0;
-  for (auto &itr : (*this))
+  for (auto &itr : liste_thermique_)
     {
       int nb = itr->posttraiter_champs_instantanes_thermal(liste_post_instantanes,
                                                            lata_name,
@@ -413,10 +427,10 @@ int IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)
 {
   int nb_allocated_arrays=0;
   int idx =0;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       Cout << "Reading the old temperature field from " << Nom(itr->get_fichier_sauvegarde())
-           << " to fill the (*this) field."<< finl;
+           << " to fill the liste_thermique_ field."<< finl;
       nb_allocated_arrays += itr->initialize_switch(splitting, idx);
       idx++;
     }
@@ -425,7 +439,7 @@ int IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)
 
 void IJK_Thermals::prepare_thermals(const char *lata_name)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->set_fichier_sauvegarde(lata_name);
 }
 
@@ -433,18 +447,18 @@ void IJK_Thermals::ecrire_fichier_reprise(SFichier& fichier, const char *lata_na
 {
   Cerr << "  potentially saving temperature fields... " << finl;
   int flag_list_not_empty = 0;
-  if ((int) (*this).size() > 0)
+  if ((int) liste_thermique_.size() > 0)
     {
       fichier << " thermals {\n" ;
       flag_list_not_empty = 1;
     }
   int idx =0;
-  for (auto itr = (*this).begin(); itr != (*this).end(); )
+  for (auto itr = liste_thermique_.begin(); itr != liste_thermique_.end(); )
     {
       (*itr)->set_fichier_sauvegarde(lata_name);
       fichier << *itr ;
       ++itr;
-      if (itr != (*this).end() )
+      if (itr != liste_thermique_.end() )
         fichier << ", \n" ;
       else
         fichier << "\n" ;
@@ -458,7 +472,7 @@ void IJK_Thermals::ecrire_fichier_reprise(SFichier& fichier, const char *lata_na
 int IJK_Thermals::ghost_fluid_flag()
 {
   int ghost_fluid = 0;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       ghost_fluid = itr->get_ghost_fluid_flag();
       if (ghost_fluid)
@@ -469,14 +483,14 @@ int IJK_Thermals::ghost_fluid_flag()
 
 void IJK_Thermals::compute_ghost_cell_numbers_for_subproblems(const Domaine_IJK& splitting, int ghost_init)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->compute_ghost_cell_numbers_for_subproblems(splitting, ghost_init);
 }
 
 int IJK_Thermals::get_probes_ghost_cells(int ghost_init)
 {
   int ghost_cells = ghost_init;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       const int itr_ghost_cells = itr->get_ghost_cells();
       if (itr_ghost_cells > ghost_cells)
@@ -487,37 +501,37 @@ int IJK_Thermals::get_probes_ghost_cells(int ghost_init)
 
 void IJK_Thermals::update_intersections()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->update_intersections();
 }
 
 void IJK_Thermals::clean_ijk_intersections()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->clean_ijk_intersections();
 }
 
 void IJK_Thermals::compute_eulerian_distance()
 {
-  assert(!est_vide());
+  assert(!liste_thermique_.est_vide());
   ghost_fluid_fields_.compute_eulerian_distance();
 }
 
 void IJK_Thermals::compute_eulerian_curvature()
 {
-  assert(!est_vide());
+  assert(!liste_thermique_.est_vide());
   ghost_fluid_fields_.compute_eulerian_curvature();
 }
 
 void IJK_Thermals::compute_eulerian_curvature_from_interface()
 {
-  assert(!est_vide());
+  assert(!liste_thermique_.est_vide());
   ghost_fluid_fields_.compute_eulerian_curvature_from_interface();
 }
 
 void IJK_Thermals::compute_eulerian_distance_curvature()
 {
-  if (!est_vide())
+  if (!liste_thermique_.est_vide())
     if (ghost_fluid_flag())
       {
         compute_eulerian_distance();
@@ -528,7 +542,7 @@ void IJK_Thermals::compute_eulerian_distance_curvature()
 int IJK_Thermals::get_disable_post_processing_probes_out_files() const
 {
   int disable_post_processing_probes_out_files = 1;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     disable_post_processing_probes_out_files = (disable_post_processing_probes_out_files && itr->get_disable_post_processing_probes_out_files());
   return disable_post_processing_probes_out_files;
 }
@@ -536,7 +550,7 @@ int IJK_Thermals::get_disable_post_processing_probes_out_files() const
 void IJK_Thermals::set_latastep_reprise(const bool stop)
 {
   if (stop)
-    for (auto& itr : (*this))
+    for (auto& itr : liste_thermique_)
       itr->set_latastep_reprise(ref_ijk_ft_->schema_temps_ijk().get_tstep() + 1);
 }
 
@@ -551,7 +565,7 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
           ini_folder_out_files_ = 1;
         }
       int rank = 0;
-      for (auto& itr : (*this))
+      for (auto& itr : liste_thermique_)
         {
           const int last_time = ref_ijk_ft_->schema_temps_ijk().get_tstep() + lata_step_reprise_ini_[rank];
           const int max_digit_time = 8;
@@ -598,7 +612,7 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
 
 void IJK_Thermals::create_folders_for_probes()
 {
-  for (int idth = 0; idth < (*this).size(); idth++)
+  for (int idth = 0; idth < liste_thermique_.size(); idth++)
     {
       create_folders(thermal_rank_folder_[idth]);
       create_folders(thermal_rank_folder_[idth] + "/" + overall_bubbles_quantities_folder_);
@@ -628,13 +642,13 @@ void IJK_Thermals::create_folders(Nom folder_name_base)
 void IJK_Thermals::set_first_step_thermals_post(int& first_step_thermals_post)
 {
   first_step_thermals_post = 0;
-  for (int idth = 0; idth < (*this).size(); idth++)
-    first_step_thermals_post = (first_step_thermals_post || (*this)[idth]->get_first_step_thermals_post());
+  for (int idth = 0; idth < liste_thermique_.size(); idth++)
+    first_step_thermals_post = (first_step_thermals_post || liste_thermique_[idth]->get_first_step_thermals_post());
 }
 
 void IJK_Thermals::set_temperature_ini()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->compute_temperature_init();
 }
 
@@ -655,14 +669,14 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
                                              IntTab Indice_k)
 {
   IJK_Field_double new_thermal_field;
-  if ((*this).size() > 0)
+  if (liste_thermique_.size() > 0)
     {
       switch_double_ft.calculer_coords_elem();
       switch_double_ft.calculer_coeff(coeff_i,Indice_i,coeff_j,Indice_j,coeff_k,Indice_k);
       new_thermal_field.allocate(new_mesh /* it is in fact a splitting */, Domaine_IJK::ELEM, 0);
     }
   int idth = 0;
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     {
       switch_double_ft.switch_scalar_field(*itr->get_temperature(),
                                            new_thermal_field,
@@ -678,36 +692,36 @@ void IJK_Thermals::compute_new_thermal_field(Switch_FT_double& switch_double_ft,
 
 void IJK_Thermals::copy_previous_interface_state()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->copy_previous_interface_state();
 }
 
 void IJK_Thermals::copie_pure_vers_diph_sans_interpolation()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->copie_pure_vers_diph_sans_interpolation();
 }
 
 void IJK_Thermals::echange_pure_vers_diph_cellules_initialement_pures()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->echange_pure_vers_diph_cellules_initialement_pures();
 }
 
 void IJK_Thermals::echange_diph_vers_pure_cellules_finalement_pures()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->echange_diph_vers_pure_cellules_finalement_pures();
 }
 
 void IJK_Thermals::vide_phase_invalide_cellules_diphasiques()
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->vide_phase_invalide_cellules_diphasiques();
 }
 
 void IJK_Thermals::remplir_tableau_pure_cellules_diphasiques(bool next_time)
 {
-  for (auto& itr : (*this))
+  for (auto& itr : liste_thermique_)
     itr->remplir_tableau_pure_cellules_diphasiques(next_time);
 }
