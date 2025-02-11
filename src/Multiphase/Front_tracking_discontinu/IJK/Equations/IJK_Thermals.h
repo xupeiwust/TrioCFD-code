@@ -22,7 +22,7 @@
 #ifndef IJK_Thermals_included
 #define IJK_Thermals_included
 
-#include <IJK_Thermal.h>
+#include <IJK_Thermal_base.h>
 #include <TRUSTList.h>
 #include <TRUST_List.h>
 #include <System.h>
@@ -31,7 +31,7 @@
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 
-class IJK_Thermals : public LIST(IJK_Thermal)
+class IJK_Thermals : public LIST(OWN_PTR(IJK_Thermal_base))
 {
 
   Declare_instanciable( IJK_Thermals ) ;

@@ -455,7 +455,29 @@ public:
 
   virtual void compare_fluxes_thermal_subproblems() { }
 
+  void post_process_std_thermal_field(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx, const Motcles& tested_names, const Nom& name_field, const Motcle& lata_suffix, const IJK_Field_double& field, std::ostringstream& oss, int& counter, const int& first_thermal_rank = 0);
+  int posttraiter_champs_instantanes_thermal(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
+
+  inline Nom& get_thermal_problem_type() { return thermal_problem_type_; }
+  inline int& get_thermal_rank() { return thermal_rank_; }
+  inline const Motcles& get_thermal_words() const { return thermal_words_; }
+  inline const Motcles& get_thermal_suffix() const { return lata_suffix_; }
+
+  void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface, const int idx);
+
+  int posttraiter_champs_instantanes_thermal_interface(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
+  int posttraiter_champs_instantanes_thermal_interface_ref(const Motcles& liste_post_instantanes, const char *lata_name, const int latastep, const double current_time, const int idx);
+  void thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes, const Nom& shell_quantities_thermal_probes, const Nom& overall_bubbles_quantities, const Nom& local_quantities_thermal_probes_time_index_folder, const Nom& local_quantities_thermal_slices_time_index_folder, const Nom& local_quantities_thermal_lines_time_index_folder);
+
+  static void typer_lire_thermal_equation(OWN_PTR(IJK_Thermal_base)&, Entree&);
+
 protected:
+
+  int thermal_rank_ = 0;
+  Nom thermal_problem_type_ = "subresolution";
+  Motcles thermal_words_, lata_suffix_;
+  enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE, CUTCELL};
 
   void compute_cell_volume();
   void compute_min_cell_delta();

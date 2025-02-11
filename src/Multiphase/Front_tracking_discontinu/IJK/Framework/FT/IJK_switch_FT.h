@@ -23,7 +23,6 @@
 #include <init_forcage_THI.h>
 #include <Force_sp.h>
 #include <corrections_qdm.h>
-#include <IJK_Thermal.h>
 #include <IJK_Thermals.h>
 
 class Switch_FT_double : public Switch_double

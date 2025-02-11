@@ -25,7 +25,7 @@
 #include <IJK_switch.h>
 #include <Option_IJK.h>
 
-Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(IJK_Thermal) ) ;
+Implemente_instanciable( IJK_Thermals, "IJK_Thermals", LIST(OWN_PTR(IJK_Thermal_base))) ;
 
 Sortie& IJK_Thermals::printOn( Sortie& os ) const
 {
@@ -36,7 +36,27 @@ Entree& IJK_Thermals::readOn( Entree& is )
 {
   if ((*this).size())
     vide();
-  LIST(IJK_Thermal)::readOn(is);
+
+  Nom accouverte = "{", accfermee = "}", virgule = ",";
+  Motcle nom;
+  is >> nom;
+
+  if (nom != "{")
+    Process::exit("Error while reading the IJK_Thermals list. One expected an opened bracket '{' to start !!! \n");
+
+  while (1)
+    {
+      add(OWN_PTR(IJK_Thermal_base)());
+      IJK_Thermal_base::typer_lire_thermal_equation(dernier(), is);
+      is >> nom;
+      if (nom == "}") return is;
+      if (nom != ",")
+        {
+          Cerr << "Error while reading the IJK_Thermals list. One expected a comma ',' or a closing bracket '}' and not " << nom << finl;
+          Process::exit("Check your data file ! \n");
+        }
+    }
+
   return is;
 }
 
@@ -60,7 +80,7 @@ void IJK_Thermals::associer(const Probleme_FTD_IJK_base& ijk_ft)
   associer_interface_intersections(ijk_ft.itfce().get_intersection_ijk_cell(), ijk_ft.itfce().get_intersection_ijk_face());
   for (auto& itr : *this)
     {
-      itr.associer(ijk_ft);
+      itr->associer(ijk_ft);
       itr->associer_ghost_fluid_fields(ghost_fluid_fields_);
     }
   ghost_fluid_fields_.associer(ijk_ft);
@@ -95,14 +115,14 @@ void IJK_Thermals::associer_post(const IJK_FT_Post& ijk_ft_post)
 {
   ref_ijk_ft_post_ = ijk_ft_post;
   for (auto& itr : *this)
-    itr.associer_post(ijk_ft_post);
+    itr->associer_post(ijk_ft_post);
 }
 
 void IJK_Thermals::associer_switch(const Switch_FT_double& ijk_ft_switch)
 {
   ref_ijk_ft_switch_ = ijk_ft_switch;
   for (auto& itr : *this)
-    itr.associer_switch(ref_ijk_ft_switch_);
+    itr->associer_switch(ref_ijk_ft_switch_);
 }
 
 bool IJK_Thermals::has_IJK_field(const Nom& nom) const
@@ -144,7 +164,7 @@ void IJK_Thermals::associer_interface_intersections(const Intersection_Interface
   ref_intersection_ijk_cell_ = intersection_ijk_cell;
   ref_intersection_ijk_face_ = intersection_ijk_face;
   for (auto& itr : *this)
-    itr.associer_interface_intersections(intersection_ijk_cell, intersection_ijk_face);
+    itr->associer_interface_intersections(intersection_ijk_cell, intersection_ijk_face);
 }
 
 double IJK_Thermals::get_modified_time()
@@ -263,7 +283,7 @@ int IJK_Thermals::size_thermal_problem(Nom thermal_problem)
   int size=0;
   for (auto& itr : (*this))
     {
-      if (thermal_problem == itr.get_thermal_problem_type())
+      if (thermal_problem == itr->get_thermal_problem_type())
         size++;
     }
   return size;
@@ -285,7 +305,7 @@ void IJK_Thermals::euler_time_step(const double timestep)
 void IJK_Thermals::euler_rustine_step(const double timestep)
 {
   for (auto& itr : (*this))
-    if (itr.get_thermal_problem_type() == Nom("onefluid"))
+    if (itr->get_thermal_problem_type() == Nom("onefluid"))
       {
         itr->update_thermal_properties();
         if (itr->get_conserv_energy_global())
@@ -300,25 +320,25 @@ void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, 
 {
   for (auto& itr : (*this))
     {
-      int thermal_rank = itr.get_thermal_rank();
+      int thermal_rank = itr->get_thermal_rank();
       switch (thermal_rank)
         {
         case 0:
-          Cerr << "RK3 Time scheme is not implemented yet with" << itr.get_thermal_words()[thermal_rank] << finl;
+          Cerr << "RK3 Time scheme is not implemented yet with" << itr->get_thermal_words()[thermal_rank] << finl;
           break;
         case 1:
-          Cerr << "RK3 Time scheme is not implemented yet with" << itr.get_thermal_words()[thermal_rank] << finl;
+          Cerr << "RK3 Time scheme is not implemented yet with" << itr->get_thermal_words()[thermal_rank] << finl;
           break;
         case 2:
           itr->rk3_sub_step(rk_step, total_timestep, time);
-          Cerr << "RK3 Time scheme is implemented with" << itr.get_thermal_words()[thermal_rank] << finl;
+          Cerr << "RK3 Time scheme is implemented with" << itr->get_thermal_words()[thermal_rank] << finl;
           break;
         case 3:
-          Cerr << "RK3 Time scheme is not implemented  with" << itr.get_thermal_words()[thermal_rank] << finl;
+          Cerr << "RK3 Time scheme is not implemented  with" << itr->get_thermal_words()[thermal_rank] << finl;
           break;
         case 4:
           itr->rk3_sub_step(rk_step, total_timestep, time);
-          Cerr << "RK3 Time scheme is implemented with" << itr.get_thermal_words()[thermal_rank] << finl;
+          Cerr << "RK3 Time scheme is implemented with" << itr->get_thermal_words()[thermal_rank] << finl;
           break;
         default:
           Process::exit();
@@ -330,7 +350,7 @@ void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_ti
                                         const double fractionnal_timestep, const double time)
 {
   for (auto& itr : (*this))
-    if (itr.get_thermal_problem_type() == Nom("onefluid") )
+    if (itr->get_thermal_problem_type() == Nom("onefluid") )
       {
         itr->update_thermal_properties();
         if (itr->get_conserv_energy_global())
@@ -346,7 +366,7 @@ void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, con
   int idx_th = 0;
   for (auto &itr : (*this))
     {
-      itr.ecrire_statistiques_bulles(reset, nom_cas, current_time, surface, idx_th);
+      itr->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface, idx_th);
       ++idx_th;
     }
 }
@@ -356,7 +376,7 @@ void IJK_Thermals::posttraiter_tous_champs_thermal(Motcles& liste_post_instantan
   int idx_th = 0;
   for (auto &itr : (*this))
     {
-      itr.posttraiter_tous_champs_thermal(liste_post_instantanes_, idx_th);
+      itr->posttraiter_tous_champs_thermal(liste_post_instantanes_, idx_th);
       ++idx_th;
     }
 }
@@ -371,18 +391,18 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
   int idx_th = 0;
   for (auto &itr : (*this))
     {
-      int nb = itr.posttraiter_champs_instantanes_thermal(liste_post_instantanes,
-                                                          lata_name,
-                                                          latastep,
-                                                          current_time,
-                                                          idx_th);
+      int nb = itr->posttraiter_champs_instantanes_thermal(liste_post_instantanes,
+                                                           lata_name,
+                                                           latastep,
+                                                           current_time,
+                                                           idx_th);
       // Interfacial thermal fields :
       if (!Option_IJK::DISABLE_DIPHASIQUE)
-        nb += itr.posttraiter_champs_instantanes_thermal_interface(liste_post_instantanes,
-                                                                   lata_name,
-                                                                   latastep,
-                                                                   current_time,
-                                                                   idx_th);
+        nb += itr->posttraiter_champs_instantanes_thermal_interface(liste_post_instantanes,
+                                                                    lata_name,
+                                                                    latastep,
+                                                                    current_time,
+                                                                    idx_th);
       if (idx_th == 0)
         n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
       ++idx_th;
@@ -558,12 +578,12 @@ void IJK_Thermals::thermal_subresolution_outputs(const int& dt_post_thermals_pro
           create_folders(local_quantities_thermal_slices_time_index_folder);
           create_folders(local_quantities_thermal_lines_time_index_folder);
 
-          itr.thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
-                                            shell_quantities_thermal_probes,
-                                            overall_bubbles_quantities,
-                                            local_quantities_thermal_probes_time_index_folder,
-                                            local_quantities_thermal_slices_time_index_folder,
-                                            local_quantities_thermal_lines_time_index_folder);
+          itr->thermal_subresolution_outputs(interfacial_quantities_thermal_probes,
+                                             shell_quantities_thermal_probes,
+                                             overall_bubbles_quantities,
+                                             local_quantities_thermal_probes_time_index_folder,
+                                             local_quantities_thermal_slices_time_index_folder,
+                                             local_quantities_thermal_lines_time_index_folder);
           // .sauv written before the post-processing on probes
           int latastep_reprise = lata_step_reprise_ini_[rank] + ref_ijk_ft_->schema_temps_ijk().get_tstep() + 2;
           const int nb_dt_max = ref_ijk_ft_->schema_temps_ijk().get_nb_timesteps();
@@ -665,39 +685,29 @@ void IJK_Thermals::copy_previous_interface_state()
 void IJK_Thermals::copie_pure_vers_diph_sans_interpolation()
 {
   for (auto& itr : (*this))
-    {
-      itr->copie_pure_vers_diph_sans_interpolation();
-    }
+    itr->copie_pure_vers_diph_sans_interpolation();
 }
 
 void IJK_Thermals::echange_pure_vers_diph_cellules_initialement_pures()
 {
   for (auto& itr : (*this))
-    {
-      itr->echange_pure_vers_diph_cellules_initialement_pures();
-    }
+    itr->echange_pure_vers_diph_cellules_initialement_pures();
 }
 
 void IJK_Thermals::echange_diph_vers_pure_cellules_finalement_pures()
 {
   for (auto& itr : (*this))
-    {
-      itr->echange_diph_vers_pure_cellules_finalement_pures();
-    }
+    itr->echange_diph_vers_pure_cellules_finalement_pures();
 }
 
 void IJK_Thermals::vide_phase_invalide_cellules_diphasiques()
 {
   for (auto& itr : (*this))
-    {
-      itr->vide_phase_invalide_cellules_diphasiques();
-    }
+    itr->vide_phase_invalide_cellules_diphasiques();
 }
 
 void IJK_Thermals::remplir_tableau_pure_cellules_diphasiques(bool next_time)
 {
   for (auto& itr : (*this))
-    {
-      itr->remplir_tableau_pure_cellules_diphasiques(next_time);
-    }
+    itr->remplir_tableau_pure_cellules_diphasiques(next_time);
 }
