@@ -59,7 +59,7 @@ int Transport_K_Eps_non_std::lire_motcle_non_standard(const Motcle& mot, Entree&
     {
       Cerr << "Reading and typing of the diffusion operator : " << finl;
       terme_diffusif.associer_diffusivite(diffusivite_pour_transport());
-      is >> terme_diffusif;
+      lire_op_diff_turbulent(is);
       return 1;
     }
   else if (mot=="convection")

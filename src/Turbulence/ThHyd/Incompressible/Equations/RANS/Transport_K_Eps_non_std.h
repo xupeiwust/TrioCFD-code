@@ -24,8 +24,6 @@
 #define Transport_K_Eps_non_std_included
 
 #include <Transport_K_Eps_base.h>
-#include <Op_Diff_K_Eps_Bas_Re_base.h>
-#include <Operateur_Conv.h>
 
 /*! @brief Classe Transport_K_Eps_non_std Classe de base pour les equations de transport
  *
@@ -46,12 +44,6 @@ public:
   int nombre_d_operateurs() const override;
   const Operateur& operateur(int) const override;
   Operateur& operateur(int) override;
-
-protected:
-
-  Op_Diff_K_Eps_Bas_Re terme_diffusif;
-  Operateur_Conv terme_convectif;
-
 
 };
 

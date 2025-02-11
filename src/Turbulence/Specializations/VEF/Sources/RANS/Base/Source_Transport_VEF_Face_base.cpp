@@ -72,7 +72,7 @@ DoubleTab& Source_Transport_VEF_Face_base::ajouter_keps(DoubleTab& resu) const
 
       const Fluide_base& fluide = ref_cast(Fluide_base, eq_hydraulique->milieu());
       const Champ_Don_base& ch_visco_cin = fluide.viscosite_cinematique();
-      const Champ_base& ch_visco_cin_ou_dyn = ref_cast(Op_Diff_K_Eps_base, equation().operateur(0).l_op_base()).diffusivite();
+      const Champ_base& ch_visco_cin_ou_dyn = ref_cast(Operateur_Diff_base, equation().operateur(0).l_op_base()).diffusivite();
       calcul_tabs_bas_reyn(P, vit, visco_turb, ch_visco_cin, ch_visco_cin_ou_dyn, D, E, F1, F2); // voir les classes filles
 
       // Pour modele EASM

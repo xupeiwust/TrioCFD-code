@@ -218,9 +218,3 @@ void Modele_turbulence_hyd_K_Eps_Realisable::verifie_loi_paroi()
         Cerr << "Another wall law must be selected with this kind of turbulence model." << finl;
       }
 }
-
-void Modele_turbulence_hyd_K_Eps_Realisable::completer()
-{
-  eqn_transp_K_Eps().completer();
-  verifie_loi_paroi();
-}

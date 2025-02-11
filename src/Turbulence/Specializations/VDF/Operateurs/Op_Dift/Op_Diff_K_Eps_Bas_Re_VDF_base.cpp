@@ -21,7 +21,7 @@
 
 #include <Op_Diff_K_Eps_Bas_Re_VDF_base.h>
 
-Implemente_base(Op_Diff_K_Eps_Bas_Re_VDF_base,"Op_Diff_K_Eps_Bas_Re_VDF_base",Op_Diff_K_Eps_Bas_Re_base);
+Implemente_base(Op_Diff_K_Eps_Bas_Re_VDF_base,"Op_Diff_K_Eps_Bas_Re_VDF_base",Op_Dift_VDF_base);
 
 Sortie& Op_Diff_K_Eps_Bas_Re_VDF_base::printOn(Sortie& s ) const { return s << que_suis_je() ; }
 Entree& Op_Diff_K_Eps_Bas_Re_VDF_base::readOn(Entree& s ) { return s ; }

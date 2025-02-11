@@ -145,13 +145,16 @@ int Transport_K_KEps::lire_motcle_non_standard(const Motcle& mot, Entree& is)
  *
  * @param (Modele_turbulence_hyd_K_Eps_2_Couches& modele) le modele de turbulence K-epsilon deux couches a associer a l'equation
  */
-void Transport_K_KEps::associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base& modele)
+void Transport_K_KEps::associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& modele)
 {
   const Equation_base& eqn_hydr = modele.equation();
   associer(eqn_hydr);
   associer_milieu_base(eqn_hydr.milieu());
   associer_vitesse(eqn_hydr.inconnue());
   mon_modele = ref_cast(Modele_turbulence_hyd_K_Eps_2_Couches,modele);
+  RefObjU le_modele;
+  le_modele = mon_modele.valeur();
+  liste_modeles_.add_if_not(le_modele);
   discretiser();
 }
 

@@ -58,7 +58,7 @@ int Transport_K_Eps_Realisable::lire_motcle_non_standard(const Motcle& mot, Entr
     {
       Cerr << "Reading and typing of the diffusion operator : " << finl;
       terme_diffusif.associer_diffusivite(diffusivite_pour_transport());
-      is >> terme_diffusif;
+      lire_op_diff_turbulent(is);
       return 1;
     }
   else if (mot=="convection")
@@ -180,13 +180,16 @@ void Transport_K_Eps_Realisable::completer()
   Equation_base::completer();
 }
 
-void Transport_K_Eps_Realisable::associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base& modele)
+void Transport_K_Eps_Realisable::associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& modele)
 {
   const Equation_base& eqn_hydr = modele.equation();
   associer(eqn_hydr);
   associer_milieu_base(eqn_hydr.milieu());
   associer_vitesse(eqn_hydr.inconnue());
   mon_modele = ref_cast(Modele_turbulence_hyd_K_Eps_Realisable,modele);
+  RefObjU le_modele;
+  le_modele = mon_modele.valeur();
+  liste_modeles_.add_if_not(le_modele);
   discretiser();
 }
 

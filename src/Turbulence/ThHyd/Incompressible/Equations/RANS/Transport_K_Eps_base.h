@@ -43,24 +43,19 @@ class Transport_K_Eps_base: public Transport_2eq_base
 
 public:
 
-  virtual void associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base& )=0;
   void discretiser() override;
 
   int controler_K_Eps();
   void valider_iteration() override;
   inline const Champ_Inc_base& inconnue() const override;
   inline Champ_Inc_base& inconnue() override;
-  inline const Modele_turbulence_hyd_RANS_K_Eps_base& modele_turbulence() const;
-  inline Modele_turbulence_hyd_RANS_K_Eps_base& modele_turbulence();
 
   void get_position_cells(Nom&, int&);
   void get_position_faces(Nom&, int&);
 
 
 protected:
-
   OWN_PTR(Champ_Inc_base) le_champ_K_Eps;
-  OBS_PTR(Modele_turbulence_hyd_RANS_K_Eps_base) mon_modele;
 
 };
 
@@ -82,26 +77,5 @@ inline Champ_Inc_base& Transport_K_Eps_base::inconnue() { return le_champ_K_Eps;
  */
 inline const Champ_Inc_base& Transport_K_Eps_base::inconnue() const { return le_champ_K_Eps; }
 
-/*! @brief Renvoie le modele de turbulence associe a l'equation.
- *
- * (version const)
- *
- * @return (Modele_turbulence_hyd_K_Eps&) le modele de turbulence associe a l'equation
- */
-inline const Modele_turbulence_hyd_RANS_K_Eps_base& Transport_K_Eps_base::modele_turbulence() const
-{
-  assert(mon_modele.non_nul());
-  return mon_modele.valeur();
-}
-
-/*! @brief Renvoie le modele de turbulence associe a l'equation.
- *
- * @return (Modele_turbulence_hyd_K_Eps&) le modele de turbulence associe a l'equation
- */
-inline Modele_turbulence_hyd_RANS_K_Eps_base& Transport_K_Eps_base::modele_turbulence()
-{
-  assert(mon_modele.non_nul());
-  return mon_modele.valeur();
-}
 
 #endif

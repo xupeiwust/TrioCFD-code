@@ -131,7 +131,8 @@ void Modele_turbulence_hyd_K_Eps_Bas_Reynolds::fill_turbulent_viscosity_tab(cons
 
 int Modele_turbulence_hyd_K_Eps_Bas_Reynolds::preparer_calcul()
 {
-  return eqn_transp_K_Eps().preparer_calcul();
+  eqn_transp_K_Eps().preparer_calcul();
+  return 1;
 }
 
 void Modele_turbulence_hyd_K_Eps_Bas_Reynolds::mettre_a_jour(double temps)

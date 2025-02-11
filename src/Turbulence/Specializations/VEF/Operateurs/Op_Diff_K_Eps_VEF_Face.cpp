@@ -33,7 +33,8 @@
 #include <Check_espace_virtuel.h>
 #include <Debog.h>
 
-Implemente_instanciable(Op_Diff_K_Eps_VEF_Face,"Op_Diff_K_Eps_VEF_P1NC",Op_Diff_K_Eps_VEF_base);
+Implemente_instanciable(Op_Diff_K_Eps_VEF_Face,"Op_Diff_K_Eps_VEF_P1NC",Op_Dift_VEF_base);
+
 Sortie& Op_Diff_K_Eps_VEF_Face::printOn(Sortie& s ) const
 {
   return s << que_suis_je() ;
@@ -42,1048 +43,127 @@ Entree& Op_Diff_K_Eps_VEF_Face::readOn(Entree& s )
 {
   return s ;
 }
-/*! @brief complete l'evaluateur
- *
- */
-void Op_Diff_K_Eps_VEF_Face::associer(const Domaine_dis_base& domaine_dis,
-                                      const Domaine_Cl_dis_base& domaine_cl_dis,
-                                      const Champ_Inc_base& ch_diffuse)
+
+void Op_Diff_K_Eps_VEF_Face::completer()
 {
-  const Champ_P1NC& inco = ref_cast(Champ_P1NC,ch_diffuse);
-  const Domaine_VEF& zVEF = ref_cast(Domaine_VEF,domaine_dis);
-  const Domaine_Cl_VEF& zclVEF = ref_cast(Domaine_Cl_VEF,domaine_cl_dis);
-  inconnue_ = inco;
-  le_dom_vef = zVEF;
-  la_zcl_vef=zclVEF;
+  Op_Dift_VEF_base::completer();
+
+  const RefObjU& modele_turbulence = equation().get_modele(TURBULENCE);
+  const Modele_turbulence_hyd_K_Eps& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps, modele_turbulence.valeur());
+  Prdt[0] = mod_turb.get_Prandtl_K();
+  Prdt[1] = mod_turb.get_Prandtl_Eps();
 }
 
-
-void Op_Diff_K_Eps_VEF_Face::associer_diffusivite_turbulente()
+DoubleTab& Op_Diff_K_Eps_VEF_Face::ajouter(const DoubleTab& inconnue_org, DoubleTab& resu) const
 {
-  assert(mon_equation.non_nul());
+  remplir_nu(nu_); // On remplit le tableau nu car ajouter peut se faire avant le premier pas de temps
 
-  if ( sub_type( Transport_K_Eps,mon_equation.valeur() ) )
+  const DoubleTab& nu_turb = diffusivite_turbulente().valeurs();
+  const int nb_comp = resu.line_size();
+
+  // On dimensionne et initialise le tableau des bilans de flux:
+  flux_bords_.resize(le_dom_vef->nb_faces_bord(), nb_comp);
+  flux_bords_ = 0.;
+
+  int n_tot = nu_.dimension_tot(0); //TODO peut mieux faire
+  DoubleTab nu_turb_m(n_tot, 2);
+  for (int k=0; k<n_tot; k++)
     {
-      const Transport_K_Eps& eqn_transport = ref_cast(Transport_K_Eps,mon_equation.valeur());
-      const Modele_turbulence_hyd_K_Eps& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps,eqn_transport.modele_turbulence());
-      const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
-      Op_Diff_K_Eps_VEF_base::associer_diffusivite_turbulente(diff_turb);
+      nu_turb_m(k,0) = nu_turb(k)/Prdt[0];
+      nu_turb_m(k,1) = nu_turb(k)/Prdt[1];
     }
-  else if ( sub_type( Transport_K_Eps_Realisable,mon_equation.valeur() ) )
-    {
-      const Transport_K_Eps_Realisable& eqn_transport = ref_cast(Transport_K_Eps_Realisable,mon_equation.valeur());
-      const Modele_turbulence_hyd_K_Eps_Realisable& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Realisable,eqn_transport.modele_turbulence());
-      const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
-      Op_Diff_K_Eps_VEF_base::associer_diffusivite_turbulente(diff_turb);
-    }
-  else if ( sub_type( Transport_K_ou_Eps,mon_equation.valeur() ) )
-    {
-      const Transport_K_ou_Eps& eqn_transport = ref_cast(Transport_K_ou_Eps,mon_equation.valeur());
-      const Modele_turbulence_hyd_K_Eps_Bicephale& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Bicephale,eqn_transport.modele_turbulence());
-      const Champ_Fonc_base& diff_turb = mod_turb.viscosite_turbulente();
-      Op_Diff_K_Eps_VEF_base::associer_diffusivite_turbulente(diff_turb);
-    }
-}
 
+//  int marq = phi_psi_diffuse(equation());
+//  const DoubleVect& porosite_face = equation().milieu().porosite_face(), &porosite_elem = equation().milieu().porosite_elem();
+//
+//  // soit on a div(phi nu grad inco) OU on a div(nu grad phi inco) : cela depend si on diffuse phi_psi ou psi
+//  modif_par_porosite_si_flag(nu_, nu, !marq, porosite_elem);
+//  modif_par_porosite_si_flag(nu_turb, nu_turb_m, !marq, porosite_elem);
+//  const DoubleTab& inconnue = modif_par_porosite_si_flag(inconnue_org, tab_inconnue, marq, porosite_face);
 
-void  Op_Diff_K_Eps_VEF_Face::calc_visc(ArrOfDouble& diffu_tot,const Domaine_VEF& le_dom,int num_face,int num2,int dimension_inut,
-                                        int num_elem,double diffu_turb,const DoubleTab& diffu,int is_mu_unif,const ArrOfDouble& inv_Prdt) const
-{
-  double nu=0;
-  if (is_mu_unif)
-    nu=diffu(0,0);
-  else
-    nu=diffu(num_elem);
-  double d_nu=nu+diffu_turb*inv_Prdt[0];
-  diffu_tot[0]=viscA(num_face,num2,num_elem,d_nu);
-  d_nu=nu+diffu_turb*inv_Prdt[1];
-  diffu_tot[1]=viscA(num_face,num2,num_elem,d_nu);
-}
+//  assert_espace_virtuel_vect(nu);
+//  assert_espace_virtuel_vect(inconnue);
+//  assert_espace_virtuel_vect(nu_turb_m);
 
-void Op_Diff_K_Eps_VEF_Face::remplir_nu(DoubleTab& nu) const
-{
-  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
-  // On dimensionne nu
-  const DoubleTab& diffu=diffusivite().valeurs();
-  if (!nu.get_md_vector().non_nul())
-    {
-      nu.resize(0, diffu.line_size());
-      domaine_VEF.domaine().creer_tableau_elements(nu, RESIZE_OPTIONS::NOCOPY_NOINIT);
-    }
-  if (!diffu.get_md_vector().non_nul())
-    {
-      // diffusvite uniforme
-      const int n = nu.dimension_tot(0);
-      const int nb_comp = nu.line_size();
-      // Tableaux vus comme uni-dimenionnels:
-      const double* arr_diffu = mapToDevice(diffu);
-      double* arr_nu = computeOnTheDevice(nu);
-      #pragma omp target teams distribute parallel for if (computeOnDevice)
-      for (int i = 0; i < n; i++)
-        for (int j = 0; j < nb_comp; j++)
-          arr_nu[i*nb_comp + j] = arr_diffu[j];
-    }
-  else
-    {
-      assert(nu.get_md_vector() == diffu.get_md_vector());
-      assert_espace_virtuel_vect(diffu);
-      nu.inject_array(diffu);
-    }
-}
+//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter nu", nu_);
+//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter nu_turb", nu_turb_m);
+//  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter inconnue_org", inconnue_org);
 
-
-DoubleTab& Op_Diff_K_Eps_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTab& resu) const
-{
-
-  const Domaine_Cl_VEF& domaine_Cl_VEF = la_zcl_vef.valeur();
-  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
-
-  const IntTab& elem_faces = domaine_VEF.elem_faces();
-  const IntTab& face_voisins = domaine_VEF.face_voisins();
-
-  ArrOfDouble diffu_tot(2);
-  ArrOfDouble inv_Prdt(2);
-  inv_Prdt[0]=1./Prdt_K;
-  inv_Prdt[1]=1./Prdt_Eps;
-
-  int is_mu_unif=sub_type(Champ_Uniforme,diffusivite_.valeur());
-
-  remplir_nu(nu_);
-
-  int nb_faces_elem = domaine_VEF.domaine().nb_faces_elem();
-  int nb_front=domaine_VEF.nb_front_Cl();
-  const DoubleTab& mu_turb=diffusivite_turbulente_->valeurs();
-
-  int j;
-
-  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter mu", nu_);
-
-  int n0 = domaine_VEF.premiere_face_int();
-  int n1 = domaine_VEF.nb_faces();
-  if ( diffuse_k_seul || diffuse_eps_seul )
-    {
-      double d_nu;
-      // On traite les faces bord :
-      for (int n_bord=0; n_bord<nb_front; n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());;
-          int num1 = 0;
-          int num2 = le_bord.nb_faces_tot();
-
-          if (sub_type(Periodique,la_cl.valeur()))
-            {
-              const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int fac_asso = la_cl_perio.face_associee(ind_face);
-                  fac_asso = le_bord.num_face(fac_asso);
-                  int num_face = le_bord.num_face(ind_face);
-                  for (int k=0; k<2; k++)
-                    {
-                      int elem = face_voisins(num_face,k);
-                      double d_mu = mu_turb(elem);
-                      for (int i=0; i<nb_faces_elem; i++)
-                        {
-                          if ( ( (j= elem_faces(elem,i)) > num_face ) && (j != fac_asso) )
-                            {
-                              calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-                              d_nu = (diffuse_k_seul) ? diffu_tot[0] : diffu_tot[1];
-
-                              resu(num_face)+=d_nu*inconnue(j);
-                              resu(num_face)-=d_nu*inconnue(num_face);
-
-                              if (j < n1) // face reelle
-                                {
-                                  resu(j)+=0.5*d_nu*inconnue(num_face);
-                                  resu(j)-=0.5*d_nu*inconnue(j);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-          else   //  conditions aux limites autres que periodicite, paroi_fixe, symetrie
-            {
-              const int nb_faces_bord_reel = le_bord.nb_faces();
-
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int num_face = le_bord.num_face(ind_face);
-                  int elem = face_voisins(num_face,0);
-                  double d_mu = mu_turb(elem);
-                  for (int i=0; i<nb_faces_elem; i++)
-                    {
-                      if ( (j= elem_faces(elem,i)) > num_face || (ind_face >= nb_faces_bord_reel))
-                        {
-                          // valA = viscA(domaine_VEF,num_face,j,dimension,elem,d_mu);
-                          calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-                          d_nu = (diffuse_k_seul) ? diffu_tot[0] : diffu_tot[1];
-
-                          if (ind_face < nb_faces_bord_reel)
-                            {
-                              resu(num_face)+=d_nu*inconnue(j);
-                              resu(num_face)-=d_nu*inconnue(num_face);
-                            }
-
-                          if (j < n1) // face reelle
-                            {
-                              resu(j)+=d_nu*inconnue(num_face);
-                              resu(j)-=d_nu*inconnue(j);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-      // On traite les faces internes
-      for (int num_face=n0; num_face<n1; num_face++)
-        {
-          for (int k=0; k<2; k++)
-            {
-              int elem = face_voisins(num_face,k);
-              double d_mu = mu_turb(elem);
-              for (int i=0; i<nb_faces_elem; i++)
-                {
-                  if ( (j= elem_faces(elem,i)) > num_face )
-                    {
-                      int contrib = 1;
-                      if (j >= n1) // C'est une face virtuelle
-                        {
-                          const int el1 = face_voisins(j, 0), el2 = face_voisins(j, 1);
-                          if ((el1 == -1) || (el2 == -1))
-                            contrib = 0;
-                        }
-                      if (contrib)
-                        {
-                          calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-                          d_nu = (diffuse_k_seul) ? diffu_tot[0] : diffu_tot[1];
-
-                          resu(num_face)+=d_nu*inconnue(j);
-                          resu(num_face)-=d_nu*inconnue(num_face);
-
-                          if (j < n1) // On traite les faces reelles
-                            {
-                              resu(j)+=d_nu*inconnue(num_face);
-                              resu(j)-=d_nu*inconnue(j);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-      // Prise en compte des conditions aux limites de Neumnan a la paroi
-      for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-
-          if (sub_type(Neumann_paroi,la_cl.valeur()))
-            {
-              const Neumann_paroi& la_cl_paroi = ref_cast(Neumann_paroi, la_cl.valeur());
-              const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-              int ndeb = le_bord.num_premiere_face();
-              int nfin = ndeb + le_bord.nb_faces();
-              for (int face=ndeb; face<nfin; face++)
-                {
-                  resu(face) += la_cl_paroi.flux_impose(face-ndeb)*domaine_VEF.surface(face);
-                }
-            }
-        }
-    }
-  else
-    {
-      // On traite les faces bord :
-      for (int n_bord=0; n_bord<nb_front; n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());;
-          int num1 = 0;
-          int num2 = le_bord.nb_faces_tot();
-
-          if (sub_type(Periodique,la_cl.valeur()))
-            {
-              const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int fac_asso = la_cl_perio.face_associee(ind_face);
-                  fac_asso = le_bord.num_face(fac_asso);
-                  int num_face = le_bord.num_face(ind_face);
-                  for (int k=0; k<2; k++)
-                    {
-                      int elem = face_voisins(num_face,k);
-                      double d_mu = mu_turb(elem);
-                      for (int i=0; i<nb_faces_elem; i++)
-                        {
-                          if ( ( (j= elem_faces(elem,i)) > num_face ) && (j != fac_asso) )
-                            {
-                              calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-                              resu(num_face,0)+=diffu_tot[0]*inconnue(j,0);
-                              resu(num_face,0)-=diffu_tot[0]*inconnue(num_face,0);
-                              resu(num_face,1)+=diffu_tot[1]*inconnue(j,1);
-                              resu(num_face,1)-=diffu_tot[1]*inconnue(num_face,1);
-
-                              if (j < n1) // face reelle
-                                {
-                                  resu(j,0)+=0.5*diffu_tot[0]*inconnue(num_face,0);
-                                  resu(j,0)-=0.5*diffu_tot[0]*inconnue(j,0);
-                                  resu(j,1)+=0.5*diffu_tot[1]*inconnue(num_face,1);
-                                  resu(j,1)-=0.5*diffu_tot[1]*inconnue(j,1);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-          else   //  conditions aux limites autres que periodicite, paroi_fixe, symetrie
-            {
-              const int nb_faces_bord_reel = le_bord.nb_faces();
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int num_face = le_bord.num_face(ind_face);
-                  int elem = face_voisins(num_face,0);
-                  double d_mu = mu_turb(elem);
-                  for (int i=0; i<nb_faces_elem; i++)
-                    {
-                      if ( (j= elem_faces(elem,i)) > num_face || (ind_face >= nb_faces_bord_reel))
-                        {
-                          calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-                          if (ind_face < nb_faces_bord_reel)
-                            {
-                              resu(num_face,0)+=diffu_tot[0]*inconnue(j,0);
-                              resu(num_face,0)-=diffu_tot[0]*inconnue(num_face,0);
-                              resu(num_face,1)+=diffu_tot[1]*inconnue(j,1);
-                              resu(num_face,1)-=diffu_tot[1]*inconnue(num_face,1);
-                            }
-
-                          if (j < n1) // face reelle
-                            {
-                              resu(j,0)+=diffu_tot[0]*inconnue(num_face,0);
-                              resu(j,0)-=diffu_tot[0]*inconnue(j,0);
-                              resu(j,1)+=diffu_tot[1]*inconnue(num_face,1);
-                              resu(j,1)-=diffu_tot[1]*inconnue(j,1);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-      // On traite les faces internes
-      for (int num_face=n0; num_face<n1; num_face++)
-        {
-          for (int k=0; k<2; k++)
-            {
-              int elem = face_voisins(num_face,k);
-              double d_mu = mu_turb(elem);
-              for (int i=0; i<nb_faces_elem; i++)
-                {
-                  if ( (j= elem_faces(elem,i)) > num_face )
-                    {
-                      int contrib = 1;
-                      if (j >= n1) // C'est une face virtuelle
-                        {
-                          const int el1 = face_voisins(j, 0), el2 = face_voisins(j, 1);
-                          if ((el1 == -1) || (el2 == -1))
-                            contrib = 0;
-                        }
-
-                      if (contrib)
-                        {
-                          calc_visc(diffu_tot,domaine_VEF,num_face,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-                          resu(num_face,0)+=diffu_tot[0]*inconnue(j,0);
-                          resu(num_face,0)-=diffu_tot[0]*inconnue(num_face,0);
-                          resu(num_face,1)+=diffu_tot[1]*inconnue(j,1);
-                          resu(num_face,1)-=diffu_tot[1]*inconnue(num_face,1);
-
-                          if (j < n1) // On traite les faces reelles
-                            {
-                              resu(j,0)+=diffu_tot[0]*inconnue(num_face,0);
-                              resu(j,0)-=diffu_tot[0]*inconnue(j,0);
-                              resu(j,1)+=diffu_tot[1]*inconnue(num_face,1);
-                              resu(j,1)-=diffu_tot[1]*inconnue(j,1);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-      //  Prise en compte des conditions aux limites de Neumnan a la paroi
-      for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-
-          if (sub_type(Neumann_paroi,la_cl.valeur()))
-            {
-              const Neumann_paroi& la_cl_paroi = ref_cast(Neumann_paroi, la_cl.valeur());
-              const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-              int ndeb = le_bord.num_premiere_face();
-              int nfin = ndeb + le_bord.nb_faces();
-              for (int face=ndeb; face<nfin; face++)
-                {
-                  resu(face,0) += la_cl_paroi.flux_impose(face-ndeb,0)*domaine_VEF.surface(face);
-                  resu(face,1) += la_cl_paroi.flux_impose(face-ndeb,1)*domaine_VEF.surface(face);
-                }
-            }
-        }
-    }
+  ajouter_bord_gen<Type_Champ::SCALAIRE, true>(inconnue_org, resu, flux_bords_, nu_, nu_turb_m);
+  ajouter_interne_gen<Type_Champ::SCALAIRE, true>(inconnue_org, resu, flux_bords_, nu_, nu_turb_m);
 
   modifier_flux(*this);
-
-  Debog::verifier("Op_Diff_K_Eps_VEF_Face::ajouter sortie", resu);
 
   return resu;
 }
 
-
-DoubleTab& Op_Diff_K_Eps_VEF_Face::calculer(const DoubleTab& inconnue , DoubleTab& resu) const
+void Op_Diff_K_Eps_VEF_Face::contribuer_a_avec(const DoubleTab& inco, Matrice_Morse& matrice) const
 {
-  resu = 0;
-  return ajouter(inconnue,resu);
+  modifier_matrice_pour_periodique_avant_contribuer(matrice, equation());
+  remplir_nu(nu_); // On remplit le tableau nu car l'assemblage d'une matrice avec ajouter_contribution peut se faire avant le premier pas de temps
+
+  const DoubleTab& nu_turb = diffusivite_turbulente().valeurs();
+
+  int n_tot = nu_.dimension_tot(0);
+  DoubleTab nu_turb_m(n_tot, 2);
+  for (int k=0; k<n_tot; k++)
+    {
+      nu_turb_m(k,0) = nu_turb(k)/Prdt[0];
+      nu_turb_m(k,1) = nu_turb(k)/Prdt[1];
+    }
+
+  int marq = phi_psi_diffuse(equation());
+//  const DoubleVect& porosite_elem = equation().milieu().porosite_elem();
+//
+//  // soit on a div(phi nu grad inco) OU on a div(nu grad phi inco) : cela depend si on diffuse phi_psi ou psi
+//  modif_par_porosite_si_flag(nu_, nu, !marq, porosite_elem);
+//  modif_par_porosite_si_flag(nu_turb_, nu_turb, !marq, porosite_elem);
+//
+  DoubleVect porosite_eventuelle(equation().milieu().porosite_face());
+  if (!marq) porosite_eventuelle = 1;
+
+  ajouter_contribution_bord_gen<Type_Champ::SCALAIRE, false, true>(inco, matrice, nu_, nu_turb_m, porosite_eventuelle);
+  ajouter_contribution_interne_gen<Type_Champ::SCALAIRE, false, true>(inco, matrice, nu_, nu_turb_m, porosite_eventuelle);
+
+  modifier_matrice_pour_periodique_apres_contribuer(matrice, equation());
 }
 
 
-/////////////////////////////////////////
-// Methode pour l'implicite
-/////////////////////////////////////////
-
-void Op_Diff_K_Eps_VEF_Face::ajouter_contribution(const DoubleTab& transporte, Matrice_Morse& matrice ) const
-
-{
-  modifier_matrice_pour_periodique_avant_contribuer(matrice,equation());
-  const Domaine_Cl_VEF& domaine_Cl_VEF = la_zcl_vef.valeur();
-  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
-
-  const IntTab& elem_faces = domaine_VEF.elem_faces();
-  const IntTab& face_voisins = domaine_VEF.face_voisins();
-
-  int i,j,nc,l,num_face;
-  int nb_faces = domaine_VEF.nb_faces();
-  int elem;
-  int nb_faces_elem = domaine_VEF.domaine().nb_faces_elem();
-  double  d_mu;
-  ArrOfDouble inv_Prdt(2),diffu_tot(2);
-  inv_Prdt[0]=1./Prdt_K;
-  inv_Prdt[1]=1./Prdt_Eps;
-  const DoubleTab& mu_turb=diffusivite_turbulente_->valeurs();
-
-  int is_mu_unif=sub_type(Champ_Uniforme,diffusivite_.valeur());
-  remplir_nu(nu_);
-
-  int nb_comp = 1;
-
-  if ( diffuse_k_seul )
-    {
-      // On traite les faces bord
-      for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-          int num1 = 0;
-          int num2 = le_bord.nb_faces_tot();
-          int nb_faces_bord_reel = le_bord.nb_faces();
-          if (sub_type(Periodique,la_cl.valeur()))
-            {
-              const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-              // on ne parcourt que la moitie des faces volontairement...
-              // GF il ne faut pas s'occuper des faces virtuelles
-              num2=nb_faces_bord_reel/2;
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int fac_asso = la_cl_perio.face_associee(ind_face);
-                  fac_asso = le_bord.num_face(fac_asso);
-                  int num_face_b = le_bord.num_face(ind_face);
-                  for (int ll=0; ll<2; ll++)
-                    {
-                      int elem2 = face_voisins(num_face_b,ll);
-                      double d_mu2 = mu_turb(elem2);
-                      for (int ii=0; ii<nb_faces_elem; ii++)
-                        {
-                          if ( (j= elem_faces(elem2,ii)) > num_face_b )
-                            {
-                              //double valAp = viscA(num_face_b,j,elem2,d_mu2);
-                              calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-                              int fac_loc=0;
-                              int ok=1;
-                              while ((fac_loc<nb_faces_elem) && (elem_faces(elem2,fac_loc)!=num_face_b)) fac_loc++;
-                              if (fac_loc==nb_faces_elem)
-                                ok=0;
-                              int contrib=1;
-                              if(j>=nb_faces) // C'est une face virtuelle
-                                {
-                                  int el1 = face_voisins(j,0);
-                                  int el2 = face_voisins(j,1);
-                                  if((el1==-1)||(el2==-1))
-                                    contrib=0;
-                                }
-                              if (contrib)
-                                {
-
-                                  int n0=num_face_b*nb_comp;
-                                  int n0perio=fac_asso*nb_comp;
-                                  int j0=j*nb_comp;
-                                  double valA=diffu_tot[0];
-                                  matrice(n0,n0)+=valA;
-                                  matrice(n0,j0)-=valA;
-                                  if(j<nb_faces) // On traite les faces reelles
-                                    {
-                                      //if (l==0)
-                                      if (ok==1)
-                                        matrice(j0,n0)-=valA;
-                                      else
-                                        matrice(j0,n0perio)-=valA;
-                                      matrice(j0,j0)+=valA;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-          else   //  conditions aux limites autres que periodicite
-            {
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int num_face_b = le_bord.num_face(ind_face);
-                  elem = face_voisins(num_face_b,0);
-                  d_mu = mu_turb(elem);
-                  for (i=0; i<nb_faces_elem; i++)
-                    if (( (j= elem_faces(elem,i)) > num_face_b ) || (ind_face>=nb_faces_bord_reel))
-                      {
-                        //double valAp = viscA(num_face_b,j,elem,d_mu);
-                        calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-
-                        int n0=num_face_b*nb_comp;
-                        int j0=j*nb_comp;
-                        double valA=diffu_tot[0];
-
-                        if (ind_face<nb_faces_bord_reel)
-                          {
-                            // double valA=diffu_tot[nc];
-                            matrice(n0,n0)+=valA;
-                            matrice(n0,j0)-=valA;
-                          }
-                        if(j<nb_faces)
-                          {
-                            matrice(j0,n0)-=valA;
-                            matrice(j0,j0)+=valA;
-                          }
-                      }
-                }
-            }
-        }
-
-      // On traite les faces internes
-      int n0 = domaine_VEF.premiere_face_int();
-      for (num_face=n0; num_face<nb_faces; num_face++)
-        {
-          for ( l=0; l<2; l++)
-            {
-              int elem2 = face_voisins(num_face,l);
-              double d_mu2 = mu_turb(elem2);
-              for (i=0; i<nb_faces_elem; i++)
-                {
-                  int jj = elem_faces(elem2,i);
-                  if ( jj > num_face )
-                    {
-                      int contrib=1;
-                      if(jj>=nb_faces) // C'est une face virtuelle
-                        {
-                          int el1 = face_voisins(jj,0);
-                          int el2 = face_voisins(jj,1);
-                          if((el1==-1)||(el2==-1))
-                            contrib=0;
-                        }
-                      if (contrib)
-                        {
-                          //double valAp = viscA(num_face,jj,elem2,d_mu2);
-                          calc_visc(diffu_tot,domaine_VEF,num_face,jj,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-
-                          double valA=diffu_tot[0];
-                          int num0=num_face*nb_comp;
-                          int j0=jj*nb_comp;
-                          matrice(num0,num0)+=valA;
-                          matrice(num0,j0)-=valA;
-                          if (jj<nb_faces) // On traite les faces reelles
-                            {
-                              matrice(j0,num0)-=valA;
-                              matrice(j0,j0)+=valA;
-                            }
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-  else if ( diffuse_eps_seul )
-    {
-      // On traite les faces bord
-      for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-          int num1 = 0;
-          int num2 = le_bord.nb_faces_tot();
-          int nb_faces_bord_reel = le_bord.nb_faces();
-          if (sub_type(Periodique,la_cl.valeur()))
-            {
-              const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-              // on ne parcourt que la moitie des faces volontairement...
-              // GF il ne faut pas s'occuper des faces virtuelles
-              num2=nb_faces_bord_reel/2;
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int fac_asso = la_cl_perio.face_associee(ind_face);
-                  fac_asso = le_bord.num_face(fac_asso);
-                  int num_face_b = le_bord.num_face(ind_face);
-                  for (int ll=0; ll<2; ll++)
-                    {
-                      int elem2 = face_voisins(num_face_b,ll);
-                      double d_mu2 = mu_turb(elem2);
-                      for (int ii=0; ii<nb_faces_elem; ii++)
-                        {
-                          if ( (j= elem_faces(elem2,ii)) > num_face_b )
-                            {
-                              //double valAp = viscA(num_face_b,j,elem2,d_mu2);
-                              calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-                              int fac_loc=0;
-                              int ok=1;
-                              while ((fac_loc<nb_faces_elem) && (elem_faces(elem2,fac_loc)!=num_face_b)) fac_loc++;
-                              if (fac_loc==nb_faces_elem)
-                                ok=0;
-                              int contrib=1;
-                              if(j>=nb_faces) // C'est une face virtuelle
-                                {
-                                  int el1 = face_voisins(j,0);
-                                  int el2 = face_voisins(j,1);
-                                  if((el1==-1)||(el2==-1))
-                                    contrib=0;
-                                }
-                              if (contrib)
-                                {
-
-                                  int n0=num_face_b*nb_comp;
-                                  int n0perio=fac_asso*nb_comp;
-                                  int j0=j*nb_comp;
-                                  double valA=diffu_tot[1];
-                                  matrice(n0,n0)+=valA;
-                                  matrice(n0,j0)-=valA;
-                                  if(j<nb_faces) // On traite les faces reelles
-                                    {
-                                      //if (l==0)
-                                      if (ok==1)
-                                        matrice(j0,n0)-=valA;
-                                      else
-                                        matrice(j0,n0perio)-=valA;
-                                      matrice(j0,j0)+=valA;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-          else   //  conditions aux limites autres que periodicite
-            {
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int num_face_b = le_bord.num_face(ind_face);
-                  elem = face_voisins(num_face_b,0);
-                  d_mu = mu_turb(elem);
-                  for (i=0; i<nb_faces_elem; i++)
-                    if (( (j= elem_faces(elem,i)) > num_face_b ) || (ind_face>=nb_faces_bord_reel))
-                      {
-                        //double valAp = viscA(num_face_b,j,elem,d_mu);
-                        calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-
-                        int n0=num_face_b*nb_comp;
-                        int j0=j*nb_comp;
-                        double valA=diffu_tot[1];
-
-                        if (ind_face<nb_faces_bord_reel)
-                          {
-                            // double valA=diffu_tot[nc];
-                            matrice(n0,n0)+=valA;
-                            matrice(n0,j0)-=valA;
-                          }
-                        if(j<nb_faces)
-                          {
-                            matrice(j0,n0)-=valA;
-                            matrice(j0,j0)+=valA;
-                          }
-                      }
-                }
-            }
-        }
-
-      // On traite les faces internes
-      int n0 = domaine_VEF.premiere_face_int();
-      for (num_face=n0; num_face<nb_faces; num_face++)
-        {
-          for ( l=0; l<2; l++)
-            {
-              int elem2 = face_voisins(num_face,l);
-              double d_mu2 = mu_turb(elem2);
-              for (i=0; i<nb_faces_elem; i++)
-                {
-                  int jj = elem_faces(elem2,i);
-                  if ( jj > num_face )
-                    {
-                      int contrib=1;
-                      if(jj>=nb_faces) // C'est une face virtuelle
-                        {
-                          int el1 = face_voisins(jj,0);
-                          int el2 = face_voisins(jj,1);
-                          if((el1==-1)||(el2==-1))
-                            contrib=0;
-                        }
-                      if (contrib)
-                        {
-                          //double valAp = viscA(num_face,jj,elem2,d_mu2);
-                          calc_visc(diffu_tot,domaine_VEF,num_face,jj,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-
-                          double valA=diffu_tot[1];
-                          int num0=num_face*nb_comp;
-                          int j0=jj*nb_comp;
-                          matrice(num0,num0)+=valA;
-                          matrice(num0,j0)-=valA;
-                          if (jj<nb_faces) // On traite les faces reelles
-                            {
-                              matrice(j0,num0)-=valA;
-                              matrice(j0,j0)+=valA;
-                            }
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-  else
-    {
-      nb_comp=transporte.line_size();
-      assert(nb_comp==2);
-
-      // On traite les faces bord
-      for (int n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-          int num1 = 0;
-          int num2 = le_bord.nb_faces_tot();
-          int nb_faces_bord_reel = le_bord.nb_faces();
-          if (sub_type(Periodique,la_cl.valeur()))
-            {
-              const Periodique& la_cl_perio = ref_cast(Periodique,la_cl.valeur());
-              // on ne parcourt que la moitie des faces volontairement...
-              // GF il ne faut pas s'occuper des faces virtuelles
-              num2=nb_faces_bord_reel/2;
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int fac_asso = la_cl_perio.face_associee(ind_face);
-                  fac_asso = le_bord.num_face(fac_asso);
-                  int num_face_b = le_bord.num_face(ind_face);
-                  for (int ll=0; ll<2; ll++)
-                    {
-                      int elem2 = face_voisins(num_face_b,ll);
-                      double d_mu2 = mu_turb(elem2);
-                      for (int ii=0; ii<nb_faces_elem; ii++)
-                        {
-                          if ( (j= elem_faces(elem2,ii)) > num_face_b )
-                            {
-                              //double valAp = viscA(num_face_b,j,elem2,d_mu2);
-                              calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-                              int fac_loc=0;
-                              int ok=1;
-                              while ((fac_loc<nb_faces_elem) && (elem_faces(elem2,fac_loc)!=num_face_b)) fac_loc++;
-                              if (fac_loc==nb_faces_elem)
-                                ok=0;
-                              int contrib=1;
-                              if(j>=nb_faces) // C'est une face virtuelle
-                                {
-                                  int el1 = face_voisins(j,0);
-                                  int el2 = face_voisins(j,1);
-                                  if((el1==-1)||(el2==-1))
-                                    contrib=0;
-                                }
-                              if (contrib)
-                                {
-                                  for (int nc2=0; nc2<nb_comp; nc2++)
-                                    {
-                                      int n0=num_face_b*nb_comp+nc2;
-                                      int n0perio=fac_asso*nb_comp+nc2;
-                                      int j0=j*nb_comp+nc2;
-                                      double valA=diffu_tot[nc2];
-                                      matrice(n0,n0)+=valA;
-                                      matrice(n0,j0)-=valA;
-                                      if(j<nb_faces) // On traite les faces reelles
-                                        {
-                                          //if (l==0)
-                                          if (ok==1)
-                                            matrice(j0,n0)-=valA;
-                                          else
-                                            matrice(j0,n0perio)-=valA;
-                                          matrice(j0,j0)+=valA;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-          else   //  conditions aux limites autres que periodicite
-            {
-              for (int ind_face=num1; ind_face<num2; ind_face++)
-                {
-                  int num_face_b = le_bord.num_face(ind_face);
-                  elem = face_voisins(num_face_b,0);
-                  d_mu = mu_turb(elem);
-                  for (i=0; i<nb_faces_elem; i++)
-                    if (( (j= elem_faces(elem,i)) > num_face_b ) || (ind_face>=nb_faces_bord_reel))
-                      {
-                        //double valAp = viscA(num_face_b,j,elem,d_mu);
-                        calc_visc(diffu_tot,domaine_VEF,num_face_b,j,dimension,elem,d_mu,nu_,is_mu_unif,inv_Prdt);
-
-                        for (int nc2=0; nc2<nb_comp; nc2++)
-                          {
-                            int n0=num_face_b*nb_comp+nc2;
-                            int j0=j*nb_comp+nc2;
-                            double valA=diffu_tot[nc2];
-
-                            if (ind_face<nb_faces_bord_reel)
-                              {
-                                // double valA=diffu_tot[nc];
-                                matrice(n0,n0)+=valA;
-                                matrice(n0,j0)-=valA;
-                              }
-                            if(j<nb_faces)
-                              {
-                                matrice(j0,n0)-=valA;
-                                matrice(j0,j0)+=valA;
-                              }
-                          }
-                      }
-                }
-            }
-        }
-
-      // On traite les faces internes
-      int n0 = domaine_VEF.premiere_face_int();
-      for (num_face=n0; num_face<nb_faces; num_face++)
-        {
-          for ( l=0; l<2; l++)
-            {
-              int elem2 = face_voisins(num_face,l);
-              double d_mu2 = mu_turb(elem2);
-              for (i=0; i<nb_faces_elem; i++)
-                {
-                  int jj = elem_faces(elem2,i);
-                  if ( jj > num_face )
-                    {
-                      int contrib=1;
-                      if(jj>=nb_faces) // C'est une face virtuelle
-                        {
-                          int el1 = face_voisins(jj,0);
-                          int el2 = face_voisins(jj,1);
-                          if((el1==-1)||(el2==-1))
-                            contrib=0;
-                        }
-                      if (contrib)
-                        {
-                          //double valAp = viscA(num_face,jj,elem2,d_mu2);
-                          calc_visc(diffu_tot,domaine_VEF,num_face,jj,dimension,elem2,d_mu2,nu_,is_mu_unif,inv_Prdt);
-
-                          for (nc=0; nc<nb_comp; nc++)
-                            {
-                              double valA=diffu_tot[nc];
-                              int num0=num_face*nb_comp+nc;
-                              int j0=jj*nb_comp+nc;
-                              matrice(num0,num0)+=valA;
-                              matrice(num0,j0)-=valA;
-                              if (jj<nb_faces) // On traite les faces reelles
-                                {
-                                  matrice(j0,num0)-=valA;
-                                  matrice(j0,j0)+=valA;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-  modifier_matrice_pour_periodique_apres_contribuer(matrice,equation());
-}
-
-void Op_Diff_K_Eps_VEF_Face::contribue_au_second_membre(DoubleTab& resu ) const
-{
-  const Domaine_Cl_VEF& domaine_Cl_VEF = la_zcl_vef.valeur();
-  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
-  int n_bord;
-  // Prise en compte des conditions aux limites de Neumnan a la paroi
-
-  if ( diffuse_eps_seul or diffuse_k_seul )
-    {
-      for (n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          if (sub_type(Neumann_paroi,la_cl.valeur()))
-            {
-              const Neumann_paroi& la_cl_paroi = ref_cast(Neumann_paroi, la_cl.valeur());
-              const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-              int ndeb = le_bord.num_premiere_face();
-              int nfin = ndeb + le_bord.nb_faces();
-              for (int face=ndeb; face<nfin; face++)
-                {
-                  resu(face) += la_cl_paroi.flux_impose(face-ndeb)*domaine_VEF.surface(face);
-                }
-            }
-        }
-    }
-  else
-    {
-      for (n_bord=0; n_bord<domaine_VEF.nb_front_Cl(); n_bord++)
-        {
-          const Cond_lim& la_cl = domaine_Cl_VEF.les_conditions_limites(n_bord);
-          if (sub_type(Neumann_paroi,la_cl.valeur()))
-            {
-              const Neumann_paroi& la_cl_paroi = ref_cast(Neumann_paroi, la_cl.valeur());
-              const Front_VF& le_bord = ref_cast(Front_VF,la_cl->frontiere_dis());
-              int ndeb = le_bord.num_premiere_face();
-              int nfin = ndeb + le_bord.nb_faces();
-              for (int face=ndeb; face<nfin; face++)
-                {
-                  resu(face,0) += la_cl_paroi.flux_impose(face-ndeb,0)*domaine_VEF.surface(face);
-                  resu(face,1) += la_cl_paroi.flux_impose(face-ndeb,1)*domaine_VEF.surface(face);
-                }
-            }
-        }
-    }
-}
-
-/*! @brief On modifie le second membre et la matrice dans le cas des conditions de dirichlet.
- *
- */
 void Op_Diff_K_Eps_VEF_Face::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTab& secmem) const
 {
-  // on recupere le tableau
-  if ( sub_type( Transport_K_Eps,equation() ) )
-    {
-      const Transport_K_Eps& eqn_k_eps=ref_cast(Transport_K_Eps,equation());
-      const DoubleTab& val=equation().inconnue().valeurs();
-      const Turbulence_paroi_base& mod=eqn_k_eps.modele_turbulence().loi_paroi();
-      const Paroi_hyd_base_VEF& paroi=ref_cast(Paroi_hyd_base_VEF,mod);
-      const ArrOfInt& face_keps_imposee=paroi.face_keps_imposee();
-      int size=secmem.dimension(0);
-      const IntVect& tab1=matrice.get_tab1();
-      DoubleVect& coeff = matrice.get_set_coeff();
-      int nb_comp=2;
+  Op_Dift_VEF_base::modifier_pour_Cl(matrice, secmem);
 
-      Op_VEF_Face::modifier_pour_Cl(le_dom_vef.valeur(),la_zcl_vef.valeur(), matrice, secmem);
-      if (face_keps_imposee.size_array()>0)
-        // en plus des dirichlets ????
-        // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
-        for (int face=0; face<size; face++)
+  const Turbulence_paroi_base& mod=le_modele_turbulence->loi_paroi();
+  const Paroi_hyd_base_VEF& paroi=ref_cast(Paroi_hyd_base_VEF,mod);
+  const ArrOfInt& face_keps_imposee=paroi.face_keps_imposee();
+  int size=secmem.dimension(0);
+  const IntVect& tab1=matrice.get_tab1();
+  DoubleVect& coeff = matrice.get_set_coeff();
+  const DoubleTab& val=equation().inconnue().valeurs();
+  const int nb_comp = equation().inconnue().valeurs().line_size();
+
+  if (face_keps_imposee.size_array()>0) //TODO a reformuler (Kokkos ?)
+    // en plus des dirichlets ????
+    // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
+    for (int face=0; face<size; face++)
+      {
+        if (face_keps_imposee[face]!=-2)
           {
-            if (face_keps_imposee[face]!=-2)
+            for (int comp=0; comp<nb_comp; comp++)
               {
-                for (int comp=0; comp<nb_comp; comp++)
-                  {
-                    // on doit remettre la ligne a l'identite et le secmem a l'inconnue
-                    int idiag = tab1[face*nb_comp+comp]-1;
-                    coeff[idiag]=1;
-                    // pour les voisins
-                    int nbvois = tab1[face*nb_comp+1+comp] - tab1[face*nb_comp+comp];
-                    for (int k=1; k < nbvois; k++)
-                      {
-                        coeff[idiag+k]=0;
-                      }
-                    secmem(face,comp)=val(face,comp);
-                  }
-              }
-          }
-
-    }
-  else if ( sub_type( Transport_K_Eps_Realisable,equation() ) )
-    {
-      const Transport_K_Eps_Realisable& eqn_k_eps=ref_cast(Transport_K_Eps_Realisable,equation());
-      const DoubleTab& val=equation().inconnue().valeurs();
-      const Turbulence_paroi_base& mod=eqn_k_eps.modele_turbulence().loi_paroi();
-      const Paroi_hyd_base_VEF& paroi=ref_cast(Paroi_hyd_base_VEF,mod);
-      const ArrOfInt& face_keps_imposee=paroi.face_keps_imposee();
-      int size=secmem.dimension(0);
-      const IntVect& tab1=matrice.get_tab1();
-      DoubleVect& coeff = matrice.get_set_coeff();
-      int nb_comp=2;
-
-      Op_VEF_Face::modifier_pour_Cl(le_dom_vef.valeur(),la_zcl_vef.valeur(), matrice, secmem);
-      if (face_keps_imposee.size_array()>0)
-        // en plus des dirichlets ????
-        // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
-        for (int face=0; face<size; face++)
-          {
-            if (face_keps_imposee[face]!=-2)
-              {
-                for (int comp=0; comp<nb_comp; comp++)
-                  {
-                    // on doit remettre la ligne a l'identite et le secmem a l'inconnue
-                    int idiag = tab1[face*nb_comp+comp]-1;
-                    coeff[idiag]=1;
-                    // pour les voisins
-                    int nbvois = tab1[face*nb_comp+1+comp] - tab1[face*nb_comp+comp];
-                    for (int k=1; k < nbvois; k++)
-                      {
-                        coeff[idiag+k]=0;
-                      }
-                    secmem(face,comp)=val(face,comp);
-                  }
-              }
-          }
-    }
-  else if ( sub_type( Transport_K_ou_Eps,equation() ) )
-    {
-      const Transport_K_ou_Eps& eqn_k_eps=ref_cast(Transport_K_ou_Eps,equation());
-      const DoubleTab& val=equation().inconnue().valeurs();
-      const Turbulence_paroi_base& mod=eqn_k_eps.modele_turbulence().loi_paroi();
-      const Paroi_hyd_base_VEF& paroi=ref_cast(Paroi_hyd_base_VEF,mod);
-      const ArrOfInt& face_keps_imposee=paroi.face_keps_imposee();
-      int size=secmem.dimension(0);
-      const IntVect& tab1=matrice.get_tab1();
-      DoubleVect& coeff = matrice.get_set_coeff();
-
-      Op_VEF_Face::modifier_pour_Cl(le_dom_vef.valeur(),la_zcl_vef.valeur(), matrice, secmem);
-      if (face_keps_imposee.size_array()>0)
-        // en plus des dirichlets ????
-        // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
-        for (int face=0; face<size; face++)
-          {
-            if (face_keps_imposee[face]!=-2)
-              {
-
                 // on doit remettre la ligne a l'identite et le secmem a l'inconnue
-                int idiag = tab1[face]-1;
+                int idiag = tab1[face*nb_comp+comp]-1;
                 coeff[idiag]=1;
                 // pour les voisins
-                int nbvois = tab1[face+1] - tab1[face];
+                int nbvois = tab1[face*nb_comp+1+comp] - tab1[face*nb_comp+comp];
                 for (int k=1; k < nbvois; k++)
                   {
                     coeff[idiag+k]=0;
                   }
-                secmem(face)=val(face);
+                secmem(face,comp)=val(face,comp);
               }
           }
-    }
-}
+      }
 
+}
 

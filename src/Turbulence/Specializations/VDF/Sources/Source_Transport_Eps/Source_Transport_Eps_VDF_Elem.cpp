@@ -39,7 +39,8 @@ void Source_Transport_Eps_VDF_Elem::associer_pb(const Probleme_base& pb)
 {
   Source_Transport_VDF_Elem_base::associer_pb(pb);
   mon_eq_transport_Eps = ref_cast(Transport_K_ou_Eps,equation());
-  mon_eq_transport_K = ref_cast(Transport_K_ou_Eps, mon_eq_transport_Eps->modele_turbulence().eqn_transp_K());
+  const Modele_turbulence_hyd_K_Eps_Bicephale& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Bicephale, mon_eq_transport_Eps->modele_turbulence());
+  mon_eq_transport_K = ref_cast(Transport_K_ou_Eps, mod_turb.eqn_transp_K());
 }
 
 const DoubleTab& Source_Transport_Eps_VDF_Elem::get_visc_turb() const
@@ -127,7 +128,7 @@ void Source_Transport_Eps_VDF_Elem::ajouter_blocs(matrices_t matrices, DoubleTab
       DoubleTrav D(0);
       F2.resize(K.dimension_tot(0));
       const Domaine_dis_base& domaine_dis_eps =mon_eq_transport_Eps->domaine_dis();
-      const Champ_base& ch_visco_cin_ou_dyn =ref_cast(Op_Diff_K_Eps_base, equation().operateur(0).l_op_base()).diffusivite();
+      const Champ_base& ch_visco_cin_ou_dyn =ref_cast(Operateur_Diff_base, equation().operateur(0).l_op_base()).diffusivite();
       mon_modele_fonc->Calcul_F2_BiK(F2,D,domaine_dis_eps,K,Eps, ch_visco_cin_ou_dyn  );
     }
 

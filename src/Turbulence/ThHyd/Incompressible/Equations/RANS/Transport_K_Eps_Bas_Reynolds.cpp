@@ -95,13 +95,16 @@ void Transport_K_Eps_Bas_Reynolds::completer()
   Equation_base::completer();
 }
 
-void Transport_K_Eps_Bas_Reynolds::associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base& modele)
+void Transport_K_Eps_Bas_Reynolds::associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& modele)
 {
   const Equation_base& eqn_hydr = modele.equation();
   associer(eqn_hydr);
   associer_milieu_base(eqn_hydr.milieu());
   associer_vitesse(eqn_hydr.inconnue());
   mon_modele = ref_cast(Modele_turbulence_hyd_K_Eps_Bas_Reynolds,modele);
+  RefObjU le_modele;
+  le_modele = mon_modele.valeur();
+  liste_modeles_.add_if_not(le_modele);
   discretiser();
 }
 

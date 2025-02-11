@@ -25,7 +25,7 @@
 #include <Modele_turbulence_hyd_K_Eps_Bas_Reynolds.h>
 #include <Modele_turbulence_hyd_K_Eps_2_Couches.h>
 #include <Eval_Diff_K_Eps_Bas_Re_VDF_leaves.h>
-#include <Op_Diff_K_Eps_Bas_Re_base.h>
+#include <Op_Dift_VDF_base.h>
 #include <Iterateur_VDF_Elem.h>
 #include <Statistiques.h>
 #include <Op_VDF_Elem.h>
@@ -35,7 +35,7 @@
 
 extern Stat_Counter_Id diffusion_counter_;
 
-class Op_Diff_K_Eps_Bas_Re_VDF_base : public Op_Diff_K_Eps_Bas_Re_base, public Op_VDF_Elem
+class Op_Diff_K_Eps_Bas_Re_VDF_base : public Op_Dift_VDF_base, public Op_VDF_Elem
 {
   Declare_base(Op_Diff_K_Eps_Bas_Re_VDF_base);
 public:

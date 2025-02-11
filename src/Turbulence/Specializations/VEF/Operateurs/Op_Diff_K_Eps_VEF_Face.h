@@ -21,18 +21,9 @@
 #ifndef Op_Diff_K_Eps_VEF_Face_included
 #define Op_Diff_K_Eps_VEF_Face_included
 
-#include <Op_Diff_K_Eps_VEF_base.h>
-#include <Op_VEF_Face.h>
-#include <Domaine_VEF.h>
-#include <TRUST_Ref.h>
+#include <Op_Dift_VEF_Face_Gen.h>
+#include <Op_Dift_VEF_base.h>
 
-
-
-
-
-class Domaine_Cl_VEF;
-class Champ_P1NC;
-class Champ_Don_base;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -40,86 +31,23 @@ class Champ_Don_base;
 //
 //////////////////////////////////////////////////////////////////////////////
 
-class Op_Diff_K_Eps_VEF_Face : public Op_Diff_K_Eps_VEF_base, public Op_VEF_Face
+class Op_Diff_K_Eps_VEF_Face : public Op_Dift_VEF_base, public Op_Dift_VEF_Face_Gen<Op_Diff_K_Eps_VEF_Face>
 {
 
   Declare_instanciable(Op_Diff_K_Eps_VEF_Face);
 
 public:
+  void completer() override;
 
-  void associer(const Domaine_dis_base& , const Domaine_Cl_dis_base& ,
-                const Champ_Inc_base& ) override;
-  void associer_diffusivite_turbulente() override;
-  const Champ_Fonc_base& diffusivite_turbulente() const;
-  DoubleTab& ajouter(const DoubleTab& ,  DoubleTab& ) const override;
-  DoubleTab& calculer(const DoubleTab& , DoubleTab& ) const override;
-  inline double viscA(int, int, int, double) const;
-  void calc_visc(ArrOfDouble& diffu_tot,const Domaine_VEF& le_dom,int num_face,int num2,int dimension, int num_elem,double diffu_turb,const DoubleTab& diffu,int is_mu_unif,const ArrOfDouble& inv_Prdt) const;
-  // Methodes pour l implicite.
+  DoubleTab& ajouter(const DoubleTab&, DoubleTab&) const override; // pour l'explicite
 
-  inline void dimensionner(Matrice_Morse& ) const override;
-  void modifier_pour_Cl(Matrice_Morse&, DoubleTab&) const override;
-  inline void contribuer_a_avec(const DoubleTab&, Matrice_Morse&) const override;
-  inline void contribuer_au_second_membre(DoubleTab& ) const override;
-  void contribue_au_second_membre(DoubleTab& ) const;
-  void ajouter_contribution(const DoubleTab&, Matrice_Morse& ) const;
-  virtual void remplir_nu(DoubleTab&) const;
+  void contribuer_a_avec(const DoubleTab&, Matrice_Morse&) const override; // pour l'implicite
 
+  void modifier_pour_Cl(Matrice_Morse& matrice, DoubleTab& secmem) const override;
 
-protected :
-  OBS_PTR(Domaine_VEF) le_dom_vef;
-  OBS_PTR(Domaine_Cl_VEF) la_zcl_vef;
-  OBS_PTR(Champ_P1NC) inconnue_;
-  mutable DoubleTab nu_;
+protected:
+  double Prdt[2];
 
 };
-
-// ATTENTION le diffu intervenant dans les fonctions n'est que LOCAL (on appelle d_mu apres)
-// Fonction utile visc
-// mu <Si, Sj> / |K|
-inline double Op_Diff_K_Eps_VEF_Face::viscA(int num_face, int num2, int num_elem, double diffu) const
-{
-  const Domaine_VEF& domaine=le_dom_vef.valeur();
-  const IntTab& face_voisins=domaine.face_voisins();
-  const DoubleTab& face_normales=domaine.face_normales();
-  const DoubleVect& inverse_volumes=domaine.inverse_volumes();
-  double pscal = face_normales(num_face,0)*face_normales(num2,0)
-                 + face_normales(num_face,1)*face_normales(num2,1);
-  if (Objet_U::dimension == 3)
-    pscal += face_normales(num_face,2)*face_normales(num2,2);
-
-  // *equation().milieu().porosite_elem(num_elem));
-  if ( (face_voisins(num_face,0) == face_voisins(num2,0)) ||
-       (face_voisins(num_face,1) == face_voisins(num2,1)) )
-    return -(pscal*diffu)*inverse_volumes(num_elem);
-  else
-    return (pscal*diffu)*inverse_volumes(num_elem);
-}
-/*! @brief on dimensionne notre matrice au moyen de la methode dimensionner de la classe Op_VEF_Face.
- *
- */
-inline  void Op_Diff_K_Eps_VEF_Face::dimensionner(Matrice_Morse& matrice) const
-{
-  Op_VEF_Face::dimensionner(le_dom_vef.valeur(), la_zcl_vef.valeur(), matrice);
-}
-
-
-/*! @brief on assemble la matrice des inconnues implicite.
- *
- */
-inline void Op_Diff_K_Eps_VEF_Face::contribuer_a_avec(const DoubleTab& inco,
-                                                      Matrice_Morse& matrice) const
-{
-  ajouter_contribution(inco, matrice);
-}
-
-/*! @brief on ajoute la contribution du second membre.
- *
- */
-inline void Op_Diff_K_Eps_VEF_Face::contribuer_au_second_membre(DoubleTab& resu) const
-{
-  contribue_au_second_membre(resu);
-}
-
 
 #endif

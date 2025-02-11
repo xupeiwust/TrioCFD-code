@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2023, CEA
+* Copyright (c) 2025, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -60,6 +60,82 @@ void Transport_2eq_base::set_param(Param& param)
   param.ajouter_non_std("convection", (this));
   param.ajouter_condition("is_read_diffusion", "The diffusion operator must be read, select negligeable type if you want to neglect it.");
   param.ajouter_condition("is_read_convection", "The convection operator must be read, select negligeable type if you want to neglect it.");
+}
+
+// Lecture et typage de l'operateur diffusion turbulente.
+// Attention : il faut avoir fait "terme_diffusif.associer_diffusivite" avant d'enter ici.
+Entree& Transport_2eq_base::lire_op_diff_turbulent(Entree& is)
+{
+  Motcle accouverte = "{", accfermee = "}";
+  Nom type = "Op_Diff_K_Eps_";
+
+  Nom qc = modele_turbulence().equation().que_suis_je();
+  Cerr << ">>>>>>> Nom eq = " << qc << finl;
+  if (qc=="Navier_Stokes_QC" || qc == "Navier_Stokes_Turbulent_QC")
+    {
+      type+="QC_";
+    }
+
+  Nom discr = discretisation().que_suis_je();
+  // les operateurs de diffusion sont communs aux discretisations VEF et VEFP1B
+  if (discr == "VEFPreP1B") discr = "VEF";
+
+  type += discr;
+
+  Nom nb_inc;
+  if (terme_diffusif.diffusivite().nb_comp() == 1)
+    nb_inc = "_";
+  else
+    nb_inc = "_Multi_inco_";
+  type += nb_inc;
+
+  Nom type_inco = inconnue().que_suis_je();
+  if (type_inco == "Champ_Q1_EF") type += "Q1";
+  else type += (type_inco.suffix("Champ_"));
+
+  if (axi) type += "_Axi";
+
+  Motcle motbidon;
+  is >> motbidon;
+  if (motbidon != accouverte)
+    {
+      Cerr << "A { was expected while reading the turbulent diffusive term" << finl;
+      Process::exit();
+    }
+  is >> motbidon;
+  if (motbidon == "negligeable")
+    {
+      type = "Op_Dift_negligeable";
+      terme_diffusif.typer(type);
+      terme_diffusif.l_op_base().associer_eqn(*this);
+      terme_diffusif->associer_diffusivite(terme_diffusif.diffusivite());
+      is >> motbidon;
+      //on lit la fin de diffusion { }
+      if (motbidon != accfermee)
+        Cerr << " On ne peut plus entrer d option apres negligeable " << finl;
+    }
+  else if (motbidon == accfermee)
+    {
+      terme_diffusif.typer(type);
+      terme_diffusif.l_op_base().associer_eqn(*this);
+      Cerr << terme_diffusif->que_suis_je() << finl;
+      terme_diffusif->associer_diffusivite(terme_diffusif.diffusivite());
+    }
+  else
+    {
+      type += motbidon;
+      is >> motbidon;
+      if (motbidon != accfermee)
+        Cerr << " No option are now readable for the turbulent diffusive term" << finl;
+
+      if (discr == "VEF")
+        type += "_P1NC";
+      terme_diffusif.typer(type);
+      terme_diffusif.l_op_base().associer_eqn(*this);
+      Cerr << terme_diffusif->que_suis_je() << finl;
+      terme_diffusif->associer_diffusivite(terme_diffusif.diffusivite());
+    }
+  return is;
 }
 
 /*! @brief Associe un milieu physique a l'equation.

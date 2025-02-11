@@ -23,7 +23,6 @@
 #define Transport_K_ou_Eps_included
 
 #include <Transport_K_ou_Eps_base.h>
-#include <Op_Diff_K_Eps_base.h>
 #include <Operateur_Conv.h>
 
 
@@ -50,7 +49,7 @@ public:
   void set_param(Param& param) override;
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   inline void associer_Champ_Inconnu(const Champ_Inc_base& );
-  void associer_modele_turbulence(const Modele_turbulence_hyd_RANS_Bicephale_base& ) override;
+  void associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& ) override;
   int nombre_d_operateurs() const override;
   const Operateur& operateur(int) const override;
   Operateur& operateur(int) override;
@@ -59,8 +58,6 @@ public:
 
 protected :
   int with_nu_;
-  Op_Diff_K_Eps terme_diffusif;
-  Operateur_Conv terme_convectif;
 
   OBS_PTR(Champ_Inc_base) inco_eqn_associee;
   OWN_PTR(Champ_Don_base) Champ_don_nul_;  // on y met 0 si on ne veut pas de nu

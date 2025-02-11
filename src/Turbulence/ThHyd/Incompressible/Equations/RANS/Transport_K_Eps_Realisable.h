@@ -27,10 +27,7 @@
 #define Transport_K_Eps_Realisable_included
 
 #include <Modele_Fonc_Realisable_base.h>
-#include <Op_Diff_K_Eps_Bas_Re_base.h>
 #include <Transport_K_Eps_base.h>
-#include <Op_Diff_K_Eps_base.h>
-#include <Operateur_Conv.h>
 #include <TRUST_Ref.h>
 
 class Motcle;
@@ -51,7 +48,7 @@ public :
   Operateur& operateur(int) override;
 
   void associer_milieu_base(const Milieu_base&) override;
-  void associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Eps_base&) override;
+  void associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base&) override;
   inline const OWN_PTR(Modele_Fonc_Realisable_base)& modele_fonc() const;
   inline  OWN_PTR(Modele_Fonc_Realisable_base)& modele_fonc();
 //   inline const Champ_Inc_base& vitesse_transportante();
@@ -60,8 +57,6 @@ public :
 
 protected:
   int with_nu_;
-  Op_Diff_K_Eps terme_diffusif;
-  Operateur_Conv terme_convectif;
 
   OBS_PTR(Champ_Inc_base) inco_eqn_associee;
   OWN_PTR(Champ_Don_base) Champ_don_nul_;  // on y met 0 si on ne veut pas de nu

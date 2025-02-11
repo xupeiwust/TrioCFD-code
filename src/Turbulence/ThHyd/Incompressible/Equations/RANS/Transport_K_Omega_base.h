@@ -23,12 +23,10 @@
 #ifndef Transport_K_Omega_base_included
 #define Transport_K_Omega_base_included
 
-#include <Modele_turbulence_hyd_RANS_K_Omega_base.h>
 #include <Transport_2eq_base.h>
 #include <TRUST_Ref.h>
 
 
-class Modele_turbulence_hyd_RANS_K_Omega_base;
 class Champ_Inc_base;
 class Milieu_base;
 
@@ -43,15 +41,12 @@ class Transport_K_Omega_base: public Transport_2eq_base
 
 public:
 
-  virtual void associer_modele_turbulence(const Modele_turbulence_hyd_RANS_K_Omega_base& )=0;
   void discretiser() override;
 
   int controler_K_Omega();
   void valider_iteration() override;
   inline const Champ_Inc_base& inconnue() const override;
   inline Champ_Inc_base& inconnue() override;
-  inline const Modele_turbulence_hyd_RANS_K_Omega_base& modele_turbulence() const;
-  inline Modele_turbulence_hyd_RANS_K_Omega_base& modele_turbulence();
 
   void get_position_cells(Nom&, int&);
   void get_position_faces(Nom&, int&);
@@ -60,7 +55,6 @@ public:
 protected:
 
   OWN_PTR(Champ_Inc_base) le_champ_K_Omega;
-  OBS_PTR(Modele_turbulence_hyd_RANS_K_Omega_base) mon_modele;
 };
 
 /*! @brief Renvoie le champ inconnue de l'equation.
@@ -80,27 +74,5 @@ inline Champ_Inc_base& Transport_K_Omega_base::inconnue() { return le_champ_K_Om
  * @return (Champ_Inc_base&) le champ inconnue de l'equation
  */
 inline const Champ_Inc_base& Transport_K_Omega_base::inconnue() const { return le_champ_K_Omega; }
-
-/*! @brief Renvoie le modele de turbulence associe a l'equation.
- *
- * (version const)
- *
- * @return (Modele_turbulence_hyd_K_Omega&) le modele de turbulence associe a l'equation
- */
-inline const Modele_turbulence_hyd_RANS_K_Omega_base& Transport_K_Omega_base::modele_turbulence() const
-{
-  assert(mon_modele.non_nul());
-  return mon_modele.valeur();
-}
-
-/*! @brief Renvoie le modele de turbulence associe a l'equation.
- *
- * @return (Modele_turbulence_hyd_K_Omega&) le modele de turbulence associe a l'equation
- */
-inline Modele_turbulence_hyd_RANS_K_Omega_base& Transport_K_Omega_base::modele_turbulence()
-{
-  assert(mon_modele.non_nul());
-  return mon_modele.valeur();
-}
 
 #endif

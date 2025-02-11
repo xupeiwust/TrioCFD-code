@@ -38,7 +38,6 @@ public:
   void verifie_loi_paroi() override;
   bool initTimeStep(double dt) override;
   void mettre_a_jour(double) override;
-  void completer() override;
   const Equation_base& equation_k_eps(int) const override;
 
   virtual inline Champ_Inc_base& K_Eps() { return eqn_transport_K_Eps_Rea_.inconnue(); }

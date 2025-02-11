@@ -147,7 +147,7 @@ int Transport_K_ou_Eps_Realisable::lire_motcle_non_standard(const Motcle& mot, E
           else
             terme_diffusif.associer_diffusivite(fluide_inc.viscosite_cinematique());
         }
-      is >> terme_diffusif;
+      lire_op_diff_turbulent(is);
       return 1;
     }
   else if (mot=="convection")
@@ -174,13 +174,16 @@ int Transport_K_ou_Eps_Realisable::lire_motcle_non_standard(const Motcle& mot, E
  *
  * @param (Modele_turbulence_hyd_K_Eps& modele) le modele de turbulence K-epsilon a asoocier a l'equation
  */
-void Transport_K_ou_Eps_Realisable::associer_modele_turbulence(const Modele_turbulence_hyd_RANS_Bicephale_base& modele)
+void Transport_K_ou_Eps_Realisable::associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& modele)
 {
   const Equation_base& eqn_hydr = modele.equation();
   associer(eqn_hydr);
   associer_milieu_base(eqn_hydr.milieu());
   associer_vitesse(eqn_hydr.inconnue());
   mon_modele = modele;
+  RefObjU le_modele;
+  le_modele = mon_modele.valeur();
+  liste_modeles_.add_if_not(le_modele);
   discretiser();
 }
 

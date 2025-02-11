@@ -38,7 +38,8 @@ void Source_Transport_K_Realisable_VEF_Face::associer_pb(const Probleme_base& pb
 {
   Source_Transport_Realisable_VEF_Face_base::associer_pb(pb);
   eqn_k_Rea = ref_cast(Transport_K_ou_Eps_Realisable, equation());
-  eqn_eps_Rea = ref_cast(Transport_K_ou_Eps_Realisable, eqn_eps_Rea->modele_turbulence().eqn_transp_Eps());
+  const Modele_turbulence_hyd_K_Eps_Realisable_Bicephale& mod_turb = ref_cast(Modele_turbulence_hyd_K_Eps_Realisable_Bicephale, eqn_eps_Rea->modele_turbulence());
+  eqn_eps_Rea = ref_cast(Transport_K_ou_Eps_Realisable, mod_turb.eqn_transp_Eps());
 }
 
 DoubleTab& Source_Transport_K_Realisable_VEF_Face::ajouter(DoubleTab& resu) const

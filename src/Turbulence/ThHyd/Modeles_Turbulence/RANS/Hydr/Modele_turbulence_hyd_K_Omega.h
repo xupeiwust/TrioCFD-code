@@ -24,6 +24,7 @@
 
 #include <TRUSTTabs_forward.h>
 #include <Transport_K_Omega.h>
+#include <Modele_turbulence_hyd_RANS_K_Omega_base.h>
 
 
 /*! @brief Classe Modele_turbulence_hyd_K_Omega Cette classe represente le modele de turbulence (k, omega) pour les

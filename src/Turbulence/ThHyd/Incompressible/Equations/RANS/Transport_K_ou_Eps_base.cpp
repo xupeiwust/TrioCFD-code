@@ -29,7 +29,7 @@
 #include <communications.h>
 #include <Champ_Inc_P0_base.h>
 
-Implemente_base(Transport_K_ou_Eps_base,"Transport_K_ou_Eps_base",Equation_base);
+Implemente_base(Transport_K_ou_Eps_base,"Transport_K_ou_Eps_base",Transport_2eq_base);
 
 
 /*! @brief
@@ -52,15 +52,6 @@ Entree& Transport_K_ou_Eps_base::readOn(Entree& is)
 {
   Equation_base::readOn(is);
   return is;
-}
-
-void Transport_K_ou_Eps_base::set_param(Param& param)
-{
-  Equation_base::set_param(param);
-  param.ajouter_non_std("diffusion",(this));
-  param.ajouter_non_std("convection",(this));
-  param.ajouter_condition("is_read_diffusion","The diffusion operator must be read, select negligeable type if you want to neglect it.");
-  param.ajouter_condition("is_read_convection","The convection operator must be read, select negligeable type if you want to neglect it.");
 }
 
 void Transport_K_ou_Eps_base::discretiser()
@@ -106,54 +97,6 @@ void Transport_K_ou_Eps_base::discretiser()
       Process::exit();
     }
   creer_champ( "residu" );
-}
-
-/*! @brief Associe un milieu physique a l'equation.
- *
- * @param (Milieu_base& un_milieu) le milieu physique a associer a l'equation
- */
-void Transport_K_ou_Eps_base::associer_milieu_base(const Milieu_base& un_milieu)
-{
-  le_fluide =  un_milieu;
-}
-/*! @brief Renvoie le milieu (fluide) associe a l'equation.
- *
- * @return (Milieu_base&) le milieu (fluide) associe a l'equation
- */
-Milieu_base& Transport_K_ou_Eps_base::milieu()
-{
-  if(!le_fluide.non_nul())
-    {
-      Cerr << "No fluid has been associated to the Transport K_Epsilon"
-           << que_suis_je()<< " equation." << finl;
-      Process::exit();
-    }
-  return le_fluide.valeur();
-}
-
-
-/*! @brief Renvoie le milieu (fluide) associe a l'equation.
- *
- * (version const)
- *
- * @return (Milieu_base&) le milieu (fluide) associe a l'equation
- */
-const Milieu_base& Transport_K_ou_Eps_base::milieu() const
-{
-  if(!le_fluide.non_nul())
-    {
-      Cerr << "No fluid has been associated to the Transport K_Epsilon"
-           << que_suis_je() <<" equation." << finl;
-      Process::exit();
-    }
-  return le_fluide.valeur();
-}
-
-void Transport_K_ou_Eps_base::associer(const Equation_base& eqn_hydr)
-{
-  Equation_base::associer_pb_base(eqn_hydr.probleme());
-  Equation_base::associer_sch_tps_base(eqn_hydr.schema_temps());
-  Equation_base::associer_domaine_dis(eqn_hydr.domaine_dis());
 }
 
 /*! @brief Controle le champ inconnue K-epsilon en forcant a zero les valeurs du champ
@@ -411,11 +354,6 @@ int Transport_K_ou_Eps_base::controler_variable()
 void Transport_K_ou_Eps_base::valider_iteration()
 {
   controler_variable();
-}
-double Transport_K_ou_Eps_base::calculer_pas_de_temps() const
-{
-  // on prend le pas de temps de l'eq de NS.
-  return probleme().equation(0).calculer_pas_de_temps();
 }
 
 bool Transport_K_ou_Eps_base::has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const
