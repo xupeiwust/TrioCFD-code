@@ -4,7 +4,6 @@ Parametres {
 	Auteur "A. du Cluzeau"
 	CasTest . une_bulle_et_upstream_velocity_9proc.data 9
 	CasTest . une_bulle_9proc.data 9
-	CasTest . une_bulle_9proc_reprise.data 9
 	CasTest . quatre_bulles_seq.data
 	CasTest . quatre_bulles_pary.data 3
 	CasTest . quatre_bulles_parz.data 3
@@ -29,11 +28,6 @@ Chapitre {
 		     colonnes ($1) ($2)
 		     Legende "une_bulle_9proc"
 		}
-				Courbe {
-		   fichier une_bulle_9proc_reprise_bulles_centre_z.out
-		     colonnes ($1) ($2)
-		     Legende "une_bulle_9proc_reprise"
-		}
 		}
 
 			figure {
@@ -50,11 +44,6 @@ Chapitre {
 		   fichier une_bulle_9proc_bulles_centre_x.out
 		     colonnes ($1) ($2)
 		     Legende "une_bulle_9proc"
-		}
-				Courbe {
-		   fichier une_bulle_9proc_reprise_bulles_centre_x.out
-		     colonnes ($1) ($2)
-		     Legende "une_bulle_9proc_reprise"
 		}
 		}
 		
