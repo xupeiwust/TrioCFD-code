@@ -91,7 +91,7 @@ rm -rf DX*
                 valy=`awk 'NR==2{print $6}' $fic`
                 echo " Processing $compo $sch for $n at point $valx, $valy.  Tini=$val"
                 awk '{x='$valx';y='$valy';Time=$1;
-                Tana=(0.5*exp(-(0.1/40.*2*(2*Pi/0.006)^2)*Time)*cos(x*2*Pi/0.006)*cos(y*2*Pi/0.006));
+                Tana=(0.5*exp(-(0.1/4000.*2*(2*Pi/0.006)^2)*Time)*cos(x*2*Pi/0.006)*cos(y*2*Pi/0.006));
                 print Time, Tana,  $2-Tana}' \
                     <  $fic > $ficout
                 awk 'END{print '$n', $1, ($3**2)**(0.5)}' < $ficout >> cvgx_son_${compo}_$sch.txt
@@ -105,8 +105,6 @@ rm -rf DX*
 ##################
 # Debut du post
 ##################
-echo "Début post-traitement"
-echo "---------------------"
 : > plot.gplot
 cat >> plot.gplot << EOF
 # #!/usr/bin/gnuplot
@@ -129,7 +127,7 @@ set output './cvgx_L2.png'
 set log xy
 set title "Norme L2 fonction de NX"
 plot   "./cvgx_L2_EUL.txt" u 1:3 t "PAR_DEF - EUL", \
-    4.9509e-05*(x/8)**(-2) w l ls 2 t 'o2t '
+    4.9509e-05*(x/8)**(-2) w l ls 2 t 'o2'
     # 0.00440539*(x/8)**(-1) w l ls 3 t 'o1' #, \
     #       "./$schx/cvgx_L2_RK.txt" u 1:3 t "$schx - RK", \
     #       "./$schx/cvgx_L2_VDF.txt" u 1:3 t "$schx - VDF" #, \

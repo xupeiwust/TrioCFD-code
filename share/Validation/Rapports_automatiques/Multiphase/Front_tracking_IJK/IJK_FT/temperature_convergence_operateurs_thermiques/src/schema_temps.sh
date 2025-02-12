@@ -1,8 +1,5 @@
 #!/bin/bash
-# source ~triou/env_triou_1.6.8.sh
-# exec=/export/home/gb218285/BALTIKS/IJK/v1.6.8/DNS_IJK/New_algo_qc_opt
 jdd=schema_temps
-# tar xvzf init.tgz
 
 ######################
 # Space........
@@ -15,8 +12,7 @@ rm -rf $schx
 mkdir $schx
 echo "############### Cas : $schx  ###############"
 cd $schx
-cp -f ../${jdd}.data .
-#ln -s ../init.lata* .
+cp $schx.data ${jdd}.data
 
 ######################
 # Time........
@@ -37,7 +33,7 @@ do
    echo "Done!"
    \cp -f ${jdd}_acceleration.out DT_EUL_$n/acc.txt
    grep "ERROR FIELD" err | awk '{print $4, $5, $6, $7}' > DT_EUL_$n/L2.txt
-   \cp -f ${jdd}_P.son DT_EUL_$n/
+   \cp -f ${jdd}_PP_T.son DT_EUL_$n/
    #
    # Sauvegarde du lata pour une figure a la fin: 
    if [ $n == 256 ]; then 
@@ -53,7 +49,7 @@ do
    echo "Done!"
    \cp -f ${jdd}_RK3_acceleration.out DT_RK_$n/acc.txt
    grep "ERROR FIELD" err | awk '{print $4, $5, $6, $7}' > DT_RK_$n/L2.txt
-   \cp -f ${jdd}_RK3_P.son DT_RK_$n/${jdd}_P.son
+   \cp -f ${jdd}_RK3_PP_T.son DT_RK_$n/${jdd}_PP_T.son
 done
 \cp -f ${jdd}.data.ori ${jdd}.data
 
@@ -67,8 +63,8 @@ do
  do
    awk '{
 	 print $1, $2, 1.-(cos($1)+sin($1)), $2-(1.-(cos($1)+sin($1)));
-	 }' <  DT_${sch}_$n/${jdd}_P.son > DT_${sch}_$n/${jdd}_Pcomplet.son 
-   awk 'END{print '$n', $1, ($4**2)**(0.5)}' < DT_${sch}_$n/${jdd}_Pcomplet.son >> cvgt_son_$sch.txt
+	 }' <  DT_${sch}_$n/${jdd}_PP_T.son > DT_${sch}_$n/${jdd}_PP_Tcomplet.son 
+   awk 'END{print '$n', $1, ($4**2)**(0.5)}' < DT_${sch}_$n/${jdd}_PP_Tcomplet.son >> cvgt_son_$sch.txt
    awk 'END{print '$n', $0}' DT_${sch}_$n/L2.txt >> cvgt_L2_$sch.txt
    # Calcul des erreurs sur la vitesse moyenne 
    # de l'Erreur sur rho*acc  et sur d(rho*acc)/dt (qu'on impose)
@@ -86,10 +82,10 @@ done
 ##################
 # Debut du post
 ##################
-echo "Début post-traitement"
+echo "Begin postprocessing"
 echo "---------------------\n\n"
 cat >> plot.gplot << EOF
-# #!/usr/bin/gnuplot
+#!/usr/bin/gnuplot
 set terminal png large
 set output './cvgt_son.png'
 set log xy

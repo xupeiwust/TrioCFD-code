@@ -4,10 +4,10 @@
 
 # python ./ordre_cvg.py
 cas=`echo $1`
+[ $cas = "temperature_convergence_CLwall" ] && echo "Fin du post-run sans lancer de convergence sur $1" && exit
 \rm -fr CONVERGENCE 
 mkdir CONVERGENCE
-echo "Début post traitement into $1/CONVERGENCE"
-echo "Actually runs the convergence cases"
+echo "Actually runs the convergence cases into $1/CONVERGENCE"
 cd CONVERGENCE/
 cp ../$cas.data .
 cp ../$cas.sh .

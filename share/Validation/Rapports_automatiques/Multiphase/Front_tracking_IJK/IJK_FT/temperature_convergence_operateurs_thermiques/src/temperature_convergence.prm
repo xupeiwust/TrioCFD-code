@@ -1,21 +1,28 @@
 Parametres {
 	Titre "Fiche de validation de la convergence des schemas en temperture
-
-	Description <<EOF
-	In order to validate the algorithm implemented for the resolution of the energy equation, we performed some
-        particular test cases in which numerical solutions are compared to the corresponding analytical ones.
-	\latex_($$\rho c_p \left( \partial_t T + \mathbf{u}.\nabla T \right) = \nabla (\lambda \nabla T)$$\latex_)
-	To this equation, we add spatial boundary conditions (BC) and an initial condition.
-	\latex_( \begin{center} \begin{tabular}{|c|c|c|c|c|c|c|} \hline $L_x$ & $L_y$ & $L_z$ & $N_x$ & $N_y$ & $N_z$ & $\Delta t$ \\ \hline 0.006 &0.006 & 0.003 & 64 & 64 & 32 & 2.4e-4 \\  \hline \end{tabular} \end{center} \latex_)
-	Where L, N and $\Delta t$ stand respectively for the length, number of nodes and time step.
-        The subscripts $x$, $y$ and $z$ indicate the different directions.
-	EOF
+ 	Description <<EOF
+In order to validate the algorithm implemented for the resolution of the energy equation, we performed some particular test cases in which numerical solutions are compared to the corresponding analytical ones.
+\latex_($$\rho c_p \left( \partial_t T + \mathbf{u}.\nabla T \right) = \nabla (\lambda \nabla T)$$\latex_)
+To this equation, we add spatial boundary conditions (BC) and an initial condition.
+\latex_(\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+$L_x$ & $L_y$ & $L_z$ & $N_x$ & $N_y$ & $N_z$ & $\Delta t$ \\
+\hline
+0.006 &0.006 & 0.003 & 64 & 64 & 32 & 2.4e-4 \\  
+\hline
+\end{tabular}
+\end{center}\latex_)
+Where L, N and $\Delta t$ stand respectively for the length, number of nodes and time step. The subscripts $x$, $y$ and $z$ indicate the different directions.
+EOF
 
 	Auteur "A.S."
  	CasTest DIFFUSION DIFFUSION.data 1
 	CasTest CONVECTION CONVECTION.data 1
 	CasTest SCHEMA_TEMPS SCHEMA_TEMPS.data 1
+	CasTest . temperature_convergence_CLwall.data 1 /* En preparation pour les CL */
 
+	ExtraUsedFile temperature_convergence_CLwall.lata.4.TEMPERATURE_0
         ExtraUsedFile DIFFUSION/DIFFUSION.lata.40.TEMPERATURE_0
         ExtraUsedFile CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata.40.TEMPERATURE_0
         ExtraUsedFile SCHEMA_TEMPS/SCHEMA_TEMPS.lata.40.TEMPERATURE_0
@@ -23,12 +30,21 @@ Parametres {
 
 Chapitre {
 	Titre "Evolution de la temperature avec diffusion, et convergence de l'operateur en espace"
-
 	Description <<EOF
 \latex_(
-Dans ce cas la, on desactive la convection de temperature. Il n'y a pas de transfert de qdm (et la vitesse initiale est nulle). Pour le moment on regarde la solution uniquement dans un cas periodique, dans un deuxième temps la fiche prendra aussi en compte un cas avec des parois. Il faut aussi ajouter l'image de convergence de l'operateur.
-We use a timestep limited by diffusion $dt=9e-8$ for the finest mesh, 
+Dans ce cas la, on desactive la convection de temperature. Il n'y a pas de transfert de qdm (et la vitesse initiale est nulle). Pour le moment on regarde la solution uniquement dans un cas periodique
+in a second time, the form will also account for a case with walls.
+ Il faut aussi ajouter l'image de convergence de l'operateur.
+We use a timestep limited by diffusion $dt=1./6.*dx*dx/\alpha_{th} =9e-8$ for the finest mesh (N=256), 
 et on impose 800 dt, ce qui conduit a $t_fin=7.2e-5$. Pour comparaison, le temps de demi-diffusion est beaucoup plus grand : 0.01264s.
+
+$ t_{half-diffu}=log(0.5)/(-0.1/4000.*(2*(2*pi/0.006)**2)) = 
+0.012641488699082918
+$
+On pourrait prendre le temps 3/4 : 
+$t=log(0.75)/(-0.1/4000.*(2*(2*pi/0.006)**2))
+ = 0.005246691856829138
+$
 
 We compute : 
 \begin{equation}
@@ -96,7 +112,7 @@ It is not the case, the diffusion operator is in fact 2nd order. Where is my mis
 	}
 
 
-# on peut rajouter la temperature adimentionnelle theta dans le cas ou on a wall_flux#
+# on peut rajouter la temperature adimentionnelle theta dans le cas ou on a wall_flux #
 # on peut aussi rajouter l'evolution du nombre de Nusselt mais on va peut etre laisser ca a la fiche avec des reprises #
 }
 
@@ -243,4 +259,26 @@ Chapitre {
 #             Style lines
 #         }
 #     }
+}
+Chapitre {	
+	Title "Perspectives de validation manquantes"
+
+	Description <<EOF
+\latex_( 
+- Il manque le test complet du schema temps avec un terme source. \\
+- Il faut aussi reflechir a faire cette meme validation soit (i) directement en 3D en ajoutant des sin/cos en z, et une vitesse, et en passant le nombre de maille de 5 a qqch de croissant de 8 a 256 (couteux) soit en dupliquant tout et en remplacant y par z et ajoutant les courbes aux convergences actuelles. \\
+- Validation des conditions limites en $k$ \\
+  o Faire un cas pseudo-1D avec uniquement des variations en z; \\
+  o Tester la CL flux impose, ou temperature\_imposee ou les 2 ou perio. Trouver les Tana \\
+
+On pourrait aussi envisager un test de CL tres simple, analytique sur une seule maille et 1 DT pour voir si c'est bien code.
+\latex_) 
+		EOF
+	visu {
+		titre "Solution normale aux parois"
+			cycles -1
+			Normal3d 0 1 0
+			width 7cm
+			pseudocolor temperature_convergence_CLwall.lata DOM TEMPERATURE_0 ELEM
+	}
 }

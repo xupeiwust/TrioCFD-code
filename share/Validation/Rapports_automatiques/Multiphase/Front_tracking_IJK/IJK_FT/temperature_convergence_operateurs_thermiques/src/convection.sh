@@ -69,7 +69,7 @@ done
 # Debut du post
 ##################
 # cd QUICK
-echo "Début post-traitement"
+echo "Post-processing QUICK and CENTRE4"
 echo "---------------------"
 : > plot.gplot
 cat >> plot.gplot << EOF
