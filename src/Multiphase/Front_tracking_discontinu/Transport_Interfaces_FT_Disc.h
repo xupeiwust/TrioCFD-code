@@ -328,6 +328,9 @@ protected:
   void calcul_indicatrice_faces(const DoubleTab& indicatrice,
                                 const IntTab& face_voisins);
 
+  void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;} // for fpi module
+  const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
+
   OBS_PTR(Probleme_base) probleme_base_;
   OBS_PTR(Navier_Stokes_FT_Disc) equation_ns_;
   // L'inconnue du probleme
@@ -352,6 +355,7 @@ protected:
 
   OWN_PTR(Champ_Fonc_base)  vitesse_imp_interp_;
 
+  bool is_solid_particle_; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
 
 private:
   // Variables internes a la methode de transport

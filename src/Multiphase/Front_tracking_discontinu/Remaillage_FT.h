@@ -85,10 +85,16 @@ public:
   {
     return nb_iter_bary_volume_seul_;
   };
+
+  void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;}
+  const bool& get_is_solid_particle() const {return is_solid_particle_;}
+
 #if DEBUG_CONSERV_VOLUME
   double calculer_volume_mesh(const Maillage_FT_Disc& mesh) const;
   double calculer_somme_dvolume(const Maillage_FT_Disc&, const ArrOfDouble&) const;
 #endif
+
+
 protected:
 
   int tester_a_remailler(const Maillage_FT_Disc& maillage) const;
@@ -181,6 +187,8 @@ protected:
   int lissage_courbure_iterations_old_ = -1;
   // Critere local de declenchement du lissage:
   double lissage_critere_ = 0.; // Default value to 0, when lissage is applied, it is for the whole mesh
+
+  bool is_solid_particle_;  // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
 };
 
 

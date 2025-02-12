@@ -1718,6 +1718,15 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
 {
   Process::Journal()<<"Transport_Interfaces_FT_Disc::preparer_calcul"<<finl;
 
+  const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+  if(sub_type(Navier_Stokes_FT_Disc,eqn_hydraulique))
+    {
+      const Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+      associer_equation_ns(ns); // EB: wasn't implemented
+      set_is_solid_particle(equation_ns_->get_is_solid_particle());
+      maillage_interface().set_is_solid_particle(equation_ns_->get_is_solid_particle());
+      remaillage_interface().set_is_solid_particle(equation_ns_->get_is_solid_particle());
+    }
   const double temps = schema_temps().temps_courant();
   // La ligne suivante doit figurer avant le premier remaillage
   // car le remaillage utilise les angles de contact (lissage courbure)
@@ -6504,13 +6513,15 @@ void Transport_Interfaces_FT_Disc::calculer_vitesse_repere_local(const Maillage_
       if (dim3)
         prodscal += (vi_z - Vitesses(compo, 2)) * nz;
       double norme_carre = nx * nx + ny * ny + nz * nz;
+
+      int is_solid_particle = get_is_solid_particle() ? 1 : 0;
       if (norme_carre != 0.)
         {
           prodscal /= norme_carre;
-          deplacement(som, 0) = nx * prodscal + Vitesses(compo, 0);
-          deplacement(som, 1) = ny * prodscal + Vitesses(compo, 1);
+          deplacement(som, 0) = nx * prodscal* (1-is_solid_particle) + Vitesses(compo, 0);
+          deplacement(som, 1) = ny * prodscal* (1-is_solid_particle) + Vitesses(compo, 1);
           if (dim3)
-            deplacement(som, 2) = nz * prodscal + Vitesses(compo, 2); // BugFix reported from baltik TCL on 2020/10/26
+            deplacement(som, 2) = nz * prodscal* (1-is_solid_particle) + Vitesses(compo, 2); // BugFix reported from baltik TCL on 2020/10/26
         }
     }
 }

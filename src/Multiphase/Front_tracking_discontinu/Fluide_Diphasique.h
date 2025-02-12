@@ -24,6 +24,7 @@
 #define Fluide_Diphasique_included
 
 #include <Fluide_Incompressible.h>
+#include <Solid_Particle.h>
 #include <Milieu_base.h>
 #include <Objet_U.h>
 #include <Milieu_base.h>
@@ -37,6 +38,7 @@ public:
   {
     indic_rayo_ = NONRAYO;
     formule_mu_ = "standard";
+    is_solid_particle_ = false;
   }
 
   const Fluide_Incompressible& fluide_phase(int la_phase) const;
@@ -63,11 +65,14 @@ public:
   const Champ_Don_base& beta_t() const override  { return invalid_<const Champ_Don_base&>(__func__); }
   Champ_Don_base& beta_t() override { return invalid_<Champ_Don_base&>(__func__); }
 
+  const bool& get_is_solid_particle() const { return is_solid_particle_;}
+
 private:
   OWN_PTR(Milieu_base) phase0_, phase1_;
   OWN_PTR(Champ_Don_base) sigma_; // Tension de surface (J/m^2)
   OWN_PTR(Champ_Don_base) chaleur_latente_; // Enthalpie de changement de phase h(phase1_) - h(phase0_) (J/kg/K)
   Motcle formule_mu_; // Formule utilisee pour le calcul de la moyenne de mu
+  bool is_solid_particle_; // True if phase0_ or phase1_ is a Solid_Particle
 
   template <typename RETURN_TYPE>
   RETURN_TYPE invalid_(const char * nom_funct) const

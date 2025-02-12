@@ -739,6 +739,8 @@ void Navier_Stokes_FT_Disc::discretiser()
   variables_internes().vitesse_jump0_->associer_eqn(*this);
   champs_compris.add(variables_internes().vitesse_jump0_.valeur());
   champs_compris_.ajoute_champ(variables_internes().vitesse_jump0_);
+
+  set_is_solid_particle(fluide_diphasique().get_is_solid_particle());
 }
 
 /*! @brief Methode surchargee de Navier_Stokes_std, appelee par Navier_Stokes_std::discretiser().
@@ -926,6 +928,7 @@ const SolveurSys& Navier_Stokes_FT_Disc::get_solveur_pression() const
 {
   return solveur_pression_;
 }
+
 
 /*! @brief Calcul des forces de tension superficielles (F_sigma) et de la partie a rotationnel non nul de la gravite (G_rot) (si GRAVITE_GRAD_I) :
  *

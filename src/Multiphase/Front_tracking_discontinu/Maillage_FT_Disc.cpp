@@ -3725,8 +3725,7 @@ void Maillage_FT_Disc::deplacer_sommets(const ArrOfInt& liste_sommets_initiale,
   static DoubleTabFT deplacement_restant;
 
   //On reinitialise sommet_face_bord_  a -1 dans le cas des marqueurs (skip_facettes)
-  if (skip_facettes)
-    sommet_face_bord_ = -1;
+  if (get_is_solid_particle() || skip_facettes ) sommet_face_bord_ = -1; // for fpi module, facets at the wall should never be deleted
 
   liste_sommets = liste_sommets_initiale;
   {

@@ -36,7 +36,12 @@ Implemente_instanciable_sans_constructeur(Fluide_Diphasique, "Fluide_Diphasique"
 
 Sortie& Fluide_Diphasique::printOn(Sortie& os) const { return os; }
 
-Entree& Fluide_Diphasique::readOn(Entree& is) { return Milieu_base::readOn(is); }
+Entree& Fluide_Diphasique::readOn(Entree& is)
+{
+  Milieu_base::readOn(is);
+  if  ( sub_type(Solid_Particle, phase0_.valeur()) || sub_type(Solid_Particle, phase1_.valeur()) ) is_solid_particle_ = true; // useful for fpi module
+  return is;
+}
 
 void Fluide_Diphasique::set_param(Param& param)
 {

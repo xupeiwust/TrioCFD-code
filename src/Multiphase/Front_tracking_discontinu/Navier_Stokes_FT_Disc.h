@@ -68,6 +68,8 @@ public:
 
   const SolveurSys& get_solveur_pression() const;
 
+  void set_is_solid_particle(const bool& is_solid_particle) {is_solid_particle_=is_solid_particle;}
+  const bool& get_is_solid_particle() const {return is_solid_particle_;}
 protected:
   // Methode surchargee de Navier_Stokes_std :
   void discretiser_assembleur_pression() override;
@@ -92,6 +94,8 @@ protected:
   OWN_PTR(Champ_Don_base) champ_mu_;
   // Viscosite cinematique pour le calcul du pas de temps de diffusion
   OWN_PTR(Champ_Don_base) champ_nu_;
+
+  bool is_solid_particle_;  // for fpi module, pointer to Fluide_Diphasique::is_solid_particle_
 
 private:
   const Navier_Stokes_FT_Disc_interne& variables_internes() const;

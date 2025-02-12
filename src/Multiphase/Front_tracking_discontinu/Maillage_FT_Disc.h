@@ -220,6 +220,10 @@ public:
   double calcul_normale_3D(int num_facette, double norme[3]) const;
   virtual void   calculer_costheta_minmax(DoubleTab& costheta) const;
 
+
+  void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;} // for fpi module
+  const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
+
 protected:
   void pre_lissage_courbure(ArrOfDouble& store_courbure_sommets, const int niter) const;
   void correction_costheta(const double c, const int s0, const int facette,
@@ -301,6 +305,7 @@ protected:
 
   void construire_noeuds(IntTab& def_noeud,const DoubleTab& soms);
   void calculer_coord_noeuds(const IntTab& def_noeud,const DoubleTab& soms,IntTab& renum);
+
 
   OBS_PTR(Transport_Interfaces_FT_Disc) refequation_transport_;
   // Pour pouvoir utiliser le maillage_FT_IJK sans equation de transport, j'ajoute une ref
@@ -471,8 +476,9 @@ protected:
   int niter_pre_lissage_;
   enum enum_methode_calcul_courbure_contact_line_ { STANDARD=0, MIRROR=1, IMPROVED=2, none=3, WEIGHTED=4, HYSTERESIS=5 };
   int methode_calcul_courbure_contact_line_;
-  double weight_CL_; // Le poids de la CL
+  double weight_CL_;
 
+  bool is_solid_particle_; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
 
 };
 
