@@ -51,7 +51,7 @@ Read pb
             mu  Champ_Uniforme 1 0.00273556
             rho Champ_Uniforme 1 10.
         }
-        sigma           constant 0.1
+        sigma           Champ_Uniforme 1 0.1
         gravite Champ_Uniforme 3 0 0 -10.
     }
     hydraulique
@@ -70,6 +70,7 @@ Read pb
     }
     interf
     {
+	parcours_interface { Erreur_relative_maxi 1.e-9 }
         methode_transport vitesse_interpolee hydraulique
         conditions_initiales {
             fonction (0.01^2-(x-0.06)^2-(y-0.06)^2-(z-0.02)^2)
