@@ -144,8 +144,10 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
    * Popinet et.al 2018 (review surface tension calculation)
    * Au cas ou sigma = 0, on utilise (sigma + 1e-20)
    */
-  double ideal_length_factor = pb_ijk.get_remaillage_ft_ijk().get_facteur_longueur_ideale();
-  ideal_length_factor = (ideal_length_factor == -1) ? 1.7 : ideal_length_factor;
+  double ideal_length_factor = 1.7;
+
+  if (pb_ijk.has_interface())
+    ideal_length_factor = pb_ijk.get_remaillage_ft_ijk().get_facteur_longueur_ideale();
 
   double max_sigma = -1e10;
   /*if (!interfaces_.maillage_ft_ijk().Surfactant_facettes().get_disable_surfactant())

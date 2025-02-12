@@ -121,26 +121,6 @@ public :
 
   void update_thermal_properties();
 
-  const IJK_Thermals& get_ijk_thermals() const
-  {
-    if (has_interface_ && has_thermals_)
-      return ref_cast(IJK_Thermals, equations_[2].valeur());
-    else if (!has_interface_ && has_thermals_)
-      return ref_cast(IJK_Thermals, equations_[1].valeur());
-    else
-      throw;
-  }
-
-  IJK_Thermals& get_ijk_thermals()
-  {
-    if (has_interface_ && has_thermals_)
-      return ref_cast(IJK_Thermals, equations_[2].valeur());
-    else if (!has_interface_ && has_thermals_)
-      return ref_cast(IJK_Thermals, equations_[1].valeur());
-    else
-      throw;
-  }
-
   int get_thermal_probes_ghost_cells() const { return thermal_probes_ghost_cells_; }
 
   double t_debut_statistiques() const { return post_.t_debut_statistiques(); }
@@ -177,22 +157,46 @@ public :
     throw;
   }
 
-  const Navier_Stokes_FTD_IJK& eq_ns() const { return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
-  Navier_Stokes_FTD_IJK& eq_ns() { return  has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
-
-  bool has_interface() const { return has_interface_; }
   bool has_ns() const { return has_ns_; }
+  bool has_interface() const { return has_interface_; }
   bool has_thermals() const { return has_thermals_; }
 
-  const Maillage_FT_IJK& get_maillage_ft_ijk() const { return get_interface().maillage_ft_ijk(); }
-  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { return get_interface().remaillage_ft_ijk(); }
+  const Navier_Stokes_FTD_IJK& eq_ns() const { assert (has_ns_); return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
+  Navier_Stokes_FTD_IJK& eq_ns() { assert (has_ns_); return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
 
-  // TODO FIXME FAUT TESTER HAS_INTERFACE .. MAIS LA URGENT
-  IJK_Interfaces bidon_;
-  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) :bidon_ /* throw */; }
-  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : bidon_/* throw */ ; }
+  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : interface_to_remove_later_when_clean_; }
+  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : interface_to_remove_later_when_clean_; }
+
+//  const IJK_Interfaces& get_interface() const { assert (has_interface_);  return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
+//  IJK_Interfaces& get_interface() { assert (has_interface_); return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
+
+  const Maillage_FT_IJK& get_maillage_ft_ijk() const { assert (has_interface_); return has_interface_ ? get_interface().maillage_ft_ijk() : throw; }
+  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { assert (has_interface_); return has_interface_ ? get_interface().remaillage_ft_ijk() : throw; }
+
+  const IJK_Thermals& get_ijk_thermals() const
+  {
+    assert (has_thermals_);
+    if (has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[2].valeur());
+    else if (!has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[1].valeur());
+    else
+      throw;
+  }
+
+  IJK_Thermals& get_ijk_thermals()
+  {
+    assert (has_thermals_);
+    if (has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[2].valeur());
+    else if (!has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[1].valeur());
+    else
+      throw;
+  }
 
 protected:
+  IJK_Interfaces interface_to_remove_later_when_clean_; // TODO FIXME
   bool has_interface_ = false, has_ns_ = false, has_thermals_ = false;
   ArrOfDouble_with_ghost delta_z_local_;
   OBS_PTR(Domaine_IJK) domaine_ijk_;
