@@ -2503,7 +2503,7 @@ void IJK_Thermal_base::compute_dT_rustine(const double dE)
   const int nk = T_rust_.nk();
   const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
-  const IJK_Field_double indic = ref_ijk_ft_->get_interface().I();
+  const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
   double int_rhocpTrust = 0;
   for (int k = 0; k < nk; k++)
     for (int j = 0; j < nj; j++)

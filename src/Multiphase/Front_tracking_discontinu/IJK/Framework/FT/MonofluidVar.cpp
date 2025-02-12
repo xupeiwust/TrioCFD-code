@@ -48,7 +48,7 @@ double IJK_MonofluidVar::harmo(const double indic_l) const
   const double res = 1. / ( indic_l/liqu_val_ + (1.-indic_l)/vap_val_);
   return res;
 }
-double IJK_MonofluidVar::harmo(const IJK_Field_double indic_l, const int i, const int j, const int k) const
+double IJK_MonofluidVar::harmo(const IJK_Field_double& indic_l, const int i, const int j, const int k) const
 {
   const double res = harmo(indic_l(i,j,k));
   return res;

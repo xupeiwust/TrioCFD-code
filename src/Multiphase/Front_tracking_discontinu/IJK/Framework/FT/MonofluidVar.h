@@ -48,7 +48,7 @@ public :
   double operator()(const IJK_Field_double& indic_l, const int i, const int j, const int k) const ;
   void operator()(const IJK_Field_double& indic_l, IJK_Field_double& res) const;
   double harmo(const double indic_l) const ;
-  double harmo(const IJK_Field_double indic_l, const int i, const int j, const int k) const ;
+  double harmo(const IJK_Field_double& indic_l, const int i, const int j, const int k) const ;
   void harmo(const IJK_Field_double& indic_l, IJK_Field_double& res) const;
 
   ///////////////

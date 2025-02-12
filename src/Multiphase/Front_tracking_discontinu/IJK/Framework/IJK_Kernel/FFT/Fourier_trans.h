@@ -39,7 +39,6 @@ public:
   void postraiter(Nom&) const;
   void update(const IJK_Field_vector3_double& vitesse,
               const IJK_Field_double& pression,
-              //const IJK_Field_double &temperature,
               const IJK_Field_double& masse_vol,
               const IJK_Field_double& champ_mu);
 

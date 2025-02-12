@@ -374,7 +374,7 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
     }
 }
 
-static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
+static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next_time, int phase, const IJK_Field_double& field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int skip_unknown_points, double value_for_bad_points, int& status)
 {
   if (Process::me() > 0)
     {
@@ -836,13 +836,13 @@ void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_cell_FT_Disc&
   ijk_interpolate_cut_cell_implementation(next_time, phase, cut_cell_disc, coordinates, signed_independent_index, coefficient, 0 /* skip unknown points=no */, 0.);
 }
 
-double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double& field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 1, value_for_bad_points, status);
   return interpolated_value;
 }
 
-double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status)
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double& field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status)
 {
   double interpolated_value = ijk_interpolate_cut_cell_using_interface_for_given_index(next_time, phase, field_ft, field, interfacial_temperature, coordinates, tolerate_not_within_tetrahedron, 0, 0., status);
   return interpolated_value;

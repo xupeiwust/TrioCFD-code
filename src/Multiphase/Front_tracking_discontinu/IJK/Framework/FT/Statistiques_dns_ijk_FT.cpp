@@ -1056,23 +1056,6 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     compute_vecA_minus_vecB_in_vecA(force_interfaces, repulsion_interfaces);
 
-  /*
-  IJK_Field_double& force_interfaces_i = force_interfaces[0];
-  force_interfaces[0] -= repulsion_interfaces[0];
-  IJK_Field_double& force_interfaces_j = force_interfaces[1];
-  force_interfaces[1] -= repulsion_interfaces[1];
-  IJK_Field_double& force_interfaces_k = force_interfaces[2];
-  force_interfaces[2] -= repulsion_interfaces[2];
-  */
-
-  // Calcule le travail de la force sigma*courbure avec la vitesse.
-  // vitesse et force sont aux faces
-  // ON VA PLUTOT UTILISER LA BOUCLE D'EN DESSOUS ( c'est plus performant de faire comme ca ?)
-  // - const IJK_Field_double field_power_Finterf_velocity = compute_and_store_scalar_product(
-  // -     vitesse_i, vitesse_j, vitesse_k,
-  // -     force_interface_i,force_interface_j,force_interface_k)
-
-  // ---
 
   // Calcul le gradient de U aux cellules a partir de la vitesse aux faces :
   compute_and_store_gradU_cell(vitesse_i, vitesse_j, vitesse_k,

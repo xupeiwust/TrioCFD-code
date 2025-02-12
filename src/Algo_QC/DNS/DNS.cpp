@@ -8188,46 +8188,6 @@ static void force_zero_normal_velocity_on_walls(IJK_Field_double& vz)
     }
 }
 
-// // Attention, il faut 1 epaisseur de joint valide sur rho
-// static void calculer_v_et_rhov_moyen(const IJK_Field_double & vx, const IJK_Field_double & rho, const ArrOfDouble_with_ghost & delta_z, const double volume_total, double & v_moy, double & rho_v_moy)
-// {
-//   const int ni = vx.ni();
-//   const int nj = vx.nj();
-//   const int nk = vx.nk();
-//   const double dx = vx.get_domaine().get_constant_delta(DIRECTION_I);
-//   const double dy = vx.get_domaine().get_constant_delta(DIRECTION_J);
-//
-//   v_moy = 0.;
-//   rho_v_moy = 0.;
-//
-//   // Ponderation par le volume des mailles pour traiter le cas ou le maillage est irregulier en k
-//   for (int k = 0; k < nk; k++) {
-//     double somme_v = 0.;
-//     double somme_rhov = 0;
-//     for (int j = 0; j < nj; j++) {
-//       for (int i = 0; i < ni; i++) {
-//      double v = vx(i,j,k);
-//      double rhov = v * (rho(i-1,j,k) + rho(i,j,k)) * 0.5; // rho moyen sur la face
-//      somme_v += v;
-//      somme_rhov += rhov;
-//       }
-//     }
-//     // volume d'une maille de ce plan
-//     double volume = dx * dy * delta_z[k];
-//     v_moy += volume * somme_v;
-//     rho_v_moy += volume * somme_rhov;
-//   }
-//   // somme sur tous les processeurs. On regroupe toutes les communications en un seul appel:
-//   ArrOfDouble tmp(2);
-//   tmp[0] = v_moy;
-//   tmp[1] = rho_v_moy;
-//   mp_sum_for_each_item(tmp);
-//
-//   v_moy = tmp[0] / volume_total;
-//   rho_v_moy = tmp[1] / volume_total;
-// }
-
-
 static double calculer_dtstab_diffusion_temperature_local(const IJK_Field_double& lambda,
                                                           const IJK_Field_double& rho,
                                                           const double cp_gaz)

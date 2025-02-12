@@ -1173,10 +1173,8 @@ void Statistiques_dns_ijk::update_stat(const IJK_Field_vector3_double& vitesse,
 
 void Statistiques_dns_ijk::update_stat_k(const IJK_Field_vector3_double& vitesse,
                                          const IJK_Field_double& pression,
-                                         //const IJK_Field_double &temperature,
                                          const IJK_Field_double& masse_vol,
                                          const IJK_Field_double& champ_mu,
-                                         //const IJK_Field_double &champ_lambda,
                                          const double pression_thermodynamique,
                                          const double terme_source_acceleration,
                                          double dt)

@@ -549,7 +549,6 @@ void Fourier_trans::initialize(const Domaine_IJK& split_origine,const Domaine_IJ
 
 void Fourier_trans::update(const IJK_Field_vector3_double& vitesse_ori,
                            const IJK_Field_double& pression_ori,
-                           //const IJK_Field_double &temperature,
                            const IJK_Field_double& masse_vol_ori,
                            const IJK_Field_double& champ_mu_ori)
 {

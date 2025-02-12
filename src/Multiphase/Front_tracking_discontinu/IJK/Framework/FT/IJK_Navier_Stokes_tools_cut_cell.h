@@ -25,9 +25,9 @@ void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, con
 void ijk_interpolate_cut_cell(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient);
 void ijk_interpolate_cut_cell_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const DoubleTab& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points);
 
-double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status);
+double ijk_interpolate_cut_cell_using_interface(bool next_time, int phase, const IJK_Field_double& field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, int& status);
 
-double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
+double ijk_interpolate_cut_cell_using_interface_skip_unknown_points(bool next_time, int phase, const IJK_Field_double& field_ft, const Cut_field_double& field, const ArrOfDouble& interfacial_temperature, const Vecteur3& coordinates, int tolerate_not_within_tetrahedron, const double value_for_bad_points, int& status);
 
 void ijk_interpolate(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient);
 void ijk_interpolate_skip_unknown_points(bool next_time, int phase, const Cut_cell_FT_Disc& cut_cell_disc, const Vecteur3& coordinates, IntTabFT& signed_independent_index, DoubleTabFT& coefficient, const double value_for_bad_points);
