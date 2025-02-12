@@ -40,6 +40,7 @@
 #include <IJK_FT_Post.h>
 #include <IJK_Ghost_Fluid_Fields.h>
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
+#include <Fluide_Diphasique_IJK.h>
 
 
 class Probleme_FTD_IJK_base;
@@ -55,6 +56,12 @@ public:
   /*
    * Initialisation
    */
+  const Milieu_base& milieu() const;
+  Milieu_base& milieu();
+  void associer_milieu_base(const Milieu_base&);
+  inline Fluide_Diphasique_IJK& milieu_ijk() { return ref_cast(Fluide_Diphasique_IJK, milieu()); }
+  inline const Fluide_Diphasique_IJK& milieu_ijk() const { return ref_cast(Fluide_Diphasique_IJK, milieu()); }
+
   virtual void set_param(Param& param);
   virtual int initialize(const Domaine_IJK& splitting, const int idx);
   virtual int initialize_switch(const Domaine_IJK& splitting, const int idx);
@@ -473,7 +480,7 @@ public:
   static void typer_lire_thermal_equation(OWN_PTR(IJK_Thermal_base)&, Entree&);
 
 protected:
-
+  OBS_PTR(Milieu_base) le_fluide_;
   int thermal_rank_ = 0;
   Nom thermal_problem_type_ = "subresolution";
   Motcles thermal_words_, lata_suffix_;
@@ -580,10 +587,7 @@ protected:
    */
   double dt_fo_ = 1.e20;
   double fo_ = 1.; // Fourier number
-  double cp_liquid_ = 1.;
-  double cp_vapour_ = 0.;
-  double lambda_liquid_ = 1.;
-  double lambda_vapour_ = 0.;
+  double cp_liquid_ = -123., cp_vapour_ = -123., lambda_liquid_ = -123., lambda_vapour_ = -123.;
   int single_phase_ = 1.;
   double uniform_lambda_ = 0.;
   double uniform_alpha_ = 0.;

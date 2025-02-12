@@ -153,10 +153,6 @@ void IJK_Thermal_base::set_fichier_reprise(const char *lataname)
 void IJK_Thermal_base::set_param(Param& param)
 {
   param.ajouter("fo", &fo_); // X_D_ADD_P floattant not_set
-  param.ajouter("cp_liquid", &cp_liquid_, Param::REQUIRED); // X_D_ADD_P floattant Liquid specific heat at constant pressure
-  param.ajouter("lambda_liquid", &lambda_liquid_, Param::REQUIRED); // X_D_ADD_P floattant Liquid thermal conductivity
-  param.ajouter("cp_vapour", &cp_vapour_); // X_D_ADD_P floattant Liquid specific heat at constant pressure
-  param.ajouter("lambda_vapour", &lambda_vapour_); // X_D_ADD_P floattant Liquid thermal conductivity
   param.ajouter("expression_T_init", &expression_T_init_); // X_D_ADD_P chaine Expression of initial temperature (parser of x,y,z)
   param.ajouter("boundary_conditions", &boundary_conditions_, Param::REQUIRED); // X_D_ADD_P bloc_lecture boundary conditions
   param.ajouter("type_T_source", &type_T_source_); // X_D_ADD_P chaine(into=["dabiri","patch_dabiri","unweighted_dabiri"]) source term
@@ -208,6 +204,46 @@ void IJK_Thermal_base::set_param(Param& param)
 /********************************************
  * Public methods
  ********************************************/
+
+const Milieu_base& IJK_Thermal_base::milieu() const
+{
+  if (le_fluide_.est_nul())
+    {
+      Cerr << "You forgot to associate a fluid to the problem named " << ref_ijk_ft_->le_nom() << finl;
+      Process::exit();
+    }
+  return le_fluide_.valeur();
+}
+
+Milieu_base& IJK_Thermal_base::milieu()
+{
+  if (le_fluide_.est_nul())
+    {
+      Cerr << "You forgot to associate a fluid to the equation named " << ref_ijk_ft_->le_nom() << finl;
+      Process::exit();
+    }
+  return le_fluide_.valeur();
+}
+
+void IJK_Thermal_base::associer_milieu_base(const Milieu_base& un_milieu)
+{
+  if (sub_type(Fluide_Diphasique_IJK, un_milieu))
+    {
+      const Milieu_base& un_fluide = ref_cast(Milieu_base, un_milieu);
+      le_fluide_ = un_fluide;
+    }
+  else
+    {
+      Cerr << "Error of fluid type for the method IJK_Thermal_base::associer_milieu_base" << finl;
+      Process::exit();
+    }
+
+  const Fluide_Diphasique_IJK& mil = milieu_ijk() ;
+  cp_liquid_ = mil.get_cp_liquid(rang_);
+  cp_vapour_ = mil.get_cp_vapour(rang_);
+  lambda_liquid_ =mil.get_lambda_liquid(rang_);;
+  lambda_vapour_ = mil.get_lambda_vapour(rang_);;
+}
 
 void IJK_Thermal_base::post_process_std_thermal_field(const Motcles& liste_post_instantanes,
                                                       const char *lata_name,
@@ -740,14 +776,6 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
   os<< "    } \n" ;
 
   /*
-   * Physical parameters
-   */
-  os << front_space << "lambda_liquid" << end_space << lambda_liquid_ << escape;
-  os << front_space << "lambda_vapour" << end_space << lambda_vapour_ << escape;
-  os << front_space << "cp_liquid" << end_space << cp_liquid_ << escape;
-  os << front_space << "cp_vapour" << end_space << cp_vapour_ << escape;
-
-  /*
    * Source term
    */
   if (type_T_source_!="??")
@@ -942,6 +970,7 @@ const IJK_Field_int& IJK_Thermal_base::get_eulerian_compo_connex_int_from_interf
 
 void IJK_Thermal_base::update_thermal_properties()
 {
+
   if (single_phase_)
     cp_vapour_ = 0.;
 

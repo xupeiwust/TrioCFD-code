@@ -26,31 +26,67 @@ public:
   /*
    * ATTENTION : phase0_ => VAPEUR, phase1_ => LIQUIDE
    */
+
+  /*
+   * mu
+   */
   double get_mu_liquid() const
   {
     return ref_cast(Fluide_Incompressible, phase1_.valeur()).viscosite_dynamique().valeurs()(0,0);
   }
-
   double get_mu_vapour() const
   {
     return ref_cast(Fluide_Incompressible, phase0_.valeur()).viscosite_dynamique().valeurs()(0,0);;
   }
 
+  /*
+   * rho
+   */
   double get_delta_rho() const
   {
     /* rho_l - rho_v */
     return (ref_cast(Fluide_Incompressible, phase1_.valeur()).masse_volumique().valeurs()(0,0) -
             ref_cast(Fluide_Incompressible, phase0_.valeur()).masse_volumique().valeurs()(0,0));
   }
-
   double get_rho_liquid() const
   {
     return ref_cast(Fluide_Incompressible, phase1_.valeur()).masse_volumique().valeurs()(0,0);
   }
-
   double get_rho_vapour() const
   {
     return ref_cast(Fluide_Incompressible, phase0_.valeur()).masse_volumique().valeurs()(0,0);
+  }
+
+  /*
+   * cp
+   */
+  double get_cp_liquid(int i) const
+  {
+    return ref_cast(Fluide_Incompressible, phase1_.valeur()).capacite_calorifique().valeurs()(0,i);
+  }
+  double get_cp_vapour(int i) const
+  {
+    return ref_cast(Fluide_Incompressible, phase0_.valeur()).capacite_calorifique().valeurs()(0,i);
+  }
+  double& get_set_cp_vapour(int i)
+  {
+    return ref_cast(Fluide_Incompressible, phase0_.valeur()).capacite_calorifique().valeurs()(0,i);
+  }
+
+  /*
+   * lambda
+   */
+  double get_lambda_liquid(int i) const
+  {
+    return ref_cast(Fluide_Incompressible, phase1_.valeur()).conductivite().valeurs()(0,i);
+  }
+  double get_lambda_vapour(int i) const
+  {
+    return ref_cast(Fluide_Incompressible, phase0_.valeur()).conductivite().valeurs()(0,i);
+  }
+  double& get_set_lambda_vapour(int i)
+  {
+    return ref_cast(Fluide_Incompressible, phase0_.valeur()).conductivite().valeurs()(0,i);
   }
 
   double get_gravite_norm() const;

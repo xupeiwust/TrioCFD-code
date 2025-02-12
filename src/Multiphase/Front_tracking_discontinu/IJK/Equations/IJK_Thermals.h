@@ -23,7 +23,6 @@
 #define IJK_Thermals_included
 
 #include <IJK_Thermal_base.h>
-#include <TRUSTList.h>
 #include <TRUST_List.h>
 #include <System.h>
 
@@ -45,14 +44,19 @@ public :
   void associer_pb_base(const Probleme_base&) override;
   void discretiser() override { /* Do nothing */ }
   int preparer_calcul() override { return 1; }
-  const Milieu_base& milieu() const override { throw; }
-  Milieu_base& milieu() override { throw; }
-  void associer_milieu_base(const Milieu_base& ) override { /* Do nothing */ }
+  const Milieu_base& milieu() const override;
+  Milieu_base& milieu() override;
+  void associer_milieu_base(const Milieu_base& ) override ;
   int nombre_d_operateurs() const override { return -123; }
   const Operateur& operateur(int) const override { throw; }
   Operateur& operateur(int) override { throw; }
   const Champ_Inc_base& inconnue() const override { throw; }
   Champ_Inc_base& inconnue() override { throw; }
+
+  void verifie_milieu();
+
+  inline Fluide_Diphasique_IJK& milieu_ijk() { return ref_cast(Fluide_Diphasique_IJK, milieu()); }
+  inline const Fluide_Diphasique_IJK& milieu_ijk() const { return ref_cast(Fluide_Diphasique_IJK, milieu()); }
 
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise();
@@ -138,6 +142,7 @@ public :
 protected :
   // All Done here !!
   LIST(OWN_PTR(IJK_Thermal_base)) liste_thermique_;
+  OBS_PTR(Milieu_base) le_fluide_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;

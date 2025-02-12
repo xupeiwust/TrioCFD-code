@@ -73,6 +73,73 @@ const Nom& IJK_Thermals::get_fichier_reprise()
   return liste_thermique_[0]->get_fichier_reprise();
 }
 
+const Milieu_base& IJK_Thermals::milieu() const
+{
+  if (le_fluide_.est_nul())
+    {
+      Cerr << "You forgot to associate a fluid to the problem named " << probleme().le_nom() << finl;
+      Process::exit();
+    }
+  return le_fluide_.valeur();
+}
+
+Milieu_base& IJK_Thermals::milieu()
+{
+  if (le_fluide_.est_nul())
+    {
+      Cerr << "You forgot to associate a fluid to the problem named " << probleme().le_nom() << finl;
+      Process::exit();
+    }
+  return le_fluide_.valeur();
+}
+
+void IJK_Thermals::verifie_milieu()
+{
+  const Fluide_Diphasique_IJK& mil = milieu_ijk();
+  if (!mil.fluide_phase(0).has_capacite_calorifique() || !mil.fluide_phase(0).has_conductivite() ||
+      !mil.fluide_phase(1).has_capacite_calorifique() || !mil.fluide_phase(1).has_conductivite())
+    {
+      Cerr << "Error in IJK_Thermals::verifie_milieu() !! " << finl;
+      Cerr << "You forgot to define the cp and/or fields in your Fluide_Diphasique_IJK medium ! Update your data file." << finl;
+      Process::exit();
+    }
+
+  const int nb_cp0 = mil.fluide_phase(0).capacite_calorifique().valeurs().size(),
+            nb_lamb0 = mil.fluide_phase(0).conductivite().valeurs().size(),
+            nb_cp1 = mil.fluide_phase(1).capacite_calorifique().valeurs().size(),
+            nb_lamb1 = mil.fluide_phase(1).conductivite().valeurs().size();
+
+  if (nb_cp0 != liste_thermique_.size() || nb_lamb0 != nb_cp0 || nb_cp1 != nb_cp0 || nb_lamb1 != nb_cp0)
+    {
+      Cerr << "Error in IJK_Thermals::verifie_milieu() !! " << finl;
+      Cerr << "You define " << liste_thermique_.size() << " thermal equations in your list which is not coherent with the medium :"<< finl;
+      Cerr << "       - Size cp vapour field = " << nb_cp0 << finl;
+      Cerr << "       - Size cp liquid field = " << nb_cp1 << finl;
+      Cerr << "       - Size lambda vapour field = " << nb_lamb0 << finl;
+      Cerr << "       - Size lambda liquid field = " << nb_lamb1 << finl;
+      Process::exit();
+    }
+}
+
+void IJK_Thermals::associer_milieu_base(const Milieu_base& un_milieu)
+{
+  if (sub_type(Fluide_Diphasique_IJK, un_milieu))
+    {
+      const Milieu_base& un_fluide = ref_cast(Milieu_base, un_milieu);
+      le_fluide_ = un_fluide;
+    }
+  else
+    {
+      Cerr << "Error of fluid type for the method IJK_Thermals::associer_milieu_base" << finl;
+      Process::exit();
+    }
+
+  verifie_milieu();
+
+  for (auto& itr : liste_thermique_)
+    itr->associer_milieu_base(un_milieu);
+}
+
 void IJK_Thermals::associer_pb_base(const Probleme_base& pb)
 {
   if (!sub_type(Probleme_FTD_IJK_base, pb))

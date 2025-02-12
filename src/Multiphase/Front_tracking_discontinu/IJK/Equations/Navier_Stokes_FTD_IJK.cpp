@@ -206,22 +206,22 @@ void Navier_Stokes_FTD_IJK::associer_pb_base(const Probleme_base& pb)
 
 const Milieu_base& Navier_Stokes_FTD_IJK::milieu() const
 {
-  if (le_fluide.est_nul())
+  if (le_fluide_.est_nul())
     {
       Cerr << "You forgot to associate a fluid to the problem named " << probleme().le_nom() << finl;
       Process::exit();
     }
-  return le_fluide.valeur();
+  return le_fluide_.valeur();
 }
 
 Milieu_base& Navier_Stokes_FTD_IJK::milieu()
 {
-  if (le_fluide.est_nul())
+  if (le_fluide_.est_nul())
     {
       Cerr << "You forgot to associate a fluid to the problem named " << probleme().le_nom() << finl;
       Process::exit();
     }
-  return le_fluide.valeur();
+  return le_fluide_.valeur();
 }
 
 void Navier_Stokes_FTD_IJK::associer_milieu_base(const Milieu_base& un_milieu)
@@ -229,7 +229,7 @@ void Navier_Stokes_FTD_IJK::associer_milieu_base(const Milieu_base& un_milieu)
   if (sub_type(Fluide_Diphasique_IJK, un_milieu))
     {
       const Milieu_base& un_fluide = ref_cast(Milieu_base, un_milieu);
-      le_fluide = un_fluide;
+      le_fluide_ = un_fluide;
     }
   else
     {
