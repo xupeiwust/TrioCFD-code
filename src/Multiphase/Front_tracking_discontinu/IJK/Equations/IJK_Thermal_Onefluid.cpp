@@ -136,7 +136,7 @@ int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx
 void IJK_Thermal_Onefluid::update_thermal_properties()
 {
   IJK_Thermal_base::update_thermal_properties();
-  const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
+  const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
   // Nombre de mailles du domaine NS :
   const int nx = indic.ni();
   const int ny = indic.nj();

@@ -708,10 +708,10 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   corrige_flux_->initialize_with_subproblems(
     ref_ijk_ft_->get_domaine(),
     *temperature_,
-    ref_ijk_ft_->itfce(),
+    ref_ijk_ft_->get_interface(),
     ref_ijk_ft_,
-    ref_ijk_ft_->get_set_interface().get_set_intersection_ijk_face(),
-    ref_ijk_ft_->get_set_interface().get_set_intersection_ijk_cell(),
+    ref_ijk_ft_->get_interface().get_set_intersection_ijk_face(),
+    ref_ijk_ft_->get_interface().get_set_intersection_ijk_cell(),
     thermal_local_subproblems_);
   corrige_flux_->set_convection_negligible(!convective_flux_correction_);
   corrige_flux_->set_diffusion_negligible(!diffusive_flux_correction_);
@@ -948,14 +948,14 @@ void IJK_Thermal_Subresolution::compute_temperature_init()
                 }
               if (debug_)
                 Cerr << "Time ini: " << time_ini << finl;
-              const int nb_bubble_tot = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
-              const int nb_bubbles_real = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+              const int nb_bubble_tot = ref_ijk_ft_->get_interface().get_ijk_compo_connex().get_bubbles_barycentre().dimension(0);
+              const int nb_bubbles_real = ref_ijk_ft_->get_interface().get_nb_bulles_reelles();
               for (int index_bubble=0; index_bubble<nb_bubble_tot; index_bubble++)
                 {
                   int index_bubble_real = index_bubble;
                   if (index_bubble>=nb_bubbles_real)
                     {
-                      const int ighost = ref_ijk_ft_->itfce().ghost_compo_converter(index_bubble-nb_bubbles_real);
+                      const int ighost = ref_ijk_ft_->get_interface().ghost_compo_converter(index_bubble-nb_bubbles_real);
                       index_bubble_real = decoder_numero_bulle(-ighost);
                     }
                   Nom expression_T_ini = compute_quasi_static_spherical_diffusion_expression(time_ini, index_bubble, index_bubble_real);
@@ -984,7 +984,7 @@ Nom IJK_Thermal_Subresolution::compute_quasi_static_spherical_diffusion_expressi
 
   if (computed_centred_bubble_start_)
     {
-      const DoubleTab& bubbles_centres = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bubbles_barycentre();
+      const DoubleTab& bubbles_centres = ref_ijk_ft_->get_interface().get_ijk_compo_connex().get_bubbles_barycentre();
       double x,y,z;
       x = bubbles_centres(index_bubble,0);
       y = bubbles_centres(index_bubble,1);
@@ -1021,7 +1021,7 @@ void IJK_Thermal_Subresolution::set_field_temperature_per_bubble(const int index
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I()(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I()(i,j,k);
           if (indic > VAPOUR_INDICATOR_TEST)
             {
               if (sign_delta)
@@ -1388,7 +1388,7 @@ void IJK_Thermal_Subresolution::correct_any_temperature_fields_for_eulerian_flux
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           if (fabs(indic) < LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
             temperature(i,j,k) = 0.;
         }
@@ -1414,7 +1414,7 @@ void IJK_Thermal_Subresolution::store_temperature_before_extrapolation()
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           if (fabs(indic) > VAPOUR_INDICATOR_TEST)
             {
               if (ref_ijk_ft_->schema_temps_ijk().get_current_time() == 0 && !ref_ijk_ft_->get_reprise())
@@ -1446,7 +1446,7 @@ void IJK_Thermal_Subresolution::correct_temperature_increment_for_interface_leav
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+              const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
               if (fabs(indic)<LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                 { d_temperature(i,j,k) = 0; }
             }
@@ -1483,7 +1483,7 @@ void IJK_Thermal_Subresolution::evaluate_total_liquid_absolute_parameter(const I
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           liquid_volume += (vol_ * indic);
           total_parameter += abs(field(i,j,k)) * (vol_ * indic);
         }
@@ -1504,7 +1504,7 @@ void IJK_Thermal_Subresolution::evaluate_total_liquid_parameter_squared(const IJ
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           liquid_volume += (vol_ * indic);
           total_parameter += pow(field(i,j,k) * (vol_ * indic), 2);
         }
@@ -1522,7 +1522,7 @@ void IJK_Thermal_Subresolution::correct_any_temperature_field_for_visu(IJK_Field
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           // if (temperature > 0)
           if (indic < VAPOUR_INDICATOR_TEST)
             temperature(i,j,k) = 0;
@@ -1594,7 +1594,7 @@ void IJK_Thermal_Subresolution::clip_max_temperature_values()
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+              const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
               // Work only with bubble at zero, temperature liquid negative
               if ((temperature(i,j,k) + clip_threshold) > 0 && indic > LIQUID_INDICATOR_TEST)
                 temperature(i,j,k) = 0;
@@ -1616,7 +1616,7 @@ void IJK_Thermal_Subresolution::compute_mean_liquid_temperature()
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+          const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
           if (indic > VAPOUR_INDICATOR_TEST)
             {
               vol_liq += (indic * vol_);
@@ -1854,7 +1854,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
     {
       if (fluxes_correction_conservations_)
         zero_liquid_neighbours_.data() = 0.;
-      const IJK_Field_double& indicator = ref_ijk_ft_->itfce().I();
+      const IJK_Field_double& indicator = ref_ijk_ft_->get_interface().I();
       const int ni = temperature_->ni();
       const int nj = temperature_->nj();
       const int nk = temperature_->nk();
@@ -1867,7 +1867,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
                 if (debug_)
                   {
                     Cerr << "Liquid Indicator (Old): " << indicator(i,j,k) << finl;
-                    Cerr << "Liquid Indicator (Next): " << ref_ijk_ft_->itfce().In()(i,j,k) << finl;
+                    Cerr << "Liquid Indicator (Next): " << ref_ijk_ft_->get_interface().In()(i,j,k) << finl;
                     debug_LRS_cells_(i,j,k) = indicator(i,j,k);
                   }
                 thermal_local_subproblems_.associate_sub_problem_to_inputs((*this),
@@ -1875,7 +1875,7 @@ void IJK_Thermal_Subresolution::initialise_thermal_subproblems()
                                                                            indicator(i,j,k),
                                                                            ref_ijk_ft_->schema_temps_ijk().get_timestep(),
                                                                            ref_ijk_ft_->schema_temps_ijk().get_current_time(),
-                                                                           ref_ijk_ft_->itfce(),
+                                                                           ref_ijk_ft_->get_interface(),
                                                                            ref_ijk_ft_->eq_ns().get_velocity(),
                                                                            ref_ijk_ft_->eq_ns().get_velocity_ft(),
                                                                            ref_ijk_ft_->eq_ns().get_pressure_ghost_cells());
@@ -2647,7 +2647,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
           for (j = 0; j < nj; j++)
             for (i = 0; i < ni; i++)
               {
-                const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+                const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                   { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
@@ -2656,7 +2656,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
           for (k = 0; k < nk; k++)
             for (i = 0; i < ni; i++)
               {
-                const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+                const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                   { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
@@ -2665,7 +2665,7 @@ void IJK_Thermal_Subresolution::enforce_periodic_temperature_boundary_value()
           for (k = 0; k < nk; k++)
             for (j = 0; j < nj; j++)
               {
-                const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+                const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
                 if (fabs(indic)>LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                   { temperature(i,j,k) = delta_T_subcooled_overheated_; }
               }
@@ -2685,7 +2685,7 @@ void IJK_Thermal_Subresolution::correct_operators_for_visu()
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+              const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
               if (fabs(indic)<LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                 { div_coeff_grad_T_volume(i,j,k) = 0; }
             }
@@ -2699,7 +2699,7 @@ void IJK_Thermal_Subresolution::correct_operators_for_visu()
         for (int j = 0; j < nj; j++)
           for (int i = 0; i < ni; i++)
             {
-              const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+              const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
               if (fabs(indic)<LIQUID_INDICATOR_TEST) // Mixed cells and pure vapour cells
                 { u_T_convective_volume_(i,j,k) = 0; }
             }
@@ -2806,7 +2806,7 @@ void IJK_Thermal_Subresolution::compare_fluxes_thermal_subproblems()
 
 void IJK_Thermal_Subresolution::post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder)
 {
-  const int nb_real_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+  const int nb_real_bubbles = ref_ijk_ft_->get_interface().get_nb_bulles_reelles();
   if (post_process_thermal_lines_ && nb_real_bubbles==1)
     {
       int line_dir = ref_ijk_ft_->milieu_ijk().get_direction_gravite();
@@ -3039,10 +3039,10 @@ void IJK_Thermal_Subresolution::initialise_thermal_line_points(const int& line_d
 {
   const Domaine_IJK& geom = temperature_->get_domaine();
   bool perio =  geom.get_periodic_flag(line_dir);
-  assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
+  assert(ref_ijk_ft_->get_interface().get_nb_bulles_reelles() == 1);
 
   DoubleTab bounding_box;
-  bounding_box = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bounding_box();
+  bounding_box = ref_ijk_ft_->get_interface().get_ijk_compo_connex().get_bounding_box();
   const double Dbdir = bounding_box(0, line_dir, 1) - bounding_box(0, line_dir, 0);
   const double dirb  = (*bubbles_barycentre_)(0, line_dir);
   const double ldir = geom.get_domain_length(line_dir);
@@ -3546,7 +3546,7 @@ void IJK_Thermal_Subresolution::post_processed_fields_on_downstream_line(const N
 
 void IJK_Thermal_Subresolution::post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder)
 {
-  const int nb_real_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+  const int nb_real_bubbles = ref_ijk_ft_->get_interface().get_nb_bulles_reelles();
   if (post_process_thermal_slices_ && nb_real_bubbles==1)
     {
       ArrOfDouble nb_diam_slices;
@@ -3729,9 +3729,9 @@ double IJK_Thermal_Subresolution::post_process_thermal_wake_slice_index_dir(int&
   // thermal_slice.allocate(n_cross_section_1, n_cross_section_2, 1, 0);
 
   bool perio =  geom.get_periodic_flag(dir);
-  assert(ref_ijk_ft_->itfce().get_nb_bulles_reelles() == 1);
+  assert(ref_ijk_ft_->get_interface().get_nb_bulles_reelles() == 1);
   DoubleTab bounding_box;
-  bounding_box = ref_ijk_ft_->itfce().get_ijk_compo_connex().get_bounding_box();
+  bounding_box = ref_ijk_ft_->get_interface().get_ijk_compo_connex().get_bounding_box();
   const double Dbdir = bounding_box(0, dir, 1) - bounding_box(0, dir, 0);
   const double dirb  = (*bubbles_barycentre_)(0, dir);
   const double ldir = geom.get_domain_length(dir) ;

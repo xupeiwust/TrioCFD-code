@@ -96,7 +96,7 @@ bool Corrige_flux_FT_base::test_if_stencil_inclut_bout_interface_liquide() const
   for (int c = 0; c < 3; c++)
     {
       const auto c_elem = parcours_.elem(c + decal);
-      stencil_inclut_interface *= ref_ijk_ft_->itfce().I(
+      stencil_inclut_interface *= ref_ijk_ft_->get_interface().I(
                                     c_elem[0],
                                     c_elem[1],
                                     c_elem[2]);
@@ -121,7 +121,7 @@ bool Corrige_flux_FT_base::test_if_stencil_inclut_bout_interface_vapeur() const
     {
       const auto c_elem = parcours_.elem(c + decal);
       stencil_inclut_interface *=  (
-                                     1. - ref_ijk_ft_->itfce().I(
+                                     1. - ref_ijk_ft_->get_interface().I(
                                        c_elem[0],
                                        c_elem[1],
                                        c_elem[2]));

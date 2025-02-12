@@ -239,7 +239,7 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
 void IJK_Thermal_cut_cell::update_thermal_properties()
 {
   //IJK_Thermal_base::update_thermal_properties();
-  const IJK_Field_double& indic = ref_ijk_ft_cut_cell_->itfce().I();
+  const IJK_Field_double& indic = ref_ijk_ft_cut_cell_->get_interface().I();
   // Nombre de mailles du domaine NS :
   const int nx = indic.ni();
   const int ny = indic.nj();
@@ -270,7 +270,7 @@ void IJK_Thermal_cut_cell::compute_temperature_init()
   else
     {
       Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
-      cut_field_temperature.set_field_data(expression_T_init_, ref_ijk_ft_->itfce().I(), 0.);
+      cut_field_temperature.set_field_data(expression_T_init_, ref_ijk_ft_->get_interface().I(), 0.);
     }
 }
 
@@ -285,7 +285,7 @@ void IJK_Thermal_cut_cell::recompute_temperature_init()
   else
     {
       Cout << "Temperature initialization from expression \nTini = " << expression_T_init_ << finl;
-      cut_field_temperature.set_field_data(expression_T_init_, ref_ijk_ft_->itfce().In(), 0.);
+      cut_field_temperature.set_field_data(expression_T_init_, ref_ijk_ft_->get_interface().In(), 0.);
     }
 }
 
@@ -758,7 +758,7 @@ void IJK_Thermal_cut_cell::lire_temperature(const Domaine_IJK& geom, int idx)
 void IJK_Thermal_cut_cell::compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,
                                                             ArrOfDouble& flux_normal_interp)
 {
-  const int nb_facettes = ref_ijk_ft_->itfce().maillage_ft_ijk().nb_facettes();
+  const int nb_facettes = ref_ijk_ft_->get_interface().maillage_ft_ijk().nb_facettes();
   interfacial_temperature.resize_array(nb_facettes);
   flux_normal_interp.resize_array(nb_facettes);
 
@@ -766,8 +766,8 @@ void IJK_Thermal_cut_cell::compute_interfacial_temperature2(ArrOfDouble& interfa
   // Mise-a-jour des tableaux pour cette eventualite :
   interfacial_temperature_.resize(nb_facettes);
   interfacial_phin_ai_.resize(nb_facettes);
-  ref_ijk_ft_->itfce().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_temperature_);
-  ref_ijk_ft_->itfce().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_phin_ai_);
+  ref_ijk_ft_->get_interface().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_temperature_);
+  ref_ijk_ft_->get_interface().maillage_ft_ijk().desc_facettes().echange_espace_virtuel(interfacial_phin_ai_);
 
   int dimension_temp = interfacial_temperature_.dimension(0);
   assert(interfacial_phin_ai_.dimension(0) == dimension_temp);

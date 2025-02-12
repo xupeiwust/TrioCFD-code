@@ -121,8 +121,25 @@ public :
 
   void update_thermal_properties();
 
-  const IJK_Thermals& get_ijk_thermals() const { return thermals_; }
-  IJK_Thermals& get_ijk_thermals() { return thermals_; }
+  const IJK_Thermals& get_ijk_thermals() const
+  {
+    if (has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[2].valeur());
+    else if (!has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[1].valeur());
+    else
+      throw;
+  }
+
+  IJK_Thermals& get_ijk_thermals()
+  {
+    if (has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[2].valeur());
+    else if (!has_interface_ && has_thermals_)
+      return ref_cast(IJK_Thermals, equations_[1].valeur());
+    else
+      throw;
+  }
 
   int get_thermal_probes_ghost_cells() const { return thermal_probes_ghost_cells_; }
 
@@ -160,10 +177,13 @@ public :
     throw;
   }
 
-  const Navier_Stokes_FTD_IJK& eq_ns() const { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
-  Navier_Stokes_FTD_IJK& eq_ns() { return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()); }
+  const Navier_Stokes_FTD_IJK& eq_ns() const { return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
+  Navier_Stokes_FTD_IJK& eq_ns() { return  has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
 
   bool has_interface() const { return has_interface_; }
+  bool has_ns() const { return has_ns_; }
+  bool has_thermals() const { return has_thermals_; }
+
   const Maillage_FT_IJK& get_maillage_ft_ijk() const { return get_interface().maillage_ft_ijk(); }
   const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { return get_interface().remaillage_ft_ijk(); }
 
@@ -171,11 +191,9 @@ public :
   IJK_Interfaces bidon_;
   const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) :bidon_ /* throw */; }
   IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : bidon_/* throw */ ; }
-  const IJK_Interfaces& itfce() const { return get_interface(); }
-  IJK_Interfaces& get_set_interface() { return get_interface(); }
 
 protected:
-  bool has_interface_ = false;
+  bool has_interface_ = false, has_ns_ = false, has_thermals_ = false;
   ArrOfDouble_with_ghost delta_z_local_;
   OBS_PTR(Domaine_IJK) domaine_ijk_;
   Domaine_IJK domaine_ft_;
@@ -206,11 +224,6 @@ protected:
 
   // Compteur du dernier traitement effectue dans treatment_count_
   int new_treatment_ = 0;
-
-  /*
-   * PRIORITE
-   */
-  IJK_Thermals thermals_;
   int thermal_probes_ghost_cells_ = 2;
 };
 

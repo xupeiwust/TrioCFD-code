@@ -407,7 +407,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
     {
       const DoubleTab& bubbles_velocities_from_interface = interfaces_->get_bubble_velocities_from_interface();
       const DoubleTab& bubbles_velocities_from_barycentres = interfaces_->get_bubble_velocities_from_barycentres();
-      int nb_bubbles = ref_ijk_ft_->itfce().get_nb_bulles_reelles();
+      int nb_bubbles = ref_ijk_ft_->get_interface().get_nb_bulles_reelles();
       rising_velocities_ = ArrOfDouble(nb_bubbles);
       rising_vectors_ = DoubleTab(nb_bubbles, 3);
 
@@ -420,7 +420,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
         use_bubbles_velocities_from_barycentres_tmp = 0;
 
       compute_rising_velocity(ref_ijk_ft_->eq_ns().get_velocity(),
-                              ref_ijk_ft_->itfce(),
+                              ref_ijk_ft_->get_interface(),
                               eulerian_compo_connex_from_interface_int_ns_,
                               ref_ijk_ft_->milieu_ijk().get_direction_gravite(),
                               rising_velocities_,
@@ -431,7 +431,7 @@ void IJK_Composantes_Connex::compute_rising_velocities()
                               bubbles_velocities_from_barycentres,
                               use_bubbles_velocities_from_barycentres_tmp);
 
-      compute_rising_velocity_overall(ref_ijk_ft_->itfce(),
+      compute_rising_velocity_overall(ref_ijk_ft_->get_interface(),
                                       rising_vectors_,
                                       rising_velocities_,
                                       bubbles_volume_,

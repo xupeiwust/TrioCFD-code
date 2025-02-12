@@ -106,10 +106,6 @@ void Probleme_FTD_IJK_base::set_param(Param& param)
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
   param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
-
-  // TODO: Change this block with OWN_PTR CLASS IJK_Thermal
-  // Read list of thermic equations:
-  param.ajouter("thermals", &thermals_);
 }
 
 int Probleme_FTD_IJK_base::associer_(Objet_U& obj)
@@ -154,12 +150,14 @@ void Probleme_FTD_IJK_base::lire_solved_equations(Entree& is)
 
   for (is >> read_mc; read_mc != "}"; is >> read_mc)
     {
-      if (noms_eq_maj.rang(read_mc) == -1 || (!read_mc.contient("_FTD_IJK") && (read_mc != "IJK_INTERFACES" ) ))
+      const bool non_accepted_eqs = (!read_mc.contient("_FTD_IJK") && (read_mc != "IJK_INTERFACES") && (read_mc != "IJK_THERMALS") );
+
+      if (noms_eq_maj.rang(read_mc) == -1 || non_accepted_eqs)
         {
           Cerr << "Error in Probleme_FTD_IJK_base::lire_solved_equations !!! The equation " << read_mc << " could not be used with a problem of type " << que_suis_je() << " !!!" << finl;
           Cerr << "You can only use the following equations :" << finl;
           for (auto &itr : noms_eq_maj)
-            if (itr.contient("_FTD_IJK") || itr == "IJK_INTERFACES")
+            if (itr.contient("_FTD_IJK") || itr == "IJK_INTERFACES" || itr == "IJK_THERMALS")
               Cerr << "  - " << itr << finl;
           Process::exit();
         }
@@ -180,7 +178,10 @@ void Probleme_FTD_IJK_base::lire_solved_equations(Entree& is)
   /* Add Navier_Stokes_FTD_IJK at first */
   for (int i = 0; i < static_cast<int>(eq_types.size()); i++)
     if (eq_types[i] == "NAVIER_STOKES_FTD_IJK")
-      add_FT_equation(eq_name[i], eq_types[i]);
+      {
+        has_ns_ = true;
+        add_FT_equation(eq_name[i], eq_types[i]);
+      }
 
   /* Add Transport_Interfaces at second */
   for (int i = 0; i < static_cast<int>(eq_types.size()); i++)
@@ -190,10 +191,13 @@ void Probleme_FTD_IJK_base::lire_solved_equations(Entree& is)
         add_FT_equation(eq_name[i], eq_types[i]);
       }
 
-//  /* Add the remaining */
-//  for (int i = 0; i < static_cast<int>(eq_types.size()); i++)
-//    if (eq_types[i] != "NAVIER_STOKES_FT_DISC" && !eq_types[i].debute_par("TRANSPORT_INTERFACES"))
-//      add_FT_equation(eq_name[i], eq_types[i]);
+  /* Add thermals */
+  for (int i = 0; i < static_cast<int>(eq_types.size()); i++)
+    if (eq_types[i] == "IJK_THERMALS")
+      {
+        has_thermals_ = true;
+        add_FT_equation(eq_name[i], eq_types[i]);
+      }
 }
 
 void Probleme_FTD_IJK_base::typer_lire_milieu(Entree& is)
@@ -236,8 +240,6 @@ void Probleme_FTD_IJK_base::completer()
   if (nom_reprise_ != "??")
     reprendre_probleme(nom_reprise_);
 
-  thermals_.associer_pb_base(*this);
-
 
   schema_temps_ijk().completer();
 
@@ -256,8 +258,9 @@ const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) con
   if (nom== "INDICATRICE")
     return get_interface().I_ft();
 
-  if (thermals_.has_IJK_field(nom))
-    return thermals_.get_IJK_field(nom);
+
+  if (has_thermals_ && get_ijk_thermals().has_IJK_field(nom))
+    return get_ijk_thermals().get_IJK_field(nom);
 
   return post_.get_IJK_field(nom);
 }
@@ -292,7 +295,8 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     get_interface().sauvegarder_interfaces(lata_name, interf_name);
 
-  thermals_.sauvegarder_temperature(lata_name, stop);
+  if (has_thermals_)
+    get_ijk_thermals().sauvegarder_temperature(lata_name, stop);
 
   // curseur = thermique_; // RAZ : Remise au depart du curseur. GB -> Anida : Ne marche pas sur une liste vide? Je dois grader le curseur_bis ensuite.
   SFichier fichier;
@@ -366,8 +370,8 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 
   get_interface().set_fichier_reprise_interface(prefix);
 
-  if (!thermals_.est_vide())
-    thermals_.set_fichier_reprise(prefix + thermals_.get_fichier_reprise());
+  if (has_thermals_)
+    get_ijk_thermals().set_fichier_reprise(prefix + get_ijk_thermals().get_fichier_reprise());
 
   ns.set_fichier_reprise_vitesse(prefix);
 }
@@ -393,11 +397,19 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
    */
   interf.initialise_ijk_compo_connex_bubbles_params();
 
-  thermals_.initialize(domaine_ijk_.valeur(), nalloc);
-  thermals_.get_rising_velocities_parameters(eq_ns.get_compute_rising_velocities(), eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(),
-                                             eq_ns.get_use_bubbles_velocities_from_barycentres());
+  int ghost_fluid_flag = 0;
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      thermals.initialize(domaine_ijk_.valeur(), nalloc);
+      thermals.get_rising_velocities_parameters(eq_ns.get_compute_rising_velocities(), eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(),
+                                                eq_ns.get_use_bubbles_velocities_from_barycentres());
 
-  nalloc += interf.allocate_ijk_compo_connex_fields(domaine_ijk_.valeur(), thermals_.ghost_fluid_flag() || eq_ns.get_upstream_velocity_measured());
+      ghost_fluid_flag = thermals.ghost_fluid_flag();
+    }
+
+
+  nalloc += interf.allocate_ijk_compo_connex_fields(domaine_ijk_.valeur(), ghost_fluid_flag || eq_ns.get_upstream_velocity_measured());
   nalloc += interf.associate_rising_velocities_parameters(domaine_ijk_.valeur(), eq_ns.get_compute_rising_velocities() || eq_ns.get_upstream_velocity_measured(),
                                                           eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(), eq_ns.get_use_bubbles_velocities_from_barycentres());
 
@@ -430,16 +442,20 @@ void Probleme_FTD_IJK_base::deplacer_interfaces(const double timestep, const int
   //  Calculer vitesse_ft (etendue) a partir du champ de vitesse.
   ns.calculer_vitesse_ft();
 
-  /*
-   * Calculation of intersections on interface at time (n)
-   */
-  Cerr << "Compute Eulerian distance and curvature fields" << finl;
-  thermals_.compute_eulerian_distance_curvature();
-  Cerr << "Clean IJK intersections" << finl;
-  thermals_.clean_ijk_intersections();
-  Cerr << "Copy interface state for post-processing on surface" << finl;
-  thermals_.copy_previous_interface_state();
-  // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      /*
+       * Calculation of intersections on interface at time (n)
+       */
+      Cerr << "Compute Eulerian distance and curvature fields" << finl;
+      thermals.compute_eulerian_distance_curvature();
+      Cerr << "Clean IJK intersections" << finl;
+      thermals.clean_ijk_intersections();
+      Cerr << "Copy interface state for post-processing on surface" << finl;
+      thermals.copy_previous_interface_state();
+      // thermals_.update_intersections(); // no need as IJK_intersections call interfaces_nI interfaces_xI
+    }
 
   get_interface().update_indicatrice_variables_monofluides();
 
@@ -590,7 +606,8 @@ void Probleme_FTD_IJK_base::initialize()
  */
 void Probleme_FTD_IJK_base::update_thermal_properties()
 {
-  thermals_.update_thermal_properties();
+  if (has_thermals_)
+    get_ijk_thermals().update_thermal_properties();
 }
 
 void Probleme_FTD_IJK_base::preparer_calcul()
@@ -607,7 +624,9 @@ void Probleme_FTD_IJK_base::preparer_calcul()
 
   post_.compute_extended_pressures(interf.maillage_ft_ijk());
 
-  schema_temps_ijk().set_modified_time_ini( thermals_.get_modified_time() );
+  if (has_thermals_)
+    schema_temps_ijk().set_modified_time_ini(  get_ijk_thermals().get_modified_time() );
+
   if (!reprise_ && schema_temps_ijk().get_current_time() == 0.)
     schema_temps_ijk().set_current_time(schema_temps_ijk().get_modified_time_ini());
 
@@ -615,7 +634,8 @@ void Probleme_FTD_IJK_base::preparer_calcul()
     {
       Cout << "BF posttraiter_champs_instantanes " << schema_temps_ijk().get_current_time() << " " << schema_temps_ijk().get_tstep() << finl;
       post_.posttraiter_champs_instantanes(lata_name_, schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
-      thermals_.thermal_subresolution_outputs(); // for thermal counters
+      if (has_thermals_)
+        get_ijk_thermals().thermal_subresolution_outputs(); // for thermal counters
       Cout << "AF posttraiter_champs_instantanes" << finl;
     }
 
@@ -651,10 +671,12 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
   statistiques().begin_count(euler_rk3_counter_);
-  if (thermals_.size())
-    ns.update_v_or_rhov();
+  if (has_thermals_)
+    {
+      ns.update_v_or_rhov();
+      get_ijk_thermals().euler_time_step(schema_temps_ijk().get_timestep());
+    }
 
-  thermals_.euler_time_step(schema_temps_ijk().get_timestep());
 
   ns.euler_time_step(var_volume_par_bulle);
   statistiques().end_count(euler_rk3_counter_);
@@ -668,7 +690,8 @@ void Probleme_FTD_IJK_base::rk3_sub_step(const int rk_step, const double total_t
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
   statistiques().begin_count(euler_rk3_counter_);
 
-  thermals_.rk3_sub_step(rk_step, total_timestep, time);
+  if (has_thermals_)
+    get_ijk_thermals().rk3_sub_step(rk_step, total_timestep, time);
 
   // FIXME
   ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).rk3_sub_step(rk_step, total_timestep, fractionnal_timestep, time);
@@ -816,10 +839,14 @@ void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle
           counter_first_iter--;
           if (first_step_interface_smoothing)
             {
-              thermals_.set_temperature_ini();
+              if (has_thermals_)
+                get_ijk_thermals().set_temperature_ini();
+
               post_.posttraiter_champs_instantanes(lata_name_, schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
               ns.compute_var_volume_par_bulle(var_volume_par_bulle);
-              thermals_.set_post_pro_first_call();
+
+              if (has_thermals_)
+                get_ijk_thermals().set_post_pro_first_call();
             }
         }
       while (first_step_interface_smoothing);
@@ -853,7 +880,8 @@ void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle
       ns.test_etapes_et_bilan_rho_u_euler(false /* avant */);
       ns.maj_indicatrice_rho_mu();
 
-      thermals_.euler_rustine_step(schema_temps_ijk().get_timestep());
+      if (has_thermals_)
+        get_ijk_thermals().euler_rustine_step(schema_temps_ijk().get_timestep());
 
       ns.test_etapes_et_bilan_rho_u_euler(true /* apres */);
     }
@@ -902,7 +930,8 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
           // Attention, il faut que les duplicatas soient present pour faire maj_indicatrice_rho_mu :
           ns.maj_indicatrice_rho_mu();
 
-          thermals_.rk3_rustine_sub_step(rk_step, timestep, fractionnal_timestep, current_time_at_rk3_step);
+          if (has_thermals_)
+            get_ijk_thermals().rk3_rustine_sub_step(rk_step, timestep, fractionnal_timestep, current_time_at_rk3_step);
         }
 
       ns.calculer_terme_source_acceleration(current_time_at_rk3_step, timestep /*total*/, rk_step, milieu_ijk().get_direction_gravite()  /* direction */);
@@ -933,7 +962,8 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
       // Mise a jour rho, mu et l'indicatrice a partir de la nouvelle position de l'interface :
       ns.maj_indicatrice_rho_mu();
 
-      thermals_.update_thermal_properties();
+      if (has_thermals_)
+        get_ijk_thermals().update_thermal_properties();
     }
 
   ns.test_etapes_et_bilan_rho_u_euler(true /* apres */);

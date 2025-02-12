@@ -218,7 +218,7 @@ bool IJK_One_Dimensional_Subproblems_Interfaces_Fields::retrieve_interfacial_sur
       if (!counter_call_)
         elem_crossed_.reset();
       const int dim = 3;
-      const IJK_Interfaces& interfaces = ref_ijk_ft_->itfce();
+      const IJK_Interfaces& interfaces = ref_ijk_ft_->get_interface();
       const Domaine_IJK& splitting = ref_ijk_ft_->get_domaine_ft();
 
       const Domaine_dis_base& mon_dom_dis = interfaces.get_domaine_dis();

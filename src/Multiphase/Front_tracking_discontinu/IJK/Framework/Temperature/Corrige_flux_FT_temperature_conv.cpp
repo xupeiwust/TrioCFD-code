@@ -235,7 +235,7 @@ const double& Corrige_flux_FT_temperature_conv::get_ghost_temp_if_cell_is_diph(
   const int& i = elem[0];
   const int& j = elem[1];
   const int& k = elem[2];
-  const IJK_Field_double& indic = ref_ijk_ft_->itfce().I();
+  const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
   const bool cell_is_diph = (indic(i,j,k) * (1. - indic(i,j,k)) > DMINFLOAT);
   if (cell_is_diph)
     {

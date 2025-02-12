@@ -28,9 +28,13 @@ void Probleme_FTD_IJK::initialize()
   domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
 
   thermal_probes_ghost_cells_ = 4;
-  thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
-  thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
 
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      thermals.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
+      thermal_probes_ghost_cells_ = thermals.get_probes_ghost_cells(thermal_probes_ghost_cells_);
+    }
   // TODO : FIXME : faut boucler plus tard sur les equations IJK
   Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
   const auto& bc = eq_ns.get_boundary_conditions();

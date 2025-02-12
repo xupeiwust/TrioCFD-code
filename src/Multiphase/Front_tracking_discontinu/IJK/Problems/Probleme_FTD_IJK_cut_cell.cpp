@@ -76,8 +76,12 @@ void Probleme_FTD_IJK_cut_cell::initialize()
   domaine_ijk_->get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */, delta_z_local_);
 
   thermal_probes_ghost_cells_ = 4;
-  thermals_.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
-  thermal_probes_ghost_cells_ = thermals_.get_probes_ghost_cells(thermal_probes_ghost_cells_);
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      thermals.compute_ghost_cell_numbers_for_subproblems(domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
+      thermal_probes_ghost_cells_ = thermals.get_probes_ghost_cells(thermal_probes_ghost_cells_);
+    }
 
   // TODO : FIXME : faut boucler plus tard sur les equations IJK
   Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
@@ -138,8 +142,12 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
   IJK_Interfaces& interf = get_interface();
 
-  thermals_.echange_diph_vers_pure_cellules_finalement_pures();
-  thermals_.vide_phase_invalide_cellules_diphasiques();
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      thermals.echange_diph_vers_pure_cellules_finalement_pures();
+      thermals.vide_phase_invalide_cellules_diphasiques();
+    }
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
@@ -154,7 +162,9 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces(const double timestep, const
   // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   cut_cell_perform_interpolation_facettes();
 
-  thermals_.echange_pure_vers_diph_cellules_initialement_pures();
+  if (has_thermals_)
+    get_ijk_thermals().echange_pure_vers_diph_cellules_initialement_pures();
+
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();
@@ -175,8 +185,12 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, c
   Cut_field_vector3_double& cut_field_velocity = static_cast<Cut_field_vector3_double&>(ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()).get_velocity());
   IJK_Interfaces& interf = get_interface();
 
-  thermals_.echange_diph_vers_pure_cellules_finalement_pures();
-  thermals_.vide_phase_invalide_cellules_diphasiques();
+  if (has_thermals_)
+    {
+      IJK_Thermals& thermals = get_ijk_thermals();
+      thermals.echange_diph_vers_pure_cellules_finalement_pures();
+      thermals.vide_phase_invalide_cellules_diphasiques();
+    }
   update_old_intersections(); // Pour conserver les donnees sur l'interface au temps t_{n} (en plus de t_{n+1})
 
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
@@ -191,7 +205,9 @@ void Probleme_FTD_IJK_cut_cell::deplacer_interfaces_rk3(const double timestep, c
   // Mise a jour des indices et coefficients des points d'interpolation a une certaine distance des facettes de l'interface
   cut_cell_perform_interpolation_facettes();
 
-  thermals_.echange_pure_vers_diph_cellules_initialement_pures();
+  if (has_thermals_)
+    get_ijk_thermals().echange_pure_vers_diph_cellules_initialement_pures();
+
   cut_field_velocity[0].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[1].copie_pure_vers_diph_sans_interpolation();
   cut_field_velocity[2].copie_pure_vers_diph_sans_interpolation();

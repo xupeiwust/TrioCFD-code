@@ -107,7 +107,7 @@ void IJK_Thermal_Multiple_Subresolutions::correct_temperature_vapour_for_euleria
             for (int j = 0; j < nj; j++)
               for (int i = 0; i < ni; i++)
                 {
-                  const double indic = ref_ijk_ft_->itfce().I(i,j,k);
+                  const double indic = ref_ijk_ft_->get_interface().I(i,j,k);
                   if (std::fabs(1.-indic)>1.e-8) // Mixed cells and pure vapour cells
                     { temperature_vapour_(i,j,k) = 0; }
                 }

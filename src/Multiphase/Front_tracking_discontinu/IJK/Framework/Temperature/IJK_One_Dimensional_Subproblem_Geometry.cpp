@@ -399,7 +399,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_faces_centres()
           const int ii = neighbours_i[l];
           const int jj = neighbours_j[l];
           const int kk = neighbours_k[l];
-          const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_+ii, index_j_+jj, index_k_+kk);
+          const double indic_neighbour = ref_ijk_ft_->get_interface().I()(index_i_+ii, index_j_+jj, index_k_+kk);
           if (fabs(indic_neighbour) > LIQUID_INDICATOR_TEST)
             {
               const int ii_f = neighbours_faces_i[l];
@@ -587,7 +587,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_cell_centres_neig
             const int l_dir = (pure_neighbours_corrected_sign_[0]) ? l * (-1) : l;
             const int m_dir = (pure_neighbours_corrected_sign_[1]) ? m * (-1) : m;
             const int n_dir = (pure_neighbours_corrected_sign_[2]) ? n * (-1) : n;
-            const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_ + l_dir, index_j_ + m_dir, index_k_ + n_dir);
+            const double indic_neighbour = ref_ijk_ft_->get_interface().I()(index_i_ + l_dir, index_j_ + m_dir, index_k_ + n_dir);
             if (indic_neighbour > LIQUID_INDICATOR_TEST)
               {
                 pure_neighbours_to_correct_[l][m][n] = true;
@@ -719,7 +719,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_last_cell_faces_n
           const int m_dir = (pure_neighbours_corrected_sign_[1]) ? m_cell * (-1) : m_cell;
           const int n_dir = (pure_neighbours_corrected_sign_[2]) ? n_cell * (-1) : n_cell;
           const int l_dir_elem = (pure_neighbours_corrected_sign_[0]) ? (l + 1) * (-1) + 1 : l;
-          const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_ + l_dir_elem, index_j_ + m_dir, index_k_ + n_dir);
+          const double indic_neighbour = ref_ijk_ft_->get_interface().I()(index_i_ + l_dir_elem, index_j_ + m_dir, index_k_ + n_dir);
           if (indic_neighbour > LIQUID_INDICATOR_TEST)
             {
               pure_neighbours_last_faces_to_correct_[0][l][m_cell][n_cell] = true;
@@ -750,7 +750,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_last_cell_faces_n
           const int m_dir = (pure_neighbours_corrected_sign_[1]) ? m * (-1) + 1: m;
           const int n_dir = (pure_neighbours_corrected_sign_[2]) ? n_cell * (-1) : n_cell;
           const int m_dir_elem = (pure_neighbours_corrected_sign_[1]) ? (m + 1) * (-1) + 1 : m;
-          const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_ + l_dir, index_j_ + m_dir_elem, index_k_ + n_dir);
+          const double indic_neighbour = ref_ijk_ft_->get_interface().I()(index_i_ + l_dir, index_j_ + m_dir_elem, index_k_ + n_dir);
           if (indic_neighbour > LIQUID_INDICATOR_TEST)
             {
               pure_neighbours_last_faces_to_correct_[1][l_cell][m][n_cell] = true;
@@ -781,7 +781,7 @@ void IJK_One_Dimensional_Subproblem_Geometry::compute_distance_last_cell_faces_n
           const int m_dir = (pure_neighbours_corrected_sign_[1]) ? m_cell * (-1) : m_cell;
           const int n_dir = (pure_neighbours_corrected_sign_[2]) ? n * (-1) + 1: n;
           const int n_dir_elem = (pure_neighbours_corrected_sign_[2]) ? (n + 1) * (-1) + 1 : n;
-          const double indic_neighbour = ref_ijk_ft_->itfce().I()(index_i_ + l_dir, index_j_ + m_dir, index_k_ + n_dir_elem);
+          const double indic_neighbour = ref_ijk_ft_->get_interface().I()(index_i_ + l_dir, index_j_ + m_dir, index_k_ + n_dir_elem);
           if (indic_neighbour > LIQUID_INDICATOR_TEST)
             {
               pure_neighbours_last_faces_to_correct_[2][l_cell][m_cell][n] = true;

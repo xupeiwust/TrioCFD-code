@@ -90,8 +90,12 @@ void IJK_Thermals::associer_pb_base(const Probleme_base& pb)
     }
 
   ref_ijk_ft_ = ref_cast(Probleme_FTD_IJK_base, pb);
+}
+
+void IJK_Thermals::completer()
+{
   associer_post(ref_ijk_ft_->get_post());
-  associer_interface_intersections(ref_ijk_ft_->itfce().get_intersection_ijk_cell(), ref_ijk_ft_->itfce().get_intersection_ijk_face());
+  associer_interface_intersections(ref_ijk_ft_->get_interface().get_intersection_ijk_cell(), ref_ijk_ft_->get_interface().get_intersection_ijk_face());
   for (auto& itr : liste_thermique_)
     {
       itr->associer(ref_ijk_ft_.valeur());

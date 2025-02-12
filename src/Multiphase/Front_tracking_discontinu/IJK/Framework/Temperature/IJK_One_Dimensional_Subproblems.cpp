@@ -413,9 +413,9 @@ void IJK_One_Dimensional_Subproblems::share_previous_temperature_indicator_veloc
 
 void IJK_One_Dimensional_Subproblems::retrieve_boundary_previous_values()
 {
-  const int ni = ref_ijk_ft_->itfce().I().ni();
-  const int nj = ref_ijk_ft_->itfce().I().nj();
-  const int nk = ref_ijk_ft_->itfce().I().nk();
+  const int ni = ref_ijk_ft_->get_interface().I().ni();
+  const int nj = ref_ijk_ft_->get_interface().I().nj();
+  const int nk = ref_ijk_ft_->get_interface().I().nk();
 
   const int offset_i = ref_ijk_ft_->get_domaine().get_offset_local(0);
   const int offset_j = ref_ijk_ft_->get_domaine().get_offset_local(1);
@@ -529,9 +529,9 @@ void IJK_One_Dimensional_Subproblems::share_boundary_previous_values()
 
 void IJK_One_Dimensional_Subproblems::complete_boundary_previous_values()
 {
-  const int ni = ref_ijk_ft_->itfce().I().ni();
-  const int nj = ref_ijk_ft_->itfce().I().nj();
-  const int nk = ref_ijk_ft_->itfce().I().nk();
+  const int ni = ref_ijk_ft_->get_interface().I().ni();
+  const int nj = ref_ijk_ft_->get_interface().I().nj();
+  const int nk = ref_ijk_ft_->get_interface().I().nk();
 
   const int offset_i = ref_ijk_ft_->get_domaine().get_offset_local(0);
   const int offset_j = ref_ijk_ft_->get_domaine().get_offset_local(1);
@@ -772,11 +772,11 @@ void IJK_One_Dimensional_Subproblems::retrieve_interfacial_heat_flux_correction_
                                                                                          const ArrOfDouble& thermal_flux_out,
                                                                                          IJK_Field_vector3_double& interfacial_heat_flux_dispatched)
 {
-  const int ni = ref_ijk_ft_->itfce().I().ni();
-  const int nj = ref_ijk_ft_->itfce().I().nj();
-  const int nk = ref_ijk_ft_->itfce().I().nk();
+  const int ni = ref_ijk_ft_->get_interface().I().ni();
+  const int nj = ref_ijk_ft_->get_interface().I().nj();
+  const int nk = ref_ijk_ft_->get_interface().I().nk();
 
-  const Domaine_IJK& splitting_ns = ref_ijk_ft_->itfce().I().get_domaine();
+  const Domaine_IJK& splitting_ns = ref_ijk_ft_->get_interface().I().get_domaine();
   const int offset_i = splitting_ns.get_offset_local(0);
   const int offset_j = splitting_ns.get_offset_local(1);
   const int offset_k = splitting_ns.get_offset_local(2);

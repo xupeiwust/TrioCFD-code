@@ -41,7 +41,7 @@ public :
    * Surcharge de l'eq base
    */
   void set_param(Param& titi) override { /* Do nothing */ }
-  void completer() override { /* Do nothing */ }
+  void completer() override;
   void associer_pb_base(const Probleme_base&) override;
   void discretiser() override { /* Do nothing */ }
   int preparer_calcul() override { return 1; }

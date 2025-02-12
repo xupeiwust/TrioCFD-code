@@ -985,7 +985,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_double& extended_pressure_liq= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pl_: ns.pressure_;
   IJK_Field_double& extended_pressure_vap= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pv_: ns.pressure_;
   IJK_Field_double& pression=ns.pressure_;
-  const IJK_Field_double& indicatrice=cas.itfce().I();
+  const IJK_Field_double& indicatrice=cas.get_interface().I();
   IJK_Field_vector3_double& gradP=cas.post_.grad_P_;
 
   // Nombre total de mailles en K

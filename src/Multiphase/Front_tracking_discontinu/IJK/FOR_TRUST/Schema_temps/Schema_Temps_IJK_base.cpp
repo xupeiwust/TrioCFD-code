@@ -178,7 +178,9 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
 
 
   double dt_thermals = 1.e20;
-  pb_ijk.get_ijk_thermals().compute_timestep(dt_thermals, dxmin);
+
+  if (pb_ijk.has_thermals())
+    pb_ijk.get_ijk_thermals().compute_timestep(dt_thermals, dxmin);
 
   const double dt = std::min(max_timestep, timestep_facsec_ * std::min(dt_eq_velocity, dt_thermals));
 

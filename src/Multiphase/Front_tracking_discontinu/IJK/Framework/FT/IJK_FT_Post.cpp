@@ -44,13 +44,18 @@ void IJK_FT_Post::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   statistiques_FT_.associer_probleme(ijk_ft);
+
+//  if (ref_ijk_ft_->has_interface())
   interfaces_ = ref_ijk_ft_->get_interface();
+
   pressure_ = ref_ijk_ft_->eq_ns().pressure_;
   velocity_ = ref_ijk_ft_->eq_ns().velocity_;
   source_spectrale_ = ref_ijk_ft_->eq_ns().forcage_.get_force_ph2();
   bk_tsi_ns_ = ref_ijk_ft_->eq_ns().backup_terme_source_interfaces_ns_;
   d_velocity_ = ref_ijk_ft_->eq_ns().d_velocity_;
-  thermals_ = ref_ijk_ft_->thermals_;
+
+  if (ref_ijk_ft_->has_thermals())
+    thermals_ = ref_ijk_ft_->get_ijk_thermals();
 }
 
 void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
@@ -372,7 +377,7 @@ void IJK_FT_Post::init_indicatrice_non_perturbe()
       ArrOfDouble volume_reel;
       DoubleTab position;
       interfaces_->calculer_volume_bulles(volume_reel, position);
-      interfaces_->compute_indicatrice_non_perturbe(indicatrice_non_perturbe_, ref_ijk_ft_->itfce().I(), volume_reel, position);
+      interfaces_->compute_indicatrice_non_perturbe(indicatrice_non_perturbe_, ref_ijk_ft_->get_interface().I(), volume_reel, position);
       supprimer_chevauchement(indicatrice_non_perturbe_);
     }
 }
@@ -445,7 +450,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       if (!Option_IJK::DISABLE_DIPHASIQUE)
         interfaces_->posttraiter_tous_champs(liste_post_instantanes_);
 
-      thermals_->posttraiter_tous_champs_thermal(liste_post_instantanes_);
+      if (ref_ijk_ft_->has_thermals())
+        thermals_->posttraiter_tous_champs_thermal(liste_post_instantanes_);
     }
   // if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
   //   {
@@ -927,7 +933,8 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       dumplata_scalar(lata_name, Nom("CUT_FIELDS_BARY_L_Z"), interfaces_->get_barycentre_phase1_old()[2], latastep);
     }
 
-  thermals_->posttraiter_champs_instantanes_thermal(liste_post_instantanes_, lata_name, latastep, current_time, n);
+  if (ref_ijk_ft_->has_thermals())
+    thermals_->posttraiter_champs_instantanes_thermal(liste_post_instantanes_, lata_name, latastep, current_time, n);
   Cerr << "les champs postraites sont: " << liste_post_instantanes_ << finl;
 
   if (n > 0)
@@ -1035,7 +1042,8 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   DoubleTab poussee;
   interfaces_->calculer_poussee_bulles(gravite, poussee);
 
-  const_cast<IJK_FT_Post*>(this)->thermals_->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
+  if(ref_ijk_ft_->has_thermals())
+    const_cast<IJK_FT_Post*>(this)->thermals_->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
 
   if (Process::je_suis_maitre())
     {
@@ -2162,7 +2170,8 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
 void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const DoubleTab& gravite, const Nom& nom_cas)
 {
   const int tstep_sauv = tstep + tstep_init;
-  thermals_->set_first_step_thermals_post(first_step_thermals_post_);
+  if (ref_ijk_ft_->has_thermals())
+    thermals_->set_first_step_thermals_post(first_step_thermals_post_);
   if (stop || first_step_thermals_post_
       || (dt_post_ >= 0 && tstep_sauv % dt_post_ == dt_post_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
@@ -2176,13 +2185,14 @@ void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, do
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
 
-  if (stop || first_step_thermals_post_
-      || (dt_post_thermals_probes_ >= 0 && tstep_sauv % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
-    {
-      Cout << "tstep : " << tstep << finl;
-      thermals_->thermal_subresolution_outputs(dt_post_thermals_probes_);
-    }
+  if (ref_ijk_ft_->has_thermals())
+    if (stop || first_step_thermals_post_
+        || (dt_post_thermals_probes_ >= 0 && tstep_sauv % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1)
+        || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
+      {
+        Cout << "tstep : " << tstep << finl;
+        thermals_->thermal_subresolution_outputs(dt_post_thermals_probes_);
+      }
   if (stop
       || (dt_post_stats_bulles_ >= 0 && tstep_sauv % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_stats_bulles_) < std::floor(current_time/time_interval_post_stats_bulles_)))
