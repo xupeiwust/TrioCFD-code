@@ -1,3 +1,4 @@
+# PARALLEL ONLY 8 #
 IJK_Grid_Geometry DOM_IJK
 
 Lire DOM_IJK
@@ -5,9 +6,6 @@ Lire DOM_IJK
   nbelem_i 64
   nbelem_j 64
   nbelem_k 32
-  # uniform_domain_size_i 0.2
-  uniform_domain_size_j 0.2
-  uniform_domain_size_k 0.2 #
   origin_i -0.2
   origin_j -0.2
   origin_k 0.
@@ -22,9 +20,9 @@ IJK_Splitting grid_splitting
 Lire grid_splitting
 {
   ijk_grid_geometry DOM_IJK
-  nproc_i 1
-  nproc_j 1
-  nproc_k 1
+  nproc_i 2
+  nproc_j 2
+  nproc_k 2
 }
 
 IJK_FT_double
@@ -42,7 +40,8 @@ IJK_FT_double
   check_stop_file stop.txt
   dt_sauvegarde 1
   sauvegarder_xyz
-  nb_pas_dt_max 1
+  tinit 0
+	nb_pas_dt_max 1
   
   multigrid_solver { }
   disable_solveur_poisson

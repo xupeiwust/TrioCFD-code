@@ -1,0 +1,2 @@
+0. 0. 0.1 bulle3.msh
+0.1  0. 0.1 bulle3.msh
