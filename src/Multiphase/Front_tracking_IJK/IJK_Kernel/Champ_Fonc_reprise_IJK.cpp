@@ -320,7 +320,7 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
   if (nb_items_seq == 0)
     return;
 
-  if (sub_type(MD_Vector_std, md.valeur()))
+  if (sub_type(MD_Vector_base, md.valeur()))
     {
 
       if (md != zvf.face_sommets().get_md_vector())
@@ -334,7 +334,7 @@ void Champ_Fonc_reprise_IJK::reprendre_IJK(Entree& fich, Champ_base& ch)
     }
   else
     {
-      Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Problem in the resumption. Not a MD_vector_std." << finl;
+      Cerr << "Champ_Fonc_reprise_IJK::reprendre_IJK: Problem in the resumption. Not a MD_Vector_base." << finl;
       Process::exit();
     }
 

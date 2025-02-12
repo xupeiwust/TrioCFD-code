@@ -193,7 +193,7 @@ protected:
   // Si on constate un probleme de precision numerique, la correction
   // suppose que les calculs geometriques ont la precision relative
   // suivante:
-  static const double Erreur_relative_maxi_;
+  double Erreur_relative_maxi_;
   // On suppose que toutes les coordonnees du domaine sont inferieures a cette valeur:
   double Valeur_max_coordonnees_;
   // Cette valeur est egale a Erreur_relative_maxi_ * valeur_max_coordonnees_ :

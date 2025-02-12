@@ -29,13 +29,12 @@ Implemente_instanciable_sans_constructeur(Parcours_interface,"Parcours_interface
 
 static int flag_warning_code_missing=1;
 
-const double Parcours_interface::Erreur_relative_maxi_ = 1.E-13;
-
 Entree& Parcours_interface::readOn(Entree& is)
 {
   Param param(que_suis_je());
   param.ajouter_flag("correction_parcours_thomas", &correction_parcours_thomas_);
   param.ajouter_flag("parcours_sans_tolerance", &parcours_sans_tolerance_);
+  param.ajouter("Erreur_relative_maxi", &Erreur_relative_maxi_);
   param.lire_avec_accolades_depuis(is);
   return is;
 }
@@ -53,6 +52,7 @@ Parcours_interface::Parcours_interface()
 {
   domaine_elem_ptr = 0;
   domaine_sommets_ptr = 0;
+  Erreur_relative_maxi_ = 1.E-13;
   Valeur_max_coordonnees_ = 0.;
   Erreur_max_coordonnees_ = 0.;
   correction_parcours_thomas_ = 0;

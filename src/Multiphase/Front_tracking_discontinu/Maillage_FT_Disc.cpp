@@ -4042,11 +4042,12 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                                                                        x, y, z);
                 if (distance > 2. * epsilon)
                   {
-                    Journal() << "Erreur i=" << i << "  num_elemen=" << num_element;
+                    Journal() << "Erreur i=" << i << "  num_element=" << num_element;
                     Journal() << "  distance_sommet_faces=" << distance << finl;
                     if (error_is_fatal)
                       {
                         Cerr << "Trouble when checking mesh in Maillage_FT_Disc::check_sommets." << finl;
+                        Cerr << "FT sommet is not in element (according to precision set)." << finl;
                         Cerr << "Contact TRUST support." << finl;
                         Process::exit();
                       }
