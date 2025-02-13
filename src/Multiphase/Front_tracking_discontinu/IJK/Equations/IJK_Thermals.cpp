@@ -235,6 +235,8 @@ const IJK_Field_double& IJK_Thermals::get_IJK_field(const Nom& nom) const
       if (nom== Nom("INTERFACE_PHIN_")+Nom(i))
         return ((liste_thermique_.operator[](i))->get_grad_T_interface_ns());
 
+      if (nom== Nom("TEMPERATURE_ADIMENSIONNELLE_THETA_")+Nom(i))
+        return ((liste_thermique_.operator[](i))->get_temperature_adim_theta());
     }
 
 

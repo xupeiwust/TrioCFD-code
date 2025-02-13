@@ -1827,11 +1827,15 @@ void IJK_Thermal_base::add_temperature_source()
       // TODO: remplacer dabiri par patch_dabiri apres verif
       else if (type_T_source_=="patch_dabiri")
         {
-
           Cerr << "Type de source : patch_dabiri" << finl;
           const double wall_flux = boundary_conditions_.get_flux_kmax();
           const double qw = wall_flux;
           const double dTm = -2*qw/(2*h*rho_cp_u_moy) ;
+          if (std::fabs(rho_cp_u_moy)<DMINFLOAT)
+            {
+              Cerr << "You cannot use this source " << type_T_source_ << " without flowrate!" << finl;
+              Process::exit();
+            }
 
           for (int k = 0; k < nk; k++)
             for (int j = 0; j < nj; j++)
@@ -2294,8 +2298,11 @@ void IJK_Thermal_base::calculer_Nusselt(const IJK_Field_double& vx)
 
 void IJK_Thermal_base::set_field_T_ana()
 {
-  Cerr << "Setting analytical temperature "<< rang_ <<" field to "<< expression_T_ana_ << finl;
-  set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
+  if (expression_T_ana_ != "??")
+    {
+      Cerr << "Setting analytical temperature "<< rang_ <<" field to "<< expression_T_ana_ << finl;
+      set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
+    }
 }
 
 void IJK_Thermal_base::calculer_ecart_T_ana()
@@ -2933,12 +2940,26 @@ int IJK_Thermal_base::posttraiter_champs_instantanes_thermal(const Motcles& list
 //    post_process_std_thermal_field(liste_post_instantanes, lata_name, latastep, current_time, idx,
 //                                   tested_names, "TEMPERATURE", lata_suffix, *get_temperature(), oss, n);
 //  }
-
+  /*
+    for (auto &itr : liste_post_instantanes) {
+  	  oss << nom << lata_suffix << idx;
+  	  const IJK_Field_double& my_field = probleme().get_IJK_field(nom_complet);
+        n++, dumplata_scalar(lata_name, nom_complet, my_field, latastep);
+    }
+  */
   oss << "TEMPERATURE_" << lata_suffix << idx;
   Nom nom_temp(oss.str().c_str());
   if ((liste_post_instantanes.contient_("TEMPERATURE")) || (liste_post_instantanes.contient_(nom_temp)))
     {
       n++, dumplata_scalar_cut_cell(cut_cell_activated, lata_name, nom_temp, get_temperature(), latastep);
+    }
+
+  oss.str("");
+  oss << "TEMPERATURE_ADIMENSIONNELLE_THETA_" << lata_suffix << idx;
+  Nom nom_tempa(oss.str().c_str());
+  if ((liste_post_instantanes.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA")) || (liste_post_instantanes.contient_(nom_tempa)))
+    {
+      n++, dumplata_scalar(lata_name, nom_tempa, temperature_adimensionnelle_theta_, latastep);
     }
   oss.str("");
 

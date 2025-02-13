@@ -224,6 +224,10 @@ public:
   {
     return temperature_adim_bulles_;
   }
+  const IJK_Field_double& get_temperature_adim_theta() const
+  {
+    return temperature_adimensionnelle_theta_;
+  }
   const IJK_Field_vector3_double& get_gradient_temperature() const
   {
     return grad_T_ ;

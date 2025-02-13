@@ -805,7 +805,39 @@ void Navier_Stokes_FTD_IJK::projeter()
 
           copy_field_values(pressure_ghost_cells_, pressure_);
         }
+      else if (projection_initiale_demandee_)
+        {
+          Cerr << "*****************************************************************************\n"
+               << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
+               << "*****************************************************************************" << finl;
+
+          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
+          pressure_.data() = 0.;
+          pressure_rhs_.data() = 0.;
+        }
     }
+
+  // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
+  if (correction_semi_locale_volume_bulle_)
+    {
+      if (disable_solveur_poisson_)
+        {
+          Cerr << " Warning: Possible incoherence des mots-cles\n"
+               << " ===========================================\n"
+               << "\n"
+               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
+               << "Il est suspect d'utiliser cette option avec disable_solveur_poisson.\n" << finl;
+        }
+      if (!projection_initiale_demandee_)
+        {
+          Cerr << " Warning: Possible incoherence des mots-cles\n"
+               << " ===========================================\n"
+               << "\n"
+               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
+               << "Pour securite, il est recommande d'utiliser avec cette option une projection initiale du champ de vitesse, garantissant cette propriete [mot-cle : projection_initiale].\n" << finl;
+        }
+    }
+  Cerr << "End of initial velocity projection" << finl;
 }
 
 int Navier_Stokes_FTD_IJK::preparer_calcul()
@@ -834,40 +866,6 @@ int Navier_Stokes_FTD_IJK::preparer_calcul()
       if (probleme_ijk().get_post().get_liste_post_instantanes().contient_("EXTERNAL_FORCE"))
         for (int dir = 0; dir < 3; dir++)
           compute_add_external_forces(dir);
-    }
-
-  // Projection initiale sur div(u)=0, si demande: (attention, ne pas le faire en reprise)
-  if (correction_semi_locale_volume_bulle_)
-    {
-      if (disable_solveur_poisson_)
-        {
-          Cerr << " Warning: Possible incoherence des mots-cles\n"
-               << " ===========================================\n"
-               << "\n"
-               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
-               << "Il est suspect d'utiliser cette option avec disable_solveur_poisson.\n" << finl;
-        }
-      if (!projection_initiale_demandee_)
-        {
-          Cerr << " Warning: Possible incoherence des mots-cles\n"
-               << " ===========================================\n"
-               << "\n"
-               << "Avec correction_semi_locale_volume_bulle, la conservation du volume de la bulle repose entierement sur le fait que la divergence de la vitesse est numeriquement nulle en tout point.\n"
-               << "Pour securite, il est recommande d'utiliser avec cette option une projection initiale du champ de vitesse, garantissant cette propriete [mot-cle : projection_initiale].\n" << finl;
-        }
-    }
-  if (!disable_solveur_poisson_)
-    {
-      if (projection_initiale_demandee_)
-        {
-          Cerr << "*****************************************************************************\n"
-               << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
-               << "*****************************************************************************" << finl;
-
-          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
-          pressure_.data() = 0.;
-          pressure_rhs_.data() = 0.;
-        }
     }
 
   return 1;
