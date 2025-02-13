@@ -166,6 +166,7 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter("T0v_source", &T0v_);
   param.ajouter("fichier_reprise_temperature", &fichier_reprise_temperature_);
   param.ajouter("timestep_reprise_temperature", &timestep_reprise_temperature_);
+  param.ajouter("rank_reprise_temperature", &rank_reprise_temperature_);
   param.ajouter("latastep_reprise", &latastep_reprise_ini_);
   param.ajouter_flag("conv_temperature_negligible", &conv_temperature_negligible_); // X_D_ADD_P rien neglect temperature convection
   param.ajouter_flag("diff_temperature_negligible", &diff_temperature_negligible_); // X_D_ADD_P rien neglect temperature diffusion
@@ -484,7 +485,8 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     }
   else
     {
-      lire_temperature(splitting, idx);
+      if (rank_reprise_temperature_ ==-1) rank_reprise_temperature_ = rang_;
+      lire_temperature(splitting, rank_reprise_temperature_);
     }
 
   /*
@@ -797,6 +799,7 @@ Sortie& IJK_Thermal_base::printOn( Sortie& os ) const
    */
   os << front_space << "fichier_reprise_temperature" << end_space << basename(fichier_reprise_temperature_)  << escape;
   os << front_space << "timestep_reprise_temperature" << end_space << timestep_reprise_temperature_ << escape;
+  os << front_space << "rank_reprise_temperature" << end_space << rank_reprise_temperature_ << escape;
   os << front_space << "latastep_reprise" << end_space << latastep_reprise_ << escape;
 
   /*
@@ -1133,7 +1136,8 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
 {
   fichier_reprise_temperature_ = lata_name;
   timestep_reprise_temperature_ = 1;
-  dumplata_scalar(lata_name, Nom("TEMPERATURE_") + Nom(idx) , *temperature_, 0 /*we store a 0 */);
+  rank_reprise_temperature_ = 0;
+  dumplata_scalar(lata_name, Nom("TEMPERATURE_") + Nom(idx) , *temperature_, rank_reprise_temperature_);
   if (stop)
     latastep_reprise_ = latastep_reprise_ini_ + ref_ijk_ft_->schema_temps_ijk().get_tstep() + 1;
 }
@@ -1144,7 +1148,8 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
 
 void IJK_Thermal_base::lire_temperature(const Domaine_IJK& splitting, int idx)
 {
-  Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
+  Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_
+       << " from rank " << idx << finl;
   const Nom& geom_name = splitting.le_nom();
   lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
                  *temperature_); // fonction qui lit un champ a partir d'un lata .

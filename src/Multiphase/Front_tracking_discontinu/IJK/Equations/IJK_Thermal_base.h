@@ -609,6 +609,7 @@ protected:
    */
   Nom fichier_reprise_temperature_ = "??";
   int timestep_reprise_temperature_ = 1;
+  int rank_reprise_temperature_ = -1;
 
   /*
    * Source of temperature, wall heating,
