@@ -974,30 +974,37 @@ const IJK_Field_int& IJK_Thermal_base::get_eulerian_compo_connex_int_from_interf
 
 void IJK_Thermal_base::update_thermal_properties()
 {
-
-  if (single_phase_)
-    cp_vapour_ = 0.;
-
-  const double ene_ini = compute_global_energy();
-  const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
   const IJK_Field_double& temperature = *temperature_;
-
   // Nombre de mailles du domaine NS :
-  const int nx = indic.ni();
-  const int ny = indic.nj();
-  const int nz = indic.nk();
-  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
-  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
-  for (int k=0; k < nz ; k++)
-    for (int j=0; j< ny; j++)
-      for (int i=0; i < nx; i++)
-        {
-          double chi_l = indic(i,j,k);
-          if (rho_cp_post_)
-            rho_cp_(i,j,k) = rho_l*cp_liquid_*chi_l + rho_v*cp_vapour_*(1-chi_l);
-          if (calculate_local_energy_)
-            rho_cp_T_(i,j,k) = (rho_l*cp_liquid_*chi_l + rho_v*cp_vapour_*(1-chi_l))*temperature(i,j,k);
-        }
+  const int nx = temperature.ni();
+  const int ny = temperature.nj();
+  const int nz = temperature.nk();
+  const double rhocpl = get_rhocp_l();
+  const double ene_ini = compute_global_energy();
+  if (Option_IJK::DISABLE_DIPHASIQUE)
+    {
+      if (rho_cp_post_) rho_cp_.data()= rhocpl;
+      if (calculate_local_energy_)
+        for (int k=0; k < nz ; k++)
+          for (int j=0; j< ny; j++)
+            for (int i=0; i < nx; i++)
+              rho_cp_T_(i,j,k) = rhocpl*temperature(i,j,k);
+    }
+  else
+    {
+      const double rhocpv = get_rhocp_v();
+      const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
+      for (int k=0; k < nz ; k++)
+        for (int j=0; j< ny; j++)
+          for (int i=0; i < nx; i++)
+            {
+              double chi_l = indic(i,j,k);
+              if (rho_cp_post_)
+                rho_cp_(i,j,k) = rhocpl*chi_l + rhocpv*(1-chi_l);
+              if (calculate_local_energy_)
+                rho_cp_T_(i,j,k) = (rhocpl*chi_l + rhocpv*(1-chi_l))*temperature(i,j,k);
+            }
+    }
   if (rho_cp_post_)
     rho_cp_.echange_espace_virtuel(rho_cp_.ghost());
   if (calculate_local_energy_)
@@ -1020,7 +1027,7 @@ double IJK_Thermal_base::compute_timestep(const double timestep,
   double alpha_max;
   double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
   double rho_v= ref_ijk_ft_->milieu_ijk().get_rho_vapour();
-  if (single_phase_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     alpha_max = lambda_liquid_ / (rho_l * cp_liquid_);
   else
     alpha_max = std::max(lambda_liquid_ / (rho_l * cp_liquid_), lambda_vapour_ / (rho_v * cp_vapour_));
@@ -2388,12 +2395,12 @@ double IJK_Thermal_base::compute_global_energy(const IJK_Field_double& temperatu
 
 double IJK_Thermal_base::get_rhocp_l() const
 {
-  return ref_ijk_ft_->milieu_ijk().get_rho_liquid() * cp_liquid_;
+  return ref_ijk_ft_->milieu_ijk().get_rho_liquid()*ref_ijk_ft_->milieu_ijk().get_cp_liquid(0);
 }
 
 double IJK_Thermal_base::get_rhocp_v() const
 {
-  return ref_ijk_ft_->milieu_ijk().get_rho_vapour() * cp_vapour_;
+  return ref_ijk_ft_->milieu_ijk().get_rho_vapour() * ref_ijk_ft_->milieu_ijk().get_cp_vapour(0);
 }
 
 /*
