@@ -35,6 +35,7 @@ class Parcours_interface : public Objet_U
   Declare_instanciable_sans_constructeur(Parcours_interface);
 public:
   Parcours_interface();
+
   void associer_domaine_dis(const Domaine_dis_base& domaine_dis);
   void associer_connectivite_frontieres(const Connectivite_frontieres& connect);
   int calculer_face_sortie_element(const Domaine_VF& domaine_vf,
@@ -74,6 +75,7 @@ public:
                                   double& nx_, double& ny_, double& nz_) const;
 
 protected:
+  void update_erreur_coords_max();
   // Ceci est le point d'entree pour le parcours de l'interface.
   // Appel autorise uniquement a Maillage_FT_Disc::parcourir_maillage()
   void parcourir(Maillage_FT_Disc& maillage) const;

@@ -36,6 +36,9 @@ Entree& Parcours_interface::readOn(Entree& is)
   param.ajouter_flag("parcours_sans_tolerance", &parcours_sans_tolerance_);
   param.ajouter("Erreur_relative_maxi", &Erreur_relative_maxi_);
   param.lire_avec_accolades_depuis(is);
+
+  if (refdomaine_vf_.non_nul())
+    update_erreur_coords_max();
   return is;
 }
 
@@ -76,6 +79,13 @@ const Parcours_interface& Parcours_interface::operator=(const Parcours_interface
   return *this;
 }
 
+// Calcul de la valeur maximale des coordonnees du maillage fixe:
+void Parcours_interface::update_erreur_coords_max()
+{
+  const DoubleTab& coord_som = refdomaine_vf_->domaine().coord_sommets();
+  Valeur_max_coordonnees_ = mp_max_abs_vect(coord_som);
+  Erreur_max_coordonnees_ = Valeur_max_coordonnees_ * Erreur_relative_maxi_;
+}
 /*! @brief Remplissage des variables persistantes de la classe (refdomaine_vf_, nb_faces_elem_, nb_elements_reels_, type_element_,
  *
  *    equations_plans_faces_).
@@ -94,12 +104,7 @@ void Parcours_interface::associer_domaine_dis(const Domaine_dis_base& domaine_di
   domaine_elem_ptr = 0;
   domaine_sommets_ptr = 0;
 
-  // Calcul de la valeur maximale des coordonnees du maillage fixe:
-  {
-    const DoubleTab& coord_som = domaine_vf.domaine().coord_sommets();
-    Valeur_max_coordonnees_ = mp_max_abs_vect(coord_som);
-    Erreur_max_coordonnees_ = Valeur_max_coordonnees_ * Erreur_relative_maxi_;
-  }
+  update_erreur_coords_max();
 
   // Remplissage du tableau equations_plans_faces_
   {

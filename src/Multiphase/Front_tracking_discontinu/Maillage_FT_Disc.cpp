@@ -4048,7 +4048,10 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
                       {
                         Cerr << "Trouble when checking mesh in Maillage_FT_Disc::check_sommets." << finl;
                         Cerr << "FT sommet is not in element (according to precision set)." << finl;
-                        Cerr << "Contact TRUST support." << finl;
+                        Cerr << "*******************************************************************************************" << finl;
+                        Cerr << "  HINT ==> try to define the parameter Erreur_relative_maxi in the Parcours_interface bloc " << finl;
+                        Cerr << "    which should be defined the BEGING OF THE EQUATION bloc & before conditions_initiales. " << finl;
+                        Cerr << "*******************************************************************************************" << finl;
                         Process::exit();
                       }
                   }
