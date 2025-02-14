@@ -79,8 +79,6 @@ public :
 
   void check_stop_criteria(bool& stop) const;
 
-  const Nom& get_check_stop_file() const { return check_stop_file_; }
-
 protected:
   double dt_cfl_ = 1.e20, dt_fo_ = 1.e20, dt_oh_ = 1.e20, dt_fo_liq_ = 1.e20;
   double dt_fo_vap_ = 1.e20, dt_cfl_liq_ = 1.e20, dt_cfl_vap_ = 1.e20;
@@ -92,7 +90,7 @@ protected:
   int tstep_sauv_ = 0, tstep_init_ = 0, use_tstep_init_ = 0;
   int dt_sauvegarde_ = 2000000000;
 
-  Nom check_stop_file_; // Nom du fichier stop
+  Nom stop_file_; // Nom du fichier stop
 };
 
 #endif /* Schema_Temps_IJK_base_included */
