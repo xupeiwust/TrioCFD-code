@@ -261,7 +261,7 @@ protected:
 
   void creer_sommets_virtuels(const ArrOfInt& liste_sommets,
                               const ArrOfInt& liste_pe,
-                              const Schema_Comm_FT& comm);
+                              const Schema_Comm& comm);
 
   void creer_sommets_virtuels_numowner(const ArrOfInt& request_sommets_pe,
                                        const ArrOfInt& request_sommets_num);
@@ -325,7 +325,7 @@ protected:
 
   // Schema de communication permettant des echanges bidirectionnels avec
   // n'importe quel processeur voisin par un joint du maillage eulerien
-  Schema_Comm_FT schema_comm_domaine_;
+  Schema_Comm schema_comm_domaine_;
 
   // Cette variable indique l'etat de l'objet :
   // * RESET :   Maillage vide, non initialise.

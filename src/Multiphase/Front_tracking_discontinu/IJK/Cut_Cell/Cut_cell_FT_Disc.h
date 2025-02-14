@@ -157,7 +157,7 @@ protected:
   // Ce tableau semble pertinent pour acceder aux cellules diphasiques voisines.
   IJK_Field_int indice_diphasique_;
 
-  Schema_Comm_FT schema_comm_;
+  Schema_Comm schema_comm_;
   Desc_Structure_FT desc_;
 
   OBS_PTR(IJK_Interfaces) ref_interfaces_;

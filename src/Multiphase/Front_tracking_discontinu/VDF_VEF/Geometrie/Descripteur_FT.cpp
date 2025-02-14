@@ -754,13 +754,13 @@ void Desc_Structure_FT::calcul_schema_comm(const int nb_items_tot)
   status_md_ = OK;
 }
 
-const Schema_Comm_FT& Desc_Structure_FT::schema_comm() const
+const Schema_Comm& Desc_Structure_FT::schema_comm() const
 {
   assert(status_md_ == OK);
   return schema_comm_;
 }
 
-const Schema_Comm_FT& Desc_Structure_FT::schema_comm_inverse() const
+const Schema_Comm& Desc_Structure_FT::schema_comm_inverse() const
 {
   assert(status_md_ == OK);
   return schema_comm_inverse_;

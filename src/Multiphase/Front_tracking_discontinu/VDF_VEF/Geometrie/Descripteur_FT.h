@@ -29,7 +29,7 @@
 #define Descripteur_FT_included
 
 #include <Objet_U.h>
-#include <Schema_Comm_FT.h>
+#include <Schema_Comm.h>
 #include <TRUSTArrays.h>
 #include <MD_Vector.h>
 #include <MD_Vector_tools.h>
@@ -158,8 +158,8 @@ public:
 
   int check() const;
 
-  const Schema_Comm_FT& schema_comm() const;
-  const Schema_Comm_FT& schema_comm_inverse() const;
+  const Schema_Comm& schema_comm() const;
+  const Schema_Comm& schema_comm_inverse() const;
 
   const MD_Vector& get_md_vector() const;
 
@@ -179,8 +179,8 @@ protected:
   mutable DoubleVect tmp_doublevect_;
   mutable IntVect tmp_intvect_;
 
-  Schema_Comm_FT schema_comm_;
-  Schema_Comm_FT schema_comm_inverse_;
+  Schema_Comm schema_comm_;
+  Schema_Comm schema_comm_inverse_;
 };
 
 /*! @brief Renvoie la liste des PE pour lesquels la liste d'elements est non vide, dans l'ordre croissant des numeros de PE.

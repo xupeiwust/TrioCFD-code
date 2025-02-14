@@ -2808,7 +2808,7 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
 
   //on commence par recuperer le schema de communication
   //on prend le schema inverse du descripteur de sommets car
-  const Schema_Comm_FT& comm = maillage.desc_sommets_.schema_comm_inverse();
+  const Schema_Comm& comm = maillage.desc_sommets_.schema_comm_inverse();
   //initialise la communication
   comm.begin_comm();
 
@@ -3029,7 +3029,7 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
   // -un processeur proprietaire du sommet 0 saura qu'il devra recevoir des infos venant du proprietaire du sommet 1
   // -un processeur proprietaire du sommet 1 saura qu'il devra envoyer des infos au proprietaire du sommet 0
   iarete = 0;
-  static Schema_Comm_FT comm2;
+  static Schema_Comm comm2;
   {
     static ArrOfIntFT recv_pe_list;    // liste des pe qui recoivent des infos
     static ArrOfIntFT send_pe_list;    // liste des pe qui envoient des infos
@@ -3289,7 +3289,7 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
         drapeaux_sommets.resize_array(tmp);
         maillage.desc_sommets_.calcul_schema_comm(tmp);
         //creation des sommets virtuels dans les processeurs le necessitant
-        const Schema_Comm_FT& comm_ = maillage.desc_sommets().schema_comm();
+        const Schema_Comm& comm_ = maillage.desc_sommets().schema_comm();
         maillage.creer_sommets_virtuels(liste_sommets,liste_pe,comm_);
       }
   }
@@ -3298,7 +3298,7 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
   // PEs qui ont demande le test (ce sont les proprietaires des aretes,
   // chez qui les sommets sont virtuels). C'est donc le schema de comm direct:
   //  proprietaire du sommet envoie des donnees aux PEs qui ont des sommets virtuels.
-  const Schema_Comm_FT& comm_real_to_virt = maillage.desc_sommets_.schema_comm();
+  const Schema_Comm& comm_real_to_virt = maillage.desc_sommets_.schema_comm();
   comm_real_to_virt.begin_comm();
   //on va maintenant balayer les aretes pour stocker celles ne verifiant pas le test
   int peReq, test;

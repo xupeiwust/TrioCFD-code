@@ -17,13 +17,7 @@
 #define IJK_Surfactant_included
 
 #include <TRUST_Ref.h>
-//#include <IJK_Field_template.h>
-//#include <FT_Field.h>
-//#include <Operator_FT_Disc.h>
 
-
-/*! @brief : class IJK_Surfactant
- */
 
 class IJK_Surfactant
 {

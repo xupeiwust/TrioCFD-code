@@ -2365,7 +2365,7 @@ int Maillage_FT_Disc::copier_sommet_interne(int som)
  */
 void Maillage_FT_Disc::creer_sommets_virtuels(const ArrOfInt& liste_sommets,
                                               const ArrOfInt& liste_pe,
-                                              const Schema_Comm_FT& comm)
+                                              const Schema_Comm& comm)
 {
   if (Comm_Group::check_enabled()) check_sommets();
 
@@ -2502,7 +2502,7 @@ void Maillage_FT_Disc::creer_sommets_virtuels_numowner(const ArrOfInt& request_s
 
   // Envoi des requetes de creation de noeuds aux proprietaires des noeuds.
   {
-    Schema_Comm_FT schema;
+    Schema_Comm schema;
     schema.set_send_recv_pe_list(send_pe_list, recv_pe_list);
     schema.begin_comm();
     {
@@ -2697,7 +2697,7 @@ void Maillage_FT_Disc::echanger_sommets_PE(const ArrOfInt& liste_sommets,
     // et reel sur le destinataire : on prend le schema
     // "les procs ayant des sommets virtuels parlent aux procs ayant des sommets reels"
     // (on pourrait reduire cet ensemble).
-    const Schema_Comm_FT& comm = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_sommets_.schema_comm_inverse();
 
     comm.begin_comm();
     // Remplissage des buffers
@@ -2873,7 +2873,7 @@ void Maillage_FT_Disc::corriger_proprietaires_facettes()
   // le sommet 0 est virtuel pour moi et reel pour le proprietaire
   // de la facette).
   {
-    const Schema_Comm_FT& comm = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_sommets_.schema_comm_inverse();
     creer_facettes_virtuelles(liste_facettes, liste_PE,
                               comm.get_send_pe_list(),
                               comm.get_recv_pe_list());
@@ -2968,12 +2968,12 @@ void Maillage_FT_Disc::creer_facettes_virtuelles(const ArrOfInt& liste_facettes,
   send_pe_flags.resize_array(n_proc);
   send_pe_flags = 0;
 
-  static Schema_Comm_FT comm;
+  static Schema_Comm comm;
   {
     // Construction d'un schema de comm contenant a la fois les destinataires
     // des facettes (liste_facettes_pe) et les proprietaires des sommets
     // des facettes.
-    const Schema_Comm_FT& comm_sommets = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm_sommets = desc_sommets_.schema_comm_inverse();
     send_pe_list = comm_sommets.get_send_pe_list();
     append_array_to_array(send_pe_list, facettes_send_pe_list);
     array_trier_retirer_doublons(send_pe_list);
@@ -3106,7 +3106,7 @@ void Maillage_FT_Disc::creer_facettes_virtuelles(const ArrOfInt& liste_facettes,
   {
     // Construction du schema de comm. a partir de la liste des processeurs
     // a qui on envoie des donnees et de qui on recoit.
-    static Schema_Comm_FT comm2;
+    static Schema_Comm comm2;
     send_pe_list.resize_array(0);
     for (i = 0; i < n_proc; i++)
       if (send_pe_flags[i])
@@ -3246,7 +3246,7 @@ void Maillage_FT_Disc::echanger_facettes(const ArrOfInt& liste_facettes,
     // A et B sont voisins au sens des espaces distants/virtuels des facettes
     // (un processeur chez qui la facette est virtuelle envoie des donnees au
     //  processeur chez qui elle est reelle => schema_comm_inverse)
-    const Schema_Comm_FT& comm = desc_facettes_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_facettes_.schema_comm_inverse();
     comm.begin_comm();
     for (i = 0; i < nb_facettes_envoi; i++)
       {
@@ -3305,7 +3305,7 @@ void Maillage_FT_Disc::echanger_facettes(const ArrOfInt& liste_facettes,
     BtoC_recv_pe_flags = 0;
 
     // A et C sont voisins au sens du maillage eulerien
-    const Schema_Comm_FT& comm = schema_comm_domaine_;
+    const Schema_Comm& comm = schema_comm_domaine_;
     comm.begin_comm();
     for (i = 0; i < nb_facettes_envoi; i++)
       {
@@ -4429,7 +4429,7 @@ void Maillage_FT_Disc::nettoyer_maillage()
   // Le schema de comm a utiliser est "les proprietaires d'elements virtuels
   //  parlent aux proprietaires des elements reels" :
   {
-    const Schema_Comm_FT& comm = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_sommets_.schema_comm_inverse();
     comm.begin_comm();
     // Boucle sur les espaces virtuels de sommets
     {
@@ -4669,7 +4669,7 @@ void Maillage_FT_Disc::nettoyer_noeuds_virtuels_et_frontieres()
   // Le schema de comm a utiliser est "les proprietaires d'elements virtuels
   //  parlent aux proprietaires des elements reels" :
   {
-    const Schema_Comm_FT& comm = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_sommets_.schema_comm_inverse();
     comm.begin_comm();
     // Boucle sur les espaces virtuels de sommets
     {
@@ -4876,7 +4876,7 @@ void Maillage_FT_Disc::nettoyer_phase(const Nom& nom_eq, const int phase)
   // Le schema de comm a utiliser est "les proprietaires d'elements virtuels
   //  parlent aux proprietaires des elements reels" :
   {
-    const Schema_Comm_FT& comm = desc_sommets_.schema_comm_inverse();
+    const Schema_Comm& comm = desc_sommets_.schema_comm_inverse();
     comm.begin_comm();
     // Boucle sur les espaces virtuels de sommets
     {

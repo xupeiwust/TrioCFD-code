@@ -567,7 +567,7 @@ void Sauvegarde_Reprise_Maillage_FT::lire_xyz(Maillage_FT_Disc& mesh,
     // Creer les sommets virtuels
     reverse_send_recv_pe_list(send_list, recv_list);
     // TEMPORAIRE:
-    Schema_Comm_FT sch;
+    Schema_Comm sch;
     sch.set_send_recv_pe_list(send_list, recv_list);
     mesh.creer_sommets_virtuels(liste_sommets_to_send, liste_pe_to_send, sch);
   }
