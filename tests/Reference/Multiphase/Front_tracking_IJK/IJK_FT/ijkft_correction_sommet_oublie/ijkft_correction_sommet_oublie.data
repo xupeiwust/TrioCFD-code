@@ -21,7 +21,6 @@ lire sch {
     timestep 5.4e-5
     timestep_facsec 0.4
     nb_pas_dt_max 2 #  12000 #
-        check_stop_file stop.txt
     dt_sauvegarde 30 # Pour avoir le dt juste avant le bug #
 }
 
@@ -37,7 +36,7 @@ lire pb
   SOLVED_EQUATIONS
   {
     Navier_Stokes_FTD_IJK hydraulique
-    ijk_interfaces interfaces
+    ijk_interfaces interf
   }
 
   Fluide_Diphasique_IJK
@@ -62,44 +61,43 @@ lire pb
 
   hydraulique
   {
-    Boundary_Conditions {
-                    bctype_kmin Paroi
-                    bctype_kmax Paroi
-      }
+        Boundary_Conditions 
+        {
+          bctype_kmin Paroi
+          bctype_kmax Paroi
+        }
 
 
-    multigrid_solver {
-      solver_precision mixed
-      coarsen_operators 3
-        Coarsen_Operator_Uniform { coarsen_i 1 coarsen_j 1 coarsen_k 2 }
-        Coarsen_Operator_Uniform { coarsen_i 2 coarsen_j 2 coarsen_k 2 }
-        Coarsen_Operator_Uniform {  }   
-      ghost_size 1
-      pre_smooth_steps 1 7
-      smooth_steps 1 7
-      relax_jacobi 1 0.7
-      solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 } }
-      seuil 1e-8
-      nb_full_mg_steps 2 20 1
+        multigrid_solver 
+        {
+          solver_precision mixed
+          coarsen_operators 3
+            Coarsen_Operator_Uniform { coarsen_i 1 coarsen_j 1 coarsen_k 2 }
+            Coarsen_Operator_Uniform { coarsen_i 2 coarsen_j 2 coarsen_k 2 }
+            Coarsen_Operator_Uniform {  }   
+          ghost_size 1
+          pre_smooth_steps 1 7
+          smooth_steps 1 7
+          relax_jacobi 1 0.7
+          solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 } }
+          seuil 1e-8
+          nb_full_mg_steps 2 20 1
 
-    }
-    # vitesse_entree 0.01 #
-    # terme_force_init   A*(0.06-v_moy)-B*force  #
-    # terme_force_init   0.48*(0.063585-v_moy)-0.06*force #
-    expression_derivee_force 0.48*(0.063585-v_moyen)-0.06*force
+        }
+        # vitesse_entree 0.01 #
+        # terme_force_init   A*(0.06-v_moy)-B*force  #
+        # terme_force_init   0.48*(0.063585-v_moy)-0.06*force #
+        expression_derivee_force 0.48*(0.063585-v_moyen)-0.06*force
 
-        # REPRISE du champ de vitesse :
-   expression_vx_init 0.005
-   expression_vy_init 0.06
-   expression_vz_init 0.
-   #
-
-
+      # REPRISE du champ de vitesse :
+       expression_vx_init 0.005
+       expression_vy_init 0.06
+       expression_vz_init 0.
+       #
   }
 
-      # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-    interfaces
-    {
+  interf
+  {
       compute_distance_autres_interfaces 
       # Soit un fichier genere externe #
       # Choix1
@@ -113,21 +111,20 @@ lire pb
       timestep_reprise_interface       1
       lata_meshname   INTERFACES
       # FinChoix2 #
-      remaillage_ft_ijk {
+      remaillage_ft_ijk 
+      {
           nb_iter_barycentrage 1
           relax_barycentrage 1
           nb_iter_correction_volume 6
           lissage_courbure_iterations_systematique 0
       }
 
-    }
-    # FIN AJOUT #
+  }
 
   {
-
     dt_post 1 # 100 #
     champs_a_postraiter 1 tous
-
+    
     # Pour Creer le fichier de Reprise #
     nom_sauvegarde bidon.repr
 

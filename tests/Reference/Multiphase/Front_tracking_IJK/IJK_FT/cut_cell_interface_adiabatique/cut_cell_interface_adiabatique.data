@@ -41,7 +41,6 @@ lire sch
   oh  1
   nb_pas_dt_max 999999999
   max_simu_time 0.02
-  check_stop_file stop.txt
       dt_sauvegarde 2000
 }
 

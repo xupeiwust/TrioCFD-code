@@ -38,7 +38,6 @@ lire sch
   timestep_facsec 1.0
   nb_pas_dt_max 3
   dt_sauvegarde 50
-  check_stop_file stop.txt
 }
 
 IJK dis
@@ -157,7 +156,7 @@ lire pb
 
     nom_sauvegarde diph_swarm.sauv
     sauvegarder_xyz
-  }
+	}
 }
 solve pb
 Fin

@@ -41,7 +41,6 @@ lire sch
   oh  1
   nb_pas_dt_max 999999999
   max_simu_time 0.02
-  check_stop_file stop.txt
   dt_sauvegarde 2000
 }
 
@@ -72,17 +71,17 @@ lire pb
     # Give a number for each phase #
     fluide0 Fluide_Incompressible # gaz #
     {
-        mu  Champ_Uniforme 1 2.303e-05
-        rho Champ_Uniforme 1 101.93
-        lambda Champ_Uniforme 1 0.0221
-        cp Champ_Uniforme 1 2478.0
+      mu  Champ_Uniforme 1 2.303e-05
+      rho Champ_Uniforme 1 101.93
+      lambda Champ_Uniforme 1 0.0221
+      cp Champ_Uniforme 1 2478.0
     }
     fluide1 Fluide_Incompressible # liquid #
     {
-        mu  Champ_Uniforme 1 6.8237e-05
-        rho Champ_Uniforme 1 594.38
-        lambda Champ_Uniforme 1 0.6898760700000001
-        cp Champ_Uniforme 1 10110.0
+      mu  Champ_Uniforme 1 6.8237e-05
+      rho Champ_Uniforme 1 594.38
+      lambda Champ_Uniforme 1 0.6898760700000001
+      cp Champ_Uniforme 1 10110.0
     }
     # Surface tension #
     sigma   Champ_Uniforme 1 0.
@@ -183,5 +182,4 @@ lire pb
   }
 }
 solve pb
-
 Fin
