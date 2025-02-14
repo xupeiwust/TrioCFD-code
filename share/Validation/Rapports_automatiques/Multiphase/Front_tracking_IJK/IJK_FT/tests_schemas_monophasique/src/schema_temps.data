@@ -42,7 +42,6 @@ IJK_FT_double
   champs_a_postraiter 6 PRESSURE VELOCITY COORDS VELOCITY_ANA ECART_ANA
   			D_VELOCITY      # DU_DT #
   # postraiter_sous_pas_de_temps #
-  check_stop_file stop.txt
   dt_sauvegarde 3000
   nb_pas_dt_max 32
   

@@ -35,7 +35,6 @@ IJK_FT_double
         bctype_kmax Perio
   }
   champs_a_postraiter 7 TEMPERATURE INTERFACES VELOCITY INDICATRICE INTERFACE_TEMPERATURE INTERFACE_PHIN COURBURE 
-  check_stop_file stop.txt
 
   dt_sauvegarde 25
   tinit 0

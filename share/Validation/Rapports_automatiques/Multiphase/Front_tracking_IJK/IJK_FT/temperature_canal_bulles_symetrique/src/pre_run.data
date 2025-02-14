@@ -39,7 +39,6 @@ IJK_FT_double
   disable_solveur_poisson
 
   champs_a_postraiter 8 INTERFACES INDICATRICE COMPO_CONNEXE COURBURE DISTANCE_AUTRES_INTERFACES REPULSION_FT PRESSURE VELOCITY_FT
-  check_stop_file stop.txt
      dt_sauvegarde 1
   tinit 100
      nb_pas_dt_max 1

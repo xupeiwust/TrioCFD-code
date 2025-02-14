@@ -40,7 +40,6 @@ IJK_FT_double
   oh  1.0
   t_debut_statistiques 0.
   champs_a_postraiter 7 INTERFACES COURBURE TEMPERATURE TEMPERATURE_ANA ECART_T_ANA DIV_LAMBDA_GRAD_T_VOLUME PRESSURE_LIQ
-  check_stop_file stop.txt
   dt_sauvegarde 3000
   tinit 0
   nb_pas_dt_max 100

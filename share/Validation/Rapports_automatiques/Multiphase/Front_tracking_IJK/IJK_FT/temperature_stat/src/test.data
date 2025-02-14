@@ -41,7 +41,6 @@ IJK_FT_double
   #  maximum time = 0.012641488699082916 tel qu'en 2D (cos(x)*cos(y)) l'amplitude ait decru de moitie #
   t_debut_statistiques 0.
   champs_a_postraiter 7 INTERFACES COURBURE TEMPERATURE TEMPERATURE_ANA ECART_T_ANA DIV_LAMBDA_GRAD_T_VOLUME PRESSURE_LIQ
-  check_stop_file stop.txt
   dt_sauvegarde 3000
   tinit 0
   nb_pas_dt_max 100

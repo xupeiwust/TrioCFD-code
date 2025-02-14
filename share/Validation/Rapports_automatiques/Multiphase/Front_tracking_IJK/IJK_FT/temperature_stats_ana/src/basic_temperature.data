@@ -37,7 +37,6 @@ IJK_FT_double
             bctype_kmax Perio
   }
   champs_a_postraiter 4 TEMPERATURE INTERFACES COMPO_CONNEXE VELOCITY 
-  check_stop_file stop.txt
   dt_sauvegarde 1
   tinit 0
   nb_pas_dt_max 3 

@@ -40,7 +40,6 @@ IJK_FT_double
   disable_solveur_poisson
 
   champs_a_postraiter 5 TEMPERATURE SOURCE_TEMPERATURE VELOCITY TEMPERATURE_ADIMENSIONNELLE_THETA div_lambda_grad_T_volume
-  check_stop_file stop.txt
   dt_sauvegarde 3000
   tinit 0
   nb_pas_dt_max 7000

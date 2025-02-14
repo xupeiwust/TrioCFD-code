@@ -46,7 +46,6 @@ IJK_FT_double
   t_debut_statistiques 0.0
 
   champs_a_postraiter 1 VELOCITY 
-  check_stop_file stop.txt
   dt_sauvegarde 1
   nb_pas_dt_max 1
   

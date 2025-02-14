@@ -29,7 +29,6 @@ IJK_FT_double
   timestep_facsec 0.4
   dt_post 1
   champs_a_postraiter 1 tous
-  check_stop_file stop.txt
   dt_sauvegarde 500
   nb_pas_dt_max 24
   Boundary_Conditions {

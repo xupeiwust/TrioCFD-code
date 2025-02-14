@@ -37,7 +37,6 @@ IJK_FT_double
   # champs_a_postraiter 1 tous #
   champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE
                         VELOCITY_FT COLOR_Y
-  check_stop_file stop.txt
   dt_sauvegarde 200
   nb_pas_dt_max 450  
   

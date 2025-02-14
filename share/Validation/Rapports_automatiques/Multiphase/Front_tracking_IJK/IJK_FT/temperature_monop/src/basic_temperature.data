@@ -38,7 +38,6 @@ IJK_FT_double
   }
   # champs_a_postraiter 1 tous #
   champs_a_postraiter 1 TEMPERATURE # INTERFACES COMPO_CONNEXE VELOCITY_FT #
-  check_stop_file stop.txt
   dt_sauvegarde 200
   tinit 0
   nb_pas_dt_max 170

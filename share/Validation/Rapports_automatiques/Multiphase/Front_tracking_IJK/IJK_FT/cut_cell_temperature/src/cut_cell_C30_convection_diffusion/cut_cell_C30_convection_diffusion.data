@@ -37,7 +37,6 @@ IJK_FT_cut_cell
 
   champs_a_postraiter 3 INDICATRICE TEMPERATURE DIV_LAMBDA_GRAD_T_VOLUME
 
-  check_stop_file stop.txt
   dt_sauvegarde 2000
   nb_pas_dt_max 999999999
   max_simu_time 1.

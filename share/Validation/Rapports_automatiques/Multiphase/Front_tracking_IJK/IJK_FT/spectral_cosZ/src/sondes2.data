@@ -43,7 +43,6 @@ IJK_FT_double
   # ECART_ANA provoque l'impression de la norme L2 dans cerr  #
   champs_a_postraiter 5 CELL_VELOCITY PRESSURE_RHS PRESSURE VELOCITY_FT D_VELOCITY 
 			
-  check_stop_file stop.txt
   dt_sauvegarde 10
   t_debut_statistiques 0.0
   multigrid_solver {

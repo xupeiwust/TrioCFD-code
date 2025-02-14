@@ -37,7 +37,6 @@ IJK_FT_double
   }
   # champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE VELOCITY INDICATRICE #
   champs_a_postraiter 3 INTERFACES COURBURE VELOCITY 
-  check_stop_file stop.txt
   dt_sauvegarde 1
   sauvegarder_xyz
   tinit 0

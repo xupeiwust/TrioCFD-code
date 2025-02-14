@@ -37,7 +37,6 @@ IJK_FT_double
   champs_a_postraiter 9 TEMPERATURE INTERFACES INDICATRICE COMPO_CONNEXE COURBURE
                         DISTANCE_AUTRES_INTERFACES REPULSION_FT
 			PRESSURE VELOCITY_FT 
-  check_stop_file stop.txt
      dt_sauvegarde 459
   
   multigrid_solver {

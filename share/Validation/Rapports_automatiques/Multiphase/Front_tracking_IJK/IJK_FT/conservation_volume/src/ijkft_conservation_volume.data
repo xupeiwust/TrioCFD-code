@@ -35,7 +35,6 @@ IJK_FT_double
 
   dt_post 5
   champs_a_postraiter 5 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE MU
-  check_stop_file stop.txt
   dt_sauvegarde 1000
   nb_pas_dt_max 50
   

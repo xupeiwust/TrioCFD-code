@@ -33,7 +33,6 @@ IJK_problem_double
 
   dt_post 100
   champs_a_postraiter 1 tous
-  check_stop_file stop.txt
 
   dt_sauvegarde 1000
   nb_pas_dt_max 50000

@@ -34,7 +34,6 @@ IJK_FT_double
   timestep_facsec 0.4
   dt_post 50
   champs_a_postraiter 1 tous
-  check_stop_file stop.txt
   dt_sauvegarde 1000
   nb_pas_dt_max 600
   # tinit #

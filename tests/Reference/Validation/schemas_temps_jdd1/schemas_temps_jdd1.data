@@ -45,7 +45,6 @@ IJK_FT_double
   champs_a_postraiter 9 PRESSURE_RHS PRESSURE VELOCITY_FT D_VELOCITY VARIABLE_SOURCE ECART_ANA VELOCITY_ANA
 			PRESSURE_ANA ECART_P_ANA			
 			
-  check_stop_file stop.txt
   dt_sauvegarde 10
   
   multigrid_solver {

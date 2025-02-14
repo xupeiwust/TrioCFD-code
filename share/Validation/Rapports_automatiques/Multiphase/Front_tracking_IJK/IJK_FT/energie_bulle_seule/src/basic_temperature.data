@@ -38,7 +38,6 @@ IJK_FT_double
     bctype_kmax Perio
   }
   champs_a_postraiter 8 TEMPERATURE INTERFACES VELOCITY INDICATRICE INTERFACE_TEMPERATURE INTERFACE_PHIN SURFACE_VAPEUR_PAR_FACE COMPO_CONNEXE
-  check_stop_file stop.txt
 
   dt_sauvegarde 1000000
   tinit 0

@@ -43,7 +43,6 @@ IJK_FT_double
   disable_solveur_poisson
 
   champs_a_postraiter 3 TEMPERATURE TEMPERATURE_ANA ECART_T_ANA
-  check_stop_file stop.txt
   dt_sauvegarde 3000
   tinit 0
 	nb_pas_dt_max 3

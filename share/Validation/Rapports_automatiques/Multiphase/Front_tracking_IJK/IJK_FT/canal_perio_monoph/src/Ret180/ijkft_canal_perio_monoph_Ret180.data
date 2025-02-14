@@ -40,7 +40,6 @@ IJK_FT_double
   dt_post_stats_plans 50
   t_debut_statistiques 0.0
   champs_a_postraiter 2 PRESSURE VELOCITY
-  check_stop_file stop.txt
   dt_sauvegarde 1000
   nb_pas_dt_max 2000   # 600000 #
   

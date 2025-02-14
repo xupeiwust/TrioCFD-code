@@ -23,7 +23,6 @@ lire sch
   timestep 0.9e-4
   timestep_facsec 1
   nb_pas_dt_max 200
-  check_stop_file stop.txt
   dt_sauvegarde 5000
 }
 

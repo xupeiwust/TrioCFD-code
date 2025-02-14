@@ -58,7 +58,6 @@ IJK_FT_double
 #  t_debut_statistiques 0.0 #
 #   champs_a_postraiter 9 LAMBDA2 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES PRESSURE_LIQ PRESSURE_VAP #
   champs_a_postraiter 5 COMPO_CONNEXE INDICATRICE VELOCITY COURBURE INTERFACES
-  check_stop_file stop.txt
   dt_sauvegarde 100
   tinit 0
   nb_pas_dt_max 600

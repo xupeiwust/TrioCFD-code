@@ -44,7 +44,6 @@ IJK_FT_double
   timestep_facsec 0.1
   dt_post 10 # 60 # 
   champs_a_postraiter 9 INTERFACES COMPO_CONNEXE MU COURBURE VELOCITY TEMPERATURE INDICATRICE T_RUST DIV_RHO_CP_T_V
-  check_stop_file stop.txt
   dt_sauvegarde 10000
   nb_pas_dt_max 400 # 480 #
   
