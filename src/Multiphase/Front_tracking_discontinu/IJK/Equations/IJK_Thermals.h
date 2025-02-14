@@ -166,7 +166,6 @@ protected :
   Nom local_quantities_thermal_lines_time_index_folder_;
   int ini_folder_out_files_ = 0;
 
-  bool is_diphasique_=false;
   std::vector<int> lata_step_reprise_ini_, lata_step_reprise_;
 };
 

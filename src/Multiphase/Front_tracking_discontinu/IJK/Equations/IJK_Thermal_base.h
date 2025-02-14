@@ -592,7 +592,6 @@ protected:
   double dt_fo_ = 1.e20;
   double fo_ = 1.; // Fourier number
   double cp_liquid_ = -123., cp_vapour_ = -123., lambda_liquid_ = -123., lambda_vapour_ = -123.;
-  int single_phase_ = 1.;
   double uniform_lambda_ = 0.;
   double uniform_alpha_ = 0.;
   double prandtl_number_ = 0.;

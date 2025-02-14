@@ -306,7 +306,7 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
    * the operator is initialised with uniform_lambda & centre2
    * in Operateur_IJK_elem_diff
    */
-  if (single_phase_)
+  if (Option_IJK::DISABLE_DIPHASIQUE)
     temperature_diffusion_op_.typer_diffusion_op("uniform");
   else
     temperature_diffusion_op_.typer_diffusion_op("standard");

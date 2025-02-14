@@ -29,7 +29,6 @@ Implemente_instanciable_sans_constructeur( IJK_Thermal_Onefluid, "IJK_Thermal_On
 
 IJK_Thermal_Onefluid::IJK_Thermal_Onefluid()
 {
-  single_phase_=0;
   lambda_moy_arith_=0;
   type_temperature_convection_form_ = 0;  // Default value: 0 : non conservative
   conserv_energy_global_=0;
