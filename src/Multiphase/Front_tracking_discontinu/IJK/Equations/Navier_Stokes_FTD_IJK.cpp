@@ -14,10 +14,12 @@
 *****************************************************************************/
 
 #include <Navier_Stokes_FTD_IJK_tools.h>
+#include <Schema_Euler_explicite_IJK.h>
 #include <Probleme_FTD_IJK_tools.h>
 #include <Navier_Stokes_FTD_IJK.h>
 #include <Probleme_FTD_IJK_base.h>
 #include <Fluide_Diphasique_IJK.h>
+#include <Schema_RK3_IJK.h>
 #include <Option_IJK.h>
 #include <Param.h>
 

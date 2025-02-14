@@ -74,6 +74,10 @@ static void FixedVector_to_DoubleTab(const FixedVector<ArrOfDouble,3> fixed_arr,
       tab(l,c) = fixed_arr[c](l);
 }
 
+void IJK_Interfaces::set_param_reprise_pb(Param& param)
+{
+  param.ajouter("interfaces", &(probleme_ijk().get_interface())); // on lit dans l'eq les params reprise
+}
 
 /*! Output the FT mesh information in the master LATA file.
  *

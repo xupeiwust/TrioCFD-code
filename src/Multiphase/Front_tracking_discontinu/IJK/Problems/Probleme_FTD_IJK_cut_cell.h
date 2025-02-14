@@ -17,8 +17,8 @@
 #define Probleme_FTD_IJK_cut_cell_included
 
 #include <Probleme_FTD_IJK_base.h>
-#include <Cut_cell_FT_Disc.h>
 #include <Facettes_Interp_FT.h>
+#include <Cut_cell_FT_Disc.h>
 
 class Probleme_FTD_IJK_cut_cell : public Probleme_FTD_IJK_base
 {

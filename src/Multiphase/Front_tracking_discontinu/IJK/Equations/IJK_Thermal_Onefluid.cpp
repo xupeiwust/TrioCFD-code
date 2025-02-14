@@ -19,10 +19,11 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+#include <IJK_Navier_Stokes_tools.h>
 #include <IJK_Thermal_Onefluid.h>
 #include <Probleme_FTD_IJK.h>
+#include <Schema_RK3_IJK.h>
 #include <DebogIJK.h>
-#include <IJK_Navier_Stokes_tools.h>
 
 Implemente_instanciable_sans_constructeur( IJK_Thermal_Onefluid, "IJK_Thermal_Onefluid", IJK_Thermal_base ) ;
 

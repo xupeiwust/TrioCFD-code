@@ -16,34 +16,14 @@
 #ifndef Probleme_FTD_IJK_base_included
 #define Probleme_FTD_IJK_base_included
 
-#include <IJK_Field_vector.h>
-#include <IJK_Field.h>
-#include <Domaine_IJK.h>
-#include <Operateur_IJK_faces_diff.h>
-#include <Operateur_IJK_faces_conv.h>
-#include <Multigrille_Adrien.h>
-#include <Interprete.h>
-#include <Linear_algebra_tools.h>
-#include <Boundary_Conditions.h>
-#include <IJK_Interfaces.h>
-#include <Intersection_Interface_ijk.h>
-#include <Redistribute_Field.h>
-#include <Parser.h>
-#include <IJK_FT_Post.h>
-#include <Cut_cell_FT_Disc.h>
-#include <init_forcage_THI.h>
-#include <corrections_qdm.h>
-#include <Force_sp.h>
-#include <TRUST_List.h>
-#include <IJK_Thermals.h>
-#include <TRUST_Ref.h>
-#include <Objet_U.h>
-#include <Cut_cell_surface_efficace.h>
-#include <Probleme_FT_Disc_gen.h>
 #include <Fluide_Diphasique_IJK.h>
-#include <Schema_Euler_explicite_IJK.h>
-#include <Schema_RK3_IJK.h>
+#include <Schema_Temps_IJK_base.h>
 #include <Navier_Stokes_FTD_IJK.h>
+#include <Probleme_FT_Disc_gen.h>
+#include <IJK_Interfaces.h>
+#include <IJK_Thermals.h>
+#include <Domaine_IJK.h>
+#include <IJK_FT_Post.h>
 
 class Domaine_IJK;
 

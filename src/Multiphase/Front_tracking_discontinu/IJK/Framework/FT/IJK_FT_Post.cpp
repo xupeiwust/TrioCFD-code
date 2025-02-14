@@ -13,28 +13,17 @@
  *
  *****************************************************************************/
 
-#include <Param.h>
-#include <IJK_Field_vector.h>
-#include <EFichier.h>
-#include <SFichier.h>
-#include <IJK_FT_Post.h>
-#include <Probleme_FTD_IJK_base.h>
-#include <IJK_Lata_writer.h>
+#include <Schema_Euler_explicite_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
-#include <Domaine_IJK.h>
-#include <Process.h>    // Process::Journal()
-#include <stat_counters.h>
-#include <Cut_cell_FT_Disc.h>
-#include <Probleme_FTD_IJK_cut_cell.h>
-#include <sstream>
-#include <IJK_Thermals.h>
+#include <Probleme_FTD_IJK_base.h>
 #include <IJK_Thermal_cut_cell.h>
+#include <IJK_Field_vector.h>
+#include <IJK_Lata_writer.h>
+#include <Schema_RK3_IJK.h>
+#include <IJK_FT_Post.h>
+#include <Domaine_IJK.h>
 #include <Option_IJK.h>
-#include <Navier_Stokes_FTD_IJK.h>
 
-/*
- * Take as main parameter reference to FT to be able to use its members.
- */
 IJK_FT_Post::IJK_FT_Post()
 {
   groups_statistiques_FT_.dimensionner(0);

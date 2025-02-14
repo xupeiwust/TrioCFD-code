@@ -13,19 +13,20 @@
 *
 *****************************************************************************/
 
+#include <Schema_Euler_explicite_IJK.h>
+#include <IJK_Ghost_Fluid_tools.h>
+#include <Corrige_flux_FT_base.h>
 #include <IJK_Thermal_base.h>
 #include <IJK_Field_vector.h>
-#include <Param.h>
-#include <stat_counters.h>
-#include <DebogIJK.h>
-#include <Corrige_flux_FT_base.h>
 #include <Probleme_FTD_IJK.h>
-#include <IJK_FT_Post.h>
-#include <IJK_switch_FT.h>
-#include <IJK_Ghost_Fluid_tools.h>
 #include <IJK_Bubble_tools.h>
-#include <Option_IJK.h>
 #include <Cut_cell_tools.h>
+#include <Schema_RK3_IJK.h>
+#include <IJK_switch_FT.h>
+#include <IJK_FT_Post.h>
+#include <Option_IJK.h>
+#include <DebogIJK.h>
+#include <Param.h>
 
 Implemente_base_sans_constructeur( IJK_Thermal_base, "IJK_Thermal_base", Objet_U ) ;
 

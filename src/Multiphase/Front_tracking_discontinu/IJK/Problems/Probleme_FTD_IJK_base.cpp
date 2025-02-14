@@ -14,6 +14,7 @@
 *****************************************************************************/
 
 #include <Navier_Stokes_FTD_IJK_tools.h>
+#include <Schema_Euler_explicite_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EcritureLectureSpecial.h>
 #include <Probleme_FTD_IJK_tools.h>
@@ -29,6 +30,7 @@
 #include <corrections_qdm.h>
 #include <communications.h>
 #include <Ouvrir_fichier.h>
+#include <Schema_RK3_IJK.h>
 #include <Init_spectral.h>
 #include <Probleme_base.h>
 #include <Domaine_IJK.h>
@@ -82,7 +84,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
       is >> getset_equation_by_name(motlu);
     }
 
-  /* 3 : les restes va changer plus tard */
+  /* 3 : le reste va changer plus tard */
   Param param(que_suis_je());
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
   set_param(param);
@@ -347,12 +349,12 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 
   // TODO : FIXME : faut boucler plus tard sur les equations IJK
   Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
+  IJK_Interfaces& interf = get_interface();
 
   Param param(que_suis_je());
   ns.set_param_reprise_pb(param);
   schema_temps_ijk().set_param_reprise_pb(param);
-
-  param.ajouter("interfaces", &get_interface()); // on lit dans l'eq les params reprise
+  interf.set_param_reprise_pb(param);
 
   post_.reprendre_post(param);
 
@@ -368,7 +370,7 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 
   Nom prefix = dirname(fichier_reprise);
 
-  get_interface().set_fichier_reprise_interface(prefix);
+  interf.set_fichier_reprise_interface(prefix);
 
   if (has_thermals_)
     get_ijk_thermals().set_fichier_reprise(prefix + get_ijk_thermals().get_fichier_reprise());
@@ -390,7 +392,6 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
 
   // L'indicatrice non-perturbee est remplie (si besoin, cad si post-traitement) par le post.complete()
   post_.complete(reprise_);
-
 
   /*
    * Thermal problems

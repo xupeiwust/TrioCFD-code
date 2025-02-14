@@ -13,8 +13,10 @@
 *
 *****************************************************************************/
 
+#include <Schema_Euler_explicite_IJK.h>
 #include <Probleme_FTD_IJK_cut_cell.h>
 #include <Navier_Stokes_FTD_IJK.h>
+#include <Schema_RK3_IJK.h>
 #include <Cut_cell_tools.h>
 
 Implemente_instanciable(Probleme_FTD_IJK_cut_cell, "Probleme_FTD_IJK_cut_cell", Probleme_FTD_IJK_base);
@@ -43,6 +45,10 @@ Entree& Probleme_FTD_IJK_cut_cell::readOn(Entree& is)
 void Probleme_FTD_IJK_cut_cell::set_param(Param& param)
 {
   Probleme_FTD_IJK_base::set_param(param);
+
+  /*
+   * TODO FIXME : All these should be placed in the equations set_param ....
+   */
 
   param.ajouter("seuil_indicatrice_petite_fixe", &seuil_indicatrice_petite_fixe_);
   param.ajouter("seuil_indicatrice_petite_facsec", &seuil_indicatrice_petite_facsec_);
