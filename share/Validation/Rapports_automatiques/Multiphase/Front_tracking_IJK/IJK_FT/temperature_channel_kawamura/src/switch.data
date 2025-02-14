@@ -1,0 +1,34 @@
+dimension 3
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 192 96 96
+  size_dom 0.031415926535897934 0.015707963267948967 0.01
+  perio 1 1 0
+  nproc 3 3 1
+  ijk_splitting_ft_extension 0
+}
+
+option_ijk { disable_diphasique }
+
+Domaine_IJK DOM_NEW
+Lire DOM_NEW
+{
+  nbelem 192 96 576
+  size_dom 0.031415926535897934 0.015707963267948967 0.01
+  perio 1 1 0
+  nproc 3 3 1
+  ijk_splitting_ft_extension 0
+}
+
+# CAS refine -> on va de DOM -> DOM_NEW #
+switch_ft_double
+{
+   direct_write 0
+   old_ijk_splitting_ft_extension 0
+   old_ijk_splitting DOM
+   new_ijk_splitting DOM_NEW
+   nom_reprise    very_coarse.sauv
+   nom_sauvegarde monop_coarse.sauv
+}
+Fin
