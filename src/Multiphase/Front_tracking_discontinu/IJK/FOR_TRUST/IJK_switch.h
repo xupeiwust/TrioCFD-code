@@ -61,8 +61,6 @@ protected:
                                                      DoubleTab& coeff_k, IntTab Indice_k) = 0;
 
   // overriden in FT - to be brought here at some point once merge with thermic BC is done ...
-  virtual int init_thermique()  { return 0; };
-  virtual void prepare_thermique(const Nom lata_name) {};
   virtual int init_thermals()  { return 0; };
   virtual void prepare_thermals(const Nom lata_name) {};
 

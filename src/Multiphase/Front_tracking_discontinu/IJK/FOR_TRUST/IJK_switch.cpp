@@ -484,7 +484,6 @@ int Switch_double::allocate_fields(double& sz_arr)
   old_velocity_[2].data() = 0 ;
   int nb_allocated_arrays = 6; // it's a mix of old and new!
 
-  nb_allocated_arrays += init_thermique();
   nb_allocated_arrays += init_thermals();
 
   sz_arr = old_velocity_[0].data().size_array();
@@ -565,7 +564,7 @@ void Switch_double::run()
   // old_rho_.echange_espace_virtuel(1/*, IJK_Field_double::EXCHANGE_GET_AT_RIGHT_K*/);
 
   Nom lata_name = nom_sauvegarde_ + Nom(".lata");
-  prepare_thermique(lata_name);
+  prepare_thermals(lata_name);
 
   // force les conditions de bords
   // remplir_gost(); -> I don't understand the use of this method

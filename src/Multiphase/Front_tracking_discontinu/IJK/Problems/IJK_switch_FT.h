@@ -44,13 +44,11 @@ public:
 protected:
   // Override from base class:
   void initialise() override;
-  int init_thermique() override;
   int init_thermals() override;
   void prepare_run() override;
   void set_param(Param& param) override;
   void ecrire_fichier_reprise(const char *fichier_sauvegarde, const bool and_lata=true) override;
   void set_param_reprise(Param& param) override;
-  void prepare_thermique(const Nom lata_name) override;
   void prepare_thermals(const Nom lata_name) override;
   void ecrire_header_lata(const Nom lata_name) override; // const;
   void compute_and_write_extra_fields(const Nom& lata_name, DoubleTab& coeff_i, IntTab Indice_i, 

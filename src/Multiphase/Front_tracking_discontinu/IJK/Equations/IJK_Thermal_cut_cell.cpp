@@ -746,11 +746,12 @@ void IJK_Thermal_cut_cell::print_Tmin_Tmax_cut_cell(const Cut_field_double& cut_
     }
 }
 
-void IJK_Thermal_cut_cell::lire_temperature(const Domaine_IJK& geom, int idx)
+void IJK_Thermal_cut_cell::lire_temperature(const Domaine_IJK& geom)
 {
+  if (rank_reprise_temperature_ ==-1) rank_reprise_temperature_ = rang_;
   Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_ << finl;
   const Nom& geom_name = geom.le_nom();
-  lire_dans_lata_cut_cell(true, fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
+  lire_dans_lata_cut_cell(true, fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(rank_reprise_temperature_),
                           temperature_); // fonction qui lit un champ a partir d'un lata .
   temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
 }

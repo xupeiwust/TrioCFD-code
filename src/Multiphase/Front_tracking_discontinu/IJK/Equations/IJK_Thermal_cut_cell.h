@@ -181,7 +181,7 @@ public :
 protected :
   friend class IJK_FT_Post;
 
-  void lire_temperature(const Domaine_IJK& splitting, int idx) override;
+  void lire_temperature(const Domaine_IJK& splitting) override;
 
   void compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature, ArrOfDouble& flux_normal_interp) override;
 

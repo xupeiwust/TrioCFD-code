@@ -287,7 +287,7 @@ int IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int 
     }
   else
     {
-      lire_temperature(splitting, idx);
+      lire_temperature(splitting);
     }
   return nalloc;
 }
@@ -485,8 +485,7 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     }
   else
     {
-      if (rank_reprise_temperature_ ==-1) rank_reprise_temperature_ = rang_;
-      lire_temperature(splitting, rank_reprise_temperature_);
+      lire_temperature(splitting);
     }
 
   /*
@@ -1153,12 +1152,13 @@ void IJK_Thermal_base::sauvegarder_temperature(Nom& lata_name, int idx, const in
  * Protected methods
  ********************************************/
 
-void IJK_Thermal_base::lire_temperature(const Domaine_IJK& splitting, int idx)
+void IJK_Thermal_base::lire_temperature(const Domaine_IJK& splitting)
 {
+  if (rank_reprise_temperature_ ==-1) rank_reprise_temperature_ = rang_;
   Cout << "Reading initial temperature field T" << rang_ << " from file " << fichier_reprise_temperature_ << " timestep= " << timestep_reprise_temperature_
-       << " from rank " << idx << finl;
+       << " from rank " << rank_reprise_temperature_ << finl;
   const Nom& geom_name = splitting.le_nom();
-  lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(idx),
+  lire_dans_lata(fichier_reprise_temperature_, timestep_reprise_temperature_, geom_name, Nom("TEMPERATURE_") + Nom(rank_reprise_temperature_),
                  *temperature_); // fonction qui lit un champ a partir d'un lata .
   temperature_->echange_espace_virtuel(temperature_->ghost()); // It is essential to fill the EV because the first call to convection needs them.
 }

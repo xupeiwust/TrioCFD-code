@@ -494,7 +494,7 @@ protected:
   void compute_min_cell_delta();
   void compute_cell_diagonal(const Domaine_IJK& splitting);
 
-  virtual void lire_temperature(const Domaine_IJK& splitting, int idx);
+  virtual void lire_temperature(const Domaine_IJK& splitting);
 
   void calculer_dT(const IJK_Field_vector3_double& velocity);
   virtual void post_process_after_temperature_increment();
