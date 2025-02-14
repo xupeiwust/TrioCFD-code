@@ -811,7 +811,16 @@ void Navier_Stokes_FTD_IJK::projeter()
                << "  Attention : projection du champ de vitesse initial sur div(u)=0\n"
                << "*****************************************************************************" << finl;
 
-          pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
+          if (!Option_IJK::DISABLE_DIPHASIQUE)
+            {
+              if (use_inv_rho_in_poisson_solver_)
+                pressure_projection_with_inv_rho(inv_rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
+              else
+                pressure_projection_with_rho(rho_field_, velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
+            }
+          else
+            pressure_projection(velocity_[0], velocity_[1], velocity_[2], pressure_, 1., pressure_rhs_, poisson_solver_);
+
           pressure_.data() = 0.;
           pressure_rhs_.data() = 0.;
         }
