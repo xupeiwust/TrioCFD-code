@@ -1,58 +1,106 @@
 # PARALLEL ONLY 8 #
-IJK_Grid_Geometry DOM_IJK
+dimension 3
+Probleme_FTD_IJK pb
 
+Domaine_IJK DOM_IJK
 Lire DOM_IJK
 {
-  nbelem_i 64
-  nbelem_j 64
-  nbelem_k 32
-  origin_i -0.2
-  origin_j -0.2
-  origin_k 0.
-  uniform_domain_size_i 0.4
-  uniform_domain_size_j 0.4
-  uniform_domain_size_k 0.2
-  perio_i
-  perio_j
-}
-
-IJK_Splitting grid_splitting
-Lire grid_splitting
-{
-  ijk_grid_geometry DOM_IJK
-  nproc_i $proc_i
-  nproc_j $proc_j
-  nproc_k $proc_k
-}
-
-IJK_FT_double
-{
-  ijk_splitting grid_splitting
+  nbelem 64 64 32
+  origin -0.2 -0.2 0
+  size_dom 0.4 0.4 0.2
+  perio 1 1 0
+  # DEBUT MAILLAGE #
+  nproc $proc_i $proc_j $proc_k
+  # FIN MAILLAGE #
+  # DEBUT LECTURE
+  nproc $proc_i $proc_j $proc_k
+  FIN LECTURE #
   ijk_splitting_ft_extension 15
+}
+
+Schema_RK3_IJK sch
+lire sch
+{    
+  tinit 0.0
   timestep 1.0e-9
-  # time_scheme RK3_FT #
+  timestep_facsec 1
+  nb_pas_dt_max 1
+  dt_sauvegarde 1
+}
+
+
+option_ijk { check_divergence }
+IJK dis
+
+associer sch pb
+associer DOM_IJK pb
+Discretize pb dis
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
+  }
+
+  Fluide_Diphasique_IJK
+  { 
+  
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1e-3
+        rho Champ_Uniforme 1 1000.
+    }
+    fluide1 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1e-3
+        rho Champ_Uniforme 1 1000.
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.0008 
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 0. 
+  }
+
+  hydraulique
+  {
+    
    Boundary_Conditions {
                 bctype_kmin Paroi
                 bctype_kmax Paroi
   }
-  # champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE VELOCITY INDICATRICE #
-  champs_a_postraiter 3 INTERFACES COURBURE VELOCITY 
-  dt_sauvegarde 1
-  sauvegarder_xyz
-  tinit 0
-  nb_pas_dt_max 1
+  
   
   multigrid_solver { }
   disable_solveur_poisson
   disable_diffusion_qdm
   disable_convection_qdm
+  
+  # le champ fourni n'est pas a divu=0 #
+  expression_vx_init 0.2*sin(y*15.707963267949)+31./15.707963267949*cos(z*31.4159265358979)*sin(x*15.707963267949)
+  expression_vy_init -0.2*sin(x*15.707963267949)
+  expression_vz_init 31./31.4159265358979*sin(z*31.4159265358979)*cos(x*15.707963267949)
+
+  
+
+	}
+
   # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-  interfaces 
+  interf 
   {
-    fichier_reprise_interface init.lata
-    timestep_reprise_interface       1
-    lata_meshname   FTMESH
-    remaillage_ft_ijk {
+     /* Boundary_Conditions 
+      {
+        bctype_kmin Paroi
+        bctype_kmax Paroi
+      } */
+   terme_gravite rho_g
+   fichier_reprise_interface init.lata
+   timestep_reprise_interface       1
+   lata_meshname   FTMESH
+     remaillage_ft_ijk {
                    pas_remaillage 1e-8
                    # pas_lissage -1e-8 #
                    nb_iter_remaillage 1
@@ -63,26 +111,17 @@ IJK_FT_double
                    facteur_longueur_ideale 2.
                    nb_iter_correction_volume 0
     }
-# DEBUT REMAILL
-    remaillage_ft_ijk {
-        nb_iter_barycentrage 1
-        relax_barycentrage 1
-        nb_iter_correction_volume 6
-        lissage_courbure_iterations_systematique 0
-    }
-FIN REMAILL #
   }
-  # check_divergence #
-  gravite 3 0. 0. 0. 
-  rho_liquide 1000
-  mu_liquide 1e-3
-  # Initialisation du tourbillon periodisee ... #
-  # pi*2/0.4 = 15.707963267949 #
-  # pi*2/0.2 = 31.4159265358979 #
-  # le champ fourni n'est pas a divu=0 #
-  expression_vx_init 0.2*sin(y*15.707963267949)+31./15.707963267949*cos(z*31.4159265358979)*sin(x*15.707963267949)
-  expression_vy_init -0.2*sin(x*15.707963267949)
-  expression_vz_init 31./31.4159265358979*sin(z*31.4159265358979)*cos(x*15.707963267949)
+
+  {
+  dt_post 1
+  # champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE VELOCITY INDICATRICE #
+  champs_a_postraiter 3 INTERFACES COURBURE VELOCITY 
+  sauvegarder_xyz
+  }
+
 
 }
+solve pb
 Fin
+
