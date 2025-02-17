@@ -12,6 +12,9 @@ EOF
 
 ./cree_multi_bulles.sh deplacements.txt init.lata
 
+mkdir -p PREV
+mkdir -p NEXT
+mkdir -p lata
 
 # deforme la bulle pour l'incliner :
 # ./cree_multi_bulles.sh deplacements.txt init_incl.lata
@@ -29,9 +32,13 @@ EOF
 
 # Lisse le maillage init.lata
 echo -n "Preparation du maillage initial par un lissage..."
-trust prepare.data 1> prepare.out 2> prepare.err 
+trust prepare.data 1> prepare.out 2> prepare.err || exit -1
 echo "done!"
 # Lancement de la sauvegarde
 echo -n "Lancement du calcul et sauvegarde dans PREV..."
-trust sauve 1>sauve.out 2>sauve.err || exit -1
+trust sauve.data 1>sauve.out 2>sauve.err || exit -1
 echo "done!"
+
+#mv sauve.lata* PREV/
+#cp PREV/BASE.sauv.lata PREV/sauve.lata
+#cp sauve.lata PREV/sauve.lata

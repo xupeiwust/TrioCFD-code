@@ -44,8 +44,6 @@ associer sch pb
 associer DOM pb
 Discretize pb dis
 
-system "mkdir -p NEXT"
-system "mkdir -p lata"
 
 Option_IJK
 {
@@ -58,8 +56,8 @@ lire pb
 {
   SOLVED_EQUATIONS
   {
-    ijk_interfaces interf
     Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
   }
 
   Fluide_Diphasique_IJK
@@ -152,16 +150,10 @@ lire pb
   {
     dt_post 10
     champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE
+    nom_reprise    PREV/BASE.sauv
+    nom_sauvegarde NEXT/BASE.sauv
   }
 
-  Sondes
-	{
-		sonde_pression nodes pression periode 2.e-3 Points 2 0.005 0.005 0.005 0.009 0.009 0.009
-	}
-
-  # check_divergence #
-  nom_reprise    PREV/BASE.sauv
-  nom_sauvegarde NEXT/BASE.sauv
 }
 solve pb
 Fin

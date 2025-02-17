@@ -53,8 +53,8 @@ lire pb
 {
   SOLVED_EQUATIONS
   {
-    ijk_interfaces interf
     Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
   }
 
   Fluide_Diphasique_IJK
@@ -135,8 +135,7 @@ lire pb
 
   {
     dt_post 1
-    champs_a_postraiter 2 INTERFACES COURBURE
-    nom_sauvegarde PREV/BASE.sauv
+    champs_a_postraiter 3 INTERFACES COURBURE COMPO_CONNEXE
   }
 }
 solve pb

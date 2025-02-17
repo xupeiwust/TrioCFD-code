@@ -16,7 +16,7 @@ Lire DOM
 {
   nbelem 64 64 64
   size_dom 0.010666666666666666 0.010666666666666666 0.010666666666666666
-  perio 1 1 1
+  perio 1 1 0
   # DEBUT MAILLAGE #
   nproc 1 1 1
   # FIN MAILLAGE #
@@ -34,8 +34,8 @@ lire sch
   # timestep 0.0005 #
   timestep 0.00025
   timestep_facsec 0.4
-  nb_pas_dt_max 10
-  dt_sauvegarde 10
+  nb_pas_dt_max 5
+  dt_sauvegarde 5
 }
 
 IJK dis
@@ -130,7 +130,7 @@ lire pb
   {
     fichier_reprise_interface prepare.sauv.lata
     timestep_reprise_interface       1
-    lata_meshname   FTMESH
+    lata_meshname   INTERFACES
 
     # remaillage_ft_ijk
     {
@@ -149,7 +149,7 @@ lire pb
   }
 
   {
-    dt_post 10
+    dt_post 1
     champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE
     nom_sauvegarde PREV/BASE.sauv
   }
@@ -157,7 +157,3 @@ lire pb
 solve pb
 Fin
 
-	Sondes
-	{
-		sonde_pression nodes pression periode 2.e-3 Points 2 0.005 0.005 0.005 0.009 0.009 0.009
-	}
