@@ -252,7 +252,7 @@ const Probleme_FTD_IJK_base& Navier_Stokes_FTD_IJK::probleme_ijk() const
 
 bool Navier_Stokes_FTD_IJK::has_IJK_field(const Nom& nom) const
 {
-  if (nom.contient("VELOCITY_") || nom== "PRESSURE")
+  if (nom.contient("VELOCITY_") || nom== "PRESSURE" || nom== "PRESSION")
     return true;
   else
     return false;
@@ -283,7 +283,7 @@ const IJK_Field_double& Navier_Stokes_FTD_IJK::get_IJK_field(const Nom& nom) con
     return d_velocity_[1];
   if (nom== "D_VELOCITY_Z")
     return d_velocity_[2];
-  if (nom== "PRESSURE")
+  if (nom== "PRESSURE" || nom== "PRESSION")
     return pressure_;
 
   Cerr << "Erreur dans Navier_Stokes_FTD_IJK::get_IJK_field : " << finl;
@@ -3724,7 +3724,7 @@ void Navier_Stokes_FTD_IJK::deplacer_interfaces(const double timestep, const int
     }
 }
 
-void Navier_Stokes_FTD_IJK::sauvegarder_equation(SFichier& fichier) const
+void Navier_Stokes_FTD_IJK::sauvegarder_equation(const Nom& lataname, SFichier& fichier) const
 {
   fichier << " tinit " << schema_temps_ijk().get_current_time() << "\n"
           << " terme_acceleration_init " << terme_source_acceleration_ << "\n"
@@ -3733,7 +3733,7 @@ void Navier_Stokes_FTD_IJK::sauvegarder_equation(SFichier& fichier) const
           //       etre dans un jdd. Ces mots doivent se trouver uniquement dans des fichiers sauv.
           << " reprise_vap_velocity_tmoy " << vap_velocity_tmoy_ << "\n"
           << " reprise_liq_velocity_tmoy " << liq_velocity_tmoy_ << "\n"
-          << " fichier_reprise_vitesse " << basename(probleme_ijk().get_lata_name()) << "\n";
+          << " fichier_reprise_vitesse " << basename(lataname) << "\n";
   fichier << " timestep_reprise_vitesse 1" << "\n";
   if (probleme_ijk().has_interface())
     fichier     << " interfaces " << interfaces_.valeur()  << "\n";

@@ -197,7 +197,7 @@ public:
   void calculer_vitesse_ft();
   void update_indicatrice_variables_monofluides();
 
-  void sauvegarder_equation(SFichier& ) const;
+  void sauvegarder_equation(const Nom&, SFichier& ) const;
 
   void set_fichier_reprise_vitesse(const Nom& prefix) { fichier_reprise_vitesse_ = prefix + fichier_reprise_vitesse_; }
 

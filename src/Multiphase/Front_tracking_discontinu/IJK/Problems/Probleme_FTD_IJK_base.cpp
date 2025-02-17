@@ -327,7 +327,7 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
       if (schema_temps_ijk().get_use_tstep_init())
         fichier << " tstep_init " << (schema_temps_ijk().get_tstep() + schema_temps_ijk().get_tstep_init() + 1) << "\n";
 
-      ns.sauvegarder_equation(fichier);
+      ns.sauvegarder_equation(lata_name, fichier);
 
       /*
        * Thermals problems
