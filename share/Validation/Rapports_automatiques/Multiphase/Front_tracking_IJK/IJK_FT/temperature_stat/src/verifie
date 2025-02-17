@@ -1,6 +1,6 @@
 #!/bin/bash
-lata=`ls *_jdd[0-9].lata 2>/dev/null`
-tar xzf ref.tgz
-compare_lata $lata  ref/$lata
+
+${TrioCFD_project_directory}/share/bin/verifie_lata.sh $1
+
 exit $?
 

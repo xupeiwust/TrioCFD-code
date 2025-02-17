@@ -1,9 +1,11 @@
 #!/bin/bash
 tar xzf init.tgz
 sed -e "1i# PARALLEL ONLY 2 #" \
-    -e "s/nproc_k 1/nproc_k 2/" \
+    -e "s/nproc 1 1 1/nproc 1 1 2/" \
     test.data > test_par2.data
 sed -e "1i# PARALLEL ONLY 2 #" \
-    -e  "s/nproc_k 1/nproc_k 2/" \
+    -e "s/nproc 1 1 1/nproc 1 1 2/" \
     -e "s/nom_reprise test.sauv/nom_reprise test_par2.sauv/" \
     reprise.data > reprise_par2.data
+
+
