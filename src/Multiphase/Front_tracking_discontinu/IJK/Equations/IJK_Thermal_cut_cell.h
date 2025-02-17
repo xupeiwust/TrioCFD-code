@@ -179,7 +179,7 @@ public :
   }
 
 protected :
-  friend class IJK_FT_Post;
+  friend class Postprocessing_IJK;
 
   void lire_temperature(const Domaine_IJK& splitting) override;
 

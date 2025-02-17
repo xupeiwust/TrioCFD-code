@@ -40,7 +40,7 @@ class Navier_Stokes_FTD_IJK: public Equation_base
   Declare_instanciable_sans_constructeur(Navier_Stokes_FTD_IJK);
 public:
 
-  friend class IJK_FT_Post;
+  friend class Postprocessing_IJK;
   friend class Statistiques_dns_ijk_FT;
 
   Navier_Stokes_FTD_IJK();

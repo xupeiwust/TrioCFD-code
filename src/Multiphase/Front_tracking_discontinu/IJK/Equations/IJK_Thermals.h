@@ -60,7 +60,7 @@ public :
 
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise();
-  void associer_post(const IJK_FT_Post& ijk_ft_post);
+  void associer_post(const Postprocessing_IJK& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   bool has_IJK_field(const Nom& nom) const;
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
@@ -144,7 +144,7 @@ protected :
   LIST(OWN_PTR(IJK_Thermal_base)) liste_thermique_;
   OBS_PTR(Milieu_base) le_fluide_;
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
-  OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
+  OBS_PTR(Postprocessing_IJK) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   OBS_PTR(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;

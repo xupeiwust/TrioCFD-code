@@ -12,12 +12,7 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : Statistiques_dns_ijk_FT.cpp
-// Directory : $IJK_ROOT/src
-//
-/////////////////////////////////////////////////////////////////////////////
+
 #include <Statistiques_dns_ijk_FT.h>
 #include <IJK_Field_vector.h>
 #include <Domaine_IJK.h>
@@ -982,11 +977,11 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_vector3_double& force_interfaces=ns.terme_source_interfaces_ft_;
   const IJK_Field_vector3_double& repulsion_interfaces=ns.terme_repulsion_interfaces_ft_;
   // ---
-  IJK_Field_double& extended_pressure_liq= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pl_: ns.pressure_;
-  IJK_Field_double& extended_pressure_vap= (cas.post_.extended_pressure_computed_) ? cas.post_.extended_pv_: ns.pressure_;
+  IJK_Field_double& extended_pressure_liq= (cas.get_post().extended_pressure_computed_) ? cas.get_post().extended_pl_: ns.pressure_;
+  IJK_Field_double& extended_pressure_vap= (cas.get_post().extended_pressure_computed_) ? cas.get_post().extended_pv_: ns.pressure_;
   IJK_Field_double& pression=ns.pressure_;
   const IJK_Field_double& indicatrice=cas.get_interface().I();
-  IJK_Field_vector3_double& gradP=cas.post_.grad_P_;
+  IJK_Field_vector3_double& gradP=cas.get_post().grad_P_;
 
   // Nombre total de mailles en K
   const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
@@ -1011,27 +1006,27 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   zeros.allocate(imax, jmax, kmax, 1 /* ghost pour le grad */, 1. /* additional_layers */, 3 /*nb compo*/);
   //allocate_velocity()
 
-  IJK_Field_vector3_double& gradI=cas.post_.grad_I_ns_;
+  IJK_Field_vector3_double& gradI=cas.get_post().grad_I_ns_;
   IJK_Field_vector3_double& sourceI=ns.terme_source_interfaces_ns_;
   IJK_Field_vector3_double& repuls=ns.terme_repulsion_interfaces_ns_;
   IJK_Field_vector3_double& absrepuls=ns.terme_abs_repulsion_interfaces_ns_;
-  IJK_Field_double& field_ai=cas.post_.ai_ns_;
-  IJK_Field_double& field_kappa_ai=cas.post_.kappa_ai_ns_;
-  IJK_Field_vector3_double& normale_cell=cas.post_.normale_cell_ns_;
-  IJK_Field_double& field_dudx=cas.post_.dudx_ ;
-  IJK_Field_double& field_dvdy=cas.post_.dvdy_ ;
-  IJK_Field_double& field_dwdx=cas.post_.dwdx_ ;
-  IJK_Field_double& field_dudz=cas.post_.dudz_ ;
-  IJK_Field_double& field_dvdz=cas.post_.dvdz_ ;
-  IJK_Field_double& field_dwdz=cas.post_.dwdz_ ;
-  const Motcles& liste_post_instantanes = ref_ijk_ft_->post_.get_liste_post_instantanes();
-  IJK_Field_vector3_double& rot=cas.post_.rot_ ;
-  IJK_Field_double& critere_Q=cas.post_.critere_Q_;
+  IJK_Field_double& field_ai=cas.get_post().ai_ns_;
+  IJK_Field_double& field_kappa_ai=cas.get_post().kappa_ai_ns_;
+  IJK_Field_vector3_double& normale_cell=cas.get_post().normale_cell_ns_;
+  IJK_Field_double& field_dudx=cas.get_post().dudx_ ;
+  IJK_Field_double& field_dvdy=cas.get_post().dvdy_ ;
+  IJK_Field_double& field_dwdx=cas.get_post().dwdx_ ;
+  IJK_Field_double& field_dudz=cas.get_post().dudz_ ;
+  IJK_Field_double& field_dvdz=cas.get_post().dvdz_ ;
+  IJK_Field_double& field_dwdz=cas.get_post().dwdz_ ;
+  const Motcles& liste_post_instantanes = ref_ijk_ft_->get_post().get_liste_post_instantanes();
+  IJK_Field_vector3_double& rot=cas.get_post().rot_ ;
+  IJK_Field_double& critere_Q=cas.get_post().critere_Q_;
 
   double coef_immobilisation_=ns.coef_immobilisation_;
-  IJK_Field_double& indicatrice_np=cas.post_.indicatrice_non_perturbe_;
-  IJK_Field_vector3_double& integral_vitesse=cas.post_.integrated_velocity_;
-  IJK_Field_double& integral_pression=cas.post_.integrated_pressure_;
+  IJK_Field_double& indicatrice_np=cas.get_post().indicatrice_non_perturbe_;
+  IJK_Field_vector3_double& integral_vitesse=cas.get_post().integrated_velocity_;
+  IJK_Field_double& integral_pression=cas.get_post().integrated_pressure_;
   IJK_Field_vector3_double force_rappel=ns.force_rappel_;
   double p_seuil_max = ns.p_seuil_max_;
   double p_seuil_min = ns.p_seuil_min_;

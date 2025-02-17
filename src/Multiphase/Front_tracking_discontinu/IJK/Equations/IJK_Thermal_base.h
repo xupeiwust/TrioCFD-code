@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_base.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Thermal_base_included
 #define IJK_Thermal_base_included
@@ -37,7 +31,6 @@
 #include <Ouvrir_fichier.h>
 #include <Corrige_flux_FT_base.h>
 #include <TRUST_Ref.h>
-#include <IJK_FT_Post.h>
 #include <IJK_Ghost_Fluid_Fields.h>
 #include <IJK_One_Dimensional_Subproblems_Interfaces_Fields.h>
 #include <Fluide_Diphasique_IJK.h>
@@ -46,6 +39,7 @@
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 class IJK_Interfaces;
+class Postprocessing_IJK;
 
 class IJK_Thermal_base : public Objet_U
 {
@@ -71,7 +65,7 @@ public:
   void set_fichier_reprise(const char *lataname);
   const Nom& get_fichier_reprise() const { return fichier_reprise_temperature_; }
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
-  void associer_post(const IJK_FT_Post& ijk_ft_post);
+  void associer_post(const Postprocessing_IJK& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face);
@@ -579,7 +573,7 @@ protected:
   IJK_Field_double RK3_F_rustine_; // Temporary storage for substeps in the RK3 algorithm for the rustine calculation.
 
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
-  OBS_PTR(IJK_FT_Post) ref_ijk_ft_post_;
+  OBS_PTR(Postprocessing_IJK) ref_ijk_ft_post_;
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   OBS_PTR(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;

@@ -23,7 +23,7 @@
 #include <IJK_Interfaces.h>
 #include <IJK_Thermals.h>
 #include <Domaine_IJK.h>
-#include <IJK_FT_Post.h>
+#include <Postprocessing_IJK.h>
 
 class Domaine_IJK;
 
@@ -34,7 +34,7 @@ public :
   // We take too much advantage of it ...:
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
-  friend class IJK_FT_Post;
+  friend class Postprocessing_IJK;
 
   int associer_(Objet_U&) override;
 
@@ -103,10 +103,11 @@ public :
 
   int get_thermal_probes_ghost_cells() const { return thermal_probes_ghost_cells_; }
 
-  double t_debut_statistiques() const { return post_.t_debut_statistiques(); }
+  double t_debut_statistiques() const { return get_post().t_debut_statistiques(); }
   int get_reprise() const { return reprise_; }
-  const IJK_FT_Post& get_post() const { return post_; }
-  IJK_FT_Post& get_post() { return post_; }
+
+  const Postprocessing_IJK& get_post() const { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
+  Postprocessing_IJK& get_post() { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
 
   ArrOfDouble_with_ghost& get_delta_z_local() { return delta_z_local_; }
   const ArrOfDouble_with_ghost& get_delta_z_local() const { return delta_z_local_; }
@@ -209,7 +210,6 @@ protected:
   Nom lata_name_;
   bool stop_ = false;
 
-  IJK_FT_Post post_;
   Nom fichier_post_, nom_sauvegarde_, nom_reprise_;
   int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
   int reprise_ = 0;// flag pour indiquer si on fait une reprise

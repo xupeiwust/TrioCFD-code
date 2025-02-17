@@ -13,6 +13,7 @@
  *
  *****************************************************************************/
 
+#include <Postprocessing_IJK.h>
 #include <Schema_Euler_explicite_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <Probleme_FTD_IJK_base.h>
@@ -20,16 +21,24 @@
 #include <IJK_Field_vector.h>
 #include <IJK_Lata_writer.h>
 #include <Schema_RK3_IJK.h>
-#include <IJK_FT_Post.h>
 #include <Domaine_IJK.h>
 #include <Option_IJK.h>
 
-IJK_FT_Post::IJK_FT_Post()
+Implemente_instanciable_sans_constructeur(Postprocessing_IJK, "Postprocessing_IJK", Postraitement_ft_lata);
+
+Postprocessing_IJK::Postprocessing_IJK()
 {
   groups_statistiques_FT_.dimensionner(0);
 }
 
-void IJK_FT_Post::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
+Sortie& Postprocessing_IJK::printOn(Sortie& os) const { return os; }
+
+Entree& Postprocessing_IJK::readOn(Entree& is)
+{
+  return Postraitement_base::readOn(is);
+}
+
+void Postprocessing_IJK::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   statistiques_FT_.associer_probleme(ijk_ft);
@@ -47,22 +56,27 @@ void IJK_FT_Post::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
     thermals_ = ref_ijk_ft_->get_ijk_thermals();
 }
 
-void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
+void Postprocessing_IJK::set_param(Param& param)
 {
-  param.ajouter_flag("check_stats", &check_stats_);
+  Postraitement_ft_lata::set_param(param);
+
   param.ajouter("dt_post", &dt_post_);
   param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
   param.ajouter("dt_post_stats_bulles", &dt_post_stats_bulles_);
   param.ajouter("dt_post_stats_plans", &dt_post_stats_plans_);
   param.ajouter("dt_post_stats_cisaillement", &dt_post_stats_cisaillement_);
   param.ajouter("dt_post_stats_rmf", &dt_post_stats_rmf_);
+
   param.ajouter("time_interval_post", &time_interval_post_);
   param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
   param.ajouter("time_interval_post_stats_bulles", &time_interval_post_stats_bulles_);
   param.ajouter("time_interval_post_stats_plans", &time_interval_post_stats_plans_);
   param.ajouter("time_interval_post_stats_cisaillement", &time_interval_post_stats_cisaillement_);
   param.ajouter("time_interval_post_stats_rmf", &time_interval_post_stats_rmf_);
+
   param.ajouter("champs_a_postraiter", &liste_post_instantanes_);
+
+  param.ajouter_flag("check_stats", &check_stats_);
   param.ajouter_flag("postraiter_sous_pas_de_temps", &postraiter_sous_pas_de_temps_);
   // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
   param.ajouter_flag("post_par_paires", &post_par_paires_);
@@ -136,14 +150,14 @@ void IJK_FT_Post::complete_interpreter(Param& param, Entree& is)
   param.ajouter("Sondes", &les_sondes_);
 }
 
-void IJK_FT_Post::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
+void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
 {
   domaine_ijk_ = dom_ijk;
   domaine_ft_ = dom_ft;
 }
 
 
-int IJK_FT_Post::initialise(int reprise)
+int Postprocessing_IJK::initialise(int reprise)
 {
   int nalloc = 0;
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
@@ -313,7 +327,7 @@ int IJK_FT_Post::initialise(int reprise)
   return nalloc;
 }
 
-void IJK_FT_Post::complete(int reprise)
+void Postprocessing_IJK::fill_indic(int reprise)
 {
   // Meme if que pour l'allocation.
   // On ne fait le calcul/remplissage du champ que dans un deuxieme temps car on
@@ -325,7 +339,7 @@ void IJK_FT_Post::complete(int reprise)
     }
 }
 
-int IJK_FT_Post::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
+int Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
 {
   cout << "Initialisation des statistiques. T_debut_statistiques=" << t_debut_statistiques_ << endl;
   int nalloc = statistiques_FT_.initialize(ref_ijk_ft_, splitting, check_stats_);
@@ -349,7 +363,7 @@ int IJK_FT_Post::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulle
   return nalloc;
 }
 
-void IJK_FT_Post::init_indicatrice_non_perturbe()
+void Postprocessing_IJK::init_indicatrice_non_perturbe()
 {
   // Est-il deja rempli et stocke?
   // Si on n'est pas en reprise de calcul, le fichier "fichier_reprise_indicatrice_non_perturbe_" est forcement a "??"
@@ -394,7 +408,7 @@ static void interpolate_to_center(IJK_Field_vector3_double& cell_center_field, c
 //
 
 // GAB
-void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double current_time, int time_iteration)
+void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, double current_time, int time_iteration)
 {
   statistiques().begin_count(postraitement_counter_);
 
@@ -565,7 +579,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
           Cerr << " " << err;
           if (!Process::je_suis_maitre())
             {
-              Process::Journal() << "IJK_FT_Post::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
+              Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
             }
         }
       Cerr << finl;
@@ -625,7 +639,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
       Cerr << " " << err;
       if (!Process::je_suis_maitre())
         {
-          Process::Journal() << "IJK_FT_Post::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_P_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
+          Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_P_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
         }
       ecart_p_ana_.echange_espace_virtuel(ecart_p_ana_.ghost());
       Cerr << finl;
@@ -656,7 +670,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
             Cerr << " " << err;
             if (!Process::je_suis_maitre())
               {
-                Process::Journal() << "IJK_FT_Post::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
+                Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
               }
           }
         Cerr << finl;
@@ -940,7 +954,7 @@ void IJK_FT_Post::posttraiter_champs_instantanes(const char *lata_name, double c
 }
 
 // 2020.03.12. CHOIX : Meme en disable_diphasique, on fait appel a la classe fille stats FT
-void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
+void Postprocessing_IJK::posttraiter_statistiques_plans(double current_time)
 {
   statistiques().begin_count(postraitement_counter_);
 
@@ -993,7 +1007,7 @@ void IJK_FT_Post::posttraiter_statistiques_plans(double current_time)
 
 // Le nom du fichier est base sur le nom du cas...
 // Si reset!=0, on efface le fichier avant d'ecrire, sinon on ajoute...
-void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const
+void Postprocessing_IJK::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const
 {
   if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
@@ -1032,7 +1046,7 @@ void IJK_FT_Post::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, cons
   interfaces_->calculer_poussee_bulles(gravite, poussee);
 
   if(ref_ijk_ft_->has_thermals())
-    const_cast<IJK_FT_Post*>(this)->thermals_->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
+    const_cast<Postprocessing_IJK*>(this)->thermals_->ecrire_statistiques_bulles(reset, nom_cas, current_time, surface);
 
   if (Process::je_suis_maitre())
     {
@@ -1243,7 +1257,7 @@ statistiques().end_count(postraitement_counter_);
 
 }
 
-void IJK_FT_Post::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const
+void Postprocessing_IJK::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const
 {
   if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
@@ -1258,7 +1272,7 @@ void IJK_FT_Post::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas
   double v_y_gauche;
   double v_z_gauche;
 
-  Navier_Stokes_FTD_IJK& ns = const_cast<IJK_FT_Post*>(this)->ref_ijk_ft_->eq_ns();
+  Navier_Stokes_FTD_IJK& ns = const_cast<Postprocessing_IJK*>(this)->ref_ijk_ft_->eq_ns();
   ns.calculer_vitesse_gauche(velocity_.valeur()[0],velocity_.valeur()[1],velocity_.valeur()[2],v_x_gauche,v_y_gauche,v_z_gauche);
   ns.calculer_vitesse_droite(velocity_.valeur()[0],velocity_.valeur()[1],velocity_.valeur()[2],v_x_droite,v_y_droite,v_z_droite);
 
@@ -1300,7 +1314,7 @@ void IJK_FT_Post::ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas
 
 }
 
-void IJK_FT_Post::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const
+void Postprocessing_IJK::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const
 {
   if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
@@ -1311,7 +1325,7 @@ void IJK_FT_Post::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const d
   double ay_PID;
   double az_PID;
 
-  const_cast<IJK_FT_Post*>(this)->ref_ijk_ft_->eq_ns().calculer_terme_asservissement(ax_PID,ay_PID,az_PID);
+  const_cast<Postprocessing_IJK*>(this)->ref_ijk_ft_->eq_ns().calculer_terme_asservissement(ax_PID,ay_PID,az_PID);
 
   if (Process::je_suis_maitre())
     {
@@ -1352,7 +1366,7 @@ void IJK_FT_Post::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const d
 // Ils peuvent etre des tableaux de travail. Si on veut qu'il soient correctent
 // pour la suite, il faut faire l'appel avec les champs globaux (incluant tous
 // les groupes a la fin). Sinon, les champs en ai, normale ou grad_I ne contiendront qu'un groupe.
-void IJK_FT_Post::update_stat_ft(const double dt)
+void Postprocessing_IJK::update_stat_ft(const double dt)
 {
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
   //ArrOfDouble volume;
@@ -1416,14 +1430,14 @@ void IJK_FT_Post::update_stat_ft(const double dt)
 // Calcul du lambda2 a partir du gradient.
 // A optimiser simplement en mutualisant avec la methode d'update_stats.
 // Et en ne faisant le calcul que si besoin, cad si les champs de gradient ne sont pas a jour...
-void IJK_FT_Post::get_update_lambda2()
+void Postprocessing_IJK::get_update_lambda2()
 {
   compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2],
                                /* Et les champs en sortie */
                                dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */, dudy_, dvdx_, dwdy_, lambda2_);
 }
 
-void IJK_FT_Post::get_update_lambda2_and_rot_and_curl()
+void Postprocessing_IJK::get_update_lambda2_and_rot_and_curl()
 {
   get_update_lambda2();
   // Nombre local de mailles en K
@@ -1444,9 +1458,9 @@ void IJK_FT_Post::get_update_lambda2_and_rot_and_curl()
         }
 }
 
-const IJK_Field_vector3_double& IJK_FT_Post::get_IJK_vector_field(const Nom& nom) const
+const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_vector_field(const Nom& nom) const
 {
-  Cerr << "Erreur dans IJK_FT_Post::get_IJK_vector_field : " << "Champ demande : " << nom << " Liste des champs possibles : " << finl;
+  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_vector_field : " << "Champ demande : " << nom << " Liste des champs possibles : " << finl;
   Process::exit();
   throw;
 }
@@ -1477,7 +1491,7 @@ int convert_suffix_to_int(const Nom& nom)
   return suffix_int;
 }
 
-const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
+const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Nom& nom) const
 {
   if (nom == "PRESSURE_ANA")
     return pressure_ana_;
@@ -1749,7 +1763,7 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
       Process::exit();
     }
 
-  Cerr << "Erreur dans IJK_FT_Post::get_IJK_field : " << endl;
+  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_field : " << endl;
   Cerr << "Champ demande : " << nom << endl;
   Cerr << "Liste des champs possibles pour la thermique : " << liste_champs_thermiques_possibles << finl;
   Process::exit();
@@ -1757,14 +1771,14 @@ const IJK_Field_double& IJK_FT_Post::get_IJK_field(const Nom& nom) const
 
 }
 
-const int& IJK_FT_Post::get_IJK_flag(const Nom& nom) const
+const int& Postprocessing_IJK::get_IJK_flag(const Nom& nom) const
 {
-  Cerr << "Erreur dans IJK_FT_Post::get_IJK_variable : " << "Variable demandee : " << nom << " Liste des variables possibles : " << finl;
+  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_variable : " << "Variable demandee : " << nom << " Liste des variables possibles : " << finl;
   Process::exit();
   throw;
 }
 
-void IJK_FT_Post::sauvegarder_post(const Nom& lata_name)
+void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
 {
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     dumplata_vector(lata_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1], integrated_velocity_[2], 0);
@@ -1786,7 +1800,7 @@ void IJK_FT_Post::sauvegarder_post(const Nom& lata_name)
 
 }
 
-void IJK_FT_Post::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
+void Postprocessing_IJK::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
 {
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     fichier << " fichier_reprise_integrated_velocity " << lata_name << "\n";
@@ -1811,7 +1825,7 @@ void IJK_FT_Post::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichie
     }
 }
 
-void IJK_FT_Post::reprendre_post(Param& param)
+void Postprocessing_IJK::reprendre_post(Param& param)
 {
   param.ajouter("statistiques_FT", &statistiques_FT_);
   param.ajouter("groups_statistiques_FT", &groups_statistiques_FT_);
@@ -1825,7 +1839,7 @@ void IJK_FT_Post::reprendre_post(Param& param)
     }
 }
 
-void IJK_FT_Post::fill_op_conv()
+void Postprocessing_IJK::fill_op_conv()
 {
   if (liste_post_instantanes_.contient_("OP_CONV"))
     for (int i = 0; i < 3; i++)
@@ -1837,7 +1851,7 @@ void IJK_FT_Post::fill_op_conv()
     }
 }
 
-void IJK_FT_Post::fill_surface_force(IJK_Field_vector3_double& the_field_you_know)
+void Postprocessing_IJK::fill_surface_force(IJK_Field_vector3_double& the_field_you_know)
 {
   double volume = 1.;
   for (int i = 0; i < 3; i++)
@@ -1872,7 +1886,7 @@ void IJK_FT_Post::fill_surface_force(IJK_Field_vector3_double& the_field_you_kno
 //   dans leur espaces virtuels avant d'appeler cette methode
 // Methode qui calcule des champs grad_P_, grad_I_ns_,
 // a partir de pressure_ et indicatrice_ns__
-void IJK_FT_Post::calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic)
+void Postprocessing_IJK::calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic)
 {
   // Remise a zero :
   for (int dir = 0; dir < 3; dir++)
@@ -1896,7 +1910,7 @@ void IJK_FT_Post::calculer_gradient_indicatrice_et_pression(const IJK_Field_doub
     }
 }
 
-int IJK_FT_Post::alloc_fields()
+int Postprocessing_IJK::alloc_fields()
 {
   int nalloc = 0;
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
@@ -2048,7 +2062,7 @@ int IJK_FT_Post::alloc_fields()
   return nalloc;
 }
 
-int IJK_FT_Post::alloc_velocity_and_co(bool flag_variable_source)
+int Postprocessing_IJK::alloc_velocity_and_co(bool flag_variable_source)
 {
   int n = 0;
   // Le mot cle TOUS n'a pas encore ete compris comme tel.
@@ -2095,17 +2109,17 @@ int IJK_FT_Post::alloc_velocity_and_co(bool flag_variable_source)
   return n;
 }
 
-void IJK_FT_Post::completer_sondes()
+void Postprocessing_IJK::completer_sondes()
 {
   les_sondes_.completer_IJK(ref_ijk_ft_.valeur());
 }
 
-void IJK_FT_Post::postraiter_sondes()
+void Postprocessing_IJK::postraiter_sondes()
 {
   les_sondes_.postraiter();
 }
 
-void IJK_FT_Post::improved_initial_pressure_guess(bool imp)
+void Postprocessing_IJK::improved_initial_pressure_guess(bool imp)
 {
   if ((imp) || (liste_post_instantanes_.contient_("COORDS")))
     {
@@ -2124,7 +2138,7 @@ void IJK_FT_Post::improved_initial_pressure_guess(bool imp)
 
 }
 
-void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
+void Postprocessing_IJK::postraiter_ci(const Nom& lata_name, const double current_time)
 {
   dumplata_header(lata_name);
   dumplata_add_geometry(lata_name, velocity_.valeur()[0]);
@@ -2156,7 +2170,7 @@ void IJK_FT_Post::postraiter_ci(const Nom& lata_name, const double current_time)
     }
 }
 
-void IJK_FT_Post::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const DoubleTab& gravite, const Nom& nom_cas)
+void Postprocessing_IJK::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const DoubleTab& gravite, const Nom& nom_cas)
 {
   const int tstep_sauv = tstep + tstep_init;
   if (ref_ijk_ft_->has_thermals())
@@ -2424,7 +2438,7 @@ void ijk_interpolate_skip_unknown_points_bis(const IJK_Field_double& field, cons
 
 // Here begins the computation of the extended pressure fields
 // ALL the calculations are performed on the extended domain (FT) and the final field is the redistributed on the physical one (Navier-Stokes)
-void IJK_FT_Post::compute_extended_pressures(const Maillage_FT_IJK& mesh)
+void Postprocessing_IJK::compute_extended_pressures(const Maillage_FT_IJK& mesh)
 {
   if (!extended_pressure_computed_)
     return; // Leave the function if the extended fields are not necessary...
@@ -2727,7 +2741,7 @@ cout<< "Vapor field: "  << pv_2;
 }
 fichier_reprise_vitesse_
 
-void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
+void Postprocessing_IJK::compute_phase_pressures_based_on_poisson(const int phase)
 // Computes a new d_velocity based on a virtual time step
 // Takes into account only convection + diffusion (no interfacial source term)
 // Takes constant properties per phase
@@ -2773,7 +2787,7 @@ void IJK_FT_Post::compute_phase_pressures_based_on_poisson(const int phase)
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
 // Elle ajoute a la liste tous les noms de champs postraitables par IJK_Interfaces
 
-void IJK_FT_Post::posttraiter_tous_champs_thermique(Motcles& liste, const int idx) const
+void Postprocessing_IJK::posttraiter_tous_champs_thermique(Motcles& liste, const int idx) const
 {
   liste.add("TEMPERATURE");
   liste.add("CP");
@@ -2798,7 +2812,7 @@ void IJK_FT_Post::posttraiter_tous_champs_thermique(Motcles& liste, const int id
 
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
 // Elle ajoute a la liste tous les noms de champs postraitables par IJK_Interfaces
-void IJK_FT_Post::posttraiter_tous_champs_energie(Motcles& liste, const int idx) const
+void Postprocessing_IJK::posttraiter_tous_champs_energie(Motcles& liste, const int idx) const
 {
   liste.add("TEMPERATURE");
   liste.add("CP");

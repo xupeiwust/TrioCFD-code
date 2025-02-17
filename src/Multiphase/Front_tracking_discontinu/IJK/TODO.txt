@@ -1,3 +1,4 @@
 - Operateur_IJK_data_channel => a fussioner avec Domaine_IJK
 - Op grad P pour NS ... 
 - TRUSTTabFT a retirer
+- nettoyer les friends !!

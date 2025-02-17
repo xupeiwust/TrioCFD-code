@@ -13,8 +13,8 @@
 *
 *****************************************************************************/
 
-#ifndef IJK_FT_Post_included
-#define IJK_FT_Post_included
+#ifndef Postprocessing_IJK_included
+#define Postprocessing_IJK_included
 
 #include <IJK_Field.h>
 #include <IJK_Field_vector.h>
@@ -25,6 +25,7 @@
 #include <Sondes_IJK.h>
 #include <IJK_Interfaces.h>
 #include <Multigrille_Adrien.h>
+#include <Postraitement_ft_lata.h>
 
 class Probleme_FTD_IJK_base;
 class Navier_Stokes_FTD_IJK;
@@ -38,18 +39,25 @@ class IJK_Thermals;
 /**
  * All the post-processing stuff of Probleme_FTD_IJK_base delegated into this helper class:
  */
-class IJK_FT_Post
+class Postprocessing_IJK: public Postraitement_ft_lata
 {
+  Declare_instanciable(Postprocessing_IJK);
+
   friend class Statistiques_dns_ijk_FT;
 
 public:
-  IJK_FT_Post();
-  void complete_interpreter(Param& param, Entree& e);
+
+  void set_param(Param& param) override;
+
+  void postraiter(int forcer) override { /* TODO */  }
+  void completer() override { /* Does nothing */  }
+  void resetTime(double t, std::string dirname) override { throw; }
+
   void associer_probleme(const Probleme_FTD_IJK_base& );
 
   void associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft);
   int initialise(int reprise);
-  void complete(int reprise);
+  void fill_indic(int reprise=0);
   int initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
   void init_indicatrice_non_perturbe();
 
@@ -162,7 +170,7 @@ public:
   // Part of the run() method in Probleme_FTD_IJK_base:
   int alloc_fields();
   int alloc_velocity_and_co(bool flag_variable_source);
-  void completer_sondes();
+  void completer_sondes() override;
   void postraiter_sondes();
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
@@ -384,4 +392,4 @@ protected:
 };
 
 
-#endif /* IJK_FT_Post_included */
+#endif /* Postprocessing_IJK_included */

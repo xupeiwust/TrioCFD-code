@@ -196,7 +196,7 @@ void IJK_Thermals::retrieve_ghost_fluid_params()
                                                   boundary_flux_kmax);
 }
 
-void IJK_Thermals::associer_post(const IJK_FT_Post& ijk_ft_post)
+void IJK_Thermals::associer_post(const Postprocessing_IJK& ijk_ft_post)
 {
   ref_ijk_ft_post_ = ijk_ft_post;
   for (auto& itr : liste_thermique_)

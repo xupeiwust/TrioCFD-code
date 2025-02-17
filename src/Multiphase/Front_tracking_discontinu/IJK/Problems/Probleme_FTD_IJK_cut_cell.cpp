@@ -74,7 +74,7 @@ void Probleme_FTD_IJK_cut_cell::initialize()
 
   // Activation des champs cut-cell de post_ et interfaces_ (obligatoirement avant l'initialisation)
   cut_cell_disc_.initialise(interf, domaine_ijk_.valeur(), Domaine_IJK::ELEM);
-  post_.activate_cut_cell();
+  get_post().activate_cut_cell();
   interf.activate_cut_cell();
 
   cut_cell_facettes_interpolation_.associer(interf, cut_cell_disc_, domaine_ft_, interf.maillage_ft_ijk(), interf.old_maillage_ft_ijk());

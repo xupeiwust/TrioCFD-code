@@ -23,7 +23,7 @@
 #include <Cut_cell_tools.h>
 #include <Schema_RK3_IJK.h>
 #include <IJK_switch_FT.h>
-#include <IJK_FT_Post.h>
+#include <Postprocessing_IJK.h>
 #include <Option_IJK.h>
 #include <DebogIJK.h>
 #include <Param.h>
@@ -1042,7 +1042,7 @@ void IJK_Thermal_base::associer(const Probleme_FTD_IJK_base& ijk_ft)
   thermal_local_subproblems_interfaces_fields_.associer(ijk_ft);
 }
 
-void IJK_Thermal_base::associer_post(const IJK_FT_Post& ijk_ft_post)
+void IJK_Thermal_base::associer_post(const Postprocessing_IJK& ijk_ft_post)
 {
   ref_ijk_ft_post_ = ijk_ft_post;
 }
