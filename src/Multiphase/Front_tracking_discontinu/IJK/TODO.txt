@@ -2,3 +2,5 @@
 - Op grad P pour NS ... 
 - TRUSTTabFT a retirer
 - nettoyer les friends !!
+- factoriser Sonde et Sonde_IJK
+

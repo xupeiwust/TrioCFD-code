@@ -22,7 +22,6 @@
 #include <TRUST_Vector.h>
 #include <Statistiques_dns_ijk_FT.h>
 #include <Statistiques_dns_ijk_monophasique.h>
-#include <Sondes_IJK.h>
 #include <IJK_Interfaces.h>
 #include <Multigrille_Adrien.h>
 #include <Postraitement_ft_lata.h>
@@ -170,8 +169,6 @@ public:
   // Part of the run() method in Probleme_FTD_IJK_base:
   int alloc_fields();
   int alloc_velocity_and_co(bool flag_variable_source);
-  void completer_sondes() override;
-  void postraiter_sondes();
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
   void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
@@ -358,7 +355,6 @@ protected:
 
 
   int sondes_demande_ = 0;
-  Sondes_IJK les_sondes_;  // Sondes a traiter
 
   /*
    * References to various members of Probleme_FTD_IJK_base that are heavily used in the post:

@@ -144,10 +144,6 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("expression_ddWdydz_ana", &expression_grad2W_analytique_[5]);
 
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
-
-  // param.ajouter("multigrid_solver_post", &poisson_solver_post_);
-  // Lecture des sondes :
-  param.ajouter("Sondes", &les_sondes_);
 }
 
 void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
@@ -2107,16 +2103,6 @@ int Postprocessing_IJK::alloc_velocity_and_co(bool flag_variable_source)
       n += 3, allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
     }
   return n;
-}
-
-void Postprocessing_IJK::completer_sondes()
-{
-  les_sondes_.completer_IJK(ref_ijk_ft_.valeur());
-}
-
-void Postprocessing_IJK::postraiter_sondes()
-{
-  les_sondes_.postraiter();
 }
 
 void Postprocessing_IJK::improved_initial_pressure_guess(bool imp)

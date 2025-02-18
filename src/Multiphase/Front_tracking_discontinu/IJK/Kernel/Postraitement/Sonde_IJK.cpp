@@ -35,37 +35,18 @@ Sortie& Sonde_IJK::printOn(Sortie& s ) const
   return s << que_suis_je();
 }
 
-// Surcharge de la methode en remplacant la notion Pb.get_champ
-// par
-void Sonde_IJK::completer_IJK(const Probleme_FTD_IJK_base& ijk_ft)
+void Sonde_IJK::completer()
 {
-  const Nom bidon("bidon");
-  //On devrait acceder au domaine par le champ generique
-  //Mais reference pas encore faite
-  ref_ijk_ft_=ijk_ft;
-  ref_ijk_field_ = ijk_ft.get_IJK_field(nom_champ_lu_);
-
-  // A quoi sert ce bidon ? IJK compile meme en commentant les trois lignes suivantes
-  const Domaine_IJK& splitting = ref_ijk_ft_->get_domaine_ft();
-  post_bidon_.associer_nom_et_pb_base(bidon, ijk_ft.probleme(splitting));
-  mon_post=post_bidon_;
-  // Recherche du champ sonde
-  // Remplissage de la reference au champ
-  //
-
-  // Remplissage de l'attribut ncomp (il vaut -1 par defaut)
-
-  // const Noms nom_champ = mon_champ->get_property("nom");
-  //const Noms noms_comp = mon_champ->get_property("composantes");
-  ncomp =1 ;
-  // Champ_Generique_base::composante(nom_champ_ref,nom_champ[0],noms_comp,mon_champ->get_property("synonyms"));
+  ref_ijk_ft_ = ref_cast(Probleme_FTD_IJK_base, mon_post->probleme());
+  ref_ijk_field_ = ref_ijk_ft_->get_IJK_field(nom_champ_lu_);
 
   initialiser();
 }
 
+
+// TODO factoriser avec Sonde
 Entree& Sonde_IJK::readOn( Entree& is )
 {
-
   Motcle motlu;
   //Motcle accolade_ouverte("{");
   Motcle accolade_fermee("}");
@@ -377,31 +358,6 @@ Entree& Sonde_IJK::readOn( Entree& is )
 
         case 9:
           {
-            /*
-                  Motcle autre_sonde;
-                  is >> autre_sonde;
-                  // on cherche la sonde correspondante
-                  int m=-1;
-                  const Sondes& les_sondes=mon_post->les_sondes();
-                  for (int i=0; i<les_sondes.size(); i++)
-                    if (les_sondes(i).get_nom()==autre_sonde)
-                      {
-                        m=i;
-                        break;
-                      }
-                  //else Cerr<<les_sondes(i).get_nom()<<finl;
-                  if (m==-1)
-                    {
-                      Cerr<<" The probe name "<<autre_sonde<< " was not found"<<finl;
-                      Process::exit();
-                    }
-                  // on recupere  les_positions_
-                  const Sonde& la_sonde_ref=les_sondes(m);
-                  type_ = la_sonde_ref.get_type();
-                  les_positions_=la_sonde_ref.les_positions();
-                  dim =  la_sonde_ref.get_dim();
-                  rang=1;
-            */
             Cerr<<"pas dispo"<<finl;
             Process::exit();
             break;

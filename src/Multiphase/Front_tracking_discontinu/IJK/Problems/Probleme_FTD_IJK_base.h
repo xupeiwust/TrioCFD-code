@@ -106,6 +106,7 @@ public :
   double t_debut_statistiques() const { return get_post().t_debut_statistiques(); }
   int get_reprise() const { return reprise_; }
 
+  void get_noms_champs_postraitables(Noms& noms,Option opt) const override { }
   const Postprocessing_IJK& get_post() const { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
   Postprocessing_IJK& get_post() { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
 

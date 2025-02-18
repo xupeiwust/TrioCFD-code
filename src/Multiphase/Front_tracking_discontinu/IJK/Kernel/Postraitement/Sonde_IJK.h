@@ -23,7 +23,7 @@
 
 class Probleme_FTD_IJK_base;
 
-/*! @brief : class Sonde_IJK
+/*! @brief class Sonde_IJK
  */
 class Sonde_IJK : public Sonde
 {
@@ -31,29 +31,18 @@ class Sonde_IJK : public Sonde
   Declare_instanciable( Sonde_IJK ) ;
 
 public :
-  inline Sonde_IJK(const Nom& );
-  void completer_IJK(const Probleme_FTD_IJK_base& ijk_ft);
-  void initialiser();
-  void nommer(const Nom& nom) override
-  {
-    nom_=nom;
-  }
+
+  void completer() override;
+  void initialiser() override;
   void mettre_a_jour(const double temps, const double dt) override;
-  void postraiter();
+  void postraiter() override;
+
 protected :
 
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_Field_double) ref_ijk_field_;
-  Postraitement post_bidon_;
-  Nom nom_;                                // le nom de la sonde
-  int ncomp;                           // Numero de la composante a sonder
-  SFichier* le_fichier;
+  int ncomp = 1;                           ///< Number of the component to handle
   int nbre_points_tot;
 };
-
-
-inline Sonde_IJK::Sonde_IJK(const Nom& nom)
-  : nom_(nom), ncomp(-1),le_fichier(0)
-{}
 
 #endif /* Sonde_IJK_included */

@@ -82,8 +82,8 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
       Cerr << "Probleme_FTD_IJK_base::readOn => Will read equation of type : " << itr->que_suis_je() << " ..." << finl;
       is >> motlu;
       is >> getset_equation_by_name(motlu);
+      itr->associer_milieu_base(milieu_ijk());
     }
-
 
   /* 3 : Les postraitements */
   is >> motlu;  // Read next word
@@ -96,6 +96,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
   set_param(param);
   param.lire_avec_accolades(is);
+
 
   completer();
 
@@ -236,10 +237,7 @@ void Probleme_FTD_IJK_base::completer()
   build_vdf_domaine();
 
   for (auto& itr : equations_)
-    {
-      itr->associer_milieu_base(milieu_ijk());
-      itr->completer();
-    }
+    itr->completer();
 
   les_postraitements_.completer();
 
