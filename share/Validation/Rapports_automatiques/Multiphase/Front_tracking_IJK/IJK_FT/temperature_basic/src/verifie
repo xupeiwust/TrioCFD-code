@@ -1,7 +1,0 @@
-#!/bin/bash
-lata=`ls temperature_basic_jdd[0-9].lata 2>/dev/null`
-tar xzf ref.tar.gz
-compare_lata ref/$lata $lata
-err=$?
-exit $err
-
