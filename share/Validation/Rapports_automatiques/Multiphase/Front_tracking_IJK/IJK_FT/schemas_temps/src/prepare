@@ -1,7 +1,8 @@
 #!/bin/bash
 # Ce script est execute avant de lancer les cas tests
 
-declare -A schemes=( ["EULER"]="euler_explicit" ["RK3"]="RK3_FT")
+
+schemes="schema_euler_explicite_IJK  Schema_RK3_IJK"
 list_n="1 5 10 20 50 100"
 for fold in "01_PHI" "02_PSI_NO_POISSON_SOLVER" "03_PSI_AND_POISSON_SOLVER" "04_PHI_AND_PSI"
 do
@@ -64,19 +65,28 @@ do
 	     template.data > $fold/template.data
    fi
    cd $fold
-   for sch in "${!schemes[@]}"
+   for sch in $schemes
    do
-      echo "${schemes[$sch]}"
+      echo $sch
       for n in $list_n
       do
          echo -n "Niveau $n "
-         mkdir -p $sch/Niv$n
+         sch_doss=""
+         if [ $sch == "schema_euler_explicite_IJK" ]
+         then
+            sch_doss=EULER
+            mkdir -p $sch_doss/Niv$n
+         else
+            sch_doss=RK3
+            mkdir -p $sch_doss/Niv$n
+         fi
+
          nit=`echo 500/$n+1|bc`
          dt=`echo 0.002*$n|bc` # Soit un tfin de 1.0s
-         echo " ${schemes[$sch]} $nit $dt"
-         sed -e "s/time_scheme .*/  time_scheme ${schemes[$sch]} /g" \
+         echo " $sch $nit $dt"
+         sed -e "s/\$schema sch/$sch sch/g" \
              -e "s/nb_pas_dt_max .*/  nb_pas_dt_max $nit /g" \
-             -e "s/timestep .*/  timestep $dt /g" template.data > ${sch}/Niv${n}/calcul.data
+             -e "s/timestep .*/  timestep $dt /g" template.data > ${sch_doss}/Niv${n}/calcul.data
       done
    done
    \cp -f ../post_run EULER/Niv5/
