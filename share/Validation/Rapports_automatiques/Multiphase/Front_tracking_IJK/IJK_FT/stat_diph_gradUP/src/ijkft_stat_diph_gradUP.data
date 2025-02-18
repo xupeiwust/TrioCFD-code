@@ -1,64 +1,81 @@
-IJK_Grid_Geometry DOM
+dimension 3
+Probleme_FTD_IJK pb
 
+Domaine_IJK DOM
 Lire DOM
 {
-  nbelem_i @N@
-  nbelem_j @N@
-  nbelem_k @N@
-  uniform_domain_size_i @Lx@
-  uniform_domain_size_j @Ly@
-  uniform_domain_size_k @Lz@
-  perio_i
-  perio_j
-}
-
-IJK_Splitting grid_splitting
-Lire grid_splitting
-{
-  ijk_grid_geometry DOM
-  nproc_i 1 # 3 #
-  nproc_j 1 # 2 #
-  nproc_k 1 # 2 #
-}
-
-IJK_FT_double
-{
-  disable_diphasique
-  expression_derivee_force 0.0
-  ijk_splitting grid_splitting
+  nbelem @N@ @N@ @N@
+  size_dom @Lx@ @Ly@ @Lz@
+  perio 1 1 0
+  nproc 1 1 1
   ijk_splitting_ft_extension 0
+
+}
+
+schema_euler_explicite_IJK sch
+lire sch
+{
   timestep 0.000155
+  tinit 0.
+  timestep_facsec 1.0
+  nb_pas_dt_max 3
+  dt_sauvegarde 50
+}
+
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+Option_IJK
+{
+  # check_divergence #
+  disable_diphasique
+}
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    # vapeur #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1.0
+        rho Champ_Uniforme 1 1.0
+    }
+    # liquide #
+    fluide1 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1.0
+        rho Champ_Uniforme 1 1.0
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.0
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 -0. 0. 0.
+  }
+
+  hydraulique
+  {
   Boundary_Conditions {
                 bctype_kmin Paroi
                 bctype_kmax Paroi
   }
-  dt_post 1
-  dt_post_stats_bulles 1000000
-  dt_post_stats_plans 1
-  t_debut_statistiques 0.0
-  champs_a_postraiter 19 PRESSURE VELOCITY CURL
-       ANA_GRAD_P GRAD_P
-       ANA_GRAD2_P GRAD2_P 
-       ANA_GRAD_U ANA_GRAD_V ANA_GRAD_W GRAD_U GRAD_V GRAD_W
-       ANA_GRAD2_U ANA_GRAD2_V ANA_GRAD2_W GRAD2_U GRAD2_V GRAD2_W
-  # tinit 0. #
-  nb_pas_dt_max 1
   disable_solveur_poisson
   multigrid_solver { }
   disable_diffusion_qdm
   disable_convection_qdm
-  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-  interfaces
-  {
-    fichier_reprise_interface init.lata
-    timestep_reprise_interface       1
-    lata_meshname   FTMESH
-  }
-  # check_divergence #
-  rho_liquide 1.0
-  mu_liquide 1.0
-  # Verification des calculs des gradients et tout ce que ca implique : #
-  check_stats
+  expression_derivee_force 0.0
+  
   # Champ initial impose : #
   expression_p_init
 @Pm@*(1+@A@*cos(2.*@pi@*x/@Lx@+@phix@))*(1+@B@*cos(2.*@pi@*y/@Ly@+@phiy@))*(1+@C@*cos(@pi@*z/@Lz@))+(@Kp@)
@@ -68,6 +85,30 @@ IJK_FT_double
 @Vm@*(1+@D@*cos(2.*@pi@*x/@Lx@+@phix@))*(1+@E@*cos(2.*@pi@*y/@Ly@+@phiy@))*sin(@pi@*z/@Lz@)+(@Ku@)
   expression_vz_init
 @Wm@*(1+@D@*cos(2.*@pi@*x/@Lx@+@phix@))*(1+@E@*cos(2.*@pi@*y/@Ly@+@phiy@))*sin(@pi@*z/@Lz@)+(@Ku@)
+  }
+  
+  interf
+  {
+    fichier_reprise_interface init.lata
+    timestep_reprise_interface       1
+    lata_meshname   FTMESH
+  
+  
+  }
+  
+  {
+  dt_post 1
+  dt_post_stats_bulles 1000000
+  dt_post_stats_plans 1
+  t_debut_statistiques 0.0
+  champs_a_postraiter 19 PRESSURE VELOCITY CURL
+       ANA_GRAD_P GRAD_P
+       ANA_GRAD2_P GRAD2_P 
+       ANA_GRAD_U ANA_GRAD_V ANA_GRAD_W GRAD_U GRAD_V GRAD_W
+       ANA_GRAD2_U ANA_GRAD2_V ANA_GRAD2_W GRAD2_U GRAD2_V GRAD2_W
+  # Verification des calculs des gradients et tout ce que ca implique : #
+  check_stats
+
   # Solution analytique connue pour le gradU et gradP # 
   expression_dPdx_ana 
 @Pm@*(-@A@*2.*@pi@/@Lx@*sin(2.*@pi@*x/@Lx@+@phix@))*(1+@B@*cos(2.*@pi@*y/@Ly@+@phiy@))*(1+@C@*cos(@pi@*z/@Lz@))
@@ -150,6 +191,12 @@ IJK_FT_double
   expression_ddWdydz_ana 
 @Wm@*(1+@D@*cos(2.*@pi@*x/@Lx@+@phix@))*(-2.*@pi@/@Ly@*@E@*sin(2.*@pi@*y/@Ly@+@phiy@))*@pi@/@Lz@*cos(@pi@*z/@Lz@)
   # -------------------------------------------- #
+  
+  
+  }
+  
 }
+
+solve pb
 # lata convert #
 Fin

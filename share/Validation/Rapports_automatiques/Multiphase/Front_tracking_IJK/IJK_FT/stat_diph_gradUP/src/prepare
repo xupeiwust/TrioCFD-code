@@ -65,7 +65,7 @@ do
 	      model.data > $fold/ijkft_stat_diph_gradUP.data
 	  if [ $N -ge 40 ] 
 	  then
-	     sed 's/nproc_i 1/nproc_i 2/;s/nproc_j 1/nproc_j 2/;s/nproc_k 1/nproc_k 2/' $fold/ijkft_stat_diph_gradUP.data > $fold/ijkft_stat_diph_gradUP_par8.data
+	     sed 's/nproc 1 1 1/nproc 2 2 2/' $fold/ijkft_stat_diph_gradUP.data > $fold/ijkft_stat_diph_gradUP_par8.data
 	  fi
 	  cd $fold &&  tar xzf ../../init.tgz && cd ../../
 	done
@@ -73,6 +73,4 @@ do
     done
   done
  done
-done   
-
-cp prereq_reprise.sh N80/P111_U11/post_run
+done
