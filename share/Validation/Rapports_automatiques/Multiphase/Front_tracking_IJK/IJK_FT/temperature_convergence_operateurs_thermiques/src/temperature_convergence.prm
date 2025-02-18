@@ -22,10 +22,10 @@ EOF
 	CasTest SCHEMA_TEMPS SCHEMA_TEMPS.data 1
 	CasTest . temperature_convergence_CLwall.data 1 /* En preparation pour les CL */
 
-	ExtraUsedFile temperature_convergence_CLwall.lata.4.TEMPERATURE_0
-        ExtraUsedFile DIFFUSION/DIFFUSION.lata.40.TEMPERATURE_0
-        ExtraUsedFile CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata.40.TEMPERATURE_0
-        ExtraUsedFile SCHEMA_TEMPS/SCHEMA_TEMPS.lata.40.TEMPERATURE_0
+	ExtraUsedFile temperature_convergence_CLwall.lata.4.TEMPERATURE_OF_0
+        ExtraUsedFile DIFFUSION/DIFFUSION.lata.40.TEMPERATURE_OF_0
+        ExtraUsedFile CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata.40.TEMPERATURE_OF_0
+        ExtraUsedFile SCHEMA_TEMPS/SCHEMA_TEMPS.lata.40.TEMPERATURE_OF_0
 }
 
 Chapitre {
@@ -66,21 +66,21 @@ It is not the case, the diffusion operator is in fact 2nd order. Where is my mis
 		titre "Solution calculee"
 		cycles -1
 		width 7cm
-		pseudocolor DIFFUSION/DIFFUSION.lata DOM TEMPERATURE_0 ELEM
+		pseudocolor DIFFUSION/DIFFUSION.lata DOM TEMPERATURE_OF_0 ELEM
 	}
 
 	visu {
 		titre "Solution analytique"
 		cycles -1
 		width 7cm
-		pseudocolor DIFFUSION/DIFFUSION.lata DOM TEMPERATURE_0_ANA ELEM
+		pseudocolor DIFFUSION/DIFFUSION.lata DOM TEMPERATURE_ANA_OF_0 ELEM
 	}
 
 	visu {
 		titre "Ecart a la solution analytique"
 		cycles -1
 		width 7cm
-		pseudocolor DIFFUSION/DIFFUSION.lata DOM ECART_T_ANA0 ELEM
+		pseudocolor DIFFUSION/DIFFUSION.lata DOM ECART_T_ANA_OF_0 ELEM
 	}
 
 	Figure {
@@ -132,21 +132,21 @@ The solution is compared.
 		titre "Solution calculee"
 		cycles -1
 		width 7cm
-		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM TEMPERATURE_0 ELEM
+		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM TEMPERATURE_OF_0 ELEM
 	}
 
 	visu {
 		titre "Solution analytique"
 		cycles -1
 		width 7cm
-		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM TEMPERATURE_0_ANA ELEM
+		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM TEMPERATURE_ANA_OF_0 ELEM
 	}
 
 	visu {
 		titre "Ecart a la solution analytique"
 		cycles -1
 		width 7cm
-		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM ECART_T_ANA0 ELEM
+		pseudocolor CONVECTION/CONVERGENCE/DX_EUL_256/lata/CONVECTION.lata DOM ECART_T_ANA_OF_0 ELEM
 	}
 
 	Description <<EOF
@@ -219,21 +219,21 @@ Chapitre {
 			titre "Solution calculee"
 				cycles -1
 				width 7cm
-				pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM TEMPERATURE_0 ELEM
+				pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM TEMPERATURE_OF_0 ELEM
 		}
 
 	visu {
 		titre "Solution analytique"
 			cycles -1
 			width 7cm
-			pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM TEMPERATURE_0_ANA ELEM
+			pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM TEMPERATURE_ANA_OF_0 ELEM
 	}
 
 	visu {
 		titre "Ecart a la solution analytique"
 			cycles -1
 			width 7cm
-			pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM ECART_T_ANA0 ELEM
+			pseudocolor SCHEMA_TEMPS/SCHEMA_TEMPS.lata DOM ECART_T_ANA_OF_0 ELEM
 	}
 	Description <<EOF
 		Quand la source sera implementee, ajouter un graphe de convergence selon le pas de temps.
@@ -279,6 +279,6 @@ On pourrait aussi envisager un test de CL tres simple, analytique sur une seule 
 			cycles -1
 			Normal3d 0 1 0
 			width 7cm
-			pseudocolor temperature_convergence_CLwall.lata DOM TEMPERATURE_0 ELEM
+			pseudocolor temperature_convergence_CLwall.lata DOM TEMPERATURE_OF_0 ELEM
 	}
 }

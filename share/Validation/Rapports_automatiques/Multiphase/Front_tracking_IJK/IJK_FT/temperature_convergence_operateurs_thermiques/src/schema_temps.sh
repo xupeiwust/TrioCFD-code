@@ -19,7 +19,8 @@ cp $schx.data ${jdd}.data
 ######################
 rm -rf DT*
 nx=5
-sed -i -e "s/nbelem_i .*/nbelem_i $nx/g" -e "s/nbelem_j .*/nbelem_j $nx/g" ${jdd}.data
+sed -i -e "s/nbelem .*/nbelem $nx $nx $nx/g" \
+            ${jdd}.data
 \cp -f ${jdd}.data ${jdd}.data.ori
 for n in 1 2 4 8 16 32 64 128 256 # 512 
 do

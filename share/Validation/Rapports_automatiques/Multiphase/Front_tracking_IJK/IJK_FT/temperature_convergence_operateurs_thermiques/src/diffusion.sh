@@ -29,7 +29,7 @@ rm -rf DX*
         # Euler :
         #nk=`echo $n/2 | bc`
         nk=$n
-        sed -i -e "s/nbelem_i .*/nbelem_i $n/g" -e "s/nbelem_j .*/nbelem_j $n/g" \
+        sed -i -e "s/nbelem .*/nbelem $n $n 5/g" \
             ${jdd}.data
         #       -e "s/nbelem_k .*/nbelem_k $nk/g" ${jdd}.data
         echo -n "    Calculating DX_EUL_$n....."

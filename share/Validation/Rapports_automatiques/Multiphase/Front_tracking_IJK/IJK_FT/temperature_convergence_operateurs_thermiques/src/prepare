@@ -24,7 +24,7 @@ do
         sed -e "s/basic_temperature/${dir}/g" \
             -e "s/BASIC_TEMPERATURE/${dir}/g" ../diffusion.sh >DIFFUSION.sh
         cp ../post_run .
-        sed -i -e "s/diff_temp.*/# diff_temp_negligible #/g" \
+        sed -i -e "s/diff_temp.*/# diff_temperature_negligible #/g" \
             -e "s/timestep .*/timestep 9e-8/"\
             -e "s/DIFF #//g"\
             -e "s/# DIFF//g" $dir.data

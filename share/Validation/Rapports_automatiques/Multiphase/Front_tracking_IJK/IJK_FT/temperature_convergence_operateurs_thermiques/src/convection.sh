@@ -14,7 +14,8 @@ for n in 8 16 32 64 128 256
 do
     mkdir -p DX_EUL_$n DX_RK_$n
     # Euler :
-    sed -i -e "s/nbelem_i .*/nbelem_i $n/g" -e "s/nbelem_j .*/nbelem_j $n/g" ${jdd}.data
+    sed -i -e "s/nbelem .*/nbelem $n $n 5/g" \
+            ${jdd}.data
     echo -n "    Calculating DX_EUL_$n....."
     trust ${jdd} 1> out 2> err
     echo "Done!"

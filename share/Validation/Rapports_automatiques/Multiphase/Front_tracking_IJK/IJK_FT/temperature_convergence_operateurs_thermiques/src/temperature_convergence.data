@@ -1,60 +1,79 @@
-IJK_Grid_Geometry DOM
+dimension 3
+Probleme_FTD_IJK pb
 
+Domaine_IJK DOM
 Lire DOM
 {
-  nbelem_i 48
-  nbelem_j 48
-  nbelem_k 5 # 24 plutot 5 #
-  uniform_domain_size_i 0.006
-  uniform_domain_size_j 0.006
-  uniform_domain_size_k 0.006
-  perio_i
-  perio_j
-  perio_k
-}
-
-IJK_Splitting grid_splitting
-Lire grid_splitting
-{
-  ijk_grid_geometry DOM
-  nproc_i 1
-  nproc_j 1
-  nproc_k 1
-}
-
-IJK_FT_double
-{
-  ijk_splitting grid_splitting
+  nbelem 48 48 5
+  size_dom 0.006 0.006 0.006
+  perio 1 1 1
+  nproc 1 1 1
   ijk_splitting_ft_extension 0
-  tinit 0.
+}
+
+schema_euler_explicite_IJK sch
+
+lire sch {
+  tinit 0.0
   timestep 1.10e-5
   timestep_facsec 1.e12
-  # time_scheme RK3_FT #
-  dt_post 20
-   Boundary_Conditions {
-                bctype_kmin perio
-                bctype_kmax perio
+  nb_pas_dt_max 800
+  dt_sauvegarde 3000
+}
+
+option_ijk { check_divergence disable_diphasique }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+ijk_thermals thermals  
+  Navier_Stokes_FTD_IJK hydraulique
+  }
+  
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1.e-3
+        rho Champ_Uniforme 1 1000.
+	cp champ_uniforme 1 1
+	lambda champ_uniforme 1 1 
+   }
+    fluide1 Fluide_Incompressible # Liquid # 
+    {
+        mu  Champ_Uniforme 1 1.e-3
+        rho Champ_Uniforme 1 1000.
+        cp champ_uniforme 1 4
+        lambda champ_uniforme 1 0.1
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.00
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 -9.81 0. 0.
   }
 
-  disable_diphasique
+  hydraulique
+  {
+        Boundary_Conditions 
+        {
+          bctype_kmin perio
+          bctype_kmax perio
+        }
+
   disable_diffusion_qdm
   disable_convection_qdm
   disable_solveur_poisson
 
-  champs_a_postraiter 3 TEMPERATURE TEMPERATURE_ANA ECART_T_ANA
-  dt_sauvegarde 3000
-  tinit 0
-  nb_pas_dt_max 800 
-  
   multigrid_solver {
   }
-
-  check_divergence
-
-  # gravite 3 -9.81 0. 0. #
-  rho_liquide 1000.
-  mu_liquide 1e-3
-  sigma 0.07
 
   expression_vx_init 0.0
   expression_vy_init 0.0
@@ -63,14 +82,16 @@ IJK_FT_double
     # TEMPS 
     expression_derivee_force 0.0
     TEMPS #
-
- thermique
+  }
+ 
+ 
+ thermals
   {
     # Cas du swarm avec un profil de temperature periodique #
-    {
+    ONEFLUID {
 
     conv_temperature_negligible
-    diff_temp_negligible
+    diff_temperature_negligible
 
     Boundary_Conditions {
                  bctype_kmin Perio 
@@ -93,20 +114,25 @@ IJK_FT_double
     expression_T_ana 0.5*cos(x*2*Pi/0.006)*cos(y*2*Pi/0.006)+exp(-t/(0.00024*800))-1
     expression_source_temperature -1/(0.00024*800)*exp(-t/(0.00024*800))
     TEMPS #
-    cp_vapor 1.
-    lambda_vapor 1.
-    cp_liquid 4.
-    lambda_liquid 0.1
     }
   }
 
- Sondes
+{ 
+Sondes
     {
        # Il faut mettre +epsilon pour etre sur d'avoir la vitesse sur la bonne face...
        IL ecrit dans le fichier sonde la coord precise de la position post-traitee (face ici). #
        pp_T temperature_0 periode 1e-9 points 1 0.003 0.003 0.0015
+       pp_deltaT0 ecart_t_ana_0 periode 1e-9 points 1 0.003 0.003 0.0015
     }
+  champs_a_postraiter 3 TEMPERATURE TEMPERATURE_ANA ECART_T_ANA
+    
+    # Pour Creer le fichier de Reprise #
+    nom_sauvegarde bidon.repr
+  dt_post 20
+ }
 
 }
+solve pb
 Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
 Fin
