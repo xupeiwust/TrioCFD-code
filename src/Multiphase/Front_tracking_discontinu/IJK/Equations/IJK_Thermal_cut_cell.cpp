@@ -30,6 +30,7 @@ Implemente_instanciable_sans_constructeur( IJK_Thermal_cut_cell, "IJK_Thermal_cu
 
 IJK_Thermal_cut_cell::IJK_Thermal_cut_cell()
 {
+  needs_op_unform_ = 0;
   conserv_energy_global_=0; // Note : doit etre zero sinon la rustine est appliquee
 
   cut_cell_conv_scheme_.scheme = CUT_CELL_SCHEMA_CONVECTION::QUICK_OU_CENTRE2_STENCIL;

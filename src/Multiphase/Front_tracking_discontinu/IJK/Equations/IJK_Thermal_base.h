@@ -484,6 +484,7 @@ public:
   static void typer_lire_thermal_equation(OWN_PTR(IJK_Thermal_base)&, Entree&);
 
 protected:
+  int needs_op_unform_= 1;
   OBS_PTR(Milieu_base) le_fluide_;
   int thermal_rank_ = 0;
   Nom thermal_problem_type_ = "subresolution";
