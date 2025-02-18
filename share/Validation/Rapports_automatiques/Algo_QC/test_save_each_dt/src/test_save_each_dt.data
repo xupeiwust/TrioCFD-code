@@ -1,27 +1,23 @@
-IJK_Grid_Geometry grid_geom2
+
+dimension  3
+
+Domaine_IJK grid_geom2
 Lire grid_geom2
 {
-  nbelem_i 16
-  nbelem_j 16
-  uniform_domain_size_i 1
-  uniform_domain_size_j 1
-  file_coord_k          coord_k_0.txt
-  perio_i
-  perio_j
+  nbelem 16 16 -123
+  size_dom 1 1 -123.
+  perio 1 1 0
+  file_coords ?? ?? coord_k_0.txt
+  nproc 1 1 1
+ 
+  ijk_splitting_ft_extension 0
 }
 
-IJK_Splitting grid_splitting2
-Lire grid_splitting2
-{
-  ijk_grid_geometry grid_geom2
-  nproc_i 1
-  nproc_j 1
-  nproc_k 1
-}
 
+ 
 dns_qc_double
 {
-  ijk_splitting grid_splitting2
+  ijk_splitting grid_geom2
   timestep 1000000
   nb_pas_dt_max 1000
   multigrid_solver
