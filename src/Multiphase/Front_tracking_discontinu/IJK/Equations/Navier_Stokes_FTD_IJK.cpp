@@ -2361,8 +2361,10 @@ void Navier_Stokes_FTD_IJK::fill_variable_source_and_potential_phi(const double 
   for (int dir = 0; dir < 3; dir++)
     {
       // Si on est en presence d'une source analytique variable spatialement:
-      if (expression_variable_source_[dir] != "??")
+      if (expression_variable_source_[dir] != "??" && probleme_ijk().has_interface())
         set_field_data(variable_source_[dir], expression_variable_source_[dir], interfaces_->I(), grad_I_ns[dir], time);
+      else if (expression_variable_source_[dir] != "??") // sans interface
+        set_field_data(variable_source_[dir], expression_variable_source_[dir], grad_I_ns[dir], time);
       else if (expression_potential_phi_ != "??")
         {
           // Pour Remettre a zero la source:
