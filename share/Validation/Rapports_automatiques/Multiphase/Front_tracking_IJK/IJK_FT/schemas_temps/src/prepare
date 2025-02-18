@@ -1,7 +1,6 @@
 #!/bin/bash
 # Ce script est execute avant de lancer les cas tests
 
-
 schemes="schema_euler_explicite_IJK  Schema_RK3_IJK"
 list_n="1 5 10 20 50 100"
 for fold in "01_PHI" "02_PSI_NO_POISSON_SOLVER" "03_PSI_AND_POISSON_SOLVER" "04_PHI_AND_PSI"
