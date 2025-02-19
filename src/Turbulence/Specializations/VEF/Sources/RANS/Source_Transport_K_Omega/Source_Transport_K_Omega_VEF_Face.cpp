@@ -19,6 +19,7 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+#include <Discretisation_tools.h>
 #include <Operateur_Grad.h>
 #include <TRUSTTabs_forward.h>
 #include <Source_Transport_K_Omega_VEF_Face.h>
@@ -113,7 +114,8 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
   DoubleTab& fieldF2 = ref_cast_non_const(DoubleTab, turbulence_model->get_fieldF2());
 
   DoubleTab visc_face(le_dom_VEF->nb_faces_tot()); // dimension_tot(0)
-  elem_to_face(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
+  // elem_to_face(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
+  Discretisation_tools::cells_to_faces(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
 
   // Loop on all faces (dimension_tot(0))
   for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
@@ -191,11 +193,11 @@ void Source_Transport_K_Omega_VEF_Face::compute_cross_diffusion(DoubleTab& gradK
 
   DoubleTab gradK_face;
   gradK_face.resize(velocity_field_face.dimension_tot(0), nbr_velocity_components);
-  elem_to_face(domaine, gradK_elem, gradK_face);
+  Discretisation_tools::cells_to_faces(domaine, gradK_elem, gradK_face);
 
   DoubleTab gradOmega_face;
   gradOmega_face.resize(velocity_field_face.dimension_tot(0), nbr_velocity_components);
-  elem_to_face(domaine, gradOmega_elem, gradOmega_face);
+  Discretisation_tools::cells_to_faces(domaine, gradOmega_elem, gradOmega_face);
 
   // Dot Product gradKgradOmega
   for (int num_face = 0; num_face < le_dom_VEF->nb_faces_tot(); ++num_face)

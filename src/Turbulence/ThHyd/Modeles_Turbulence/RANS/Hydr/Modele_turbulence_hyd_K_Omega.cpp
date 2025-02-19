@@ -137,8 +137,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente(do
 
       // A la fin de cette boucle, le tableau visco_turb_K_Omega contient les valeurs de la viscosite turbulente
       // au centre des faces du maillage.
-      fill_turbulent_viscosity_tab(komega_size_real, tab_K_Omega,
-                                   visco_turb_K_Omega);
+      fill_turbulent_viscosity_tab(tab_K_Omega, visco_turb_K_Omega);
 
       // On connait donc la viscosite turbulente au centre des faces de chaque element
       // On cherche maintenant a interpoler cette viscosite turbulente au centre des elements.
@@ -146,7 +145,7 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente(do
       Debog::verifier("Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente visco_turb_au_format_K_Omega", visco_turb_au_format_K_Omega.valeur());
     }
   else
-    fill_turbulent_viscosity_tab(komega_size_real, tab_K_Omega, visco_turb);
+    fill_turbulent_viscosity_tab(tab_K_Omega, visco_turb);
 
   la_viscosite_turbulente_->changer_temps(temps);
   Debog::verifier("Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente la_viscosite_turbulente after",
@@ -163,11 +162,10 @@ Champ_Fonc_base& Modele_turbulence_hyd_K_Omega::calculer_viscosite_turbulente(do
  * @param[in] (tab_K_Omega&) the table containing the turbulent kinetic and the inverse time scale omega
  * @param[in] (turbulent_viscosity&) the turbulent viscosity table
  */
-void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const int tab_K_Omega_dim0,
-                                                                 const DoubleTab& tab_K_Omega,
+void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const DoubleTab& tab_K_Omega,
                                                                  DoubleTab& turbulent_viscosity)
 {
-  for (int i = 0; i < tab_K_Omega_dim0; ++i)
+  for (int i = 0; i < tab_K_Omega.dimension(0); ++i)
     {
       const double omega = tab_K_Omega(i, 1);
 
@@ -178,7 +176,7 @@ void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const int tab_K
           const double enerK = tab_K_Omega(i, 0);
           turbulent_viscosity[i] = is_SST()
                                    ? enerK*CST_A1/std::max(CST_A1*omega,
-                                                           get_enstrophy()[i]*get_fieldF2()[i])
+                                                           enstrophy_[i]*fieldF2_[i])
                                    : enerK/omega;
         }
     }
@@ -192,7 +190,7 @@ void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const int tab_K
  */
 void Modele_turbulence_hyd_K_Omega::init_F1_F2_enstrophy()
 {
-  int const n = K_Omega().valeurs().dimension_tot(0);
+  int const n = K_Omega().valeurs().dimension(0);
 
   blenderF1_.resize(n);
   fieldF2_.resize(n);

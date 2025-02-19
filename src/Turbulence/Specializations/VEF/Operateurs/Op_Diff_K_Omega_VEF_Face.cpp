@@ -25,7 +25,7 @@
 #include <Periodique.h>
 #include <Neumann_paroi.h>
 #include <Paroi_hyd_base_VEF.h>
-
+#include <Discretisation_tools.h>
 #include <Champ_Uniforme.h>
 #include <Fluide_Incompressible.h>
 
@@ -66,26 +66,14 @@ void Op_Diff_K_Omega_VEF_Face::associer_diffusivite_turbulente()
   Op_Diff_K_Omega_VEF_base::associer_diffusivite_turbulente(diff_turb);
 }
 
-double Op_Diff_K_Omega_VEF_Face::blender(double const val1, double const val2,
-                                         int const face) const
-{
-  const DoubleTab& F1 = turbulence_model->get_blenderF1();
-  return F1(face)*val1 + (1 - F1(face))*val2;
-}
-
-
 void  Op_Diff_K_Omega_VEF_Face::calc_visc(ArrOfDouble& diffu_tot, const Domaine_VEF& le_dom,
                                           int num_face, int num2, int dimension_inut,
                                           int num_elem, double diffu_turb,
                                           const DoubleTab& diffu, int is_mu_unif,
                                           const ArrOfDouble& inv_Prdt) const
 {
-  double valA = viscA(num_face, num2, num_elem, diffu_turb);
-  double nu = 0;
-  if (is_mu_unif)
-    nu = diffu(0, 0);
-  else
-    nu = diffu(num_elem);
+  const double valA = viscA(num_face, num2, num_elem, diffu_turb);
+  const double nu = is_mu_unif ? diffu(0, 0) : diffu(num_elem);
   diffu_tot[0] = nu + valA*inv_Prdt[0];
   diffu_tot[1] = nu + valA*inv_Prdt[1];
 }
@@ -106,6 +94,10 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
 
   double invPrdtOmega = 1./Prdt_Omega;
   const bool is_SST = turbulence_model->is_SST();
+  DoubleTab F1elem;
+  F1elem.resize(domaine_VEF.nb_elem());
+  if (is_SST)
+    Discretisation_tools::faces_to_cells(domaine_VEF, turbulence_model->get_blenderF1(), F1elem);
 
   int is_mu_unif = sub_type(Champ_Uniforme, diffusivite_.valeur());
   const DoubleTab& mu = diffusivite_->valeurs();
@@ -134,14 +126,14 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
               fac_asso = le_bord.num_face(fac_asso);
               int num_face = le_bord.num_face(ind_face);
 
-              inv_Prdt[1] = is_SST
-                            ? blender(SIGMA_OMEGA1, SIGMA_OMEGA2, num_face)
-                            : invPrdtOmega;
-
               for (int k = 0; k < 2; k++)
                 {
                   int elem = face_voisins(num_face, k);
                   double d_mu = mu_turb(elem);
+                  inv_Prdt[1] = is_SST
+                                ? F1elem(elem)*SIGMA_OMEGA1 + (1 - F1elem(elem))*SIGMA_OMEGA2
+                                : invPrdtOmega;
+
 
                   for (int i = 0; i < nb_faces_elem; i++)
                     {
@@ -173,7 +165,7 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
               int elem = face_voisins(num_face,0);
               double d_mu = mu_turb(elem);
               inv_Prdt[1] = is_SST
-                            ? blender(SIGMA_OMEGA1, SIGMA_OMEGA2, num_face)
+                            ? F1elem(elem)*SIGMA_OMEGA1 + (1 - F1elem(elem))*SIGMA_OMEGA2
                             : invPrdtOmega;
 
               for (int i = 0; i < nb_faces_elem; i++)
@@ -206,14 +198,13 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
 
   for (int num_face = n0; num_face < n1; num_face++)
     {
-      inv_Prdt[1] = is_SST
-                    ? blender(SIGMA_OMEGA1, SIGMA_OMEGA2, num_face)
-                    : invPrdtOmega;
-
       for (int k = 0; k < 2; k++)
         {
           int elem = face_voisins(num_face, k);
           double d_mu = mu_turb(elem);
+          inv_Prdt[1] = is_SST
+                        ? F1elem(elem)*SIGMA_OMEGA1 + (1 - F1elem(elem))*SIGMA_OMEGA2
+                        : invPrdtOmega;
 
           for (int i = 0; i < nb_faces_elem; i++)
             {
