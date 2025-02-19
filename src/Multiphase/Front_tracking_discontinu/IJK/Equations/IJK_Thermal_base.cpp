@@ -2955,6 +2955,15 @@ int IJK_Thermal_base::posttraiter_champs_instantanes_thermal(const Motcles& list
     }
 
   oss.str("");
+
+  oss << "SOURCE_TEMPERATURE_" << lata_suffix << idx;
+  Nom nom_src_temp(oss.str().c_str());
+  if ((liste_post_instantanes.contient_("SOURCE_TEMPERATURE")) || (liste_post_instantanes.contient_(nom_src_temp)))
+    {
+      n++, dumplata_scalar(lata_name, nom_src_temp, source_temperature_, latastep);
+    }
+
+  oss.str("");
   oss << "TEMPERATURE_ADIMENSIONNELLE_THETA_" << lata_suffix << idx;
   Nom nom_tempa(oss.str().c_str());
   if ((liste_post_instantanes.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA")) || (liste_post_instantanes.contient_(nom_tempa)))
