@@ -44,17 +44,21 @@ class Postprocessing_IJK: public Postraitement_ft_lata
 public:
 
   void set_param(Param& param) override;
+  int lire_champs_a_postraiter(Entree& is, bool expect_acco) override;
 
-  int postraiter_champs() override;
-
+  void init() override;
   void completer() override { /* Does nothing */  }
+  void postraiter(int forcer) override;
+  int postraiter_champs() override;
+  void prepare_lata_and_stats(); // merge with init() ?
+
   void resetTime(double t, std::string dirname) override { /* not impl. */ throw; }
 
   void associer_probleme(const Probleme_FTD_IJK_base& );
 
   void associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft);
-  void initialise(int reprise);
-  void fill_indic(int reprise=0);
+  void init_integrated_and_ana(bool reprise);
+  void fill_indic(bool reprise=0);
   void initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
   void init_indicatrice_non_perturbe();
 
@@ -92,38 +96,28 @@ public:
   void reprendre_post(Param& param);
 
   void fill_op_conv();
-  void fill_surface_force(IJK_Field_vector3_double& the_field_you_know);//const Nom lata_name, double instant, int iteration);
+  void fill_surface_force(IJK_Field_vector3_double& the_field_you_know);
   void fill_surface_force_bis(const char * lata_name, double time, int time_iteration);
   IJK_Field_vector3_double get_rho_Ssigma();
 
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
-  // Part of the run() method in Probleme_FTD_IJK_base:
-  void alloc_fields();
-  void alloc_velocity_and_co(bool flag_variable_source);
   void improved_initial_pressure_guess(bool imp);
-  void postraiter_ci(const Nom& lata_name, const double current_time);
-  void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,
-                      const DoubleTab& gravite, const Nom& nom_cas);
-  //void ijk_interpolate_implementation_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
-  //                                        int skip_unknown_points, double value_for_bad_points,const IJK_Field_double& indic);
-  //void  ijk_interpolate_skip_unknown_points_bis(const IJK_Field_double& field, const DoubleTab& coordinates, ArrOfDouble& result,
-  //                                              const double value_for_bad_points,const IJK_Field_double& indic);
-  void compute_extended_pressures(const Maillage_FT_IJK& mesh);
-  //IJK_Field_double& extended_p);
-  /*
-   * TODO:
-   */
+
   void posttraiter_tous_champs_thermique(Motcles& liste,  const int idx) const;
   void posttraiter_tous_champs_energie(Motcles& liste,  const int idx) const;
   void posttraiter_tous_champs_thermal(Motcles& liste, const int idx) const;
 
-
-//  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
-
   Motcles get_liste_post_instantanes() const { return liste_post_instantanes_; }
 
+  void alloc_fields();
+  void alloc_velocity_and_co();
+
+  void compute_extended_pressures();
+
 protected:
+  std::vector<Entity> post_loc_;   // same indexing as noms_champs_a_post_ in Postraitement - stores localisation of fields to post
+
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
 
@@ -257,7 +251,6 @@ protected:
   IJK_Field_vector3_double ana_grad2Wi_; // Partie diagonale de la jacobienne
   IJK_Field_vector3_double ana_grad2Wc_; // contient les deriv croisees
 
-  // GAB
   IJK_Field_double IFd_source_spectraleX_;
   IJK_Field_double AOD_source_spectraleX_;
   IJK_Field_double source_spectraleY_;
@@ -296,16 +289,12 @@ protected:
   OBS_PTR(IJK_Thermals) thermals_;
   int first_step_thermals_post_=0;
 
-  /* IJK_Field_double temperature_ana_, ecart_t_ana_;
-    Nom expression_T_ana_;
-    IJK_Field_double source_temperature_ana_, ecart_source_t_ana_; */
-  // IJK_Field_vector3_double grad_T_;
-
   Multigrille_Adrien poisson_solver_post_;
 
   // Pour le post-traitement des champs cut-cell
   int cut_cell_activated_ = 0;
-};
 
+  void postraiter_fin(bool stop);
+};
 
 #endif /* Postprocessing_IJK_included */

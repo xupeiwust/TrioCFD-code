@@ -145,17 +145,182 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
 }
 
+// Could not find it elsewhere but surely must already exist?
+Entity str_to_entity(const Motcle& loc)
+{
+  if (loc == "ELEM") return Entity::ELEMENT;
+  if (loc == "SOM") return Entity::NODE;
+  if (loc == "FACES") return Entity::FACE;
+
+  Cerr << "Invalid localisation for field postprocessing : '" << loc << "' !!" << finl;
+  Process::exit();
+  return Entity::ELEMENT; // for compilers
+}
+
+/** Override to have a simpler logic than base class. We really want to retrieve names + location.
+ */
+int Postprocessing_IJK::lire_champs_a_postraiter(Entree& is, bool expect_acco)
+{
+  Motcle accolade_ouverte("{"), accolade_fermee("}"), motlu;
+
+  is >> motlu;
+  // TODO ?
+//   Noms liste_noms;
+//   mon_probleme->get_noms_champs_postraitables(liste_noms);
+  while (motlu != accolade_fermee)
+    {
+      if (noms_champs_a_post_.contient(motlu))
+        {
+          Cerr << "Postprocessing_IJK::lire_champs_a_postraiter: duplicate field " << motlu << finl;
+          Process::exit();
+        }
+      else
+        {
+          Motcle loc;
+          is >> loc;
+          Entity e = str_to_entity(loc);
+          // Building field name
+          Nom fld_nam = motlu + Nom("_") + loc;
+          noms_champs_a_post_.add(fld_nam);
+          post_loc_.push_back(e);
+        }
+      is >> motlu;
+    }
+
+  return 1;
+}
+
+/** Initialise lata file and various other stuff
+ *
+ */
+void Postprocessing_IJK::init()
+{
+  // Post_processing field allocations:
+  alloc_fields();
+  alloc_velocity_and_co();
+
+  // Integrated field initialisation
+  init_integrated_and_ana(ref_ijk_ft_->get_reprise());
+
+  fill_indic(ref_ijk_ft_->get_reprise());
+
+  completer_sondes();
+
+  prepare_lata_and_stats();
+
+  compute_extended_pressures();
+}
+
+/**
+ * Write the master lata file and prepare statistics and other stuff
+ */
+void Postprocessing_IJK::prepare_lata_and_stats()
+{
+  const Nom& lata_name = nom_fich_;
+  const double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
+  dumplata_header(lata_name);
+  dumplata_add_geometry(lata_name, velocity_.valeur()[0]);
+  dumplata_add_geometry(lata_name, ref_ijk_ft_->eq_ns().velocity_ft_[0]);
+
+  // Calcul des moyennes spatiales sur la condition initiale:
+  if (current_time >= t_debut_statistiques_)
+    {
+      // FA AT 16/07/2013 pensent que necessaire pour le calcul des derivees dans statistiques_.update_stat_k(...)
+      // Je ne sais pas si c'est utile, mais j'assure...
+      velocity_.valeur()[0].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_I*/);
+      velocity_.valeur()[1].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_J*/);
+      velocity_.valeur()[2].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_K*/);
+      pressure_->echange_espace_virtuel(1);
+
+      // C'est update_stat_ft qui gere s'il y a plusieurs groupes
+      // pour faire la vraie indicatrice + les groupes
+      update_stat_ft(0.);
+    }
+  else if (!(liste_post_instantanes_.contient_("CURL")) && !(liste_post_instantanes_.contient_("CRITERE_Q")) && (liste_post_instantanes_.contient_("LAMBDA2")))
+    {
+      // On ne calcul pas encore les stats, mais on veut post-traiter Lambda2 seulement...
+      get_update_lambda2();
+    }
+  else if ((liste_post_instantanes_.contient_("CURL")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("LAMBDA2")))
+    {
+      // On ne calcul pas encore les stats, mais on veut deja post-traiter le rotationnel ou Lambda2 ou critere_Q...
+      get_update_lambda2_and_rot_and_curl();
+    }
+}
+
+void Postprocessing_IJK::postraiter(int forcer)
+{
+  // Take care of fields and probes - new mode
+  Postraitement_ft_lata::postraiter(forcer);
+
+  // Take care of fields - old mode:
+  {
+    Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
+    Cout << "BF posttraiter_champs_instantanes " << sch.get_current_time() << " " << sch.get_tstep() << finl;
+    posttraiter_champs_instantanes(nom_fich_, sch.get_current_time(), sch.get_tstep());
+    if (ref_ijk_ft_->has_thermals())
+      ref_ijk_ft_->get_ijk_thermals().thermal_subresolution_outputs(); // for thermal counters
+    Cout << "AF posttraiter_champs_instantanes" << finl;
+  }
+
+  // All the rest
+  postraiter_fin(forcer);
+}
+
+/*! Override from 'Postraitement' since the logic is simpler here
+ */
+int Postprocessing_IJK::postraiter_champs()
+{
+  Probleme_FTD_IJK_base& pb = ref_cast(Probleme_FTD_IJK_base, probleme());
+  Schema_Temps_IJK_base& sch = pb.schema_temps_ijk();
+  int latastep = sch.get_tstep();
+
+  // Write out a new time in the lata:
+  dumplata_newtime(nom_fich_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
+
+  // Dump requested fields:
+  int idx = 0;
+  for (auto& nam0 : noms_champs_a_post_)
+    {
+      Motcle nam(nam0);
+      if (nam.debute_par("VITESSE") || nam.debute_par("VELOCITY"))
+        {
+          const IJK_Field_double& chx = ref_ijk_ft_->eq_ns().velocity_[0],
+                                  &chy = ref_ijk_ft_->eq_ns().velocity_[1],
+                                   &chz = ref_ijk_ft_->eq_ns().velocity_[2];
+          if (post_loc_[idx] == Entity::FACE)
+            dumplata_vector(nom_fich_, "VELOCITY", chx, chy, chz, latastep);
+//          else if (post_loc_[idx] == Entity::ELEMENT)
+//            {
+//              interpolate_to_center(cell_velocity_,velocity_);
+//              dumplata_cellvector(nom_fich_,"CELL_VELOCITY", cell_velocity_, latastep);
+//            }
+          else
+            {
+              Cerr << "Field '" << nam << "' - invalid localisation for post!" << finl;
+              Process::exit();
+            }
+        }
+      else
+        {
+          // TODO
+          throw;
+        }
+      idx++;
+    }
+  return 1;
+}
+
+
 void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
 {
   domaine_ijk_ = dom_ijk;
   domaine_ft_ = dom_ft;
 }
 
-
-void Postprocessing_IJK::initialise(int reprise)
+void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
 {
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
-  //poisson_solver_post_.initialize(splitting_);
 
   // pour relire les champs de temps integres:
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
@@ -311,34 +476,6 @@ void Postprocessing_IJK::initialise(int reprise)
     }
 }
 
-/*! Override from Postraitement since the logic is simpler here
- */
-int Postprocessing_IJK::postraiter_champs()
-{
-  Probleme_FTD_IJK_base& pb = ref_cast(Probleme_FTD_IJK_base, probleme());
-  Schema_Temps_IJK_base& sch = pb.schema_temps_ijk();
-  int latastep = sch.get_tstep();
-
-  for (auto& nam0 : noms_champs_a_post_)
-    {
-      Motcle nam(nam0);
-      // Specific case - velocity, when requested we output all three compos:
-      if (nam == "VITESSE" or nam == "VELOCITY")
-        {
-          const IJK_Field_double& chx = pb.eq_ns().get_IJK_field("VITESSE_X"),
-                                  &chy = pb.eq_ns().get_IJK_field("VITESSE_Y"),
-                                   &chz = pb.eq_ns().get_IJK_field("VITESSE_Z");
-          dumplata_vector(nom_fich_, "VELOCITY", chx, chy, chz, latastep);
-        }
-      else
-        {
-          // TODO
-          throw;
-        }
-    }
-  return 1;
-}
-
 double Postprocessing_IJK::get_timestep_simu_post(double current_time, double max_simu_time) const
 {
   // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
@@ -367,13 +504,13 @@ double Postprocessing_IJK::get_timestep_simu_post(double current_time, double ma
 }
 
 
-void Postprocessing_IJK::fill_indic(int reprise)
+void Postprocessing_IJK::fill_indic(bool reprise)
 {
   // Meme if que pour l'allocation.
   // On ne fait le calcul/remplissage du champ que dans un deuxieme temps car on
   // n'avait pas les interfaces avant (lors de l'init)
   if (((ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
-      || ((reprise) && ((fichier_reprise_indicatrice_non_perturbe_ != "??"))))
+      || (reprise && (fichier_reprise_indicatrice_non_perturbe_ != "??")))
     {
       init_indicatrice_non_perturbe();
     }
@@ -396,9 +533,7 @@ void Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& v
     {
       groups_statistiques_FT_.dimensionner(nb_groups);
       for (int igroup = 0; igroup < nb_groups; igroup++)
-        {
           groups_statistiques_FT_[igroup].initialize(ref_ijk_ft_, splitting, check_stats_);
-        }
     }
 }
 
@@ -452,23 +587,18 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
 
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
   const int latastep = compteur_post_instantanes_;
-  dumplata_newtime(lata_name, current_time);
+
+  // Now done from the new mode:
+//  dumplata_newtime(lata_name, current_time);
+
   if ((liste_post_instantanes_.contient_("FORCE_PH")) or (liste_post_instantanes_.contient_("CELL_FORCE_PH")))
-    {
       source_spectrale_ = ns.forcage_.get_force_ph2();
-    }
   if (liste_post_instantanes_.contient_("SOURCE_QDM_INTERF"))
-    {
       source_interface_ft_= ns.terme_source_interfaces_ft_;
-    }
   if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
-    {
       source_interface_ns_= ns.terme_source_interfaces_ns_;
-    }
   if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
-    {
       repulsion_interface_ns_= ns.terme_repulsion_interfaces_ns_;
-    }
   if (liste_post_instantanes_.contient_("TOUS"))
     {
       liste_post_instantanes_.dimensionner_force(0);
@@ -1828,7 +1958,6 @@ void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
       get_update_lambda2();
       dumplata_scalar(lata_name, "LAMBDA2", lambda2_, 0);
     }
-
 }
 
 void Postprocessing_IJK::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
@@ -1877,9 +2006,7 @@ void Postprocessing_IJK::fill_op_conv()
       op_conv_[i].data() = d_velocity_.valeur()[i].data();
 
   if (liste_post_instantanes_.contient_("CELL_OP_CONV"))
-    {
       interpolate_to_center(cell_op_conv_,d_velocity_);
-    }
 }
 
 void Postprocessing_IJK::fill_surface_force(IJK_Field_vector3_double& the_field_you_know)
@@ -2057,8 +2184,9 @@ void Postprocessing_IJK::alloc_fields()
     }
 }
 
-void Postprocessing_IJK::alloc_velocity_and_co(bool flag_variable_source)
+void Postprocessing_IJK::alloc_velocity_and_co()
 {
+  bool flag_variable_source = ref_ijk_ft_->eq_ns().get_flag_variable_source();
   // Le mot cle TOUS n'a pas encore ete compris comme tel.
   if ((liste_post_instantanes_.contient_("GRAD_INDICATRICE_FT")) || (liste_post_instantanes_.contient_("TOUS")))
     allocate_velocity(grad_I_ft_, domaine_ft_, 2);
@@ -2116,43 +2244,20 @@ void Postprocessing_IJK::improved_initial_pressure_guess(bool imp)
           set_field_data(coords_[i], noms_coords[i]);
         }
     }
-
 }
 
-void Postprocessing_IJK::postraiter_ci(const Nom& lata_name, const double current_time)
+void Postprocessing_IJK::postraiter_fin(bool stop)
 {
-  dumplata_header(lata_name);
-  dumplata_add_geometry(lata_name, velocity_.valeur()[0]);
-  dumplata_add_geometry(lata_name, ref_ijk_ft_->eq_ns().velocity_ft_[0]);
+  Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
+  int tstep = sch.get_tstep(),
+      tstep_init = sch.get_tstep_init();
+  double current_time = sch.get_current_time(),
+         timestep = sch.get_timestep();
+  Nom lata_name = nom_fich_;
+  const DoubleTab& gravite = ref_ijk_ft_->milieu_ijk().gravite().valeurs();
+  const Nom& nom_cas = nom_du_cas();
 
-  // Calcul des moyennes spatiales sur la condition initiale:
-  if (current_time >= t_debut_statistiques_)
-    {
-      // FA AT 16/07/2013 pensent que necessaire pour le calcul des derivees dans statistiques_.update_stat_k(...)
-      // Je ne sais pas si c'est utile, mais j'assure...
-      velocity_.valeur()[0].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_I*/);
-      velocity_.valeur()[1].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_J*/);
-      velocity_.valeur()[2].echange_espace_virtuel(2 /*, IJK_Field_ST::EXCHANGE_GET_AT_RIGHT_K*/);
-      pressure_->echange_espace_virtuel(1);
 
-      // C'est update_stat_ft qui gere s'il y a plusieurs groupes
-      // pour faire la vraie indicatrice + les groupes
-      update_stat_ft(0.);
-    }
-  else if (!(liste_post_instantanes_.contient_("CURL")) && !(liste_post_instantanes_.contient_("CRITERE_Q")) && (liste_post_instantanes_.contient_("LAMBDA2")))
-    {
-      // On ne calcul pas encore les stats, mais on veut post-traiter Lambda2 seulement...
-      get_update_lambda2();
-    }
-  else if ((liste_post_instantanes_.contient_("CURL")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("LAMBDA2")))
-    {
-      // On ne calcul pas encore les stats, mais on veut deja post-traiter le rotationnel ou Lambda2 ou critere_Q...
-      get_update_lambda2_and_rot_and_curl();
-    }
-}
-
-void Postprocessing_IJK::postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name, const DoubleTab& gravite, const Nom& nom_cas)
-{
   const int tstep_sauv = tstep + tstep_init;
   if (ref_ijk_ft_->has_thermals())
     thermals_->set_first_step_thermals_post(first_step_thermals_post_);
@@ -2419,7 +2524,7 @@ void ijk_interpolate_skip_unknown_points_bis(const IJK_Field_double& field, cons
 
 // Here begins the computation of the extended pressure fields
 // ALL the calculations are performed on the extended domain (FT) and the final field is the redistributed on the physical one (Navier-Stokes)
-void Postprocessing_IJK::compute_extended_pressures(const Maillage_FT_IJK& mesh)
+void Postprocessing_IJK::compute_extended_pressures()
 {
   if (!extended_pressure_computed_)
     return; // Leave the function if the extended fields are not necessary...
@@ -2564,15 +2669,15 @@ void Postprocessing_IJK::compute_extended_pressures(const Maillage_FT_IJK& mesh)
   if (Process::je_suis_maitre() && errcount_pext)
     Cerr << "[WARNING-Extended-pressure] Error Count = " << errcount_pext << endl;
 
-// Interpolation on the image points
-// All the quantities are evaluated on the extended domain, both the pressure field, both the image points coordinates
+  // Interpolation on the image points
+  // All the quantities are evaluated on the extended domain, both the pressure field, both the image points coordinates
 
   ArrOfDouble p_interp_liq(2 * nbsom);
   ArrOfDouble p_interp_vap(2 * nbsom);
   ijk_interpolate_skip_unknown_points(pressure_ft_, positions_vap, p_interp_vap, 1.e5 /*value for unknown points*/);
   ijk_interpolate_skip_unknown_points_bis(pressure_ft_, positions_liq, p_interp_liq, 1.e5 /* value for unknown points */, interfaces_->In_ft());
 
-// Extrapolation in the eulerian cells crossed by the interface
+  // Extrapolation in the eulerian cells crossed by the interface
   int inval_pl_count = 0.;
   int inval_pv_count = 0.;
   for (int icell = 0; icell < nbsom; icell++)
@@ -2638,132 +2743,6 @@ void Postprocessing_IJK::compute_extended_pressures(const Maillage_FT_IJK& mesh)
   extended_pv_.echange_espace_virtuel(extended_pv_.ghost());
   statistiques().end_count(postraitement_counter_);
 }
-
-#if 0
-// copy:
-extended_pl_ = pressure_;
-extended_pv_ = pressure_;
-
-// Change d_velocity + rho_field_ + mu_field_ ...
-compute_phase_pressures_based_on_poisson(0);
-compute_phase_pressures_based_on_poisson(1);
-
-//Computing the integral of the extended pressure fields on each bubble so to take into account the real jump condition constitued by the surface tension:
-//The values obtained can described better the physics of the problem but are not anymore involved in the pressure extension
-const Maillage_FT_IJK& maillage= interfaces_.maillage_ft_ijk_;
-const DoubleTab& sommets = maillage.sommets() ; // Table of the coordinates of the markers on the front
-const IntTab& facettes = maillage.facettes(); // Table of the nodes of the unstructured mesh of the front
-int nbsom = sommets.dimension(0); // Number of  points on the front
-int n =maillage.nb_facettes(); // Number of elements on the front
-const ArrOfDouble& courbure = maillage.get_update_courbure_sommets();
-const ArrOfDouble& surface_facettes = maillage.get_update_surface_facettes();
-const int nbulles_reelles = interfaces_.get_nb_bulles_reelles();
-const int nbulles_ghost =interfaces_.get_nb_bulles_ghost();
-const int nbulles_tot = nbulles_reelles + nbulles_ghost;
-ArrOfDouble surface_par_bulle;
-interfaces_.calculer_surface_bulles(surface_par_bulle);
-const ArrOfInt& compo_connex = maillage.compo_connexe_facettes();
-
-
-
-// Extended fields interpolation on the front
-ArrOfDouble pl_ext_interp(nbsom);
-ArrOfDouble pv_ext_interp(nbsom);
-ijk_interpolate_skip_unknown_points(extended_pl_, sommets, pl_ext_interp, 1.e5 /* value for unknown points */);
-ijk_interpolate_skip_unknown_points(extended_pv_, sommets, pv_ext_interp, 1.e5 /* value for unknown points */);
-
-// Weighted averaged values on each bubble
-ArrOfDouble pl(nbulles_tot);
-ArrOfDouble pv(nbulles_tot);
-ArrOfDouble k(nbulles_tot);
-// Weights based on the surface of the elements
-for (int fa7 = 0; fa7 < n; fa7++)
-  {
-    const double sf=surface_facettes[fa7];
-    int compo = compo_connex[fa7];
-    if (compo < 0)
-      {
-        const int idx_ghost = interfaces_.get_ghost_number_from_compo(compo);
-        compo = nbulles_reelles - 1 -idx_ghost;
-      }
-    assert(compo >=0);
-    assert(compo < nbulles_tot);
-    for (int isom = 0; isom< 3; isom++)
-      {
-        const int num_som = facettes(fa7, isom);
-        const double kappa = courbure(num_som);
-        const double pl_ext = pl_ext_interp(num_som);
-        const double pv_ext = pv_ext_interp(num_som);
-        const double fac = sf/3.;
-        k(compo) += kappa*fac;
-        pl(compo)+= pl_ext*fac;
-        pv(compo)+= pv_ext*fac;
-      }
-  }
-// Imposing the correct jump value
-ArrOfDouble source(nbulles_tot);
-ArrOfDouble diff(nbulles_tot);
-ArrOfDouble pv_2(nbulles_tot);
-
-for (int icompo = 0; icompo < nbulles_tot; icompo++)
-  {
-    k(icompo) /=surface_par_bulle(icompo);
-    pl(icompo) /=surface_par_bulle(icompo);
-    pv(icompo) /=surface_par_bulle(icompo);
-    diff(icompo) = pl(icompo) - pv(icompo);
-    source (icompo) = ref_ijk_ft_.sigma_*k(icompo);
-    pv_2(icompo) = pv(icompo)-source(icompo)+diff(icompo);
-  }
-// Printing on screen
-cout<< "courbure: "  << k;
-cout<< "Liquid field: "  << pl;
-cout<< "Vapor field: "  << pv_2;
-
-}
-fichier_reprise_vitesse_
-
-void Postprocessing_IJK::compute_phase_pressures_based_on_poisson(const int phase)
-// Computes a new d_velocity based on a virtual time step
-// Takes into account only convection + diffusion (no interfacial source term)
-// Takes constant properties per phase
-{
-  const double fac = 1.e-4;
-  const double virtual_timestep = ref_ijk_ft_.timestep_ * fac;
-
-  // Attribution of the value of each phase everywhere
-  IJK_Field_double& rho_field_ = ref_ijk_ft_.rho_field_;
-  IJK_Field_double& molecular_mu_ = ref_ijk_ft_.molecular_mu_;
-  const double mu_phase = (phase==1) ? ref_ijk_ft_.mu_liquide_ : ref_ijk_ft_.mu_vapeur_;
-  const double rho_phase = (phase==1) ? ref_ijk_ft_.rho_liquide_ : ref_ijk_ft_.rho_vapeur_;
-  molecular_mu_.data() = mu_phase;
-  rho_field_.data() = rho_phase;
-  const int store_value_disable_diphasique = Option_IJK::DISABLE_DIPHASIQUE;
-  IJK_Field_double& extended_p = (phase==1) ? extended_pl_ : extended_pv_;
-  Option_IJK::DISABLE_DIPHASIQUE = 1;
-
-  ref_ijk_ft_.calculer_dv(virtual_timestep, ref_ijk_ft_.current_time_, -1 /* rk_step -> not in RK3 */);
-  IJK_Field_vector3_double& dvdt = ref_ijk_ft_.d_velocity_; //
-  IJK_Field_double& rhs = ref_ijk_ft_.pressure_rhs_;
-
-  // Poisson solver applied to the calculated projection field
-  pressure_projection(dvdt[0], dvdt[1],  dvdt[2], extended_p, 1/rho_phase,
-                      rhs, ref_ijk_ft_.check_divergence_, poisson_solver_post_);
-  Option_IJK::DISABLE_DIPHASIQUE = store_value_disable_diphasique;
-  {
-    // Restore the one-fluid variables
-    for (int k=0; k < interfaces_.In().nk() ; k++)
-      for (int j=0; j< interfaces_.In().nj(); j++)
-        for (int i=0; i < interfaces_.In().ni(); i++)
-          {
-            double chi_l = interfaces_.In()(i,j,k);
-            rho_field_(i,j,k)    = ref_ijk_ft_.rho_liquide_ * chi_l + (1.- chi_l) * ref_ijk_ft_.rho_vapeur_;
-            molecular_mu_(i,j,k) = ref_ijk_ft_.mu_liquide_  * chi_l + (1.- chi_l) * ref_ijk_ft_.mu_vapeur_ ;
-          }
-    rho_field_.echange_espace_virtuel(rho_field_.ghost());
-    molecular_mu_.echange_espace_virtuel(molecular_mu_.ghost());
-  }
-}
-#endif
 
 // Methode appelee lorsqu'on a mis "TOUS" dans la liste des champs a postraiter.
 // Elle ajoute a la liste tous les noms de champs postraitables par IJK_Interfaces

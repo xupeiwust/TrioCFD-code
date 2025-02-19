@@ -3,4 +3,6 @@
 - TRUSTTabFT a retirer
 - nettoyer les friends !!
 - factoriser Sonde et Sonde_IJK
-
+- get_noms_champs_postraitables a coder ?
+- IJK_interfaces.h -> mais quel b****. bcp trop de truc dans le .h
+- pour les courageux: Probleme_base::run() et Probleme_FTD_IJK_base::run() ne sont maintenant plus si différents ...

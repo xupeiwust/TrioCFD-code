@@ -263,19 +263,19 @@ const IJK_Field_double& Navier_Stokes_FTD_IJK::get_IJK_field(const Nom& nom) con
   // Dans ce cas, le champ velocity_ft_ n'est pas utilise :
   if (Option_IJK::DISABLE_DIPHASIQUE)
     {
-      if (nom== "VELOCITY_X")
+      if (nom== "VELOCITY_X" || nom=="VITESSE_X")
         return velocity_[0];
-      if (nom== "VELOCITY_Y")
+      if (nom== "VELOCITY_Y" || nom=="VITESSE_Y")
         return velocity_[1];
-      if (nom== "VELOCITY_Z")
+      if (nom== "VELOCITY_Z" || nom=="VITESSE_Z")
         return velocity_[2];
     }
 
-  if (nom== "VELOCITY_X")
+  if (nom== "VELOCITY_X" || nom=="VITESSE_X")
     return velocity_ft_[0];
-  if (nom== "VELOCITY_Y")
+  if (nom== "VELOCITY_Y" || nom=="VITESSE_Y")
     return velocity_ft_[1];
-  if (nom== "VELOCITY_Z")
+  if (nom== "VELOCITY_Z" || nom=="VITESSE_Z")
     return velocity_ft_[2];
   if (nom== "D_VELOCITY_X")
     return d_velocity_[0];
@@ -633,11 +633,10 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   probleme_ijk().get_post().alloc_fields();
 
   // Allocation du terme source variable spatialement:
-  int flag_variable_source = false;
   if ((expression_variable_source_[0] != "??") || (expression_variable_source_[1] != "??") || (expression_variable_source_[2] != "??") || (expression_potential_phi_ != "??"))
     {
       allocate_velocity(variable_source_, dom_ijk, 1);
-      flag_variable_source = true;
+      flag_variable_source_ = true;
       potential_phi_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
       for (int dir = 0; dir < 3; dir++)
         variable_source_[dir].data() = 0.;
@@ -674,7 +673,7 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     }
 
   // FIXME: on a oublie pleins de choses la !
-  probleme_ijk().get_post().alloc_velocity_and_co(flag_variable_source);
+  probleme_ijk().get_post().alloc_velocity_and_co();
   if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
     {
       Cerr << "Schema temps de type : RK3_FT" << finl;

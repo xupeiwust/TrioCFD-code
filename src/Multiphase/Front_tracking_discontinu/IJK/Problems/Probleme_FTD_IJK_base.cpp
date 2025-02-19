@@ -109,9 +109,12 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
 
 void Probleme_FTD_IJK_base::set_param(Param& param)
 {
+  int flg;
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
-  param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
+  param.ajouter_flag("sauvegarder_xyz", &flg); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
+
+  sauvegarder_xyz_ = (flg != 0);
 }
 
 int Probleme_FTD_IJK_base::associer_(Objet_U& obj)
@@ -367,7 +370,7 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   IJK_Shear_Periodic_helpler::shear_x_time_ = ns.get_boundary_conditions().get_dU_perio()*
                                               (schema_temps_ijk().get_current_time() + ns.get_boundary_conditions().get_t0_shear());
 
-  reprise_ = 1;
+  reprise_ = true;
 
   Nom prefix = dirname(fichier_reprise);
 
@@ -384,7 +387,6 @@ void Probleme_FTD_IJK_base::initialise_ijk_fields()
 {
   Cerr << que_suis_je() << "::initialise_ijk_fields()" << finl;
 
-  get_post().initialise(reprise_);
 // TODO : FIXME : faut boucler plus tard sur les equations IJK
   Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
   IJK_Interfaces& interf = get_interface();
@@ -586,12 +588,14 @@ void Probleme_FTD_IJK_base::initialize()
   initialise_interfaces();
   initialise_ijk_fields();
 
+  init_postraitements();  // from Probleme_base - will invoke Postprocessing_IJK::init()
+
   Cerr << " Allocating " << IJK_Field_double::alloc_counter() << " IJK_FT_double objects." << finl;
 
-// Les champs ont etes alloues.
-// On peut completer les sondes car les ijk_field.get_domaine() sont a present remplis.
-  get_post().completer_sondes();
-  get_post().improved_initial_pressure_guess(ns.get_improved_initial_pressure_guess());
+  // Register velocity as a champs_compris - TODO : champs_compris_ in each eq?
+  auto& vel = eq_ns().get_velocity();
+  for (int i=0; i < 3; i++)
+    champs_compris_.ajoute_champ(vel[i]);
 }
 
 /*
@@ -613,24 +617,11 @@ void Probleme_FTD_IJK_base::preparer_calcul()
   if ((!Option_IJK::DISABLE_DIPHASIQUE) && (get_post().get_liste_post_instantanes().contient_("VI") || get_post().get_liste_post_instantanes().contient_("TOUS")))
     interf.compute_vinterp();
 
-  get_post().postraiter_ci(lata_name_, schema_temps_ijk().get_current_time());
-
-  get_post().compute_extended_pressures(interf.maillage_ft_ijk());
-
   if (has_thermals_)
     schema_temps_ijk().set_modified_time_ini(  get_ijk_thermals().get_modified_time() );
 
   if (!reprise_ && schema_temps_ijk().get_current_time() == 0.)
     schema_temps_ijk().set_current_time(schema_temps_ijk().get_modified_time_ini());
-
-  if (!schema_temps_ijk().get_first_step_interface_smoothing())
-    {
-      Cout << "BF posttraiter_champs_instantanes " << schema_temps_ijk().get_current_time() << " " << schema_temps_ijk().get_tstep() << finl;
-      get_post().posttraiter_champs_instantanes(lata_name_, schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
-      if (has_thermals_)
-        get_ijk_thermals().thermal_subresolution_outputs(); // for thermal counters
-      Cout << "AF posttraiter_champs_instantanes" << finl;
-    }
 
   // GB 2019.01.01 Why immobilisation? if (!Option_IJK::DISABLE_DIPHASIQUE && coef_immobilisation_==0.)
   if ((!Option_IJK::DISABLE_DIPHASIQUE) && ns.get_suppression_rejetons())
@@ -669,7 +660,6 @@ void Probleme_FTD_IJK_base::euler_time_step(ArrOfDouble& var_volume_par_bulle)
       ns.update_v_or_rhov();
       get_ijk_thermals().euler_time_step(schema_temps_ijk().get_timestep());
     }
-
 
   ns.euler_time_step(var_volume_par_bulle);
   statistiques().end_count(euler_rk3_counter_);
@@ -724,15 +714,6 @@ void Probleme_FTD_IJK_base::sauver() const
                                            schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
         }
     }
-}
-
-int Probleme_FTD_IJK_base::postraiter(int force)
-{
-  get_post().postraiter_fin(stop_, schema_temps_ijk().get_tstep(), schema_temps_ijk().get_tstep_init(),
-                            schema_temps_ijk().get_current_time(), schema_temps_ijk().get_timestep(),
-                            lata_name_, milieu_ijk().gravite().valeurs(), nom_du_cas());
-
-  return 1;
 }
 
 double Probleme_FTD_IJK_base::computeTimeStep(bool& stop) const
@@ -807,7 +788,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
 
       get_post().update_stat_ft(schema_temps_ijk().get_timestep());
       if (!Option_IJK::DISABLE_DIPHASIQUE)
-        get_post().compute_extended_pressures(interf.maillage_ft_ijk());
+        get_post().compute_extended_pressures();
     }
 
   return true;
@@ -970,6 +951,11 @@ bool Probleme_FTD_IJK_base::run()
 
   schema_temps_ijk().set_max_timestep(schema_temps_ijk().get_timestep());
 
+  Cerr<<"First postprocessing, this can take some minutes"<<finl;
+  if (!schema_temps_ijk().get_first_step_interface_smoothing())  // [ABN] do not understand this
+    postraiter(1);
+  Cerr<<"First postprocessing OK"<<finl;
+
   statistiques().end_count(initialisation_calcul_counter_);
 
   if (!disable_TU)
@@ -1018,7 +1004,8 @@ bool Probleme_FTD_IJK_base::run()
       else // The resolution was successful, validate and go to the next time step.
         validateTimeStep();
 
-      postraiter(stop_);
+      if(tstep>0)  // avoid duplicating initial post
+        postraiter(stop_);
 
       statistiques().end_count(timestep_counter_);
 

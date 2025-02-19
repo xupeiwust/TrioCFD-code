@@ -203,6 +203,8 @@ public:
 
   void create_forced_dilation();
 
+  bool get_flag_variable_source() const { return flag_variable_source_; }
+
 protected:
   OBS_PTR(IJK_Interfaces) interfaces_;
 
@@ -468,6 +470,8 @@ protected:
   init_forcage_THI forcage_;
 
   Champs_compris_T<IJK_Field_double> champs_compris_;
+
+  bool flag_variable_source_ = false;
 };
 
 #endif /* Navier_Stokes_FTD_IJK_included */

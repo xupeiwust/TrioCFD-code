@@ -67,7 +67,7 @@ public :
   bool run() override;
   void initialize() override;
   void terminate() override;
-  int postraiter(int force=1) override;
+//  int postraiter(int force=1) override;
   void sauver() const override;
 
   // interface UnsteadyProblem
@@ -105,7 +105,7 @@ public :
   int get_thermal_probes_ghost_cells() const { return thermal_probes_ghost_cells_; }
 
   double t_debut_statistiques() const { return get_post().t_debut_statistiques(); }
-  int get_reprise() const { return reprise_; }
+  bool get_reprise() const { return reprise_; }
 
   void get_noms_champs_postraitables(Noms& noms,Option opt) const override { }
   const Postprocessing_IJK& get_post() const { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
@@ -213,8 +213,8 @@ protected:
   bool stop_ = false;
 
   Nom fichier_post_, nom_sauvegarde_, nom_reprise_;
-  int sauvegarder_xyz_ = 0; // drapeau 0 ou 1
-  int reprise_ = 0;// flag pour indiquer si on fait une reprise
+  bool sauvegarder_xyz_ = false; // drapeau 0 ou 1
+  bool reprise_ = false;// flag pour indiquer si on fait une reprise
 
   // Le probleme ft disc qui porte le maillage vdf pour les algorithmes front-tracking
   OBS_PTR(Probleme_base) refprobleme_ft_disc_;
