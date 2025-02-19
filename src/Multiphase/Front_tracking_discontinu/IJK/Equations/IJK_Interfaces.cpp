@@ -709,15 +709,14 @@ void IJK_Interfaces::update_indicatrice_variables_monofluides()
   compute_rising_velocities_from_compo();
 }
 
-int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
-                               const Domaine_IJK& domaine_NS,
-                               const Domaine_dis_base& domaine_dis,
-                               const int thermal_probes_ghost_cells,
-                               const bool compute_vint,
-                               const bool is_switch)
+void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
+                                const Domaine_IJK& domaine_NS,
+                                const Domaine_dis_base& domaine_dis,
+                                const int thermal_probes_ghost_cells,
+                                const bool compute_vint,
+                                const bool is_switch)
 {
   Cerr << "Entree dans IJK_Interfaces::initialize" << finl;
-  int nalloc = 0;
   set_recompute_indicator(CLASSIC_METHOD);
 
   ref_domaine_ = domaine_FT;
@@ -743,7 +742,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       indicatrice_ns_[next()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
       indicatrice_ns_[next()].data() = 1.;
       indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
-      nalloc += 4;
       indicatrice_avant_remaillage_ft_.allocate(domaine_FT, Domaine_IJK::ELEM, 2);
       indicatrice_avant_remaillage_ft_.data() = 1.;
       indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
@@ -759,19 +757,15 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       delta_volume_theorique_bilan_ns_.allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
       delta_volume_theorique_bilan_ns_.data() = 0.;
       delta_volume_theorique_bilan_ns_.echange_espace_virtuel(delta_volume_theorique_bilan_ns_.ghost());
-      nalloc += 5;
       allocate_cell_vector(groups_indicatrice_ft_[old()], domaine_FT, 1);
       allocate_cell_vector(groups_indicatrice_ft_[next()], domaine_FT, 1);
-      nalloc += 6;
 #if VERIF_INDIC
       indicatrice_ft_test_.allocate(domaine_FT, Domaine_IJK::ELEM, 1);
       allocate_cell_vector(groups_indicatrice_ft_test_, domaine_FT, 1);
       allocate_cell_vector(groups_indicatrice_ft_test_, domaine_FT, 1);
-      nalloc += 7;
 #endif
       nb_compo_traversante_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 0);
       nb_compo_traversante_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 0);
-      nalloc += 2;
       for (int i = 0; i < max_authorized_nb_of_components_; i++)
         {
           compos_traversantes_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
@@ -790,7 +784,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
             grad_sigma_par_compo_[next()][dir][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           repuls_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           courbure_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
-          nalloc += 12;
           // Et pour les vecteurs :
           for (int dir = 0; dir < 3; dir++)
             {
@@ -799,7 +792,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
               bary_par_compo_[old()][idx].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
               normale_par_compo_[next()][idx].allocate(domaine_FT, Domaine_IJK::ELEM, 2);
               bary_par_compo_[next()][idx].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
-              nalloc += 4;
             }
         }
 
@@ -807,7 +799,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       surface_interface_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2);
       surface_interface_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
       surface_interface_ns_[next()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
-      nalloc += 4;
 
       surface_interface_ft_[old()].data() = 0.;
       surface_interface_ft_[next()].data() = 0.;
@@ -818,7 +809,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       allocate_cell_vector(barycentre_phase1_ft_[next()], domaine_FT, 2);
       allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells);
       allocate_cell_vector(barycentre_phase1_ns_[next()], domaine_NS, nb_ghost_cells);
-      nalloc += 4;
 
       for (int bary_compo = 0; bary_compo < 3; bary_compo++)
         {
@@ -832,7 +822,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       allocate_velocity(indicatrice_surfacique_face_ft_[next()], domaine_FT, 2);
       allocate_velocity(indicatrice_surfacique_face_ns_[old()], domaine_NS, nb_ghost_cells);
       allocate_velocity(indicatrice_surfacique_face_ns_[next()], domaine_NS, nb_ghost_cells);
-      nalloc += 12;
 
       for (int face_dir = 0; face_dir < 3; face_dir++)
         {
@@ -846,7 +835,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       allocate_velocity(indicatrice_surfacique_avant_remaillage_face_ns_, domaine_NS, nb_ghost_cells);
       allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ft_, domaine_FT, 2);
       allocate_velocity(indicatrice_surfacique_apres_remaillage_face_ns_, domaine_NS, nb_ghost_cells);
-      nalloc += 12;
 
       for (int face_dir = 0; face_dir < 3; face_dir++)
         {
@@ -864,7 +852,6 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
               barycentre_phase1_face_ft_[next()][face_dir][bary_compo].allocate(domaine_FT, Domaine_IJK::ELEM, 2);
               barycentre_phase1_face_ns_[old()][face_dir][bary_compo].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
               barycentre_phase1_face_ns_[next()][face_dir][bary_compo].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
-              nalloc += 4;
             }
         }
 
@@ -883,19 +870,16 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       allocate_velocity(normal_of_interf_[next()], domaine_FT, 2);
       allocate_velocity(normal_of_interf_ns_[old()], domaine_NS, nb_ghost_cells);
       allocate_velocity(normal_of_interf_ns_[next()], domaine_NS, nb_ghost_cells);
-      nalloc += 12;
 
       allocate_velocity(bary_of_interf_[old()], domaine_FT, 1);
       allocate_velocity(bary_of_interf_[next()], domaine_FT, 1);
       allocate_velocity(bary_of_interf_ns_[old()], domaine_NS, 1);
       allocate_velocity(bary_of_interf_ns_[next()], domaine_NS, 1);
-      nalloc += 12;
 
       allocate_velocity(surface_vapeur_par_face_[old()], domaine_FT, 1);
       allocate_velocity(surface_vapeur_par_face_[next()], domaine_FT, 1);
       allocate_velocity(surface_vapeur_par_face_ns_[old()], domaine_NS, 1);
       allocate_velocity(surface_vapeur_par_face_ns_[next()], domaine_NS, 1);
-      nalloc += 12;
 
       for (int d = 0; d < 3; d++)
         {
@@ -907,22 +891,19 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
           surface_vapeur_par_face_ns_[next()][d].data() = 0.;
           allocate_velocity(barycentre_vapeur_par_face_ns_[old()][d], domaine_NS, 1);
           allocate_velocity(barycentre_vapeur_par_face_ns_[next()][d], domaine_NS, 1);
-          nalloc += 12;
         }
 
       if (cut_cell_activated_)
         {
           Cut_field_vector3_double& cut_field_deformation_velocity = static_cast<Cut_field_vector3_double&>(deformation_velocity_);
           allocate_velocity_ephemere(*ref_ijk_ft_->get_cut_cell_disc(), cut_field_deformation_velocity, domaine_NS, 2);
-          nalloc += 3;
         }
 
       allocate_velocity(indicatrice_surfacique_efficace_deformation_face_, domaine_NS, nb_ghost_cells);
-      nalloc += 3;
     }
 
   if (Option_IJK::DISABLE_DIPHASIQUE)
-    return nalloc;
+    return;
 
   refdomaine_dis_ = domaine_dis;
 
@@ -1091,14 +1072,10 @@ int IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       domaine.creer_tableau_elements(num_compo_);
     }
 
-  /*
-   * TODO: Add nalloc
-   */
   read_bubbles_barycentres_old_new(fichier_reprise_interface_);
   intersection_ijk_cell_.initialize(domaine_NS, *this);
   intersection_ijk_face_.initialize(domaine_NS, *this);
-  nalloc += ijk_compo_connex_.initialize(*this, is_switch);
-  return nalloc;
+  ijk_compo_connex_.initialize(*this, is_switch);
 }
 
 const Milieu_base& IJK_Interfaces::milieu() const

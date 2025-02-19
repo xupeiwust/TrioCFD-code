@@ -514,7 +514,7 @@ void Navier_Stokes_FTD_IJK::maj_indicatrice_rho_mu(const bool parcourir)
   statistiques().end_count(calculer_rho_mu_indicatrice_counter_);
 }
 
-int Navier_Stokes_FTD_IJK::initialise_ns_fields()
+void Navier_Stokes_FTD_IJK::initialise_ns_fields()
 {
   Cerr << "Navier_Stokes_FTD_IJK::initialise_ns_fields()" << finl;
   const Probleme_FTD_IJK_base& pb_ijk = probleme_ijk();
@@ -538,10 +538,7 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
     }
 
 
-  int nalloc = 0;
-
   allocate_velocity(d_velocity_, dom_ijk, 1);
-  nalloc += 6;
 
   if (test_etapes_et_bilan_)
     {
@@ -552,14 +549,11 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
 
       for (auto field : fields)
         allocate_velocity(*field, dom_ijk, 1);
-
-      nalloc += 36;
     }
 
   pressure_ghost_cells_.allocate(dom_ijk, Domaine_IJK::ELEM, pb_ijk.get_thermal_probes_ghost_cells());
   pressure_ghost_cells_.data() = 0.;
   pressure_ghost_cells_.echange_espace_virtuel(pressure_ghost_cells_.ghost());
-  nalloc += 1;
 
   const double mu_l = milieu_ijk().get_mu_liquid(),
                rho_l = milieu_ijk().get_rho_liquid(),
@@ -572,25 +566,18 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
   else
     pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
 
-  nalloc += 1;
 
   if (include_pressure_gradient_in_ustar_)
     {
       d_pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
       if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
-        {
-          RK3_F_pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
-          nalloc += 1;
-        }
-      nalloc += 1;
+        RK3_F_pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
     }
 
   // On utilise aussi rhov pour le bilan de forces et pour d'autres formes de convection...
   allocate_velocity(rho_v_, dom_ijk, 2);
-  nalloc += 3;
 
   pressure_rhs_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
-  nalloc += 1;
   I_ns_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
   kappa_ns_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
 
@@ -598,7 +585,6 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
     {
       molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, mu_v, mu_l);
       rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, rho_v, rho_l);
-      nalloc += 2;
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = rho_l;
       if (use_inv_rho_)
@@ -606,7 +592,6 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
           inv_rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, 1. / rho_v, 1. / rho_l);
           IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = 1. / rho_v;
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = 1. / rho_l;
-          nalloc += 1;
         }
     }
   else
@@ -615,11 +600,9 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = rho_l;
       molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
       rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
-      nalloc += 2;
       if (use_inv_rho_)
         {
           inv_rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
-          nalloc += 1;
           IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = 1. / rho_v;
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = 1. / rho_l;
         }
@@ -631,7 +614,6 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
       for (int dir = 0; dir < 3; dir++)
         zero_field_ft_[dir].data() = 0.;
       zero_field_ft_.echange_espace_virtuel();
-      nalloc += 3;
     }
 
   if (diffusion_alternative_)
@@ -640,20 +622,15 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
       unit_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
       unit_.data() = 1.;
       unit_.echange_espace_virtuel(unit_.ghost());
-      nalloc += 4;
     }
 
   if (velocity_convection_op_.get_convection_op_option_rank() == non_conservative_rhou)
-    {
-      div_rhou_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
-    }
+    div_rhou_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
   allocate_velocity(psi_velocity_, dom_ijk, 2);
-  nalloc += 3;
 
   // champs pour post-traitement :
   // post_.alloc_fields();
-  nalloc += probleme_ijk().get_post().alloc_fields();
+  probleme_ijk().get_post().alloc_fields();
 
   // Allocation du terme source variable spatialement:
   int flag_variable_source = false;
@@ -662,13 +639,12 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
       allocate_velocity(variable_source_, dom_ijk, 1);
       flag_variable_source = true;
       potential_phi_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
-      nalloc += 4;
       for (int dir = 0; dir < 3; dir++)
         variable_source_[dir].data() = 0.;
       potential_phi_.data() = 0.;
     }
 
-  // thermals_.initialize(dom_ijk, nalloc);
+  // thermals_.initialize(dom_ijk);
 
   // GB : Je ne sais pas si on a besoin d'un ghost... Je crois que oui. Lequel?
   // Si la a vitesse ft doit transporter les sommets virtuels des facettes reelles,
@@ -681,7 +657,6 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
    */
   int ft_ghost_cells = 4;
   allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells);
-  nalloc += 3;
 
   kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2);
 
@@ -696,18 +671,14 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
 
       for (auto field : fields_ft)
         allocate_velocity(*field, pb_ijk.get_domaine_ft(), 1);
-
-      nalloc += 18;
     }
 
   // FIXME: on a oublie pleins de choses la !
-  // int nalloc = 24;
-  nalloc += probleme_ijk().get_post().alloc_velocity_and_co(flag_variable_source);
+  probleme_ijk().get_post().alloc_velocity_and_co(flag_variable_source);
   if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
     {
       Cerr << "Schema temps de type : RK3_FT" << finl;
       allocate_velocity(RK3_F_velocity_, dom_ijk, 1);
-      nalloc += 3;
     }
   else
     Cerr << "Schema temps de type : Euler_Explicite" << finl;
@@ -728,8 +699,6 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
       velocity_[i].add_synonymous(Nom("vitesse_") + Nom(compo_name[i]));
       champs_compris_.ajoute_champ(velocity_[i]);
     }
-
-  return nalloc;
 }
 
 void Navier_Stokes_FTD_IJK::projeter()
@@ -896,10 +865,9 @@ void Navier_Stokes_FTD_IJK::forcage_control_ecoulement()
     store_rhov_moy_[direction] = calculer_v_moyen(rho_v_[direction]);
 }
 
-int Navier_Stokes_FTD_IJK::initialise_ijk_fields()
+void Navier_Stokes_FTD_IJK::initialise_ijk_fields()
 {
   Probleme_FTD_IJK_base& pb_ijk = probleme_ijk();
-  int nalloc = 0;
   Cout << "forcage_.get_type_forcage() : " << forcage_.get_type_forcage() << finl;
   if (forcage_.get_type_forcage() > 0)
     {
@@ -962,11 +930,10 @@ int Navier_Stokes_FTD_IJK::initialise_ijk_fields()
     }
 
   // statistiques...
-  nalloc += pb_ijk.get_post().initialise_stats(pb_ijk.domaine_ijk(), vol_bulles_, vol_bulle_monodisperse_);
+  pb_ijk.get_post().initialise_stats(pb_ijk.domaine_ijk(), vol_bulles_, vol_bulle_monodisperse_);
 
   if (coef_immobilisation_ > 1e-16)
     {
-      nalloc += 3;
       allocate_velocity(force_rappel_, pb_ijk.domaine_ijk(), 2);
       allocate_velocity(force_rappel_ft_, pb_ijk.get_domaine_ft(), 2);
       // A la reprise, c'est fait par le IJK_Interfaces::readOn
@@ -1003,8 +970,6 @@ int Navier_Stokes_FTD_IJK::initialise_ijk_fields()
     }
 
   maj_indicatrice_rho_mu();
-
-  return nalloc;
 }
 
 void Navier_Stokes_FTD_IJK::complete_initialise_ijk_fields()

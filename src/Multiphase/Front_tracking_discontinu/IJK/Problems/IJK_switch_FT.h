@@ -44,7 +44,7 @@ public:
 protected:
   // Override from base class:
   void initialise() override;
-  int init_thermals() override;
+  void init_thermals() override;
   void prepare_run() override;
   void set_param(Param& param) override;
   void ecrire_fichier_reprise(const char *fichier_sauvegarde, const bool and_lata=true) override;
@@ -55,9 +55,9 @@ protected:
                                               DoubleTab& coeff_j, IntTab Indice_j,
                                               DoubleTab& coeff_k, IntTab Indice_k) override;
   void compute_and_write_extra_fields_direct(SFichier& file,
-																						 DoubleTab& coeff_i, IntTab Indice_i,
-																						 DoubleTab& coeff_j, IntTab Indice_j,
-																						 DoubleTab& coeff_k, IntTab Indice_k) override;
+                                             DoubleTab& coeff_i, IntTab Indice_i,
+                                             DoubleTab& coeff_j, IntTab Indice_j,
+                                             DoubleTab& coeff_k, IntTab Indice_k) override;
 
   // Le maillage des interfaces:
   IJK_Interfaces interfaces_;

@@ -2751,15 +2751,14 @@ void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, co
   check_stats_ = 0;
 }
 
-int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom,
-                                        const int check_stats)
+void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom,
+                                         const int check_stats)
 {
   initialize(ijk_ft,geom);
   // Pour les deriv de U, V et W :
   allocate_cell_vector(gradU_, geom, 0);
   allocate_cell_vector(gradV_, geom, 0);
   allocate_cell_vector(gradW_, geom, 0);
-  int nalloc=9;
   // veut-on verifier les derivees :
   check_stats_ = check_stats;
   if (check_stats_)
@@ -2774,9 +2773,7 @@ int Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, con
       allocate_cell_vector(grad2Vc_, geom, 0);
       allocate_cell_vector(grad2Wi_, geom, 0);
       allocate_cell_vector(grad2Wc_, geom, 0);
-      nalloc +=24;
     }
-  return nalloc;
 }
 
 const IJK_Field_vector3_double& Statistiques_dns_ijk_FT::get_IJK_vector_field(const Nom& nom) const

@@ -466,7 +466,7 @@ void Switch_double::switch_scalar_field_direct(SFichier& binary_file,
     }
 }
 
-int Switch_double::allocate_fields(double& sz_arr)
+void Switch_double::allocate_fields(double& sz_arr)
 {
   // Velocity
   if (!direct_write_)
@@ -482,12 +482,10 @@ int Switch_double::allocate_fields(double& sz_arr)
   old_velocity_[0].data() = 0 ;
   old_velocity_[1].data() = 0 ;
   old_velocity_[2].data() = 0 ;
-  int nb_allocated_arrays = 6; // it's a mix of old and new!
 
-  nb_allocated_arrays += init_thermals();
+  init_thermals();
 
   sz_arr = old_velocity_[0].data().size_array();
-  return nb_allocated_arrays;
 }
 
 void Switch_double::write_velocity(const Nom lata_name) const
@@ -523,10 +521,7 @@ void Switch_double::run()
   // Field allocation:
   double sz_arr;
 
-  int nb_allocated_arrays = allocate_fields(sz_arr);
-
-  Cerr << " Allocating " << nb_allocated_arrays << " arrays, approx total size= "
-       << sz_arr * sizeof(double) * nb_allocated_arrays * 9.537E-07 << " MB per core" << finl;
+  allocate_fields(sz_arr);
 
   // Intitialize other fields (velocity, interfaces, rho):
   initialise();

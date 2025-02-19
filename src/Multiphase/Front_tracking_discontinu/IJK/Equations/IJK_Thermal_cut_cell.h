@@ -44,7 +44,7 @@ class IJK_Thermal_cut_cell : public IJK_Thermal_base
 
 public :
 
-  int initialize(const Domaine_IJK& splitting, const int idx) override;
+  void initialize(const Domaine_IJK& splitting, const int idx) override;
   double compute_timestep(const double timestep,
                           const double rho_l, const double rho_v,
                           const double dxmin);

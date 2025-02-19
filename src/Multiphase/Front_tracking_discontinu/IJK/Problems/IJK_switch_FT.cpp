@@ -117,16 +117,16 @@ interfaces_.initialize(splitting_ft /* splitting_FT */,
   Cout << "new_forcage_.get_b_flt()" << new_forcage_.get_b_flt() << finl;
 }
 
-int Switch_FT_double::init_thermals()
+void Switch_FT_double::init_thermals()
 {
-	// init_thermals() does both the allocate and the initialize()
-	// thermals_.associer_switch(*this);
-  return thermals_.init_switch_thermals(old_mesh_);
+  // init_thermals() does both the allocate and the initialize()
+  // thermals_.associer_switch(*this);
+  thermals_.init_switch_thermals(old_mesh_);
 }
 
 void Switch_FT_double::prepare_thermals(const Nom lata_name)
 {
-	thermals_.prepare_thermals(lata_name);
+  thermals_.prepare_thermals(lata_name);
 }
 
 // flag and_lata to know if we also create the associated lata

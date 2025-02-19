@@ -68,8 +68,8 @@ public:
 
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   bool has_IJK_field(const Nom& nom) const;
-  int initialise_ijk_fields();
-  int initialise_ns_fields();
+  void initialise_ijk_fields();
+  void initialise_ns_fields();
   void complete_initialise_ijk_fields();
 
   const Boundary_Conditions& get_boundary_conditions() const { return boundary_conditions_; }

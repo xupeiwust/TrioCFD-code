@@ -79,34 +79,23 @@ void IJK_Thermal_Onefluid::set_param( Param& param )
   param.ajouter_flag("deprecated_rho_cp", &deprecated_rho_cp_);
 }
 
-int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx)
+void IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
-  int nalloc = 0;
-  nalloc = IJK_Thermal_base::initialize(splitting, idx);
+  IJK_Thermal_base::initialize(splitting, idx);
   temperature_diffusion_op_.set_conductivity_coefficient(uniform_lambda_, lambda_, *temperature_, *temperature_, *temperature_);
   lambda_.allocate(splitting, Domaine_IJK::ELEM, 1);
-  nalloc += 2;
 
   if (rho_cp_moy_harmonic_)
-    {
-      rho_cp_inv_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    rho_cp_inv_.allocate(splitting, Domaine_IJK::ELEM, 2);
   else
     {
       if (deprecated_rho_cp_)
-        {
-          cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
-          nalloc += 1;
-        }
+        cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
       else
         {
           if (!rho_cp_post_)
-            {
-              rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
-              nalloc += 1;
-            }
+            rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
         }
     }
 
@@ -115,12 +104,8 @@ int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx
     {
       E0_ = compute_global_energy(*temperature_);
       d_T_rustine_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       if (ref_ijk_ft_.non_nul() && sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()))
-        {
-          RK3_F_rustine_.allocate(splitting, Domaine_IJK::ELEM, 0);
-          nalloc +=1;
-        }
+        RK3_F_rustine_.allocate(splitting, Domaine_IJK::ELEM, 0);
       Cout << "Initial energy at time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
       Cerr << "Initial energy at time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time() << " is " << E0_ << " [W.m-3]." << finl;
     }
@@ -128,10 +113,8 @@ int IJK_Thermal_Onefluid::initialize(const Domaine_IJK& splitting, const int idx
     {
       rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
       div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 2;
     }
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
-  return nalloc;
 }
 
 void IJK_Thermal_Onefluid::update_thermal_properties()

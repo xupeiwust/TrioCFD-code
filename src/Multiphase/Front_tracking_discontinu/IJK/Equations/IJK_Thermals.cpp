@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermals.cpp
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #include <IJK_Thermals.h>
 #include <Probleme_FTD_IJK.h>
@@ -321,17 +315,17 @@ void IJK_Thermals::compute_timestep(double& dt_thermals, const double dxmin)
     }
 }
 
-void IJK_Thermals::initialize(const Domaine_IJK& splitting, int& nalloc)
+void IJK_Thermals::initialize(const Domaine_IJK& splitting)
 {
   if (!liste_thermique_.est_vide())
     {
-      ghost_fluid_fields_.initialize(nalloc, splitting);
+      ghost_fluid_fields_.initialize(splitting);
       int idth =0;
       Nom thermal_outputs_rank_base = Nom("thermal_outputs_rank_");
       const int max_digit = 3;
       for (auto& itr : liste_thermique_)
         {
-          nalloc += itr->initialize(splitting, idth);
+          itr->initialize(splitting, idth);
           if (!Option_IJK::DISABLE_DIPHASIQUE)
             itr->update_thermal_properties();
           const int max_rank_digit = idth < 1 ? 1 : (int) (log10(idth) + 1);
@@ -496,18 +490,16 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
     }
 }
 
-int IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)
+void IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)
 {
-  int nb_allocated_arrays=0;
   int idx =0;
   for (auto& itr : liste_thermique_)
     {
       Cout << "Reading the old temperature field from " << Nom(itr->get_fichier_sauvegarde())
            << " to fill the liste_thermique_ field."<< finl;
-      nb_allocated_arrays += itr->initialize_switch(splitting, idx);
+      itr->initialize_switch(splitting, idx);
       idx++;
     }
-  return nb_allocated_arrays;
 }
 
 void IJK_Thermals::prepare_thermals(const char *lata_name)

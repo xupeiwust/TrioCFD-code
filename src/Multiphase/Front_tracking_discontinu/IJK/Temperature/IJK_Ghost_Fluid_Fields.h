@@ -30,7 +30,7 @@ class IJK_Ghost_Fluid_Fields : public Objet_U
 public :
 
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
-  void initialize(int& nalloc, const Domaine_IJK& splitting);
+  void initialize(const Domaine_IJK& splitting);
 
   void compute_eulerian_distance();
   void enforce_zero_value_eulerian_distance();

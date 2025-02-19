@@ -504,7 +504,7 @@ int IJK_Thermal_Subresolution::lire_motcle_non_standard(const Motcle& mot, Entre
 //}
 
 
-int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const int idx)
+void IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
 
@@ -553,12 +553,10 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       remove_append_subproblems_ = 1;
     }
 
-  int nalloc = 0;
-  nalloc = IJK_Thermal_base::initialize(splitting, idx);
+  IJK_Thermal_base::initialize(splitting, idx);
   corrige_flux_.typer("Corrige_flux_FT_temperature_subresolution");
 
   temperature_before_extrapolation_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_);
-  nalloc += 1;
   temperature_before_extrapolation_.data() = 0.;
 
   neighbours_weighting_ = (neighbours_colinearity_weighting_ || neighbours_distance_weighting_ || neighbours_colinearity_distance_weighting_);
@@ -656,7 +654,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       allocate_cell_vector(cell_faces_corrected_convective_, splitting, 1);
       allocate_cell_vector(cell_faces_corrected_diffusive_, splitting, 1);
       allocate_cell_vector(cell_faces_corrected_bool_, splitting, 1);
-      nalloc += 9;
       for (int c=0; c<3; c++)
         {
           cell_faces_corrected_convective_[c].data() = 0.;
@@ -672,7 +669,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
     {
       d_temperature_uncorrected_.allocate(splitting, Domaine_IJK::ELEM, 2);
       div_coeff_grad_T_volume_uncorrected_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 2;
       // Centre2
       temperature_diffusion_op_.typer("standard");
       temperature_diffusion_op_.initialize(splitting);
@@ -719,7 +715,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   if (debug_)
     {
       debug_LRS_cells_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       debug_LRS_cells_.data() = -1.;
     }
 
@@ -727,7 +722,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
     {
       neighbours_temperature_to_correct_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
       temperature_cell_neighbours_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
-      nalloc += 2;
       neighbours_temperature_to_correct_.data() = 0;
       temperature_cell_neighbours_.data() = 0.;
       neighbours_temperature_to_correct_.echange_espace_virtuel(neighbours_temperature_to_correct_.ghost());
@@ -735,14 +729,12 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       if (neighbours_weighting_)
         {
           neighbours_temperature_colinearity_weighting_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
-          nalloc += 1;
           neighbours_temperature_colinearity_weighting_.data() = 0.;
           neighbours_temperature_colinearity_weighting_.echange_espace_virtuel(neighbours_temperature_colinearity_weighting_.ghost());
         }
       if (debug_)
         {
           temperature_cell_neighbours_debug_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_); // , 1);
-          nalloc += 1;
           temperature_cell_neighbours_debug_.data() = 0.;
           temperature_cell_neighbours_debug_.echange_espace_virtuel(temperature_cell_neighbours_debug_.ghost());
         }
@@ -751,7 +743,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   if (find_cell_neighbours_for_fluxes_spherical_correction_)
     {
       allocate_cell_vector(cell_faces_neighbours_corrected_diag_bool_, splitting, ghost_cells_);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         cell_faces_neighbours_corrected_diag_bool_[c].data() = 0;
       cell_faces_neighbours_corrected_diag_bool_.echange_espace_virtuel();
@@ -762,19 +753,16 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   if (find_reachable_fluxes_)
     {
       allocate_cell_vector(cell_faces_neighbours_corrected_all_bool_, splitting, ghost_cells_); // , 1);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         cell_faces_neighbours_corrected_all_bool_[c].data() = 0;
       cell_faces_neighbours_corrected_all_bool_.echange_espace_virtuel();
 
       allocate_cell_vector(cell_faces_neighbours_corrected_min_max_bool_, splitting, 2);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         cell_faces_neighbours_corrected_min_max_bool_[c].data() = 0;
       cell_faces_neighbours_corrected_min_max_bool_.echange_espace_virtuel();
 
       neighbours_temperature_to_correct_trimmed_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       neighbours_temperature_to_correct_trimmed_.data() = 0.;
       neighbours_temperature_to_correct_trimmed_.echange_espace_virtuel(neighbours_temperature_to_correct_trimmed_.ghost());
     }
@@ -783,20 +771,17 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       if (convective_flux_correction_)
         {
           allocate_cell_vector(cell_faces_neighbours_corrected_convective_, splitting, 1);
-          nalloc += 3;
           for (int c=0; c<3; c++)
             cell_faces_neighbours_corrected_convective_[c].data() = 0.;
           cell_faces_neighbours_corrected_convective_.echange_espace_virtuel();
           if (store_flux_operators_for_energy_balance_)
             {
               allocate_cell_vector(cell_faces_neighbours_corrected_velocity_temperature_, splitting, 1);
-              nalloc += 3;
               for (int c=0; c<3; c++)
                 cell_faces_neighbours_corrected_velocity_temperature_[c].data() = 0.;
               cell_faces_neighbours_corrected_velocity_temperature_.echange_espace_virtuel();
 
               allocate_cell_vector(cell_faces_neighbours_corrected_convective_frame_of_reference_, splitting, 1);
-              nalloc += 3;
               for (int c=0; c<3; c++)
                 cell_faces_neighbours_corrected_convective_frame_of_reference_[c].data() = 0.;
               cell_faces_neighbours_corrected_convective_frame_of_reference_.echange_espace_virtuel();
@@ -805,7 +790,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       if (diffusive_flux_correction_)
         {
           allocate_cell_vector(cell_faces_neighbours_corrected_diffusive_, splitting, 1);
-          nalloc += 3;
           for (int c=0; c<3; c++)
             cell_faces_neighbours_corrected_diffusive_[c].data() = 0.;
           cell_faces_neighbours_corrected_diffusive_.echange_espace_virtuel();
@@ -813,7 +797,6 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
       if (neighbours_weighting_)
         {
           allocate_cell_vector(neighbours_faces_weighting_colinearity_, splitting, 1);
-          nalloc += 3;
           for (int c=0; c<3; c++)
             neighbours_faces_weighting_colinearity_[c].data() = 0.;
           neighbours_faces_weighting_colinearity_.echange_espace_virtuel();
@@ -822,17 +805,14 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
   if (debug_probe_collision_)
     {
       probe_collision_debug_field_.allocate(splitting, Domaine_IJK::ELEM, 0); // , 1);
-      nalloc += 1;
       probe_collision_debug_field_.data() = 0.;
     }
 
   if (fluxes_correction_conservations_)
     {
       zero_liquid_neighbours_.allocate(splitting, Domaine_IJK::ELEM, 1); // , 1);
-      nalloc += 1;
       zero_liquid_neighbours_.data() = 0.;
       allocate_cell_vector(interfacial_heat_flux_dispatched_, splitting, 1);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         interfacial_heat_flux_dispatched_[c].data() = 0.;
       interfacial_heat_flux_dispatched_.echange_espace_virtuel();
@@ -844,16 +824,14 @@ int IJK_Thermal_Subresolution::initialize(const Domaine_IJK& splitting, const in
           interfacial_heat_flux_contrib_[c].data() = 0.;
           interfacial_heat_flux_current_[c].data() = 0.;
         }
-      nalloc += 6;
     }
 
   if (impose_fo_flux_correction_ || (diffusive_flux_correction_ && fo_ >= 1.)) // By default ?
     fo_ = 0.95 * pow((sqrt(2) / 2), 2); // squared or not?
 
-  nalloc += set_subproblems_interfaces_fields(splitting);
+  set_subproblems_interfaces_fields(splitting);
 
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
-  return nalloc;
 }
 
 double IJK_Thermal_Subresolution::get_modified_time()
@@ -4221,14 +4199,13 @@ void IJK_Thermal_Subresolution::post_processed_field_thermal_wake_slice_ij(const
     }
 }
 
-int IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const Domaine_IJK& splitting)
+void IJK_Thermal_Subresolution::set_subproblems_interfaces_fields(const Domaine_IJK& splitting)
 {
   if (!disable_subresolution_ || reference_gfm_on_probes_)
     thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(2);
   else
     thermal_local_subproblems_interfaces_fields_.set_subproblems_interfaces_fields(1);
-  int nalloc = thermal_local_subproblems_interfaces_fields_.initialise(splitting,
-                                                                       thermal_local_subproblems_,
-                                                                       debug_);
-  return nalloc;
+  thermal_local_subproblems_interfaces_fields_.initialise(splitting,
+                                                          thermal_local_subproblems_,
+                                                          debug_);
 }

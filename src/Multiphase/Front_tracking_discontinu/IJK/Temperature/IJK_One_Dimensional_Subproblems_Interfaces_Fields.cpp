@@ -25,25 +25,20 @@ IJK_One_Dimensional_Subproblems_Interfaces_Fields::IJK_One_Dimensional_Subproble
 
 }
 
-int IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const Domaine_IJK& splitting,
-                                                                  IJK_One_Dimensional_Subproblems& thermal_local_subproblems,
-                                                                  const int& debug)
+void IJK_One_Dimensional_Subproblems_Interfaces_Fields::initialise(const Domaine_IJK& splitting,
+                                                                   IJK_One_Dimensional_Subproblems& thermal_local_subproblems,
+                                                                   const int& debug)
 {
   thermal_local_subproblems_ = &thermal_local_subproblems;
   debug_ = debug;
 
-  int nalloc = 0;
   tmp_ft_field_val_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 1);
-  nalloc += 1;
   tmp_ft_field_val_.data() = 0.;
   tmp_ft_field_val_.echange_espace_virtuel(tmp_ft_field_val_.ghost());
 
   tmp_field_val_.allocate(splitting, Domaine_IJK::ELEM, 1);
-  nalloc += 1;
   tmp_field_val_.data() = 0.;
   tmp_field_val_.echange_espace_virtuel(tmp_field_val_.ghost());
-
-  return nalloc;
 }
 
 void IJK_One_Dimensional_Subproblems_Interfaces_Fields::set_subproblems_interfaces_fields(const int& interface_field_type)

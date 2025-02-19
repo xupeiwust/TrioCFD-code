@@ -36,105 +36,42 @@ class IJK_Composantes_Connex : public Objet_U
   Declare_instanciable( IJK_Composantes_Connex ) ;
 
 public :
-  int initialize(IJK_Interfaces& interfaces,
-                 const bool is_switch);
-  int allocate_fields(const Domaine_IJK& splitting,
-                      const int& compute_compo_fields);
+  void initialize(IJK_Interfaces& interfaces,
+                  const bool is_switch);
+  void allocate_fields(const Domaine_IJK& splitting,
+                       const int& compute_compo_fields);
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void initialise_bubbles_params();
-  int associate_rising_velocities_parameters(const Domaine_IJK& splitting,
-                                             const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities,
-                                             const int& use_bubbles_velocities_from_interface,
-                                             const int& use_bubbles_velocities_from_barycentres);
+  void associate_rising_velocities_parameters(const Domaine_IJK& splitting,
+                                              const int& compute_rising_velocities,
+                                              const int& fill_rising_velocities,
+                                              const int& use_bubbles_velocities_from_interface,
+                                              const int& use_bubbles_velocities_from_barycentres);
   void compute_bounding_box_fill_compo_connex();
   void compute_compo_connex_from_interface();
   void compute_rising_velocities();
 
-  const IJK_Field_double& get_eulerian_compo_connex_ft() const
-  {
-    return eulerian_compo_connex_ft_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex() const
-  {
-    return eulerian_compo_connex_ns_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_ghost_ft() const
-  {
-    return eulerian_compo_connex_ghost_ft_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_ghost() const
-  {
-    return eulerian_compo_connex_ghost_ns_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ft() const
-  {
-    return eulerian_compo_connex_from_interface_ft_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ghost_ft() const
-  {
-    return eulerian_compo_connex_from_interface_ghost_ft_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ns() const
-  {
-    return eulerian_compo_connex_from_interface_ns_;
-  }
-  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ghost_ns() const
-  {
-    return eulerian_compo_connex_from_interface_ghost_ns_;
-  }
-  const IJK_Field_int& get_eulerian_compo_connex_int_from_interface_ns() const
-  {
-    return eulerian_compo_connex_from_interface_int_ns_;
-  }
-  const IJK_Field_int& get_eulerian_compo_connex_int_from_interface_ghost_ns() const
-  {
-    return eulerian_compo_connex_from_interface_ghost_int_ns_;
-  }
-  const DoubleTab& get_bounding_box() const
-  {
-    return bounding_box_;
-  }
-  const DoubleTab& get_bubbles_barycentre() const
-  {
-    return bubbles_barycentre_;
-  }
-  const ArrOfDouble& get_bubbles_volume() const
-  {
-    return bubbles_volume_;
-  }
-  const IJK_Field_double& get_eulerian_rising_velocities() const
-  {
-    return eulerian_rising_velocities_;
-  }
-  const ArrOfDouble& get_rising_velocities() const
-  {
-    return rising_velocities_;
-  }
-  const DoubleTab& get_rising_vectors() const
-  {
-    return rising_vectors_;
-  }
-  const Vecteur3& get_rising_velocity_overall() const
-  {
-    return rising_velocity_overall_;
-  }
-  const Vecteur3& get_liquid_velocity() const
-  {
-    return liquid_velocity_;
-  }
-  const DoubleTab& get_min_max_larger_box() const
-  {
-    return min_max_larger_box_;
-  }
-  const int& get_compute_from_bounding_box() const
-  {
-    return compute_from_bounding_box_;
-  }
-  const int& get_compute_compo_fields() const
-  {
-    return compute_compo_fields_;
-  }
+  const IJK_Field_double& get_eulerian_compo_connex_ft() const {  return eulerian_compo_connex_ft_;  }
+  const IJK_Field_double& get_eulerian_compo_connex() const  {    return eulerian_compo_connex_ns_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_ghost_ft() const   {     return eulerian_compo_connex_ghost_ft_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_ghost() const    {     return eulerian_compo_connex_ghost_ns_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ft() const  {     return eulerian_compo_connex_from_interface_ft_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ghost_ft() const   {     return eulerian_compo_connex_from_interface_ghost_ft_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ns() const   {     return eulerian_compo_connex_from_interface_ns_;   }
+  const IJK_Field_double& get_eulerian_compo_connex_from_interface_ghost_ns() const   {     return eulerian_compo_connex_from_interface_ghost_ns_;   }
+  const IJK_Field_int& get_eulerian_compo_connex_int_from_interface_ns() const   {     return eulerian_compo_connex_from_interface_int_ns_;   }
+  const IJK_Field_int& get_eulerian_compo_connex_int_from_interface_ghost_ns() const   {     return eulerian_compo_connex_from_interface_ghost_int_ns_;   }
+  const DoubleTab& get_bounding_box() const   {     return bounding_box_;   }
+  const DoubleTab& get_bubbles_barycentre() const   {     return bubbles_barycentre_;   }
+  const ArrOfDouble& get_bubbles_volume() const   {     return bubbles_volume_;   }
+  const IJK_Field_double& get_eulerian_rising_velocities() const   {     return eulerian_rising_velocities_;   }
+  const ArrOfDouble& get_rising_velocities() const   {     return rising_velocities_;   }
+  const DoubleTab& get_rising_vectors() const   {     return rising_vectors_;   }
+  const Vecteur3& get_rising_velocity_overall() const   {     return rising_velocity_overall_;   }
+  const Vecteur3& get_liquid_velocity() const   {     return liquid_velocity_;   }
+  const DoubleTab& get_min_max_larger_box() const   {     return min_max_larger_box_;   }
+  const int& get_compute_from_bounding_box() const   {     return compute_from_bounding_box_;   }
+  const int& get_compute_compo_fields() const   {     return compute_compo_fields_;   }
 
 protected :
   void fill_mixed_cell_compo();

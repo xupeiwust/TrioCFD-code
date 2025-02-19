@@ -75,6 +75,7 @@ void allocate_velocity(Cut_field_vector3_double& v, const Domaine_IJK& s, int gh
   v[0].allocate(s, Domaine_IJK::FACES_I, ghost);
   v[1].allocate(s, Domaine_IJK::FACES_J, ghost);
   v[2].allocate(s, Domaine_IJK::FACES_K, ghost);
+
   v[0].get_shear_BC_helpler().set_dU_(DU);
   v[1].get_shear_BC_helpler().set_dU_(0.);
   v[2].get_shear_BC_helpler().set_dU_(0.);

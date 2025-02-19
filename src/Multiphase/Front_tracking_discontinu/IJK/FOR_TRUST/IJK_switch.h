@@ -45,7 +45,7 @@ public:
 
 protected:
   virtual void initialise();
-  virtual int allocate_fields(double& sz_arr);
+  virtual void allocate_fields(double& sz_arr);
   virtual void prepare_run();
   virtual void set_param(Param& param);
   virtual void ecrire_fichier_reprise(const char *fichier_sauvegarde, const bool and_lata=true) = 0;
@@ -61,8 +61,8 @@ protected:
                                                      DoubleTab& coeff_k, IntTab Indice_k) = 0;
 
   // overriden in FT - to be brought here at some point once merge with thermic BC is done ...
-  virtual int init_thermals()  { return 0; };
-  virtual void prepare_thermals(const Nom lata_name) {};
+  virtual void init_thermals()  {  }
+  virtual void prepare_thermals(const Nom lata_name) {}
 
   void write_velocity(const Nom lata_name) const;
   void calculer_coords(const Domaine_IJK::Localisation loc);

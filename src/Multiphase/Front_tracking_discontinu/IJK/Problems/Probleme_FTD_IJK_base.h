@@ -94,8 +94,8 @@ public :
 
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
 
-  int initialise_ijk_fields();
-  int initialise_interfaces();
+  void initialise_ijk_fields();
+  void initialise_interfaces();
 
   void sauvegarder_probleme(const char *fichier_sauvegarde, const int& stop); //  const;
   void reprendre_probleme(const char *fichier_reprise);

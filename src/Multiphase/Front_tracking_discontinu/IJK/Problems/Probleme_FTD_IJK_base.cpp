@@ -380,16 +380,15 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 }
 
 // C'est ici aussi qu'on alloue les champs de temperature.
-int Probleme_FTD_IJK_base::initialise_ijk_fields()
+void Probleme_FTD_IJK_base::initialise_ijk_fields()
 {
   Cerr << que_suis_je() << "::initialise_ijk_fields()" << finl;
-  int nalloc = 0;
 
-  nalloc += get_post().initialise(reprise_);
+  get_post().initialise(reprise_);
 // TODO : FIXME : faut boucler plus tard sur les equations IJK
   Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
   IJK_Interfaces& interf = get_interface();
-  nalloc += eq_ns.initialise_ijk_fields();
+  eq_ns.initialise_ijk_fields();
 
   // L'indicatrice non-perturbee est remplie (si besoin, cad si post-traitement) par le post.complete()
   get_post().fill_indic(reprise_);
@@ -403,7 +402,7 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
   if (has_thermals_)
     {
       IJK_Thermals& thermals = get_ijk_thermals();
-      thermals.initialize(domaine_ijk_.valeur(), nalloc);
+      thermals.initialize(domaine_ijk_.valeur());
       thermals.get_rising_velocities_parameters(eq_ns.get_compute_rising_velocities(), eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(),
                                                 eq_ns.get_use_bubbles_velocities_from_barycentres());
 
@@ -411,13 +410,12 @@ int Probleme_FTD_IJK_base::initialise_ijk_fields()
     }
 
 
-  nalloc += interf.allocate_ijk_compo_connex_fields(domaine_ijk_.valeur(), ghost_fluid_flag || eq_ns.get_upstream_velocity_measured());
-  nalloc += interf.associate_rising_velocities_parameters(domaine_ijk_.valeur(), eq_ns.get_compute_rising_velocities() || eq_ns.get_upstream_velocity_measured(),
-                                                          eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(), eq_ns.get_use_bubbles_velocities_from_barycentres());
+  interf.allocate_ijk_compo_connex_fields(domaine_ijk_.valeur(), ghost_fluid_flag || eq_ns.get_upstream_velocity_measured());
+  interf.associate_rising_velocities_parameters(domaine_ijk_.valeur(), eq_ns.get_compute_rising_velocities() || eq_ns.get_upstream_velocity_measured(),
+                                                eq_ns.get_fill_rising_velocities(), eq_ns.get_use_bubbles_velocities_from_interface(), eq_ns.get_use_bubbles_velocities_from_barycentres());
 
 
   eq_ns.complete_initialise_ijk_fields();
-  return nalloc;
 }
 
 // Deplacement des interfaces par le champ de vitesse :
@@ -552,20 +550,17 @@ void Probleme_FTD_IJK_base::update_old_intersections()
   get_interface().update_old_intersections();
 }
 
-int Probleme_FTD_IJK_base::initialise_interfaces()
+void Probleme_FTD_IJK_base::initialise_interfaces()
 {
   Cerr << que_suis_je() << "::initialise_interfaces()" << finl;
-  int nalloc = 0;
 
   const Domaine_dis_base& domaine_dis_ft = refprobleme_ft_disc_->domaine_dis();
 
-  nalloc += get_interface().initialize(domaine_ft_, domaine_ijk_.valeur(), domaine_dis_ft, thermal_probes_ghost_cells_);
+  get_interface().initialize(domaine_ft_, domaine_ijk_.valeur(), domaine_dis_ft, thermal_probes_ghost_cells_);
 
   // On la met a jour 2 fois, une fois next et une fois old
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     update_twice_indicator_field();
-
-  return nalloc;
 }
 
 /*! Nothing to be done here for now ...
@@ -580,22 +575,18 @@ void Probleme_FTD_IJK_base::discretiser(Discretisation_base& dis)
 void Probleme_FTD_IJK_base::initialize()
 {
   Cerr << "Probleme_FTD_IJK_base::initialize()" << finl;
-  int nalloc = 0;
 
   // FIXME
   Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
-  nalloc += ns.initialise_ns_fields();
+  ns.initialise_ns_fields();
 
   if (que_suis_je() == "Probleme_FTD_IJK_cut_cell") // TODO should do virtual method here ?
-    {
-      treatment_count_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    treatment_count_.allocate(domaine_ijk_.valeur(), Domaine_IJK::ELEM, 2);
 
-  nalloc += initialise_interfaces();
-  nalloc += initialise_ijk_fields();
+  initialise_interfaces();
+  initialise_ijk_fields();
 
-  Cerr << " Allocating " << nalloc << " arrays, approx total size= " << (double) (ns.get_molecular_mu().data().size_array() * (int) sizeof(double) * nalloc) * 9.537E-07 << " MB per core" << finl;
+  Cerr << " Allocating " << IJK_Field_double::alloc_counter() << " IJK_FT_double objects." << finl;
 
 // Les champs ont etes alloues.
 // On peut completer les sondes car les ijk_field.get_domaine() sont a present remplis.

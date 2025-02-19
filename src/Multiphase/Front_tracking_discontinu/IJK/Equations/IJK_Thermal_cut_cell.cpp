@@ -111,7 +111,7 @@ void IJK_Thermal_cut_cell::set_param( Param& param )
   param.ajouter("verbosite", &verbosite_);
 }
 
-int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx)
+void IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx)
 {
   Cout << que_suis_je() << "::initialize()" << finl;
 
@@ -152,12 +152,10 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
   cut_cell_flux_convection_[2].associer_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc());
 
 
-  int nalloc = IJK_Thermal_base::initialize(splitting, idx);
+  IJK_Thermal_base::initialize(splitting, idx);
   lambda_.allocate(splitting, Domaine_IJK::ELEM, 1);
-  nalloc += 2;
 
   temperature_ft_.allocate(ref_ijk_ft_cut_cell_->get_domaine_ft(), Domaine_IJK::ELEM, 4);
-  nalloc += 1;
 
   for (int next_time = 0; next_time < 2; next_time++)
     {
@@ -178,7 +176,6 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
 
   Cut_field_double& cut_field_div_coeff_grad_T_volume = static_cast<Cut_field_double&>(*div_coeff_grad_T_volume_);
   cut_field_div_coeff_grad_T_volume.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2);
-  nalloc += 1;
 
   Cut_field_double& cut_field_d_temperature           = static_cast<Cut_field_double&>(*d_temperature_);
   cut_field_d_temperature.allocate_ephemere(*ref_ijk_ft_cut_cell_->get_cut_cell_disc(), splitting, Domaine_IJK::ELEM, 2); // Overrides the allocate in IJK_Thermal_base::initialize
@@ -215,10 +212,7 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
 
   // Already allocated if rho_cp_post
   if (!rho_cp_post_)
-    {
-      rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
 
   // Compute initial energy :
   if (conserv_energy_global_)
@@ -230,10 +224,8 @@ int IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int idx
     {
       rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
       div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 2;
     }
   Cout << "End of " << que_suis_je() << "::initialize()" << finl;
-  return nalloc;
 }
 
 void IJK_Thermal_cut_cell::update_thermal_properties()

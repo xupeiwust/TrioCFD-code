@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_Multiple_Subresolutions.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Thermal_Multiple_Subresolutions_included
 #define IJK_Thermal_Multiple_Subresolutions_included
@@ -56,7 +50,7 @@ class IJK_Thermal_Multiple_Subresolutions : public IJK_Thermal_Subresolution
 
 public :
 
-  int initialize(const Domaine_IJK& splitting, const int idx) override;
+  void initialize(const Domaine_IJK& splitting, const int idx) override;
   void update_thermal_properties() override;
   void set_param(Param& param) override;
 

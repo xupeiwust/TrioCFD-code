@@ -76,12 +76,12 @@ public :
   Probleme_FTD_IJK_base& probleme_ijk();
   const Probleme_FTD_IJK_base& probleme_ijk() const;
 
-  int initialize(const Domaine_IJK& splitting_FT,
-                 const Domaine_IJK& splitting_NS,
-                 const Domaine_dis_base& domaine_dis,
-                 const int thermal_probes_ghost_cells=0,
-                 const bool compute_vint=true,
-                 const bool is_switch=false);
+  void initialize(const Domaine_IJK& splitting_FT,
+                  const Domaine_IJK& splitting_NS,
+                  const Domaine_dis_base& domaine_dis,
+                  const int thermal_probes_ghost_cells=0,
+                  const bool compute_vint=true,
+                  const bool is_switch=false);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
   void posttraiter_tous_champs(Motcles& liste) const;
   int posttraiter_champs_instantanes(const Motcles& liste_post_instantanes,
@@ -931,26 +931,26 @@ public :
     ijk_compo_connex_.initialise_bubbles_params();
   }
 
-  int allocate_ijk_compo_connex_fields(const Domaine_IJK& splitting, const int& allocate_compo_fields)
+  void allocate_ijk_compo_connex_fields(const Domaine_IJK& splitting, const int& allocate_compo_fields)
   {
     if (Option_IJK::DISABLE_DIPHASIQUE)
-      return 0;
-    return ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
+      return;
+    ijk_compo_connex_.allocate_fields(splitting, allocate_compo_fields);
   }
 
-  int associate_rising_velocities_parameters(const Domaine_IJK& splitting,
-                                             const int& compute_rising_velocities,
-                                             const int& fill_rising_velocities,
-                                             const int& use_bubbles_velocities_from_interface,
-                                             const int& use_bubbles_velocities_from_barycentres)
+  void associate_rising_velocities_parameters(const Domaine_IJK& splitting,
+                                              const int& compute_rising_velocities,
+                                              const int& fill_rising_velocities,
+                                              const int& use_bubbles_velocities_from_interface,
+                                              const int& use_bubbles_velocities_from_barycentres)
   {
     if (Option_IJK::DISABLE_DIPHASIQUE)
-      return 0;
-    return ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
-                                                                    compute_rising_velocities,
-                                                                    fill_rising_velocities,
-                                                                    use_bubbles_velocities_from_interface,
-                                                                    use_bubbles_velocities_from_barycentres);
+      return;
+    ijk_compo_connex_.associate_rising_velocities_parameters(splitting,
+                                                             compute_rising_velocities,
+                                                             fill_rising_velocities,
+                                                             use_bubbles_velocities_from_interface,
+                                                             use_bubbles_velocities_from_barycentres);
   }
 
   void compute_rising_velocities_from_compo()

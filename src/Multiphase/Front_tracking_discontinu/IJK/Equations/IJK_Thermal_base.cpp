@@ -274,11 +274,9 @@ void IJK_Thermal_base::post_process_std_thermal_field(const Motcles& liste_post_
   oss.str("");
 }
 
-int IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int idx)
+void IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int idx)
 {
-  int nalloc = 0;
   temperature_->allocate(splitting, Domaine_IJK::ELEM, 1);
-  nalloc += 1;
   if (fichier_reprise_temperature_ == "??") // si on ne fait pas une reprise on initialise V
     {
       Cerr << "Please provide initial conditions for temperature, either by an expression or a field for restart."
@@ -286,17 +284,13 @@ int IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int 
       Process::exit();
     }
   else
-    {
-      lire_temperature(splitting);
-    }
-  return nalloc;
+    lire_temperature(splitting);
 }
 
-int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
+void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
 {
   //  Cout << que_suis_je() << "::initialize()" << finl;
   rang_ = idx;
-  int nalloc = 0;
 
   latastep_reprise_ = latastep_reprise_ini_;
 
@@ -338,7 +332,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   temperature_for_ini_per_bubble_.allocate(splitting, Domaine_IJK::ELEM, 1);
 
   d_temperature_->allocate(splitting, Domaine_IJK::ELEM, 2);
-  nalloc += 3;
   compute_cell_volume();
   compute_min_cell_delta();
 
@@ -350,55 +343,43 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   // if (!diff_temperature_negligible_)
   {
     div_coeff_grad_T_volume_->allocate(splitting, Domaine_IJK::ELEM, 2);
-    nalloc += 1;
     div_coeff_grad_T_volume_->data() = 0.;
   }
   if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T"))
     {
       div_coeff_grad_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       div_coeff_grad_T_.data() = 0.;
     }
   if (store_flux_operators_for_energy_balance_)
     {
       temperature_hess_flux_op_centre_.initialize(splitting);
       allocate_cell_vector(div_coeff_grad_T_raw_, splitting, 1);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         div_coeff_grad_T_raw_[c].data() = 0.;
     }
   // if (!conv_temperature_negligible_)
   {
     u_T_convective_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
-    nalloc += 1;
     u_T_convective_volume_.data() = 0.;
   }
   if (liste_post_instantanes_.contient_("U_T_CONVECTIVE"))
     {
       u_T_convective_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       u_T_convective_.data() = 0.;
     }
   if (store_flux_operators_for_energy_balance_)
     {
       temperature_grad_flux_op_quick_.initialize(splitting);
       allocate_cell_vector(rho_cp_u_T_convective_raw_, splitting, 1);
-      nalloc += 3;
       for (int c=0; c<3; c++)
         rho_cp_u_T_convective_raw_[c].data() = 0.;
     }
 
   rho_cp_post_ = (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("RHO_CP"));
   if (rho_cp_post_)
-    {
-      rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
   if (calculate_local_energy_)
-    {
-      rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
 
   /*
    * Storage for temperature gradient post-processing or method
@@ -407,7 +388,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     {
       Cout << "Allocating fields temperature_ft_ and storage" << finl;
       allocate_cell_vector(storage_, ref_ijk_ft_->get_domaine_ft(), 1);
-      nalloc += 3;
     }
 
   /*
@@ -426,7 +406,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
       d_source_Tl_.allocate(splitting, Domaine_IJK::ELEM, 1);
       temperature_physique_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
       temperature_adimensionnelle_theta_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 7;
       // par defaut s'il n'y a pas de source renseignee, on utilise la source de Dabiri/Kawamura
       // cela veut dire que dans le cas des SWARMS il faut imperativement renseigner le nom de
       // la source
@@ -437,20 +416,14 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
         }
     }
   if (liste_post_instantanes_.contient_("TEMPERATURE_ADIM_BULLES"))
-    {
-      temperature_adim_bulles_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      nalloc += 1;
-    }
+    temperature_adim_bulles_.allocate(splitting, Domaine_IJK::ELEM, 2);
 
   /*
    * RK3 sub-steps
    * Check that pointer is not null:
    */
   if (ref_ijk_ft_.non_nul() && sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()))
-    {
-      RK3_F_temperature_->allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc +=1;
-    }
+    RK3_F_temperature_->allocate(splitting, Domaine_IJK::ELEM, 0);
 
   if (liste_post_instantanes_.size() && (liste_post_instantanes_.contient_("TEMPERATURE_ANA")
                                          || liste_post_instantanes_.contient_("ECART_T_ANA") || liste_post_instantanes_.contient_("ECART_T_ANA_REL")))
@@ -458,7 +431,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
       temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
       ecart_t_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
       ecart_t_ana_rel_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc +=3;
       temperature_ana_.data() = 0.;
       ecart_t_ana_.data() = 0.;
       ecart_t_ana_rel_.data() = 0.;
@@ -473,9 +445,7 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   if (fichier_reprise_temperature_ == "??")   // si on ne fait pas une reprise on initialise V
     {
       if (expression_T_init_ != "??")
-        {
-          IJK_Thermal_base::compute_temperature_init();
-        }
+        IJK_Thermal_base::compute_temperature_init();
       else
         {
           Cerr << "Please provide initial conditions for temperature, either by an expression or a field for restart. "
@@ -502,17 +472,13 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     {
       source_temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
       ecart_source_t_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 2;
     }
 
   // TODO: Check with Aymeric
   calulate_grad_T_ = (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("GRAD_T"))
                      || (ref_ijk_ft_.non_nul() && ref_ijk_ft_->t_debut_statistiques() <  1.e10 );
   if (calulate_grad_T_)
-    {
-      allocate_velocity(grad_T_, splitting, 1);
-      nalloc += 3;
-    }
+    allocate_velocity(grad_T_, splitting, 1);
 
   compute_grad_T_interface_ = ghost_fluid_ || compute_grad_T_interface_ || (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("GRAD_T_INTERFACE"));
   compute_curvature_ = compute_curvature_ || compute_grad_T_interface_ || (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("CURVATURE"));
@@ -539,17 +505,14 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     {
       // 1 ghost cell for eulerian_grad_T_interface_ and temperature_ft_ to access its neighbour
       eulerian_grad_T_interface_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       eulerian_grad_T_interface_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
       //
       eulerian_grad_T_interface_ns_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       eulerian_grad_T_interface_ns_.echange_espace_virtuel(eulerian_grad_T_interface_ns_.ghost());
       //
     }
 
   temperature_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, ghost_cells_);
-  nalloc += 1;
   temperature_ft_.echange_espace_virtuel(eulerian_grad_T_interface_ft_.ghost());
 
   compute_eulerian_compo_ = compute_eulerian_compo_ || (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("EULERIAN_COMPO"))
@@ -609,23 +572,18 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   if (compute_grad_T_elem_)
     {
       allocate_cell_vector(grad_T_elem_, splitting, ghost_cells_); // 1 or 0 ?
-      nalloc += 3;
       grad_T_elem_.echange_espace_virtuel();
       temperature_grad_op_centre_.initialize(splitting);
     }
   if (smooth_grad_T_elem_)
     {
       temperature_gaussian_filtered_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_);
-      nalloc += 1;
       temperature_gaussian_filtered_.echange_espace_virtuel(temperature_gaussian_filtered_.ghost());
       tmp_smoothing_field_.allocate(splitting, Domaine_IJK::ELEM, ghost_cells_);
-      nalloc += 1;
       tmp_smoothing_field_.echange_espace_virtuel(tmp_smoothing_field_.ghost());
       allocate_cell_vector(grad_T_elem_smooth_, splitting, ghost_cells_); // 1 or 0 ?
-      nalloc += 3;
       grad_T_elem_smooth_.echange_espace_virtuel();
       allocate_cell_vector(grad_T_elem_tangential_, splitting, ghost_cells_); // 1 or 0 ?
-      nalloc += 3;
       grad_T_elem_tangential_.echange_espace_virtuel();
 
     }
@@ -633,7 +591,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   if (compute_hess_diag_T_elem_)
     {
       allocate_cell_vector(hess_diag_T_elem_, splitting, ghost_cells_);  // 1 or 0 ?
-      nalloc += 3;
       hess_diag_T_elem_.echange_espace_virtuel();
       temperature_hess_op_centre_.initialize(splitting);
     }
@@ -641,7 +598,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   if (compute_hess_cross_T_elem_)
     {
       allocate_cell_vector(hess_cross_T_elem_, splitting, ghost_cells_);  // 1 or 0 ?
-      nalloc += 3;
       hess_cross_T_elem_.echange_espace_virtuel();
       /*
        * TODO: Cross derivatives (adapt the diffusion operator ?)
@@ -658,7 +614,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   allocate_cell_vector(dummy_double_vect_, splitting, 0); // 1 or 0 ?
   dummy_int_field_.allocate(splitting, Domaine_IJK::ELEM, 0);
   dummy_double_field_.allocate(splitting, Domaine_IJK::ELEM, 0);
-  nalloc += 8;
   for (int c=0; c<3; c++)
     {
       dummy_int_vect_[c].data() = 0;
@@ -669,7 +624,6 @@ int IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
 
   // ref_ijk_ft_->redistrib_from_ft_elem().redistribute(eulerian_grad_T_interface_, eulerian_grad_T_interface_);
   // Cout << "End of " << que_suis_je() << "::initialize()" << finl;
-  return nalloc;
 }
 
 void IJK_Thermal_base::compute_temperature_init()

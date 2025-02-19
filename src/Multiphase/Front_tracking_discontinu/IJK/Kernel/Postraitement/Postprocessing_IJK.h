@@ -53,9 +53,9 @@ public:
   void associer_probleme(const Probleme_FTD_IJK_base& );
 
   void associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft);
-  int initialise(int reprise);
+  void initialise(int reprise);
   void fill_indic(int reprise=0);
-  int initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
+  void initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse);
   void init_indicatrice_non_perturbe();
 
   void posttraiter_champs_instantanes(const char * lata_name, double time, int time_iteration);
@@ -99,8 +99,8 @@ public:
   void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
 
   // Part of the run() method in Probleme_FTD_IJK_base:
-  int alloc_fields();
-  int alloc_velocity_and_co(bool flag_variable_source);
+  void alloc_fields();
+  void alloc_velocity_and_co(bool flag_variable_source);
   void improved_initial_pressure_guess(bool imp);
   void postraiter_ci(const Nom& lata_name, const double current_time);
   void postraiter_fin(bool stop, int tstep, const int& tstep_init, double current_time, double timestep, const Nom& lata_name,

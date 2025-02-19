@@ -70,7 +70,7 @@ public :
   void sauvegarder_temperature(Nom& lata_name, const int& stop);
   void sauvegarder_thermals(SFichier& fichier);
   void compute_timestep(double& dt_thermals, const double dxmin);
-  void initialize(const Domaine_IJK& splitting, int& nalloc);
+  void initialize(const Domaine_IJK& splitting);
   void recompute_temperature_init();
   void copie_pure_vers_diph_sans_interpolation();
   void echange_pure_vers_diph_cellules_initialement_pures();
@@ -91,7 +91,7 @@ public :
                                               const int latastep,
                                               const double current_time,
                                               int& n);
-  int init_switch_thermals(const Domaine_IJK& splitting);
+  void init_switch_thermals(const Domaine_IJK& splitting);
   void prepare_thermals(const char *lataname);
   int ghost_fluid_flag();
   void ecrire_fichier_reprise(SFichier& fichier, const char *lata_name);

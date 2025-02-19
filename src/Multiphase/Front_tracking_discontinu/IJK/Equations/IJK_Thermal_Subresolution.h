@@ -12,12 +12,6 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermal_Subresolution.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Thermal_Subresolution_included
 #define IJK_Thermal_Subresolution_included
@@ -53,7 +47,7 @@ class IJK_Thermal_Subresolution : public IJK_Thermal_base
 
 public :
 
-  int initialize(const Domaine_IJK& splitting, const int idx) override;
+  void initialize(const Domaine_IJK& splitting, const int idx) override;
   // void sauvegarder_temperature(Nom& lata_name, int idx) override;
   void update_thermal_properties() override;
   void post_process_after_temperature_increment() override;
@@ -405,7 +399,7 @@ public :
     return disable_post_processing_probes_out_files_;
   }
   int get_first_step_thermals_post() override { return first_step_thermals_post_; }
-  int set_subproblems_interfaces_fields(const Domaine_IJK& splitting) override;
+  void set_subproblems_interfaces_fields(const Domaine_IJK& splitting) override;
 protected :
   void reset_subresolution_distributed_vectors();
   void compute_thermal_subproblems() override;

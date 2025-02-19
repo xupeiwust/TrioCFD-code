@@ -57,8 +57,8 @@ public:
   inline const Fluide_Diphasique_IJK& milieu_ijk() const { return ref_cast(Fluide_Diphasique_IJK, milieu()); }
 
   virtual void set_param(Param& param);
-  virtual int initialize(const Domaine_IJK& splitting, const int idx);
-  virtual int initialize_switch(const Domaine_IJK& splitting, const int idx);
+  virtual void initialize(const Domaine_IJK& splitting, const int idx);
+  virtual void initialize_switch(const Domaine_IJK& splitting, const int idx);
   virtual void update_thermal_properties();
   double compute_timestep(const double timestep,
                           const double dxmin);
@@ -438,15 +438,15 @@ public:
 
   virtual void update_intersections() {  }
   virtual void clean_ijk_intersections() {  }
-  virtual void post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder) { ; };
-  virtual void post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder) { ; };
+  virtual void post_process_thermal_wake_slices(const Nom& local_quantities_thermal_slices_time_index_folder) {  }
+  virtual void post_process_thermal_downstream_lines(const Nom& local_quantities_thermal_lines_time_index_folder) {  }
   virtual void set_thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes,
                                                  const Nom& shell_quantities_thermal_probes,
                                                  const Nom& overall_bubbles_quantities,
                                                  const Nom& local_quantities_thermal_probes_time_index_folder) { }
   virtual void compute_temperature_init();
   virtual void recompute_temperature_init();
-  virtual int set_subproblems_interfaces_fields(const Domaine_IJK& splitting) { return 0; };
+  virtual void set_subproblems_interfaces_fields(const Domaine_IJK& splitting) {  }
   void copy_previous_interface_state();
   int post_process_quantities_from_subresolution(const Motcles& liste_post_instantanes,
                                                  const char *lata_name,

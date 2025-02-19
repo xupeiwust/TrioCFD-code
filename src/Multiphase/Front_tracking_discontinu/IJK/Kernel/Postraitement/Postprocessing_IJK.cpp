@@ -152,9 +152,8 @@ void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& do
 }
 
 
-int Postprocessing_IJK::initialise(int reprise)
+void Postprocessing_IJK::initialise(int reprise)
 {
-  int nalloc = 0;
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
   //poisson_solver_post_.initialize(splitting_);
 
@@ -162,7 +161,6 @@ int Postprocessing_IJK::initialise(int reprise)
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
     {
       integrated_timescale_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       if ((reprise) && (fichier_reprise_integrated_timescale_ != "RESET"))
         {
           if (fichier_reprise_integrated_timescale_ == "??")
@@ -186,10 +184,7 @@ int Postprocessing_IJK::initialise(int reprise)
 
   // Pour relire les champs de vitesse et pression integres :
   if ((( ns.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY")))
-    {
-      allocate_velocity(integrated_velocity_, domaine_ijk_, 2);
-      nalloc += 3;
-    }
+    allocate_velocity(integrated_velocity_, domaine_ijk_, 2);
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     {
       if ((reprise) && (fichier_reprise_integrated_velocity_ != "RESET"))
@@ -208,9 +203,7 @@ int Postprocessing_IJK::initialise(int reprise)
       else
         {
           for (int i = 0; i < 3; i++)
-            {
-              integrated_velocity_[i].data() = 0.;
-            }
+            integrated_velocity_[i].data() = 0.;
           velocity_.valeur()[0].echange_espace_virtuel(velocity_.valeur()[0].ghost());
           velocity_.valeur()[1].echange_espace_virtuel(velocity_.valeur()[1].ghost());
           velocity_.valeur()[2].echange_espace_virtuel(velocity_.valeur()[2].ghost());
@@ -219,11 +212,10 @@ int Postprocessing_IJK::initialise(int reprise)
 
         }
     }
+
   if ((( ns.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE")))
-    {
-      integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
-    }
+    integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+
   if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
     {
       if ((reprise) && (fichier_reprise_integrated_velocity_ != "RESET"))
@@ -255,7 +247,6 @@ int Postprocessing_IJK::initialise(int reprise)
       || ((reprise) && ((fichier_reprise_indicatrice_non_perturbe_ != "??"))))
     {
       indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
     }
 
   // Pour le post-traitement de lambda2 :
@@ -265,7 +256,6 @@ int Postprocessing_IJK::initialise(int reprise)
       dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      nalloc += 4;
     }
 
   // Pour le check_stats_ :
@@ -319,7 +309,6 @@ int Postprocessing_IJK::initialise(int reprise)
           // Pas necessaire d'echange_espace_virtuel car ghost_ = 0
         }
     }
-  return nalloc;
 }
 
 /*! Override from Postraitement since the logic is simpler here
@@ -390,10 +379,10 @@ void Postprocessing_IJK::fill_indic(int reprise)
     }
 }
 
-int Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
+void Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vol_bulles, const double vol_bulle_monodisperse)
 {
   cout << "Initialisation des statistiques. T_debut_statistiques=" << t_debut_statistiques_ << endl;
-  int nalloc = statistiques_FT_.initialize(ref_ijk_ft_, splitting, check_stats_);
+  statistiques_FT_.initialize(ref_ijk_ft_, splitting, check_stats_);
   // Si on utilise un seul groupe et qu'on impose un volume unique a toutes les bulles,
   if (vol_bulle_monodisperse >= 0.)
     {
@@ -411,7 +400,6 @@ int Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& vo
           groups_statistiques_FT_[igroup].initialize(ref_ijk_ft_, splitting, check_stats_);
         }
     }
-  return nalloc;
 }
 
 void Postprocessing_IJK::init_indicatrice_non_perturbe()
@@ -1953,17 +1941,12 @@ void Postprocessing_IJK::calculer_gradient_indicatrice_et_pression(const IJK_Fie
     }
 }
 
-int Postprocessing_IJK::alloc_fields()
+void Postprocessing_IJK::alloc_fields()
 {
-  int nalloc = 0;
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  nalloc += 2;
   if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
-    {
-      ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
-    }
+    ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   // Pour les stats, on calcule kappa*ai :
   if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((t_debut_statistiques_ < 1.e10)))
     {
@@ -1971,7 +1954,6 @@ int Postprocessing_IJK::alloc_fields()
       kappa_ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       allocate_cell_vector(normale_cell_ns_, domaine_ijk_, 0);
-      nalloc += 6;
     }
 
   // For the pressure field extension:
@@ -1984,7 +1966,6 @@ int Postprocessing_IJK::alloc_fields()
       extended_pv_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       extended_pl_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       extended_pv_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-      nalloc += 5;
     }
   else
     extended_pressure_computed_ = 0;
@@ -1995,7 +1976,6 @@ int Postprocessing_IJK::alloc_fields()
                                             || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
     {
       allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
-      nalloc += 3;
     }
 
   // Allocation des champs derivee de vitesse :
@@ -2010,18 +1990,13 @@ int Postprocessing_IJK::alloc_fields()
       dvdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
-      nalloc += 9;
       if (liste_post_instantanes_.contient_("LAMBDA2"))
-        {
-          lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-          nalloc += 1;
-        }
+        lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
       if ((liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("CURL")))
         {
           critere_Q_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
           // Le rotationnel, aux elems aussi :
           allocate_cell_vector(rot_, domaine_ijk_, 0);
-          nalloc += 4;
         }
     }
 
@@ -2036,7 +2011,6 @@ int Postprocessing_IJK::alloc_fields()
       // TODO AYM: allocate fait dans IJK_Interfaces a l init
       // allocate_cell_vector(interfaces_.groups_indicatrice_n_ns(),splitting_, 1); // Besoin d'un ghost pour le calcul du grad
       // allocate_cell_vector(interfaces_.groups_indicatrice_n_ft(),splitting_ft_, 1); // peut-etre qu'un ghost=0 suffit et fonctionne pour le redistribute.
-      nalloc += 6;
     }
 
   // Pour verification des stats :
@@ -2063,93 +2037,67 @@ int Postprocessing_IJK::alloc_fields()
       allocate_cell_vector(ana_grad2Vc_, domaine_ijk_, 0);
       allocate_cell_vector(ana_grad2Wi_, domaine_ijk_, 0);
       allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
-      nalloc += 36;
     }
   if (liste_post_instantanes_.contient_("NUM_COMPO"))
-    {
-      num_compo_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
-    }
+    num_compo_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
-    {
-      allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
-      nalloc += 3;
-    }
+    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
-    {
-      allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
-      nalloc += 3;
-    }
+    allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
-    {
-      allocate_cell_vector(cell_grad_p_, domaine_ijk_, 0);
-      nalloc += 3;
-    }
+    allocate_cell_vector(cell_grad_p_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
-    {
-      allocate_cell_vector(cell_source_interface_,domaine_ijk_, 0);
-      nalloc +=3;
-    }
+    allocate_cell_vector(cell_source_interface_,domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION")||liste_post_instantanes_.contient_("TOUS"))
-    {
-      allocate_cell_vector(cell_repulsion_interface_,domaine_ijk_, 0);
-      nalloc +=3;
-    }
+    allocate_cell_vector(cell_repulsion_interface_,domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
     {
       allocate_cell_vector(cell_bk_tsi_ns_,domaine_ijk_, 1);
-      nalloc +=3;
       allocate_cell_vector(cell_rho_Ssigma_,domaine_ijk_, 1);
-      nalloc +=3;
     }
-  return nalloc;
 }
 
-int Postprocessing_IJK::alloc_velocity_and_co(bool flag_variable_source)
+void Postprocessing_IJK::alloc_velocity_and_co(bool flag_variable_source)
 {
-  int n = 0;
   // Le mot cle TOUS n'a pas encore ete compris comme tel.
   if ((liste_post_instantanes_.contient_("GRAD_INDICATRICE_FT")) || (liste_post_instantanes_.contient_("TOUS")))
-    n += 3, allocate_velocity(grad_I_ft_, domaine_ft_, 2);
+    allocate_velocity(grad_I_ft_, domaine_ft_, 2);
 
   if ((liste_post_instantanes_.contient_("VELOCITY_ANA")) || (liste_post_instantanes_.contient_("ECART_ANA")))
-    n += 3, allocate_velocity(velocity_ana_, domaine_ijk_, 1);
+    allocate_velocity(velocity_ana_, domaine_ijk_, 1);
   if (liste_post_instantanes_.contient_("ECART_ANA"))
-    n += 3, allocate_velocity(ecart_ana_, domaine_ijk_, 0);
+    allocate_velocity(ecart_ana_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("D_VELOCITY_ANA"))
-    n += 3, allocate_velocity(d_velocity_ana_, domaine_ijk_, 1);
+    allocate_velocity(d_velocity_ana_, domaine_ijk_, 1);
   if ((liste_post_instantanes_.contient_("PRESSURE_ANA")) || (liste_post_instantanes_.contient_("ECART_P_ANA")))
-    n++, pressure_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+    pressure_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
   if (liste_post_instantanes_.contient_("ECART_P_ANA"))
-    n++, ecart_p_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+    ecart_p_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
   if (liste_post_instantanes_.contient_("OP_CONV"))
     {
-      n += 3, allocate_velocity(op_conv_, domaine_ijk_, ref_ijk_ft_->eq_ns().d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
+      allocate_velocity(op_conv_, domaine_ijk_, ref_ijk_ft_->eq_ns().d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
       //                                          On veut qqch d'aligne pour copier les data() l'un dans l'autre
     }
   if (liste_post_instantanes_.contient_("CELL_OP_CONV"))
     {
-      n+=3,allocate_cell_vector(cell_op_conv_, domaine_ijk_, ref_ijk_ft_->eq_ns().d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
+      allocate_cell_vector(cell_op_conv_, domaine_ijk_, ref_ijk_ft_->eq_ns().d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_
       //                                          On veut qqch d'aligne pour copier les data() l'un dans l'autre
     }
 
   if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
-    n+=3,allocate_velocity(rho_Ssigma_, domaine_ijk_, 0);
+    allocate_velocity(rho_Ssigma_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF"))
-    n+=3,allocate_cell_vector(cell_rho_Ssigma_, domaine_ijk_, 0);
+    allocate_cell_vector(cell_rho_Ssigma_, domaine_ijk_, 0);
 
   // Pour le calcul des statistiques diphasiques :
   // (si le t_debut_stat a ete initialise... Sinon, on ne va pas les calculer au cours de ce calcul)
   if ((t_debut_statistiques_ < 1.e10))
     {
-      n += 3, allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
-      n += 3, allocate_velocity(grad_P_, domaine_ijk_, 1);
+      allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
+      allocate_velocity(grad_P_, domaine_ijk_, 1);
     }
   else if (flag_variable_source)
-    {
-      n += 3, allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
-    }
-  return n;
+    allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
 }
 
 void Postprocessing_IJK::improved_initial_pressure_guess(bool imp)

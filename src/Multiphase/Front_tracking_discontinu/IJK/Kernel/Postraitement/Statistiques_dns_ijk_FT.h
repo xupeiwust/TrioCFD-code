@@ -31,8 +31,8 @@ public:
   void associer_probleme(const Probleme_FTD_IJK_base&);
   using Statistiques_dns_ijk::initialize;
   void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK&);
-  int initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK& splitting,
-                 const int check_stats);
+  void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK& splitting,
+                  const int check_stats);
   Sortie& completer_print(Sortie& os) const override;
   void completer_read(Param& param) override;
   int lire_motcle_non_standard(const Motcle& mot, Entree& is) override;

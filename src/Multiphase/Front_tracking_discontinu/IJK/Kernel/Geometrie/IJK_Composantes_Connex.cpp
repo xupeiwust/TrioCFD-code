@@ -44,74 +44,60 @@ Entree& IJK_Composantes_Connex::readOn( Entree& is )
   return is;
 }
 
-int IJK_Composantes_Connex::initialize(IJK_Interfaces& interfaces,
-                                       const bool is_switch)
+void IJK_Composantes_Connex::initialize(IJK_Interfaces& interfaces,
+                                        const bool is_switch)
 {
   is_switch_ = is_switch;
   if (!is_switch)
     interfaces_ = &interfaces;
-  return 0;
 }
 
-int IJK_Composantes_Connex::allocate_fields(const Domaine_IJK& splitting,
-                                            const int& allocate_compo_fields)
+void IJK_Composantes_Connex::allocate_fields(const Domaine_IJK& splitting,
+                                             const int& allocate_compo_fields)
 {
-  int nalloc = 0;
   compute_compo_fields_ = allocate_compo_fields;
   if (!is_switch_ && allocate_compo_fields)
     {
       if (Process::nproc() == 1 && compute_from_bounding_box_)
         {
           eulerian_compo_connex_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
-          nalloc += 1;
           eulerian_compo_connex_ft_.data() = -1.;
           eulerian_compo_connex_ft_.echange_espace_virtuel(eulerian_compo_connex_ft_.ghost());
 
           eulerian_compo_connex_ghost_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 2);
-          nalloc += 1;
           eulerian_compo_connex_ghost_ft_.data() = -1.;
           eulerian_compo_connex_ghost_ft_.echange_espace_virtuel(eulerian_compo_connex_ghost_ft_.ghost());
 
           eulerian_compo_connex_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
-          nalloc += 1;
           eulerian_compo_connex_ns_.echange_espace_virtuel(eulerian_compo_connex_ns_.ghost());
 
           eulerian_compo_connex_ghost_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
-          nalloc += 1;
           eulerian_compo_connex_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_ghost_ns_.ghost());
         }
       eulerian_compo_connex_from_interface_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_ft_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ft_.ghost());
 
       eulerian_compo_connex_from_interface_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ns_.ghost());
 
       eulerian_compo_connex_from_interface_ghost_ft_.allocate(ref_ijk_ft_->get_domaine_ft(), Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_ft_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ft_.ghost());
 
       eulerian_compo_connex_from_interface_ghost_ns_.allocate(splitting, Domaine_IJK::ELEM, 0);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_ns_.ghost());
 
       eulerian_compo_connex_from_interface_int_ns_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_int_ns_.data() = -1;
       eulerian_compo_connex_from_interface_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_int_ns_.ghost());
 
       eulerian_compo_connex_from_interface_ghost_int_ns_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       eulerian_compo_connex_from_interface_ghost_int_ns_.data() = -1;
       eulerian_compo_connex_from_interface_ghost_int_ns_.echange_espace_virtuel(eulerian_compo_connex_from_interface_ghost_int_ns_.ghost());
 
       eulerian_compo_connex_valid_compo_field_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      nalloc += 1;
       eulerian_compo_connex_valid_compo_field_.data() = 0;
       eulerian_compo_connex_valid_compo_field_.echange_espace_virtuel(eulerian_compo_connex_valid_compo_field_.ghost());
     }
-  return nalloc;
 }
 
 void IJK_Composantes_Connex::associer(const Probleme_FTD_IJK_base& ijk_ft)
@@ -124,13 +110,12 @@ void IJK_Composantes_Connex::initialise_bubbles_params()
   interfaces_->calculer_volume_bulles(bubbles_volume_, bubbles_barycentre_);
 }
 
-int IJK_Composantes_Connex::associate_rising_velocities_parameters(const Domaine_IJK& splitting,
-                                                                   const int& compute_rising_velocities,
-                                                                   const int& fill_rising_velocities,
-                                                                   const int& use_bubbles_velocities_from_interface,
-                                                                   const int& use_bubbles_velocities_from_barycentres)
+void IJK_Composantes_Connex::associate_rising_velocities_parameters(const Domaine_IJK& splitting,
+                                                                    const int& compute_rising_velocities,
+                                                                    const int& fill_rising_velocities,
+                                                                    const int& use_bubbles_velocities_from_interface,
+                                                                    const int& use_bubbles_velocities_from_barycentres)
 {
-  int nalloc = 0;
   if (compute_compo_fields_)
     {
       compute_rising_velocities_ = compute_rising_velocities;
@@ -143,11 +128,9 @@ int IJK_Composantes_Connex::associate_rising_velocities_parameters(const Domaine
         {
           eulerian_rising_velocities_.allocate(splitting, Domaine_IJK::ELEM, 0);
           eulerian_rising_velocities_.data() = 0;
-          nalloc += 1;
           eulerian_rising_velocities_.echange_espace_virtuel(eulerian_rising_velocities_.ghost());
         }
     }
-  return nalloc;
 }
 
 void IJK_Composantes_Connex::compute_bounding_box_fill_compo_connex()
