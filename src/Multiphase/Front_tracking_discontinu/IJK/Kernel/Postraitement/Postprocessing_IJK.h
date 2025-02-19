@@ -30,13 +30,10 @@ class Probleme_FTD_IJK_base;
 class Navier_Stokes_FTD_IJK;
 class Domaine_IJK;
 
-/*
- * TODO: Demander à Aymeric l'interet (obsolete ??)
- */
 class IJK_Thermals;
 
 /**
- * All the post-processing stuff of Probleme_FTD_IJK_base delegated into this helper class:
+ * Post-processing stuff of Probleme_FTD_IJK_base.
  */
 class Postprocessing_IJK: public Postraitement_ft_lata
 {
@@ -51,7 +48,7 @@ public:
   int postraiter_champs() override;
 
   void completer() override { /* Does nothing */  }
-  void resetTime(double t, std::string dirname) override { throw; }
+  void resetTime(double t, std::string dirname) override { /* not impl. */ throw; }
 
   void associer_probleme(const Probleme_FTD_IJK_base& );
 
@@ -71,90 +68,24 @@ public:
   void get_update_lambda2_and_rot_and_curl();
   void activate_cut_cell() { cut_cell_activated_ = 1; };
 
-  IJK_Field_double& rebuilt_indic()
-  {
-    return rebuilt_indic_;
-  }
-  IJK_Field_double& potentiel()
-  {
-    return potentiel_;
-  }
-  IJK_Field_vector3_double& coords()
-  {
-    return coords_;
-  }
-  IJK_Field_double& integrated_timescale()
-  {
-    return integrated_timescale_;
-  }
-  bool postraiter_sous_pas_de_temps() const
-  {
-    return postraiter_sous_pas_de_temps_;
-  }
-  double get_timestep_simu_post(double current_time, double max_simu_time) const
-  {
-    // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
-    // Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
-    double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
-    double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
-    double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
-    double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
-    double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
-    double max_post_stats_cisaillement_timestep     = ((std::floor(current_time/time_interval_post_stats_cisaillement_) + 1)*time_interval_post_stats_cisaillement_ - current_time)*(1+1e-12);
-    double max_post_stats_rmf_timestep     = ((std::floor(current_time/time_interval_post_stats_rmf_) + 1)*time_interval_post_stats_rmf_ - current_time)*(1+1e-12);
-    if (max_post_timestep == 0)
-      {
-        max_post_timestep = max_simu_timestep;
-      }
-    if (max_post_thermals_probes_timestep == 0)
-      {
-        max_post_thermals_probes_timestep = max_simu_timestep;
-      }
-    if (max_post_stats_bulles_timestep == 0)
-      {
-        max_post_stats_bulles_timestep = max_simu_timestep;
-      }
-    if (max_post_stats_plans_timestep == 0)
-      {
-        max_post_stats_plans_timestep = max_simu_timestep;
-      }
-    if (max_post_stats_cisaillement_timestep == 0)
-      {
-        max_post_stats_cisaillement_timestep = max_simu_timestep;
-      }
-    if (max_post_stats_rmf_timestep == 0)
-      {
-        max_post_stats_rmf_timestep = max_simu_timestep;
-      }
+  IJK_Field_double& rebuilt_indic() { return rebuilt_indic_;  }
+  IJK_Field_double& potentiel()     { return potentiel_;  }
+  IJK_Field_vector3_double& coords()  { return coords_;  }
+  IJK_Field_double& integrated_timescale() { return integrated_timescale_; }
+  bool postraiter_sous_pas_de_temps() const { return postraiter_sous_pas_de_temps_; }
 
-    return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, std::min(max_post_stats_bulles_timestep, std::min(max_post_stats_cisaillement_timestep, max_post_stats_rmf_timestep))))));
-  }
-  int dt_post() const
-  {
-    return dt_post_;
-  }
-  int post_par_paires() const
-  {
-    return post_par_paires_;
-  }
-  double t_debut_statistiques() const
-  {
-    return t_debut_statistiques_;
-  }
+  double get_timestep_simu_post(double current_time, double max_simu_time) const;
 
-  inline int sondes_demande()
-  {
-    return sondes_demande_;
-  }
+  int post_par_paires() const { return post_par_paires_; }
+  double t_debut_statistiques() const { return t_debut_statistiques_; }
+
+  inline int sondes_demande() { return sondes_demande_; }
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   const int& get_IJK_flag(const Nom& nom) const;
 
   const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
 
-  inline IJK_Field_vector3_double& get_grad_I_ns()
-  {
-    return grad_I_ns_;
-  }
+  inline IJK_Field_vector3_double& get_grad_I_ns() { return grad_I_ns_; }
 
   void sauvegarder_post(const Nom& lata_name);
   void sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const;
@@ -190,21 +121,19 @@ public:
 
 //  void calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T);
 
-  Motcles get_liste_post_instantanes() const
-  {
-    return liste_post_instantanes_;
-  }
+  Motcles get_liste_post_instantanes() const { return liste_post_instantanes_; }
+
 protected:
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
 
   // Post-traitement selon un nombre de pas de temps
-  int dt_post_ = 100;
-  int dt_post_thermals_probes_ = 100;
-  int dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
-  int dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
-  int dt_post_stats_cisaillement_ = 100; // intervalle de posttraitement des données liés au cisaillement
-  int dt_post_stats_rmf_ = 100; // intervalle de posttraitement des données liés au au rmf
+  // The main postprocessing freq (nb_pas_dt_post) is in the base class
+  int nb_pas_dt_post_thermals_probes_ = 100;
+  int nb_pas_dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
+  int nb_pas_dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
+  int nb_pas_dt_post_stats_cisaillement_ = 100; // intervalle de posttraitement des données liés au cisaillement
+  int nb_pas_dt_post_stats_rmf_ = 100; // intervalle de posttraitement des données liés au au rmf
 
   // Post-traitement selon un intervale de temps (en secondes)
   double time_interval_post_ = DMAXFLOAT;
@@ -287,19 +216,12 @@ protected:
   IJK_Field_double extended_pv_ft_;
   IJK_Field_double extended_pl_;
   IJK_Field_double extended_pv_;
-  //For the liquid pressure gradient
-  // FixedVector<IJK_Field_double 3> dP_ft_;
-  // FixedVector<IJK_Field_double 3> dP_;
   // Pour le calcul des stats  :
   IJK_Field_double kappa_ai_ft_;
   IJK_Field_vector3_double normale_cell_ft_;
   IJK_Field_double ai_ns_;
   IJK_Field_double kappa_ai_ns_;
   IJK_Field_vector3_double normale_cell_ns_;
-  // The following three fields are needed too for the gradient extension
-// /IJK_Field_double dudy_;
-  //IJK_Field_double dvdx_;//
-  //IJK_Field_double dwdy_;
   // For lambda and curl
   IJK_Field_double dudx_;
   IJK_Field_double dvdy_;
@@ -311,9 +233,6 @@ protected:
   IJK_Field_vector3_double rot_;
   IJK_Field_vector3_double grad_I_ns_;
   IJK_Field_vector3_double grad_P_;
-  //  IJK_Field_vector3_double grad_U_ns_;
-  //  IJK_Field_vector3_double grad_V_ns_;
-  //  IJK_Field_vector3_double grad_W_ns_;
   IJK_Field_double num_compo_ft_;
 
   // Pour la verification des stats :

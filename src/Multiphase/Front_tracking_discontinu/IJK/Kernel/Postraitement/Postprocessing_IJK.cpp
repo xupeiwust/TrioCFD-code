@@ -60,12 +60,11 @@ void Postprocessing_IJK::set_param(Param& param)
 {
   Postraitement_ft_lata::set_param(param);
 
-  param.ajouter("dt_post", &dt_post_);
-  param.ajouter("dt_post_thermals_probes", &dt_post_thermals_probes_);
-  param.ajouter("dt_post_stats_bulles", &dt_post_stats_bulles_);
-  param.ajouter("dt_post_stats_plans", &dt_post_stats_plans_);
-  param.ajouter("dt_post_stats_cisaillement", &dt_post_stats_cisaillement_);
-  param.ajouter("dt_post_stats_rmf", &dt_post_stats_rmf_);
+  param.ajouter("nb_pas_dt_post_thermals_probes", &nb_pas_dt_post_thermals_probes_);
+  param.ajouter("nb_pas_dt_post_stats_bulles", &nb_pas_dt_post_stats_bulles_);
+  param.ajouter("nb_pas_dt_post_stats_plans", &nb_pas_dt_post_stats_plans_);
+  param.ajouter("nb_pas_dt_post_stats_cisaillement", &nb_pas_dt_post_stats_cisaillement_);
+  param.ajouter("nb_pas_dt_post_stats_rmf", &nb_pas_dt_post_stats_rmf_);
 
   param.ajouter("time_interval_post", &time_interval_post_);
   param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
@@ -351,6 +350,33 @@ int Postprocessing_IJK::postraiter_champs()
   return 1;
 }
 
+double Postprocessing_IJK::get_timestep_simu_post(double current_time, double max_simu_time) const
+{
+  // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
+  // Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
+  double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
+  double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
+  double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
+  double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
+  double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
+  double max_post_stats_cisaillement_timestep     = ((std::floor(current_time/time_interval_post_stats_cisaillement_) + 1)*time_interval_post_stats_cisaillement_ - current_time)*(1+1e-12);
+  double max_post_stats_rmf_timestep     = ((std::floor(current_time/time_interval_post_stats_rmf_) + 1)*time_interval_post_stats_rmf_ - current_time)*(1+1e-12);
+  if (max_post_timestep == 0)
+    max_post_timestep = max_simu_timestep;
+  if (max_post_thermals_probes_timestep == 0)
+    max_post_thermals_probes_timestep = max_simu_timestep;
+  if (max_post_stats_bulles_timestep == 0)
+    max_post_stats_bulles_timestep = max_simu_timestep;
+  if (max_post_stats_plans_timestep == 0)
+    max_post_stats_plans_timestep = max_simu_timestep;
+  if (max_post_stats_cisaillement_timestep == 0)
+    max_post_stats_cisaillement_timestep = max_simu_timestep;
+  if (max_post_stats_rmf_timestep == 0)
+    max_post_stats_rmf_timestep = max_simu_timestep;
+
+  return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, std::min(max_post_stats_bulles_timestep, std::min(max_post_stats_cisaillement_timestep, max_post_stats_rmf_timestep))))));
+}
+
 
 void Postprocessing_IJK::fill_indic(int reprise)
 {
@@ -432,7 +458,6 @@ static void interpolate_to_center(IJK_Field_vector3_double& cell_center_field, c
 }
 //
 
-// GAB
 void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, double current_time, int time_iteration)
 {
   statistiques().begin_count(postraitement_counter_);
@@ -525,7 +550,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
     }
 //  if (liste_post_instantanes_.contient_("VELOCITY"))
 //    n--, dumplata_vector(lata_name, "VELOCITY", velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2], latastep);
-  // GAB
   if (liste_post_instantanes_.contient_("FORCE_PH"))
     {
       if ( ns.forcage_.get_type_forcage() > 0)
@@ -538,7 +562,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
           Cerr << "Post-processing of FORCE_PH demanded, but the spectral force is not present, not initialized" << endl;
         }
     }
-  //
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     {
       update_integral_velocity(velocity_, integrated_velocity_, interfaces_->In(), integrated_timescale_);
@@ -819,20 +842,16 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
       interpolate_to_center(cell_velocity_,velocity_);
       n--,dumplata_cellvector(lata_name,"CELL_VELOCITY" /* AT CELL-CENTER */, cell_velocity_, latastep);
     }
-  // GAB
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH"))
     {
       interpolate_to_center(cell_source_spectrale_,source_spectrale_);
       n--,dumplata_cellvector(lata_name,"CELL_FORCE_PH" /* AT CELL-CENTER */, cell_source_spectrale_, latastep);
     }
-  //
-  // GAB
   if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
     {
       interpolate_to_center(cell_grad_p_,grad_P_);
       n--,dumplata_cellvector(lata_name,"CELL_GRAD_P" /* AT CELL-CENTER */, cell_grad_p_, latastep);
     }
-  //
   if (liste_post_instantanes_.contient_("GRAD_U"))
     {
       const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
@@ -873,7 +892,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
                         ns.backup_terme_source_interfaces_ft_[2], latastep);
   if (liste_post_instantanes_.contient_("SOURCE_QDM_INTERF"))
     n--, dumplata_vector(lata_name, "SOURCE_QDM_INTERF", ns.terme_source_interfaces_ft_[0], ns.terme_source_interfaces_ft_[1], ns.terme_source_interfaces_ft_[2], latastep);
-  // GAB
   if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
     {
       interpolate_to_center(cell_source_interface_, ns.terme_source_interfaces_ns_);
@@ -2191,13 +2209,13 @@ void Postprocessing_IJK::postraiter_fin(bool stop, int tstep, const int& tstep_i
   if (ref_ijk_ft_->has_thermals())
     thermals_->set_first_step_thermals_post(first_step_thermals_post_);
   if (stop || first_step_thermals_post_
-      || (dt_post_ >= 0 && tstep_sauv % dt_post_ == dt_post_ - 1)
+      || (nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == nb_pas_dt_post_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
     {
       if (post_par_paires_ ==1) { cout << "tstep : " << tstep << endl;}
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
     }
-  else if ((post_par_paires_ == 1 && dt_post_ >= 0 && tstep_sauv % dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
+  else if ((post_par_paires_ == 1 && nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
     {
       cout << "deuxieme de la paire, tstep : " << tstep << endl;
       posttraiter_champs_instantanes(lata_name, current_time, tstep);
@@ -2205,33 +2223,33 @@ void Postprocessing_IJK::postraiter_fin(bool stop, int tstep, const int& tstep_i
 
   if (ref_ijk_ft_->has_thermals())
     if (stop || first_step_thermals_post_
-        || (dt_post_thermals_probes_ >= 0 && tstep_sauv % dt_post_thermals_probes_ == dt_post_thermals_probes_ - 1)
+        || (nb_pas_dt_post_thermals_probes_ >= 0 && tstep_sauv % nb_pas_dt_post_thermals_probes_ == nb_pas_dt_post_thermals_probes_ - 1)
         || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
       {
         Cout << "tstep : " << tstep << finl;
-        thermals_->thermal_subresolution_outputs(dt_post_thermals_probes_);
+        thermals_->thermal_subresolution_outputs(nb_pas_dt_post_thermals_probes_);
       }
   if (stop
-      || (dt_post_stats_bulles_ >= 0 && tstep_sauv % dt_post_stats_bulles_ == dt_post_stats_bulles_ - 1)
+      || (nb_pas_dt_post_stats_bulles_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_bulles_ == nb_pas_dt_post_stats_bulles_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_stats_bulles_) < std::floor(current_time/time_interval_post_stats_bulles_)))
     {
       ecrire_statistiques_bulles(0, nom_cas, gravite, current_time);
     }
   if (stop
-      || (dt_post_stats_plans_ >= 0 && tstep_sauv % dt_post_stats_plans_ == dt_post_stats_plans_ - 1)
+      || (nb_pas_dt_post_stats_plans_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_plans_ == nb_pas_dt_post_stats_plans_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_stats_plans_) < std::floor(current_time/time_interval_post_stats_plans_)))
     {
       if (current_time >= t_debut_statistiques_)
         posttraiter_statistiques_plans(current_time);
     }
   if (stop
-      || (dt_post_stats_cisaillement_ >= 0 && tstep_sauv % dt_post_stats_cisaillement_ == dt_post_stats_cisaillement_ - 1)
+      || (nb_pas_dt_post_stats_cisaillement_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_cisaillement_ == nb_pas_dt_post_stats_cisaillement_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_stats_cisaillement_) < std::floor(current_time/time_interval_post_stats_cisaillement_)))
     {
       ecrire_statistiques_cisaillement(0, nom_cas, current_time);
     }
   if (stop
-      || (dt_post_stats_rmf_ >= 0 && tstep_sauv % dt_post_stats_rmf_ == dt_post_stats_rmf_ - 1)
+      || (nb_pas_dt_post_stats_rmf_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_rmf_ == nb_pas_dt_post_stats_rmf_ - 1)
       || (std::floor((current_time-timestep)/time_interval_post_stats_rmf_) < std::floor(current_time/time_interval_post_stats_rmf_)))
     {
       ecrire_statistiques_rmf(0, nom_cas, current_time);

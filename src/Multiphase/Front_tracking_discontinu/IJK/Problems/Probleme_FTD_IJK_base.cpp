@@ -944,7 +944,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
 
       // On ne postraite pas le sous-dt 2 car c'est fait plus bas si on post-traite le pas de temps :
       if (get_post().postraiter_sous_pas_de_temps()
-          && ((rk3.get_tstep() % get_post().dt_post() == get_post().dt_post() - 1)
+          && ((rk3.get_tstep() % get_post().nb_pas_dt_post() == get_post().nb_pas_dt_post() - 1)
               || (std::floor((current_time - timestep) / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time()))
                   < std::floor(current_time / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time())))) && (rk_step != 2))
         {
