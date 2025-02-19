@@ -205,7 +205,6 @@ public:
 
 protected:
   OBS_PTR(IJK_Interfaces) interfaces_;
-//   OBS_PTR(Domaine_IJK) domaine_ft_;
 
   void initialise_velocity_using_expression(const Noms& expression_vitesse_initiale);
   void initialise_velocity_from_file(const Nom& fichier_reprise_vitesse);
@@ -467,6 +466,8 @@ protected:
   int timestep_reprise_vitesse_ = 1;
 
   init_forcage_THI forcage_;
+
+  Champs_compris_T<IJK_Field_double> champs_compris_;
 };
 
 #endif /* Navier_Stokes_FTD_IJK_included */

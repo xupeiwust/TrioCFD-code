@@ -48,7 +48,8 @@ public:
 
   void set_param(Param& param) override;
 
-  void postraiter(int forcer) override { /* TODO */  }
+  int postraiter_champs() override;
+
   void completer() override { /* Does nothing */  }
   void resetTime(double t, std::string dirname) override { throw; }
 

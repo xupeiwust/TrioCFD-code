@@ -323,6 +323,35 @@ int Postprocessing_IJK::initialise(int reprise)
   return nalloc;
 }
 
+/*! Override from Postraitement since the logic is simpler here
+ */
+int Postprocessing_IJK::postraiter_champs()
+{
+  Probleme_FTD_IJK_base& pb = ref_cast(Probleme_FTD_IJK_base, probleme());
+  Schema_Temps_IJK_base& sch = pb.schema_temps_ijk();
+  int latastep = sch.get_tstep();
+
+  for (auto& nam0 : noms_champs_a_post_)
+    {
+      Motcle nam(nam0);
+      // Specific case - velocity, when requested we output all three compos:
+      if (nam == "VITESSE" or nam == "VELOCITY")
+        {
+          const IJK_Field_double& chx = pb.eq_ns().get_IJK_field("VITESSE_X"),
+                                  &chy = pb.eq_ns().get_IJK_field("VITESSE_Y"),
+                                   &chz = pb.eq_ns().get_IJK_field("VITESSE_Z");
+          dumplata_vector(nom_fich_, "VELOCITY", chx, chy, chz, latastep);
+        }
+      else
+        {
+          // TODO
+          throw;
+        }
+    }
+  return 1;
+}
+
+
 void Postprocessing_IJK::fill_indic(int reprise)
 {
   // Meme if que pour l'allocation.
@@ -430,7 +459,7 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
   if (liste_post_instantanes_.contient_("TOUS"))
     {
       liste_post_instantanes_.dimensionner_force(0);
-      liste_post_instantanes_.add("VELOCITY");
+//      liste_post_instantanes_.add("VELOCITY");
       liste_post_instantanes_.add("PRESSURE");
       liste_post_instantanes_.add("INDICATRICE_FT");
       liste_post_instantanes_.add("INDICATRICE");
@@ -494,8 +523,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
             }
       n--, dumplata_scalar(lata_name, "NUM_COMPO", num_compo_ft_, latastep);
     }
-  if (liste_post_instantanes_.contient_("VELOCITY"))
-    n--, dumplata_vector(lata_name, "VELOCITY", velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2], latastep);
+//  if (liste_post_instantanes_.contient_("VELOCITY"))
+//    n--, dumplata_vector(lata_name, "VELOCITY", velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2], latastep);
   // GAB
   if (liste_post_instantanes_.contient_("FORCE_PH"))
     {

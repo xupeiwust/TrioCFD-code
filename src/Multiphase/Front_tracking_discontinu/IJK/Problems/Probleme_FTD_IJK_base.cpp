@@ -85,22 +85,20 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
       itr->associer_milieu_base(milieu_ijk());
     }
 
-  /* 3 : Les postraitements */
-  is >> motlu;  // Read next word
-  // Si le postraitement comprend le mot, on en lit un autre...
-  while (les_postraitements_.lire_postraitements(is, motlu, *this))
-    is >> motlu;
-
-  /* 4 : le reste va changer plus tard */
+  /* 3 : Tous les params encore non ranges proprement - a changer plus tard */
   Param param(que_suis_je());
   nom_sauvegarde_ = nom_du_cas() + ".sauv";
   set_param(param);
   param.lire_avec_accolades(is);
 
+  /* 4 : Les postraitements */
+  is >> motlu;  // Read next word
+  // Si le postraitement comprend le mot, on en lit un autre...
+  while (les_postraitements_.lire_postraitements(is, motlu, *this))
+    is >> motlu;
 
   completer();
 
-  is >> motlu;
   if (motlu != "}")
     {
       Cerr << "We expected } to start to read the problem" << finl;

@@ -24,6 +24,7 @@
 #include <IJK_Thermals.h>
 #include <Domaine_IJK.h>
 #include <Postprocessing_IJK.h>
+#include <Champs_compris.h>
 
 class Domaine_IJK;
 
@@ -226,6 +227,8 @@ protected:
   void solveTimeStep_Euler(DoubleTrav&);
   void solveTimeStep_RK3(DoubleTrav&);
   void build_vdf_domaine();
+
+  Champs_compris_T<IJK_Field_double> champs_compris_;
 
   // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
   // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.

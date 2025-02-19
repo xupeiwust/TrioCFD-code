@@ -720,6 +720,15 @@ int Navier_Stokes_FTD_IJK::initialise_ns_fields()
   if (!disable_solveur_poisson_)
     poisson_solver_.initialize(dom_ijk);
 
+  // Register champs compris
+  Cerr << "@@@@@@@@@@@@@@@@@@@@@@@ " << velocity_[0].le_nom() << finl;
+  for (int i=0; i<3; i++)
+    {
+      std::string compo_name[] = {"X", "Y", "Z"};
+      velocity_[i].add_synonymous(Nom("vitesse_") + Nom(compo_name[i]));
+      champs_compris_.ajoute_champ(velocity_[i]);
+    }
+
   return nalloc;
 }
 
