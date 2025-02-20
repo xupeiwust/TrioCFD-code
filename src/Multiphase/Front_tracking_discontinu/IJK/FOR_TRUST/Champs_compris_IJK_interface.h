@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2015 - 2016, CEA
+* Copyright (c) 2024, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,50 +12,37 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-#ifndef Postraitement_ft_lata_included
-#define Postraitement_ft_lata_included
 
-#include <Postraitement.h>
-#include <vector>
-#include <TRUST_Ref.h>
+#ifndef Champs_compris_IJK_interface_included
+#define Champs_compris_IJK_interface_included
 
-class Transport_Interfaces_FT_Disc;
+#include <IJK_Field_forward.h>
+#include <IJK_Field_vector.h>
+#include <Champ_Generique_base.h>  // For Entity and Nature_du_champ
+
 class Motcle;
-class Maillage_FT_Disc;
-class Fichier_Lata;
-class Comm_Group;
 
-class Postraitement_ft_lata : public Postraitement
+/*! @brief Similar to Champs_compris_interface but for IJK scalar and vector fields
+ */
+class Champs_compris_IJK_interface
 {
-  Declare_instanciable(Postraitement_ft_lata);
+public :
+  /** Name / Localisation (elem, face, node) / Nature (vector, scalar) / Needs interpolation?
+   */
+  using FieldInfo_t = std::tuple<Motcle, Entity, Nature_du_champ, bool>;
 
-public:
-  void set_param(Param& param) override;
-  int lire_motcle_non_standard(const Motcle&, Entree&) override;
+  virtual inline ~Champs_compris_IJK_interface() {}
 
-  int write_extra_mesh() override;
-  void postprocess_field_values() override;
+  virtual const IJK_Field_double& get_IJK_field(const Motcle& nom)=0;
+  virtual const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom)=0;
 
-protected:
-  void lire_champs_interface(Entree&);
-  virtual void lire_entete_bloc_interface(Entree& is);
-  virtual void register_interface_field(const Motcle& nom_champ, const Motcle& loc_lu);
+  // Might be a repetition of what is in Champs_compris_interface, but this is a pure virtual, so OK
+  virtual bool has_champ(const Motcle& nom) const=0;
 
-  int ecrire_maillage_ft_disc();
-  int filter_out_virtual_fa7(IntTab& new_fa7);
-  void filter_out_array(const DoubleTab& dtab, DoubleTab& new_dtab) const;
+  virtual bool has_champ_vectoriel(const Motcle& nom) const=0;
 
-  // L'equation de transport contenant les interfaces a postraiter
-  OBS_PTR(Transport_Interfaces_FT_Disc) refequation_interfaces;
-  // Quels champs d'interface faut-il postraiter ?
-  Motcles liste_champs_i_aux_sommets;
-  Motcles liste_champs_i_aux_elements;
-
-  Nom id_domaine_;  // INTERFACES or PARTICULES - computed in ecrire_maillage_ft_disc()
-
-  // Renumbering array for interface facettes to keep only real facettes - updated at each time step!
-  std::vector<int> renum_;
-  bool no_virtuals_ = false;  // whether to exclude virtual elements when writing out interface mesh and fields.
+  // This is not possible in C++, but this method should be implemented every time too:
+//  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)=0;
 };
 
 #endif

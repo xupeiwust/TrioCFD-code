@@ -16,12 +16,14 @@
 #ifndef Navier_Stokes_FTD_IJK_included
 #define Navier_Stokes_FTD_IJK_included
 
+#include <Champs_compris_IJK_interface.h>
 #include <Cut_cell_surface_efficace.h>
 #include <Operateur_IJK_faces_diff.h>
 #include <Operateur_IJK_faces_conv.h>
 #include <Fluide_Diphasique_IJK.h>
 #include <Schema_Temps_IJK_base.h>
 #include <Boundary_Conditions.h>
+#include <Champs_compris_IJK.h>
 #include <Multigrille_Adrien.h>
 #include <init_forcage_THI.h>
 #include <IJK_Field_vector.h>
@@ -35,10 +37,11 @@
 class Probleme_FTD_IJK_base;
 class Fluide_base;
 
-class Navier_Stokes_FTD_IJK: public Equation_base
+class Navier_Stokes_FTD_IJK: public Equation_base, public Champs_compris_IJK_interface
 {
   Declare_instanciable_sans_constructeur(Navier_Stokes_FTD_IJK);
 public:
+  using FieldInfo_t = Champs_compris_IJK_interface::FieldInfo_t;
 
   friend class Postprocessing_IJK;
   friend class Statistiques_dns_ijk_FT;
@@ -66,8 +69,16 @@ public:
   Probleme_FTD_IJK_base& probleme_ijk();
   const Probleme_FTD_IJK_base& probleme_ijk() const;
 
-  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
-  bool has_IJK_field(const Nom& nom) const;
+  // Interface Champs_compris_IJK_interface
+  bool has_champ(const Motcle& nom) const override  {  return champs_compris_.has_champ(nom);  }
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const override { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override {  return champs_compris_.has_champ_vectoriel(nom);  }
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms, Option opt=NONE) const override;
+
+
   void initialise_ijk_fields();
   void initialise_ns_fields();
   void complete_initialise_ijk_fields();
@@ -469,7 +480,7 @@ protected:
 
   init_forcage_THI forcage_;
 
-  Champs_compris_T<IJK_Field_double> champs_compris_;
+  Champs_compris_IJK champs_compris_;
 
   bool flag_variable_source_ = false;
 };

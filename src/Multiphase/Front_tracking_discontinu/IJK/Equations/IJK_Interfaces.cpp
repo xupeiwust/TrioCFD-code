@@ -490,38 +490,22 @@ void IJK_Interfaces::imprime_bilan_indicatrice()
 
       double indicatrice = std::min(indicatrice_ns_[next()](i,j,k), 1 - indicatrice_ns_[next()](i,j,k));
       if (indicatrice > 0.)
-        {
-          min_indicatrice = std::min(min_indicatrice, indicatrice);
-        }
+        min_indicatrice = std::min(min_indicatrice, indicatrice);
 
       if (indicatrice <= .5 && indicatrice > .4)
-        {
-          count_40pct += 1;
-        }
+        count_40pct += 1;
       else if (indicatrice <= .4 && indicatrice > .3)
-        {
-          count_30pct += 1;
-        }
+        count_30pct += 1;
       else if (indicatrice <= .3 && indicatrice > .2)
-        {
-          count_20pct += 1;
-        }
+        count_20pct += 1;
       else if (indicatrice <= .2 && indicatrice > .1)
-        {
-          count_10pct += 1;
-        }
+        count_10pct += 1;
       else if (indicatrice <= .1 && indicatrice > .05)
-        {
-          count_5pct += 1;
-        }
+        count_5pct += 1;
       else if (indicatrice <= .05 && indicatrice > .01)
-        {
-          count_1pct += 1;
-        }
+        count_1pct += 1;
       else if (indicatrice <= .01 && indicatrice > .0)
-        {
-          count_0pct += 1;
-        }
+        count_0pct += 1;
       else
         {
           assert(indicatrice == 0.);
@@ -696,6 +680,52 @@ const Probleme_FTD_IJK_base& IJK_Interfaces::probleme_ijk() const
   return ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
 }
 
+const IJK_Field_double& IJK_Interfaces::get_IJK_field(const Motcle& nom)
+{
+  if (nom=="COURBURE")
+    {
+      // TODO ABN may use ref_array to avoid copy ??
+      IJK_Field_double& courb = scalar_post_fields_.at("COURBURE");
+      courb.data() = maillage_ft_ijk_.get_update_courbure_sommets();
+    }
+
+  if(has_champ(nom))
+    return champs_compris_.get_champ(nom);
+
+  Cerr << "ERROR in IJK_Interfaces::get_IJK_field_vector : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Interfaces::get_IJK_field_vector()." << finl;
+  throw;
+}
+
+const IJK_Field_vector3_double& IJK_Interfaces::get_IJK_field_vector(const Motcle& nom)
+{
+  if(has_champ_vectoriel(nom))
+    return champs_compris_.get_champ_vectoriel(nom);
+
+  Cerr << "ERROR in IJK_Interfaces::get_IJK_field_vector : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Interfaces::get_IJK_field_vector()." << finl;
+  throw;
+}
+
+void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
+{
+  std::vector<FieldInfo_t> c =
+  {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+    { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, false }
+  };
+
+  chps.insert(chps.end(), c.begin(), c.end());
+}
+
+void IJK_Interfaces::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
 
 void IJK_Interfaces::update_indicatrice_variables_monofluides()
 {
@@ -728,12 +758,16 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
     {
       const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
-      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2);
+      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE");
       indicatrice_ft_[old()].data() = 1.;
       indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
-      indicatrice_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2);
+      indicatrice_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE");
       indicatrice_ft_[next()].data() = 1.;
       indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
+
+      // Register INDICATRICE:
+      champs_compris_.ajoute_champ(indicatrice_ft_[old()]);  // or next() ??
+
       indicatrice_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
       indicatrice_ns_[old()].data() = 1.;
       allocate_cell_vector(groups_indicatrice_ns_[old()], domaine_NS, 1);
@@ -1078,6 +1112,15 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
   ijk_compo_connex_.initialize(*this, is_switch);
 }
 
+void IJK_Interfaces::register_fields()
+{
+  // Register fields:
+  scalar_post_fields_["COURBURE"] = IJK_Field_double();
+  auto& courb = scalar_post_fields_.at("COURBURE");
+  courb.nommer("COURBURE");
+  champs_compris_.ajoute_champ(courb);
+}
+
 const Milieu_base& IJK_Interfaces::milieu() const
 {
   Cerr << "IJK_Interfaces::milieu not coded ! access it from NS. " << finl;
@@ -1171,11 +1214,11 @@ int IJK_Interfaces::posttraiter_champs_instantanes(const Motcles& liste_post_ins
       calculer_color(color);
       n++, dumplata_ft_field(lata_name, "INTERFACES", "COLOR_Y", "ELEM",  color, lata_step);
     }
-  if (liste_post_instantanes.contient_("COURBURE"))
-    {
-      const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "COURBURE", "SOM",  courbure, lata_step);
-    }
+//  if (liste_post_instantanes.contient_("COURBURE"))
+//    {
+//      const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
+//      n++, dumplata_ft_field(lata_name, "INTERFACES", "COURBURE", "SOM",  courbure, lata_step);
+//    }
 
   if (liste_post_instantanes.contient_("CONCENTRATION_INTERFACE"))
     {

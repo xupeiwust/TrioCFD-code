@@ -204,8 +204,25 @@ void IJK_Thermals::associer_switch(const Switch_FT_double& ijk_ft_switch)
     itr->associer_switch(ref_ijk_ft_switch_);
 }
 
-bool IJK_Thermals::has_IJK_field(const Nom& nom) const
+void IJK_Thermals::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 {
+  // TODO
+  // TODO
+}
+
+void IJK_Thermals::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
+
+bool IJK_Thermals::has_champ(const Motcle& nom) const
+{
+  // TODO use champs_compris_ member
+
+//  return champs_compris_.has_champ(nom);
   if (nom.contient("TEMPERATURE") || nom.contient("ECART_T") || nom== "INTERFACE_PHIN")
     return true;
   else
@@ -213,8 +230,11 @@ bool IJK_Thermals::has_IJK_field(const Nom& nom) const
 }
 
 
-const IJK_Field_double& IJK_Thermals::get_IJK_field(const Nom& nom) const
+const IJK_Field_double& IJK_Thermals::get_IJK_field(const Motcle& nom)
 {
+  // TODO use champs_compris_ member
+//  return champs_compris_.get_IJK_field();
+
   for (int i = 0; i < (int) liste_thermique_.size(); i++)
     {
       if (nom== Nom("TEMPERATURE_")+Nom(i))
@@ -233,10 +253,19 @@ const IJK_Field_double& IJK_Thermals::get_IJK_field(const Nom& nom) const
         return ((liste_thermique_.operator[](i))->get_temperature_adim_theta());
     }
 
-
-  Cerr << "Erreur dans IJK_Thermals::get_IJK_field : " << finl;
-  Cerr << "Le champ demande " << nom << " n'est pas connu par  IJK_Thermals::get_IJK_field." << finl;
+  Cerr << "ERROR in IJK_Thermals::get_IJK_field : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermals::get_IJK_field()." << finl;
   throw;
+}
+
+const IJK_Field_vector3_double& IJK_Thermals::get_IJK_field_vector(const Motcle& nom)
+{
+  // TODO use champs_compris_ member
+
+  Cerr << "ERROR in IJK_Thermals::get_IJK_field_vector : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermals::get_IJK_field_vector()." << finl;
+  throw;
+
 }
 
 void IJK_Thermals::associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,

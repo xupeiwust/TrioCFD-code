@@ -24,14 +24,17 @@
 #include <IJK_Thermals.h>
 #include <Domaine_IJK.h>
 #include <Postprocessing_IJK.h>
-#include <Champs_compris.h>
+#include <Champs_compris_IJK.h>
+#include <Champs_compris_IJK_interface.h>
 
 class Domaine_IJK;
 
-class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen
+class Probleme_FTD_IJK_base : public Probleme_FT_Disc_gen, public Champs_compris_IJK_interface
 {
   Declare_base(Probleme_FTD_IJK_base) ;
 public :
+  using FieldInfo_t = Champs_compris_IJK_interface::FieldInfo_t;
+
   // We take too much advantage of it ...:
   friend class IJK_Thermique_cut_cell;
   friend class Statistiques_dns_ijk_FT;
@@ -92,8 +95,12 @@ public :
 
   const Nom& nom_sauvegarde() const { return nom_sauvegarde_; }
 
-
-  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
+  // Interface Champs_compris_IJK_interface
+  bool has_champ(const Motcle& nom) const override;
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const override { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override;
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
 
   void initialise_ijk_fields();
   void initialise_interfaces();
@@ -109,6 +116,7 @@ public :
   bool get_reprise() const { return reprise_; }
 
   void get_noms_champs_postraitables(Noms& noms,Option opt) const override;
+
   const Postprocessing_IJK& get_post() const { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
   Postprocessing_IJK& get_post() { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
 
@@ -214,10 +222,6 @@ protected:
   Nom lata_name_;
   bool stop_ = false;
 
-  // Name / Localisation (elem, face, ...) / Nature (scalare, vector) / Needs interpolation
-  using FieldInfo_t = std::tuple<Motcle, Entity, Nature_du_champ, bool>;
-  std::vector<FieldInfo_t> champs_postraitables_; // list of fields that may be postprocessed
-
   Nom fichier_post_;  // TODO a virer une fois le clean du post fini
   Nom nom_sauvegarde_, nom_reprise_;
   bool sauvegarder_xyz_ = false; // drapeau 0 ou 1
@@ -235,8 +239,6 @@ protected:
   void solveTimeStep_RK3(DoubleTrav&);
   void build_vdf_domaine();
 
-  Champs_compris_T<IJK_Field_double> champs_compris_;
-
   // Champ IJK_Field notant les cellules parcouru lors d'un traitement,
   // c'est-a-dire pour eviter de recalculer plusieurs fois les memes cases lors du calculs des flux.
   // Le champ est public pour faciliter l'utilisation dans IJK_Thermal_cut_cell
@@ -246,7 +248,7 @@ protected:
   int new_treatment_ = 0;
   int thermal_probes_ghost_cells_ = 2;
 
-  void fill_post_fields();
+  static void Fill_postprocessable_fields();
 };
 
 #endif /* Probleme_FTD_IJK_base_included */

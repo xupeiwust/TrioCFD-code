@@ -37,6 +37,8 @@
 #include <Cut_cell_surface_efficace.h>
 #include <Domaine_dis_base.h>
 #include <Option_IJK.h>
+#include <Champs_compris_IJK_interface.h>
+#include <Champs_compris_IJK.h>
 
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
@@ -49,7 +51,7 @@ class Switch_FT_double;
  *  (le maillage, les algo de remaillage, sauvegarde, reprise, etc)
  *
  */
-class IJK_Interfaces : public Equation_base
+class IJK_Interfaces : public Equation_base, public Champs_compris_IJK_interface
 {
   Declare_instanciable(IJK_Interfaces);
   friend class IJK_Composantes_Connex;
@@ -75,6 +77,17 @@ public :
 
   Probleme_FTD_IJK_base& probleme_ijk();
   const Probleme_FTD_IJK_base& probleme_ijk() const;
+
+  // Interface Champs_compris_IJK_interface
+  bool has_champ(const Motcle& nom) const override  { return champs_compris_.has_champ(nom); }
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const override { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return champs_compris_.has_champ_vectoriel(nom); }
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const override;
+
+  void register_fields();
 
   void dumplata_ft_mesh(const char *filename, const char *meshname, int step) const;
 
@@ -1142,6 +1155,13 @@ protected:
   DoubleTabFT_cut_cell_vector3 coord_deplacement_interface_;
   DoubleTabFT_cut_cell_vector3 vitesse_deplacement_interface_;
   DoubleTabFT_cut_cell_vector3 normale_deplacement_interface_;
+
+  std::map<Motcle, IJK_Field_double> scalar_post_fields_;
+
+private:
+
+  Champs_compris_IJK champs_compris_;
+
 };
 
 #endif /* IJK_Interfaces_included */

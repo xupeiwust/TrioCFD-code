@@ -1020,8 +1020,6 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_double& field_dvdz=cas.get_post().dvdz_ ;
   IJK_Field_double& field_dwdz=cas.get_post().dwdz_ ;
   const Motcles& liste_post_instantanes = ref_ijk_ft_->get_post().get_liste_post_instantanes();
-  IJK_Field_vector3_double& rot=cas.get_post().rot_ ;
-  IJK_Field_double& critere_Q=cas.get_post().critere_Q_;
 
   double coef_immobilisation_=ns.coef_immobilisation_;
   IJK_Field_double& indicatrice_np=cas.get_post().indicatrice_non_perturbe_;
@@ -1329,21 +1327,6 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
               L1_d_divU_dz += std::fabs(d_divU_dz);
               L2_d_divU_dz += d_divU_dz*d_divU_dz;
 #endif
-              // Si CURL ou CRITERE_Q sont demandes, on les remplis.
-              if (liste_post_instantanes.contient_("CURL"))
-                {
-                  rot[0](i,j,k) = dWdy - dVdz;
-                  rot[1](i,j,k) = dUdz - dWdx;
-                  rot[2](i,j,k) = dVdx - dUdy;
-                }
-
-              if (liste_post_instantanes.contient_("CRITERE_Q"))
-                {
-                  // Calcul du critere Q selon (Jeong & Hussain 1995)
-                  critere_Q(i,j,k) = -0.5 * (dUdx*dUdx + 2.*dUdy*dVdx + 2.*dUdz*dWdx
-                                             + dVdy*dVdy + 2.*dVdz*dWdy
-                                             + dWdz*dWdz );
-                }
 
               // Derivee seconde de la pression :
               double ddPdxdx = 0.;
@@ -1363,7 +1346,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
                                     ddPdxdz,ddPdydz,ddPdzdz,
                                     on_the_first_cell, on_the_last_cell,
                                     1 /* bc_type for gradP at the wall :
-				       	   	   	   	   assumed equal to faces values */);
+                                    assumed equal to faces values */);
 
               // Pour verifier un peu les stats, on peut stocker le double grad :
               if (check_stats_)

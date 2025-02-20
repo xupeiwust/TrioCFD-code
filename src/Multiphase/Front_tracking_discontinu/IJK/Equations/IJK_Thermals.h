@@ -12,16 +12,12 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-/////////////////////////////////////////////////////////////////////////////
-//
-// File      : IJK_Thermals.h
-// Directory : $TRIOCFD_ROOT/src/Multiphase/Front_tracking_IJK/Temperature
-//
-/////////////////////////////////////////////////////////////////////////////
 
 #ifndef IJK_Thermals_included
 #define IJK_Thermals_included
 
+#include <Champs_compris_IJK_interface.h>
+#include <Champs_compris_IJK.h>
 #include <IJK_Thermal_base.h>
 #include <TRUST_List.h>
 #include <System.h>
@@ -30,12 +26,14 @@
 class Probleme_FTD_IJK_base;
 class Switch_FT_double;
 
-class IJK_Thermals : public Equation_base
+class IJK_Thermals : public Equation_base, public Champs_compris_IJK_interface
 {
 
   Declare_instanciable( IJK_Thermals ) ;
 
 public :
+  using FieldInfo_t = Champs_compris_IJK_interface::FieldInfo_t;
+
   /*
    * Surcharge de l'eq base
    */
@@ -62,8 +60,17 @@ public :
   const Nom& get_fichier_reprise();
   void associer_post(const Postprocessing_IJK& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
-  bool has_IJK_field(const Nom& nom) const;
-  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
+
+  // Interface Champs_compris_IJK_interface:
+  bool has_champ(const Motcle& nom) const override;
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const override { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return false; }
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const override;
+
+
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell_,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face_);
   void retrieve_ghost_fluid_params();
@@ -148,6 +155,8 @@ protected :
   OBS_PTR(Switch_FT_double) ref_ijk_ft_switch_;
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   OBS_PTR(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
+
+  Champs_compris_IJK champs_compris_;
 
   IJK_Ghost_Fluid_Fields ghost_fluid_fields_;
 

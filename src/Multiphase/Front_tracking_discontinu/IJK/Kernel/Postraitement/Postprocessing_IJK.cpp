@@ -27,6 +27,33 @@
 
 Implemente_instanciable_sans_constructeur(Postprocessing_IJK, "Postprocessing_IJK", Postraitement_ft_lata);
 
+// list of fields that may be postprocessed
+std::vector<Postprocessing_IJK::FieldInfo_t> Postprocessing_IJK::champs_postraitables_ = {};
+
+
+namespace
+{
+// Could not find it elsewhere but surely must already exist?
+inline Entity str_to_entity(const Motcle& loc)
+{
+  if (loc == "ELEM") return Entity::ELEMENT;
+  if (loc == "SOM") return Entity::NODE;
+  if (loc == "FACES") return Entity::FACE;
+
+  Cerr << "Invalid localisation for field postprocessing : '" << loc << "' !!" << finl;
+  Process::exit();
+  return Entity::ELEMENT; // for compilers
+}
+
+inline Nom entity_to_str(const Entity& e)
+{
+  if (e == Entity::ELEMENT) return "ELEM";
+  if (e == Entity::NODE) return "SOM";
+  if (e == Entity::FACE) return "FACES";
+  return "??";
+}
+}
+
 Postprocessing_IJK::Postprocessing_IJK()
 {
   groups_statistiques_FT_.dimensionner(0);
@@ -43,10 +70,7 @@ void Postprocessing_IJK::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
 {
   ref_ijk_ft_ = ijk_ft;
   statistiques_FT_.associer_probleme(ijk_ft);
-
-//  if (ref_ijk_ft_->has_interface())
   interfaces_ = ref_ijk_ft_->get_interface();
-
   pressure_ = ref_ijk_ft_->eq_ns().pressure_;
   velocity_ = ref_ijk_ft_->eq_ns().velocity_;
   source_spectrale_ = ref_ijk_ft_->eq_ns().forcage_.get_force_ph2();
@@ -146,16 +170,100 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
 }
 
-// Could not find it elsewhere but surely must already exist?
-Entity str_to_entity(const Motcle& loc)
+void Postprocessing_IJK::lire_entete_bloc_interface(Entree& is)
 {
-  if (loc == "ELEM") return Entity::ELEMENT;
-  if (loc == "SOM") return Entity::NODE;
-  if (loc == "FACES") return Entity::FACE;
+  Motcle motlu;
+  is >> motlu;
 
-  Cerr << "Invalid localisation for field postprocessing : '" << loc << "' !!" << finl;
-  Process::exit();
-  return Entity::ELEMENT; // for compilers
+  if (Process::je_suis_maitre())
+    Cerr << "Post-processing for the interface of IJK_interfaces object named: '" << motlu << "'" << finl;
+
+  // Check valid interface equation name:
+  Motcle interf_nam;
+  for (int i=0; i < mon_probleme->nombre_d_equations(); i++)
+    {
+      const Equation_base& eb = mon_probleme->equation(i);
+      if (motlu == eb.le_nom() && eb.que_suis_je() == "IJK_Interfaces")
+        interf_nam = eb.le_nom();
+    }
+
+  if (motlu != interf_nam)
+    {
+      Cerr << "ERROR: the requested interface equation '" << motlu << "' is not available for post-processing!!!" << finl;
+      Process::exit();
+    }
+
+  is >> motlu;
+  if (motlu != "{")
+    {
+      Cerr << "ERROR: Postprocessing_IJK::lire_entete_bloc_interface()\n";
+      Cerr << " { was expected after the keyword interfaces\n";
+      Cerr << " We found '" << motlu << "'" << finl;
+      Process::exit();
+    }
+}
+
+void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle& loc)
+{
+  Entity e = str_to_entity(loc);
+  noms_champs_a_post_.add(fld_nam);
+  // Lookup the field in champs_postraitables_
+  int idx = 0;
+  for (const auto& f : champs_postraitables_)
+    {
+      Motcle nom2 = get<0>(f);
+      Entity loc2 = get<1>(f);
+      if(nom2 == fld_nam && e == loc2)
+        {
+          // If already there, error:
+          if (std::find(field_post_idx_.begin(), field_post_idx_.end(), idx) != field_post_idx_.end())
+            {
+              Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< loc <<"' duplicated in list of fields to be postprocessed!!" << finl;
+              Process::exit();
+            }
+          field_post_idx_.push_back(idx);
+          // Prepare entries in storage map (some of them might not be used for example when postprocessing
+          // an unknown directly):
+          scalar_post_fields_[fld_nam] = IJK_Field_double();
+          vect_post_fields_[fld_nam] = IJK_Field_vector3_double();
+          break;
+        }
+      idx++;
+    }
+  if (idx == (int)champs_postraitables_.size())
+    {
+      Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< loc <<"' is not available for postprocessing!!" << finl;
+      Process::exit();
+    }
+}
+
+/** Override. Called from base class.
+ */
+void Postprocessing_IJK::register_interface_field(const Motcle& nom_champ, const Motcle& loc_lu)
+{
+  Entity e = str_to_entity(loc_lu);
+
+  // Check the field is indeed on the interface:
+  std::vector<FieldInfo_t> flds;
+  IJK_Interfaces::Fill_postprocessable_fields(flds);
+  bool ok=false;
+  for (const auto& f : flds)
+    {
+      Motcle nom2 = get<0>(f);
+      Entity loc2 = get<1>(f);
+      if(nom2 == nom_champ && e == loc2)
+        {
+          ok = true;
+          break;
+        }
+    }
+  if(!ok)
+    {
+      Cerr << "ERROR: on the interface, field '" << nom_champ << "' at localisation '"<< loc_lu <<"' is not available for postprocessing!!" << finl;
+      Process::exit();
+    }
+  // Everything ok, we register the field for post:
+  register_one_field(nom_champ, loc_lu);
 }
 
 /** Override to have a simpler logic than base class. We really want to retrieve names + location.
@@ -165,26 +273,12 @@ int Postprocessing_IJK::lire_champs_a_postraiter(Entree& is, bool expect_acco)
   Motcle accolade_ouverte("{"), accolade_fermee("}"), motlu;
 
   is >> motlu;
-  // TODO ?
-//   Noms liste_noms;
-//   mon_probleme->get_noms_champs_postraitables(liste_noms);
+
   while (motlu != accolade_fermee)
     {
-      if (noms_champs_a_post_.contient(motlu))
-        {
-          Cerr << "Postprocessing_IJK::lire_champs_a_postraiter: duplicate field " << motlu << finl;
-          Process::exit();
-        }
-      else
-        {
-          Motcle loc;
-          is >> loc;
-          Entity e = str_to_entity(loc);
-          // Building field name
-          Nom fld_nam = motlu + Nom("_") + loc;
-          noms_champs_a_post_.add(fld_nam);
-          post_loc_.push_back(e);
-        }
+      Motcle loc;
+      is >> loc;
+      register_one_field(motlu, loc);
       is >> motlu;
     }
 
@@ -192,7 +286,6 @@ int Postprocessing_IJK::lire_champs_a_postraiter(Entree& is, bool expect_acco)
 }
 
 /** Initialise lata file and various other stuff
- *
  */
 void Postprocessing_IJK::init()
 {
@@ -237,16 +330,16 @@ void Postprocessing_IJK::prepare_lata_and_stats()
       // pour faire la vraie indicatrice + les groupes
       update_stat_ft(0.);
     }
-  else if (!(liste_post_instantanes_.contient_("CURL")) && !(liste_post_instantanes_.contient_("CRITERE_Q")) && (liste_post_instantanes_.contient_("LAMBDA2")))
-    {
-      // On ne calcul pas encore les stats, mais on veut post-traiter Lambda2 seulement...
-      get_update_lambda2();
-    }
-  else if ((liste_post_instantanes_.contient_("CURL")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("LAMBDA2")))
-    {
-      // On ne calcul pas encore les stats, mais on veut deja post-traiter le rotationnel ou Lambda2 ou critere_Q...
-      get_update_lambda2_and_rot_and_curl();
-    }
+//  else if (!(liste_post_instantanes_.contient_("CURL")) && !(liste_post_instantanes_.contient_("CRITERE_Q")) && (liste_post_instantanes_.contient_("LAMBDA2")))
+//    {
+//      // On ne calcul pas encore les stats, mais on veut post-traiter Lambda2 seulement...
+//      get_update_lambda2();
+//    }
+//  else if ((liste_post_instantanes_.contient_("CURL")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("LAMBDA2")))
+//    {
+//      // On ne calcul pas encore les stats, mais on veut deja post-traiter le rotationnel ou Lambda2 ou critere_Q...
+//      get_update_lambda2_and_rot_and_curl();
+//    }
 }
 
 void Postprocessing_IJK::postraiter(int forcer)
@@ -254,15 +347,15 @@ void Postprocessing_IJK::postraiter(int forcer)
   // Take care of fields and probes - new mode
   Postraitement_ft_lata::postraiter(forcer);
 
-  // Take care of fields - old mode:
-  {
-    Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
-    Cout << "BF posttraiter_champs_instantanes " << sch.get_current_time() << " " << sch.get_tstep() << finl;
-    posttraiter_champs_instantanes(nom_fich_, sch.get_current_time(), sch.get_tstep());
-    if (ref_ijk_ft_->has_thermals())
-      ref_ijk_ft_->get_ijk_thermals().thermal_subresolution_outputs(); // for thermal counters
-    Cout << "AF posttraiter_champs_instantanes" << finl;
-  }
+//  // Take care of fields - OLD MODE:
+//  {
+//    Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
+//    Cout << "BF posttraiter_champs_instantanes " << sch.get_current_time() << " " << sch.get_tstep() << finl;
+//    posttraiter_champs_instantanes(nom_fich_, sch.get_current_time(), sch.get_tstep());
+//    if (ref_ijk_ft_->has_thermals())
+//      ref_ijk_ft_->get_ijk_thermals().thermal_subresolution_outputs(); // for thermal counters
+//    Cout << "AF posttraiter_champs_instantanes" << finl;
+//  }
 
   // All the rest
   postraiter_fin(forcer);
@@ -272,16 +365,24 @@ int Postprocessing_IJK::write_extra_mesh()
 {
   if(!ref_ijk_ft_->has_interface())
     return 1;
-
   Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
   int latastep = sch.get_tstep();
-
   const IJK_Interfaces& interf = ref_ijk_ft_->get_interface();
-
   interf.dumplata_ft_mesh(nom_fich_.getChar(), "INTERFACES", latastep);
   return 1;
 }
 
+static inline bool check_loc_compat(Entity loc, Domaine_IJK::Localisation loc_ijk)
+{
+  using LocIJK = Domaine_IJK::Localisation;
+  if (loc == Entity::ELEMENT && loc_ijk == LocIJK::ELEM)
+    return true;
+  if (loc == Entity::NODE && loc_ijk == LocIJK::NODES)
+    return true;
+  if (loc == Entity::FACE && (loc_ijk == LocIJK::FACES_I || loc_ijk == LocIJK::FACES_J || loc_ijk == LocIJK::FACES_K))
+    return true;
+  return false;
+}
 
 /*! Override from 'Postraitement' since the logic is simpler here
  */
@@ -293,37 +394,71 @@ int Postprocessing_IJK::postraiter_champs()
   // Write out a new time in the lata:
   dumplata_newtime(nom_fich_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
 
-  write_extra_mesh(); // This will write INTERFACES if present
+  // Write INTERFACES if there:
+  write_extra_mesh();
 
   // Dump requested fields:
-  int idx = 0;
-  for (auto& nam0 : noms_champs_a_post_)
+  for (auto& idx : field_post_idx_)
     {
-      Motcle nam(nam0);
-      if (nam.debute_par("VITESSE") || nam.debute_par("VELOCITY"))
+      const auto& fld_info = champs_postraitables_[idx];
+      Motcle fld_nam = get<0>(fld_info);
+      Entity loc = get<1>(fld_info);
+      Nature_du_champ nat = get<2>(fld_info);
+      bool need_interp = get<3>(fld_info);
+
+      if (!ref_ijk_ft_->has_champ(fld_nam) && !ref_ijk_ft_->has_champ_vectoriel(fld_nam) )
         {
-          const IJK_Field_double& chx = ref_ijk_ft_->eq_ns().velocity_[0],
-                                  &chy = ref_ijk_ft_->eq_ns().velocity_[1],
-                                   &chz = ref_ijk_ft_->eq_ns().velocity_[2];
-          if (post_loc_[idx] == Entity::FACE)
-            dumplata_vector(nom_fich_, "VELOCITY", chx, chy, chz, latastep);
-//          else if (post_loc_[idx] == Entity::ELEMENT)
-//            {
-//              interpolate_to_center(cell_velocity_,velocity_);
-//              dumplata_cellvector(nom_fich_,"CELL_VELOCITY", cell_velocity_, latastep);
-//            }
-          else
+          Cerr << finl << "ERROR Field '" << fld_nam << "' is not available for postprocessing!" << finl << finl;
+          Cerr << "(Fields currently available are : " << finl;
+          Noms ns;
+          ref_ijk_ft_->get_noms_champs_postraitables(ns, Option::DESCRIPTION);
+          for (const auto& n: ns) Cerr << n << " ";
+          Cerr << ")" << finl;
+          Process::exit();
+        }
+
+      if (nat == Nature_du_champ::scalaire)
+        {
+          bool is_on_interf = interfaces_->has_champ(fld_nam);
+          const IJK_Field_double& fld = ref_ijk_ft_->get_IJK_field(fld_nam);
+
+          if (!check_loc_compat(loc, fld.get_localisation()) && !is_on_interf)  // for now, loc validity is not check for interf fields ...
             {
-              Cerr << "Field '" << nam << "' - invalid localisation for post!" << finl;
+              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(loc) << "'!" << finl;
               Process::exit();
             }
+          if (!is_on_interf)
+            dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
+          else
+            {
+              const ArrOfDouble& arr = fld.data();
+              dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(loc), arr, latastep);
+            }
         }
-      else
+      else if (nat == Nature_du_champ::vectoriel)
         {
-          // TODO
-          throw;
+          const IJK_Field_vector3_double& fld = ref_ijk_ft_->get_IJK_field_vector(fld_nam);
+          assert(fld.nature_du_champ() == Nature_du_champ::vectoriel);
+          if (loc == Entity::NODE)
+            {
+              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation 'SOM' !" << finl;
+              Process::exit();
+            }
+          if (need_interp)
+            {
+              // First time we interpolate - needs to allocate storage:
+              if (post_projected_field_.get_ptr(0) == nullptr)
+                allocate_cell_vector(post_projected_field_, domaine_ijk_, 0);
+              interpolate_to_center(post_projected_field_, fld);
+              dumplata_cellvector(nom_fich_,Nom("CELL_") + fld_nam, post_projected_field_, latastep);
+            }
+          else
+            {
+              dumplata_vector(nom_fich_, fld_nam, fld[0], fld[1], fld[2], latastep);
+            }
         }
-      idx++;
+      else // nat ==  Nature_du_champ::multi_scalaire
+        Process::exit("No multiscalar!!");
     }
   return 1;
 }
@@ -361,7 +496,6 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
           // Mais du coup, on le compte deux fois...
           update_integral_indicatrice(interfaces_->In(), 1. /* Should be the integration timestep */, integrated_timescale_);
         }
-
     }
 
   // Pour relire les champs de vitesse et pression integres :
@@ -431,14 +565,14 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
       indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
     }
 
-  // Pour le post-traitement de lambda2 :
-  if (liste_post_instantanes_.contient_("LAMBDA2"))
-    {
-      lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-    }
+  // Pour le post-traitement de lambda2  -  ALREADY DONE IN alloc_fields() !!!
+//  if (liste_post_instantanes_.contient_("LAMBDA2"))
+//    {
+////      lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+//      dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+//      dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+//      dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+//    }
 
   // Pour le check_stats_ :
   if (check_stats_)
@@ -550,7 +684,7 @@ void Postprocessing_IJK::initialise_stats(Domaine_IJK& splitting, ArrOfDouble& v
     {
       groups_statistiques_FT_.dimensionner(nb_groups);
       for (int igroup = 0; igroup < nb_groups; igroup++)
-          groups_statistiques_FT_[igroup].initialize(ref_ijk_ft_, splitting, check_stats_);
+        groups_statistiques_FT_[igroup].initialize(ref_ijk_ft_, splitting, check_stats_);
     }
 }
 
@@ -576,28 +710,6 @@ void Postprocessing_IJK::init_indicatrice_non_perturbe()
     }
 }
 
-// GAB
-static void interpolate_to_center(IJK_Field_vector3_double& cell_center_field, const IJK_Field_vector3_double& face_field)
-{
-  /* Interpole le champ face_field aux centres des elements et le stocke dans cell_center_field */
-  const int kmax = cell_center_field[0].nk();
-  const int jmax = cell_center_field[0].nj();
-  const int imax = cell_center_field[0].ni();
-  for (int k = 0; k < kmax; k++)
-    for (int j = 0; j < jmax; j++)
-      for (int i = 0; i < imax; i++)
-        {
-          double& ccf0 = cell_center_field[0](i,j,k);
-          double& ccf1 = cell_center_field[1](i,j,k);
-          double& ccf2 = cell_center_field[2](i,j,k);
-          // Passage par references
-          ccf0 = (face_field[0](i,j,k) + face_field[0](i+1, j, k)) * 0.5;
-          ccf1 = (face_field[1](i,j,k) + face_field[1](i, j+1, k)) * 0.5;
-          ccf2 = (face_field[2](i,j,k) + face_field[2](i, j, k+1)) * 0.5;
-        }
-}
-//
-
 void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, double current_time, int time_iteration)
 {
   statistiques().begin_count(postraitement_counter_);
@@ -609,13 +721,13 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
 //  dumplata_newtime(lata_name, current_time);
 
   if ((liste_post_instantanes_.contient_("FORCE_PH")) or (liste_post_instantanes_.contient_("CELL_FORCE_PH")))
-      source_spectrale_ = ns.forcage_.get_force_ph2();
+    source_spectrale_ = ns.forcage_.get_force_ph2();
   if (liste_post_instantanes_.contient_("SOURCE_QDM_INTERF"))
-      source_interface_ft_= ns.terme_source_interfaces_ft_;
+    source_interface_ft_= ns.terme_source_interfaces_ft_;
   if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
-      source_interface_ns_= ns.terme_source_interfaces_ns_;
+    source_interface_ns_= ns.terme_source_interfaces_ns_;
   if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
-      repulsion_interface_ns_= ns.terme_repulsion_interfaces_ns_;
+    repulsion_interface_ns_= ns.terme_repulsion_interfaces_ns_;
   if (liste_post_instantanes_.contient_("TOUS"))
     {
       liste_post_instantanes_.dimensionner_force(0);
@@ -646,15 +758,15 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
   //     repulsion_interface_ns_=ref_ijk_ft_.terme_repulsion_interfaces_ns_;
   //   }
   int n = liste_post_instantanes_.size();
-  if (liste_post_instantanes_.contient_("CURL"))
-    {
-      // C'est un vecteur mais localise aux elems. On ne peut donc pas le dumper par dumplata_vector :
-      n--, dumplata_cellvector(lata_name, "CURL", rot_, latastep);
-    }
-  if (liste_post_instantanes_.contient_("CRITERE_Q"))
-    {
-      n--, dumplata_scalar(lata_name, "CRITERE_Q", critere_Q_, latastep);
-    }
+//  if (liste_post_instantanes_.contient_("CURL"))
+//    {
+//      // C'est un vecteur mais localise aux elems. On ne peut donc pas le dumper par dumplata_vector :
+//      n--, dumplata_cellvector(lata_name, "CURL", rot_, latastep);
+//    }
+//  if (liste_post_instantanes_.contient_("CRITERE_Q"))
+//    {
+//      n--, dumplata_scalar(lata_name, "CRITERE_Q", critere_Q_, latastep);
+//    }
   if (liste_post_instantanes_.contient_("EXTERNAL_FORCE"))
     {
       n--;
@@ -721,11 +833,11 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
 
   if (liste_post_instantanes_.contient_("COORDS"))
     n--, dumplata_vector(lata_name, "COORDS", coords_[0], coords_[1], coords_[2], latastep);
-  if (liste_post_instantanes_.contient_("LAMBDA2"))
-    {
-      get_update_lambda2();
-      n--, dumplata_scalar(lata_name, "LAMBDA2", lambda2_, latastep);
-    }
+//  if (liste_post_instantanes_.contient_("LAMBDA2"))
+//    {
+//      get_update_lambda2();
+//      n--, dumplata_scalar(lata_name, "LAMBDA2", lambda2_, latastep);
+//    }
   if (liste_post_instantanes_.contient_("VELOCITY_ANA"))
     {
       for (int i = 0; i < 3; i++)
@@ -1234,167 +1346,55 @@ void Postprocessing_IJK::ecrire_statistiques_bulles(int reset, const Nom& nom_ca
       const int n = position.dimension(0);
       IOS_OPEN_MODE mode = (reset) ? ios::out : ios::app;
 
-      snprintf(s, 1000, "%s_bulles_pousseex.out", nomcas);
-      // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", poussee(i, 0));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
+      auto write_func_tab = [&](const char * fnam, const DoubleTab& tab, int col)
+      {
+        snprintf(s, 1000, fnam, nomcas);
+        fic.ouvrir(s, mode);
+        snprintf(s, 1000, "%.16e ", current_time);
+        fic << s;
+        for (int i = 0; i < n; i++)
+          {
+            snprintf(s, 1000, "%.16e ", tab(i, col));
+            fic << s;
+          }
+        fic << endl;
+        fic.close();
+      };
 
-      snprintf(s, 1000, "%s_bulles_hx.out", nomcas);
-      // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", hauteurs_bulles(i, 0));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
+      auto write_func_arr = [&](const char * fnam, const ArrOfDouble& tab)
+      {
+        snprintf(s, 1000, fnam, nomcas);
+        fic.ouvrir(s, mode);
+        snprintf(s, 1000, "%.16e ", current_time);
+        fic << s;
+        for (int i = 0; i < n; i++)
+          {
+            snprintf(s, 1000, "%.16e ", tab[i]);
+            fic << s;
+          }
+        fic << endl;
+        fic.close();
+      };
 
-      snprintf(s, 1000, "%s_bulles_hy.out", nomcas);
-      // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", hauteurs_bulles(i, 1));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
+      write_func_tab("%s_bulles_pousseex.out", poussee, 0);
+      write_func_tab("%s_bulles_hx.out", hauteurs_bulles,0);
+      write_func_tab("%s_bulles_hy.out", hauteurs_bulles,1);
+      write_func_tab("%s_bulles_hz.out", hauteurs_bulles,2);
 
-      snprintf(s, 1000, "%s_bulles_hz.out", nomcas);
-      // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", hauteurs_bulles(i, 2));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
+      write_func_tab("%s_bulles_centre_x.out", position, 0);
+      write_func_tab("%s_bulles_centre_y.out", position, 0);
+      write_func_tab("%s_bulles_centre_z.out", position, 0);
 
-      snprintf(s, 1000, "%s_bulles_centre_x.out", nomcas);
-      // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", position(i, 0));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
+      write_func_arr("%s_bulles_surface.out", surface);
+      write_func_arr("%s_bulles_volume.out", volume);
+      write_func_arr("%s_bulles_aspect_ratio.out", aspect_ratio);
+      write_func_arr("%s_bulles_volume.out", volume);
 
-      snprintf(s, 1000, "%s_bulles_centre_y.out", nomcas);
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", position(i, 1));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
-
-      snprintf(s, 1000, "%s_bulles_centre_z.out", nomcas);
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", position(i, 2));
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
-
-      snprintf(s, 1000, "%s_bulles_surface.out", nomcas);
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", surface[i]);
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
-
-      snprintf(s, 1000, "%s_bulles_volume.out", nomcas);
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", volume[i]);
-          fic << s;
-        }
-      fic << endl;
-      fic.close();
-
-      snprintf(s, 1000, "%s_bulles_aspect_ratio.out", nomcas);
-      fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-      for (int i = 0; i < n; i++)
-        {
-          snprintf(s, 1000, "%.16e ", aspect_ratio[i]);
-          fic << s;
-        }
-      fic << finl;
-      fic.close();
       if (!interfaces_->maillage_ft_ijk().Surfactant_facettes().get_disable_surfactant())
         {
-          snprintf(s, 1000, "%s_bulles_surfactant.out", nomcas);
-          fic.ouvrir(s, mode);
-          snprintf(s, 1000, "%.16e ", current_time);
-          fic << s;
-          for (int i = 0; i < surfactant.size_array(); i++)
-            {
-              snprintf(s, 1000, "%.16e ", surfactant[i]);
-              fic << s;
-            }
-          fic << finl;
-          fic.close();
-
-          snprintf(s, 1000, "%s_bulles_surfactant_min.out", nomcas);
-          fic.ouvrir(s, mode);
-          snprintf(s, 1000, "%.16e ", current_time);
-          fic << s;
-          for (int i = 0; i < surfactant_min.size_array(); i++)
-            {
-              snprintf(s, 1000, "%.16e ", surfactant_min[i]);
-              fic << s;
-            }
-          fic << finl;
-          fic.close();
-
-          snprintf(s, 1000, "%s_bulles_surfactant_max.out", nomcas);
-          fic.ouvrir(s, mode);
-          snprintf(s, 1000, "%.16e ", current_time);
-          fic << s;
-          for (int i = 0; i < surfactant_max.size_array(); i++)
-            {
-              snprintf(s, 1000, "%.16e ", surfactant_max[i]);
-              fic << s;
-            }
-          fic << finl;
-          fic.close();
+          write_func_arr("%s_bulles_surfactant.out", surfactant);
+          write_func_arr("%s_bulles_surfactant_min.out", surfactant_min);
+          write_func_arr("%s_bulles_surfactant_max.out", surfactant_max);
         }
       if (interfaces_->follow_colors())
         {
@@ -1411,27 +1411,8 @@ void Postprocessing_IJK::ecrire_statistiques_bulles(int reset, const Nom& nom_ca
           fic << endl;
           fic.close();
         }
-#if 0
-      // Malheureusement, Le tableau individual_forces n'est pas stocke pour l'instant.
-      // On ne peut donc pas le post-traiter avec la frequence lue dans le jdd comme les autres.
-      for (int idir=0; idir<3; idir++)
-        {
-          snprintf(s, 1000, "%s_bulles_external_force_%d.out", nomcas, idir);
-          fic.ouvrir(s, mode);
-          snprintf(s, 1000, "%.16e ", current_time);
-          fic << s;
-          for (int ib = 0; ib < interfaces_.nb_bulles_reelles_; ib++)
-            {
-              snprintf(s, 1000,"%.16e ", individual_forces(ib,idir));
-              fic << s;
-            }
-          fic << endl;
-          fic.close();
-        }
     }
-#endif
-}
-statistiques().end_count(postraitement_counter_);
+  statistiques().end_count(postraitement_counter_);
 
 }
 
@@ -1464,26 +1445,12 @@ void Postprocessing_IJK::ecrire_statistiques_cisaillement(int reset, const Nom& 
       snprintf(s, 1000, "%s_cisaillement.out", nomcas);
       // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
       fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
 
-      snprintf(s, 1000, "%.16e ", v_x_droite);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", v_y_droite);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", v_z_droite);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", v_x_gauche);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", v_y_gauche);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", v_z_gauche);
-      fic << s;
+      for (const auto v: {current_time, v_x_droite, v_y_droite, v_z_droite, v_x_gauche, v_y_gauche, v_z_gauche})
+      {
+        snprintf(s, 1000, "%.16e ", v);
+        fic << s;
+      }
 
       fic << endl;
       fic.close();
@@ -1499,9 +1466,7 @@ void Postprocessing_IJK::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, 
 
   statistiques().begin_count(postraitement_counter_);
 
-  double ax_PID;
-  double ay_PID;
-  double az_PID;
+  double ax_PID, ay_PID, az_PID;
 
   const_cast<Postprocessing_IJK*>(this)->ref_ijk_ft_->eq_ns().calculer_terme_asservissement(ax_PID,ay_PID,az_PID);
 
@@ -1515,35 +1480,28 @@ void Postprocessing_IJK::ecrire_statistiques_rmf(int reset, const Nom& nom_cas, 
       snprintf(s, 1000, "%s_rmf.out", nomcas);
       // Cerr << "Ecriture des donnees par bulles: fichier " << s << endl;
       fic.ouvrir(s, mode);
-      snprintf(s, 1000, "%.16e ", current_time);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", ax_PID);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", ay_PID);
-      fic << s;
-
-      snprintf(s, 1000, "%.16e ", az_PID);
-      fic << s;
-
+      for (const auto v: {current_time, ax_PID, ay_PID, az_PID})
+      {
+        snprintf(s, 1000, "%.16e ", v);
+        fic << s;
+      }
       fic << endl;
       fic.close();
     }
   statistiques().end_count(postraitement_counter_);
-
 }
 
-// Methode qui met a jour l'indicatrice, les termes de repulsion
-// ainsi que les termes interfaciaux : ai, kappa*ai, n(aux cellules)
-//
-// Par definition, mettre igroup a -1 pour inclure toutes les bulles
-// Dans ce cas, la methode met a jour l'ev de l'indicatrice au lieu de celui de interfaces_.groups_indicatrice_n_ns()[igroup]
-//
-// Attention: de nombreux tableaux sont modifies par cette methode en sortie.
-// Ils peuvent etre des tableaux de travail. Si on veut qu'il soient correctent
-// pour la suite, il faut faire l'appel avec les champs globaux (incluant tous
-// les groupes a la fin). Sinon, les champs en ai, normale ou grad_I ne contiendront qu'un groupe.
+/** Methode qui met a jour l'indicatrice, les termes de repulsion
+ * ainsi que les termes interfaciaux : ai, kappa*ai, n(aux cellules)
+ *
+ * Par definition, mettre igroup a -1 pour inclure toutes les bulles
+ * Dans ce cas, la methode met a jour l'ev de l'indicatrice au lieu de celui de interfaces_.groups_indicatrice_n_ns()[igroup]
+ *
+ * Attention: de nombreux tableaux sont modifies par cette methode en sortie.
+ * Ils peuvent etre des tableaux de travail. Si on veut qu'il soient correctent
+ * pour la suite, il faut faire l'appel avec les champs globaux (incluant tous
+ * les groupes a la fin). Sinon, les champs en ai, normale ou grad_I ne contiendront qu'un groupe.
+ */
 void Postprocessing_IJK::update_stat_ft(const double dt)
 {
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
@@ -1610,38 +1568,36 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
 // Et en ne faisant le calcul que si besoin, cad si les champs de gradient ne sont pas a jour...
 void Postprocessing_IJK::get_update_lambda2()
 {
+  IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
   compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2],
                                /* Et les champs en sortie */
-                               dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */, dudy_, dvdx_, dwdy_, lambda2_);
+                               dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */, dudy_, dvdx_, dwdy_, lambda2);
 }
 
-void Postprocessing_IJK::get_update_lambda2_and_rot_and_curl()
+void Postprocessing_IJK::get_update_lambda2_and_rot_and_Q()
 {
+  IJK_Field_vector3_double& rot = vect_post_fields_.at("CURL");
+  IJK_Field_double& critere_Q = scalar_post_fields_.at("CRITERE_Q");
+  IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
   get_update_lambda2();
   // Nombre local de mailles en K
-  const int kmax = lambda2_.nk();
-  const int imax = lambda2_.ni();
-  const int jmax = lambda2_.nj();
+  const int kmax = lambda2.nk();
+  const int imax = lambda2.ni();
+  const int jmax = lambda2.nj();
   for (int k = 0; k < kmax; k++)
     for (int j = 0; j < jmax; j++)
       for (int i = 0; i < imax; i++)
         {
-          rot_[0](i, j, k) = dwdy_(i, j, k) - dvdz_(i, j, k);
-          rot_[1](i, j, k) = dudz_(i, j, k) - dwdx_(i, j, k);
-          rot_[2](i, j, k) = dvdx_(i, j, k) - dudy_(i, j, k);
+          rot[0](i, j, k) = dwdy_(i, j, k) - dvdz_(i, j, k);
+          rot[1](i, j, k) = dudz_(i, j, k) - dwdx_(i, j, k);
+          rot[2](i, j, k) = dvdx_(i, j, k) - dudy_(i, j, k);
           // Calcul du critere Q selon (Jeong & Hussain 1995)
-          critere_Q_(i, j, k) = -0.5
-                                * (dudx_(i, j, k) * dudx_(i, j, k) + 2. * dudy_(i, j, k) * dvdx_(i, j, k) + 2. * dudz_(i, j, k) * dwdx_(i, j, k) + dvdy_(i, j, k) * dvdy_(i, j, k) + 2. * dvdz_(i, j, k) * dwdy_(i, j, k)
-                                   + dwdz_(i, j, k) * dwdz_(i, j, k));
+          critere_Q(i, j, k) = -0.5
+                               * (dudx_(i, j, k) * dudx_(i, j, k) + 2. * dudy_(i, j, k) * dvdx_(i, j, k) + 2. * dudz_(i, j, k) * dwdx_(i, j, k) + dvdy_(i, j, k) * dvdy_(i, j, k) + 2. * dvdz_(i, j, k) * dwdy_(i, j, k)
+                                  + dwdz_(i, j, k) * dwdz_(i, j, k));
         }
 }
 
-const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_vector_field(const Nom& nom) const
-{
-  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_vector_field : " << "Champ demande : " << nom << " Liste des champs possibles : " << finl;
-  Process::exit();
-  throw;
-}
 
 bool is_number(const std::string& s)
 {
@@ -1669,284 +1625,236 @@ int convert_suffix_to_int(const Nom& nom)
   return suffix_int;
 }
 
-const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Nom& nom) const
+/** Was the field of name 'nom' requested for postprocessing?
+ */
+bool Postprocessing_IJK::is_post_required(const Motcle& nom) const
 {
-  if (nom == "PRESSURE_ANA")
-    return pressure_ana_;
-  if (nom == "PRESSURE_LIQ")
-    return extended_pl_;
-  if (nom == "PRESSURE_VAP")
-    return extended_pv_;
+  return bool(scalar_post_fields_.count(nom)) || bool(vect_post_fields_.count(nom));
+}
 
-  if (nom == "CELL_VELOCITY_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_VELOCITY"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_VELOCITY while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_velocity_[0];
-    }
-  if (nom == "CELL_VELOCITY_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_VELOCITY"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_VELOCITY while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_velocity_[1];
-    }
-  if (nom == "CELL_VELOCITY_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_VELOCITY"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_VELOCITY while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_velocity_[2];
-    }
-
-  // GAB
-  if (nom == "CELL_FORCE_PH_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_FORCE_PH"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_FORCE_PH while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_spectrale_[0];
-    }
-  if (nom == "CELL_FORCE_PH_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_FORCE_PH"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_FORCE_PH while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_spectrale_[1];
-    }
-  if (nom == "CELL_FORCE_PH_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_FORCE_PH"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_FORCE_PH while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_spectrale_[2];
-    }
-
-  // GAB
-  if (nom == "CELL_GRAD_P_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_GRAD_P"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_GRAD_P while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_grad_p_[0];
-    }
-  if (nom == "CELL_GRAD_P_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_GRAD_P"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_GRAD_P while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_grad_p_[1];
-    }
-  if (nom == "CELL_GRAD_P_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_GRAD_P"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_GRAD_P while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_grad_p_[2];
-    }
-  //
-
-  // GAB
-  if (nom== "CELL_SOURCE_QDM_INTERF_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_interface_[0];
-    }
-  if (nom== "CELL_SOURCE_QDM_INTERF_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_interface_[1];
-    }
-  if (nom== "CELL_SOURCE_QDM_INTERF_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_source_interface_[2];
-    }
-  if (nom== "CELL_BK_SOURCE_QDM_INTERF_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_BK_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_BK_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_backup_source_interface_[0];
-    }
-  if (nom== "CELL_BK_SOURCE_QDM_INTERF_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_BK_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_BK_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_backup_source_interface_[1];
-    }
-  if (nom== "CELL_BK_SOURCE_QDM_INTERF_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_BK_SOURCE_QDM_INTERF"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_BK_SOURCE_QDM_INTERF while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_backup_source_interface_[2];
-    }
-
-  if (nom== "CELL_SHIELD_REPULSION_X")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SHIELD_REPULSION while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_repulsion_interface_[0];
-    }
-  if (nom== "CELL_SHIELD_REPULSION_Y")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SHIELD_REPULSION while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_repulsion_interface_[1];
-    }
-  if (nom== "CELL_SHIELD_REPULSION_Z")
-    {
-      if (!liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION"))
-        {
-          Cerr << "A probe is attempting to access a field CELL_SHIELD_REPULSION while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-      return cell_repulsion_interface_[2];
-    }
-  //
-
-  if (nom.debute_par("dU"))
-    {
-      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
-      if (nom == "DUDX")
-        return gradU[0];
-      if (nom == "DUDY")
-        return gradU[1];
-      if (nom == "DUDZ")
-        return gradU[2];
-    }
-  if (nom.debute_par("dV"))
-    {
-      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
-      if (nom == "DVDX")
-        return gradV[0];
-      if (nom == "DVDY")
-        return gradV[1];
-      if (nom == "DVDZ")
-        return gradV[2];
-    }
-  if (nom.debute_par("dW"))
-    {
-      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
-      if (nom == "DWDX")
-        return gradW[0];
-      if (nom == "DWDY")
-        return gradW[1];
-      if (nom == "DWDZ")
-        return gradW[2];
-    }
-
-  // GAB, sondes THI
-  if (nom.debute_par("FORCE_PH"))
-    {
-      // A priori inutile : tester si sonde ok avec champ_a_postrer sans FORCE_PH
-      // Reponse GB : le vrai test a faire c'est si le field force_ph existe, ie s'il y a un forcage
-      if (!liste_post_instantanes_.contient_("FORCE_PH"))
-        {
-          Cerr << "A probe is attempting to access a field FORCE_PH while it has not been computed in the post-processed fields" << endl;
-          Process::exit();
-        }
-//      IJK_Field_vector3_double& source_spectrale = ref_ijk_ft_.forcage_.get_force_ph2();
-      if (nom == "FORCE_PH_X")
-        return source_spectrale_.valeur()[0];
-      if (nom == "FORCE_PH_Y")
-        return source_spectrale_.valeur()[1];
-      if (nom == "FORCE_PH_Z")
-        return source_spectrale_.valeur()[2];
-    }
-  //
-  // if (Option_IJK::DISABLE_DIPHASIQUE)
+void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
+{
+  std::vector<FieldInfo_t> c =
   {
-    if (nom == "VELOCITY_ANA_X")
-      return velocity_ana_[0];
-    if (nom == "VELOCITY_ANA_Y")
-      return velocity_ana_[1];
-    if (nom == "VELOCITY_ANA_Z")
-      return velocity_ana_[2];
-    if (nom == "ECART_ANA_X")
-      return ecart_ana_[0];
-    if (nom == "ECART_ANA_Y")
-      return ecart_ana_[1];
-    if (nom == "ECART_ANA_Z")
-      return ecart_ana_[2];
-  }
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
 
-  const int idx_wanted = convert_suffix_to_int(nom);
-  const Nom field_name = nom.getPrefix(Nom("_") + Nom(idx_wanted));
-  Cerr << "In get_IJK_field by name : " << nom << " read as : (" << field_name << " ; " << idx_wanted << ")" << finl;
+    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "NUM_COMPO", Entity::FACE, Nature_du_champ::scalaire, false },
+    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "FORCE_PH", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "LAMBDA2", Entity::ELEMENT, Nature_du_champ::scalaire, false },
 
-// Remplir la liste de tous les possibles :
-  Motcles liste_champs_thermiques_possibles;
-  posttraiter_tous_champs_thermique(liste_champs_thermiques_possibles, 0);
-  int rang = liste_champs_thermiques_possibles.rang(field_name);
-  if (rang == -1)
+    { "VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "ECART_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "PRESSURE_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "ECART_P_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "D_VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_P", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    // A mettre dans un unique tenseur? :
+    { "ANA_GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+
+    { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "OP_CONV", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "GRAD_P", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+
+    // Tenseur aussi?
+    { "GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+
+    // Idem
+    { "GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+
+    { "D_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_NS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+
+    // A faire sauter avec le travail de William:
+    { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "VELOCITY_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "GRAD_INDICATRICE_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "REBUILT_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+
+    { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "BK_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "COURBURE_AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "NORMALE_EULER", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "PRESSURE_LIQ", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSURE_VAP", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "GROUPS", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "SURFACE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "BARYCENTRE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
+
+    { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SHIELD_REPULSION", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "VARIABLE_SOURCE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "INTEGRATED_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "INTEGRATED_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_PERTURBE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INTEGRATED_TIMESCALE", Entity::ELEMENT, Nature_du_champ::scalaire, false }
+  };
+
+  chps.insert(chps.end(), c.begin(), c.end());
+}
+
+void Postprocessing_IJK::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
+
+/** Retrieve requested field for postprocessing, potentially updating it.
+ */
+const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
+{
+  if (!has_champ(nom))
     {
-      Cerr << field_name << " not found as possible for field name. Should be in the list: " << liste_champs_thermiques_possibles << finl;
-      Process::exit();
+      Cerr << "ERROR in Postprocessing_IJK::get_IJK_field : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Postprocessing_IJK::get_IJK_field()." << finl;
+      throw;
     }
 
-  const Motcle& mot = liste_champs_thermiques_possibles[rang];
-  if ((mot == field_name) && (idx_wanted >= 0))
+  if (nom == "LAMBDA2" || nom == "CRITERE_Q" || nom == "CURL")
+    get_update_lambda2_and_rot_and_Q();
+
+  return champs_compris_.get_champ(nom);
+
+  //  if (nom.debute_par("dU"))
+  //    {
+  //      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
+  //      if (nom == "DUDX")
+  //        return gradU[0];
+  //      if (nom == "DUDY")
+  //        return gradU[1];
+  //      if (nom == "DUDZ")
+  //        return gradU[2];
+  //    }
+  //  if (nom.debute_par("dV"))
+  //    {
+  //      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
+  //      if (nom == "DVDX")
+  //        return gradV[0];
+  //      if (nom == "DVDY")
+  //        return gradV[1];
+  //      if (nom == "DVDZ")
+  //        return gradV[2];
+  //    }
+  //  if (nom.debute_par("dW"))
+  //    {
+  //      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
+  //      if (nom == "DWDX")
+  //        return gradW[0];
+  //      if (nom == "DWDY")
+  //        return gradW[1];
+  //      if (nom == "DWDZ")
+  //        return gradW[2];
+  //    }
+  //
+  //  // GAB, sondes THI
+  //  if (nom.debute_par("FORCE_PH"))
+  //    {
+  //      // A priori inutile : tester si sonde ok avec champ_a_postrer sans FORCE_PH
+  //      // Reponse GB : le vrai test a faire c'est si le field force_ph existe, ie s'il y a un forcage
+  //      if (!liste_post_instantanes_.contient_("FORCE_PH"))
+  //        {
+  //          Cerr << "A probe is attempting to access a field FORCE_PH while it has not been computed in the post-processed fields" << endl;
+  //          Process::exit();
+  //        }
+  ////      IJK_Field_vector3_double& source_spectrale = ref_ijk_ft_.forcage_.get_force_ph2();
+  //      if (nom == "FORCE_PH_X")
+  //        return source_spectrale_.valeur()[0];
+  //      if (nom == "FORCE_PH_Y")
+  //        return source_spectrale_.valeur()[1];
+  //      if (nom == "FORCE_PH_Z")
+  //        return source_spectrale_.valeur()[2];
+  //    }
+  //  //
+  //  // if (Option_IJK::DISABLE_DIPHASIQUE)
+  //  {
+  //    if (nom == "VELOCITY_ANA_X")
+  //      return velocity_ana_[0];
+  //    if (nom == "VELOCITY_ANA_Y")
+  //      return velocity_ana_[1];
+  //    if (nom == "VELOCITY_ANA_Z")
+  //      return velocity_ana_[2];
+  //    if (nom == "ECART_ANA_X")
+  //      return ecart_ana_[0];
+  //    if (nom == "ECART_ANA_Y")
+  //      return ecart_ana_[1];
+  //    if (nom == "ECART_ANA_Z")
+  //      return ecart_ana_[2];
+  //  }
+  //
+  //  const int idx_wanted = convert_suffix_to_int(nom);
+  //  const Nom field_name = nom.getPrefix(Nom("_") + Nom(idx_wanted));
+  //  Cerr << "In get_IJK_field by name : " << nom << " read as : (" << field_name << " ; " << idx_wanted << ")" << finl;
+  //
+  //// Remplir la liste de tous les possibles :
+  //  Motcles liste_champs_thermiques_possibles;
+  //  posttraiter_tous_champs_thermique(liste_champs_thermiques_possibles, 0);
+  //  int rang = liste_champs_thermiques_possibles.rang(field_name);
+  //  if (rang == -1)
+  //    {
+  //      Cerr << field_name << " not found as possible for field name. Should be in the list: " << liste_champs_thermiques_possibles << finl;
+  //      Process::exit();
+  //    }
+  //
+  //  const Motcle& mot = liste_champs_thermiques_possibles[rang];
+  //  if ((mot == field_name) && (idx_wanted >= 0))
+  //    {
+  //      Cerr << "found as planned " << endl;
+  //    }
+  //  else
+  //    {
+  //      Cerr << "Some issue with the name provided for the sonde. Unrecognised." << finl;
+  //      Process::exit();
+  //    }
+  //
+  //  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_field : " << endl;
+  //  Cerr << "Champ demande : " << nom << endl;
+  //  Cerr << "Liste des champs possibles pour la thermique : " << liste_champs_thermiques_possibles << finl;
+  //  Process::exit();
+  //  throw;
+
+
+}
+
+const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_field_vector(const Motcle& nom)
+{
+  if (!has_champ_vectoriel(nom))
     {
-      Cerr << "found as planned " << endl;
-    }
-  else
-    {
-      Cerr << "Some issue with the name provided for the sonde. Unrecognised." << finl;
-      Process::exit();
+      Cerr << "ERROR in Postprocessing_IJK::get_IJK_field_vector : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Postprocessing_IJK::get_IJK_field_vector()." << finl;
+      throw;
     }
 
-  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_field : " << endl;
-  Cerr << "Champ demande : " << nom << endl;
-  Cerr << "Liste des champs possibles pour la thermique : " << liste_champs_thermiques_possibles << finl;
-  Process::exit();
-  throw;
-
+  return champs_compris_.get_champ_vectoriel(nom);
 }
 
 const int& Postprocessing_IJK::get_IJK_flag(const Nom& nom) const
@@ -1969,12 +1877,12 @@ void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
 
   if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
     dumplata_scalar(lata_name, "INTEGRATED_TIMESCALE", integrated_timescale_, 0);
-  // Not necessary, but convenient for picturing...
-  if (liste_post_instantanes_.contient_("LAMBDA2"))
-    {
-      get_update_lambda2();
-      dumplata_scalar(lata_name, "LAMBDA2", lambda2_, 0);
-    }
+//  // Not necessary, but convenient for picturing...
+//  if (liste_post_instantanes_.contient_("LAMBDA2"))
+//    {
+//      get_update_lambda2();
+//      dumplata_scalar(lata_name, "LAMBDA2", lambda2_, 0);
+//    }
 }
 
 void Postprocessing_IJK::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
@@ -2023,7 +1931,7 @@ void Postprocessing_IJK::fill_op_conv()
       op_conv_[i].data() = d_velocity_.valeur()[i].data();
 
   if (liste_post_instantanes_.contient_("CELL_OP_CONV"))
-      interpolate_to_center(cell_op_conv_,d_velocity_);
+    interpolate_to_center(cell_op_conv_,d_velocity_);
 }
 
 void Postprocessing_IJK::fill_surface_force(IJK_Field_vector3_double& the_field_you_know)
@@ -2123,7 +2031,7 @@ void Postprocessing_IJK::alloc_fields()
     }
 
   // Allocation des champs derivee de vitesse :
-  if ((t_debut_statistiques_ < 1.e10) || (liste_post_instantanes_.contient_("LAMBDA2")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("CURL")))
+  if (t_debut_statistiques_ < 1.e10 || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
     {
       dudx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
@@ -2134,13 +2042,13 @@ void Postprocessing_IJK::alloc_fields()
       dvdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
-      if (liste_post_instantanes_.contient_("LAMBDA2"))
-        lambda2_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      if ((liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("CURL")))
+      if (is_post_required("LAMBDA2"))
+        scalar_post_fields_.at("LAMBDA2").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "LAMBDA2");
+      if (is_post_required("CRITERE_Q") || is_post_required("CURL"))
         {
-          critere_Q_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+          scalar_post_fields_.at("CRITERE_Q").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "CRITERE_Q");
           // Le rotationnel, aux elems aussi :
-          allocate_cell_vector(rot_, domaine_ijk_, 0);
+          allocate_cell_vector(vect_post_fields_.at("CURL"), domaine_ijk_, 0, "CURL");
         }
     }
 
@@ -2184,8 +2092,8 @@ void Postprocessing_IJK::alloc_fields()
     }
   if (liste_post_instantanes_.contient_("NUM_COMPO"))
     num_compo_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
-    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
+//  if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
+//    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
     allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_GRAD_P"))

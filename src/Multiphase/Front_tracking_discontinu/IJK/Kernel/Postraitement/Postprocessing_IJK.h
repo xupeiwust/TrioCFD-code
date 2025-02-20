@@ -25,6 +25,8 @@
 #include <IJK_Interfaces.h>
 #include <Multigrille_Adrien.h>
 #include <Postraitement_ft_lata.h>
+#include <Champs_compris_IJK_interface.h>
+#include <Champs_compris_IJK.h>
 
 class Probleme_FTD_IJK_base;
 class Navier_Stokes_FTD_IJK;
@@ -35,16 +37,22 @@ class IJK_Thermals;
 /**
  * Post-processing stuff of Probleme_FTD_IJK_base.
  */
-class Postprocessing_IJK: public Postraitement_ft_lata
+class Postprocessing_IJK: public Postraitement_ft_lata, public Champs_compris_IJK_interface
 {
   Declare_instanciable(Postprocessing_IJK);
 
   friend class Statistiques_dns_ijk_FT;
 
 public:
+  // Name / Localisation (elem, face, ...) / Nature (scalare, vector) / Needs interpolation
+  using FieldInfo_t = Champs_compris_IJK_interface::FieldInfo_t;
+
+  static std::vector<FieldInfo_t>& Get_champs_postraitables() { return champs_postraitables_; }
 
   void set_param(Param& param) override;
+  void lire_entete_bloc_interface(Entree& is) override;
   int lire_champs_a_postraiter(Entree& is, bool expect_acco) override;
+  void register_interface_field(const Motcle& nom_champ, const Motcle& loc) override;
 
   void init() override;
   void completer() override { /* Does nothing */  }
@@ -70,7 +78,7 @@ public:
   void ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const;
   void update_stat_ft(const double dt);
   void get_update_lambda2();
-  void get_update_lambda2_and_rot_and_curl();
+  void get_update_lambda2_and_rot_and_Q();
   void activate_cut_cell() { cut_cell_activated_ = 1; };
 
   IJK_Field_double& rebuilt_indic() { return rebuilt_indic_;  }
@@ -85,10 +93,19 @@ public:
   double t_debut_statistiques() const { return t_debut_statistiques_; }
 
   inline int sondes_demande() { return sondes_demande_; }
-  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
-  const int& get_IJK_flag(const Nom& nom) const;
 
-  const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
+  bool is_post_required(const Motcle& nom) const;
+
+  // Interface Champs_compris_IJK_interface
+  bool has_champ(const Motcle& nom) const override { return champs_compris_.has_champ(nom);  }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return champs_compris_.has_champ_vectoriel(nom); }
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
+
+  const int& get_IJK_flag(const Nom& nom) const;
 
   inline IJK_Field_vector3_double& get_grad_I_ns() { return grad_I_ns_; }
 
@@ -117,7 +134,14 @@ public:
   void compute_extended_pressures();
 
 protected:
-  std::vector<Entity> post_loc_;   // same indexing as noms_champs_a_post_ in Postraitement - stores localisation of fields to post
+  static std::vector<FieldInfo_t> champs_postraitables_;  ///< list of fields that can be potentially postprocessed
+  std::vector<int> field_post_idx_;    ///< index in 'champs_postraitables_' of each of the requested field for post-processing
+
+  Champs_compris_IJK champs_compris_;  ///< the actual fields registered and managed by the post-processing part (=all the extra fields, not the main unknowns)
+
+  // Storage of all the extra fields created for post processing:
+  std::map<Motcle, IJK_Field_double> scalar_post_fields_;
+  std::map<Motcle, IJK_Field_vector3_double> vect_post_fields_;
 
   void compute_phase_pressures_based_on_poisson(const int phase);
   Statistiques_dns_ijk_FT statistiques_FT_;
@@ -224,8 +248,9 @@ protected:
   IJK_Field_double dudz_;
   IJK_Field_double dvdz_;
   IJK_Field_double dwdz_;
-  IJK_Field_double critere_Q_;
-  IJK_Field_vector3_double rot_;
+//  IJK_Field_double lambda2_;
+//  IJK_Field_double critere_Q_;
+//  IJK_Field_vector3_double rot_;
   IJK_Field_vector3_double grad_I_ns_;
   IJK_Field_vector3_double grad_P_;
   IJK_Field_double num_compo_ft_;
@@ -257,7 +282,7 @@ protected:
   IJK_Field_double source_spectraleY_;
   IJK_Field_double source_spectraleZ_;
   // Pour post-traitement :
-  IJK_Field_double lambda2_, dudy_, dvdx_, dwdy_;
+  IJK_Field_double dudy_, dvdx_, dwdy_;
   IJK_Field_vector3_double cell_velocity_;
   IJK_Field_vector3_double cell_source_spectrale_;
   IJK_Field_vector3_double cell_bk_tsi_ns_;
@@ -296,6 +321,11 @@ protected:
   int cut_cell_activated_ = 0;
 
   void postraiter_fin(bool stop);
+  void register_one_field(const Motcle& fld_nam, const Motcle& loc);
+
+private:
+  IJK_Field_vector3_double post_projected_field_; ///< Temporary storage space used when invoking 'interpolate_to_center'
+
 };
 
 #endif /* Postprocessing_IJK_included */

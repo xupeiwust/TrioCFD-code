@@ -37,7 +37,6 @@ Entree& Postraitement_ft_lata::readOn(Entree& is)
        && (type_pb!="Pb_Thermohydraulique_Especes_QC")
        && (type_pb!="Pb_Thermohydraulique_Especes_Turbulent_QC") )
     {
-
       Cerr << " Reading Postraitement_ft_lata\n";
       Cerr << " postraitement_ft_lata is not accepted for a problem of type "<<type_pb << finl;
       Cerr << " The recognized problems are :" << finl;
@@ -48,14 +47,6 @@ Entree& Postraitement_ft_lata::readOn(Entree& is)
     }
 
   Postraitement::readOn(is);
-  if (!champs_demande_)
-    {
-      Cerr << "*********************************************************************" << finl;
-      Cerr << "Warning: in Postraitement_ft_lata block, you specified interfaces to post-process" << finl;
-      Cerr << "without specifying fields. Interfaces will not be post-processed unless you post-process a field also." << finl;
-      Cerr << "Contact TRUST/TrioCFD support team or look for examples in TrioCFD databases" << finl;
-      Cerr << "*********************************************************************" << finl;
-    }
 
   if (!sub_type(Format_Post_Lata, format_post_.valeur()))
     {
@@ -80,66 +71,69 @@ void Postraitement_ft_lata::set_param(Param& param)
   param.ajouter_non_std("interfaces",(this));
 }
 
+void Postraitement_ft_lata::lire_entete_bloc_interface(Entree& is)
+{
+  Motcle motlu;
+  is >> motlu;
+  if (refequation_interfaces.non_nul())
+    {
+      Cerr<<" Only one transport interface equation name can be specified "<<finl;
+      Cerr<<" for a Postraitement_ft_lata post-process."<<finl;
+      Cerr<<" The "<<Motcle(refequation_interfaces->le_nom())<<" has already been read for the post-process "<<(*this).le_nom()<<finl;
+      Cerr<<" Please, create a new Postraitement_ft_lata post-process"<<finl;
+      Cerr<<" for the "<<motlu<<" transport interface equation."<<finl;
+      Process::exit();
+    }
+
+  if (Process::je_suis_maitre())
+    Cerr << "Post-processing for the interface of transport equation : " << motlu << finl;
+  if (sub_type(Probleme_FT_Disc_gen, mon_probleme.valeur()))
+    {
+      const Probleme_FT_Disc_gen& pb = ref_cast(Probleme_FT_Disc_gen, mon_probleme.valeur());
+      refequation_interfaces = pb.equation_interfaces(motlu);
+    }
+  else
+    for (int i=0; i<mon_probleme->nombre_d_equations(); i++)
+      {
+        const Nom& nom_eq =  mon_probleme->equation(i).le_nom();
+        if (sub_type(Transport_Interfaces_FT_Disc,mon_probleme->equation(i))
+            && (motlu==Motcle(nom_eq)))
+          {
+            refequation_interfaces=ref_cast(Transport_Interfaces_FT_Disc,mon_probleme->equation(i));
+          }
+      }
+
+  if (!refequation_interfaces.non_nul())
+    {
+      Cerr<<" No interface equation name  "<<motlu<<" has been found. "<<finl;
+      Process::exit();
+    }
+  is >> motlu;
+  if (motlu == "no_virtuals")
+    {
+      if (Process::nproc() > 1)
+        no_virtuals_ = true;
+      is >> motlu;
+    }
+  if (motlu != "{")
+    {
+      Cerr << " ERROR: Postraitement_ft_lata::lire_entete_bloc_interface\n";
+      Cerr << " { was expected after the keyword interfaces\n";
+      Cerr << " We found '" << motlu << "'" << finl;
+      Process::exit();
+    }
+}
+
 int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& is)
 {
   int ret_val = Postraitement::lire_motcle_non_standard(mot, is);
   if (ret_val != -1) // all good we've hit standard postprocessing keywords
     return ret_val;
 
-  Motcle motlu;
   if (mot=="interfaces")
     {
-      is >> motlu;
-      if (refequation_interfaces.non_nul())
-        {
-          Cerr<<" Only one transport interface equation name can be specified "<<finl;
-          Cerr<<" for a Postraitement_ft_lata post-process."<<finl;
-          Cerr<<" The "<<Motcle(refequation_interfaces->le_nom())<<" has already been read for the post-process "<<(*this).le_nom()<<finl;
-          Cerr<<" Please, create a new Postraitement_ft_lata post-process"<<finl;
-          Cerr<<" for the "<<motlu<<" transport interface equation."<<finl;
-          Process::exit();
-        }
-
-      if (Process::je_suis_maitre())
-        Cerr << "Post-processing for the interface of transport equation : " << motlu << finl;
-      if (sub_type(Probleme_FT_Disc_gen, mon_probleme.valeur()))
-        {
-          const Probleme_FT_Disc_gen& pb =
-            ref_cast(Probleme_FT_Disc_gen, mon_probleme.valeur());
-          refequation_interfaces = pb.equation_interfaces(motlu);
-        }
-      else
-        for (int i=0; i<mon_probleme->nombre_d_equations(); i++)
-          {
-            const Nom& nom_eq =  mon_probleme->equation(i).le_nom();
-            if (sub_type(Transport_Interfaces_FT_Disc,mon_probleme->equation(i))
-                && (motlu==Motcle(nom_eq)))
-              {
-                refequation_interfaces=ref_cast(Transport_Interfaces_FT_Disc,mon_probleme->equation(i));
-              }
-          }
-
-      if (!refequation_interfaces.non_nul())
-        {
-          Cerr<<" No interface equation name  "<<motlu<<" has been found. "<<finl;
-          Process::exit();
-        }
-      is >> motlu;
-      if (motlu == "no_virtuals")
-        {
-          if (Process::nproc() > 1)
-            no_virtuals_ = true;
-          is >> motlu;
-        }
-      if (motlu != "{")
-        {
-          Cerr << " Postraitement_ft_lata::lire_champ\n";
-          Cerr << " { was expected after the keyword interfaces\n";
-          Cerr << " It has been found " << motlu << finl;
-          Process::exit();
-        }
-
-      lire_champ_interface(is);
+      lire_entete_bloc_interface(is);
+      lire_champs_interface(is);
 
       // This is put here to make sure we have read all keywords anyway:
       if( Motcle(format_).debute_par("LATA")==0)
@@ -155,12 +149,42 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
     return -11;
 }
 
+void Postraitement_ft_lata::register_interface_field(const Motcle& nom_champ, const Motcle& loc_lu)
+{
+  Localisation loc = SOMMETS;
+  if (loc_lu == "som")
+    loc = SOMMETS;
+  else if (loc_lu == "elem")
+    loc = ELEMENTS;
+  else
+    {
+      Cerr << "Error for Postraitement_ft_lata::lire_champ_interface :\n";
+      Cerr << "'" << loc_lu << "' has been read. "<< finl;
+      Cerr << " Keyword 'som' or 'elem' was expected after the field name '" << nom_champ << "'" << finl;
+      Process::exit();
+    }
+
+  const Transport_Interfaces_FT_Disc& eq_interfaces = refequation_interfaces.valeur();
+  if (!eq_interfaces.get_champ_post_FT(nom_champ, loc, (DoubleTab*) 0) && !eq_interfaces.get_champ_post_FT(nom_champ, loc, (IntTab*) 0))
+    {
+      Cerr << "Error for Postraitement_ft_lata::lire_champ_interface :\n";
+      Cerr << " The field '" << nom_champ << "' is not understood for the " << (eq_interfaces.que_suis_je()=="Transport_Marqueur_FT"?"particules":"interfaces") << " or not authorized at localisation '";
+      Nom tmp = ((loc == SOMMETS) ? "sommets" : "elements");
+      Cerr << tmp << "'" << finl;
+      eq_interfaces.get_champ_post_FT(demande_description, loc, (DoubleTab*) 0);
+      eq_interfaces.get_champ_post_FT(demande_description, loc, (IntTab*) 0);
+      Process::exit();
+    }
+  Motcles& liste = loc == SOMMETS ? liste_champs_i_aux_sommets : liste_champs_i_aux_elements;
+  if (!liste.contient_(nom_champ))
+    liste.add(nom_champ);
+}
+
 /*! @brief lecture de la liste de champs aux interfaces a postraiter
  */
-void Postraitement_ft_lata::lire_champ_interface(Entree& is)
+void Postraitement_ft_lata::lire_champs_interface(Entree& is)
 {
   Motcle nom_champ, loc_lu;
-  const Transport_Interfaces_FT_Disc& eq_interfaces = refequation_interfaces.valeur();
 
   while (1)
     {
@@ -168,32 +192,8 @@ void Postraitement_ft_lata::lire_champ_interface(Entree& is)
       if (nom_champ == "}")  break;
 
       is >> loc_lu;
-      Localisation loc = SOMMETS;
-      if (loc_lu == "som")
-        loc = SOMMETS;
-      else if (loc_lu == "elem")
-        loc = ELEMENTS;
-      else
-        {
-          Cerr << "Error for Postraitement_ft_lata::lire_champ_interface :\n";
-          Cerr << loc_lu <<" has been readen. "<< finl;
-          Cerr << " Keywords 'som' or 'elem' were expected after the field name '" << nom_champ << "'" << finl;
-          Process::exit();
-        }
 
-      if (!eq_interfaces.get_champ_post_FT(nom_champ, loc, (DoubleTab*) 0) && !eq_interfaces.get_champ_post_FT(nom_champ, loc, (IntTab*) 0))
-        {
-          Cerr << "Error for Postraitement_ft_lata::lire_champ_interface :\n";
-          Cerr << " The field '" << nom_champ << "' is not understood for the " << (eq_interfaces.que_suis_je()=="Transport_Marqueur_FT"?"particules":"interfaces") << " or not authorized at localisation '";
-          Nom tmp = ((loc == SOMMETS) ? "sommets" : "elements");
-          Cerr << tmp << "'" << finl;
-          eq_interfaces.get_champ_post_FT(demande_description, loc, (DoubleTab*) 0);
-          eq_interfaces.get_champ_post_FT(demande_description, loc, (IntTab*) 0);
-          Process::exit();
-        }
-      Motcles& liste = loc == SOMMETS ? liste_champs_i_aux_sommets : liste_champs_i_aux_elements;
-      if (!liste.contient_(nom_champ))
-        liste.add(nom_champ);
+      register_interface_field(nom_champ, loc_lu);
     }
 }
 
@@ -315,7 +315,7 @@ void Postraitement_ft_lata::postprocess_field_values()
           const Motcle& nom_du_champ = liste[i];
           if (eq_interfaces.get_champ_post_FT(nom_du_champ, loc, &dtab))
             {
-              // ok, le champ est dans ftab
+              // ok, le champ est dans dtab
             }
           else if (eq_interfaces.get_champ_post_FT(nom_du_champ, loc, &itab))
             {

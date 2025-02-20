@@ -92,7 +92,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   param.lire_avec_accolades(is);
 
   /* 4 : Les postraitements */
-  fill_post_fields();
+  Fill_postprocessable_fields();
   is >> motlu;  // Read next word
   // Si le postraitement comprend le mot, on en lit un autre...
   while (les_postraitements_.lire_postraitements(is, motlu, *this))
@@ -256,27 +256,99 @@ void Probleme_FTD_IJK_base::completer()
 
 void Probleme_FTD_IJK_base::get_noms_champs_postraitables(Noms& noms,Option opt) const
 {
-  for (const auto &fld: champs_postraitables_)
-    noms.add(std::get<0>(fld));
+  // TODO : FIXME : loop on all IJK equations later
+  const Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_[0].valeur());
+  Noms nams;
+
+  ns.get_noms_champs_postraitables(nams, opt);
+  for (const auto &n: nams) noms.add(n);
+  nams.reset();
+
+  if(has_interface_)
+    {
+      get_interface().get_noms_champs_postraitables(nams, opt);
+      for (const auto &n: nams) noms.add(n);
+      nams.reset();
+    }
+
+  if (has_thermals_)
+    {
+      get_interface().get_noms_champs_postraitables(nams, opt);
+      for (const auto &n: nams) noms.add(n);
+      nams.reset();
+    }
+
+  get_post().get_noms_champs_postraitables(nams, opt);
+  for (const auto &n: nams) noms.add(n);
+  nams.reset();
 }
 
-const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) const
+bool Probleme_FTD_IJK_base::has_champ(const Motcle& nom) const
 {
-// TODO : FIXME : faut boucler plus tard sur les equations IJK
+  // TODO : FIXME : loop on all IJK equations later
   const Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_[0].valeur());
+  bool has = ns.has_champ(nom);
 
-  if (ns.has_IJK_field(nom))
+  if(has_interface_)
+    has = has || get_interface().has_champ(nom);
+
+  if (has_thermals_)
+    has = has || get_ijk_thermals().has_champ(nom);
+
+  has = has || get_post().has_champ(nom);
+  return has;
+}
+
+bool Probleme_FTD_IJK_base::has_champ_vectoriel(const Motcle& nom) const
+{
+  // TODO : FIXME : loop on all IJK equations later
+  const Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_[0].valeur());
+  bool has = ns.has_champ_vectoriel(nom);
+
+  if(has_interface_)
+    has = has || get_interface().has_champ_vectoriel(nom);
+
+  if (has_thermals_)
+    has = has || get_ijk_thermals().has_champ_vectoriel(nom);
+
+  has = has || get_post().has_champ_vectoriel(nom);
+  return has;
+}
+
+const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Motcle& nom)
+{
+  // TODO : FIXME : loop on all IJK equations later
+  Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_[0].valeur());
+
+  if (ns.has_champ(nom))
     return ns.get_IJK_field(nom);
 
-  if (nom== "INDICATRICE")
-    return get_interface().I_ft();
+  if (has_interface_ && get_interface().has_champ(nom))
+    return get_interface().get_IJK_field(nom);
 
-
-  if (has_thermals_ && get_ijk_thermals().has_IJK_field(nom))
+  if (has_thermals_ && get_ijk_thermals().has_champ(nom))
     return get_ijk_thermals().get_IJK_field(nom);
 
   return get_post().get_IJK_field(nom);
 }
+
+const IJK_Field_vector3_double& Probleme_FTD_IJK_base::get_IJK_field_vector(const Motcle& nom)
+{
+  // TODO : FIXME : faut boucler plus tard sur les equations IJK
+  Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_[0].valeur());
+
+  if (ns.has_champ_vectoriel(nom))
+    return ns.get_IJK_field_vector(nom);
+
+  if (has_interface_ && get_interface().has_champ_vectoriel(nom))
+    return get_interface().get_IJK_field_vector(nom);
+
+  if (has_thermals_ && get_ijk_thermals().has_champ_vectoriel(nom))
+    return get_ijk_thermals().get_IJK_field_vector(nom);
+
+  return get_post().get_IJK_field_vector(nom);
+}
+
 
 void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde, const int& stop)  //  const
 {
@@ -567,6 +639,8 @@ void Probleme_FTD_IJK_base::initialise_interfaces()
 
   get_interface().initialize(domaine_ft_, domaine_ijk_.valeur(), domaine_dis_ft, thermal_probes_ghost_cells_);
 
+  get_interface().register_fields();
+
   // On la met a jour 2 fois, une fois next et une fois old
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     update_twice_indicator_field();
@@ -581,82 +655,22 @@ void Probleme_FTD_IJK_base::discretiser(Discretisation_base& dis)
     Process::exit("Error!! IJK problem must be associated with an IJK discretisation!!");
 }
 
-void Probleme_FTD_IJK_base::fill_post_fields()
+/** Fills in all possible fields that may be post-processed. Done only once even if multiple problems.
+ */
+void Probleme_FTD_IJK_base::Fill_postprocessable_fields()
 {
-  champs_postraitables_ = {
-    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+  static bool alreadyDone = false;
 
-    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SHIELD_REPULSION", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "NUM_COMPO", Entity::FACE, Nature_du_champ::scalaire, false },
-    { "VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "VELOCITY", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "FORCE_PH", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "INTEGRATED_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "INTEGRATED_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "INDICATRICE_PERTURBE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "INTEGRATED_TIMESCALE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "LAMBDA2", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "VARIABLE_SOURCE", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "ECART_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "PRESSURE_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "ECART_P_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "D_VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "OP_CONV", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "GRAD_P", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_P", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "ANA_GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "D_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "INDICATRICE_NS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "VELOCITY_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "BK_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
-    { "GRAD_INDICATRICE_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "REBUILT_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "COURBURE_AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "NORMALE_EULER", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "PRESSURE_LIQ", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "PRESSURE_VAP", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "GROUPS", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "SURFACE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "BARYCENTRE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false }
-  };
+  if (alreadyDone) return;
+
+  auto& chps = Postprocessing_IJK::Get_champs_postraitables();
+
+  Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(chps);
+  IJK_Interfaces::Fill_postprocessable_fields(chps);
+  IJK_Thermals::Fill_postprocessable_fields(chps);
+  Postprocessing_IJK::Fill_postprocessable_fields(chps);
+
+  alreadyDone = true;
 
 }
 
@@ -677,19 +691,7 @@ void Probleme_FTD_IJK_base::initialize()
   init_postraitements();  // from Probleme_base - will invoke Postprocessing_IJK::init()
 
   Cerr << " Allocating " << IJK_Field_double::alloc_counter() << " IJK_FT_double objects." << finl;
-
-  // Fill all valid fields that can be postprocessed:
-  fill_post_fields();
-
-  //
-  // Register velocity and pressure as a champs_compris - TODO : champs_compris_ in each eq?
-  //
-  auto& vel = eq_ns().get_velocity();
-  for (int i=0; i < 3; i++)
-    champs_compris_.ajoute_champ(vel[i]);
-  champs_compris_.ajoute_champ(eq_ns().get_pressure());
 }
-
 
 
 /*

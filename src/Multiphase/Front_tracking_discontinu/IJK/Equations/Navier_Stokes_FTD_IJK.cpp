@@ -250,44 +250,47 @@ const Probleme_FTD_IJK_base& Navier_Stokes_FTD_IJK::probleme_ijk() const
   return ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
 }
 
-bool Navier_Stokes_FTD_IJK::has_IJK_field(const Nom& nom) const
+void Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 {
-  if (nom.contient("VELOCITY_") || nom== "PRESSURE" || nom== "PRESSION")
-    return true;
-  else
-    return false;
+  std::vector<FieldInfo_t> c =
+  {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+
+    { "VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "VELOCITY", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "VITESSE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "VITESSE", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSION", Entity::ELEMENT, Nature_du_champ::scalaire, false }
+  };
+  chps.insert(chps.end(), c.begin(), c.end());
 }
 
-const IJK_Field_double& Navier_Stokes_FTD_IJK::get_IJK_field(const Nom& nom) const
+void Navier_Stokes_FTD_IJK::get_noms_champs_postraitables(Noms& noms,Option opt) const
 {
-  // Dans ce cas, le champ velocity_ft_ n'est pas utilise :
-  if (Option_IJK::DISABLE_DIPHASIQUE)
-    {
-      if (nom== "VELOCITY_X" || nom=="VITESSE_X")
-        return velocity_[0];
-      if (nom== "VELOCITY_Y" || nom=="VITESSE_Y")
-        return velocity_[1];
-      if (nom== "VELOCITY_Z" || nom=="VITESSE_Z")
-        return velocity_[2];
-    }
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
 
-  if (nom== "VELOCITY_X" || nom=="VITESSE_X")
-    return velocity_ft_[0];
-  if (nom== "VELOCITY_Y" || nom=="VITESSE_Y")
-    return velocity_ft_[1];
-  if (nom== "VELOCITY_Z" || nom=="VITESSE_Z")
-    return velocity_ft_[2];
-  if (nom== "D_VELOCITY_X")
-    return d_velocity_[0];
-  if (nom== "D_VELOCITY_Y")
-    return d_velocity_[1];
-  if (nom== "D_VELOCITY_Z")
-    return d_velocity_[2];
-  if (nom== "PRESSURE" || nom== "PRESSION")
-    return pressure_;
+const IJK_Field_vector3_double& Navier_Stokes_FTD_IJK::get_IJK_field_vector(const Motcle& nom)
+{
+  if (has_champ_vectoriel(nom))
+    return champs_compris_.get_champ_vectoriel(nom);
 
-  Cerr << "Erreur dans Navier_Stokes_FTD_IJK::get_IJK_field : " << finl;
-  Cerr << "Le champ demande " << nom << " n'est pas connu par  Navier_Stokes_FTD_IJK::get_IJK_field." << finl;
+  Cerr << "ERROR in Navier_Stokes_FTD_IJK::get_IJK_field_vector : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by Navier_Stokes_FTD_IJK::get_IJK_field_vector()." << finl;
+  throw;
+}
+
+const IJK_Field_double& Navier_Stokes_FTD_IJK::get_IJK_field(const Motcle& nom)
+{
+  if (has_champ(nom))
+    return champs_compris_.get_champ(nom);
+
+  Cerr << "ERROR in Navier_Stokes_FTD_IJK::get_IJK_field : " << finl;
+  Cerr << "Requested field '" << nom << "' is not recognized by Navier_Stokes_FTD_IJK::get_IJK_field()." << finl;
   throw;
 }
 
@@ -563,12 +566,13 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
   if (!Option_IJK::DISABLE_DIPHASIQUE && boundary_conditions_.get_correction_interp_monofluide() == 1)
     {
-    pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
-    pressure_.allocate_shear_BC(1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
+      pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
+      pressure_.allocate_shear_BC(1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
     }
   else
     pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
   pressure_.nommer("PRESSURE");
+  pressure_.add_synonymous("PRESSION");
 
   if (include_pressure_gradient_in_ustar_)
     {
@@ -697,13 +701,15 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     poisson_solver_.initialize(dom_ijk);
 
   // Register champs compris
-  Cerr << "@@@@@@@@@@@@@@@@@@@@@@@ " << velocity_[0].le_nom() << finl;
-  for (int i=0; i<3; i++)
-    {
-      std::string compo_name[] = {"X", "Y", "Z"};
-      velocity_[i].add_synonymous(Nom("vitesse_") + Nom(compo_name[i]));
-      champs_compris_.ajoute_champ(velocity_[i]);
-    }
+  velocity_.nommer("VELOCITY");
+  velocity_.add_synonymous("VITESSE");
+  velocity_ft_.nommer("VELOCITY");
+  velocity_ft_.add_synonymous("VITESSE");
+  if (Option_IJK::DISABLE_DIPHASIQUE)
+    champs_compris_.ajoute_champ_vectoriel(velocity_);
+  else
+    champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
+  champs_compris_.ajoute_champ(pressure_);
 }
 
 void Navier_Stokes_FTD_IJK::projeter()
