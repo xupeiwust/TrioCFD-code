@@ -92,6 +92,7 @@ public :
 
   const Nom& nom_sauvegarde() const { return nom_sauvegarde_; }
 
+
   const IJK_Field_double& get_IJK_field(const Nom& nom) const;
 
   void initialise_ijk_fields();
@@ -107,7 +108,7 @@ public :
   double t_debut_statistiques() const { return get_post().t_debut_statistiques(); }
   bool get_reprise() const { return reprise_; }
 
-  void get_noms_champs_postraitables(Noms& noms,Option opt) const override { }
+  void get_noms_champs_postraitables(Noms& noms,Option opt) const override;
   const Postprocessing_IJK& get_post() const { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
   Postprocessing_IJK& get_post() { return ref_cast(Postprocessing_IJK,  les_postraitements_.front().valeur()); }
 
@@ -203,6 +204,7 @@ public :
       throw;
   }
 
+
 protected:
   IJK_Interfaces interface_to_remove_later_when_clean_; // TODO FIXME
   bool has_interface_ = false, has_ns_ = false, has_thermals_ = false;
@@ -212,7 +214,12 @@ protected:
   Nom lata_name_;
   bool stop_ = false;
 
-  Nom fichier_post_, nom_sauvegarde_, nom_reprise_;
+  // Name / Localisation (elem, face, ...) / Nature (scalare, vector) / Needs interpolation
+  using FieldInfo_t = std::tuple<Motcle, Entity, Nature_du_champ, bool>;
+  std::vector<FieldInfo_t> champs_postraitables_; // list of fields that may be postprocessed
+
+  Nom fichier_post_;  // TODO a virer une fois le clean du post fini
+  Nom nom_sauvegarde_, nom_reprise_;
   bool sauvegarder_xyz_ = false; // drapeau 0 ou 1
   bool reprise_ = false;// flag pour indiquer si on fait une reprise
 
@@ -238,6 +245,8 @@ protected:
   // Compteur du dernier traitement effectue dans treatment_count_
   int new_treatment_ = 0;
   int thermal_probes_ghost_cells_ = 2;
+
+  void fill_post_fields();
 };
 
 #endif /* Probleme_FTD_IJK_base_included */

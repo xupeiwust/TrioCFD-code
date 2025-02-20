@@ -92,6 +92,7 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
   param.lire_avec_accolades(is);
 
   /* 4 : Les postraitements */
+  fill_post_fields();
   is >> motlu;  // Read next word
   // Si le postraitement comprend le mot, on en lit un autre...
   while (les_postraitements_.lire_postraitements(is, motlu, *this))
@@ -251,6 +252,12 @@ void Probleme_FTD_IJK_base::completer()
 
   // Register domains for post processing object
   get_post().associer_domaines(domaine_ijk_.valeur(), domaine_ft_);
+}
+
+void Probleme_FTD_IJK_base::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto &fld: champs_postraitables_)
+    noms.add(std::get<0>(fld));
 }
 
 const IJK_Field_double& Probleme_FTD_IJK_base::get_IJK_field(const Nom& nom) const
@@ -574,6 +581,85 @@ void Probleme_FTD_IJK_base::discretiser(Discretisation_base& dis)
     Process::exit("Error!! IJK problem must be associated with an IJK discretisation!!");
 }
 
+void Probleme_FTD_IJK_base::fill_post_fields()
+{
+  champs_postraitables_ = {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+
+    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SHIELD_REPULSION", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "NUM_COMPO", Entity::FACE, Nature_du_champ::scalaire, false },
+    { "VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "VELOCITY", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "FORCE_PH", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "INTEGRATED_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "INTEGRATED_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_PERTURBE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INTEGRATED_TIMESCALE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "LAMBDA2", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "VARIABLE_SOURCE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "ECART_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "PRESSURE_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "ECART_P_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "D_VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "OP_CONV", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "GRAD_P", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_P", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "ANA_GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "ANA_GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "D_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_NS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "VELOCITY_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "BK_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
+    { "GRAD_INDICATRICE_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "REBUILT_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "COURBURE_AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "NORMALE_EULER", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "PRESSURE_LIQ", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSURE_VAP", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "GROUPS", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    { "SURFACE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "BARYCENTRE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false }
+  };
+
+}
+
 void Probleme_FTD_IJK_base::initialize()
 {
   Cerr << "Probleme_FTD_IJK_base::initialize()" << finl;
@@ -596,7 +682,12 @@ void Probleme_FTD_IJK_base::initialize()
   auto& vel = eq_ns().get_velocity();
   for (int i=0; i < 3; i++)
     champs_compris_.ajoute_champ(vel[i]);
+
+  // Fill
+  fill_post_fields();
 }
+
+
 
 /*
  * TODO: Change this block with OWN_PTR CLASS IJK_Thermal
