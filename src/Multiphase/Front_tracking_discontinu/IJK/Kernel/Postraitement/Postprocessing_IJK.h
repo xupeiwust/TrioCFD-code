@@ -51,6 +51,7 @@ public:
   void postraiter(int forcer) override;
   int postraiter_champs() override;
   void prepare_lata_and_stats(); // merge with init() ?
+  int write_extra_mesh() override;
 
   void resetTime(double t, std::string dirname) override { /* not impl. */ throw; }
 

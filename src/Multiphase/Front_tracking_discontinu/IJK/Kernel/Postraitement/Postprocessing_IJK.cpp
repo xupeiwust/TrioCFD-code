@@ -22,6 +22,7 @@
 #include <IJK_Lata_writer.h>
 #include <Schema_RK3_IJK.h>
 #include <Domaine_IJK.h>
+#include <IJK_Interfaces.h>
 #include <Option_IJK.h>
 
 Implemente_instanciable_sans_constructeur(Postprocessing_IJK, "Postprocessing_IJK", Postraitement_ft_lata);
@@ -267,16 +268,32 @@ void Postprocessing_IJK::postraiter(int forcer)
   postraiter_fin(forcer);
 }
 
+int Postprocessing_IJK::write_extra_mesh()
+{
+  if(!ref_ijk_ft_->has_interface())
+    return 1;
+
+  Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
+  int latastep = sch.get_tstep();
+
+  const IJK_Interfaces& interf = ref_ijk_ft_->get_interface();
+
+  interf.dumplata_ft_mesh(nom_fich_.getChar(), "INTERFACES", latastep);
+  return 1;
+}
+
+
 /*! Override from 'Postraitement' since the logic is simpler here
  */
 int Postprocessing_IJK::postraiter_champs()
 {
-  Probleme_FTD_IJK_base& pb = ref_cast(Probleme_FTD_IJK_base, probleme());
-  Schema_Temps_IJK_base& sch = pb.schema_temps_ijk();
+  Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
   int latastep = sch.get_tstep();
 
   // Write out a new time in the lata:
   dumplata_newtime(nom_fich_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
+
+  write_extra_mesh(); // This will write INTERFACES if present
 
   // Dump requested fields:
   int idx = 0;

@@ -76,6 +76,8 @@ public :
   Probleme_FTD_IJK_base& probleme_ijk();
   const Probleme_FTD_IJK_base& probleme_ijk() const;
 
+  void dumplata_ft_mesh(const char *filename, const char *meshname, int step) const;
+
   void initialize(const Domaine_IJK& splitting_FT,
                   const Domaine_IJK& splitting_NS,
                   const Domaine_dis_base& domaine_dis,

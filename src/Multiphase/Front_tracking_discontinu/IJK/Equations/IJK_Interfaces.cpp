@@ -88,9 +88,9 @@ void IJK_Interfaces::set_param_reprise_pb(Param& param)
  *  CHAMP SOMMETS  filename.step.meshname.SOMMETS geometry=meshname size=... composantes=3
  *  CHAMP ELEMENTS filename.step.meshname.ELEMENTS geometry=meshname size=... composantes=3 format=INT32|64
  */
-void dumplata_ft_mesh(const char *filename, const char *meshname,
-                      const Maillage_FT_IJK& mesh, int step)
+void IJK_Interfaces::dumplata_ft_mesh(const char *filename, const char *meshname, int step) const
 {
+  const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
   Nom prefix = Nom(filename) + Nom(".") + Nom(step) + Nom(".") + Nom(meshname) + Nom(".");
   Nom fdsom = prefix + Nom("SOMMETS");
   Nom fdelem = prefix + Nom("ELEMENTS");
@@ -1156,7 +1156,7 @@ int IJK_Interfaces::posttraiter_champs_instantanes(const Motcles& liste_post_ins
 {
   int n = 0; // nombre de champs postraites
   if (liste_post_instantanes.contient_("INTERFACES"))
-    n++, dumplata_ft_mesh(lata_name, "INTERFACES", maillage_ft_ijk_, lata_step);
+    n++, dumplata_ft_mesh(lata_name, "INTERFACES", lata_step);
   if (liste_post_instantanes.contient_("COMPO_CONNEXE"))
     n++, dumplata_ft_field(lata_name, "INTERFACES", "COMPO_CONNEXE", "ELEM",  maillage_ft_ijk_.compo_connexe_facettes(), lata_step);
   if (liste_post_instantanes.contient_("COLOR_Y"))
@@ -1489,7 +1489,7 @@ void IJK_Interfaces::sauvegarder_interfaces(const char *lata_name, const Nom& in
   if (ncells_deleted_ > 0)
     supprimer_certaines_bulles_reelles();
 
-  dumplata_ft_mesh(lata_name, "INTERFACES", mesh, 0);
+  dumplata_ft_mesh(lata_name, "INTERFACES", 0);
   dumplata_ft_field(lata_name, "INTERFACES", "COMPO_CONNEXE", "ELEM", mesh.compo_connexe_facettes(), 0);
 }
 
