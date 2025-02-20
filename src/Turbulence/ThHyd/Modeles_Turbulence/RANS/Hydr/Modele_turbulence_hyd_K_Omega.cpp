@@ -176,7 +176,7 @@ void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const DoubleTab
           const double enerK = tab_K_Omega(i, 0);
           turbulent_viscosity[i] = is_SST()
                                    ? enerK*CST_A1/std::max(CST_A1*omega,
-                                                           enstrophy_[i]*fieldF2_[i])
+                                                           enstrophy_[i]*tabF2_[i])
                                    : enerK/omega;
         }
     }
@@ -190,10 +190,11 @@ void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const DoubleTab
  */
 void Modele_turbulence_hyd_K_Omega::init_F1_F2_enstrophy()
 {
-  int const n = K_Omega().valeurs().dimension(0);
+  // Need dimension_tot to allow the faces_to_cells interpolation
+  int const n = K_Omega().valeurs().dimension_tot(0);
 
-  blenderF1_.resize(n);
-  fieldF2_.resize(n);
+  tabF1_.resize(n);
+  tabF2_.resize(n);
   enstrophy_.resize(n);
 }
 

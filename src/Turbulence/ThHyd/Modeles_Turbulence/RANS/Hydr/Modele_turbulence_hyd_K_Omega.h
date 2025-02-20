@@ -70,8 +70,8 @@ public:
 protected:
   Transport_K_Omega eqn_transport_K_Omega_;
   void fill_turbulent_viscosity_tab(const DoubleTab& K_Omega, DoubleTab& turbulent_viscosity);
-  DoubleTab blenderF1_; // Blending field for SST model
-  DoubleTab fieldF2_; // for the turbulent viscosity in the SST model
+  DoubleTab tabF1_; // Blending field for SST model
+  DoubleTab tabF2_; // for the turbulent viscosity in the SST model
   DoubleTab enstrophy_; // for the turbulent viscosity in the SST model
   bool is_SST_; // check if model variant is SST
 };
@@ -132,7 +132,7 @@ inline const Transport_K_Omega_base& Modele_turbulence_hyd_K_Omega::eqn_transp_K
  */
 inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1() const
 {
-  return blenderF1_;
+  return tabF1_;
 }
 
 /*! @brief Returns the blending field F1.
@@ -141,7 +141,7 @@ inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1() const
  */
 inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1()
 {
-  return blenderF1_;
+  return tabF1_;
 }
 
 /*! @brief Returns the field F2.
@@ -152,7 +152,7 @@ inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1()
  */
 inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_fieldF2() const
 {
-  return fieldF2_;
+  return tabF2_;
 }
 
 /*! @brief Returns the field F2.
@@ -161,7 +161,7 @@ inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_fieldF2() const
  */
 inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_fieldF2()
 {
-  return fieldF2_;
+  return tabF2_;
 }
 
 /*! @brief Returns the field enstrophy.

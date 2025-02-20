@@ -96,8 +96,9 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue, DoubleTa
   const bool is_SST = turbulence_model->is_SST();
   DoubleTab F1elem;
   F1elem.resize(domaine_VEF.nb_elem());
+  const DoubleTab& F1face = turbulence_model->get_blenderF1();
   if (is_SST)
-    Discretisation_tools::faces_to_cells(domaine_VEF, turbulence_model->get_blenderF1(), F1elem);
+    Discretisation_tools::faces_to_cells(domaine_VEF, F1face, F1elem);
 
   int is_mu_unif = sub_type(Champ_Uniforme, diffusivite_.valeur());
   const DoubleTab& mu = diffusivite_->valeurs();
