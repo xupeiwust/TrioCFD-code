@@ -49,10 +49,10 @@ public:
 
   void init_F1_F2_enstrophy();
 
-  inline const DoubleTab& get_blenderF1() const;
-  inline DoubleTab& get_blenderF1();
-  inline const DoubleTab& get_fieldF2() const;
-  inline DoubleTab& get_fieldF2();
+  inline const DoubleTab& get_tabF1() const;
+  inline DoubleTab& get_tabF1();
+  inline const DoubleTab& get_tabF2() const;
+  inline DoubleTab& get_tabF2();
   inline const DoubleTab& get_enstrophy() const;
   inline DoubleTab& get_enstrophy();
 
@@ -124,42 +124,42 @@ inline const Transport_K_Omega_base& Modele_turbulence_hyd_K_Omega::eqn_transp_K
   return eqn_transport_K_Omega_;
 }
 
-/*! @brief Returns the blending field F1.
+/*! @brief Returns the blending table F1 for SST.
  *
  *     (version const)
  *
- * @return (DoubleTab&) blenderF1
+ * @return (DoubleTab&) tabF1_
  */
-inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1() const
+inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_tabF1() const
 {
   return tabF1_;
 }
 
-/*! @brief Returns the blending field F1.
+/*! @brief Returns the blending table F1 for SST.
  *
- * @return (DoubleTab&) blenderF1
+ * @return (DoubleTab&) tabF1_
  */
-inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_blenderF1()
+inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_tabF1()
 {
   return tabF1_;
 }
 
-/*! @brief Returns the field F2.
+/*! @brief Returns the table F2 for SST.
  *
  *     (version const)
  *
- * @return (DoubleTab&) blenderF2
+ * @return (DoubleTab&) tabF2_
  */
-inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_fieldF2() const
+inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_tabF2() const
 {
   return tabF2_;
 }
 
-/*! @brief Returns the field F2.
+/*! @brief Returns the table F2 for SST.
  *
- * @return (DoubleTab&) fieldF2
+ * @return (DoubleTab&) tabF2_
  */
-inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_fieldF2()
+inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_tabF2()
 {
   return tabF2_;
 }
@@ -177,7 +177,7 @@ inline const DoubleTab& Modele_turbulence_hyd_K_Omega::get_enstrophy() const
 
 /*! @brief Returns the field F2.
  *
- * @return (DoubleTab&) fieldF2
+ * @return (DoubleTab&) tabF2
  */
 inline DoubleTab& Modele_turbulence_hyd_K_Omega::get_enstrophy()
 {

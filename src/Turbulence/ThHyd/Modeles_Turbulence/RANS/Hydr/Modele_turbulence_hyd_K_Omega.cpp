@@ -193,7 +193,7 @@ void Modele_turbulence_hyd_K_Omega::init_F1_F2_enstrophy()
   // Need dimension_tot to allow the faces_to_cells interpolation
   int const n = K_Omega().valeurs().dimension_tot(0);
 
-  tabF1_.resize(n);
+  tabF1_.resize(n, 1);
   tabF2_.resize(n);
   enstrophy_.resize(n);
 }
