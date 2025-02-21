@@ -7,8 +7,15 @@
 #include <vector>
 #include <map>
 
+#ifdef __NVCOMPILER
+#pragma diag_suppress 68
+#endif
 #include <MGIS/Behaviour/Behaviour.hxx>
 #include <MGIS/Behaviour/BehaviourDataView.hxx>
+#include <MGIS/Behaviour/Integrate.hxx>
+#ifdef __NVCOMPILER
+#pragma diag_warning 68
+#endif
 
 // this enum defines the stress measure that the behavior is expected to return when calling 'integrate'
 //   cauchy     -> cauchy stress tensor

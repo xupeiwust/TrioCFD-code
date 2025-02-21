@@ -3,8 +3,6 @@
 #include <Domaine_ALE.h>
 #include <stdexcept>
 
-#include <MGIS/Behaviour/Integrate.hxx>
-
 Implemente_instanciable_sans_constructeur_ni_destructeur(Structural_dynamic_mesh_model,"Structural_dynamic_mesh_model",Interprete_geometrique_base);
 
 // Syntaxe:
