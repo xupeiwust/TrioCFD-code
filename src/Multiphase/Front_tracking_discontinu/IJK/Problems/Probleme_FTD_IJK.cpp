@@ -39,10 +39,21 @@ void Probleme_FTD_IJK::initialize()
   Navier_Stokes_FTD_IJK& eq_ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
   const auto& bc = eq_ns.get_boundary_conditions();
 
+  auto & vel = eq_ns.get_velocity();
   if (IJK_Shear_Periodic_helpler::defilement_ == 1)
-    allocate_velocity(eq_ns.get_velocity(), domaine_ijk_.valeur(), 2, bc.get_dU_perio(bc.get_resolution_u_prime_()));
+    {
+    allocate_velocity(vel, domaine_ijk_.valeur(), 2);
+    vel[0].get_shear_BC_helpler().set_dU_(bc.get_dU_perio(bc.get_resolution_u_prime_()));
+    vel[1].get_shear_BC_helpler().set_dU_(0.);
+    vel[2].get_shear_BC_helpler().set_dU_(0.);
+    }
   else
-    allocate_velocity(eq_ns.get_velocity(), domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
+    allocate_velocity(vel, domaine_ijk_.valeur(), thermal_probes_ghost_cells_);
+
+  // Naming the main unknown:
+  const std::string nam_compo[3] = {"X", "Y", "Z"};
+  for (int i=0; i<3; i++)
+    vel[i].nommer(Nom("VELOCITY_") + Nom(nam_compo[i]));
 
   Probleme_FTD_IJK_base::initialize();
 }

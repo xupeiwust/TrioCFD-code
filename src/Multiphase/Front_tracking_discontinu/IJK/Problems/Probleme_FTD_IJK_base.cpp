@@ -678,13 +678,16 @@ void Probleme_FTD_IJK_base::initialize()
 
   Cerr << " Allocating " << IJK_Field_double::alloc_counter() << " IJK_FT_double objects." << finl;
 
-  // Register velocity as a champs_compris - TODO : champs_compris_ in each eq?
+  // Fill all valid fields that can be postprocessed:
+  fill_post_fields();
+
+  //
+  // Register velocity and pressure as a champs_compris - TODO : champs_compris_ in each eq?
+  //
   auto& vel = eq_ns().get_velocity();
   for (int i=0; i < 3; i++)
     champs_compris_.ajoute_champ(vel[i]);
-
-  // Fill
-  fill_post_fields();
+  champs_compris_.ajoute_champ(eq_ns().get_pressure());
 }
 
 

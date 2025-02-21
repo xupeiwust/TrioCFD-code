@@ -7,3 +7,4 @@
 - IJK_interfaces.h -> mais quel b****. bcp trop de truc dans le .h
 - pour les courageux: Probleme_base::run() et Probleme_FTD_IJK_base::run() ne sont maintenant plus si différents ...
 - const correctness ... ah ah
+- le shear perio qui bave dans les IJK_Field, c'est tres moche, genre allocate qui prend un "rho_liquide", "rho_vapeur" ... -> devrait vivre a cote de IJK_Field

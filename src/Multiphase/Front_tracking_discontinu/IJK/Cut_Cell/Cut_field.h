@@ -77,21 +77,21 @@ public :
 
   const Cut_cell_FT_Disc& get_cut_cell_disc() const { return cut_cell_disc_.valeur(); }
 
-  void allocate_persistant(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
+  void allocate_persistant(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers=0, int nb_compo=1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
     associer_persistant(cut_cell_disc);
   }
 
-  void allocate_ephemere(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
+  void allocate_ephemere(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
     associer_ephemere(cut_cell_disc);
   }
 
-  void allocate_paresseux(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1, bool external_storage = false, int monofluide=0, double rov=0., double rol=0., int use_inv_rho_in_pressure_solver=0)
+  void allocate_paresseux(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, external_storage, monofluide, rov, rol, use_inv_rho_in_pressure_solver);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
     associer_paresseux(cut_cell_disc);
   }
 

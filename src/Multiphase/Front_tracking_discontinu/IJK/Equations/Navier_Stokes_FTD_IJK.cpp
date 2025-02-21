@@ -562,10 +562,13 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
 
   // if interp_monofluide == 2 --> reconstruction uniquement sur rho, mu. Pas sur P !
   if (!Option_IJK::DISABLE_DIPHASIQUE && boundary_conditions_.get_correction_interp_monofluide() == 1)
-    pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3, 0, 1, false, 1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
+    {
+    pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
+    pressure_.allocate_shear_BC(1, rho_v, rho_l, use_inv_rho_in_poisson_solver_);
+    }
   else
     pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
-
+  pressure_.nommer("PRESSURE");
 
   if (include_pressure_gradient_in_ustar_)
     {
@@ -583,13 +586,16 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
 
   if (!Option_IJK::DISABLE_DIPHASIQUE && (boundary_conditions_.get_correction_interp_monofluide() == 1 || boundary_conditions_.get_correction_interp_monofluide() == 2))
     {
-      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, mu_v, mu_l);
-      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, rho_v, rho_l);
+      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1);
+      molecular_mu_.allocate_shear_BC(2, mu_v, mu_l);
+      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1);
+      rho_field_.allocate_shear_BC( 2, rho_v, rho_l);
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = rho_l;
       if (use_inv_rho_)
         {
-          inv_rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, false, 2, 1. / rho_v, 1. / rho_l);
+          inv_rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1);
+          inv_rho_field_.allocate_shear_BC( 2, 1. / rho_v, 1. / rho_l);
           IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = 1. / rho_v;
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = 1. / rho_l;
         }
