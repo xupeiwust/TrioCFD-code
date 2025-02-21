@@ -110,18 +110,15 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
   const DoubleTab& kinematic_viscosity = get_visc_turb();
   const DoubleTab& distmin = le_dom_VEF->y_faces(); // Minimum distance to the edge
 
-  DoubleTab& blenderF1 = ref_cast_non_const(DoubleTab, turbulence_model->get_blenderF1());
-  DoubleTab& fieldF2 = ref_cast_non_const(DoubleTab, turbulence_model->get_fieldF2());
+  DoubleTab& tabF1 = ref_cast_non_const(DoubleTab, turbulence_model->get_tabF1());
+  DoubleTab& tabF2 = ref_cast_non_const(DoubleTab, turbulence_model->get_tabF2());
 
   DoubleTab visc_face(le_dom_VEF->nb_faces_tot()); // dimension_tot(0)
-  // elem_to_face(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
   Discretisation_tools::cells_to_faces(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
 
-  // Loop on all faces (dimension_tot(0))
   for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
     {
       double dmin = std::max(distmin(face), 1e-12);
-      // dmin = 1e-3;
       double const enerK = K_Omega(face, 0);
       double const omega = K_Omega(face, 1);
 
@@ -131,17 +128,17 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
       double const tmp3 = 4.0*SIGMA_OMEGA2*enerK/(maxval*dmin*dmin);
 
       double const arg1 = std::min(std::max(tmp1, tmp2), tmp3); // Common name of the variable
-      blenderF1(face) = std::tanh(arg1*arg1*arg1*arg1);
+      tabF1(face) = std::tanh(arg1*arg1*arg1*arg1);
 
       double const arg2 = std::max(2.*tmp1, tmp2);
-      fieldF2(face) = std::tanh(arg2*arg2);
+      tabF2(face) = std::tanh(arg2*arg2);
     }
 }
 
 double Source_Transport_K_Omega_VEF_Face::blender(double const val1, double const val2,
                                                   int const face) const
 {
-  const DoubleTab& F1 = turbulence_model->get_blenderF1();
+  const DoubleTab& F1 = turbulence_model->get_tabF1();
   return F1(face)*val1 + (1 - F1(face))*val2;
 }
 
@@ -206,18 +203,6 @@ void Source_Transport_K_Omega_VEF_Face::compute_cross_diffusion(DoubleTab& gradK
         gradK_face(num_face, ncompo) * gradOmega_face(num_face, ncompo);
 }
 
-// cAlan: Tried to get a dedicated function to resize a tab. Make a function for this?
-// void Source_Transport_K_Omega_VEF_Face::resize_gradient_tab(DoubleTab& grad) const
-// {
-//   const Navier_Stokes_Turbulent& eqHyd = ref_cast(Navier_Stokes_Turbulent,
-//                                                   mon_equation->probleme().equation(0));
-//   const DoubleTab& la_vitesse = eqHyd.vitesse().valeurs();
-//   const int nb_compo = la_vitesse.line_size();
-//   const DoubleTab& pressure = eqHyd.pression().valeurs();
-//   const int nb_tot = pressure.size_totale(); // find a better name than nb_tot
-//   grad.resize(nb_tot, nb_compo);
-// }
-
 void Source_Transport_K_Omega_VEF_Face::fill_resu(const DoubleVect& volumes_entrelaces,
                                                   const DoubleTrav& ProdK,
                                                   const DoubleTab& gradKgradOmega,
@@ -242,7 +227,7 @@ void Source_Transport_K_Omega_VEF_Face::fill_resu(const DoubleVect& volumes_entr
                                ? blender(BETA1, BETA2, face)
                                : BETA_OMEGA;
           const double cSIGMA = turbulence_model->is_SST()
-                                ? 2*(1 - turbulence_model->get_blenderF1()(face)*SIGMA_OMEGA2)
+                                ? 2*(1 - turbulence_model->get_tabF1()(face)*SIGMA_OMEGA2)
                                 : (gradKgradOmega(face) > 0)*1/8;
 
           double contrib {0};
@@ -303,10 +288,12 @@ void Source_Transport_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& a,
                              : BETA_OMEGA;
 
         const double cSIGMA = turbulence_model->is_SST()
-                              ? 2*(1 - turbulence_model->get_blenderF1()(face)*SIGMA_OMEGA2)
+                              ? 2*(1 - turbulence_model->get_tabF1()(face)*SIGMA_OMEGA2)
                               : (gradKgradOmega(face) > 0)*1/8;
 
-        const double coef_omega = ( -cALPHA*production_TKE(face)/tke + cBETA*omega - cSIGMA/(omega*omega)*gradKgradOmega(face) ) * volporo;
+        const double coef_omega = (-cALPHA*production_TKE(face)/tke
+                                   + cBETA*omega
+                                   - cSIGMA/(omega*omega)*gradKgradOmega(face) ) * volporo;
         matrice(face*2 + 1, face*2 + 1) += coef_omega;
       }
 }
