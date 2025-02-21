@@ -21,16 +21,12 @@
 #ifndef Op_Diff_K_Omega_VEF_base_included
 #define Op_Diff_K_Omega_VEF_base_included
 
-#define PRDT_K_DEFAUT 0.5
-#define PRDT_OMEGA_DEFAUT 0.5
+#define PRDT_K_DEFAUT 1/0.6 // from Wilcox STD model, 1/Prandtl_K_ = sigma_k = 0.6
+#define PRDT_OMEGA_DEFAUT 1/0.5 // from Wilcox STD model, 1/Prandtl_Omega_ = sigma_omega = 0.5
 
 #include <Op_Diff_K_Omega_base.h>
 #include <Op_VEF_Face.h>
 #include <TRUST_Ref.h>
-
-
-
-
 
 class Domaine_Cl_VEF;
 class Domaine_VEF;
@@ -69,6 +65,8 @@ protected:
   double Prdt_Omega;
 
   // For SST model
+  static constexpr double SIGMA_K1 = 0.85;
+  static constexpr double SIGMA_K2 = 1.0;
   static constexpr double SIGMA_OMEGA1 = 0.5;
   static constexpr double SIGMA_OMEGA2 = 0.856;
 
