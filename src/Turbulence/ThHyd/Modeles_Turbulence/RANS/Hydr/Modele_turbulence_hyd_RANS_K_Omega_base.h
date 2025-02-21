@@ -39,7 +39,9 @@ public:
 
   Modele_turbulence_hyd_RANS_K_Omega_base()
   {
-    Prandtl_K_ = 2.; // cAlan: careful, it is the inverse of the classical definition for code purpose
+    // cAlan: careful, it is the inverse of the classical definition for code purpose
+    Prandtl_K_ = 1/0.6; // from Wilcox STD model, 1/Prandtl_K_ = sigma_k = 0.6
+    Prandtl_Omega_ = 1/0.5; // from Wilcox STD model, 1/Prandtl_Omega_ = sigma_omega = 0.5
     model_variant_ = "STD";
   }
 
@@ -60,7 +62,7 @@ public:
   inline const Motcle& get_model_variant() const { return model_variant_; }
 
 protected:
-  Motcle model_variant_; // default model will be k-omega
+  Motcle model_variant_; // default model will be k-omega STD
   static constexpr double CST_A1 = 0.31;
 };
 
