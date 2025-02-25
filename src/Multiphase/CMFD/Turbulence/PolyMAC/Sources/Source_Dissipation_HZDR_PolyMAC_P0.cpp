@@ -28,7 +28,7 @@
 #include <Champ_Elem_PolyMAC_P0.h>
 
 Implemente_instanciable(Source_Dissipation_HZDR_PolyMAC_P0,"Source_Dissipation_HZDR_Elem_PolyMAC_P0", Source_base);
-// XD Source_Dissipation_HZDR source_base Source_Dissipation_HZDR -1 not_set
+// XD Source_Dissipation_HZDR source_base Source_Dissipation_HZDR -1 Additional source terms in the turbulent dissipation (omega) equation to model the fluctuations induced by bubbles.
 
 Sortie& Source_Dissipation_HZDR_PolyMAC_P0::printOn(Sortie& os) const
 {

@@ -38,7 +38,7 @@
 
 
 Implemente_instanciable(Source_BIF_PolyMAC_P0,"Source_BIF_Face_PolyMAC_P0", Source_base);
-// XD Source_BIF source_base Source_BIF 1 not_set
+// XD Source_BIF source_base Source_BIF 1 Additional fluctuations induced by the movement of bubbles, only available in PolyMAC_P0
 
 Sortie& Source_BIF_PolyMAC_P0::printOn(Sortie& os) const
 {

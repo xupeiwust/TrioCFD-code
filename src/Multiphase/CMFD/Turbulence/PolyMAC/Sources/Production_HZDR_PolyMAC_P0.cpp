@@ -28,7 +28,7 @@
 
 
 Implemente_instanciable(Production_HZDR_PolyMAC_P0,"Production_HZDR_Elem_PolyMAC_P0", Source_base);
-// XD Production_HZDR source_base Production_HZDR -1 not_set
+// XD Production_HZDR source_base Production_HZDR -1 Additional source terms in the turbulent kinetic energy equation to model the fluctuations induced by bubbles.
 
 Sortie& Production_HZDR_PolyMAC_P0::printOn(Sortie& os) const
 {
