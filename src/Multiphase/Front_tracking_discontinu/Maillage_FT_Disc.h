@@ -223,6 +223,7 @@ public:
 
   void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;} // for fpi module
   const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
+  const Schema_Comm_FT& get_schema_comm_FT() const { return schema_comm_domaine_; }
 
 protected:
   void pre_lissage_courbure(ArrOfDouble& store_courbure_sommets, const int niter) const;

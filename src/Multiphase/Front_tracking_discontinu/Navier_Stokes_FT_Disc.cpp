@@ -35,6 +35,9 @@
 #include <Param.h>
 #include <Vecteur3.h>
 #include <Domaine_Cl_VDF.h>
+#include <Connex_components.h>
+#include <EcritureLectureSpecial.h>
+#include <Avanc.h>
 
 #define NS_VERBOSE 0 // To activate verbose mode on err ...
 
@@ -216,6 +219,31 @@ Entree& Navier_Stokes_FT_Disc::readOn(Entree& is)
   terme_diffusif.associer_diffusivite(champ_mu_);
   return Navier_Stokes_Turbulent::readOn(is);
 }
+
+int Navier_Stokes_FT_Disc::sauvegarder(Sortie& os) const
+{
+  int bytes=0;
+  bytes += Navier_Stokes_Turbulent::sauvegarder(os);
+  bytes += particles_eulerian_id_number_post_->sauvegarder(os);
+  return bytes;
+}
+int Navier_Stokes_FT_Disc::reprendre(Entree& is)
+{
+  Navier_Stokes_Turbulent::reprendre(is);
+  double temps = schema_temps().temps_courant();
+  Nom ident_id_part(particles_eulerian_id_number_post_.le_nom());
+  ident_id_part += particles_eulerian_id_number_post_->que_suis_je();
+  ident_id_part += probleme().domaine().le_nom();
+  ident_id_part += Nom(temps,probleme().reprise_format_temps());
+  avancer_fichier(is, ident_id_part);
+  particles_eulerian_id_number_post_->reprendre(is);
+  Cerr << "end of restart" << finl;
+  DoubleTab& particles_eulerian_id_number_post = particles_eulerian_id_number_post_->valeurs();
+  int nb_elem_tot=particles_eulerian_id_number_post.dimension(0);
+  for (int elem=0; elem<nb_elem_tot; elem++) particles_eulerian_id_number_(elem)= static_cast<int>(particles_eulerian_id_number_post(elem));
+  return 1;
+}
+
 
 void Navier_Stokes_FT_Disc::set_param(Param& param)
 {
@@ -740,7 +768,27 @@ void Navier_Stokes_FT_Disc::discretiser()
   champs_compris.add(variables_internes().vitesse_jump0_.valeur());
   champs_compris_.ajoute_champ(variables_internes().vitesse_jump0_);
 
+  // for fpi module
   set_is_solid_particle(fluide_diphasique().get_is_solid_particle());
+  set_id_fluid_phase(fluide_diphasique().get_id_fluid_phase());
+  domaine_dis().domaine().creer_tableau_elements(particles_eulerian_id_number_);
+  const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
+  Noms names(1);
+  Noms units(1);
+  names[0]="cells";
+  units[0]="";
+  dis.discretiser_champ("champ_elem", domain_vf, scalaire, names, units, 1,
+                        schema_temps().temps_courant(),particles_eulerian_id_number_post_);
+  particles_eulerian_id_number_post_->nommer("PARTICLES_EULERIAN_ID_NUMBER");
+  champs_compris.add(particles_eulerian_id_number_post_.valeur());
+  champs_compris_.ajoute_champ(particles_eulerian_id_number_post_);
+
+  dis.discretiser_champ("vitesse", mon_dom_dis,
+                        "contact_force_source_term", "",
+                        1 /* 1 nb composante */, temps,
+                        variables_internes().contact_force_source_term);
+  champs_compris.add(variables_internes().contact_force_source_term.valeur());
+  champs_compris_.ajoute_champ(variables_internes().contact_force_source_term);
 }
 
 /*! @brief Methode surchargee de Navier_Stokes_std, appelee par Navier_Stokes_std::discretiser().
@@ -813,6 +861,7 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
           }
         FT_disc_calculer_champs_rho_mu_nu_dipha(domaine_dis(), fluide_diphasique(), ref_equation->get_update_indicatrice().valeurs(), // indicatrice
                                                 champ_rho_elem_->valeurs(), champ_nu_->valeurs(), champ_mu_->valeurs(), champ_rho_faces_->valeurs());
+        compute_particles_eulerian_id_number(ref_equation.valeur().get_collision_model());
       }
     else
       {
@@ -877,6 +926,7 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
       le_traitement_particulier->preparer_calcul_particulier();
     }
 
+
   return 1;
 }
 
@@ -922,6 +972,10 @@ void Navier_Stokes_FT_Disc::mettre_a_jour(double temps)
   champ_rho_faces_->mettre_a_jour(temps);
   champ_mu_->mettre_a_jour(temps);
   champ_nu_->mettre_a_jour(temps);
+  particles_eulerian_id_number_post_->mettre_a_jour(temps);
+  DoubleTab& tab = particles_eulerian_id_number_post_->valeurs();
+  const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
+  for (int elem=0; elem<domain_vf.nb_elem(); elem++) tab[elem]=particles_eulerian_id_number_[elem];
 }
 
 const SolveurSys& Navier_Stokes_FT_Disc::get_solveur_pression() const
@@ -996,7 +1050,6 @@ void Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles(const Maillage_
           Cerr << "Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles : clip_count " << clip_counter << finl;
         }
     }
-
     //Ajout des termes de gravite
     if (variables_internes().terme_gravite_ == Navier_Stokes_FT_Disc_interne::GRAVITE_GRAD_I)
       {
@@ -1118,7 +1171,9 @@ void Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles(const Maillage_
     const IntTab& facettes = maillage.facettes();
     // Le tableau "potentiel aux faces" a remplir :
     DoubleTab& valeurs_potentiel_elements = potentiel_elements.valeurs();
+
     const ArrOfDouble& surface_facettes = maillage.get_update_surface_facettes();
+
     valeurs_potentiel_elements = 0.;
     // Somme des poids des contributions ajoutees aux faces
     poids = 0.;
@@ -1130,6 +1185,7 @@ void Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles(const Maillage_
 
     int fa7;
     const int nb_facettes = maillage.nb_facettes();
+
     for (fa7 = 0; fa7 < nb_facettes; fa7++)
       {
         // Potentiel aux sommets de la facette:
@@ -1164,8 +1220,10 @@ void Navier_Stokes_FT_Disc::calculer_champ_forces_superficielles(const Maillage_
             index = data.index_element_suivant_;
           }
       }
+
     valeurs_potentiel_elements.echange_espace_virtuel();
     poids.echange_espace_virtuel();
+
     if (champ.valeurs().line_size() > 1)   // VEF ?
       {
         // Compute a potential on elements that are neighbours of
@@ -2782,6 +2840,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
 
         calculer_gradient_indicatrice(indicatrice, distance_interface_sommets, gradient_i);
         calculer_champ_forces_superficielles(maillage, gradient_i, variables_internes().potentiel_elements, variables_internes().potentiel_faces, variables_internes().terme_source_interfaces);
+        if (is_solid_particle_) compute_eulerian_field_contact_forces(maillage, indicatrice);
       }
     else
       {
@@ -2789,6 +2848,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
       }
   }
   solveur_masse->appliquer(variables_internes().terme_source_interfaces->valeurs());
+  if (is_solid_particle_) solveur_masse->appliquer(variables_internes().contact_force_source_term->valeurs());
 
   // Autres termes sources (acceleration / repere mobile)
   //  Valeurs homogenes a
@@ -2831,6 +2891,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
   const DoubleTab& termes_sources_interf = variables_internes().terme_source_interfaces->valeurs();
   const DoubleTab& termes_sources = variables_internes().terme_source->valeurs();
   const DoubleTab& tab_convection = variables_internes().terme_convection->valeurs();
+  const DoubleTab& contact_force_source_term = variables_internes().contact_force_source_term->valeurs();
   const int n = vpoint.dimension(0);
   const int nbdim1 = (vpoint.line_size() == 1);
   const int m = vpoint.line_size();
@@ -3025,8 +3086,8 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
       const double rho_face = tab_rho_faces(i);
 
       for (int j = 0; j < m; j++)
-        vpoint(i, j) = (-flag_gradP(i) * gradP(i, j) + flag_diff * tab_diffusion(i, j) + coef_TSF(i) * termes_sources_interf(i, j)) / rho_face + tab_convection(i, j) + termes_sources(i, j)
-                       + gravite_face(i, j);
+        vpoint(i, j) = (-flag_gradP(i) * gradP(i, j) + flag_diff * tab_diffusion(i, j) + coef_TSF(i) * termes_sources_interf(i, j)+is_solid_particle_*contact_force_source_term(i))
+                       / rho_face + tab_convection(i, j) + termes_sources(i, j) + gravite_face(i, j);
     }
   vpoint.echange_espace_virtuel();
 
@@ -3726,7 +3787,8 @@ Navier_Stokes_FT_Disc_interne& Navier_Stokes_FT_Disc::variables_internes()
  */
 const Champ_base* Navier_Stokes_FT_Disc::get_delta_vitesse_interface() const
 {
-  if (variables_internes().ref_equation_mpoint_.non_nul() || variables_internes().ref_equation_mpoint_vap_.non_nul())
+  if (variables_internes().ref_equation_mpoint_.non_nul() ||
+      variables_internes().ref_equation_mpoint_vap_.non_nul())
     return &(variables_internes().delta_u_interface.valeur());
   else
     return 0;
@@ -3800,6 +3862,7 @@ int Navier_Stokes_FT_Disc::is_terme_gravite_rhog() const
   else
     return 0;
 }
+
 /*
  void Navier_Stokes_FT_Disc::corriger_mpoint()
  {
@@ -3810,3 +3873,138 @@ int Navier_Stokes_FT_Disc::is_terme_gravite_rhog() const
  }
  }
  */
+
+void Navier_Stokes_FT_Disc::compute_particles_eulerian_id_number(
+  const Collision_Model_FT& collision_model)
+{
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
+  const int nb_elem=domaine_vf.nb_elem();
+  OBS_PTR(Transport_Interfaces_FT_Disc) &refeq_transport = variables_internes().\
+                                                           ref_eq_interf_proprietes_fluide;
+  const DoubleTab& volumic_phase_indicator_function = refeq_transport->\
+                                                      get_update_indicatrice().valeurs();
+  const int& id_fluid_phase=fluide_diphasique().get_id_fluid_phase();
+
+  for (int elem = 0; elem < nb_elem; elem++)
+    {
+      if (collision_model.get_is_force_on_two_phase_elem()==1)
+        particles_eulerian_id_number_(elem) = (volumic_phase_indicator_function[elem]\
+                                               == id_fluid_phase) ? -1 : 1;
+      else
+        particles_eulerian_id_number_(elem) = (volumic_phase_indicator_function[elem]\
+                                               != 1 - id_fluid_phase ) ? -1 : 1;
+    }
+  particles_eulerian_id_number_.echange_espace_virtuel();
+  const IntTab& elem_faces = domaine_vf.elem_faces();
+  const IntTab& faces_elem = domaine_vf.face_voisins();
+  const int nb_local_connex_components = search_connex_components_local(elem_faces,
+                                                                        faces_elem, particles_eulerian_id_number_);
+  compute_global_connex_components(particles_eulerian_id_number_, nb_local_connex_components);
+  particles_eulerian_id_number_.echange_espace_virtuel();
+}
+
+void Navier_Stokes_FT_Disc::swap_particles_eulerian_id_number(const Collision_Model_FT& collision_model,
+                                                              const ArrOfInt& gravity_center_elem)
+{
+  const int nb_elem=particles_eulerian_id_number_.dimension(0);
+  const int nb_elem_tot=particles_eulerian_id_number_.dimension_tot(0);
+  const int nb_particles_tot=gravity_center_elem.size_array();
+
+  // Step 1: computation of the new eulerian particle ID number
+  compute_particles_eulerian_id_number(collision_model);
+
+  // Step 2: we associate the particle lagrangian ID number to the particle eulerian ID number
+  // The link between lagrange and euler ID numbers is made with the gravity center of each particle.
+  // Example for 3 particles:
+  // gravity_center_elem (1025, 56, 4058) -> result of chercher_elements(particles_position_collision,
+  // gravity_center_elem)
+  // if id_number=1, elem=56. particles_eulerian_id_number(56)=2 (example) ->
+  // result of compute_global_connex_components
+  // Then, particle_lagrangian_id_number(1)=2
+  IntVect particle_lagrangian_id_number(nb_particles_tot);
+  particle_lagrangian_id_number=0;
+  for (int id_number=0; id_number<nb_particles_tot; id_number++)
+    {
+      int elem=gravity_center_elem(id_number); // the particle id_number has its gravity
+      // center inside elem
+      if (elem>-1 && elem < nb_elem_tot)
+        particle_lagrangian_id_number(particles_eulerian_id_number_(elem))=id_number;
+    }
+  // now, each eulerian id number is linked to a lagrangian id number
+  mp_max_for_each_item(particle_lagrangian_id_number);
+  // swap
+  for (int elem = 0; elem < nb_elem; elem++)
+    {
+      if (particles_eulerian_id_number_(elem) != -1)
+        {
+          particles_eulerian_id_number_(elem) =
+            particle_lagrangian_id_number(particles_eulerian_id_number_(elem));
+        }
+    }
+  particles_eulerian_id_number_.echange_espace_virtuel();
+}
+
+void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
+(const Maillage_FT_Disc& mesh, const Champ_base& field_volumic_phase_indicator_function)
+{
+  Cerr << "Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces" << finl;
+
+  static const Stat_Counter_Id count = statistiques().new_counter(1,
+                                                                  "compute_eulerian_field_contact_forces", 0);
+  statistiques().begin_count(count);
+
+  auto& eq_transport=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
+  const auto& eq_transport_const=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
+  const Navier_Stokes_FT_Disc& eq_ns = *this;
+  Collision_Model_FT& collision_model=eq_transport.get_set_collision_model();
+  const DoubleTab& particles_position=eq_transport.get_particles_position();
+  const DoubleTab& particles_velocity=eq_transport.get_particles_velocity();
+
+  // Step 1: Collision detection
+  const ArrOfInt& gravity_center_elem = eq_transport.get_gravity_center_elem();
+  int& nb_dt_Verlet = collision_model.get_set_nb_dt_Verlet();
+  const int nb_dt_compute_Verlet_ = collision_model.get_nb_dt_compute_Verlet();
+  const double delta_t=schema_temps().pas_de_temps();
+  const double nb_dt=schema_temps().nb_pas_dt();
+
+  if (collision_model.is_Verlet_activated())
+    {
+      if (nb_dt_Verlet >= nb_dt_compute_Verlet_ || nb_dt == 0) // we compute it at every restart
+        collision_model.identify_collision_pairs_Verlet(eq_ns,eq_transport_const);
+      nb_dt_Verlet++;
+    }
+  // Step 2: Contact forces computation
+  //double& dt = schema_temps().pas_de_temps();
+  const Fluide_Diphasique& two_phase_fluid = fluide_diphasique();
+  collision_model.compute_lagrangian_contact_forces(two_phase_fluid,
+                                                    particles_position,
+                                                    particles_velocity,
+                                                    delta_t);
+  // Step 3: conservation of eulerian id number
+  // to discretize lagrangian collision force on the eulerian field
+  // we need to update the particle eulerian ID number.
+  // The procedure calls methods: search_connex_components_local
+  // and compute_global_connex_components. During the procedure
+  // particles eulerian ID number may change .A given particle will
+  // therefore have a different Eulerian identification number from that
+  // of the previous time step. To conserve the particle eulerian ID number
+  // we use the particle lagrangian ID number. The procedure is only employed
+  // for contact forces computing.
+  const DoubleTab& volumic_phase_indicator_function_face =
+    eq_transport.get_compute_indicatrice_faces().valeurs();
+  swap_particles_eulerian_id_number(collision_model, gravity_center_elem);
+
+  // Step 4: Discretisation of the lagrangian contact forces to the eulerian field
+  const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
+  DoubleTab& contact_force = variables_internes().contact_force_source_term->valeurs();
+  contact_force=0;
+  collision_model.discretize_contact_forces_eulerian_field(
+    volumic_phase_indicator_function_face,
+    domain_vf,
+    particles_eulerian_id_number_,
+    contact_force);
+
+  statistiques().end_count(count);
+  Cerr << "Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces : END" << finl;
+
+}

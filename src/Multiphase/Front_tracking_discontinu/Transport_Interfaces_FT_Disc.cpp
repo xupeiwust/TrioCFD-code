@@ -498,7 +498,7 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   param.ajouter("vitesse_imposee_regularisee", &variables_internes_->vimp_regul) ;
   //param.ajouter("indic_faces_modifiee", &variables_internes_->indic_faces_modif) ;
   //param.ajouter_non_std("indic_faces_modifiee", (this)) ;
-  param.ajouter_non_std("type_indic_faces", (this)) ;
+  param.ajouter("collision_model_fpi",&get_set_collision_model());
 }
 
 int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
@@ -567,6 +567,17 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
             variables_internes_->refequation_vitesse_transport =
               ref_cast(Probleme_FT_Disc_gen,
                        probleme_base_.valeur()).equation_hydraulique(nom_eq);
+
+            const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+            if (sub_type(Navier_Stokes_FT_Disc,eqn_hydraulique))
+              {
+                const Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+                associer_equation_ns(ns);
+                // for fpi mmodule
+                set_is_solid_particle(ns.get_is_solid_particle()); // must be done before Collision_Model_FT::reprendre
+                maillage_interface().set_is_solid_particle(ns.get_is_solid_particle());
+                remaillage_interface().set_is_solid_particle(ns.get_is_solid_particle());
+              }
             break;
           }
         default:
@@ -1211,7 +1222,6 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
   const IntTab& elem_faces = domaine_vf.elem_faces();
   const IntTab& faces_elem = domaine_vf.face_voisins();
   const int nb_local_connex_components = search_connex_components_local(elem_faces, faces_elem, num_compo);
-
   const int nb_connex_components = compute_global_connex_components(num_compo, nb_local_connex_components);
 
   //const int nb_connex_components = nb_local_connex_components;
@@ -1694,6 +1704,7 @@ void Transport_Interfaces_FT_Disc::discretiser()
 
   le_dom_Cl_dis->associer_eqn(*this);
   le_dom_Cl_dis->associer_inconnue(inconnue());
+
 }
 
 /*! @brief Remaillage de l'interface : - amelioration petites et grandes facettes,
@@ -1717,16 +1728,35 @@ void Transport_Interfaces_FT_Disc::remailler_interface()
 int Transport_Interfaces_FT_Disc::preparer_calcul()
 {
   Process::Journal()<<"Transport_Interfaces_FT_Disc::preparer_calcul"<<finl;
-
-  const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
-  if(sub_type(Navier_Stokes_FT_Disc,eqn_hydraulique))
+  if (is_solid_particle_)
     {
-      const Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
-      associer_equation_ns(ns); // EB: wasn't implemented
-      set_is_solid_particle(equation_ns_->get_is_solid_particle());
-      maillage_interface().set_is_solid_particle(equation_ns_->get_is_solid_particle());
-      remaillage_interface().set_is_solid_particle(equation_ns_->get_is_solid_particle());
+      const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, domaine_dis());
+      collision_model_.set_geometric_parameters(domain_vdf);
+      compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
+      collision_model_.set_nb_particles_tot(nb_particles_tot_);
+      collision_model_.set_nb_real_particles(nb_particles_tot_);
+      collision_model_.resize_lagrangian_contact_force();
+      const Navier_Stokes_FT_Disc& equation_ns = equation_ns_.valeur();
+      const Fluide_Diphasique& two_phase_elem=equation_ns.fluide_diphasique();
+      const int solid_phase=1-two_phase_elem.get_id_fluid_phase();
+      const Solid_Particle& solid_particle=ref_cast(Solid_Particle,
+                                                    two_phase_elem.fluide_phase(solid_phase));
+      const double& diameter=solid_particle.get_diameter_sphere();
+      collision_model_.set_activation_distance(diameter);
+      collision_model_.compute_fictive_wall_coordinates(diameter/2);
+      collision_model_.associate_transport_equation(*this);
+      const Schema_Comm_FT& schema_comm_FT=maillage_interface().get_schema_comm_FT();
+      if (collision_model_.is_LC_activated())
+        collision_model_.set_LC_zones(domain_vdf,schema_comm_FT);
+      init_particles_position_velocity();
+      collision_model_.set_spring_properties(solid_particle);
+      DoubleTab& F_old=collision_model_.get_set_F_old();
+      DoubleTab& F_now=collision_model_.get_set_F_now();
+      if ((F_old.dimension(0)!=nb_particles_tot_) ||
+          (F_now.dimension(0)!=nb_particles_tot_) )
+        collision_model_.reset();
     }
+
   const double temps = schema_temps().temps_courant();
   // La ligne suivante doit figurer avant le premier remaillage
   // car le remaillage utilise les angles de contact (lissage courbure)
@@ -6837,6 +6867,8 @@ void Transport_Interfaces_FT_Disc::deplacer_maillage_ft_v_fluide(const double te
     }
   remaillage_interface().traite_adherence(maillage_interface());
   maillage.changer_temps(temps);
+
+  if (is_solid_particle_) swap_particles_lagrangian_position_velocity();
 }
 
 void Transport_Interfaces_FT_Disc::ajouter_contribution_saut_vitesse(DoubleTab& deplacement) const
@@ -7552,6 +7584,33 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
         os << variables_internes_->que_suis_je() << finl;
       }
     bytes += variables_internes_->sauvegarder(os);
+    if (is_solid_particle_)
+      {
+        Cerr << "Backup of collision model" << finl;
+        bytes += collision_model_.sauvegarder(os);
+        // we save particles position and velocity as these data
+        // are required for the computation of contact forces
+        Cerr << "Backup of particles position and velocity" << finl;
+        if (format_xyz)
+          {
+            if (Process::je_suis_maitre())
+              {
+                for (int i=0; i<particles_position_collision_.dimension(0); i++)
+                  for (int j=0; j<particles_position_collision_.dimension(1); j++)
+                    os<<particles_position_collision_(i,j);
+                for (int i=0; i<particles_velocity_collision_.dimension(0); i++)
+                  for (int j=0; j<particles_velocity_collision_.dimension(1); j++)
+                    os<<particles_velocity_collision_(i,j);
+              }
+          }
+        else
+          {
+            os << particles_position_collision_;
+            bytes += 8 * particles_position_collision_.size_array();
+            os << particles_velocity_collision_;
+            bytes += 8 * particles_velocity_collision_.size_array();
+          }
+      }
   }
   os.flush();
 
@@ -7560,6 +7619,9 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
 
 int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
 {
+  Cerr << "Transport_Interfaces_FT_Disc::reprendre" << finl;
+  int is_solid_particle = is_solid_particle_ ? 1 : 0;
+  Cerr << "is_solid_particle_ " << is_solid_particle << finl;
   Equation_base::reprendre(is);
   {
     if(!TRUST_2_PDI::is_PDI_restart())
@@ -7580,6 +7642,32 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
     variables_internes_->set_time(schema_temps().temps_courant());
     variables_internes_->reprendre(is);
     variables_internes_->injection_interfaces_last_time_ = schema_temps().temps_courant();
+    if (is_solid_particle_)
+      {
+        collision_model_.reprendre(is);
+        particles_position_collision_.resize(0,dimension);
+        particles_velocity_collision_.resize(0,dimension);
+        const int format_xyz = EcritureLectureSpecial::is_lecture_special();
+        if (format_xyz)
+          {
+            for (int i=0; i<particles_position_collision_.dimension(0); i++)
+              for (int j=0; j<particles_position_collision_.dimension(1); j++)
+                is>>particles_position_collision_(i,j);
+            for (int i=0; i<particles_velocity_collision_.dimension(0); i++)
+              for (int j=0; j<particles_velocity_collision_.dimension(1); j++)
+                is>>particles_velocity_collision_(i,j);
+            return 1;
+          }
+        else
+          {
+            is >> particles_position_collision_;
+            is >> particles_velocity_collision_;
+          }
+        Cerr << "particles_position_collision_ " << particles_position_collision_ << finl;
+        Cerr << "nb_particles_tot_ " << nb_particles_tot_;
+      }
+    Cerr <<"there" << finl;
+
   }
   return 1;
 }
@@ -8696,6 +8784,13 @@ void Transport_Interfaces_FT_Disc::calculer_vmoy_composantes_connexes(const Mail
     s.ref_array(surfaces_compo);
     tab_divide_any_shape(vitesses, s);
   }
+
+  if (is_solid_particle_)
+    {
+      particles_velocity_collision_ = vitesses;
+      particles_position_collision_ = positions;
+    }
+
 }
 
 void Transport_Interfaces_FT_Disc::ramasse_miettes(const Maillage_FT_Disc& maillage,
@@ -8907,3 +9002,130 @@ void Transport_Interfaces_FT_Disc::transfert_conservatif_eulerien_vers_lagrangie
   // Mise a jour des espaces virtuels :
   maillage.desc_sommets().echange_espace_virtuel(valeurs_lagrange);
 }
+
+void Transport_Interfaces_FT_Disc::compute_nb_particles_tot()
+{
+  const Maillage_FT_Disc& mesh=maillage_interface();
+  const int nb_facettes=mesh.nb_facettes();
+  ArrOfInt compo_connex_fa7(nb_facettes); // Init a zero
+  int n = search_connex_components_local_FT(mesh, compo_connex_fa7);
+  nb_particles_tot_= compute_global_connex_components_FT(mesh, compo_connex_fa7, n);
+}
+
+void Transport_Interfaces_FT_Disc::init_particles_position_velocity()
+{
+  const Domaine& domain = domaine_dis().domaine();
+  // computing the total number of particles
+  // one cannot use Transport_Interfaces_FT_Disc::compute_nb_compo_tot()
+  // because we need compo_connex_fa7 after
+  const Maillage_FT_Disc& mesh=maillage_interface();
+  const int nb_facettes=mesh.nb_facettes();
+  ArrOfInt compo_connex_fa7(nb_facettes); // Init a zero
+  int n = search_connex_components_local_FT(mesh, compo_connex_fa7);
+  int nb_particles_tot=compute_global_connex_components_FT(mesh, compo_connex_fa7, n);
+
+  // particles dont't have initial velocity, their velocity is initialized with 0
+  if ((particles_velocity_collision_.dimension(0) != nb_particles_tot) || (particles_velocity_collision_.dimension(1) != dimension))
+    {
+      Cerr << "WARNING, renumbering particles !" << finl;
+      particles_position_collision_.resize(nb_particles_tot, dimension);
+      particles_velocity_collision_.resize(nb_particles_tot, dimension);
+      particles_position_collision_ = 0.;
+      particles_velocity_collision_ = 0;
+
+      const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
+      const IntTab& facettes = mesh.facettes();
+      const DoubleTab& sommets = mesh.sommets();
+
+      DoubleVect particles_surfaces(nb_particles_tot);
+
+      // computing surface gravity center
+      const int nb_facettes_tot = facettes.dimension_tot(0);
+      {
+        for (int i = 0; i < nb_facettes_tot; i++)
+          {
+            if (mesh.facette_virtuelle(i)) continue;
+
+            const int compo = compo_connex_fa7[i];
+            const double surface = surface_facettes[i];
+            particles_surfaces[compo] += surface;
+
+            // computing the facet gravity surface weighted by its surface
+            for (int j = 0; j < dimension; j++)
+              {
+                const int s = facettes(i, j);
+                for (int k = 0; k < dimension; k++)  particles_position_collision_(compo, k) += surface * sommets(s, k);
+              }
+          }
+        mp_sum_for_each_item(particles_surfaces);
+        mp_sum_for_each_item(particles_position_collision_);
+
+        particles_position_collision_ *= (1. / dimension);
+        DoubleVect s;
+        s.ref_array(particles_surfaces);
+        tab_divide_any_shape(particles_position_collision_, s);
+      }
+      domain.chercher_elements(particles_position_collision_,gravity_center_elem_);
+    }
+}
+
+/*! @brief WARNING, particles_position_collision_ and particles_velocity_collision_ are not used to transport particles
+* but only for the computation of contact forces. Thus, be aware that tables Vitesses and Positions
+* from the method calculer_vitesse_repere_local() are different from those of the present method.
+* Indeed, it is not required to conserve the same lagrangian number to transport particles.
+* To merge tables from both methods, one should modify the following methods:  search_connex_components_local_FT
+* and compute_global_connex_components_FT. If a particle is numbered 0 by proc 0, its global Lagrangian number will be 0.
+* However, if it passes to proc 1 and is assigned the number 0, its global number will be 0 + the number of particles of proc 0.
+* This method swap rows of particles_position_collision_ and particles_velocity_collision_ to conserve the particles
+* lagrangian ID number between two successive times steps using the particles eulerian ID number. Indeed, after calling
+* the function search_connex_components_local_FT and compute_global_connex_components_FT, their lagrangian number has changed.
+* The method is base on the assumption that the element in which the gravity center of a given particle conserve its
+* eulerian ID number between two successive time steps, which is always verified for resolved particles.
+* We then attribute the eulerian ID number of this elem to the lagrangian particle ID number by swapping table rows.
+* /!\ /!\ /!\ At the moment, this method is performed sequentially only
+* All processors know the tables particles_position_collision_ and particles_velocity_collision_
+*/
+void Transport_Interfaces_FT_Disc::swap_particles_lagrangian_position_velocity()
+{
+  const Domaine& domain = domaine_dis().domaine();
+  Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+  Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+  int nb_particles_tot = particles_position_collision_.dimension(0);
+  DoubleTab correct_particles_position(nb_particles_tot, dimension);
+  DoubleTab correct_particles_velocity(nb_particles_tot, dimension);
+  IntVect particles_correct_id_number(nb_particles_tot);
+
+  // Step 1: Identification of the elements which contain particles gravity center
+  domain.chercher_elements(particles_position_collision_, gravity_center_elem_);
+  const IntTab& particles_eulerian_id_number = ns.get_particles_eulerian_id_number();
+
+  // Step 2: Identification of the permutations required to conserve the Lagrangian number
+  for (int wrong_id_number=0; wrong_id_number<nb_particles_tot; wrong_id_number++)
+    {
+      int particle_gravity_center_elem=gravity_center_elem_[wrong_id_number];
+      int correct_id_number;
+      if (particle_gravity_center_elem==-1) correct_id_number =-1;
+      else correct_id_number = particles_eulerian_id_number[particle_gravity_center_elem];
+      particles_correct_id_number(wrong_id_number)=correct_id_number;
+    }
+  mp_max_for_each_item(particles_correct_id_number);
+  int isduplicateValue = collision_model_.check_for_duplicates(particles_correct_id_number);
+  if (isduplicateValue == 1) Process::exit("Transport_Interfaces_FT_Disc::swap_particles_position_velocity "
+                                             "ERROR: duplicate value of the particles lagrangian ID number");
+
+  // Step3:Swapping table rows
+  for (int wrong_id_number = 0; wrong_id_number < nb_particles_tot; wrong_id_number++)
+    {
+      int good_id_number = particles_correct_id_number[wrong_id_number];
+      for (int d = 0; d < dimension; d++)
+        {
+          correct_particles_position(good_id_number, d) = particles_position_collision_(wrong_id_number, d);
+          correct_particles_velocity(good_id_number, d) = particles_velocity_collision_(wrong_id_number, d);
+        }
+    }
+  particles_position_collision_ = correct_particles_position;
+  particles_velocity_collision_ = correct_particles_velocity;
+}
+
+
+

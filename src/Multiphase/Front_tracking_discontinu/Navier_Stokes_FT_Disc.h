@@ -19,6 +19,7 @@
 #include <Convection_Diffusion_Temperature_FT_Disc.h>
 #include <Navier_Stokes_FT_Disc_interne.h>
 #include <Navier_Stokes_Turbulent.h>
+#include <Collision_Model_FT.h>
 
 #include <TRUST_Ref.h>
 
@@ -37,6 +38,8 @@ public:
   Milieu_base& milieu() override;
   void associer_pb_base(const Probleme_base& probleme) override;
   void discretiser() override;
+  int sauvegarder(Sortie&) const override;
+  int reprendre(Entree&) override;
   int preparer_calcul() override;
   void preparer_pas_de_temps();
   void mettre_a_jour(double temps) override;
@@ -68,9 +71,10 @@ public:
 
   const SolveurSys& get_solveur_pression() const;
 
-  void set_is_solid_particle(const bool& is_solid_particle) {is_solid_particle_=is_solid_particle;}
   const bool& get_is_solid_particle() const {return is_solid_particle_;}
+  const IntTab& get_particles_eulerian_id_number() const { return particles_eulerian_id_number_; }
 protected:
+
   // Methode surchargee de Navier_Stokes_std :
   void discretiser_assembleur_pression() override;
   void associer_milieu_base(const Milieu_base& fluide) override;
@@ -82,6 +86,13 @@ protected:
                                                     Champ_base& champ);
   virtual void calculer_gradient_indicatrice(const Champ_base& indicatrice, const DoubleTab& distance_interface_sommets, Champ_base& gradient_i);
 
+  // for fpi module
+  void set_is_solid_particle(const bool& is_solid_particle) { is_solid_particle_=is_solid_particle; }
+  void set_id_fluid_phase(const int& id_fluid_phase) { id_fluid_phase_=id_fluid_phase; }
+  void compute_particles_eulerian_id_number(const Collision_Model_FT& collision_model);
+  void swap_particles_eulerian_id_number(const Collision_Model_FT& collision_model, const ArrOfInt& gravity_center_elem);
+  void compute_eulerian_field_contact_forces(const Maillage_FT_Disc& mesh, const Champ_base& field_volumic_phase_indicator_function);
+  void eulerian_discretization_contact_forces(const DoubleTab& volumic_phase_indicator_function, const DoubleTab& interlaced_volumes, const DoubleTab& eu);
   OBS_PTR(Probleme_FT_Disc_gen) probleme_ft_;
 
   // Masse volumique calculee aux elements
@@ -95,7 +106,11 @@ protected:
   // Viscosite cinematique pour le calcul du pas de temps de diffusion
   OWN_PTR(Champ_Don_base) champ_nu_;
 
-  bool is_solid_particle_;  // for fpi module, pointer to Fluide_Diphasique::is_solid_particle_
+  // for fpi_module
+  bool is_solid_particle_=false;  // pointer to Fluide_Diphasique::is_solid_particle_
+  int id_fluid_phase_=1; // number (0 or 1) of the Fluid_Incompressible phase
+  IntTab particles_eulerian_id_number_;
+  OWN_PTR(Champ_Fonc_base)  particles_eulerian_id_number_post_; // for post-processing only
 
 private:
   const Navier_Stokes_FT_Disc_interne& variables_internes() const;
@@ -106,6 +121,7 @@ private:
 
   double minx = -123., maxx = -123., pente = -123.;
   int is_repulsion = 0;
+
 };
 
 #endif /* Navier_Stokes_FT_Disc_included */

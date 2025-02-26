@@ -45,14 +45,15 @@ public:
   // Setters
   void set_radius(const double radius) { radius_sphere_=radius; }
   void set_diameter_sphere(const double diameter) { diameter_sphere_=diameter; }
-  void set_volume_compo_sphere(const double volume) { volume_compo_sphere_=volume; }
-  void set_mass_compo_sphere(const double mass) { mass_compo_sphere_=mass; }
+  void set_volume_sphere(const double volume) { volume_sphere_=volume; }
+  void set_mass_sphere(const double mass) { mass_sphere_=mass; }
 
   // getters
   const double& get_e_dry() const { return e_dry_; }
+  const double& get_radius_sphere() const { return radius_sphere_; }
   const double& get_diameter_sphere() const { return diameter_sphere_; }
-  const double& get_volume_compo_sphere() const { return volume_compo_sphere_; }
-  const double& get_mass_compo_sphere() const { return mass_compo_sphere_; }
+  const double& get_volume_sphere() const { return volume_sphere_; }
+  const double& get_mass_sphere() const { return mass_sphere_; }
   const double& get_half_small_axis_spheroid() const { return half_small_axis_spheroid_; }
   const double& get_half_long_axis_spheroid() const { return half_long_axis_spheroid_ ;}
 
@@ -61,8 +62,8 @@ protected :
   double e_dry_=0.; // dry restitution coefficient
   double radius_sphere_=0.; // only required for sphere flow
   double diameter_sphere_=0.;
-  double volume_compo_sphere_=0.;
-  double mass_compo_sphere_=0.;
+  double volume_sphere_=0.;
+  double mass_sphere_=0.;
   double half_small_axis_spheroid_=0;
   double half_long_axis_spheroid_=0;
 };

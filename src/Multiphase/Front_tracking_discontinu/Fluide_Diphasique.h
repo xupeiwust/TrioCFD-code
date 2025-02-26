@@ -65,7 +65,8 @@ public:
   const Champ_Don_base& beta_t() const override  { return invalid_<const Champ_Don_base&>(__func__); }
   Champ_Don_base& beta_t() override { return invalid_<Champ_Don_base&>(__func__); }
 
-  const bool& get_is_solid_particle() const { return is_solid_particle_;}
+  const bool& get_is_solid_particle() const { return is_solid_particle_; }
+  const int& get_id_fluid_phase() const { return id_fluid_phase_; }
 
 private:
   OWN_PTR(Milieu_base) phase0_, phase1_;
@@ -73,7 +74,7 @@ private:
   OWN_PTR(Champ_Don_base) chaleur_latente_; // Enthalpie de changement de phase h(phase1_) - h(phase0_) (J/kg/K)
   Motcle formule_mu_; // Formule utilisee pour le calcul de la moyenne de mu
   bool is_solid_particle_; // True if phase0_ or phase1_ is a Solid_Particle
-
+  int id_fluid_phase_; // number (0 or 1) of the Fluid_Incompressible phase
   template <typename RETURN_TYPE>
   RETURN_TYPE invalid_(const char * nom_funct) const
   {

@@ -72,6 +72,8 @@ public:
   OWN_PTR(Champ_Fonc_base)  ai; // Eulerian interfacial area.
   OWN_PTR(Champ_Inc_base) vitesse_jump0_; // Extended Velocity of phase 0.
 
+  OWN_PTR(Champ_Fonc_base) contact_force_source_term; // for fpi module, solid-solid collision source term
+
   LIST(OBS_PTR(Champ_base)) liste_champs_compris;
 
   // Si matrice_pression_invariante != 0,

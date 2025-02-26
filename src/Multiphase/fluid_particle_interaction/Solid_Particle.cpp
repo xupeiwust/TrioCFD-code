@@ -34,9 +34,9 @@ Entree& Solid_Particle::readOn(Entree& is)
 {
   Fluide_Incompressible::readOn(is);
   set_diameter_sphere(2*radius_sphere_);
-  set_volume_compo_sphere(4 * M_PI * pow(radius_sphere_, 3) / 3);
+  set_volume_sphere(4 * M_PI * pow(radius_sphere_, 3) / 3);
   const double solid_density = masse_volumique().valeurs()(0, 0);
-  set_mass_compo_sphere(volume_compo_sphere_*solid_density);
+  set_mass_sphere(volume_sphere_*solid_density);
   return is;
 }
 

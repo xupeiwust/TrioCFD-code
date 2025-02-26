@@ -19,10 +19,14 @@
 #include <TRUSTTabFT.h>
 #include <Fluide_Diphasique.h>
 #include <Domaine_VDF.h>
+#include <TRUSTLists.h>
+#include <Schema_Comm_FT.h>
+#include <Matrice_Morse.h>
 
 class Param;
 class Maillage_FT_Disc;
 class Transport_Interfaces_FT_Disc;
+class Navier_Stokes_FT_Disc;
 
 /*! @brief : class Collision_Model_FT
  *
@@ -48,84 +52,157 @@ public:
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   int reprendre(Entree& is) override;
   int sauvegarder(Sortie& os) const override;
-
   void reset(); // Tables must have the right dimension to be correctly read during the restart
   void resize_geometric_parameters();
+  void resize_lagrangian_contact_force()
+  {
+    lagrangian_contact_forces_.resize(nb_particles_tot_,dimension);
+  }
   void associate_transport_equation(const Equation_base& equation);
   int check_for_duplicates(ArrOfInt& vector);
-  void compute_contact_force(DoubleTab& force_contact, int& isFirstStepOfCollision, double& dist_int, double& next_dist_int, DoubleTab& norm, DoubleTab& dUn, double& masse_eff, int& compo, int& voisin, double& Stb, double& ed, double& vitesseRelNorm, double& dt, double& prod_scal);
+
+  DoubleTab compute_contact_force(
+    const double& next_dist_int,
+    const DoubleTab& norm,
+    const DoubleTab& dUn,
+    const int& particle_i,
+    const int& particle_j,
+    const int& is_compression_step,
+    const double& is_collision_part_part);
+
   void compute_fictive_wall_coordinates(const double& radius);
+
+  void identify_collision_pairs_Verlet(const Navier_Stokes_FT_Disc& eq_ns,
+                                       const Transport_Interfaces_FT_Disc& eq_transport);
+
+  void compute_lagrangian_contact_forces(const Fluide_Diphasique& two_phase_fluid,
+                                         const DoubleTab& particles_position,
+                                         const DoubleTab& particles_velocity,
+                                         const double& deltat_simu);
+
+  void compute_Verlet_tables(const DoubleTab& particles_position,
+                             const DoubleTab& particles_velocity,
+                             double& max_vi,
+                             const double& radius,
+                             const ArrOfInt& list_particles_to_check_LC);
+  /*
+  template <typename T>
+  void compute_Verlet_tables(const DoubleTab& particles_position,
+                             const DoubleTab& particles_velocity, double& max_vi, const double& radius,
+                             const T& list_particle_i, const T& list_particle_j); */
+
+  void discretize_contact_forces_eulerian_field(const DoubleTab& volumic_phase_indicator_function,
+                                                const Domaine_VF& domain_vf,
+                                                const IntTab& particles_eulerian_id_number,
+                                                DoubleTab& contact_force_source_term);
+
   double compute_ewet_legendre(const double& St) {return exp(-35 / (St + 1e-6));} // See: D. Legendre et al, Chem. Eng. Sci., (2006).
-  double compute_stiffness_breugem(const double& mass_eff, const double& e_dry) {return (mass_eff * (pow(M_PI,2)+ pow(log(e_dry), 2))) / pow(collision_duration_, 2);} // See. W-P. Breugem, 2010.
-  double compute_damper_breugem(const double& mass_eff, const double& e_dry) {return -2*(mass_eff * log(e_dry)) / (collision_duration_);}  // See. W-P. Breugem, 2010.
+
+  double compute_stiffness_breugem(const double& mass_eff, const double& e_dry) // See. W-P. Breugem, 2010.
+  {return (mass_eff * (pow(M_PI,2)+ pow(log(e_dry), 2))) / pow(collision_duration_, 2);}
+
+  double compute_damper_breugem(const double& mass_eff, const double& e_dry) // See. W-P. Breugem, 2010.
+  {return -2*(mass_eff * log(e_dry)) / (collision_duration_);}
+
+  void add_collision() { collision_number_++; }
+  bool is_Verlet_activated();
+  bool is_LC_activated();
 
   // setters
   void set_param(Param& p);
-  void set_nb_compo_tot(int nb_compo_tot) {nb_compo_tot_=nb_compo_tot;}
-  void detection_thickness_Verlet(double s_Verlet) {detection_thickness_Verlet_=s_Verlet;}
-  void set_domain_dimensions(DoubleVect& Longueurs) {domain_dimensions_=Longueurs;}
-  void set_origin(DoubleVect& Origin) {origin_=Origin;}
-  void set_geometric_parameters(Domaine_VDF& domaine_vdf);
+  void set_nb_particles_tot(int nb_particles_tot) { nb_particles_tot_=nb_particles_tot; }
+  void set_nb_real_particles(int nb_real_particles) { nb_real_particles_=nb_real_particles; }
+
+  void set_activation_distance(const double& diameter)
+  {
+    activation_distance_=
+      diameter*activation_distance_percentage_diameter_/100;
+  }
+  void set_spring_properties(const Solid_Particle& solid_particle);
+  void set_domain_dimensions(DoubleVect& Longueurs) { domain_dimensions_=Longueurs; }
+  void set_origin(DoubleVect& Origin) { origin_=Origin; }
+  void set_geometric_parameters(const Domaine_VDF& domaine_vdf);
+  void set_LC_zones(const Domaine_VF& domaine_vf, const Schema_Comm_FT& schema_com);
 
   // getters
   const int& get_nb_dt_Verlet() const { return nb_dt_Verlet_; }
-  const int& get_dt_compute_Verlet() const { return dt_compute_Verlet_; }
-  const int& get_nb_pas_dt_max_Verlet() const { return nb_pas_dt_max_Verlet_; }
+  const int& get_nb_dt_compute_Verlet() const { return nb_dt_compute_Verlet_; }
+  const int& get_nb_dt_max_Verlet() const { return nb_dt_max_Verlet_; }
   const int& get_is_force_on_two_phase_elem() const { return is_force_on_two_phase_elem_; }
-  const int& get_is_detection_Verlet() const { return is_detection_Verlet_;}
-  const int& get_is_LC_activated() const { return is_linked_cell_activated_; }
+  const int& get_collision_number() const { return collision_number_; }
+
+  int get_last_id(const ArrOfInt& list_particles_to_check_LC) const;
+
+  int get_id(const ArrOfInt& list_particle, const int ind_id_particle) const;
+
   const double& get_duration_collision() const { return collision_duration_; }
   const double& get_delta_n() const { return activation_distance_percentage_diameter_; }
   const double& get_s_Verlet() const  { return detection_thickness_Verlet_; }
   const DoubleVect& get_wall_coordinates() const { return fictive_wall_coordinates_; }
-  const ArrOfIntFT& get_list_upper_zone() const { return list_upper_zone_; }
-  const ArrOfIntFT& get_list_lower_zone() const { return list_lower_zone_; }
-
+  const ArrOfInt& get_list_upper_zone() const { return list_upper_zone_; }
+  const ArrOfInt& get_list_lower_zone() const { return list_lower_zone_; }
+  const IntLists& get_Verlet_table() const { return Verlet_tables_; }
   // getters to fill tab and vectors
-  DoubleVect& get_collisions_detected() { return collision_detected_; }
-  DoubleTab& get_stiffness() { return stiffness_; }
-  DoubleTab& get_e_eff() { return e_eff_; }
-  DoubleTab& get_F_old() { return F_old_; }
-  DoubleTab& get_F_now() { return F_now_; }
-  DoubleTab& get_solid_forces() { return solid_forces_; }
+  DoubleVect& get_set_collisions_detected() { return collision_detected_; }
+  DoubleTab& get_set_e_eff() { return e_eff_; }
+  DoubleTab& get_set_F_old() { return F_old_; }
+  DoubleTab& get_set_F_now() { return F_now_; }
+  DoubleTab& get_set_solid_forces() { return lagrangian_contact_forces_; }
+  int& get_set_nb_dt_Verlet() { return nb_dt_Verlet_; }
 
 protected:
-  int is_collision_activated_before_impact_=1; // to activate, or not, the collision process before the impact
-  int is_force_on_two_phase_elem_=0; // eulerian discretization of the collision forces on the total particles volume (including two-phase cells)
-  int nb_compo_tot_=0; // number of particles in the whole domain
-  int nb_dt_Verlet_=0;
-  int dt_compute_Verlet_=0;
-  int nb_pas_dt_max_Verlet_=0; // maximum number of time step before recomputing Verlet tables
-  int is_detection_Verlet_=0; // to activate, or not, the detection with Verlet method
-  int is_linked_cell_activated_=0;
+  int is_collision_activated_before_impact_ = 1; // to activate, or not, the collision process before the impact
+  int is_force_on_two_phase_elem_ = 0; // eulerian discretization of the collision forces on the total particles volume (including two-phase cells)
+  int nb_particles_tot_ = 0; // number of particles in the whole domain
+  int nb_dt_Verlet_ = 0; // number of time steps since last compute of Verlet tables
+  int nb_dt_compute_Verlet_ = 0; // number of time steps to achieve before recomputing Verlet tables
+  int nb_dt_max_Verlet_ = 0; // maximum number of time step before recomputing Verlet tables
+  int collision_number_ = 0;
+  double activation_distance_percentage_diameter_ = 0; // distance to the wall as a percentage of the particle diameter
+  double activation_distance_ = 0;
+  double collision_duration_ = 0.; // duration of the collision in seconds
+  double detection_thickness_Verlet_ = 0.;
 
-  double activation_distance_percentage_diameter_=0; // distance to the wall as a percentage of the particle diameter
-  double collision_duration_=0.; // duration of the collision in seconds
-  double detection_thickness_Verlet_=0.;
-
-  DoubleTab stiffness_; // stiffness of the spring
   DoubleTab e_eff_; // effective restitution coefficient
   DoubleTab F_old_;
   DoubleTab F_now_;
-  DoubleTab solid_forces_;
-  DoubleVect fictive_wall_coordinates_; // an offset is applied to compute collision forces before the impact
+
+  DoubleTab lagrangian_contact_forces_;
   DoubleVect collision_detected_;
-  ArrOfIntFT list_upper_zone_;
-  ArrOfIntFT list_lower_zone_;
+  ArrOfInt list_upper_zone_;
+  ArrOfInt list_lower_zone_;
 
   OBS_PTR(Transport_Interfaces_FT_Disc) refequation_transport_;
 
 private:
   OBS_PTR(Domaine) ref_domaine;
 
-  Nom filename_data_fpi_="data_fpi.sauv";
+  void compute_dX_dU(DoubleTab& dX, DoubleTab& dU, const int& particle,\
+                     const int& neighbor, const DoubleTab& particles_position, const\
+                     DoubleTab& particles_velocity, const bool is_particle_particle_collision );
+  int get_nb_particles_j(const int ind_particle_i) const;
+  int get_ind_start_particles_j(const int ind_particle_i) const;
+  int get_particle_i(const int ind_particle_i) const;
+  int get_particle_j(const int ind_particle_i, const int ind_particle_j) const;
 
   IntVect nb_nodes_;
   DoubleVect origin_;
   DoubleVect domain_dimensions_;
+  DoubleVect fictive_wall_coordinates_; // an offset is applied to compute collision forces before the impact
+  IntLists Verlet_tables_;
+  ArrOfInt list_real_particles_;
+  int nb_real_particles_; // = nb_particles_tot_ for CHECK_ALL and VERLET
+
+  double stiffness_breugem_part_part_ = 0;
+  double stiffness_breugem_wall_part_ = 0;
+  double damper_breugem_part_part_ = 0;
+  double damper_breugem_wall_part_ = 0;
 
   enum Collision_model { HYBRID_ESI, BREUGEM };
-  Collision_model collision_model_=HYBRID_ESI;
+  Collision_model collision_model_ = HYBRID_ESI;
+
+  enum Detection_method { CHECK_ALL, VERLET, LC_VERLET};
+  Detection_method detection_method_ = CHECK_ALL;
 };
 
 #endif

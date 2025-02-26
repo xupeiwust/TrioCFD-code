@@ -40,6 +40,8 @@
 #include <TRUSTTabFT_forward.h>
 #include <TRUST_Ref.h>
 
+#include <Collision_Model_FT.h>
+
 class Probleme_base;
 class Milieu_base;
 class Navier_Stokes_FT_Disc;
@@ -290,6 +292,17 @@ public:
                                                                      const DoubleVect& valeurs_euler,
                                                                      ArrOfDouble& valeurs_lagrange);
 
+  // for fpi module
+  // getters/setters
+  Collision_Model_FT& get_set_collision_model() { return collision_model_; }
+
+  // getters
+  const int& get_nb_particles_tot() const { return nb_particles_tot_; }
+  const Collision_Model_FT& get_collision_model() const { return collision_model_; }
+  const DoubleTab& get_particles_position() const { return particles_position_collision_; }
+  const DoubleTab& get_particles_velocity() const { return particles_velocity_collision_; }
+  const ArrOfInt& get_gravity_center_elem() const { return gravity_center_elem_; }
+
 protected:
 
   virtual void calculer_vmoy_composantes_connexes(const Maillage_FT_Disc& maillage,
@@ -328,8 +341,14 @@ protected:
   void calcul_indicatrice_faces(const DoubleTab& indicatrice,
                                 const IntTab& face_voisins);
 
-  void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;} // for fpi module
-  const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
+  // for fpi module
+  // getters
+  const bool& get_is_solid_particle() const { return is_solid_particle_; }
+  //setters
+  void set_is_solid_particle(const bool is_solid_particle) { is_solid_particle_=is_solid_particle; }
+
+  void init_particles_position_velocity();
+  void swap_particles_lagrangian_position_velocity();
 
   OBS_PTR(Probleme_base) probleme_base_;
   OBS_PTR(Navier_Stokes_FT_Disc) equation_ns_;
@@ -355,7 +374,14 @@ protected:
 
   OWN_PTR(Champ_Fonc_base)  vitesse_imp_interp_;
 
-  bool is_solid_particle_; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
+
+  // for fpi module
+  bool is_solid_particle_; // pointer to NS_FT_Disc::is_solid_particle_
+  Collision_Model_FT collision_model_;
+  mutable DoubleTab particles_position_collision_; // for contact forces computation
+  mutable DoubleTab particles_velocity_collision_; // for contact forces computation
+  ArrOfInt gravity_center_elem_; // number of the element which contains the gravity center of the particles
+
 
 private:
   // Variables internes a la methode de transport
@@ -370,6 +396,8 @@ private:
   ArrOfDouble force_;
   ArrOfDouble moment_;
 
+  void compute_nb_particles_tot();
+  int nb_particles_tot_=0;
 };
 
 class Transport_Interfaces_FT_Disc_interne : public Objet_U
@@ -568,5 +596,6 @@ public:
   Topologie_Maillage_FT   topologie_interface_;
   // Cet objet est type en fonction de la discretisation:
   OWN_PTR(Algorithmes_Transport_FT_Disc) algorithmes_transport_;
+
 };
 #endif
