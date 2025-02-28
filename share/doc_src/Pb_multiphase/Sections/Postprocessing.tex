@@ -14,10 +14,10 @@ Regarding the case under study and the variables of interest, \texttt{TRUST} off
 
 \section{Variables easily accessible}\label{post:variables}
 In order to ease computation post-processing, some variables are already accessible with keywords. They are summarized in the following tables.
- 
+
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation &  Keyword & Unit \\
 \midrule
@@ -34,13 +34,13 @@ Cell Reynolds number (VDF only) & $Re=\frac{u\Delta x}{\nu}$ & \texttt{Reynolds_
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation & Keyword & Unit \\
 \midrule
 \rowcolor[gray]{0.9}Density & $\rho$ & \texttt{masse_volumique} & $kg.m^{-3}$ \\
 Void fraction & $\alpha$ & \texttt{Alpha} & dimensionless \\
-\rowcolor[gray]{0.9} Mass balance on each cell & \nabla \cdot u & \texttt{Divergence_U} & $m^3.s^{-1}$ \\ \bottomrule
+\rowcolor[gray]{0.9} Mass balance on each cell & $\nabla \cdot u$ & \texttt{Divergence_U} & $m^3.s^{-1}$ \\ \bottomrule
 \end{tabular}
 \end{center}
 \caption{Mass equation keywords}
@@ -49,12 +49,12 @@ Void fraction & $\alpha$ & \texttt{Alpha} & dimensionless \\
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation & Keyword & Unit \\
 \midrule
 \rowcolor[gray]{0.9} Velocity & $u$ & \texttt{Vitesse} or \texttt{Velocity} & $m.s^{-1}$ \\
-Velocity residual & $u_{res}$ & \texttt{Vitesse_residu} & $m.s^{-2}$ \\ 
+Velocity residual & $u_{res}$ & \texttt{Vitesse_residu} & $m.s^{-2}$ \\
 \rowcolor[gray]{0.9} Kinetic energy per elements & $\frac{1}{2}\rho u^2$ & \texttt{Energie_cinetique_elem} &  $kg.m^{-1}.s^{-2}$ \\
 Total kinetic energy & $\frac{1}{2}\rho u^2$ & \texttt{ Energie_cinetique_totale} & $kg.m^{-1}.s^{-2}$\\
 \rowcolor[gray]{0.9} Vorticity & $w=rotu$ & \texttt{Vorticite} & $s^{-1}$\\
@@ -89,7 +89,7 @@ Component velocity along Z & $u_Z$ &  \texttt{VitesseZ} & $m.s^{-1}$\\
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation & Keyword  & Unit \\
 \midrule
@@ -110,7 +110,7 @@ Volumic thermal power & $P_w$ & \texttt{Puissance_volumique} &  $W.m^{-3}$\\ \bo
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation & Keyword & Unit \\
 \midrule
@@ -122,7 +122,7 @@ Turbulent dissipation rate & $\varepsilon$ & \texttt{Eps} & $m^2.s^{-3}$\\
 Specific dissipation time scale & $\tau$ & \texttt{tau} & $s$\\
 \rowcolor[gray]{0.9} Q-criteria & $Q$ & \texttt{Critere_Q} & $s^{-1}$\\
 Distance to the wall & $y^+$ & \texttt{Y_plus} & \\
-\rowcolor[gray]{0.9} Friction velocity & $u^*$ & \texttt{U_star} & $m.s^{-1}$\\ 
+\rowcolor[gray]{0.9} Friction velocity & $u^*$ & \texttt{U_star} & $m.s^{-1}$\\
 Turbulent heat flux &  & \texttt{Flux_Chaleur_Turbulente} & $m.K.s^{-1}$ \\ \bottomrule
 \end{tabular}
 \end{center}
@@ -131,7 +131,7 @@ Turbulent heat flux &  & \texttt{Flux_Chaleur_Turbulente} & $m.K.s^{-1}$ \\ \bot
 
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c } 
+\begin{tabular}{c c c c }
 \toprule
 Name & Notation & Keyword  & Unit \\
 \midrule

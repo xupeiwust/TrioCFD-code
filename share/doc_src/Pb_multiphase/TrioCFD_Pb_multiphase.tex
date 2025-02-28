@@ -26,7 +26,7 @@
 \usepackage{siunitx} % pour les unités et le traitement des numbre en notation SI\num{1e6}
 \usepackage{tikz}
 \usetikzlibrary{patterns}
-\usetikzlibrary{mindmap,trees} 
+\usetikzlibrary{mindmap,trees}
 \usetikzlibrary{backgrounds}
 \usepackage[outline]{contour}
 \usepackage{pifont}
@@ -44,7 +44,7 @@
 
 \usepackage{csquotes}
 \usepackage[
-backend=biber,      % On utilise biber pour la compilation biblatex
+backend=bibtex,      % On utilise biber pour la compilation biblatex
 citestyle=numeric,  % citation de la forme [1] ou pour plusieurs, [1], [2]
 bibstyle=numeric,   % complementaire à citestyle numeric pour la biblio finale
 sorting=nyt,        % Tri dans l'ordre : nom, année, titre.
@@ -93,16 +93,16 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 \DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
 %\newcommand\l|{\left|\left|} % use \vert
 %\newcommand\r|{\right|\right|} % use \vert
-\def\R{\mathds R} % Très mauvaise pratique !! Impossible à retrouver
-\def\P{\mathds P} % Très mauvaise pratique !! Impossible à retrouver
-\newcommand{\N}{\mathds N}
-\newcommand{\Z}{\mathds Z}
-\newcommand{\E}{\mathds E}
-\newcommand{\1}{\mathds 1}
-\newcommand{\T}{{\sf T}}
-\newcommand{\B}{{\sf B}}
-\renewcommand{\S}{{\sf S}}
-\renewcommand{\G}{{\sf G}}
+% \def\R{\mathds R} % Très mauvaise pratique !! Impossible à retrouver
+% \def\P{\mathds P} % Très mauvaise pratique !! Impossible à retrouver
+% \newcommand{\N}{\mathds N}
+% \newcommand{\Z}{\mathds Z}
+% \newcommand{\E}{\mathds E}
+% \newcommand{\1}{\mathds 1}
+% \newcommand{\T}{{\sf T}}
+% \newcommand{\B}{{\sf B}}
+% \renewcommand{\S}{{\sf S}}
+% \renewcommand{\G}{{\sf G}}
 \newcommand{\Vect}{\mathrm{ Vect}}
 \renewcommand{\th}{\mathrm{\,th\,}}
 \newcommand{\ch}{\mathrm{\,ch\, }}
@@ -164,8 +164,8 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 \definecolor{codecomment}{RGB}{112, 142, 124}            % Vert olive pour les commentaires
 \definecolor{codestring}{RGB}{86, 156, 214}              % Turquoise pour les chaînes de caractères
 
-\definecolor{Orange}{RGB}{255, 140, 0} 
-\definecolor{Vert}{RGB}{0, 128, 0} 
+\definecolor{Orange}{RGB}{255, 140, 0}
+\definecolor{Vert}{RGB}{0, 128, 0}
 \definecolor{Rose}{RGB}{255, 105, 180}
 \definecolor{Bleu}{RGB}{156, 220, 254}
 \definecolor{Beige}{RGB}{255, 220, 209}
@@ -195,7 +195,7 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
     keywordstyle={[3]\color{codekeyword3}},
     keywordstyle={[4]\color{codekeyword4}},
     morekeywords=[1]{Dimension, Domaine, Mailler,Partition, Scatter, Schema_euler_implicite, Read, associate, Associate, Discretize, Lire, Postraitement, Resoudre, Fin,read_med},   % Première classe de mots clés
-    morekeywords=[2]{ Milieu_composite, correlations, QDM_Multiphase,Masse_Multiphase, Energie_Multiphase, taux_dissipation_turbulent, energie_cinetique_turbulente,solveur,milieu_composite}, 
+    morekeywords=[2]{ Milieu_composite, correlations, QDM_Multiphase,Masse_Multiphase, Energie_Multiphase, taux_dissipation_turbulent, energie_cinetique_turbulente,solveur,milieu_composite},
     morekeywords=[3]{VDF, PolyMAC_P0, taux_dissipation_turbulent, energie_cinetique_turbulente, criteres_convergence, evanescence, convection, diffusion, conditions_limites, initial_conditions, liquide_eau, boundary_conditions, sources, iter_min, seuil_convergence_implicite,solveur_pression,gaz_air,interface_eau_air},
     morekeywords=[4]{Pb_Multiphase},
     commentstyle=\color{codecomment},
@@ -284,7 +284,7 @@ v1.9.4 & 24 juin 2024   &               & A BURLOT \\
 	Turbulent kinetic energy of the carrying phase
 		& $k$ \\ \hline
 	Turbulent dissipation of the carrying phase
-		& $\varepsilon$ \\ \hline	
+		& $\varepsilon$ \\ \hline
 	Temperature of phase k
 		& $T_{k}$ \\ \hline
 	Temperature of the wall
@@ -295,9 +295,9 @@ v1.9.4 & 24 juin 2024   &               & A BURLOT \\
 		& $Cp_k$ \\ \hline
 	Forced convection heat transfer coefficient
 		& $h_{fc}$	\\ \hline
-	Liquid fraction 
+	Liquid fraction
 		& $\alpha_l $ \\ \hline
-	Void fraction 
+	Void fraction
 		& $\alpha_g $ \\ \hline
 	Internal energy of phase k
 		& $e_k $ \\ \hline
@@ -333,11 +333,11 @@ v1.9.4 & 24 juin 2024   &               & A BURLOT \\
 		& $We = \frac{(\varepsilon d_b)^{2/3} \rho_l d_b}{\sigma}$ \\ \hline
 	Eotvos number
 		&  $Eo = \frac{g(\rho_l-\rho_g)d^2}{\sigma}$ \\ \hline
-	Turbulent Prandtl number of the liquid 
+	Turbulent Prandtl number of the liquid
 		& $Pr_t \sim 1 $ \\ \hline
 	Superheat Jacob number
 		& $Ja_\text{sup} = \frac{\rho_l Cp_l \cdot (T_\text{wall} - T_\text{sat})}{\rho_v L_\text{vap}}$ \\ \hline
-	Subcooling Jacob number	
+	Subcooling Jacob number
 		& $Ja_\text{sub} = \frac{\rho_l Cp_l \cdot (T_\text{sat} - T_l)}{\rho_v L_\text{vap}}$ \\ \hline
 \end{tabular}
 \end{center}
@@ -381,7 +381,7 @@ v1.9.4 & 24 juin 2024   &               & A BURLOT \\
 \input{Sections/Appendix.tex}
 \cleardoublepage
 
-%\bibliographystyle{plain} 
+%\bibliographystyle{plain}
 %\bibliography{BiblioCMFDdiphasique.bib}
 \printbibliography
 \end{document}

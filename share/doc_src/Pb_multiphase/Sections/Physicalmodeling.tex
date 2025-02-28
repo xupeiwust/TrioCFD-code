@@ -15,7 +15,7 @@ The models aims to give the basic proprieties of fluids such as :
     \item[\small \textcolor{blue}{\ding{109}}] Calorific capacity $Cp$
     \item[\small \textcolor{blue}{\ding{109}}] Thermal dilatation coefficient $\beta_{co}$
 \end{itemize}
-The model is implemented in \texttt{Fluide_reel_base} as 
+The model is implemented in \texttt{Fluide_reel_base} as
 \begin{lstlisting}[language=c++]
 void Fluide_reel_base::set_param(Param& param)
 {
@@ -92,7 +92,7 @@ void Fluide_stiffened_gas::set_param(Param& param)
   param.ajouter("mu",&mu__); // viscosity
   param.ajouter("lambda",&lambda__); // conductivity
   param.ajouter("Cv",&Cv_); // heat capacity
-  param.ajouter("q",&q_); 
+  param.ajouter("q",&q_);
   param.ajouter("q_prim",&q_prim_);
 }
 \end{lstlisting}
@@ -115,21 +115,21 @@ The model implemented is:
 The models are implemented in \texttt{Fluide\_R12\_c1\_liquide}, \texttt{Fluide\_R12\_c1\_gaz}, \texttt{Fluide\_eau\_c3\_liquide} and \texttt{Fluide\_eau\_c3\_gaz}. The low boiling of refrigerant R12 (dichlorodifluoromethane) mimics Pressurized water reactor dimensionless numbers. Those values are available in Cathare code.
 For example, in \textcite{KREPPER20113851}, one can find : \\
 \begin{center}
-\begin{tabular}{c c c } 
+\begin{tabular}{c c c }
 \toprule
 Fluid & Water & R12 \\ \midrule
-\rowcolor[gray]{0.9} Pressure [bar] & $155$ & $26$ \\  
-$T_{sat}$ [\textdegree C] &  $344.9$ &  $86.5$ \\ 
-\rowcolor[gray]{0.9} $\rho_{liquid}$ [kg/m3] &  $594.4$ & $1019.3$ \\ 
-$Cp_{liquid}$ [kJ/kg] &  $8.950$ & $1.413$ \\ 
-\rowcolor[gray]{0.9} $\lambda_{liquid}$ [W/m/K] & $0.472$ & $0.0458$ \\ 
-$\mu_{liquid}$ [W/m/K] & $6.82 \times 10^{-5}$ & $9.23 \times 10^{-5}$ \\ 
-\rowcolor[gray]{0.9} $\rho_{steam}$ [kg/m3] & $101.9$ & $170.7$ \\ 
-$Cp_{steam}$ [kJ/kg] & $14.0$ & $1.281$\\ 
-\rowcolor[gray]{0.9} $\lambda_{steam}$ [W/m/K] &  $0.126$ &  $0.0175$\\ 
-$\mu_{steam}$ [W/m/K] & $2.30 \times 10^{-5}$ & $1.57 \times 10^{-5} $ \\ 
+\rowcolor[gray]{0.9} Pressure [bar] & $155$ & $26$ \\
+$T_{sat}$ [\textdegree C] &  $344.9$ &  $86.5$ \\
+\rowcolor[gray]{0.9} $\rho_{liquid}$ [kg/m3] &  $594.4$ & $1019.3$ \\
+$Cp_{liquid}$ [kJ/kg] &  $8.950$ & $1.413$ \\
+\rowcolor[gray]{0.9} $\lambda_{liquid}$ [W/m/K] & $0.472$ & $0.0458$ \\
+$\mu_{liquid}$ [W/m/K] & $6.82 \times 10^{-5}$ & $9.23 \times 10^{-5}$ \\
+\rowcolor[gray]{0.9} $\rho_{steam}$ [kg/m3] & $101.9$ & $170.7$ \\
+$Cp_{steam}$ [kJ/kg] & $14.0$ & $1.281$\\
+\rowcolor[gray]{0.9} $\lambda_{steam}$ [W/m/K] &  $0.126$ &  $0.0175$\\
+$\mu_{steam}$ [W/m/K] & $2.30 \times 10^{-5}$ & $1.57 \times 10^{-5} $ \\
 \rowcolor[gray]{0.9} $\sigma$ [J/m2] & $4.65 \times 10^{-3}$ & $1.80 \times 10^{-3}$ \\
-$L_{vap}$ [kJ/kg] & $966.2$ & $86.48$ \\ \bottomrule 
+$L_{vap}$ [kJ/kg] & $966.2$ & $86.48$ \\ \bottomrule
 \end{tabular}
 \end{center}
 
@@ -166,7 +166,7 @@ if (Motcle(mot) == "LOG")
 }
 \end{lstlisting}
 Default value : $\texttt{nbSubPhases\_} = -1$, $\texttt{rMin}=-1$, $r\texttt{Max}=-1$.\\
-Example of data set to perform MUSIG computation : 
+Example of data set to perform MUSIG computation :
 \begin{lstlisting}[language=c++]
 Milieu_MUSIG
 {
@@ -187,7 +187,7 @@ Milieu_MUSIG
 %%%
 \subsection{Interfacial proprieties}
 The liquid-gas interface can be characterized by the surface tension $\sigma$.
-The model is implemented in \texttt{Interface\_base} as 
+The model is implemented in \texttt{Interface\_base} as
 \begin{lstlisting}[language=c++]
 void Interface_base::set_param(Param& param)
 {
@@ -206,7 +206,7 @@ The model is implemented in \texttt{Interface\textunderscore sigma\textunderscor
 \begin{lstlisting}[language=c++]
 void sigma_(const SpanD T, const SpanD P, SpanD res, int ncomp = 1, int ind = 0) const override
   {
-    for (int i =0; i < (int)P.size(); i++) 
+    for (int i =0; i < (int)P.size(); i++)
       res[i * ncomp + ind] = sigma__;
   }
 \end{lstlisting}
@@ -214,7 +214,7 @@ void sigma_(const SpanD T, const SpanD P, SpanD res, int ncomp = 1, int ind = 0)
 %%%
 \subsection{Saturation proprieties}
 The model aims to give the thermal proprieties at saturation conditions. This class inherits from \texttt{Interface}.
-The model is implemented in \texttt{Saturation\textunderscore base} as 
+The model is implemented in \texttt{Saturation\textunderscore base} as
 \begin{lstlisting}[language=c++]
 void Saturation_base::set_param(Param& param)
 {
@@ -247,7 +247,7 @@ void Saturation_constant::set_param(Param& param)
   Param param(que_suis_je());
   param.ajouter("Tsat", &tsat_,Param::REQUIRED); // Temperature at saturation
   param.ajouter("Psat", &psat_,Param::REQUIRED); //Pressure at saturation
-  param.ajouter("Lvap", &lvap_); // Phase change enthalpy 
+  param.ajouter("Lvap", &lvap_); // Phase change enthalpy
   param.ajouter("Hlsat", &hls_); // Enthalpy of liquid phase at saturation
   param.ajouter("Hvsat", &hvs_); // Enthalpy of steam phase at saturation
   param.ajouter("tension_superficielle", &sigma__); // Surface tension
@@ -271,7 +271,7 @@ The model implemented is:
    \item[\small \textcolor{blue}{\ding{109}}] $L_{vap} = \texttt{lvap\_}$
    \item[\small \textcolor{blue}{\ding{109}}] $\frac{D L_{vap}}{Dp} = 0$
    \item[\small \textcolor{blue}{\ding{109}}] $H_{ls} = \texttt{hls_\_}$
-   \item[\small \textcolor{blue}{\ding{109}}] $\frac{D H_{ls}}{Dp} = 0$ 
+   \item[\small \textcolor{blue}{\ding{109}}] $\frac{D H_{ls}}{Dp} = 0$
    \item[\small \textcolor{blue}{\ding{109}}] $H_{vs} = \texttt{hvs_\_}$
    \item[\small \textcolor{blue}{\ding{109}}] $\frac{D H_{vs}}{Dp} = 0$
    \item[\small \textcolor{blue}{\ding{109}}] $\texttt{sigma\_} =\texttt{sigma\_\_}$
@@ -282,7 +282,7 @@ The model is implemented in Saturation_sodium :
 \begin{lstlisting}[language=c++]
 void Saturation_sodium::set_param(Param& param)
 {
-return Saturation_base::readOn(is); 
+return Saturation_base::readOn(is);
 }
 \end{lstlisting}
 
@@ -362,8 +362,8 @@ Validity domain for Refprop tables with $\texttt{tmin\_}$, $\texttt{tmax\_}$, $\
 
 For instance, a boiling flow using \texttt{refprop10} must be specified as
 \begin{lstlisting}[language=c++]
-liquide_eau Fluide_generique_EOS { model refprop10 fluid waterliquid } 
-gaz_eau Fluide_generique_EOS { model refprop10 fluid watervapor } 
+liquide_eau Fluide_generique_EOS { model refprop10 fluid waterliquid }
+gaz_eau Fluide_generique_EOS { model refprop10 fluid watervapor }
 \end{lstlisting}
 
 %%%
@@ -437,7 +437,7 @@ The general expression of the drag force is:
 \begin{equation}
 \overrightarrow{F_{l\rightarrow g}^D}= - \frac{3}{4} C_D \frac{\alpha_g\rho_l}{d_b} \norm{\norm{\overrightarrow{u_g}-\overrightarrow{u_l}}} \parent{\overrightarrow{u_g}-\overrightarrow{u_l}}=-f^{D}||\overrightarrow{u_g}-\overrightarrow{u_l}||\left(\overrightarrow{u_g}-\overrightarrow{u_l}\right)
 \end{equation}
-The force is implemented in : 
+The force is implemented in :
 \begin{lstlisting}[language=c++]
 void Source_Frottement_interfacial_base::set_param(Param& param)
 {
@@ -471,7 +471,7 @@ The interfacial drag operator must fill coeff tab so that :
      Model & Used & Validated & Test case  \\
     \midrule
      \rowcolor[gray]{0.9} Constant & \checkmark & \checkmark (100\%) & TrioCFD/Tube analytique,\\
-     \rowcolor[gray]{0.9} \ & \ & \ & Trust/Tube analytique \\ 
+     \rowcolor[gray]{0.9} \ & \ & \ & Trust/Tube analytique \\
      Composant & \checkmark & \xmark (0\%) &  \ \\
      \rowcolor[gray]{0.9} Ishii Zuber Deformable &\checkmark & \xmark (0\%) & \ \\
      Ishii Zuber &\checkmark & \xmark (0\%) & \ \\
@@ -504,7 +504,7 @@ Default values : $\texttt{r\_bulles\_}=-1$, $\texttt{C\_d\_}=-123.$.\\
 If no rayon\_bulle takes d\_bulles.\\
 The model implemented is :
 \begin{equation}
-   f^{D}=\frac{3}{4}\frac{C_d\alpha_g\rho_l}{d_b}. 
+   f^{D}=\frac{3}{4}\frac{C_d\alpha_g\rho_l}{d_b}.
 \end{equation}
 
 \subsubsection{Composant drag coefficient}
@@ -552,7 +552,7 @@ void Frottement_interfacial_Ishii_Zuber::set_param(Param& param)
 Default values $\texttt{g\_}=9.81$, $\texttt{beta\_}=1.$.
 The model implemented is :
 \begin{equation}
-   f^{D}=\frac{3}{4}\frac{\text{max}\parent{\frac{24}{Re_b}\left(1+0.1Re_b^{0.75}\right),\ \frac{2}{3}\sqrt{\frac{\left(\rho_l-\rho_g\right)g d_b^2}{\sigma}}}\beta \alpha_g\rho_l}{d_b }, 
+   f^{D}=\frac{3}{4}\frac{\text{max}\parent{\frac{24}{Re_b}\left(1+0.1Re_b^{0.75}\right),\ \frac{2}{3}\sqrt{\frac{\left(\rho_l-\rho_g\right)g d_b^2}{\sigma}}}\beta \alpha_g\rho_l}{d_b },
 \end{equation}
 with $Re_b=\frac{\rho_l d (u_g-u_l)}{\mu_l}$.
 \subsubsection{Tomiyama : contaminated drag coefficient}
@@ -675,8 +675,8 @@ The model implemented is :
 \subsection{The Lift force}
 The general expression of the lift force is :
 \begin{equation}
-	\overrightarrow{F_{l\rightarrow v}^L} 
-	= -C_L \rho_l \alpha_g \parent{\overrightarrow{u_g} - \overrightarrow{u_l}} \wedge \overrightarrow{u_l} 
+	\overrightarrow{F_{l\rightarrow v}^L}
+	= -C_L \rho_l \alpha_g \parent{\overrightarrow{u_g} - \overrightarrow{u_l}} \wedge \overrightarrow{u_l}
 	= -f^L\parent{\overrightarrow{u_g} - \overrightarrow{u_l}} \wedge \overrightarrow{u_l}
 \end{equation}
 The force is implemented in :
@@ -720,10 +720,10 @@ The interfacial lift operator must fill out.Cl tab so that :
      Model & Used & Validated & Test case  \\
     \midrule
      \rowcolor[gray]{0.9}Constant & \checkmark & \checkmark (100\%) & TrioCFD/Tube analytique,\\
-    \rowcolor[gray]{0.9} \ & \ & \ & TrioCFD/CoolProp, \\ 
+    \rowcolor[gray]{0.9} \ & \ & \ & TrioCFD/CoolProp, \\
     \rowcolor[gray]{0.9} \ & \ & \ & Trust/Tube analytique \\
      Sugrue & \checkmark & \checkmark (100\%) & TrioCFD/CoolProp \\
-     \ & \ & \ & TrioCFD/Gabillet \\ 
+     \ & \ & \ & TrioCFD/Gabillet \\
      \rowcolor[gray]{0.9} Tomiyama &\checkmark & \xmark (0\%) & \ \\
      \bottomrule
    \end{tabular}
@@ -763,9 +763,9 @@ The model implemented is :
 \begin{equation}
    f^{L} = \rho_l\alpha_g \text{max}\parent{1.0155-0.0154\exp\parent{8.0506\alpha_g},\ 0} \times \text{min}\parent{5.0404-5.0781(Wo)^{0.0108},\ 0.03}
 \end{equation}
-with 
+with
 \begin{itemize}
-    \item[\small \textcolor{blue}{\ding{109}}]the wobbling number $\mathit{Wo}=\text{min}\parent{\frac{k_lEo}{\text{max}\parent{\parent{u_g-u_l}^2,\ \num{1e-8}}},\ 6.}$ 
+    \item[\small \textcolor{blue}{\ding{109}}]the wobbling number $\mathit{Wo}=\text{min}\parent{\frac{k_lEo}{\text{max}\parent{\parent{u_g-u_l}^2,\ \num{1e-8}}},\ 6.}$
     \item[\small \textcolor{blue}{\ding{109}}]the Eotvos number $\mathit{Eo}=\frac{g\parent{\rho_l-\rho_g}d_b^2}{\sigma}$
 \end{itemize}.
 
@@ -782,13 +782,13 @@ void Portance_interfaciale_Tomiyama::set_param(Param& param)
 Default values $\texttt{g\_}=9.81$.\\
 The model implemented is :
 \begin{equation}
-   f^{L} = \rho_l\alpha_g\begin{cases} 
-   \min(0.288\tanh(.121Re_b),f(\mathit{Eo}))\text{, if } \mathit{Eo}<4 \\ 
+   f^{L} = \rho_l\alpha_g\begin{cases}
+   \min(0.288\tanh(.121Re_b),f(\mathit{Eo}))\text{, if } \mathit{Eo}<4 \\
    f(\mathit{Eo}) \text{, if } 4 \leq \mathit{Eo} \leq 10.7 \end{cases}
 \end{equation}
-with 
+with
 \begin{itemize}
-\item[\small \textcolor{blue}{\ding{109}}]the Eotvos number $\mathit{Eo}=\frac{g\parent{\rho_l-\rho_g}d_b^2}{\sigma}$ 
+\item[\small \textcolor{blue}{\ding{109}}]the Eotvos number $\mathit{Eo}=\frac{g\parent{\rho_l-\rho_g}d_b^2}{\sigma}$
 \item[\small \textcolor{blue}{\ding{109}}]$f(\mathit{Eo}) = 0.00105\times{}\mathit{Eo}^3 - 0.0159\times{}\mathit{Eo}^2 - 0.0204\times{} \mathit{Eo} + 0.474$.
 \end{itemize}
 
@@ -803,11 +803,11 @@ The model is implemented in:
 void Masse_ajoutee_base::set_param(Param& param)
 {
 *     IN :
- *         alpha[n]  -> void fraction 
+ *         alpha[n]  -> void fraction
  *         rho[n]    -> density
  *
  *     IN/OUT :
- *        a_r(k, l)   -> update in momentum equation 
+ *        a_r(k, l)   -> update in momentum equation
  *
  *     NB: no need of derivative because it is past void fraction
 }
@@ -1075,11 +1075,11 @@ void Correction_Antal_PolyMAC_P0::set_param(Param& param)
 }
 \end{lstlisting}
 Default values :  $\texttt{Cw1\_} =  -0.1$, $\texttt{Cw2\_} =  0.147$.\\
-The model implemented is : 
+The model implemented is :
 \begin{equation}
    F^{WL}=C_{WL}\alpha_g\rho_l\frac{(\vec{u_g}-\vec{u_l})^2}{d_b}\vec{n},
 \end{equation}
-with 
+with
 \begin{equation}
    C_{WL}=max(-C_{W1}+C_{W2}\frac{d_b}{2y},0)
 \end{equation}
@@ -1117,7 +1117,7 @@ Test cases are available in TrioCFD/CoolProp and TrioCFD/Gabillet.
 {\color{red} Warning} : This force is a good example of implementation but we discourage its use.\\
 The general expression of the Tchen force \cite{Tchen1947} is :
 \begin{equation}
-\overrightarrow{F_{l\rightarrow g}}= \alpha_g\rho_l \frac{\partial \overrightarrow{u_l}}{\partial t} 
+\overrightarrow{F_{l\rightarrow g}}= \alpha_g\rho_l \frac{\partial \overrightarrow{u_l}}{\partial t}
 \end{equation}
 The force is implemented in :
 \begin{lstlisting}[language=c++]
@@ -1125,7 +1125,7 @@ void Source_Force_Tchen_base::set_param(Param& param)
 \end{lstlisting}
 It is discritized in right side of the equation \texttt{secmem} as :
 \begin{equation}
- \alpha_g^n\rho_l^n \frac{u_l^n-u^{n-1}}{\Delta t} 
+ \alpha_g^n\rho_l^n \frac{u_l^n-u^{n-1}}{\Delta t}
 \end{equation}
 \begin{figure}[!ht]
     \centering
@@ -1144,21 +1144,21 @@ It is discritized in right side of the equation \texttt{secmem} as :
 }
     \label{entrelace}
 \end{figure}
-The local void fraction $\texttt{\alpha\_loc}$ is computed from cells on both sides of the face (called here top and bottom) as follows :  
+The local void fraction $\alpha\_loc$ is computed from cells on both sides of the face (called here top and bottom) as follows :
 \begin{equation}
-    \texttt{\alpha\_loc}=\begin{cases} \alpha_k(bottom) \times \frac{volume\ entrelace\ bottom}{volume\ entrelace} +  \alpha_k(top) \times \frac{volume\ entrelace\ top}{volume\ entrelace}, if\ not\ toward\ a\ boundary,\\
+    \alpha\_loc=\begin{cases} \alpha_k(bottom) \times \frac{volume\ entrelace\ bottom}{volume\ entrelace} +  \alpha_k(top) \times \frac{volume\ entrelace\ top}{volume\ entrelace}, if\ not\ toward\ a\ boundary,\\
         \alpha_k(bottom),\ otherwise.
     \end{cases}
 \end{equation}
 One can refer to Figure \ref{entrelace} to understand volume entrelace. The density is computed the same way. Finally, we add in secmem the full term and in mat (incremental velocity matrix) without the increment of velocity, as follows :
 \begin{equation}
-    \texttt{fac} = \texttt{\alpha\_loc \times \rho\_loc}
+    \text{fac} = \alpha\_loc \times \rho\_loc
 \end{equation}
 \begin{equation}
-   \texttt{ secmem}  \pluseq \texttt{fac}\times \frac{u^n-u^{n-1}}{\Delta t}\begin{cases}1,\ if\ in\ gas,\\ -1,\ if\ in\ liquid \end{cases}.
+   \text{ secmem}  \pluseq \text{fac}\times \frac{u^n-u^{n-1}}{\Delta t}\begin{cases}1,\ if\ in\ gas,\\ -1,\ if\ in\ liquid \end{cases}.
 \end{equation}
 \begin{equation}
-    M_v \minuseq  \frac{\texttt{fac}}{\Delta t}\begin{cases}1,\ if\ in\ gas,\\ -1,\ if\ in\ liquid \end{cases}.
+    M_v \minuseq  \frac{\text{fac}}{\Delta t}\begin{cases}1,\ if\ in\ gas,\\ -1,\ if\ in\ liquid \end{cases}.
 \end{equation}
 
 %%%
@@ -1193,7 +1193,7 @@ If saturation activated then :
 \begin{equation}
     L=\begin{cases} h_l-H_{ls},\ if\ \Phi<0\\ h_g-H_{gs},\ \text{otherwise}.  \end{cases}
 \end{equation}
-If no correlation for G or if $|\frac{\Phi}{L}|<|G|$ (limitation by energy conservation) then : 
+If no correlation for G or if $|\frac{\Phi}{L}|<|G|$ (limitation by energy conservation) then :
 \begin{equation}
    G=\frac{\Phi}{L}
 \end{equation}
@@ -1216,7 +1216,7 @@ The phase change G is limited by evanescence at G_{lim}(see evanescence part).
 \begin{equation}
     \frac{dh_l}{dP}=\begin{cases}\frac{dh_l}{dP},\ if\ G<0, \\ \frac{dh_{vs}}{dP},\ \text{otherwise}.   \end{cases}
 \end{equation}
-If there is no evanescence and no phase change model then : 
+If there is no evanescence and no phase change model then :
 \begin{equation}
    \frac{d\Phi}{dP}=\frac{dh_g}{dP}(T_g-T_{sat})+\frac{dh_l}{dP}(T_l-T_{sat})-\frac{dT_sat}{dP}(h_g-h_{l})+\frac{dq_p}{dP}\frac{1}{vol}
 \end{equation}
@@ -1237,7 +1237,7 @@ These fluxes are then distributed to the following equations :
 \end{itemize}
 The model is implemented as follows :\\
 \begin{itemize}
-    \item[\small \textcolor{blue}{\ding{109}}] In the energy equation : 
+    \item[\small \textcolor{blue}{\ding{109}}] In the energy equation :
 \end{itemize}
 \begin{equation}
     h_m=\frac{1}{\frac{1}{h_g}+\frac{1}{h_l}}
@@ -1249,7 +1249,7 @@ The model is implemented as follows :\\
     M_T \minuseq h_m\times \begin{cases} -1,\ for\ the\ liquid, \\ 1,\ otherwise. \end{cases}\times \begin{cases} 1,\ regarding\ the\ same\ phase, \\ -1,\ otherwise. \end{cases}.
 \end{equation}
 \begin{itemize}
-    \item[\small \textcolor{blue}{\ding{109}}] If saturation is activated, then in the mass equation we get : 
+    \item[\small \textcolor{blue}{\ding{109}}] If saturation is activated, then in the mass equation we get :
 \end{itemize}
 \begin{equation}
     \texttt{secmem} \minuseq G\times \begin{cases} -1,\ for\ the\ liquid, \\ 1,\ otherwise. \end{cases}.
@@ -1265,7 +1265,7 @@ if there is no evanescence then :
     M_P \pluseq \frac{dG}{dP}\times \begin{cases} -1,\ for\ the\ liquid, \\ 1,\ otherwise. \end{cases}.
 \end{equation}
 \begin{itemize}
-    \item[\small \textcolor{blue}{\ding{109}}] If saturation is activated, then in the energy equation we get : 
+    \item[\small \textcolor{blue}{\ding{109}}] If saturation is activated, then in the energy equation we get :
 \end{itemize}
 \begin{equation}
     \texttt{secmem} \minuseq \Bigg(\texttt{signflux}\times h_c(T_c-T_{sat})+Gh_c\Bigg)\times \begin{cases} -1,\ for\ the\ liquid, \\ 1,\ otherwise. \end{cases} + \begin{cases} q_p,\ if\ not\ c, \\ 0,\ otherwise. \end{cases}.
@@ -1297,19 +1297,19 @@ The model is implemented in:
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_base::set_param(Param& param)
 \end{lstlisting}
-The available input parameters are : 
+The available input parameters are :
 \begin{lstlisting}[language=c++]
     double dh;            // Hydraulic diameter
-    const double *alpha;  // Void fraction 
+    const double *alpha;  // Void fraction
     const double *T;      // Temperature
     const double *T_passe;// Previous time temperature
-    double p;             // Pressure 
+    double p;             // Pressure
     const double *nv;     // Norme of relative velocity
     const double *lambda; // Thermal conductivity
     const double *mu;     // Viscosity
     const double *rho;    // Density
     const double *Cp;     // Calorific capacity
-    const double *Lvap;   // Latent heat 
+    const double *Lvap;   // Latent heat
     const double *dP_Lvap;// Phase change latent heat
     const double *h;      // Enthalpy
     const double *dP_h;   // Enthalpy derivative regarding pressure
@@ -1326,7 +1326,7 @@ The interfacial heat flux operator must fill hi tab so that :
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{hi}({\color{myteal}k1}, {\color{mydarkorchid}k2})$ and $\texttt{hi}({\color{mydarkorchid}k2},{\color{myteal}k1})$ exchange coefficients
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dT\_hi}({\color{myteal}k1}, {\color{mydarkorchid}k2},n)$ and $\texttt{dT\_hi}({\color{mydarkorchid}k2},{\color{myteal}k1},n)$ Exchange coefficient derivative regarding the temperature
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{da\_hi}({\color{myteal}k1}, {\color{mydarkorchid}k2}, n)$ and $\texttt{da\_hi}({\color{mydarkorchid}k2}, {\color{myteal}k1}, n)$ Exchange coefficient derivative regarding  void fraction of phase n
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_hi}({\color{myteal}k1}, {\color{mydarkorchid}k2})$ and $\texttt{dp\_hi}({\color{mydarkorchid}k2}, {\color{myteal}k1})$ Exchange coefficient derivative regarding pressure 
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_hi}({\color{myteal}k1}, {\color{mydarkorchid}k2})$ and $\texttt{dp\_hi}({\color{mydarkorchid}k2}, {\color{myteal}k1})$ Exchange coefficient derivative regarding pressure
 \end{itemize}
 
 \begin{table}[!ht]
@@ -1383,7 +1383,7 @@ The model implemented is :
         Nu=0.185Re_b^{0.7}Pr^{0.5},
 \end{equation}
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu\times\frac{\lambda_l}{d_b} \frac{6\times \max(\alpha_g,\num{1e-4})}{d_b}, 
+    \texttt{hi(n_l, k)} = Nu\times\frac{\lambda_l}{d_b} \frac{6\times \max(\alpha_g,\num{1e-4})}{d_b},
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)}= \begin{cases}
@@ -1393,7 +1393,7 @@ The model implemented is :
 \begin{equation}
 \texttt{hi(k, n_l)} = 1e8,
 \end{equation}
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Re_b=\frac{\rho_l d_b (u_g-u_l)}{\mu_l}$
     \item[\small \textcolor{blue}{\ding{109}}]$Pr\frac{\mu_l Cp_l}{\lambda_l}$
@@ -1411,7 +1411,7 @@ The model implemented is :
          Nu = 0.2575 Re_b^{0.7}Pr{ -0.4564}Ja^{-0.2043}
 \end{equation}
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d_b} \frac{6max(\alpha_g,1e-4)}{d_b}, 
+    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d_b} \frac{6max(\alpha_g,1e-4)}{d_b},
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)} = \begin{cases}
@@ -1421,7 +1421,7 @@ The model implemented is :
 \begin{equation}
 \texttt{hi(k, n_l)} = 1e8,
 \end{equation}
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Re_b=\frac{\rho_l d_b (u_g-u_l)}{\mu_l}$
     \item[\small \textcolor{blue}{\ding{109}}]$Pr\frac{\mu_l Cp_l}{\lambda_l}$
@@ -1443,7 +1443,7 @@ The model implemented is :
   \mathit{Nu} = 2.0 + 0.6 \mathit{Re}_b^{0.5}\mathit{Pr}^{0.3}
 \end{equation}
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d_b} \frac{6\max(\alpha_g,\texttt{a\_ min})}{d_b}, 
+    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d_b} \frac{6\max(\alpha_g,\texttt{a\_ min})}{d_b},
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)} = \begin{cases}
@@ -1453,7 +1453,7 @@ The model implemented is :
 \begin{equation}
 \texttt{hi(k, n_l)} = 1e8,
 \end{equation}
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Re_b=\frac{\rho_l d (u_g-u_l)}{\mu_l}$
     \item[\small \textcolor{blue}{\ding{109}}]$Pr = \frac{\mu_l Cp_l}{\lambda_l}$
@@ -1474,14 +1474,14 @@ The model implemented is :
         Nu = \frac{12}{\texttt{M_{PI}}} Ja  +\frac{2}{\sqrt{\pi}}(1+\nu_t\rho_l \frac{Cp_l}{\lambda_l})Pe^{0.5};
 \end{equation}
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu \times \frac{\lambda_l}{d_b} \frac{6max(\alpha_g,1e-4)}{d_b}, 
+    \texttt{hi(n_l, k)} = Nu \times \frac{\lambda_l}{d_b} \frac{6max(\alpha_g,1e-4)}{d_b},
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)} = \begin{cases}
     Nu \frac{6\lambda_l}{d_b^2},\ if\ \alpha_g> 1e-4,\\ 0,\ otherwise
 \end{cases}
 \end{equation}
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Ja=\frac{\rho_l Cp_l (T_g-T_l)}{\rho_lLvap}$
     \item[\small \textcolor{blue}{\ding{109}}]$Pe\frac{\rho_l Cp_l (u_g-u_l)d}{\lambda_l}$
@@ -1504,7 +1504,7 @@ The model implemented is :
 Nu = \frac{12}{\texttt{M_{PI}}} Ja  +\frac{2}{\sqrt{\texttt{M_{PI}}}}(1+\lambda_t\rho_l \frac{Cp_l}{\lambda_l})Pe^{0.5};
 \end{equation}
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d} \frac{6max(\alpha_g,1e-4)}{d}, 
+    \texttt{hi(n_l, k)} = Nu \times\frac{\lambda_l}{d} \frac{6max(\alpha_g,1e-4)}{d},
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)} = \begin{cases}
@@ -1512,7 +1512,7 @@ Nu = \frac{12}{\texttt{M_{PI}}} Ja  +\frac{2}{\sqrt{\texttt{M_{PI}}}}(1+\lambda_
 \end{cases}
 \end{equation}
 
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Ja=\frac{\rho_l Cp_l (T_g-T_l)}{\rho_lLvap}$
     \item[\small \textcolor{blue}{\ding{109}}]$Pe=\frac{\rho_l Cp_l (u_g-u_l)d}{\lambda_l}$
@@ -1542,7 +1542,7 @@ The model implemented is :
 \end{equation}
 If $( T_g >  T_l)$ then :
 \begin{equation}
-    \texttt{hi(n_l, k)} = Nu *\frac{\lambda_l}{d_b} \frac{6max(\alpha_g,\texttt{a\_min})}{d_b}, 
+    \texttt{hi(n_l, k)} = Nu *\frac{\lambda_l}{d_b} \frac{6max(\alpha_g,\texttt{a\_min})}{d_b},
 \end{equation}
 \begin{equation}
 \texttt{da\_ hi(n_l, k, k)} = da_{Nu} \frac{6\lambda_l}{d_b^2}max(\alpha_g,\texttt{a\_min}) \begin{cases}
@@ -1573,7 +1573,7 @@ And if ($\alpha_g$ < \texttt{a\_res\_} ) then :
 \end{equation}
 End. Else (Temperature condition)
 \begin{equation}
-    \texttt{hi(n_l, k)} = 1e8, 
+    \texttt{hi(n_l, k)} = 1e8,
 \end{equation}
 \begin{equation}
 \texttt{da\_hi(n_l, k, k)} = 0,
@@ -1591,7 +1591,7 @@ End. Else (Temperature condition)
            \texttt{ hi(k, n_l)} = 1e8;
 \end{equation}
 
-with 
+with
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$Re_b = \frac{\rho_l (u_g-u_l)d_b}{\mu_l}$
     \item[\small \textcolor{blue}{\ding{109}}]$Ja=\frac{max(T_g-T_l,2.)\rho_l Cp_l}{\rho_lLvap}$
@@ -1615,7 +1615,7 @@ The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_parietal_base::set_param(Param& param)
 \end{lstlisting}
-The available input parameters are : 
+The available input parameters are :
 \begin{lstlisting}[language=c++]
     int N;                // Number of phases
     int f;                // face number
@@ -1638,18 +1638,18 @@ The available input parameters are :
 The interfacial heat flux operator must fill qpk and qpi tabs and there derivative so that :
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{qpk}$ heat flux
-    \item[\small \textcolor{blue}{\ding{109}}] $\texttt{da\_qpk}$ heat flux derivative regarding void fraction    
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_qpk}$ heat flux derivative regarding pressure  
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dv\_qpk}$ heat flux derivative regarding velocity  
+    \item[\small \textcolor{blue}{\ding{109}}] $\texttt{da\_qpk}$ heat flux derivative regarding void fraction
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_qpk}$ heat flux derivative regarding pressure
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dv\_qpk}$ heat flux derivative regarding velocity
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dTf\_qpk}$ heat flux derivative regarding temperature
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dTp\_qpk}$ heat flux derivative regarding wall temperature  
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dTp\_qpk}$ heat flux derivative regarding wall temperature
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{qpi}$ phase change heat flux
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{da\_qpi}$ phase change heat flux derivative regarding void fraction   
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{da\_qpi}$ phase change heat flux derivative regarding void fraction
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_qpi}$ phase change heat flux derivative regarding pressure
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dv\_qpi}$ phase change heat flux derivative regarding velocity
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dTf\_qpi}$ phase change heat flux derivative regarding temperature
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dTp\_qpi}$ phase change heat flux derivative regarding  wall temperature
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{d\_nuc}$ nucleation diameter 
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{d\_nuc}$ nucleation diameter
 \end{itemize}
 
 \begin{table}[!ht]
@@ -1740,7 +1740,7 @@ The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Changement_phase_base::set_param(Param& param)
 \end{lstlisting}
-The available input parameters are : 
+The available input parameters are :
 \begin{lstlisting}[language=c++]
     double D_h;           // Hydraulic diameter
     double p;             // Pressure
@@ -1756,9 +1756,9 @@ The available input parameters are :
 The phase change mass flux operator must fill dT_G, da_G, dp_G tabs and there derivative so that :
 \begin{itemize}
     \item[\small \textcolor{blue}{\ding{109}}]$\texttt{G}$ mass flux
-    \item[\small \textcolor{blue}{\ding{109}}] $\texttt{dT\_G}$ mass flux derivative regarding temperature   
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_G }$ mass flux derivative regarding pressure  
-    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{da\_G}$ mass flux derivative regarding void fraction  
+    \item[\small \textcolor{blue}{\ding{109}}] $\texttt{dT\_G}$ mass flux derivative regarding temperature
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{dp\_G }$ mass flux derivative regarding pressure
+    \item[\small \textcolor{blue}{\ding{109}}]$\texttt{da\_G}$ mass flux derivative regarding void fraction
 \end{itemize}
 
 \subsubsection{Silver Simpson}
@@ -1803,7 +1803,7 @@ This term arises from the averaging of the pressure work term due to the transpo
 \begin{equation}
     -P\parent{\frac{\partial \alpha_k}{\partial t}+\nabla \cdot (\alpha_k v_k)}
 \end{equation}
-It is implemented in: 
+It is implemented in:
 \begin{lstlisting}[language=c++]
 void Source_Travail_pression_Elem_base::set_param(Param& param)
 \end{lstlisting}
@@ -1910,7 +1910,7 @@ A fundamental aspect of modeling the interaction between liquid and gas phases l
 \begin{equation}
 Dsm=\frac{\int f_dD^3 dD}{\int f_d D^2 dD}
 \end{equation}
-The relationship between the void fraction (\alpha) and the Sauter-Mean Diameter ($Dsm$)  hinges on calculating the area concentration per unit volume ($A_i=\pi D^2$). This relationship can be expressed as follows :
+The relationship between the void fraction ($\alpha$) and the Sauter-Mean Diameter ($Dsm$)  hinges on calculating the area concentration per unit volume ($A_i=\pi D^2$). This relationship can be expressed as follows :
 \begin{equation}
 Dsm=\frac{\int f_dD^3 dD}{\int f_d D^2 dD}=6\frac{\int f_d V dv}{\int f_d A_i dV}=6\frac{\alpha}{ai}
 \end{equation}
@@ -2039,7 +2039,7 @@ The {\colorbox{codebackground}{\color{codekeyword3} Condensation}} term is imple
 \begin{equation}
     \texttt{secmem}  \pluseq  \frac{2}{3}\frac{a_i^n}{\alpha^n\rho_g^n} G^n
 \end{equation}
-If the condensation is not making the phase evanescent then : 
+If the condensation is not making the phase evanescent then :
 \begin{align}
     &M_\alpha  \minuseq  \frac{-2}{3}\frac{a_i^n}{(\alpha^n)^2}\rho_g^n G^n\\
     &M_T  \minuseq  \frac{-2}{3}\frac{a_i^n}{\alpha^n(\rho_g^n)^2} G^n \frac{d\rho_l}{dT}+\frac{2}{3}\frac{a_i^n}{\alpha^n\rho_g} \frac{dG}{dT}\\
@@ -2053,18 +2053,18 @@ For the other source terms, refer to the models.
 \subsubsection{The Yao Morel model}
 The model is described in \textcite{YAO2004307}.
 
-The equation is: 
+The equation is:
 \begin{equation}
 \frac{\partial a_{i}}{\partial t}+\underbrace{\nabla.(\mathbf{U} a_{i})}_{\colorbox{codebackground}{\color{codekeyword3} convection}}=\underbrace{\frac{2}{3}\frac{a_{i}}{\alpha}(\frac{\Gamma_{condensation}}{\rho_g}-\frac{\alpha_g}{\rho_g} \frac{d \rho_g}{d t})}_{\colorbox{codebackground}{\color{codekeyword3} source\ of\ volume\ change}}+\underbrace{\pi d_{dep}^2\Phi_N}_{\colorbox{codebackground}{\color{codekeyword3} Nucleation}}+\underbrace{\frac{36\pi}{3}(\frac{\alpha}{a_i})^2{\color{myteal}\Phi_{coal}}}_{\colorbox{codebackground}{\color{codekeyword3} Coalescence}}+\underbrace{\frac{36\pi}{3}(\frac{\alpha}{a_i})^2{\color{myteal}\Phi_{breakup}}}_{\colorbox{codebackground}{\color{codekeyword3}  Break-up}}.
 \end{equation}
-The {\colorbox{codebackground}{\color{codekeyword3} Coalescence}} model is : 
+The {\colorbox{codebackground}{\color{codekeyword3} Coalescence}} model is :
 \begin{equation}
 \begin{aligned}
 		\frac{36\pi}{3}(\frac{\alpha}{a_i})^2\Phi_{Coal} =- \frac{36\pi}{3}(\frac{\alpha}{a_i})^2 (\varepsilon d_b)^{1/3} \cdot \frac{\alpha^2}{d_b^4} \cdot K_{c1} \cdot \frac{1}{g(\alpha) + K_{c2}\alpha \sqrt{We/We_{cr}}} \cdot \text{exp}\left(-K_{c3} \sqrt{\frac{We}{We_{cr}}}\right)& & \\ = {\color{mydarkorchid} \frac{\pi}{3\times 6^{5/3}}\alpha^{1/3}a_i^{5/3}\varepsilon^{1/3}} \cdot {\color{myslateblue} K_{c1} \frac{-1}{g(\alpha) + K_{c2}\alpha \sqrt{We/We_{cr}}} \cdot \text{exp}\left(-K_{c3} \sqrt{\frac{We}{We_{cr}}}\right)},
 \end{aligned}
 \end{equation}
 with $K_{c1} = 2.86$, $K_{c2} = 1.922$, $K_{c3} = 1.017$, $We_{cr} = 1.24$, $g(\alpha) = \frac{\alpha_\text{max}^{1/3}-\alpha^{1/3}}{\alpha_\text{max}^{1/3}}$, $\alpha_\text{max} = \frac{\pi}{6}$.\\
-The {\colorbox{codebackground}{\color{codekeyword3} Coalescence}} model is implemented as $\frac{36\pi}{3}(\frac{\alpha}{a_i})^2\Phi_{Coal}={\color{mydarkorchid}f_1(\alpha,ai,k,\varepsilon)}{\color{myslateblue} f_2(\alpha,ai,k,\varepsilon)}$ so that for the sake of simplicity $d({\color{mydarkorchid}f_1}{\color{myslateblue} f_2})={\color{myslateblue} f_2}d{\color{mydarkorchid} f_1}$  in {\color{mydarkorchid} Coalescence_bulles_1groupe_PolyMAC_P0} : 
+The {\colorbox{codebackground}{\color{codekeyword3} Coalescence}} model is implemented as $\frac{36\pi}{3}(\frac{\alpha}{a_i})^2\Phi_{Coal}={\color{mydarkorchid}f_1(\alpha,ai,k,\varepsilon)}{\color{myslateblue} f_2(\alpha,ai,k,\varepsilon)}$ so that for the sake of simplicity $d({\color{mydarkorchid}f_1}{\color{myslateblue} f_2})={\color{myslateblue} f_2}d{\color{mydarkorchid} f_1}$  in {\color{mydarkorchid} Coalescence_bulles_1groupe_PolyMAC_P0} :
 \begin{lstlisting}[language=c++]
 void Coalescence_bulles_1groupe_PolyMAC_P0::set_param(Param& param)
 {
@@ -2079,7 +2079,7 @@ void Coalescence_bulles_1groupe_Yao_Morel::set_param(Param& param)
 Default values : $\texttt{beta\_k\_} = 0.09$, $\texttt{Kc1} = 2.86$, $\texttt{Kc2} = 1.922$, $\texttt{Kc3} = 1.017$,
 $\texttt{alpha\_max\_1\_3} = (\frac{\pi}{6})^{1/3}$, $\texttt{We\_cr} = 1.24$.\\
 {\color{red} Warning} : The following part describes the matrix filling for the $k-\varepsilon$ model, as an example, but it is currently not implemented since only the $k-\tau$ and $k-\omega$ models are available and are the only ones implemented for the source terms.\\
-For the $k-\varepsilon$ model : 
+For the $k-\varepsilon$ model :
 \begin{align}
     &M_{\alpha} \minuseq \frac{\pi}{3\times 6^{5/3}}\frac{1}{3}(\alpha^n)^{-2/3}(a_i^n)^{5/3}(\varepsilon^n)^{1/3} {\color{myslateblue} f_2^n}\\
     &M_{a_i} \minuseq \frac{\pi}{3\times 6^{5/3}}\frac{5}{3}(\alpha^n)^{1/3}(a_i^n)^{2/3}(\varepsilon^n)^{1/3} {\color{myslateblue} f_2^n}\\
@@ -2087,15 +2087,15 @@ For the $k-\varepsilon$ model :
     &M_{\varepsilon} \minuseq \frac{\pi}{3\times 6^{5/3}}\frac{1}{3}(\alpha^n)^{-2/3}(a_i^n)^{5/3}(\varepsilon^n)^{-2/3} {\color{myslateblue} f_2^n}\\
     &\text{secmem} \pluseq \frac{\pi}{3\times 6^{5/3}}(\alpha^n)^{1/3}(a_i^n)^{5/3}(\varepsilon^n)^{1/3} {\color{myslateblue} f_2^n}
 \end{align}
-If the $k-\tau$ turbulence model is used, 
+If the $k-\tau$ turbulence model is used,
 \begin{equation}
 \varepsilon = \frac{k^2}{\text{max}(k\tau, \texttt{visc\_turb.limiteur()} \nu_l)}\times \texttt{beta\_k\_}.
 \end{equation}
-If the $k-\omega$ turbulence model is used, 
+If the $k-\omega$ turbulence model is used,
 \begin{equation}
 \varepsilon = k \times \omega \times\texttt{ beta\_k\_}.
 \end{equation}
-The {\colorbox{codebackground}{\color{codekeyword3}  Break-up}} model is : 
+The {\colorbox{codebackground}{\color{codekeyword3}  Break-up}} model is :
 \begin{equation}
 \begin{aligned}
 		\frac{36\pi}{3}\parent{\frac{\alpha}{a_i}}^2\Phi_{\text{breakup}} =- \frac{36\pi}{3}\parent{\frac{\alpha}{a_i}}^2 \parent{\varepsilon d_b}^{1/3} \cdot \frac{\alpha(1-\alpha)}{d_b^4} \cdot K_{b1} \cdot \frac{1}{1 + K_{b2}\alpha_l \sqrt{We/We_{cr}}} \cdot \text{exp}\left(- \frac{We}{We_{cr}}\right)& & \\ = {\color{mydarkorchid} \frac{\pi}{3\times 6^{5/3}}\alpha^{-2/3}(1-\alpha)a_i^{5/3}\varepsilon^{1/3}} \cdot {\color{myslateblue} K_{b1} \cdot \frac{1}{1 + K_{b2}(1-\alpha) \sqrt{We/We_{cr}}} \cdot \text{exp}\left(- \frac{We}{We_{cr}}\right)},
@@ -2103,7 +2103,7 @@ The {\colorbox{codebackground}{\color{codekeyword3}  Break-up}} model is :
 \end{equation}
 with $K_{b1} = 1.6$, $K_{b2} = 0.42$, $We_{cr} = 1.24$.
 
-The {\colorbox{codebackground}{\color{codekeyword3}  Break-up}} model is implemented as $\frac{36\pi}{3}\parent{\frac{\alpha}{a_i}}^2\Phi_{\text{breakup}}={\color{mydarkorchid}f_1(\alpha,ai,k,\varepsilon)}{\color{myslateblue} f_2(\alpha,ai,k,\varepsilon)}$ so that for the sake of simplicity $d({\color{mydarkorchid}f_1}{\color{myslateblue} f_2})={\color{myslateblue} f_2}d{\color{mydarkorchid} f_1}$  in {\color{mydarkorchid} Rupture_bulles_1groupe_PolyMAC_P0} : 
+The {\colorbox{codebackground}{\color{codekeyword3}  Break-up}} model is implemented as $\frac{36\pi}{3}\parent{\frac{\alpha}{a_i}}^2\Phi_{\text{breakup}}={\color{mydarkorchid}f_1(\alpha,ai,k,\varepsilon)}{\color{myslateblue} f_2(\alpha,ai,k,\varepsilon)}$ so that for the sake of simplicity $d({\color{mydarkorchid}f_1}{\color{myslateblue} f_2})={\color{myslateblue} f_2}d{\color{mydarkorchid} f_1}$  in {\color{mydarkorchid} Rupture_bulles_1groupe_PolyMAC_P0} :
 \begin{lstlisting}[language=c++]
 void Rupture_bulles_1groupe_PolyMAC_P0::set_param(Param& param)
 {
@@ -2117,7 +2117,7 @@ void Rupture_bulles_1groupe_Yao_Morel::set_param(Param& param)
 \end{lstlisting}
 Default values: $\texttt{beta\_k\_} = 0.09$, $\texttt{Kb1} = 1.6$, $\texttt{Kb2} = 0.42$, $\texttt{We\_cr} = 1.24$.\\
 {\color{red} Warning} : The following part describes the matrix filling for the $k-\varepsilon$ model, as an example, but it is currently not implemented since only the $k-\tau$ and $k-\omega$ models are available and are the only ones implemented for the source terms.\\
-For the $k-\varepsilon$ model : 
+For the $k-\varepsilon$ model :
 \begin{align}
     &M_{\alpha} \minuseq \frac{\pi}{3\times 6^{5/3}}\frac{-2}{3}(\alpha^n)^{-5/3}\alpha_l^n(a_i^n)^{5/3}(\varepsilon^n)^{1/3} {\color{myslateblue} f_2^n}\\
     &M_{\alpha_l} \minuseq \frac{\pi}{3\times 6^{5/3}}(\alpha^n)^{-2/3}(a_i^n)^{5/3}(\varepsilon^n)^{1/3} {\color{myslateblue} f_2^n}\\
@@ -2126,7 +2126,7 @@ For the $k-\varepsilon$ model :
     &M_{\varepsilon} \minuseq \frac{\pi}{3\times 6^{5/3}}\frac{1}{3}(\alpha^n)^{-2/3}\alpha_l^n(a_i^n)^{5/3}(\varepsilon^n)^{-2/3} {\color{myslateblue} f_2^n}\\
     &\text{secmem}  \pluseq  \frac{\pi}{3\times 6^{5/3}}\frac{1}{3}(\alpha^n)^{-2/3}\alpha_l^n(a_i^n)^{5/3}(\varepsilon^n)^{-2/3} {\color{myslateblue} f_2^n}\\
 \end{align}
-If the $k-\tau$ turbulence model is used, 
+If the $k-\tau$ turbulence model is used,
 \begin{equation}
 \varepsilon=\frac{k^2}{\text{max}(k\tau,\ \texttt{visc_turb.limiteur()} \nu_l)}\times beta\_ k \_.
 \end{equation}
@@ -2134,17 +2134,17 @@ If the $k-\omega$ turbulence model is used
 \begin{equation}
 \varepsilon=k\times \omega\times beta\_ k \_.
 \end{equation}
-The {\colorbox{codebackground}{\color{codekeyword3}  Nucleation}} model is : 
+The {\colorbox{codebackground}{\color{codekeyword3}  Nucleation}} model is :
 \begin{equation}
 		\pi d_{dep}^2\Phi_N = \pi d_{dep}^2\frac{\Phi_{e}}{L_{\text{vap}} \rho_g \frac{\pi}{6}d_\text{dep}^3}=6\frac{\Phi_{\text{nucleation}}}{\text{max}(d_{\text{nuc}},10^{-8})\rho_g L_{\text{vap}}}
 \end{equation}
 with $\Phi_{e}$ wall heat transfer.
 
-The {\colorbox{codebackground}{\color{codekeyword3}  Nucleation}} model is implemented in Nucleation_paroi_PolyMAC_P0: 
+The {\colorbox{codebackground}{\color{codekeyword3}  Nucleation}} model is implemented in Nucleation_paroi_PolyMAC_P0:
 \begin{lstlisting}[language=c++]
 void Nucleation_paroi_PolyMAC_P0::set_param(Param& param)
 \end{lstlisting}
-This terms injected only on boundary elements and is fully explicit: 
+This terms injected only on boundary elements and is fully explicit:
 \begin{equation}
     \texttt{secmem} \pluseq 6\frac{\Phi_{\text{nucleation}}^n}{\text{max}(d_{\text{nuc}}^n,10^{-8})\rho_g^n L_{\text{vap}}^n}
 \end{equation}
@@ -2166,7 +2166,7 @@ For the second group, we get:
 \begin{equation}
 \begin{aligned}
 \frac{\partial a_{i2}}{\partial t}+\underbrace{\nabla\parent{a_{i2}\mathbf{U}_{g2}}}_{\colorbox{codebackground}{\color{codekeyword3} convection}}=\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{-\frac{\alpha_{g2}}{\rho_g}\frac{d \rho_g}{dt}}}_{\colorbox{codebackground}{\color{codekeyword3} Density\ change}}+\underbrace{\chi_d\parent{\frac{D_{smc}}{D_{sm1}}}^2\frac{a_{i1}}{\alpha_{g1}}\parent{-\frac{\alpha_{g1}}{\rho_g}\frac{d \rho_g}{dt}}}_{\colorbox{codebackground}{\color{codekeyword3} Density\ sliding}}&+ & \\
-\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{\frac{\color{myteal}\Gamma_{g2}}{\rho_g}}}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer}} +\underbrace{\chi_d\parent{\frac{D_{smc}}{D_{sm1}}}^2\frac{a_{i1}}{\alpha_{g1}}\parent{\frac{\color{myteal}\Gamma_{g1}}{\rho_g} }}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer\ sliding}} +& \\ 
+\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{\frac{\color{myteal}\Gamma_{g2}}{\rho_g}}}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer}} +\underbrace{\chi_d\parent{\frac{D_{smc}}{D_{sm1}}}^2\frac{a_{i1}}{\alpha_{g1}}\parent{\frac{\color{myteal}\Gamma_{g1}}{\rho_g} }}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer\ sliding}} +& \\
 \underbrace{\color{myteal}\sum_j \psi^{\text{intergroup}}_{2j}}_{\colorbox{codebackground}{\color{codekeyword3} intergroup\ sources}}+\underbrace{\color{myteal}\sum_j \psi^{\text{internal}}_{2j}}_{\colorbox{codebackground}{\color{codekeyword3} intragroup sources}}.
 \end{aligned}
 \end{equation}
@@ -2184,7 +2184,7 @@ The different mass transfer are:
 \end{aligned}
 \end{equation}
 $\chi_d$ is equal to $1$ for a uniform distribution profile. Indeed, because there is no prior determination of the form of the solution of the distribution, the easiest from to consider is a uniform distribution.
-During the averaging process proposed in \cite{Kataoka2012} , two new terms emerged from the instantaneous equation: a diffusion term and a lift term. For example, the diffusion term can be implemented as: 
+During the averaging process proposed in \cite{Kataoka2012} , two new terms emerged from the instantaneous equation: a diffusion term and a lift term. For example, the diffusion term can be implemented as:
 \begin{equation}
 K\sqrt{u^{\prime 2}}D_{sm}\nabla a_i=K\sqrt{\frac{2k}{3}} D_{sm}\nabla a_i,
 \end{equation}
@@ -2198,7 +2198,7 @@ For the second group, we obtain:
 \begin{equation}
 \begin{aligned}
 \frac{\partial a_{i2}}{\partial t}+\underbrace{\nabla\parent{a_{i2}\mathbf{U}_{g2}}}_{\colorbox{codebackground}{\color{codekeyword3} convection}}=\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{-\frac{\alpha_{g2}}{\rho_g}\frac{d \rho_g}{dt}}}_{\colorbox{codebackground}{\color{codekeyword3} Density\ change}}+\underbrace{\frac{\chi_d}{36}D_{smc}^2\parent{\frac{a_{i1}}{\alpha_{g1}}}^3\parent{-\frac{\alpha_{g1}}{\rho_g}\frac{d \rho_g}{dt}}}_{\colorbox{codebackground}{\color{codekeyword3} Density\ sliding}}&+ & \\
-\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{\frac{\color{myteal}\Gamma_{g2}}{\rho_g}}}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer}} +\underbrace{\frac{\chi_d}{36}D_{smc}^2\parent{\frac{a_{i1}}{\alpha_{g1}}}^3\parent{\frac{\color{myteal}\Gamma_{g1}}{\rho_g} }}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer\ sliding}} +& \\ 
+\underbrace{\frac{2}{3}\frac{a_{i2}}{\alpha_{g2}}\parent{\frac{\color{myteal}\Gamma_{g2}}{\rho_g}}}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer}} +\underbrace{\frac{\chi_d}{36}D_{smc}^2\parent{\frac{a_{i1}}{\alpha_{g1}}}^3\parent{\frac{\color{myteal}\Gamma_{g1}}{\rho_g} }}_{\colorbox{codebackground}{\color{codekeyword3} Mass\ transfer\ sliding}} +& \\
 \underbrace{\color{myteal}\sum_j \psi^{\text{intergroup}}_{2j}}_{\colorbox{codebackground}{\color{codekeyword3} intergroup\ sources}} + \underbrace{\color{myteal}\sum_j \psi^{\text{internal}}_{2j}}_{\colorbox{codebackground}{\color{codekeyword3} intragroup sources}}.
 \end{aligned}
 \end{equation}
@@ -2219,7 +2219,7 @@ The different mass transfer are:
 %
 \subsubsection{The source terms}
 All source term models are based on five categories of mechanism: the Random Collisions (RC), the Wake Entrainment (WE), the Turbulent Impacts (TI), the Shearing-off (SO) and the Surface Instability (SI) (see Figure \ref{bulles}). The RC is a bubble coalescence phenomenon where $2$ bubbles collide and merge because of a turbulent eddy of comparable size. The WE happens when one smaller bubble is in the wake of a bigger one, accelerates and collides it. The TI is due to turbulent eddies that break-up bubbles. The SO is a break-up phenomenon that source from the shearing-off of cap bubbles. The SI is due to the break-up of large bubbles due to their surface instability.\\
-The number of processes and the dimensionless coefficient can strongly differ from one model to another : 
+The number of processes and the dimensionless coefficient can strongly differ from one model to another :
 \begin{itemize}
 \item[\small \textcolor{blue}{\ding{109}}] The \textcite{SUN2} model was developed for a $2$ group configuration with a $200 \times  10$ $mm^2$ confined rectangular channel data. The effect of the wall is then very significant. It was performed for liquid superficial velocity between $0.32$ and $2.84$ m/s and gas velocity between $0.39$ and $2.01$ m/s. It deals with cap-bubbly and churn-turbulent flows.\\
 \item[\small \textcolor{blue}{\ding{109}}] The \textcite{Smith1} model was developed for a $2$ group configuration with $0.102$ mm and $0.152$ mm diameter pipes. It deals with bubbly, cap-bubbly and churn-turbulent flows. \\
@@ -2236,25 +2236,25 @@ The number of processes and the dimensionless coefficient can strongly differ fr
 The coefficients of the previous models are summarized in Table \ref{coeff2grp}.
 \begin{table}[!ht]
 \begin{center}
-\begin{tabular}{c c c c c c } 
+\begin{tabular}{c c c c c c }
 \toprule
-Coefficient & Sun \cite{SUN2} & Smith \cite{Smith1} & Schlegel \cite{Schlegel1} & Fu \cite{Fu2002} & Dave \cite{Dave2016a}\\ 
+Coefficient & Sun \cite{SUN2} & Smith \cite{Smith1} & Schlegel \cite{Schlegel1} & Fu \cite{Fu2002} & Dave \cite{Dave2016a}\\
 \midrule
-\rowcolor[gray]{0.9} $C^{(1)}_{RC}$ & $0.005$ &$0.01$ & $0.01$ & $0.0041$ & $0.26$ \\  
- $C^{(12,2)}_{RC}$ & $0.005$ & $0.01$ & $0.05$ & $0.005$ & $0.41$ \\ 
- \rowcolor[gray]{0.9} $C^{(2)}_{RC}$ & $0.005$ & $0.01$ & $0.01$ & $0.005$ & $1.00$ \\  
- $C_{RC0}$ & $3.0$ & $3.0$ & $3.0$ & $3.0$ & $3.0$ \\ 
- \rowcolor[gray]{0.9} $C_{RC1}$ & $3.0$ & $3.0$ & $3.0$  & $3.0$ & $3.0$ \\  
- $\alpha_{g1,max}$ & $0.62$ & $0.62$ & $0.62$& $0.75$ & $0.62$ \\ 
-\rowcolor[gray]{0.9} $C^{(1)}_{WE}$ & $0.002$ & $0.002$ & $0.002$ & $0.002$ & $0.001$  \\  
-$C^{(12,2)}_{WE}$ & $0.002$ & $0.01$ & $0.02$ & $0.015$ & $0.017$\\  
-\rowcolor[gray]{0.9} $C^{(2)}_{WE}$ & $0.005$ & $0.01$ & $0.05$ & $10.$ & $0.021$  \\  
-$C^{(1)}_{TI}$ & $0.1$ & $0.05$ & $0.05$ & $0.0085$ & $0.013$  \\  
-\rowcolor[gray]{0.9} $C^{(12,2)}_{TI}$ & $0.02$ & $0.04$ & $0.02$ & $0.02$ & $0.006$  \\  
-$C^{(2)}_{TI}$ & $0.02$ & $0.01$ & $0.01$ & $0.02$ & $0.023$ \\  
-\rowcolor[gray]{0.9} $We_{cr1}$ & $6.5$ & $1.2$ & $1.2$ & $6.0$ & $6.0$  \\  
-$We_{cr2}$ & $7.0$ & $1.2$ & $ 1.2$ & $6.0$ & $6.0$  \\  
-\rowcolor[gray]{0.9} $C_{SO}$ & $3.8 \times 10^{-5}$ & $2.5 \times 10^{-5}$ & $5.0 \times 10^{-5}$ & $0.031$ & $1.4 \times 10^{-5}$ \\  
+\rowcolor[gray]{0.9} $C^{(1)}_{RC}$ & $0.005$ &$0.01$ & $0.01$ & $0.0041$ & $0.26$ \\
+ $C^{(12,2)}_{RC}$ & $0.005$ & $0.01$ & $0.05$ & $0.005$ & $0.41$ \\
+ \rowcolor[gray]{0.9} $C^{(2)}_{RC}$ & $0.005$ & $0.01$ & $0.01$ & $0.005$ & $1.00$ \\
+ $C_{RC0}$ & $3.0$ & $3.0$ & $3.0$ & $3.0$ & $3.0$ \\
+ \rowcolor[gray]{0.9} $C_{RC1}$ & $3.0$ & $3.0$ & $3.0$  & $3.0$ & $3.0$ \\
+ $\alpha_{g1,max}$ & $0.62$ & $0.62$ & $0.62$& $0.75$ & $0.62$ \\
+\rowcolor[gray]{0.9} $C^{(1)}_{WE}$ & $0.002$ & $0.002$ & $0.002$ & $0.002$ & $0.001$  \\
+$C^{(12,2)}_{WE}$ & $0.002$ & $0.01$ & $0.02$ & $0.015$ & $0.017$\\
+\rowcolor[gray]{0.9} $C^{(2)}_{WE}$ & $0.005$ & $0.01$ & $0.05$ & $10.$ & $0.021$  \\
+$C^{(1)}_{TI}$ & $0.1$ & $0.05$ & $0.05$ & $0.0085$ & $0.013$  \\
+\rowcolor[gray]{0.9} $C^{(12,2)}_{TI}$ & $0.02$ & $0.04$ & $0.02$ & $0.02$ & $0.006$  \\
+$C^{(2)}_{TI}$ & $0.02$ & $0.01$ & $0.01$ & $0.02$ & $0.023$ \\
+\rowcolor[gray]{0.9} $We_{cr1}$ & $6.5$ & $1.2$ & $1.2$ & $6.0$ & $6.0$  \\
+$We_{cr2}$ & $7.0$ & $1.2$ & $ 1.2$ & $6.0$ & $6.0$  \\
+\rowcolor[gray]{0.9} $C_{SO}$ & $3.8 \times 10^{-5}$ & $2.5 \times 10^{-5}$ & $5.0 \times 10^{-5}$ & $0.031$ & $1.4 \times 10^{-5}$ \\
 $We_{c,SO}$ & $4500$ & $4000$ & $10$ & $4500$ & $4500$  \\  \bottomrule
 \end{tabular}
 \end{center}
@@ -2372,4 +2372,3 @@ The source/sink terms of Surface Instability (SI) are modeled as follows :
 $C_{RC}^{(2)}$ and $C_{WE}^{(2)}$ are constant coefficients from Random collision and Wake Entrainment source terms. $D_h$ is the hydraulic diameter.
 
 %%%
-
