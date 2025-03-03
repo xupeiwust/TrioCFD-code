@@ -19,9 +19,9 @@
 #include <Convection_Diffusion_Temperature_FT_Disc.h>
 #include <Navier_Stokes_FT_Disc_interne.h>
 #include <Navier_Stokes_Turbulent.h>
-#include <Collision_Model_FT.h>
-
+#include <type_traits>
 #include <TRUST_Ref.h>
+#include <Collision_Model_FT_base.h>
 
 class Probleme_FT_Disc_gen;
 class Maillage_FT_Disc;
@@ -89,9 +89,11 @@ protected:
   // for fpi module
   void set_is_solid_particle(const bool& is_solid_particle) { is_solid_particle_=is_solid_particle; }
   void set_id_fluid_phase(const int& id_fluid_phase) { id_fluid_phase_=id_fluid_phase; }
-  void compute_particles_eulerian_id_number(const Collision_Model_FT& collision_model);
-  void swap_particles_eulerian_id_number(const Collision_Model_FT& collision_model, const ArrOfInt& gravity_center_elem);
+  void compute_particles_eulerian_id_number(const Collision_Model_FT_base& collision_model);
+  void swap_particles_eulerian_id_number(const Collision_Model_FT_base& collision_model, const ArrOfInt& gravity_center_elem);
+
   void compute_eulerian_field_contact_forces(const Maillage_FT_Disc& mesh, const Champ_base& field_volumic_phase_indicator_function);
+
   void eulerian_discretization_contact_forces(const DoubleTab& volumic_phase_indicator_function, const DoubleTab& interlaced_volumes, const DoubleTab& eu);
   OBS_PTR(Probleme_FT_Disc_gen) probleme_ft_;
 

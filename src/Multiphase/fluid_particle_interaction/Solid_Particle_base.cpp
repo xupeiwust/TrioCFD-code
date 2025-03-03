@@ -13,16 +13,16 @@
 *
 *****************************************************************************/
 
-#include <Solid_Particle.h>
 #include <Param.h>
+#include <Solid_Particle_base.h>
 
-Implemente_instanciable_sans_constructeur(Solid_Particle,"Solid_Particle",Fluide_Incompressible);
+Implemente_base_sans_constructeur(Solid_Particle_base,"Solid_Particle_base",Fluide_Incompressible);
 
 
-Solid_Particle::Solid_Particle()
+Solid_Particle_base::Solid_Particle_base()
 {}
 
-Sortie& Solid_Particle::printOn(Sortie& os) const
+Sortie& Solid_Particle_base::printOn(Sortie& os) const
 {
   os << "{"                  << finl;
   os << "e_dry " << e_dry_   << finl;
@@ -30,64 +30,16 @@ Sortie& Solid_Particle::printOn(Sortie& os) const
   return Fluide_Incompressible::printOn(os);
 }
 
-Entree& Solid_Particle::readOn(Entree& is)
+Entree& Solid_Particle_base::readOn(Entree& is)
 {
   Fluide_Incompressible::readOn(is);
-  set_diameter_sphere(2*radius_sphere_);
-  set_volume_sphere(4 * M_PI * pow(radius_sphere_, 3) / 3);
   const double solid_density = masse_volumique().valeurs()(0, 0);
-  set_mass_sphere(volume_sphere_*solid_density);
+  set_mass(volume_*solid_density);
   return is;
 }
 
-void Solid_Particle::set_param(Param& param)
+void Solid_Particle_base::set_param(Param& param)
 {
   Fluide_Incompressible::set_param(param);
   param.ajouter("e_dry", &e_dry_,Param::REQUIRED); // XD_ADD_P dry coefficient;
-  param.ajouter("radius_sphere", &radius_sphere_); // XD_ADD_P radius of a spherical particle in the case of a sphere flow;
-  param.ajouter_non_std("spheroid", (this)); // XD_ADD_P definition of a revolution ellipsoid;
-}
-
-int Solid_Particle::lire_motcle_non_standard(const Motcle& word, Entree& is)
-{
-  if (word=="spheroid")
-    {
-      Motcles words;
-      words.add("half_small_axis");
-      words.add("half_long_axis");
-      Motcle secondword;
-      is >> secondword;
-      Motcle openbrace ="{";
-      Motcle closedbrace="}";
-      if (secondword==openbrace)
-        {
-          is >> secondword;
-          while (secondword != closedbrace)
-            {
-              int rang2 = words.search(secondword);
-              switch(rang2)
-                {
-                case 0:
-                  is >> half_small_axis_spheroid_;
-                  break;
-                case 1:
-                  is >> half_long_axis_spheroid_;
-                  break;
-                default:
-                  Cerr << "Solid_Particle::lire_motcle_non_standard\n"
-                       << " options of spheroid are:\n"
-                       << words;
-                  exit();
-                }
-              is >> secondword;
-            }
-        }
-      return 1;
-    }
-  else
-    {
-      Cerr << word << " is not a keyword understood by " << que_suis_je() << " in lire_motcle_non_standard"<< finl;
-      exit();
-    }
-  return -1;
 }

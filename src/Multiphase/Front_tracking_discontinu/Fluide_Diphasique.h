@@ -24,10 +24,10 @@
 #define Fluide_Diphasique_included
 
 #include <Fluide_Incompressible.h>
-#include <Solid_Particle.h>
 #include <Milieu_base.h>
 #include <Objet_U.h>
 #include <Milieu_base.h>
+#include <Solid_Particle_base.h>
 
 class Fluide_Diphasique: public Milieu_base
 {

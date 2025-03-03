@@ -39,12 +39,12 @@ Sortie& Fluide_Diphasique::printOn(Sortie& os) const { return os; }
 Entree& Fluide_Diphasique::readOn(Entree& is)
 {
   Milieu_base::readOn(is);
-  if sub_type(Solid_Particle, phase0_.valeur())
+  if sub_type(Solid_Particle_base, phase0_.valeur())
     {
       is_solid_particle_ = true; // useful for fpi module
       id_fluid_phase_=1;
     }
-  else if sub_type(Solid_Particle, phase1_.valeur())
+  else if sub_type(Solid_Particle_base, phase1_.valeur())
     {
       is_solid_particle_ = true; // useful for fpi module
       id_fluid_phase_=0;

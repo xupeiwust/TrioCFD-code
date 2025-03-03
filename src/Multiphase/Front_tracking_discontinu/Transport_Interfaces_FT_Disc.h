@@ -40,7 +40,7 @@
 #include <TRUSTTabFT_forward.h>
 #include <TRUST_Ref.h>
 
-#include <Collision_Model_FT.h>
+#include <Collision_Model_FT_base.h>
 
 class Probleme_base;
 class Milieu_base;
@@ -294,11 +294,11 @@ public:
 
   // for fpi module
   // getters/setters
-  Collision_Model_FT& get_set_collision_model() { return collision_model_; }
+  Collision_Model_FT_base& get_set_collision_model() { return collision_model_.valeur(); }
 
   // getters
   const int& get_nb_particles_tot() const { return nb_particles_tot_; }
-  const Collision_Model_FT& get_collision_model() const { return collision_model_; }
+  const Collision_Model_FT_base& get_collision_model() const { return collision_model_.valeur(); }
   const DoubleTab& get_particles_position() const { return particles_position_collision_; }
   const DoubleTab& get_particles_velocity() const { return particles_velocity_collision_; }
   const ArrOfInt& get_gravity_center_elem() const { return gravity_center_elem_; }
@@ -377,7 +377,7 @@ protected:
 
   // for fpi module
   bool is_solid_particle_; // pointer to NS_FT_Disc::is_solid_particle_
-  Collision_Model_FT collision_model_;
+  OWN_PTR(Collision_Model_FT_base) collision_model_;
   mutable DoubleTab particles_position_collision_; // for contact forces computation
   mutable DoubleTab particles_velocity_collision_; // for contact forces computation
   ArrOfInt gravity_center_elem_; // number of the element which contains the gravity center of the particles

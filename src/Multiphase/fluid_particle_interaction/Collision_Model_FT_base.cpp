@@ -12,19 +12,20 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
 
-#include <Collision_Model_FT.h>
 #include <EFichier.h>
 #include <EcritureLectureSpecial.h>
 #include <Probleme_FT_Disc_gen.h>
 
-Implemente_instanciable_sans_constructeur(Collision_Model_FT,"Collision_Model_FT",Objet_U);
+#include <type_traits>
+#include <Collision_Model_FT_base.h>
 
-Collision_Model_FT::Collision_Model_FT()
+Implemente_base_sans_constructeur(Collision_Model_FT_base,"Collision_Model_FT_base",Objet_U);
+
+Collision_Model_FT_base::Collision_Model_FT_base()
 {
   fictive_wall_coordinates_.resize(2*dimension);
 }
-
-Entree& Collision_Model_FT::readOn (Entree& is)
+Entree& Collision_Model_FT_base::readOn(Entree& is)
 {
   Param p(que_suis_je());
   set_param(p);
@@ -32,14 +33,14 @@ Entree& Collision_Model_FT::readOn (Entree& is)
   return is;
 }
 
-Sortie& Collision_Model_FT::printOn(Sortie& os) const
+Sortie& Collision_Model_FT_base::printOn(Sortie& os) const
 {
   Cerr << "Error::printOn is not implemented." << finl;
   Process::exit();
   return os;
 }
 
-void Collision_Model_FT::set_param(Param& p)
+void Collision_Model_FT_base::set_param(Param& p)
 {
   p.ajouter_non_std("collision_model", (this),Param::REQUIRED);
   p.ajouter_non_std("detection_method", (this),Param::REQUIRED);
@@ -49,7 +50,7 @@ void Collision_Model_FT::set_param(Param& p)
   p.ajouter("force_on_two_phase_elem", &is_force_on_two_phase_elem_, Param::REQUIRED);
 }
 
-int Collision_Model_FT::lire_motcle_non_standard(const Motcle& word, Entree& is)
+int Collision_Model_FT_base::lire_motcle_non_standard(const Motcle& word, Entree& is)
 {
   if (word=="collision_model")
     {
@@ -63,10 +64,10 @@ int Collision_Model_FT::lire_motcle_non_standard(const Motcle& word, Entree& is)
       switch(r)
         {
         case 0:
-          collision_model_ = Collision_Model_FT::HYBRID_ESI;
+          collision_model_ = Collision_model::HYBRID_ESI;
           break;
         case 1:
-          collision_model_ = Collision_Model_FT::BREUGEM;
+          collision_model_ = Collision_model::BREUGEM;
           break;
         default:
           Cerr << "Error " << words << "was expected whereas " << secondword <<
@@ -124,7 +125,7 @@ int Collision_Model_FT::lire_motcle_non_standard(const Motcle& word, Entree& is)
                   is >> nb_dt_max_Verlet_;
                   break;
                 default:
-                  Cerr << "Collision_Model_FT::lire_motcle_non_standard\n"
+                  Cerr << "Collision_Model_FT_base::lire_motcle_non_standard\n"
                        << " options of collision_detection are:\n"
                        << otherwords;
                   Process::exit();
@@ -143,17 +144,17 @@ int Collision_Model_FT::lire_motcle_non_standard(const Motcle& word, Entree& is)
   return -1;
 }
 
-void Collision_Model_FT::reset()
+void Collision_Model_FT_base::reset()
 {
   const int nb_boundaries=2*dimension;
   F_old_.resize(nb_particles_tot_,nb_particles_tot_+nb_boundaries);
   F_now_.resize(nb_particles_tot_,nb_particles_tot_+nb_boundaries);
   e_eff_.resize(nb_particles_tot_,nb_particles_tot_+nb_boundaries);
-  Cerr << "WARNING: Collision_Model_FT::reset of F_old_, F_now_, "
+  Cerr << "WARNING: Collision_Model_FT_base::reset of F_old_, F_now_, "
        "lagrangian_contact_forces_ and e_eff_." << finl;
 }
 
-int Collision_Model_FT::reprendre(Entree& is)
+int Collision_Model_FT_base::reprendre(Entree& is)
 {
   Nom readword;
   const int format_xyz = EcritureLectureSpecial::is_lecture_special();
@@ -161,7 +162,7 @@ int Collision_Model_FT::reprendre(Entree& is)
   is >> readword;
   if (readword != que_suis_je())
     {
-      Cerr << "Error in Collision_Model_FT::reprendre\n";
+      Cerr << "Error in Collision_Model_FT_base::reprendre\n";
       Cerr << "We was expecting " << que_suis_je();
       Cerr << "\n We found " << readword << finl;
       Process::exit();
@@ -184,11 +185,10 @@ int Collision_Model_FT::reprendre(Entree& is)
       is>>F_old_;
       is>>e_eff_;
     }
-
   return 1;
 }
 
-int Collision_Model_FT::sauvegarder(Sortie& os) const
+int Collision_Model_FT_base::sauvegarder(Sortie& os) const
 {
   int special, afaire;
   const int format_xyz = EcritureLectureSpecial::is_ecriture_special(special, afaire);
@@ -221,18 +221,18 @@ int Collision_Model_FT::sauvegarder(Sortie& os) const
   return 0;
 }
 
-void Collision_Model_FT::resize_geometric_parameters()
+void Collision_Model_FT_base::resize_geometric_parameters()
 {
   domain_dimensions_.resize(dimension);
   nb_nodes_.resize(dimension);
   origin_.resize(dimension);
 }
 
-void Collision_Model_FT::set_spring_properties(const Solid_Particle& solid_particle)
+void Collision_Model_FT_base::set_spring_properties(const Solid_Particle_base& solid_particle)
 {
   if (collision_duration_>0)
     {
-      const double mass_sphere = solid_particle.get_mass_sphere();
+      const double mass_sphere = solid_particle.get_mass();
       const double e_dry = solid_particle.get_e_dry();
       const double mass_eff_part_part = mass_sphere/2;
       const double mass_eff_wall_part = mass_sphere;
@@ -240,7 +240,7 @@ void Collision_Model_FT::set_spring_properties(const Solid_Particle& solid_parti
       stiffness_breugem_part_part_ = compute_stiffness_breugem(mass_eff_part_part,e_dry);
       stiffness_breugem_wall_part_ = compute_stiffness_breugem(mass_eff_wall_part,e_dry);
 
-      if (collision_model_ == Collision_Model_FT::BREUGEM)
+      if (collision_model_ == Collision_model::BREUGEM)
         {
           damper_breugem_part_part_ = compute_damper_breugem(mass_eff_part_part,e_dry);
           damper_breugem_wall_part_ = compute_damper_breugem(mass_eff_wall_part,e_dry);
@@ -248,13 +248,13 @@ void Collision_Model_FT::set_spring_properties(const Solid_Particle& solid_parti
     }
 }
 
-void Collision_Model_FT::associate_transport_equation(const Equation_base& equation)
+void Collision_Model_FT_base::associate_transport_equation(const Equation_base& equation)
 {
   const Transport_Interfaces_FT_Disc& eq = ref_cast(Transport_Interfaces_FT_Disc,equation);
   refequation_transport_ = eq;
 }
 
-void Collision_Model_FT::compute_fictive_wall_coordinates(const double& radius)
+void Collision_Model_FT_base::compute_fictive_wall_coordinates(const double& radius)
 {
   DoubleVect offset_values(2*dimension);
 
@@ -267,7 +267,7 @@ void Collision_Model_FT::compute_fictive_wall_coordinates(const double& radius)
       if (activation_distance_>0) offset_values=activation_distance_;
       break;
     default:
-      Cerr << "Collision_Model_FT::compute_fictive_wall_coordinates error"  <<finl;
+      Cerr << "Collision_Model_FT_base::compute_fictive_wall_coordinates error"  <<finl;
       Process::exit();
       break;
     }
@@ -286,7 +286,7 @@ void Collision_Model_FT::compute_fictive_wall_coordinates(const double& radius)
  * origin of the domain
  * dimensions of the domain
  */
-void Collision_Model_FT::set_geometric_parameters(const Domaine_VDF& domaine_vdf)
+void Collision_Model_FT_base::set_geometric_parameters(const Domaine_VDF& domaine_vdf)
 {
   const Domaine& domain = domaine_vdf.domaine();
   const DoubleTab BB=domain.getBoundingBox();
@@ -344,8 +344,11 @@ void Collision_Model_FT::set_geometric_parameters(const Domaine_VDF& domaine_vdf
   Cerr << "Nx Ny Nz " << nb_nodes_ << finl;
 }
 
-
-int Collision_Model_FT::check_for_duplicates(ArrOfInt& vector)
+/*! @brief Check if two particles have the same ID
+ * Very important function to stop computation if
+ * two particles coalesce.
+ */
+int Collision_Model_FT_base::check_for_duplicates(ArrOfInt& vector)
 {
   int flag =0;
   ArrOfInt copy_vector(vector);
@@ -412,8 +415,9 @@ ArrOfInt send_receive_list_id_particles(ArrOfInt& list_id_real_particles_to_send
   return list_id_particle_recv;
 }
 
-void Collision_Model_FT::identify_collision_pairs_Verlet(const Navier_Stokes_FT_Disc& eq_ns,
-                                                         const Transport_Interfaces_FT_Disc& eq_transport)
+
+void Collision_Model_FT_base::research_collision_pairs_Verlet(const Navier_Stokes_FT_Disc&
+                                                              eq_ns,const Transport_Interfaces_FT_Disc& eq_transport)
 {
   ArrOfInt list_particles_to_check_LC;
   const ArrOfInt& gravity_center_elem=eq_transport.get_gravity_center_elem();
@@ -425,8 +429,8 @@ void Collision_Model_FT::identify_collision_pairs_Verlet(const Navier_Stokes_FT_
   const DoubleTab& particles_position=eq_transport.get_particles_position();
   const Fluide_Diphasique& two_phase_elem=eq_ns.fluide_diphasique();
   const int id_solid=1-two_phase_elem.get_id_fluid_phase();
-  const auto& solid_particle=ref_cast(Solid_Particle,two_phase_elem.fluide_phase(id_solid));
-  const double& radius=solid_particle.get_radius_sphere();
+  const auto& solid_particle=ref_cast(Solid_Particle_base,two_phase_elem.fluide_phase(id_solid));
+  const double& radius=solid_particle.get_equivalent_radius();
   const Schema_Temps_base& time_scheme=eq_ns.schema_temps();
   const double& time_step=time_scheme.pas_de_temps();
 
@@ -519,55 +523,74 @@ void Collision_Model_FT::identify_collision_pairs_Verlet(const Navier_Stokes_FT_
     }
 }
 
-int Collision_Model_FT::get_last_id(const ArrOfInt& list_particles_to_check_LC) const
+int Collision_Model_FT_base::get_last_id(const ArrOfInt& list_particles_to_check_LC)
 {
-  switch (detection_method_)
-    {
-    case Detection_method::CHECK_ALL:
-      Process::exit("Collision_Model_FT::get_last_id "
-                    "Should not be in here!");
-      break;
-    case Detection_method::VERLET:
-      return (nb_particles_tot_);
-    case Detection_method::LC_VERLET:
-      return(list_particles_to_check_LC.size_array());
-    default:
-      Process::exit("Collision_Model_FT::get_last_id "
-                    "detection_method unkown.");
-    }
+  if (detection_method_==Detection_method::CHECK_ALL)
+    Process::exit("Collision_Model_FT_base::get_last_id Should not be in here!");
+  else if (detection_method_==Detection_method::VERLET ||
+           detection_method_==Detection_method::LC_VERLET)
+    return(list_particles_to_check_LC.size_array());
   return 0;
 }
 
-int Collision_Model_FT::get_id(const ArrOfInt& list_particle, const int ind_id_particle) const
+
+int Collision_Model_FT_base::get_id(const ArrOfInt& list_particle, const int ind_id_particle)
 {
-  switch (detection_method_)
-    {
-    case Detection_method::CHECK_ALL:
-      Process::exit("Collision_Model_FT::get_last_id "
-                    "Should not be in here!");
-      break;
-    case Detection_method::VERLET:
-      return (ind_id_particle);
-    case Detection_method::LC_VERLET:
-      return(list_particle(ind_id_particle));
-    default:
-      Process::exit("Collision_Model_FT::get_id "
-                    "detection_method unkown.");
-    }
+  if (detection_method_==Detection_method::CHECK_ALL)
+    Process::exit("Collision_Model_FT_base::get_id Should not be in here!");
+  else if (detection_method_==Detection_method::VERLET)
+    return(ind_id_particle);
+  else if (detection_method_==Detection_method::LC_VERLET)
+    return(list_particle(ind_id_particle));
+  else
+    Process::exit("Collision_Model_FT_base::get_id unkwnown detection_method_!");
   return 0;
 }
 
-void Collision_Model_FT::compute_Verlet_tables(const DoubleTab& particles_position,
-                                               const DoubleTab& particles_velocity,
-                                               double& max_vi,
-                                               const double& radius,
-                                               const ArrOfInt& list_particles_to_check_LC)
+int Collision_Model_FT_base::get_particle_j(const int ind_particle_i, const int ind_particle_j)
 {
-  const int last_id = get_last_id(list_particles_to_check_LC);
+  if (detection_method_==Detection_method::CHECK_ALL)
+    return(ind_particle_j);
+  else if (detection_method_==Detection_method::VERLET ||
+           detection_method_==Detection_method::LC_VERLET)
+    return (Verlet_tables_[ind_particle_i][ind_particle_j]);
+  return 0;
+}
+
+int Collision_Model_FT_base::get_nb_particles_j(const int ind_particle_i) const
+{
+  if (detection_method_==Detection_method::CHECK_ALL)
+    return (nb_particles_tot_+2*dimension);
+  else if (detection_method_==Detection_method::VERLET ||
+           detection_method_==Detection_method::LC_VERLET)
+    return (Verlet_tables_[ind_particle_i].size());
+  return 0;
+}
+
+int Collision_Model_FT_base::get_particle_i(const int ind_particle_i)
+{
+  return(detection_method_==Detection_method::LC_VERLET ?
+         list_real_particles_(ind_particle_i) : ind_particle_i);
+}
+
+int Collision_Model_FT_base::get_ind_start_particles_j(const int ind_particle_i) const
+{
+  return(detection_method_==Detection_method::CHECK_ALL ?
+         (ind_particle_i+1) : 0);
+}
+
+
+void Collision_Model_FT_base::compute_Verlet_tables(const DoubleTab& particles_position,
+                                                    const DoubleTab& particles_velocity,
+                                                    double& max_vi,
+                                                    const double& radius,
+                                                    const ArrOfInt& list_particles_to_check_LC)
+{
+  int last_id = get_last_id(list_particles_to_check_LC);
 
   for (int ind_id_particle_i=0; ind_id_particle_i< nb_real_particles_; ind_id_particle_i++)
     {
-      const int id_particle_i=get_id(list_particles_to_check_LC,ind_id_particle_i);
+      int id_particle_i=get_id(list_particles_to_check_LC,ind_id_particle_i);
       const double vi=fabs(sqrt(
                              pow(particles_velocity(id_particle_i,0),2) +
                              pow(particles_velocity(id_particle_i,1),2) +
@@ -577,7 +600,7 @@ void Collision_Model_FT::compute_Verlet_tables(const DoubleTab& particles_positi
       // particle-particle distance
       for (int ind_id_particle_j=ind_id_particle_i+1; ind_id_particle_j< last_id; ind_id_particle_j++)
         {
-          const int id_particle_j= get_id(list_particles_to_check_LC, ind_id_particle_j);
+          int id_particle_j= get_id(list_particles_to_check_LC, ind_id_particle_j);
           double dij=sqrt(
                        pow(particles_position(id_particle_j,0)-particles_position(id_particle_i,0),2) +
                        pow(particles_position(id_particle_j,1)-particles_position(id_particle_i,1),2) +
@@ -601,158 +624,14 @@ void Collision_Model_FT::compute_Verlet_tables(const DoubleTab& particles_positi
     }
 }
 
-int Collision_Model_FT::get_nb_particles_j(const int ind_particle_i) const
-{
-  switch (detection_method_)
-    {
-    case Detection_method::CHECK_ALL:
-      return (nb_particles_tot_+2*dimension);
-    case Detection_method::VERLET:
-    case Detection_method::LC_VERLET:
-      return (Verlet_tables_[ind_particle_i].size());
-    default:
-      Process::exit("Collision_Model_FT::get_nb_particles_j "
-                    "detection_method unkown.");
-      break;
-    }
-  return 0;
-}
 
-int Collision_Model_FT::get_particle_j(const int ind_particle_i, const int ind_particle_j) const
-{
-  switch (detection_method_)
-    {
-    case Detection_method::CHECK_ALL:
-      return (ind_particle_j);
-      break;
-    case Detection_method::VERLET:
-    case Detection_method::LC_VERLET:
-      return (Verlet_tables_[ind_particle_i][ind_particle_j]);
-      break;
-    default:
-      Process::exit("Collision_Model_FT::get_particle_j "
-                    "detection_method unkown.");
-    }
-  return 0;
-}
-
-int Collision_Model_FT::get_particle_i(const int ind_particle_i) const
-{
-  return(detection_method_==Detection_method::LC_VERLET ?
-         list_real_particles_(ind_particle_i) : ind_particle_i);
-}
-
-int Collision_Model_FT::get_ind_start_particles_j(const int ind_particle_i) const
-{
-  return(detection_method_==Detection_method::CHECK_ALL ?
-         (ind_particle_i+1) : 0);
-}
-
-void Collision_Model_FT::compute_lagrangian_contact_forces(const Fluide_Diphasique& two_phase_fluid,
-                                                           const DoubleTab& particles_position,
-                                                           const DoubleTab& particles_velocity,
-                                                           const double& deltat_simu)
-{
-  const int& id_fluid_phase= two_phase_fluid.get_id_fluid_phase();
-  const int& id_solid_phase=1-id_fluid_phase;
-  const auto& solid_particle=ref_cast(Solid_Particle,two_phase_fluid.fluide_phase(id_solid_phase));
-  const auto& incompressible_fluid=ref_cast(Fluide_Incompressible,
-                                            two_phase_fluid.fluide_phase(id_fluid_phase));
-  const double& solid_density = solid_particle.masse_volumique().valeurs()(0, 0);
-  const double& fluid_density = incompressible_fluid.masse_volumique().valeurs()(0, 0);
-  const double& fluid_viscosity  = fluid_density
-                                   * incompressible_fluid.viscosite_cinematique().valeurs()(0, 0);
-  const double& radius_sphere=solid_particle.get_radius_sphere();
-  const double& volume_sphere=solid_particle.get_volume_sphere();
-  const double& e_dry=solid_particle.get_e_dry();
-  const double min_threshold=1e-10;
-  DoubleTab dX(dimension), dU(dimension);
-  lagrangian_contact_forces_=0;
-  for (int ind_particle_i = 0; ind_particle_i < nb_real_particles_; ind_particle_i++)
-    {
-      int particle_i=get_particle_i(ind_particle_i);
-      int nb_particles_j=get_nb_particles_j(ind_particle_i);
-      int ind_start_part_j=get_ind_start_particles_j(ind_particle_i);
-      for (int ind_particle_j =ind_start_part_j; ind_particle_j < nb_particles_j; ind_particle_j++)
-        {
-          dX = 0;
-          dU = 0;
-          int particle_j=get_particle_j(ind_particle_i,ind_particle_j);
-          int is_particle_particle_collision = particle_j < nb_particles_tot_;
-          compute_dX_dU(dX, dU, particle_i, particle_j, particles_position,
-                        particles_velocity, is_particle_particle_collision);
-          double dist_gravity_center = sqrt(local_carre_norme_vect(dX));
-          double dist_between_particles = dist_gravity_center - 2 * radius_sphere;
-
-          F_now_(particle_i, particle_j) = 0;
-          if (dist_between_particles <= 0) // contact
-            {
-              DoubleTab norm(dimension);
-              for (int d = 0; d < dimension; d++)
-                norm(d) = dX(d) / dist_gravity_center;
-
-              double dX_scal_dU = local_prodscal(dX,dU);
-              DoubleTab dUn(dimension);
-              for (int d = 0; d < dimension; d++)
-                dUn(d) = (dX_scal_dU / dist_gravity_center) * norm(d);
-
-              const double impact_velocity = sqrt(local_carre_norme_vect(dUn));
-
-              F_now_(particle_i, particle_j) = 1;
-              int is_start_of_collision = F_now_(particle_i, particle_j) >
-                                          F_old_(particle_i, particle_j); // We need to know
-              // if this is the first time step of the collision to compute the impact velocity
-
-              DoubleTab next_dX(dimension);
-              for (int d = 0; d < dimension; d++)
-                next_dX(d) = dX(d) + deltat_simu * dU(d);
-              const double next_dist_gravity_center = sqrt(local_carre_norme_vect(next_dX));
-              const double next_dist_between_particles = next_dist_gravity_center - 2 * radius_sphere;
-              const double effective_radius = is_particle_particle_collision ? radius_sphere/2 :
-                                              radius_sphere;
-              const double impact_Stokes = solid_density * 2 * effective_radius * impact_velocity /
-                                           (9 * fluid_viscosity);
-              if (is_start_of_collision)
-                e_eff_(particle_i,particle_j)=e_dry *compute_ewet_legendre(impact_Stokes);
-              DoubleTab force_contact=compute_contact_force(
-                                        next_dist_between_particles,
-                                        norm,
-                                        dUn,
-                                        particle_i,
-                                        particle_j,
-                                        dX_scal_dU<=0,
-                                        is_particle_particle_collision);
-
-              for (int d = 0; d < dimension; d++)
-                {
-                  lagrangian_contact_forces_(particle_i, d) += fabs(force_contact(d)) <=
-                                                               min_threshold ? 0 : force_contact(d) / volume_sphere;
-                  if (!is_particle_particle_collision)
-                    continue; // wall collision, no force to apply on the wall
-                  lagrangian_contact_forces_(particle_j, d) -= fabs(force_contact(d)) <=
-                                                               min_threshold ? 0 :  force_contact(d) / volume_sphere;
-                }
-            }
-          F_old_(particle_i, particle_j) = F_now_(particle_i, particle_j);
-        }
-    }
-
-  if (detection_method_==Detection_method::LC_VERLET)
-    {
-      mp_sum_for_each_item(lagrangian_contact_forces_);
-      mp_max_for_each_item(F_old_);
-      mp_max_for_each_item(F_now_);
-      mp_max_for_each_item(e_eff_);
-    }
-}
-
-void Collision_Model_FT::compute_dX_dU(DoubleTab& dX,
-                                       DoubleTab& dU,
-                                       const int& particle,
-                                       const int& neighbor,
-                                       const DoubleTab& particles_position,
-                                       const DoubleTab& particles_velocity,
-                                       const bool is_particle_particle_collision)
+void Collision_Model_FT_base::compute_dX_dU(DoubleTab& dX,
+                                            DoubleTab& dU,
+                                            const int& particle,
+                                            const int& neighbor,
+                                            const DoubleTab& particles_position,
+                                            const DoubleTab& particles_velocity,
+                                            const bool is_particle_particle_collision)
 {
   if (is_particle_particle_collision)
     {
@@ -772,7 +651,7 @@ void Collision_Model_FT::compute_dX_dU(DoubleTab& dX,
     }
 }
 
-DoubleTab Collision_Model_FT::compute_contact_force(
+DoubleTab Collision_Model_FT_base::compute_contact_force(
   const double& next_dist_int,
   const DoubleTab& norm,
   const DoubleTab& dUn,
@@ -782,76 +661,55 @@ DoubleTab Collision_Model_FT::compute_contact_force(
   const double& is_collision_part_part)
 {
   DoubleTab force_contact(dimension);
-  switch (collision_model_)
+
+  if (collision_model_==Collision_model::HYBRID_ESI) // see Hamidi et al., IJMF, 2023.
     {
-    case Collision_Model_FT::HYBRID_ESI: // see Hamidi et al., IJMF, 2023.
-      {
-        const double e_eff_particle = is_compression_step ? 1 : e_eff_(particle_i, particle_j);
-        const double stiffness = is_collision_part_part ? stiffness_breugem_part_part_:
-                                 stiffness_breugem_wall_part_;
-        for (int d = 0; d < dimension; d++)
-          force_contact(d)= -pow(e_eff_particle,2) * stiffness * next_dist_int * norm(d);
-      }
-      break;
-    case Collision_Model_FT::BREUGEM: // See. W-P. Breugem, 2010.
-      {
-        const double stiffness = is_collision_part_part ? stiffness_breugem_part_part_:
-                                 stiffness_breugem_wall_part_;
-        const double damper = is_collision_part_part ? damper_breugem_part_part_:
-                              damper_breugem_wall_part_;
-        for (int d = 0; d < dimension; d++)
-          force_contact(d)= -stiffness*next_dist_int*norm(d) -damper*dUn(d);
-      }
-      break;
-    default:
-      Process::exit("The method specified for modele_collision in not recognized. \n");
+      const double e_eff_particle = is_compression_step ? 1 : e_eff_(particle_i, particle_j);
+      const double stiffness = is_collision_part_part ? stiffness_breugem_part_part_:
+                               stiffness_breugem_wall_part_;
+      for (int d = 0; d < dimension; d++)
+        force_contact(d)= -pow(e_eff_particle,2) * stiffness * next_dist_int * norm(d);
     }
+  else if (collision_model_==Collision_model::BREUGEM) // See. W-P. Breugem, 2010.
+    {
+      const double stiffness = is_collision_part_part ? stiffness_breugem_part_part_:
+                               stiffness_breugem_wall_part_;
+      const double damper = is_collision_part_part ? damper_breugem_part_part_:
+                            damper_breugem_wall_part_;
+      for (int d = 0; d < dimension; d++)
+        force_contact(d)= -stiffness*next_dist_int*norm(d) -damper*dUn(d);
+    }
+  else
+    Process::exit("Collision_Model_FT_base::compute_contact_force unknown collision_model_");
+
   return force_contact;
 }
 
-void Collision_Model_FT::discretize_contact_forces_eulerian_field(
+void Collision_Model_FT_base::discretize_contact_forces_eulerian_field(
   const DoubleTab& volumic_phase_indicator_function,
   const Domaine_VF& domain_vf,
   const IntTab& particles_eulerian_id_number,
   DoubleTab& contact_force_source_term)
 {
-  const DoubleVect& interlaced_volumes=domain_vf.volumes_entrelaces();
-  const int nb_faces=interlaced_volumes.size_array();
-  const IntVect& orientation = domain_vf.orientation();
-  const IntTab& face_voisins=domain_vf.face_voisins();
-  for (int face=0; face<nb_faces; face++)
-    {
-      const int left_elem=face_voisins(face,0);
-      const int right_elem=face_voisins(face,1);
-      int id_left = left_elem != -1 ? particles_eulerian_id_number(left_elem) : -1;
-      int id_right = right_elem != -1 ? particles_eulerian_id_number(right_elem) : -1;
-      const int id_number=std::max(id_left,id_right);
-      if (id_number!=-1)
-        {
-          const int ori=orientation(face);
-          contact_force_source_term(face)=(1-volumic_phase_indicator_function(face))
-                                          *interlaced_volumes(face)*lagrangian_contact_forces_(id_number,ori);
-        }
-    }
+  Process::exit("Collision_Model_FT_base::discretize_contact_forces_eulerian_field "
+                "not coded for particles of arbitrary shape");
 }
 
-bool Collision_Model_FT::is_Verlet_activated()
+bool Collision_Model_FT_base::is_Verlet_activated()
 {
   if (detection_method_ == Detection_method::CHECK_ALL)
     return false;
   return true;
 }
 
-bool Collision_Model_FT::is_LC_activated()
+bool Collision_Model_FT_base::is_LC_activated()
 {
   if (detection_method_ == Detection_method::LC_VERLET)
     return true;
   return false;
 }
 
-
-
-void Collision_Model_FT::set_LC_zones(const Domaine_VF& domain_vf, const Schema_Comm_FT& schema_com)
+void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Schema_Comm_FT& schema_com)
 {
   int nsup=0;
   int ninf=0;
@@ -906,7 +764,7 @@ void Collision_Model_FT::set_LC_zones(const Domaine_VF& domain_vf, const Schema_
   list_coord_recv.resize(nb_elem_recv,dimension);
   list_pe_recv.resize(nb_elem_recv);
 
-  if (nb_joints != nb_elem_recv) Process::exit("EB : Collision_Model_FT::"
+  if (nb_joints != nb_elem_recv) Process::exit("EB : Collision_Model_FT_base::"
                                                  "set_LC_zones -- erreur identification du 1er element"
                                                  " des procs de la zone de joint.");
   for(int ind_pe=0; ind_pe<nb_elem_recv; ind_pe++)

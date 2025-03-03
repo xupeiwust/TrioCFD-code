@@ -18,6 +18,7 @@
 
 #include <Fluide_Incompressible.h>
 
+
 /*! @brief : class Solid_Particle
  *
  *  Description: This class describes spherical solid particles.
@@ -30,42 +31,38 @@
  *  solid-solid interactions. See Modele_Collision_FT
  *  Location: ${TrioCFD_ROOT}/src/Multiphase/fluid_particle_interaction
  */
-
-class Solid_Particle : public Fluide_Incompressible
+class Solid_Particle_base : public Fluide_Incompressible
 {
-  Declare_instanciable_sans_constructeur(Solid_Particle);
+  Declare_base_sans_constructeur(Solid_Particle_base);
 
 public:
-  Solid_Particle();
+  Solid_Particle_base();
 
   // override functions
   void set_param(Param& param) override;
-  int lire_motcle_non_standard(const Motcle&, Entree&) override;
 
   // Setters
-  void set_radius(const double radius) { radius_sphere_=radius; }
-  void set_diameter_sphere(const double diameter) { diameter_sphere_=diameter; }
-  void set_volume_sphere(const double volume) { volume_sphere_=volume; }
-  void set_mass_sphere(const double mass) { mass_sphere_=mass; }
-
+  void set_volume(const double volume) { volume_=volume; }
+  void set_mass(const double mass) { mass_=mass; }
+  void set_equivalent_diameter(const double equivalent_diameter)
+  { equivalent_diameter_=equivalent_diameter; }
+  void set_equivalent_radius(const double equivalent_radius)
+  { equivalent_radius_=equivalent_radius; }
   // getters
   const double& get_e_dry() const { return e_dry_; }
-  const double& get_radius_sphere() const { return radius_sphere_; }
-  const double& get_diameter_sphere() const { return diameter_sphere_; }
-  const double& get_volume_sphere() const { return volume_sphere_; }
-  const double& get_mass_sphere() const { return mass_sphere_; }
-  const double& get_half_small_axis_spheroid() const { return half_small_axis_spheroid_; }
-  const double& get_half_long_axis_spheroid() const { return half_long_axis_spheroid_ ;}
+  const double& get_volume() const { return volume_; }
+  const double& get_mass() const { return mass_; }
+  const double& get_equivalent_radius() const { return equivalent_radius_; }
+  const double& get_equivalent_diameter() const { return equivalent_diameter_; }
+
 
 protected :
   // Variables declaration and initialization
   double e_dry_=0.; // dry restitution coefficient
-  double radius_sphere_=0.; // only required for sphere flow
-  double diameter_sphere_=0.;
-  double volume_sphere_=0.;
-  double mass_sphere_=0.;
-  double half_small_axis_spheroid_=0;
-  double half_long_axis_spheroid_=0;
+  double volume_=0.;
+  double mass_=0.;
+  double equivalent_radius_=0;
+  double equivalent_diameter_=0;
 };
 
 #endif

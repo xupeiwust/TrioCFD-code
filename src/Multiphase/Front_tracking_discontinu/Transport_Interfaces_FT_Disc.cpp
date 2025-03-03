@@ -498,7 +498,7 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   param.ajouter("vitesse_imposee_regularisee", &variables_internes_->vimp_regul) ;
   //param.ajouter("indic_faces_modifiee", &variables_internes_->indic_faces_modif) ;
   //param.ajouter_non_std("indic_faces_modifiee", (this)) ;
-  param.ajouter("collision_model_fpi",&get_set_collision_model());
+  param.ajouter("collision_model_fpi",&collision_model_);
 }
 
 int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
@@ -1731,30 +1731,30 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
   if (is_solid_particle_)
     {
       const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, domaine_dis());
-      collision_model_.set_geometric_parameters(domain_vdf);
+      collision_model_.valeur().set_geometric_parameters(domain_vdf);
       compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
-      collision_model_.set_nb_particles_tot(nb_particles_tot_);
-      collision_model_.set_nb_real_particles(nb_particles_tot_);
-      collision_model_.resize_lagrangian_contact_force();
+      collision_model_.valeur().set_nb_particles_tot(nb_particles_tot_);
+      collision_model_.valeur().set_nb_real_particles(nb_particles_tot_);
+      collision_model_.valeur().resize_lagrangian_contact_force();
       const Navier_Stokes_FT_Disc& equation_ns = equation_ns_.valeur();
       const Fluide_Diphasique& two_phase_elem=equation_ns.fluide_diphasique();
       const int solid_phase=1-two_phase_elem.get_id_fluid_phase();
-      const Solid_Particle& solid_particle=ref_cast(Solid_Particle,
-                                                    two_phase_elem.fluide_phase(solid_phase));
-      const double& diameter=solid_particle.get_diameter_sphere();
-      collision_model_.set_activation_distance(diameter);
-      collision_model_.compute_fictive_wall_coordinates(diameter/2);
-      collision_model_.associate_transport_equation(*this);
+      const Solid_Particle_base& solid_particle=ref_cast(Solid_Particle_base,
+                                                         two_phase_elem.fluide_phase(solid_phase));
+      const double& diameter=solid_particle.get_equivalent_diameter();
+      collision_model_.valeur().set_activation_distance(diameter);
+      collision_model_.valeur().compute_fictive_wall_coordinates(diameter/2);
+      collision_model_.valeur().associate_transport_equation(*this);
       const Schema_Comm_FT& schema_comm_FT=maillage_interface().get_schema_comm_FT();
-      if (collision_model_.is_LC_activated())
-        collision_model_.set_LC_zones(domain_vdf,schema_comm_FT);
+      if (collision_model_.valeur().is_LC_activated())
+        collision_model_.valeur().set_LC_zones(domain_vdf,schema_comm_FT);
       init_particles_position_velocity();
-      collision_model_.set_spring_properties(solid_particle);
-      DoubleTab& F_old=collision_model_.get_set_F_old();
-      DoubleTab& F_now=collision_model_.get_set_F_now();
+      collision_model_.valeur().set_spring_properties(solid_particle);
+      DoubleTab& F_old=collision_model_.valeur().get_set_F_old();
+      DoubleTab& F_now=collision_model_.valeur().get_set_F_now();
       if ((F_old.dimension(0)!=nb_particles_tot_) ||
           (F_now.dimension(0)!=nb_particles_tot_) )
-        collision_model_.reset();
+        collision_model_.valeur().reset();
     }
 
   const double temps = schema_temps().temps_courant();
@@ -7587,7 +7587,7 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
     if (is_solid_particle_)
       {
         Cerr << "Backup of collision model" << finl;
-        bytes += collision_model_.sauvegarder(os);
+        bytes += collision_model_.valeur().sauvegarder(os);
         // we save particles position and velocity as these data
         // are required for the computation of contact forces
         Cerr << "Backup of particles position and velocity" << finl;
@@ -7644,7 +7644,7 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
     variables_internes_->injection_interfaces_last_time_ = schema_temps().temps_courant();
     if (is_solid_particle_)
       {
-        collision_model_.reprendre(is);
+        collision_model_.valeur().reprendre(is);
         particles_position_collision_.resize(0,dimension);
         particles_velocity_collision_.resize(0,dimension);
         const int format_xyz = EcritureLectureSpecial::is_lecture_special();
@@ -9109,7 +9109,7 @@ void Transport_Interfaces_FT_Disc::swap_particles_lagrangian_position_velocity()
       particles_correct_id_number(wrong_id_number)=correct_id_number;
     }
   mp_max_for_each_item(particles_correct_id_number);
-  int isduplicateValue = collision_model_.check_for_duplicates(particles_correct_id_number);
+  int isduplicateValue = collision_model_.valeur().check_for_duplicates(particles_correct_id_number);
   if (isduplicateValue == 1) Process::exit("Transport_Interfaces_FT_Disc::swap_particles_position_velocity "
                                              "ERROR: duplicate value of the particles lagrangian ID number");
 

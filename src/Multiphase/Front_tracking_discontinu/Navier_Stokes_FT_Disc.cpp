@@ -3875,7 +3875,7 @@ int Navier_Stokes_FT_Disc::is_terme_gravite_rhog() const
  */
 
 void Navier_Stokes_FT_Disc::compute_particles_eulerian_id_number(
-  const Collision_Model_FT& collision_model)
+  const Collision_Model_FT_base& collision_model)
 {
   const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
   const int nb_elem=domaine_vf.nb_elem();
@@ -3903,7 +3903,7 @@ void Navier_Stokes_FT_Disc::compute_particles_eulerian_id_number(
   particles_eulerian_id_number_.echange_espace_virtuel();
 }
 
-void Navier_Stokes_FT_Disc::swap_particles_eulerian_id_number(const Collision_Model_FT& collision_model,
+void Navier_Stokes_FT_Disc::swap_particles_eulerian_id_number(const Collision_Model_FT_base& collision_model,
                                                               const ArrOfInt& gravity_center_elem)
 {
   const int nb_elem=particles_eulerian_id_number_.dimension(0);
@@ -3956,9 +3956,10 @@ void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
   auto& eq_transport=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
   const auto& eq_transport_const=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
   const Navier_Stokes_FT_Disc& eq_ns = *this;
-  Collision_Model_FT& collision_model=eq_transport.get_set_collision_model();
+  Collision_Model_FT_base& collision_model=eq_transport.get_set_collision_model();
   const DoubleTab& particles_position=eq_transport.get_particles_position();
   const DoubleTab& particles_velocity=eq_transport.get_particles_velocity();
+  const Fluide_Diphasique& two_phase_fluid = fluide_diphasique();
 
   // Step 1: Collision detection
   const ArrOfInt& gravity_center_elem = eq_transport.get_gravity_center_elem();
@@ -3966,16 +3967,13 @@ void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
   const int nb_dt_compute_Verlet_ = collision_model.get_nb_dt_compute_Verlet();
   const double delta_t=schema_temps().pas_de_temps();
   const double nb_dt=schema_temps().nb_pas_dt();
-
   if (collision_model.is_Verlet_activated())
     {
       if (nb_dt_Verlet >= nb_dt_compute_Verlet_ || nb_dt == 0) // we compute it at every restart
-        collision_model.identify_collision_pairs_Verlet(eq_ns,eq_transport_const);
+        collision_model.research_collision_pairs_Verlet(eq_ns,eq_transport_const);
       nb_dt_Verlet++;
     }
   // Step 2: Contact forces computation
-  //double& dt = schema_temps().pas_de_temps();
-  const Fluide_Diphasique& two_phase_fluid = fluide_diphasique();
   collision_model.compute_lagrangian_contact_forces(two_phase_fluid,
                                                     particles_position,
                                                     particles_velocity,

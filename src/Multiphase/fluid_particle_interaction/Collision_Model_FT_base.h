@@ -1,32 +1,25 @@
-/****************************************************************************
-* Copyright (c) 2025, CEA
-* All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-* 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
 
-#ifndef Modele_Collision_FT_included
-#define Modele_Collision_FT_included
+#ifndef COLLISION_MODEL_FT_BASE_included
+#define COLLISION_MODEL_FT_BASE_included
+
 
 #include <TRUSTTabFT_forward.h>
-#include <TRUSTTabFT.h>
 #include <Fluide_Diphasique.h>
-#include <Domaine_VDF.h>
-#include <TRUSTLists.h>
 #include <Schema_Comm_FT.h>
+#include <Champ_Don_base.h>
 #include <Matrice_Morse.h>
+#include <Domaine_VDF.h>
+#include <TRUSTTabFT.h>
+#include <TRUSTLists.h>
+#include <TRUST_Ref.h>
+#include <type_traits>
+
 
 class Param;
 class Maillage_FT_Disc;
 class Transport_Interfaces_FT_Disc;
 class Navier_Stokes_FT_Disc;
+
 
 /*! @brief : class Collision_Model_FT
  *
@@ -39,19 +32,18 @@ class Navier_Stokes_FT_Disc;
  *  overlap (less than the mesh grid size) occurs during the
  *  process.
  */
-
-class Collision_Model_FT : public Objet_U
+class Collision_Model_FT_base: public Objet_U
 {
-  Declare_instanciable_sans_constructeur(Collision_Model_FT);
+  Declare_base_sans_constructeur(Collision_Model_FT_base);
 
 public:
 
-  Collision_Model_FT();
-
+  Collision_Model_FT_base();
   // override functions
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   int reprendre(Entree& is) override;
   int sauvegarder(Sortie& os) const override;
+  void set_param(Param& p);
   void reset(); // Tables must have the right dimension to be correctly read during the restart
   void resize_geometric_parameters();
   void resize_lagrangian_contact_force()
@@ -60,6 +52,26 @@ public:
   }
   void associate_transport_equation(const Equation_base& equation);
   int check_for_duplicates(ArrOfInt& vector);
+  void compute_fictive_wall_coordinates(const double& radius);
+
+  virtual void compute_lagrangian_contact_forces(const Fluide_Diphasique& two_phase_fluid,
+                                                 const DoubleTab& particles_position,
+                                                 const DoubleTab& particles_velocity,
+                                                 const double& deltat_simu)=0;
+
+  virtual void discretize_contact_forces_eulerian_field(const DoubleTab& volumic_phase_indicator_function,
+                                                        const Domaine_VF& domain_vf,
+                                                        const IntTab& particles_eulerian_id_number,
+                                                        DoubleTab& contact_force_source_term)=0;
+
+  void research_collision_pairs_Verlet(const Navier_Stokes_FT_Disc& eq_ns,
+                                       const Transport_Interfaces_FT_Disc& eq_transport);
+
+  void compute_Verlet_tables(const DoubleTab& particles_position,
+                             const DoubleTab& particles_velocity,
+                             double& max_vi,
+                             const double& radius,
+                             const ArrOfInt& list_particles_to_check_LC);
 
   DoubleTab compute_contact_force(
     const double& next_dist_int,
@@ -69,32 +81,6 @@ public:
     const int& particle_j,
     const int& is_compression_step,
     const double& is_collision_part_part);
-
-  void compute_fictive_wall_coordinates(const double& radius);
-
-  void identify_collision_pairs_Verlet(const Navier_Stokes_FT_Disc& eq_ns,
-                                       const Transport_Interfaces_FT_Disc& eq_transport);
-
-  void compute_lagrangian_contact_forces(const Fluide_Diphasique& two_phase_fluid,
-                                         const DoubleTab& particles_position,
-                                         const DoubleTab& particles_velocity,
-                                         const double& deltat_simu);
-
-  void compute_Verlet_tables(const DoubleTab& particles_position,
-                             const DoubleTab& particles_velocity,
-                             double& max_vi,
-                             const double& radius,
-                             const ArrOfInt& list_particles_to_check_LC);
-  /*
-  template <typename T>
-  void compute_Verlet_tables(const DoubleTab& particles_position,
-                             const DoubleTab& particles_velocity, double& max_vi, const double& radius,
-                             const T& list_particle_i, const T& list_particle_j); */
-
-  void discretize_contact_forces_eulerian_field(const DoubleTab& volumic_phase_indicator_function,
-                                                const Domaine_VF& domain_vf,
-                                                const IntTab& particles_eulerian_id_number,
-                                                DoubleTab& contact_force_source_term);
 
   double compute_ewet_legendre(const double& St) {return exp(-35 / (St + 1e-6));} // See: D. Legendre et al, Chem. Eng. Sci., (2006).
 
@@ -109,7 +95,6 @@ public:
   bool is_LC_activated();
 
   // setters
-  void set_param(Param& p);
   void set_nb_particles_tot(int nb_particles_tot) { nb_particles_tot_=nb_particles_tot; }
   void set_nb_real_particles(int nb_real_particles) { nb_real_particles_=nb_real_particles; }
 
@@ -118,7 +103,7 @@ public:
     activation_distance_=
       diameter*activation_distance_percentage_diameter_/100;
   }
-  void set_spring_properties(const Solid_Particle& solid_particle);
+  void set_spring_properties(const Solid_Particle_base& solid_particle);
   void set_domain_dimensions(DoubleVect& Longueurs) { domain_dimensions_=Longueurs; }
   void set_origin(DoubleVect& Origin) { origin_=Origin; }
   void set_geometric_parameters(const Domaine_VDF& domaine_vdf);
@@ -131,9 +116,9 @@ public:
   const int& get_is_force_on_two_phase_elem() const { return is_force_on_two_phase_elem_; }
   const int& get_collision_number() const { return collision_number_; }
 
-  int get_last_id(const ArrOfInt& list_particles_to_check_LC) const;
 
-  int get_id(const ArrOfInt& list_particle, const int ind_id_particle) const;
+  int get_last_id(const ArrOfInt& list_particles_to_check_LC);
+  int get_id(const ArrOfInt& list_particle, const int ind_id_particle);
 
   const double& get_duration_collision() const { return collision_duration_; }
   const double& get_delta_n() const { return activation_distance_percentage_diameter_; }
@@ -174,16 +159,18 @@ protected:
 
   OBS_PTR(Transport_Interfaces_FT_Disc) refequation_transport_;
 
-private:
   OBS_PTR(Domaine) ref_domaine;
 
   void compute_dX_dU(DoubleTab& dX, DoubleTab& dU, const int& particle,\
                      const int& neighbor, const DoubleTab& particles_position, const\
                      DoubleTab& particles_velocity, const bool is_particle_particle_collision );
+
+
   int get_nb_particles_j(const int ind_particle_i) const;
   int get_ind_start_particles_j(const int ind_particle_i) const;
-  int get_particle_i(const int ind_particle_i) const;
-  int get_particle_j(const int ind_particle_i, const int ind_particle_j) const;
+  int get_particle_i(const int ind_particle_i);
+  int get_particle_j(const int ind_particle_i, const int ind_particle_j);
+
 
   IntVect nb_nodes_;
   DoubleVect origin_;
@@ -198,12 +185,11 @@ private:
   double damper_breugem_part_part_ = 0;
   double damper_breugem_wall_part_ = 0;
 
-  enum Collision_model { HYBRID_ESI, BREUGEM };
-  Collision_model collision_model_ = HYBRID_ESI;
+  enum class Collision_model { HYBRID_ESI, BREUGEM };
+  Collision_model collision_model_ = Collision_model::HYBRID_ESI;
 
-  enum Detection_method { CHECK_ALL, VERLET, LC_VERLET};
-  Detection_method detection_method_ = CHECK_ALL;
+  enum class Detection_method { CHECK_ALL, VERLET, LC_VERLET};
+  Detection_method detection_method_ = Detection_method::CHECK_ALL;
 };
 
-#endif
-
+#endif /*_COLLISION_MODEL_FT_BASE_H_ */
