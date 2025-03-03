@@ -1046,8 +1046,7 @@ bool Probleme_FTD_IJK_base::run()
   schema_temps_ijk().set_max_timestep(schema_temps_ijk().get_timestep());
 
   Cerr<<"First postprocessing, this can take some minutes"<<finl;
-  if (!schema_temps_ijk().get_first_step_interface_smoothing())  // [ABN] do not understand this
-    postraiter(1);
+  postraiter(1);
   Cerr<<"First postprocessing OK"<<finl;
 
   statistiques().end_count(initialisation_calcul_counter_);
