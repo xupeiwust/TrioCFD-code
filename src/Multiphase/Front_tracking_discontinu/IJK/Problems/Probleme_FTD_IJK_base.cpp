@@ -912,7 +912,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_Euler(DoubleTrav& var_volume_par_bulle
               if (has_thermals_)
                 get_ijk_thermals().set_temperature_ini();
 
-              get_post().posttraiter_champs_instantanes(lata_name_, schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
+//              get_post().posttraiter_champs_instantanes(lata_name_, schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
               ns.compute_var_volume_par_bulle(var_volume_par_bulle);
 
               if (has_thermals_)
@@ -1016,7 +1016,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
               || (std::floor((current_time - timestep) / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time()))
                   < std::floor(current_time / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time())))) && (rk_step != 2))
         {
-          get_post().posttraiter_champs_instantanes(lata_name_, current_time_at_rk3_step, rk3.get_tstep());
+//          get_post().posttraiter_champs_instantanes(lata_name_, current_time_at_rk3_step, rk3.get_tstep());
         }
     }
   if (!Option_IJK::DISABLE_DIPHASIQUE)

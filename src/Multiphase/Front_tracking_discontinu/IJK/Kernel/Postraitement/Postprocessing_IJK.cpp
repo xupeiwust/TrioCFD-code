@@ -2186,18 +2186,18 @@ void Postprocessing_IJK::postraiter_fin(bool stop)
   const int tstep_sauv = tstep + tstep_init;
   if (ref_ijk_ft_->has_thermals())
     thermals_->set_first_step_thermals_post(first_step_thermals_post_);
-  if (stop || first_step_thermals_post_
-      || (nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == nb_pas_dt_post_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
-    {
-      if (post_par_paires_ ==1) { cout << "tstep : " << tstep << endl;}
-      posttraiter_champs_instantanes(lata_name, current_time, tstep);
-    }
-  else if ((post_par_paires_ == 1 && nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
-    {
-      cout << "deuxieme de la paire, tstep : " << tstep << endl;
-      posttraiter_champs_instantanes(lata_name, current_time, tstep);
-    }
+//  if (stop || first_step_thermals_post_
+//      || (nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == nb_pas_dt_post_ - 1)
+//      || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
+//    {
+//      if (post_par_paires_ ==1) { cout << "tstep : " << tstep << endl;}
+//      posttraiter_champs_instantanes(lata_name, current_time, tstep);
+//    }
+//  else if ((post_par_paires_ == 1 && nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
+//    {
+//      cout << "deuxieme de la paire, tstep : " << tstep << endl;
+//      posttraiter_champs_instantanes(lata_name, current_time, tstep);
+//    }
 
   if (ref_ijk_ft_->has_thermals())
     if (stop || first_step_thermals_post_
