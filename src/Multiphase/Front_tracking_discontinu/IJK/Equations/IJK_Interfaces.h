@@ -202,96 +202,39 @@ public :
   void calcul_surface_efficace_interface_initial(TYPE_SURFACE_EFFICACE_INTERFACE type_surface_efficace_interface);
 
   // fin de methode pour bulles fixes
-  const Domaine_dis_base& get_domaine_dis() const
-  {
-    return refdomaine_dis_.valeur();
-  };
-
-  int get_dt_impression_bilan_indicatrice() const
-  {
-    return dt_impression_bilan_indicatrice_;
-  };
-
-  int get_nb_bulles_reelles() const
-  {
-    return nb_bulles_reelles_;
-  };
-
-  int get_flag_positions_reference() const
-  {
-    return flag_positions_reference_;
-  };
-
-  int is_frozen() const
-  {
-    return frozen_;
-  };
-  void freeze()
-  {
-    frozen_ = 1;
-  };
+  const Domaine_dis_base& get_domaine_dis() const { return refdomaine_dis_.valeur(); }
+  int get_dt_impression_bilan_indicatrice() const { return dt_impression_bilan_indicatrice_; }
+  int get_nb_bulles_reelles() const { return nb_bulles_reelles_; }
+  int get_flag_positions_reference() const { return flag_positions_reference_; }
+  int is_frozen() const { return frozen_; }
+  void freeze() { frozen_ = 1; }
 
   int get_nb_bulles_ghost(const int print = 0) const
   {
     if (print)
       Cerr << "IJK_Interfaces::get_nb_bulles_ghost : On a " << nb_bulles_ghost_ << " bulles ghost." << finl;
     return nb_bulles_ghost_;
-  };
+  }
 
-  int get_forcing_method() const
-  {
-    return parser_;
-  };
-  int get_recompute_indicator() const
-  {
-    return recompute_indicator_;
-  };
-
-  void set_recompute_indicator(int i)
-  {
-    recompute_indicator_ = i;
-  };
-
-  int follow_colors() const
-  {
-    return follow_colors_;
-  };
-
-  const ArrOfInt& get_colors() const
-  {
-    return through_yminus_;
-  };
-  int ghost_compo_converter(const int i) const
-  {
-    return ghost_compo_converter_[i];
-  };
+  int get_forcing_method() const { return parser_; }
+  int get_recompute_indicator() const { return recompute_indicator_; }
+  void set_recompute_indicator(int i) { recompute_indicator_ = i; }
+  int follow_colors() const { return follow_colors_; }
+  const ArrOfInt& get_colors() const { return through_yminus_; }
+  int ghost_compo_converter(const int i) const { return ghost_compo_converter_[i]; }
 
 // Methodes d'acces aux parametres de la repulsion a la paroi :
-  double portee_wall_repulsion() const
-  {
-    return portee_wall_repulsion_;
-  };
-  double delta_p_wall_max_repulsion() const
-  {
-    return delta_p_wall_max_repulsion_;
-  };
+  double portee_wall_repulsion() const { return portee_wall_repulsion_; }
+  double delta_p_wall_max_repulsion() const { return delta_p_wall_max_repulsion_; }
 
   void set_reprise(const int i)
   {
     reprise_ = i;
     return;
-  };
+  }
 
-  void set_fichier_sauvegarde(const char *lataname)
-  {
-    fichier_sauvegarde_interface_ = lataname;
-  };
-
-  void set_fichier_reprise(const char *lataname)
-  {
-    fichier_reprise_interface_ = lataname;
-  };
-
+  void set_fichier_sauvegarde(const char *lataname) { fichier_sauvegarde_interface_ = lataname; }
+  void set_fichier_reprise(const char *lataname) { fichier_reprise_interface_ = lataname; }
   void set_seuil_indicatrice_petite(double seuil_indicatrice_petite)
   {
     seuil_indicatrice_petite_ = seuil_indicatrice_petite;
@@ -303,11 +246,9 @@ public :
       }
   };
 
-  Nom get_fichier_reprise()
-  {
-    return fichier_reprise_interface_;
-  };
-// methode non-const. Pour appel depuis l'exterieur (comme IJK_switch)
+  Nom get_fichier_reprise() { return fichier_reprise_interface_; }
+
+  // methode non-const. Pour appel depuis l'exterieur (comme IJK_switch)
   void lire_maillage_ft_dans_lata()
   {
     maillage_ft_ijk_.lire_maillage_ft_dans_lata(fichier_reprise_interface_,
@@ -352,35 +293,12 @@ public :
     return;
   };
 
-  const Maillage_FT_IJK& maillage_ft_ijk() const
-  {
-    return maillage_ft_ijk_;
-  }
-
-  const Maillage_FT_IJK& old_maillage_ft_ijk() const
-  {
-    return old_maillage_ft_ijk_;
-  }
-
-  const Remaillage_FT_IJK& remaillage_ft_ijk() const
-  {
-    return remaillage_ft_ijk_;
-  }
-
-  const DoubleTab& RK3_G_store_vi() const
-  {
-    return  RK3_G_store_vi_;
-  }
-
-  const IntVect& get_num_compo() const
-  {
-    return num_compo_;
-  }
-
-  const ArrOfInt& get_compo_to_group() const
-  {
-    return compo_to_group_;
-  };
+  const Maillage_FT_IJK& maillage_ft_ijk() const { return maillage_ft_ijk_; }
+  const Maillage_FT_IJK& old_maillage_ft_ijk() const { return old_maillage_ft_ijk_; }
+  const Remaillage_FT_IJK& remaillage_ft_ijk() const { return remaillage_ft_ijk_; }
+  const DoubleTab& RK3_G_store_vi() const { return  RK3_G_store_vi_; }
+  const IntVect& get_num_compo() const { return num_compo_; }
+  const ArrOfInt& get_compo_to_group() const { return compo_to_group_; }
 
   // Methode qui parcourt les facettes contenues dans la cellule num_elem
   // pour trouver la phase de sa cellule voisine
@@ -403,14 +321,8 @@ public :
   int compute_list_compo_connex_in_element(const Maillage_FT_IJK& mesh,
                                            const int elem,
                                            ArrOfInt& liste_composantes_connexes_dans_element) const;
-  const int& nb_groups() const
-  {
-    return nb_groups_ ;
-  };
-  const ArrOfDoubleFT& get_distance_autres_interfaces() const
-  {
-    return distance_autres_interfaces_;
-  };
+  const int& nb_groups() const { return nb_groups_ ; }
+  const ArrOfDoubleFT& get_distance_autres_interfaces() const { return distance_autres_interfaces_; }
   int get_ghost_number_from_compo(const int compo) const;
 
   void calculer_surface_bulles(ArrOfDouble& surfaces) const;
@@ -469,105 +381,38 @@ public :
   static void get_maillage_MED_from_IJK_FT(MEDCouplingUMesh *maillage_bulles_mcu,
                                            const Maillage_FT_IJK& maillage_bulles_ft_ijk);
 
-  const IJK_Field_double& get_surface_interface_old_ft() const
-  {
-    return surface_interface_ft_[old()];
-  }
-  const IJK_Field_double& get_surface_interface_old() const
-  {
-    return surface_interface_ns_[old()];
-  }
+  const IJK_Field_double& get_surface_interface_old_ft() const { return surface_interface_ft_[old()]; }
+  const IJK_Field_double& get_surface_interface_old() const { return surface_interface_ns_[old()]; }
+  const IJK_Field_double& get_surface_interface_next_ft() const { return surface_interface_ft_[next()]; }
+  const IJK_Field_double& get_surface_interface_next() const { return surface_interface_ns_[next()]; }
 
-  const IJK_Field_double& get_surface_interface_next_ft() const
-  {
-    return surface_interface_ft_[next()];
-  }
-  const IJK_Field_double& get_surface_interface_next() const
-  {
-    return surface_interface_ns_[next()];
-  }
-
-  const IJK_Field_vector3_double& get_barycentre_phase1_old_ft() const
-  {
-    return barycentre_phase1_ft_[old()];
-  }
-  const IJK_Field_vector3_double& get_barycentre_phase1_old() const
-  {
-    return barycentre_phase1_ns_[old()];
-  }
-
-  const IJK_Field_vector3_double& get_barycentre_phase1_next_ft() const
-  {
-    return barycentre_phase1_ft_[next()];
-  }
-  const IJK_Field_vector3_double& get_barycentre_phase1_next() const
-  {
-    return barycentre_phase1_ns_[next()];
-  }
+  const IJK_Field_vector3_double& get_barycentre_phase1_old_ft() const { return barycentre_phase1_ft_[old()]; }
+  const IJK_Field_vector3_double& get_barycentre_phase1_old() const { return barycentre_phase1_ns_[old()]; }
+  const IJK_Field_vector3_double& get_barycentre_phase1_next_ft() const { return barycentre_phase1_ft_[next()]; }
+  const IJK_Field_vector3_double& get_barycentre_phase1_next() const { return barycentre_phase1_ns_[next()]; }
 
   double get_barycentre(bool next_time, int bary_compo, int phase, int i, int j, int k) const;
   double get_barycentre_face(bool next_time, int face_dir, int bary_compo, int phase, int i, int j, int k) const;
 
   // Getter des surfaces par face
-  const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const
-  {
-    return surface_vapeur_par_face_[old()];
-  }
-  const IJK_Field_vector3_double& get_surface_vapeur_par_face() const
-  {
-    return surface_vapeur_par_face_ns_[old()];
-  }
-  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_ft() const
-  {
-    return indicatrice_surfacique_face_ft_[old()];
-  }
-  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_old() const
-  {
-    return indicatrice_surfacique_face_ns_[old()];
-  }
-  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_next() const
-  {
-    return indicatrice_surfacique_face_ns_[next()];
-  }
-  const DoubleTabFT_cut_cell_vector3& get_indicatrice_surfacique_efficace_face() const
-  {
-    return indicatrice_surfacique_efficace_face_;
-  }
-  const DoubleTabFT_cut_cell_scalar& get_surface_efficace_interface() const
-  {
-    return surface_efficace_interface_;
-  }
-  const DoubleTabFT_cut_cell_vector3& get_vitesse_deplacement_interface() const
-  {
-    return vitesse_deplacement_interface_;
-  }
-  const DoubleTabFT_cut_cell_vector3& get_normale_deplacement_interface() const
-  {
-    return normale_deplacement_interface_;
-  }
-  const DoubleTabFT_cut_cell_vector3& get_coord_deplacement_interface() const
-  {
-    return coord_deplacement_interface_;
-  }
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face_ft() const { return surface_vapeur_par_face_[old()]; }
+  const IJK_Field_vector3_double& get_surface_vapeur_par_face() const { return surface_vapeur_par_face_ns_[old()]; }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_ft() const { return indicatrice_surfacique_face_ft_[old()]; }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_old() const { return indicatrice_surfacique_face_ns_[old()]; }
+  const IJK_Field_vector3_double& get_indicatrice_surfacique_face_next() const { return indicatrice_surfacique_face_ns_[next()]; }
+  const DoubleTabFT_cut_cell_vector3& get_indicatrice_surfacique_efficace_face() const { return indicatrice_surfacique_efficace_face_; }
+  const DoubleTabFT_cut_cell_scalar& get_surface_efficace_interface() const { return surface_efficace_interface_; }
+  const DoubleTabFT_cut_cell_vector3& get_vitesse_deplacement_interface() const { return vitesse_deplacement_interface_; }
+  const DoubleTabFT_cut_cell_vector3& get_normale_deplacement_interface() const { return normale_deplacement_interface_; }
+  const DoubleTabFT_cut_cell_vector3& get_coord_deplacement_interface() const { return coord_deplacement_interface_; }
+
   // Getter des surfaces par face
   // void get_surface_vapeur_par_face_ns(IJK_Field_vector3_double &surfs) const ;
   // Getter des barycentres par face
-  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face_ft() const
-  {
-    return barycentre_vapeur_par_face_[old()];
-  }
-  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face() const
-  {
-    return barycentre_vapeur_par_face_ns_[old()];
-  }
-  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face_ft() const
-  {
-    return barycentre_phase1_face_ft_[old()];
-  }
-  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face() const
-  {
-    return barycentre_phase1_face_ns_[old()];
-  }
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face_ft() const { return barycentre_vapeur_par_face_[old()]; }
+  const FixedVector<IJK_Field_vector3_double, 3>& get_barycentre_vapeur_par_face() const { return barycentre_vapeur_par_face_ns_[old()]; }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face_ft() const { return barycentre_phase1_face_ft_[old()]; }
+  const FixedVector<FixedVector<IJK_Field_double, 2>, 3>& get_barycentre_phase1_face() const { return barycentre_phase1_face_ns_[old()]; }
   static inline double opposing_barycentre(double initial_barycentre, double initial_area)
   {
     double weighted_barycentre = initial_barycentre*initial_area;
@@ -663,15 +508,9 @@ public :
   int next() const { return old_en_premier_; }
 
   // TODO: retirer l'acces a FT
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_components_ * 3>& get_bary_par_compo_itfc_in_cell_ft() const
-  {
-    return bary_par_compo_[old()];
-  }
+  const FixedVector<IJK_Field_double, max_authorized_nb_of_components_ * 3>& get_bary_par_compo_itfc_in_cell_ft() const { return bary_par_compo_[old()]; }
   // TODO: retirer l'acces a FT
-  const FixedVector<IJK_Field_double, max_authorized_nb_of_components_ * 3>& get_norm_par_compo_itfc_in_cell_ft() const
-  {
-    return normale_par_compo_[old()];
-  }
+  const FixedVector<IJK_Field_double, max_authorized_nb_of_components_ * 3>& get_norm_par_compo_itfc_in_cell_ft() const { return normale_par_compo_[old()]; }
 
   // TODO: retirer l'acces a FT
   const IJK_Field_double& I_ft() const { return indicatrice_ft_[old()]; }
@@ -755,22 +594,10 @@ public :
     return res;
   }
 
-  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const
-  {
-    return groups_indicatrice_ft_[old()];
-  }
-  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const
-  {
-    return groups_indicatrice_ns_[old()];
-  }
-  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const
-  {
-    return groups_indicatrice_ft_[next()];
-  }
-  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const
-  {
-    return groups_indicatrice_ns_[next()];
-  }
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ft() const { return groups_indicatrice_ft_[old()]; }
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_ns() const { return groups_indicatrice_ns_[old()]; }
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ft() const { return groups_indicatrice_ft_[next()]; }
+  const IJK_Field_vector<double, max_authorized_nb_of_groups_>& groups_indicatrice_n_ns() const { return groups_indicatrice_ns_[next()]; }
   // const double& SIn(const int compo, const int i, const int j, const int k)
   // const {
   //   return surface_par_compo_next_[compo](i,j,k);
@@ -891,26 +718,11 @@ public :
     return nb_compo_traversante_[next()](i,j,k);
   }
 
-  const Intersection_Interface_ijk_cell& get_intersection_ijk_cell() const
-  {
-    return intersection_ijk_cell_;
-  }
-  const Intersection_Interface_ijk_face& get_intersection_ijk_face() const
-  {
-    return intersection_ijk_face_;
-  }
-  Intersection_Interface_ijk_cell& get_set_intersection_ijk_cell()
-  {
-    return intersection_ijk_cell_;
-  }
-  Intersection_Interface_ijk_face& get_set_intersection_ijk_face()
-  {
-    return intersection_ijk_face_;
-  }
-  const IJK_Composantes_Connex& get_ijk_compo_connex() const
-  {
-    return ijk_compo_connex_;
-  }
+  const Intersection_Interface_ijk_cell& get_intersection_ijk_cell() const { return intersection_ijk_cell_; }
+  const Intersection_Interface_ijk_face& get_intersection_ijk_face() const { return intersection_ijk_face_; }
+  Intersection_Interface_ijk_cell& get_set_intersection_ijk_cell() { return intersection_ijk_cell_; }
+  Intersection_Interface_ijk_face& get_set_intersection_ijk_face() { return intersection_ijk_face_; }
+  const IJK_Composantes_Connex& get_ijk_compo_connex() const { return ijk_compo_connex_; }
 
   void compute_compo_connex_from_bounding_box()
   {
@@ -970,25 +782,10 @@ public :
       return bubbles_bary_old_;
   }
 
-  const DoubleTab& get_bubble_velocities_from_interface() const
-  {
-    return bubbles_velocities_;
-  }
-
-  const DoubleTab& get_bubble_velocities_from_barycentres() const
-  {
-    return bubbles_velocities_bary_;
-  }
-
-  const DoubleTab& get_bubble_rising_vectors_from_barycentres() const
-  {
-    return bubbles_rising_vectors_bary_;
-  }
-
-  const ArrOfDouble& get_bubbles_velocities_magnitude_from_barycentres() const
-  {
-    return bubbles_velocities_bary_;
-  }
+  const DoubleTab& get_bubble_velocities_from_interface() const { return bubbles_velocities_; }
+  const DoubleTab& get_bubble_velocities_from_barycentres() const { return bubbles_velocities_bary_; }
+  const DoubleTab& get_bubble_rising_vectors_from_barycentres() const { return bubbles_rising_vectors_bary_; }
+  const ArrOfDouble& get_bubbles_velocities_magnitude_from_barycentres() const { return bubbles_velocities_bary_; }
 
   void reset_flags_and_counters();
 
