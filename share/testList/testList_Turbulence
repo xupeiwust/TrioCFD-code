@@ -48,7 +48,6 @@ P0P1Pa_EF_stab_Faces_virt_bord
 Paroi_fictif_turbulent_vef
 Perte_Charge_QC_VDF
 PETSC_cpu_3D_CGILU
-PETSC_cpu_3D_CGSPAI
 PETSC_cpu_3D_GMRESILU
 PETSC_cpu_3D_MG
 Poreux_VEF_3D_turb
