@@ -24,15 +24,10 @@
 #define PRDT_K_DEFAUT 1/0.6 // from Wilcox STD model, 1/Prandtl_K_ = sigma_k = 0.6
 #define PRDT_OMEGA_DEFAUT 1/0.5 // from Wilcox STD model, 1/Prandtl_Omega_ = sigma_omega = 0.5
 
-#include <Op_Diff_K_Omega_base.h>
+#include <Op_Dift_VEF_base.h>
 #include <Op_VEF_Face.h>
-#include <TRUST_Ref.h>
+#include <Modele_turbulence_hyd_K_Omega.h>
 
-class Domaine_Cl_VEF;
-class Domaine_VEF;
-class Champ_P1NC;
-class Champ_Don_base;
-class Modele_turbulence_hyd_K_Omega;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -40,25 +35,19 @@ class Modele_turbulence_hyd_K_Omega;
 //
 //////////////////////////////////////////////////////////////////////////////
 
-class Op_Diff_K_Omega_VEF_base : public Op_Diff_K_Omega_base
+class Op_Diff_K_Omega_VEF_base : public Op_Dift_VEF_base
 {
 
-  Declare_base_sans_constructeur(Op_Diff_K_Omega_VEF_base);
+  Declare_instanciable_sans_constructeur(Op_Diff_K_Omega_VEF_base);
 
 public:
 
-  inline Op_Diff_K_Omega_VEF_base(double Prandt_K = PRDT_K_DEFAUT ,
-                                  double Prandt_Omega = PRDT_OMEGA_DEFAUT );
+  Op_Diff_K_Omega_VEF_base(double Prandt_K = PRDT_K_DEFAUT ,
+                           double Prandt_Omega = PRDT_OMEGA_DEFAUT ) : Prdt_K(Prandt_K) , Prdt_Omega(Prandt_Omega)
+  { }
+
   void completer() override;
-  void associer_diffusivite(const Champ_base& ch_diff) override;
-  void associer_diffusivite_turbulente() override = 0;
-  inline void associer_diffusivite_turbulente(const Champ_Fonc_base&);
-  inline void associer_Pr_K_Omega(double, double);
-  inline const Champ_Fonc_base& diffusivite_turbulente() const;
-  inline const Champ_base& diffusivite() const override
-  {
-    return diffusivite_.valeur();
-  };
+
 
 protected:
   double Prdt_K;
@@ -70,35 +59,7 @@ protected:
   static constexpr double SIGMA_OMEGA1 = 0.5;
   static constexpr double SIGMA_OMEGA2 = 0.856;
 
-  OBS_PTR(Champ_Fonc_base) diffusivite_turbulente_;
-  OBS_PTR(Champ_Don_base) tmp;
-  OBS_PTR(Champ_base) diffusivite_;
   OBS_PTR(Modele_turbulence_hyd_K_Omega) turbulence_model;
-
 };
-
-//
-// Fonctions inline de la classe Op_Diff_K_Omega_VEF_base
-//
-
-inline Op_Diff_K_Omega_VEF_base::Op_Diff_K_Omega_VEF_base(double Prandt_K,
-                                                          double Prandt_Omega)
-  : Prdt_K(Prandt_K), Prdt_Omega(Prandt_Omega) {}
-
-inline const Champ_Fonc_base& Op_Diff_K_Omega_VEF_base::diffusivite_turbulente() const
-{
-  return diffusivite_turbulente_.valeur();
-}
-
-inline void Op_Diff_K_Omega_VEF_base::associer_diffusivite_turbulente(const Champ_Fonc_base& ch)
-{
-  diffusivite_turbulente_=ch;
-}
-
-inline void Op_Diff_K_Omega_VEF_base::associer_Pr_K_Omega(double Pr_K, double Pr_Omega)
-{
-  Prdt_K = Pr_K;
-  Prdt_Omega = Pr_Omega;
-}
 
 #endif

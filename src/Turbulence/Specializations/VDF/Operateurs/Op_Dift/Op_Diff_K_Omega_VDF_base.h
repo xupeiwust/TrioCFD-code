@@ -23,14 +23,14 @@
 #define Op_Diff_K_Omega_VDF_base_included
 
 #include <Eval_Diff_K_Omega_VDF_leaves.h>
-#include <Op_Diff_K_Omega_base.h>
+#include <Op_Dift_VDF_base.h>
 #include <Iterateur_VDF_Elem.h>
 #include <Op_VDF_Elem.h>
 
 
 
 
-class Op_Diff_K_Omega_VDF_base : public Op_Diff_K_Omega_base, public Op_VDF_Elem
+class Op_Diff_K_Omega_VDF_base : public Op_Dift_VDF_base, public Op_VDF_Elem
 {
   Declare_base(Op_Diff_K_Omega_VDF_base);
 public:
@@ -38,7 +38,7 @@ public:
 
   void completer() override;
   void associer_diffusivite(const Champ_base& ch_diff) override;
-  void associer_diffusivite_turbulente() override;
+  void associer_diffusivite_turbulente();
   void modifier_pour_Cl(Matrice_Morse&, DoubleTab&) const override;
   const Champ_Fonc_base& diffusivite_turbulente() const;
   const Champ_base& diffusivite() const override;

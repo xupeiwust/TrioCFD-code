@@ -23,6 +23,7 @@
 #ifndef Transport_K_Omega_base_included
 #define Transport_K_Omega_base_included
 
+#include <Modele_turbulence_hyd_RANS_K_Omega_base.h>
 #include <Transport_2eq_base.h>
 #include <TRUST_Ref.h>
 

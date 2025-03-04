@@ -107,7 +107,7 @@ int Transport_K_Omega::lire_motcle_non_standard(const Motcle& mot, Entree& is)
           else
             terme_diffusif.associer_diffusivite(fluide_inc.viscosite_cinematique());
         }
-      is >> terme_diffusif;
+      lire_op_diff_turbulent(is);
       return 1;
     }
   else if (mot=="convection")
@@ -141,6 +141,9 @@ void Transport_K_Omega::associer_modele_turbulence(const Modele_turbulence_hyd_2
   associer_milieu_base(eqn_hydr.milieu());
   associer_vitesse(eqn_hydr.inconnue());
   mon_modele = ref_cast(Modele_turbulence_hyd_K_Omega, modele);
+  RefObjU le_modele;
+  le_modele = mon_modele.valeur();
+  liste_modeles_.add_if_not(le_modele);
   discretiser();
 }
 

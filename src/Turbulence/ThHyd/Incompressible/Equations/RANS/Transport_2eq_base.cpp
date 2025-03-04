@@ -67,7 +67,11 @@ void Transport_2eq_base::set_param(Param& param)
 Entree& Transport_2eq_base::lire_op_diff_turbulent(Entree& is)
 {
   Motcle accouverte = "{", accfermee = "}";
-  Nom type = "Op_Diff_K_Eps_";
+  Nom type = "Op_Diff_K_";
+
+  Nom eps_or_omega = que_suis_je();
+  if (eps_or_omega.contient("Omega")) type += "Omega_";
+  else type += "Eps_";
 
   Nom qc = modele_turbulence().equation().que_suis_je();
   Cerr << ">>>>>>> Nom eq = " << qc << finl;

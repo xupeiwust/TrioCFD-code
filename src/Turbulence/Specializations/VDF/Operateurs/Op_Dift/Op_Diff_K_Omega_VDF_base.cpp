@@ -30,7 +30,7 @@
 
 extern Stat_Counter_Id diffusion_counter_;
 
-Implemente_base(Op_Diff_K_Omega_VDF_base,"Op_Diff_K_Omega_VDF_base",Op_Diff_K_Omega_base);
+Implemente_base(Op_Diff_K_Omega_VDF_base,"Op_Diff_K_Omega_VDF_base",Op_Dift_VDF_base);
 
 Sortie& Op_Diff_K_Omega_VDF_base::printOn(Sortie& s) const { return s << que_suis_je(); }
 Entree& Op_Diff_K_Omega_VDF_base::readOn(Entree& s) { return s; }
@@ -42,9 +42,6 @@ void Op_Diff_K_Omega_VDF_base::completer()
   iter->associer_champ_convecte_ou_inc(equation().inconnue(), nullptr);
   iter->set_name_champ_inco(equation().inconnue().le_nom().getString());
   iter->set_convective_op_pb_type(false /* diff op */, 0 /* pas pb_multiphase */);
-
-  // diffuse_k_seul   = false;
-  // diffuse_eps_seul = false;
 
   if(sub_type(Transport_K_Omega,mon_equation.valeur()))
     {

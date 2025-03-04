@@ -23,8 +23,6 @@
 #define Transport_K_Omega_included
 
 #include <Transport_K_Omega_base.h>
-#include <Op_Diff_K_Omega_base.h> // cAlan: mutualisé ?
-#include <Operateur_Conv.h>
 #include <Operateur_Grad.h>
 
 
@@ -66,8 +64,6 @@ public:
 
 protected :
   int with_nu_;
-  Op_Diff_K_Omega terme_diffusif;
-  Operateur_Conv terme_convectif;
   Operateur_Grad Op_Grad_komega;
 
   OBS_PTR(Champ_Inc_base) inco_eqn_associee;

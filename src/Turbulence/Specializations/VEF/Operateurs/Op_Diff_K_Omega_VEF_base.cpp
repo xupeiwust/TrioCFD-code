@@ -21,12 +21,10 @@
 
 #include <Op_Diff_K_Omega_VEF_base.h>
 #include <Modele_turbulence_hyd_K_Omega.h>
-#include <Champ_P1NC.h>
-#include <Paroi_hyd_base_VEF.h>
 
-Implemente_base_sans_constructeur(Op_Diff_K_Omega_VEF_base,
-                                  "Op_Diff_K_Omega_VEF_base",
-                                  Op_Diff_K_Omega_base);
+Implemente_instanciable_sans_constructeur(Op_Diff_K_Omega_VEF_base,
+                                          "Op_Diff_K_Omega_VEF_base",
+                                          Op_Dift_VEF_base);
 
 Sortie& Op_Diff_K_Omega_VEF_base::printOn(Sortie& s) const
 {
@@ -42,19 +40,15 @@ void Op_Diff_K_Omega_VEF_base::completer()
 {
   Operateur_base::completer();
 
-  if (sub_type(Transport_K_Omega, mon_equation.valeur()))
-    {
-      const Transport_K_Omega& eqn_transport = ref_cast(Transport_K_Omega, mon_equation.valeur());
-      const Modele_turbulence_hyd_K_Omega& mod_turb = ref_cast(Modele_turbulence_hyd_K_Omega,
-                                                               eqn_transport.modele_turbulence());
-      const Champ_Fonc_base& visc_turb = mod_turb.viscosite_turbulente();
-      associer_diffusivite_turbulente(visc_turb);
-      Op_Diff_K_Omega_VEF_base::associer_Pr_K_Omega(mod_turb.get_Prandtl_K(),
-                                                    mod_turb.get_Prandtl_Omega());
-    }
-}
+  Op_Dift_VEF_base::completer();
 
-void  Op_Diff_K_Omega_VEF_base::associer_diffusivite(const Champ_base& diffu)
-{
-  diffusivite_ = diffu;
+  const RefObjU& modele_turbulence = equation().get_modele(TURBULENCE);
+  const Modele_turbulence_hyd_K_Omega& mod_turb = ref_cast(Modele_turbulence_hyd_K_Omega, modele_turbulence.valeur());
+
+  turbulence_model = mod_turb;
+
+  Prdt_K = mod_turb.get_Prandtl_K();
+  Prdt_Omega = mod_turb.get_Prandtl_Omega();
+
+
 }
