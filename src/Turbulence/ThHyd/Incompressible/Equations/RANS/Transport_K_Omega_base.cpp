@@ -70,7 +70,7 @@ void Transport_K_Omega_base::discretiser()
   unit[0] = "m2/s2";
   unit[1] = "1/s1";
 
-  // cAlan : possibilité de mutualiser ça dans Transport_RANS_2eq
+  // cAlan : possibilite de mutualiser ca dans Transport_RANS_2eq
   discretisation().discretiser_champ("temperature",  domaine_dis(), multi_scalaire,
                                      noms, unit, 2, schema_temps().nb_valeurs_temporelles(),
                                      schema_temps().temps_courant(), le_champ_K_Omega);
@@ -80,41 +80,6 @@ void Transport_K_Omega_base::discretiser()
     set_calculate_time_derivative(1);
 
   Equation_base::discretiser();
-}
-
-// cAlan : Mutualiser dans 2eq. Possibilité de faire un templace pour
-// avoir domaine_vf.xv ou domaine_vf.xp ?
-
-//For VEF-like scheme
-void Transport_K_Omega_base::get_position_faces(Nom& position, int& n)
-{
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
-
-  position = "x=";
-  position += (Nom)domaine_vf.xv(n, 0);
-  position += " y=";
-  position += (Nom)domaine_vf.xv(n, 1);
-  if (dimension == 3)
-    {
-      position += " z=";
-      position += (Nom)domaine_vf.xv(n, 2);
-    }
-}
-
-// For VDF-like scheme
-void Transport_K_Omega_base::get_position_cells(Nom& position, int& n)
-{
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
-
-  position = "x=";
-  position += (Nom)domaine_vf.xp(n, 0);
-  position += " y=";
-  position += (Nom)domaine_vf.xp(n, 1);
-  if (dimension == 3)
-    {
-      position += " z=";
-      position += (Nom)domaine_vf.xp(n, 2);
-    }
 }
 
 /*! @brief Controle le champ inconnue K-Omega en forcant a zero les valeurs du champ
@@ -179,7 +144,7 @@ int Transport_K_Omega_base::controler_K_Omega()
           const int nb_faces_elem = elem_faces.line_size();
           if (size == face_voisins.dimension(0))
             {
-              // cAlan : faire une fonction dans Transport_RANS_2eq qui fait la même chose ?
+              // cAlan : faire une fonction dans Transport_RANS_2eq qui fait la meme chose ?
               // K-Eps on faces (eg:VEF)
               for (int i = 0; i < 2; i++)
                 {

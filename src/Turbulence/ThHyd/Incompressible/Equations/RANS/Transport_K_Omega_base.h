@@ -49,10 +49,6 @@ public:
   inline const Champ_Inc_base& inconnue() const override;
   inline Champ_Inc_base& inconnue() override;
 
-  void get_position_cells(Nom&, int&);
-  void get_position_faces(Nom&, int&);
-
-
 protected:
 
   OWN_PTR(Champ_Inc_base) le_champ_K_Omega;

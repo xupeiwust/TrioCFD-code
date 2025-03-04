@@ -142,6 +142,38 @@ Entree& Transport_2eq_base::lire_op_diff_turbulent(Entree& is)
   return is;
 }
 
+//For VEF-like scheme
+void Transport_2eq_base::get_position_faces(Nom& position, int& n)
+{
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
+
+  position = "x=";
+  position += (Nom)domaine_vf.xv(n, 0);
+  position += " y=";
+  position += (Nom)domaine_vf.xv(n, 1);
+  if (dimension == 3)
+    {
+      position += " z=";
+      position += (Nom)domaine_vf.xv(n, 2);
+    }
+}
+
+// For VDF-like scheme
+void Transport_2eq_base::get_position_cells(Nom& position, int& n)
+{
+  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
+
+  position = "x=";
+  position += (Nom)domaine_vf.xp(n, 0);
+  position += " y=";
+  position += (Nom)domaine_vf.xp(n, 1);
+  if (dimension == 3)
+    {
+      position += " z=";
+      position += (Nom)domaine_vf.xp(n, 2);
+    }
+}
+
 /*! @brief Associe un milieu physique a l'equation.
  *
  * @param (Milieu_base& un_milieu) le milieu physique a associer a l'equation

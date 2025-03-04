@@ -56,6 +56,9 @@ public:
   virtual void associer_modele_turbulence(const Modele_turbulence_hyd_2_eq_base& )=0;
 
 protected:
+  void get_position_cells(Nom&, int&);
+  void get_position_faces(Nom&, int&);
+
   Entree& lire_op_diff_turbulent(Entree& is);
 
   Operateur_Diff terme_diffusif;

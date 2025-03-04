@@ -84,38 +84,6 @@ void Transport_K_Eps_base::discretiser()
     }
 }
 
-// For VEF-like scheme
-void Transport_K_Eps_base::get_position_faces(Nom& position, int& n)
-{
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
-
-  position = "x=";
-  position += (Nom)domaine_vf.xv(n, 0);
-  position += " y=";
-  position += (Nom)domaine_vf.xv(n, 1);
-  if (dimension == 3)
-    {
-      position += " z=";
-      position += (Nom)domaine_vf.xv(n, 2);
-    }
-}
-
-// For VDF-like scheme
-void Transport_K_Eps_base::get_position_cells(Nom& position, int& n)
-{
-  const Domaine_VF& domaine_vf = ref_cast(Domaine_VF, domaine_dis());
-
-  position = "x=";
-  position += (Nom)domaine_vf.xp(n, 0);
-  position += " y=";
-  position += (Nom)domaine_vf.xp(n, 1);
-  if (dimension == 3)
-    {
-      position += " z=";
-      position += (Nom)domaine_vf.xp(n, 2);
-    }
-}
-
 /*! @brief Controle le champ inconnue K-epsilon en forcant a zero les valeurs du champ
  *
  *     inferieurs a 1.e-10.
