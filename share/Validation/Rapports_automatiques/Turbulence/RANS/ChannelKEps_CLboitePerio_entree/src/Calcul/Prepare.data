@@ -52,10 +52,12 @@ Schema_Euler_implicite sch
 Read sch 
 {
         tinit 0.
+        # next line activated for test case only #
+        # nb_pas_dt_max 3 #
         tmax 20.
         dt_min 1.e-7
         dt_max 1.
-	dt_start dt_calc
+        dt_start dt_calc
         dt_impr 0.1
         dt_sauv 1.
         seuil_statio 1.e-8  
