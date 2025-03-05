@@ -188,7 +188,7 @@ protected:
   // Critere local de declenchement du lissage:
   double lissage_critere_ = 0.; // Default value to 0, when lissage is applied, it is for the whole mesh
 
-  bool is_solid_particle_;  // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
+  bool is_solid_particle_=false;  // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
 };
 
 

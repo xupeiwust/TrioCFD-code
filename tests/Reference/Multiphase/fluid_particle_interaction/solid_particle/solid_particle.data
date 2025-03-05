@@ -62,12 +62,12 @@ Lire pb
 			mu  Champ_Uniforme 1 3e-3
 		 	rho Champ_Uniforme 1 1e3
 		}
-		fluide0 Solid_Particle
+		fluide0 Solid_Particle_sphere
 		{
 			mu  Champ_Uniforme 1 3e0
 		 	rho Champ_Uniforme 1 1e4
 		    	e_dry 0.97
-			radius_sphere  2.6e-5
+			radius  2.6e-5
 		}
 		sigma Champ_Uniforme 1 0.
 		formule_mu harmonic

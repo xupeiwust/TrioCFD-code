@@ -28,7 +28,7 @@ public:
 
   void set_param(Param& param) override;
   const double& get_half_small_axis_arbitrary() const { return half_small_axis_arbitrary_; }
-  const double& get_half_long_axis_arbitrary() const { return half_long_axis_arbitrary_ ;}
+  const double& get_half_long_axis_arbitrary() const { return half_long_axis_arbitrary_;}
 
 protected:
   double half_small_axis_arbitrary_=0;

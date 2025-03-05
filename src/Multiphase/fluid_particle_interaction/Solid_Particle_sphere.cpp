@@ -42,5 +42,5 @@ Sortie& Solid_Particle_sphere::printOn(Sortie& os) const
 void Solid_Particle_sphere::set_param(Param& param)
 {
   Solid_Particle_base::set_param(param);
-  param.ajouter("radius_sphere", &radius_, Param::REQUIRED); // XD_ADD_P radius of a spherical particle in the case of a sphere flow;
+  param.ajouter("radius", &radius_, Param::REQUIRED); // XD_ADD_P radius of a spherical particle in the case of a sphere flow;
 }

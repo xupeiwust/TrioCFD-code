@@ -498,6 +498,7 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   param.ajouter("vitesse_imposee_regularisee", &variables_internes_->vimp_regul) ;
   //param.ajouter("indic_faces_modifiee", &variables_internes_->indic_faces_modif) ;
   //param.ajouter_non_std("indic_faces_modifiee", (this)) ;
+  param.ajouter_non_std("type_indic_faces", (this)) ;
   param.ajouter("collision_model_fpi",&collision_model_);
 }
 
@@ -1730,9 +1731,13 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
   Process::Journal()<<"Transport_Interfaces_FT_Disc::preparer_calcul"<<finl;
   if (is_solid_particle_)
     {
+      compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
+      init_particles_position_velocity();
+    }
+  if (collision_model_.non_nul())
+    {
       const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, domaine_dis());
       collision_model_.valeur().set_geometric_parameters(domain_vdf);
-      compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
       collision_model_.valeur().set_nb_particles_tot(nb_particles_tot_);
       collision_model_.valeur().set_nb_real_particles(nb_particles_tot_);
       collision_model_.valeur().resize_lagrangian_contact_force();
@@ -1748,7 +1753,6 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
       const Schema_Comm_FT& schema_comm_FT=maillage_interface().get_schema_comm_FT();
       if (collision_model_.valeur().is_LC_activated())
         collision_model_.valeur().set_LC_zones(domain_vdf,schema_comm_FT);
-      init_particles_position_velocity();
       collision_model_.valeur().set_spring_properties(solid_particle);
       DoubleTab& F_old=collision_model_.valeur().get_set_F_old();
       DoubleTab& F_now=collision_model_.valeur().get_set_F_now();
@@ -6868,7 +6872,8 @@ void Transport_Interfaces_FT_Disc::deplacer_maillage_ft_v_fluide(const double te
   remaillage_interface().traite_adherence(maillage_interface());
   maillage.changer_temps(temps);
 
-  if (is_solid_particle_) swap_particles_lagrangian_position_velocity();
+  if (collision_model_.non_nul() && nb_particles_tot_>1)
+    swap_particles_lagrangian_position_velocity();
 }
 
 void Transport_Interfaces_FT_Disc::ajouter_contribution_saut_vitesse(DoubleTab& deplacement) const
@@ -7587,7 +7592,7 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
     if (is_solid_particle_)
       {
         Cerr << "Backup of collision model" << finl;
-        bytes += collision_model_.valeur().sauvegarder(os);
+        if (collision_model_.non_nul())	bytes += collision_model_.valeur().sauvegarder(os);
         // we save particles position and velocity as these data
         // are required for the computation of contact forces
         Cerr << "Backup of particles position and velocity" << finl;
@@ -7644,7 +7649,7 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
     variables_internes_->injection_interfaces_last_time_ = schema_temps().temps_courant();
     if (is_solid_particle_)
       {
-        collision_model_.valeur().reprendre(is);
+        if (collision_model_.non_nul())	collision_model_.valeur().reprendre(is);
         particles_position_collision_.resize(0,dimension);
         particles_velocity_collision_.resize(0,dimension);
         const int format_xyz = EcritureLectureSpecial::is_lecture_special();

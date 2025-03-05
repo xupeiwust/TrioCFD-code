@@ -299,6 +299,7 @@ public:
   // getters
   const int& get_nb_particles_tot() const { return nb_particles_tot_; }
   const Collision_Model_FT_base& get_collision_model() const { return collision_model_.valeur(); }
+  const OWN_PTR(Collision_Model_FT_base)& get_ptr_collision_model() const { return collision_model_; }
   const DoubleTab& get_particles_position() const { return particles_position_collision_; }
   const DoubleTab& get_particles_velocity() const { return particles_velocity_collision_; }
   const ArrOfInt& get_gravity_center_elem() const { return gravity_center_elem_; }
@@ -376,7 +377,7 @@ protected:
 
 
   // for fpi module
-  bool is_solid_particle_; // pointer to NS_FT_Disc::is_solid_particle_
+  bool is_solid_particle_=false; // pointer to NS_FT_Disc::is_solid_particle_
   OWN_PTR(Collision_Model_FT_base) collision_model_;
   mutable DoubleTab particles_position_collision_; // for contact forces computation
   mutable DoubleTab particles_velocity_collision_; // for contact forces computation

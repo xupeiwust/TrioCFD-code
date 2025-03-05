@@ -479,7 +479,7 @@ protected:
   int methode_calcul_courbure_contact_line_;
   double weight_CL_;
 
-  bool is_solid_particle_; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
+  bool is_solid_particle_=false; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
 
 };
 

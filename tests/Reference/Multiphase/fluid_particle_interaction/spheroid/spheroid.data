@@ -62,12 +62,13 @@ Lire pb
 			mu  Champ_Uniforme 1 3e-3
 		 	rho Champ_Uniforme 1 1e3
 		}
-		fluide0 Solid_Particle
+		fluide0 Solid_Particle_spheroid
 		{
 			mu  Champ_Uniforme 1 3e0
 		 	rho Champ_Uniforme 1 1e4
 		    	e_dry 0.97
-			spheroid { half_small_axis 2e-5 half_long_axis 3e-5 }
+			half_small_axis 2e-5 
+			half_long_axis 3e-5
 		}
 		sigma Champ_Uniforme 1 0.
 		formule_mu harmonic

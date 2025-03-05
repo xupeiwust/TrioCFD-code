@@ -160,4 +160,3 @@ void Collision_Model_FT_sphere::discretize_contact_forces_eulerian_field(
         }
     }
 }
-

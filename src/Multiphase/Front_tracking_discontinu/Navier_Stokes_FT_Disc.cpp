@@ -224,23 +224,26 @@ int Navier_Stokes_FT_Disc::sauvegarder(Sortie& os) const
 {
   int bytes=0;
   bytes += Navier_Stokes_Turbulent::sauvegarder(os);
-  bytes += particles_eulerian_id_number_post_->sauvegarder(os);
+  if (is_solid_particle_)
+    bytes += particles_eulerian_id_number_post_->sauvegarder(os);
   return bytes;
 }
 int Navier_Stokes_FT_Disc::reprendre(Entree& is)
 {
   Navier_Stokes_Turbulent::reprendre(is);
-  double temps = schema_temps().temps_courant();
-  Nom ident_id_part(particles_eulerian_id_number_post_.le_nom());
-  ident_id_part += particles_eulerian_id_number_post_->que_suis_je();
-  ident_id_part += probleme().domaine().le_nom();
-  ident_id_part += Nom(temps,probleme().reprise_format_temps());
-  avancer_fichier(is, ident_id_part);
-  particles_eulerian_id_number_post_->reprendre(is);
-  Cerr << "end of restart" << finl;
-  DoubleTab& particles_eulerian_id_number_post = particles_eulerian_id_number_post_->valeurs();
-  int nb_elem_tot=particles_eulerian_id_number_post.dimension(0);
-  for (int elem=0; elem<nb_elem_tot; elem++) particles_eulerian_id_number_(elem)= static_cast<int>(particles_eulerian_id_number_post(elem));
+  if (is_solid_particle_)
+    {
+      double temps = schema_temps().temps_courant();
+      Nom ident_id_part(particles_eulerian_id_number_post_.le_nom());
+      ident_id_part += particles_eulerian_id_number_post_->que_suis_je();
+      ident_id_part += probleme().domaine().le_nom();
+      ident_id_part += Nom(temps,probleme().reprise_format_temps());
+      avancer_fichier(is, ident_id_part);
+      particles_eulerian_id_number_post_->reprendre(is);
+      DoubleTab& particles_eulerian_id_number_post = particles_eulerian_id_number_post_->valeurs();
+      int nb_elem_tot=particles_eulerian_id_number_post.dimension(0);
+      for (int elem=0; elem<nb_elem_tot; elem++) particles_eulerian_id_number_(elem)= static_cast<int>(particles_eulerian_id_number_post(elem));
+    }
   return 1;
 }
 
@@ -769,9 +772,14 @@ void Navier_Stokes_FT_Disc::discretiser()
   champs_compris_.ajoute_champ(variables_internes().vitesse_jump0_);
 
   // for fpi module
-  set_is_solid_particle(fluide_diphasique().get_is_solid_particle());
-  set_id_fluid_phase(fluide_diphasique().get_id_fluid_phase());
-  domaine_dis().domaine().creer_tableau_elements(particles_eulerian_id_number_);
+  const OBS_PTR(Fluide_Diphasique) &fluide_dipha = variables_internes().ref_fluide_diphasique;
+  if (fluide_dipha.non_nul())
+    {
+      set_is_solid_particle(fluide_diphasique().get_is_solid_particle());
+      set_id_fluid_phase(fluide_diphasique().get_id_fluid_phase());
+      domaine_dis().domaine().creer_tableau_elements(particles_eulerian_id_number_);
+    }
+
   const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
   Noms names(1);
   Noms units(1);
@@ -861,7 +869,9 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
           }
         FT_disc_calculer_champs_rho_mu_nu_dipha(domaine_dis(), fluide_diphasique(), ref_equation->get_update_indicatrice().valeurs(), // indicatrice
                                                 champ_rho_elem_->valeurs(), champ_nu_->valeurs(), champ_mu_->valeurs(), champ_rho_faces_->valeurs());
-        compute_particles_eulerian_id_number(ref_equation.valeur().get_collision_model());
+        const OWN_PTR(Collision_Model_FT_base)& ptr_collision_model=ref_equation.valeur().get_ptr_collision_model();
+        if (ptr_collision_model.non_nul())
+          compute_particles_eulerian_id_number(ref_equation.valeur().get_collision_model());
       }
     else
       {
@@ -972,10 +982,13 @@ void Navier_Stokes_FT_Disc::mettre_a_jour(double temps)
   champ_rho_faces_->mettre_a_jour(temps);
   champ_mu_->mettre_a_jour(temps);
   champ_nu_->mettre_a_jour(temps);
-  particles_eulerian_id_number_post_->mettre_a_jour(temps);
-  DoubleTab& tab = particles_eulerian_id_number_post_->valeurs();
-  const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
-  for (int elem=0; elem<domain_vf.nb_elem(); elem++) tab[elem]=particles_eulerian_id_number_[elem];
+  if (is_solid_particle_)
+    {
+      particles_eulerian_id_number_post_->mettre_a_jour(temps);
+      DoubleTab& tab = particles_eulerian_id_number_post_->valeurs();
+      const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
+      for (int elem=0; elem<domain_vf.nb_elem(); elem++) tab[elem]=particles_eulerian_id_number_[elem];
+    }
 }
 
 const SolveurSys& Navier_Stokes_FT_Disc::get_solveur_pression() const
@@ -2840,7 +2853,8 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
 
         calculer_gradient_indicatrice(indicatrice, distance_interface_sommets, gradient_i);
         calculer_champ_forces_superficielles(maillage, gradient_i, variables_internes().potentiel_elements, variables_internes().potentiel_faces, variables_internes().terme_source_interfaces);
-        if (is_solid_particle_) compute_eulerian_field_contact_forces(maillage, indicatrice);
+        if (is_solid_particle_ && eq_transport.get_ptr_collision_model().non_nul())
+          compute_eulerian_field_contact_forces(maillage, indicatrice);
       }
     else
       {

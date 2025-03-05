@@ -16,6 +16,7 @@
 #include <EcritureLectureSpecial.h>
 #include <Probleme_FT_Disc_gen.h>
 
+
 #include <type_traits>
 #include <Collision_Model_FT_base.h>
 
@@ -298,7 +299,7 @@ void Collision_Model_FT_base::set_geometric_parameters(const Domaine_VDF& domain
   NiNj=0;
   for (int i=0; i<bords.nb_bords(); i++)
     {
-      int nb_boundary_faces = mp_sum(ref_cast(Frontiere,bords(i)).nb_faces());
+      int  nb_boundary_faces = Process::check_int_overflow(mp_sum(ref_cast(Frontiere,bords(i)).nb_faces()));
       int nb_boundary_faces_local=ref_cast(Frontiere,bords(i)).nb_faces();
       if (nb_boundary_faces_local>0)
         {

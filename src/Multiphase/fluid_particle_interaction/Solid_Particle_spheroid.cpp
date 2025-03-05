@@ -42,6 +42,6 @@ Sortie& Solid_Particle_spheroid::printOn(Sortie& os) const
 void Solid_Particle_spheroid::set_param(Param& param)
 {
   Solid_Particle_base::set_param(param);
-  param.ajouter("half_small_axis_spheroid", &half_small_axis_spheroid_, Param::REQUIRED);
-  param.ajouter("half_long_axis_spheroid_", &half_long_axis_spheroid_, Param::REQUIRED);
+  param.ajouter("half_small_axis", &half_small_axis_spheroid_, Param::REQUIRED);
+  param.ajouter("half_long_axis", &half_long_axis_spheroid_, Param::REQUIRED);
 }

@@ -17,7 +17,6 @@
 
 #include <Solid_Particle_base.h>
 
-
 class Solid_Particle_spheroid : public Solid_Particle_base
 {
   Declare_instanciable_sans_constructeur(Solid_Particle_spheroid);

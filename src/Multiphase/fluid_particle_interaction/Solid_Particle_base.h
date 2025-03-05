@@ -55,7 +55,6 @@ public:
   const double& get_equivalent_radius() const { return equivalent_radius_; }
   const double& get_equivalent_diameter() const { return equivalent_diameter_; }
 
-
 protected :
   // Variables declaration and initialization
   double e_dry_=0.; // dry restitution coefficient

@@ -58,12 +58,12 @@ Lire pb
 
 	Fluide_Diphasique
 	{
-		fluide0 Solid_Particle
+		fluide0 Solid_Particle_sphere
 		{
 			mu  Champ_Uniforme 1 10
 			rho Champ_Uniforme 1 7800
 			e_dry	0.97
-			radius_sphere  1.5e-3
+			radius  1.5e-3
 		}
 		fluide1 Fluide_Incompressible
 		{
@@ -129,16 +129,15 @@ Lire pb
                         lissage_courbure_iterations_systematique 0
                         lissage_courbure_iterations_si_remaillage 10
                 }
-		collision_model_fpi
+		collision_model_fpi Collision_Model_FT_sphere
 		{
 			collision_model hybrid_esi
-			collision_detection 
-			{ 
-				use_Verlet_tables 0
-				detection_thickness_Verlet 9e-4 # =30% of the diameter #
-				nb_pas_dt_max_Verlet 50
-				activate_linked_cell 0
-			}
+                     	detection_method
+                        {
+                                check_all
+                                detection_thickness_Verlet 9e-4 # =30% of the diameter #
+                                nb_pas_dt_max_Verlet 50
+                        }			
 			collision_duration 3.e-4 # 8 delta_t # 
 		 	activate_collision_before_impact 1 
 			activation_distance_percentage_diameter 2 # 2% of the diameter #

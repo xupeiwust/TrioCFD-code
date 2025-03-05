@@ -143,6 +143,7 @@ protected:
   int nb_dt_compute_Verlet_ = 0; // number of time steps to achieve before recomputing Verlet tables
   int nb_dt_max_Verlet_ = 0; // maximum number of time step before recomputing Verlet tables
   int collision_number_ = 0;
+  int no_collision_model_=0;
   double activation_distance_percentage_diameter_ = 0; // distance to the wall as a percentage of the particle diameter
   double activation_distance_ = 0;
   double collision_duration_ = 0.; // duration of the collision in seconds
@@ -192,4 +193,4 @@ protected:
   Detection_method detection_method_ = Detection_method::CHECK_ALL;
 };
 
-#endif /*_COLLISION_MODEL_FT_BASE_H_ */
+#endif

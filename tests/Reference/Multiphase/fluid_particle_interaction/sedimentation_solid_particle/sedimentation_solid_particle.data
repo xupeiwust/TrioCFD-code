@@ -58,12 +58,12 @@ Lire pb
 
 	Fluide_Diphasique
 	{
-		fluide0 Solid_Particle
+		fluide0 Solid_Particle_sphere
 		{
 			mu  Champ_Uniforme 1 10
 			rho Champ_Uniforme 1 7800
 			e_dry	0.97
-			radius_sphere  1.5e-3
+			radius  1.5e-3
 		}
 		fluide1 Fluide_Incompressible
 		{

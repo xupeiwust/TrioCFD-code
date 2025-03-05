@@ -18,7 +18,6 @@
 
 Implemente_base_sans_constructeur(Solid_Particle_base,"Solid_Particle_base",Fluide_Incompressible);
 
-
 Solid_Particle_base::Solid_Particle_base()
 {}
 
