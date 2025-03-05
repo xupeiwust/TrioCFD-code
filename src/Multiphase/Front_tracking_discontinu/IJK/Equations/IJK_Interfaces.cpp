@@ -371,6 +371,8 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter_flag("compute_distance_autres_interfaces", &compute_distance_autres_interfaces_); // XD_ADD_P rien not_set
   param.ajouter("reprise_colors", &through_yminus_);
   param.ajouter_flag("correction_gradient_potentiel", &correction_gradient_potentiel_);
+  param.ajouter_flag("avoid_duplicata", &avoid_duplicata_);
+  param.ajouter("factor_length_duplicata", &factor_length_duplicata_);
   param.ajouter("ncells_forbidden", &ncells_forbidden_);
   param.ajouter("ncells_deleted", &ncells_deleted_);
   param.ajouter_flag("frozen", &frozen_);
@@ -1042,7 +1044,7 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       bounding_box_NS_domain_(direction, 1) = ori + len;
       bool perio = domaine_NS.get_periodic_flag(direction);
       perio_NS_[direction] = perio;
-      if (perio)
+      if (perio && !avoid_duplicata_)
         {
           // Les bulles qui entre dans les ncells_forbidden_ dernieres mailles
           // doivent etre deplacees.
@@ -1076,11 +1078,22 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
         }
       else
         {
-          bounding_box_duplicate_criteria_(direction, 0) = bounding_box_NS_domain_(direction, 0);
-          bounding_box_duplicate_criteria_(direction, 1) = bounding_box_NS_domain_(direction, 1);
-          // Les bulles sont limitees au domaine NS :
-          bounding_box_forbidden_criteria_(direction, 0) = bounding_box_NS_domain_(direction, 0);
-          bounding_box_forbidden_criteria_(direction, 1) = bounding_box_NS_domain_(direction, 1);
+          if (avoid_duplicata_)
+            {
+              bounding_box_duplicate_criteria_(direction, 0) = ori - factor_length_duplicata_ * len;
+              bounding_box_duplicate_criteria_(direction, 1) = ori + (factor_length_duplicata_ + 1.)*len;
+              // Les bulles ne sont pas limitees au domaine NS :
+              bounding_box_forbidden_criteria_(direction, 0) = bounding_box_duplicate_criteria_(direction, 0);
+              bounding_box_forbidden_criteria_(direction, 1) = bounding_box_duplicate_criteria_(direction, 1);
+            }
+          else
+            {
+              bounding_box_duplicate_criteria_(direction, 0) = bounding_box_NS_domain_(direction, 0);
+              bounding_box_duplicate_criteria_(direction, 1) = bounding_box_NS_domain_(direction, 1);
+              // Les bulles sont limitees au domaine NS :
+              bounding_box_forbidden_criteria_(direction, 0) = bounding_box_NS_domain_(direction, 0);
+              bounding_box_forbidden_criteria_(direction, 1) = bounding_box_NS_domain_(direction, 1);
+            }
         }
     }
 

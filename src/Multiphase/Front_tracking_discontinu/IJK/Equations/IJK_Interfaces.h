@@ -982,6 +982,9 @@ protected:
   DoubleTab bounding_box_NS_domain_;
   bool perio_NS_[3];
 
+  int avoid_duplicata_ = 0;
+  double factor_length_duplicata_ = 1.;
+
   // Domaine autorise pour les bulles :
   // c'est le geom du splitting_FT reduit de ncells_forbidden_
   // dans toutes les direction ou le domaine NS est perio.
