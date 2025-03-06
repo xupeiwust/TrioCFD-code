@@ -631,9 +631,10 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
     }
   else if (un_mot=="methode_interpolation_v")
     {
-      Motcles motcles2(2);
+      Motcles motcles2(3);
       motcles2[0] = "valeur_a_elem";
       motcles2[1] = "vdf_lineaire";
+      motcles2[2] = "mean_volumic_velocity";
       Motcle motlu;
       is >> motlu;
       if (Process::je_suis_maitre())
@@ -649,6 +650,17 @@ int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot,
           variables_internes_->methode_interpolation_v =
             Transport_Interfaces_FT_Disc_interne::VDF_LINEAIRE;
           break;
+        case 2:
+          variables_internes_->methode_interpolation_v =
+            Transport_Interfaces_FT_Disc_interne::MEAN_VOLUMIC_VELOCITY;
+          if (interpolation_repere_local_)
+            {
+              Cerr <<"ERROR : interpolation_repere_local should not be employed"
+                   " with methode_interpolation_v::MEAN_VOLUMIC_VELOCITY !!!!!!!!!!!" << finl;
+              exit();
+            }
+          break;
+
         default:
           Cerr << "Transport_Interfaces_FT_Disc::lire\n"
                << "The options for " << un_mot << " are :\n"
@@ -2376,6 +2388,127 @@ void Transport_Interfaces_FT_Disc::calculer_vitesse_transport_interpolee(
         maillage.desc_sommets().echange_espace_virtuel(vitesse_noeuds);
         break;
       }
+    case Transport_Interfaces_FT_Disc_interne::MEAN_VOLUMIC_VELOCITY:
+      {
+        const DoubleTab& vertices = maillage.sommets();
+        const int nb_vertices_tot = vertices.dimension(0);
+        vitesse_noeuds.resize(nb_vertices_tot, dimension);
+        const int& nb_fa7 = maillage.nb_facettes();
+        ArrOfInt id_number_fa7(nb_fa7);
+        const ArrOfDouble& surface_fa7 = maillage.get_update_surface_facettes();
+        int n = search_connex_components_local_FT(maillage, id_number_fa7);
+        const int nb_particles_tot=compute_global_connex_components_FT(maillage, id_number_fa7, n);
+        const DoubleTab& phase_indicator_function = indicatrice_->valeurs();
+        const ArrOfInt& sommets_elem = maillage.sommet_elem();
+        const IntTab& facettes = maillage.facettes();
+        DoubleTab Particles_velocity(nb_particles_tot,dimension);
+        Particles_velocity=0;
+        DoubleVect V_compo_elem(nb_particles_tot);
+        V_compo_elem=0;
+        ArrOfDouble Particles_surfaces(nb_particles_tot);
+        Particles_surfaces=0;
+        Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+        Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+        const DoubleTab& tab_velocity=champ_vitesse.valeurs();
+        const Domaine_dis_base& mon_dom_dis = domaine_dis();
+        const Domaine_VDF&   domain_vdf       = ref_cast(Domaine_VDF, mon_dom_dis);
+        const DoubleVect& volumes_maille = domain_vdf.volumes();
+        const IntTab& elem_faces = domain_vdf.elem_faces();
+        ns.compute_particles_eulerian_id_number(collision_model_);
+        ns.swap_particles_eulerian_id_number(gravity_center_elem_);
+        const IntTab& particles_eulerian_id_number = ns.get_particles_eulerian_id_number();
+
+        // STEP 1 : computing the mean volumic velocity inside each particle.
+        // The ideal method would be to obtain the elem containing the gravity center of each
+        // particle, then to locate the purely solid cells from near to far in order to avoid
+        // a loop on all elements of the domain. However, a domain can contain zero real
+        // particles (in the sense that it doesn't contain a particle's gravity center)
+        // and still have purely solid cells due to the overlap of a particle between
+        // the domain of two CPUs.
+        // The "ideal" method would therefore require the CPU that owns the particle to
+        // send its first row of distant element that are purely solid to the other CPU for
+        // it to add velocity contributions.
+        // As it add complexity to the implementation and communication time between CPU,
+        // the naive method is implemented.
+        for (int elem=0; elem<domain_vdf.nb_elem(); elem++)
+          {
+            // the mean is realized on pure elem only
+            if (phase_indicator_function(elem)==0)
+              {
+                const int compo=  particles_eulerian_id_number(elem);
+                V_compo_elem(compo)+=volumes_maille(elem)*(1-phase_indicator_function(elem));
+                for (int dim=0; dim<dimension; dim++) Particles_velocity(compo,dim)+=0.5*
+                                                                                       (tab_velocity(elem_faces(elem,dim))
+                                                                                        +tab_velocity(elem_faces(elem,dim+dimension))
+                                                                                       )*volumes_maille(elem);
+              }
+          }
+
+        mp_sum_for_each_item(Particles_velocity);
+        mp_sum_for_each_item(V_compo_elem);
+        DoubleVect s_vcompo;
+        s_vcompo.ref_array(V_compo_elem);
+        tab_divide_any_shape(Particles_velocity, s_vcompo);
+        particles_velocity_collision_ = Particles_velocity;
+
+        // STEP 2 : computing the gravity center of particles
+        DoubleTab Positions_compo(nb_particles_tot_,dimension);
+        Positions_compo=0;
+        for (int fa7=0; fa7<nb_fa7; fa7++)
+          {
+            if (!maillage.facette_virtuelle(fa7))
+              {
+                const int compo = id_number_fa7(fa7);
+                const double s_fa7 = surface_fa7(fa7);
+                Particles_surfaces(compo)+=s_fa7;
+                for (int dim=0; dim<dimension; dim++)
+                  {
+                    for (int k = 0; k < vertices.dimension(1); k++)
+                      {
+                        int som = facettes(fa7, k);
+                        Positions_compo(compo, dim) += s_fa7 * vertices(som, dim)/dimension;
+                      }
+                  }
+              }
+          }
+        mp_sum_for_each_item(Positions_compo);
+        mp_sum_for_each_item(Particles_surfaces);
+        DoubleVect s_scompo;
+        s_scompo.ref_array(Particles_surfaces);
+        tab_divide_any_shape(Positions_compo, s_scompo);
+        particles_position_collision_ = Positions_compo;
+
+        // STEP 3 : identification of the id number of lagrangian vertices
+        IntVect id_number_lagrangian_vertices;
+        maillage.creer_tableau_sommets(id_number_lagrangian_vertices,
+                                       RESIZE_OPTIONS::NOCOPY_NOINIT);
+        id_number_lagrangian_vertices = -1;
+        {
+          const int dim = vitesse_noeuds.dimension(1);
+          for (int iface = 0; iface < nb_fa7; iface++)
+            {
+              const int id_number = id_number_fa7[iface];
+              for (int j = 0; j < dim; j++)
+                id_number_lagrangian_vertices[facettes(iface, j)] = id_number;
+            }
+          MD_Vector_tools::echange_espace_virtuel(id_number_lagrangian_vertices,
+                                                  MD_Vector_tools::EV_MAX);
+        }
+
+        // STEP 4 : updating the lagrangian vertices displacement table
+        for (int som = 0; som < nb_vertices_tot; som++)
+          {
+            if (sommets_elem[som] >= 0)
+              {
+                for (int dim = 0; dim < dimension; dim++)
+                  vitesse_noeuds(som, dim) =
+                    Particles_velocity(id_number_lagrangian_vertices(som), dim);
+              }
+
+          }
+        maillage.desc_sommets().echange_espace_virtuel(vitesse_noeuds);
+        break;
+      }
     default:
       {
         Cerr << "Transport_Interfaces_FT_Disc::calculer_vitesse_transport_interpolee\n"
@@ -2470,6 +2603,7 @@ void Transport_Interfaces_FT_Disc::calculer_scalaire_interpole(
         break;
       }
     case Transport_Interfaces_FT_Disc_interne::VDF_LINEAIRE:
+    case Transport_Interfaces_FT_Disc_interne::MEAN_VOLUMIC_VELOCITY:
       {
 
         Process::exit();
@@ -9012,9 +9146,9 @@ void Transport_Interfaces_FT_Disc::compute_nb_particles_tot()
 {
   const Maillage_FT_Disc& mesh=maillage_interface();
   const int nb_facettes=mesh.nb_facettes();
-  ArrOfInt compo_connex_fa7(nb_facettes); // Init a zero
-  int n = search_connex_components_local_FT(mesh, compo_connex_fa7);
-  nb_particles_tot_= compute_global_connex_components_FT(mesh, compo_connex_fa7, n);
+  ArrOfInt id_number_fa7(nb_facettes); // Init a zero
+  int n = search_connex_components_local_FT(mesh, id_number_fa7);
+  nb_particles_tot_= compute_global_connex_components_FT(mesh, id_number_fa7, n);
 }
 
 void Transport_Interfaces_FT_Disc::init_particles_position_velocity()
@@ -9025,9 +9159,9 @@ void Transport_Interfaces_FT_Disc::init_particles_position_velocity()
   // because we need compo_connex_fa7 after
   const Maillage_FT_Disc& mesh=maillage_interface();
   const int nb_facettes=mesh.nb_facettes();
-  ArrOfInt compo_connex_fa7(nb_facettes); // Init a zero
-  int n = search_connex_components_local_FT(mesh, compo_connex_fa7);
-  int nb_particles_tot=compute_global_connex_components_FT(mesh, compo_connex_fa7, n);
+  ArrOfInt id_number_fa7(nb_facettes); // Init a zero
+  int n = search_connex_components_local_FT(mesh, id_number_fa7);
+  int nb_particles_tot=compute_global_connex_components_FT(mesh, id_number_fa7, n);
 
   // particles dont't have initial velocity, their velocity is initialized with 0
   if ((particles_velocity_collision_.dimension(0) != nb_particles_tot) || (particles_velocity_collision_.dimension(1) != dimension))
@@ -9051,15 +9185,17 @@ void Transport_Interfaces_FT_Disc::init_particles_position_velocity()
           {
             if (mesh.facette_virtuelle(i)) continue;
 
-            const int compo = compo_connex_fa7[i];
+            const int id_number_lagrangian_vertice = id_number_fa7[i];
             const double surface = surface_facettes[i];
-            particles_surfaces[compo] += surface;
+            particles_surfaces[id_number_lagrangian_vertice] += surface;
 
             // computing the facet gravity surface weighted by its surface
             for (int j = 0; j < dimension; j++)
               {
                 const int s = facettes(i, j);
-                for (int k = 0; k < dimension; k++)  particles_position_collision_(compo, k) += surface * sommets(s, k);
+                for (int k = 0; k < dimension; k++)
+                  particles_position_collision_(id_number_lagrangian_vertice, k) +=
+                    surface * sommets(s, k);
               }
           }
         mp_sum_for_each_item(particles_surfaces);

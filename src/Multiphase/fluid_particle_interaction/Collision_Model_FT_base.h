@@ -115,6 +115,7 @@ public:
   const int& get_nb_dt_max_Verlet() const { return nb_dt_max_Verlet_; }
   const int& get_is_force_on_two_phase_elem() const { return is_force_on_two_phase_elem_; }
   const int& get_collision_number() const { return collision_number_; }
+  const int& get_nb_real_particles() const { return nb_real_particles_; }
 
 
   int get_last_id(const ArrOfInt& list_particles_to_check_LC);

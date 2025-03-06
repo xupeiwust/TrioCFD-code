@@ -73,6 +73,10 @@ public:
 
   const bool& get_is_solid_particle() const {return is_solid_particle_;}
   const IntTab& get_particles_eulerian_id_number() const { return particles_eulerian_id_number_; }
+  // both following methods should be protected but Transport_Interfaces_FT_Disc is not a friend of NS_FT_Disc...
+  void compute_particles_eulerian_id_number(const OWN_PTR(Collision_Model_FT_base)& collision_model_ptr);
+  void swap_particles_eulerian_id_number(const ArrOfInt& gravity_center_elem);
+
 protected:
 
   // Methode surchargee de Navier_Stokes_std :
@@ -89,8 +93,6 @@ protected:
   // for fpi module
   void set_is_solid_particle(const bool& is_solid_particle) { is_solid_particle_=is_solid_particle; }
   void set_id_fluid_phase(const int& id_fluid_phase) { id_fluid_phase_=id_fluid_phase; }
-  void compute_particles_eulerian_id_number(const Collision_Model_FT_base& collision_model);
-  void swap_particles_eulerian_id_number(const Collision_Model_FT_base& collision_model, const ArrOfInt& gravity_center_elem);
 
   void compute_eulerian_field_contact_forces(const Maillage_FT_Disc& mesh, const Champ_base& field_volumic_phase_indicator_function);
 

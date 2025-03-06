@@ -548,7 +548,7 @@ public:
   Methode_transport      methode_transport;
   OBS_PTR(Navier_Stokes_std) refequation_vitesse_transport;
 
-  enum Methode_interpolation_v { VALEUR_A_ELEM, VDF_LINEAIRE };
+  enum Methode_interpolation_v { VALEUR_A_ELEM, VDF_LINEAIRE, MEAN_VOLUMIC_VELOCITY };
   Methode_interpolation_v methode_interpolation_v;
 
 
