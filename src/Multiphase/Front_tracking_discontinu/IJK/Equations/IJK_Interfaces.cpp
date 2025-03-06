@@ -712,7 +712,7 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
   std::vector<FieldInfo_t> c =
   {
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
-    { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false }, // Marchera pas - TODO
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, false }
   };
 

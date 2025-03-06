@@ -91,7 +91,6 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("nb_pas_dt_post_stats_cisaillement", &nb_pas_dt_post_stats_cisaillement_);
   param.ajouter("nb_pas_dt_post_stats_rmf", &nb_pas_dt_post_stats_rmf_);
 
-  param.ajouter("time_interval_post", &time_interval_post_);
   param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
   param.ajouter("time_interval_post_stats_bulles", &time_interval_post_stats_bulles_);
   param.ajouter("time_interval_post_stats_plans", &time_interval_post_stats_plans_);
@@ -317,7 +316,7 @@ void Postprocessing_IJK::prepare_lata_and_stats()
   dumplata_add_geometry(lata_name, ref_ijk_ft_->eq_ns().velocity_ft_[0]);
 
   // Calcul des moyennes spatiales sur la condition initiale:
-  if (current_time >= t_debut_statistiques_)
+  if (is_stats_plans_activated() && current_time >= t_debut_statistiques_)
     {
       // FA AT 16/07/2013 pensent que necessaire pour le calcul des derivees dans statistiques_.update_stat_k(...)
       // Je ne sais pas si c'est utile, mais j'assure...
@@ -357,8 +356,18 @@ void Postprocessing_IJK::postraiter(int forcer)
 //    Cout << "AF posttraiter_champs_instantanes" << finl;
 //  }
 
-  // All the rest
-  postraiter_fin(forcer);
+  // Thermal part
+  postraiter_thermals(forcer);
+
+  // Statistics (bubbles, etc.)
+  postraiter_stats(forcer);
+
+  // Probes update -
+  // TODO : not necessary? done in base class?
+  Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
+  double current_time = sch.get_current_time(),
+         timestep = sch.get_timestep();
+  les_sondes_.mettre_a_jour(current_time, timestep);
 }
 
 int Postprocessing_IJK::write_extra_mesh()
@@ -499,7 +508,7 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
     }
 
   // Pour relire les champs de vitesse et pression integres :
-  if ((( ns.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY")))
+  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     allocate_velocity(integrated_velocity_, domaine_ijk_, 2);
   if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
     {
@@ -529,7 +538,7 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
         }
     }
 
-  if ((( ns.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE")))
+  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
     integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
 
   if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
@@ -559,7 +568,7 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
 
   // En reprise, il se peut que le champ ne soit pas dans la liste des posts, mais qu'on l'ait quand meme.
   // Dans ce cas, on choisi de le lire, remplir le field et le re-sauvegarder a la fin (on n'en a rien fait de plus entre temps...)
-  if ((( ns.coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
+  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INDICATRICE_PERTURBE")
       || ((reprise) && ((fichier_reprise_indicatrice_non_perturbe_ != "??"))))
     {
       indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
@@ -627,40 +636,12 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
     }
 }
 
-double Postprocessing_IJK::get_timestep_simu_post(double current_time, double max_simu_time) const
-{
-  // Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
-  // Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
-  double max_simu_timestep = (max_simu_time - current_time)*(1+1e-12);
-  double max_post_timestep                 = ((std::floor(current_time/time_interval_post_) + 1)*time_interval_post_ - current_time)*(1+1e-12);
-  double max_post_thermals_probes_timestep = ((std::floor(current_time/time_interval_post_thermals_probes_) + 1)*time_interval_post_thermals_probes_ - current_time)*(1+1e-12);
-  double max_post_stats_bulles_timestep    = ((std::floor(current_time/time_interval_post_stats_bulles_) + 1)*time_interval_post_stats_bulles_ - current_time)*(1+1e-12);
-  double max_post_stats_plans_timestep     = ((std::floor(current_time/time_interval_post_stats_plans_) + 1)*time_interval_post_stats_plans_ - current_time)*(1+1e-12);
-  double max_post_stats_cisaillement_timestep     = ((std::floor(current_time/time_interval_post_stats_cisaillement_) + 1)*time_interval_post_stats_cisaillement_ - current_time)*(1+1e-12);
-  double max_post_stats_rmf_timestep     = ((std::floor(current_time/time_interval_post_stats_rmf_) + 1)*time_interval_post_stats_rmf_ - current_time)*(1+1e-12);
-  if (max_post_timestep == 0)
-    max_post_timestep = max_simu_timestep;
-  if (max_post_thermals_probes_timestep == 0)
-    max_post_thermals_probes_timestep = max_simu_timestep;
-  if (max_post_stats_bulles_timestep == 0)
-    max_post_stats_bulles_timestep = max_simu_timestep;
-  if (max_post_stats_plans_timestep == 0)
-    max_post_stats_plans_timestep = max_simu_timestep;
-  if (max_post_stats_cisaillement_timestep == 0)
-    max_post_stats_cisaillement_timestep = max_simu_timestep;
-  if (max_post_stats_rmf_timestep == 0)
-    max_post_stats_rmf_timestep = max_simu_timestep;
-
-  return std::min(max_simu_timestep, std::min(max_post_timestep, std::min(max_post_thermals_probes_timestep, std::min(max_post_stats_plans_timestep, std::min(max_post_stats_bulles_timestep, std::min(max_post_stats_cisaillement_timestep, max_post_stats_rmf_timestep))))));
-}
-
-
 void Postprocessing_IJK::fill_indic(bool reprise)
 {
   // Meme if que pour l'allocation.
   // On ne fait le calcul/remplissage du champ que dans un deuxieme temps car on
   // n'avait pas les interfaces avant (lors de l'init)
-  if (((ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && (t_debut_statistiques_ < 1.e10)) || (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
+  if (((ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INDICATRICE_PERTURBE")
       || (reprise && (fichier_reprise_indicatrice_non_perturbe_ != "??")))
     {
       init_indicatrice_non_perturbe();
@@ -1297,13 +1278,14 @@ void Postprocessing_IJK::posttraiter_statistiques_plans(double current_time)
 
 // Le nom du fichier est base sur le nom du cas...
 // Si reset!=0, on efface le fichier avant d'ecrire, sinon on ajoute...
-void Postprocessing_IJK::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const
+void Postprocessing_IJK::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time) const
 {
   if (Option_IJK::DISABLE_DIPHASIQUE)
     return;
 
   statistiques().begin_count(postraitement_counter_);
 
+  const DoubleTab& gravite = ref_ijk_ft_->milieu_ijk().gravite().valeurs();
   ArrOfDouble volume;
   DoubleTab position;
   ArrOfDouble surface;
@@ -1997,10 +1979,10 @@ void Postprocessing_IJK::alloc_fields()
 {
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
+  if (!Option_IJK::DISABLE_DIPHASIQUE && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || liste_post_instantanes_.contient_("TOUS") || is_stats_plans_activated()))
     ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   // Pour les stats, on calcule kappa*ai :
-  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((t_debut_statistiques_ < 1.e10)))
+  if (!Option_IJK::DISABLE_DIPHASIQUE && is_stats_plans_activated())
     {
       kappa_ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       kappa_ai_ns_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
@@ -2009,8 +1991,8 @@ void Postprocessing_IJK::alloc_fields()
     }
 
   // For the pressure field extension:
-  if ((!Option_IJK::DISABLE_DIPHASIQUE)
-      && ((liste_post_instantanes_.contient_("PRESSURE_LIQ")) || (liste_post_instantanes_.contient_("PRESSURE_VAP")) || (liste_post_instantanes_.contient_("TOUS")) || (t_debut_statistiques_ < 1.e10)))
+  if (!Option_IJK::DISABLE_DIPHASIQUE
+      && ((liste_post_instantanes_.contient_("PRESSURE_LIQ")) || (liste_post_instantanes_.contient_("PRESSURE_VAP")) || (liste_post_instantanes_.contient_("TOUS")) || is_stats_plans_activated()))
     {
       extended_pressure_computed_ = 1;
       pressure_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 5);
@@ -2023,15 +2005,15 @@ void Postprocessing_IJK::alloc_fields()
     extended_pressure_computed_ = 0;
 
   // Allocation du champ de normale aux cellules :
-  if ((!Option_IJK::DISABLE_DIPHASIQUE) && ((liste_post_instantanes_.contient_("NORMALE_INTERF")) || (liste_post_instantanes_.contient_("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
-                                            || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
-                                            || (liste_post_instantanes_.contient_("TOUS")) || ((t_debut_statistiques_ < 1.e10))))
+  if (!Option_IJK::DISABLE_DIPHASIQUE && ((liste_post_instantanes_.contient_("NORMALE_INTERF")) || (liste_post_instantanes_.contient_("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
+                                          || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
+                                          || (liste_post_instantanes_.contient_("TOUS")) || is_stats_plans_activated()))
     {
       allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
     }
 
   // Allocation des champs derivee de vitesse :
-  if (t_debut_statistiques_ < 1.e10 || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
+  if (is_stats_plans_activated() || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
     {
       dudx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
@@ -2144,7 +2126,7 @@ void Postprocessing_IJK::alloc_velocity_and_co()
 
   // Pour le calcul des statistiques diphasiques :
   // (si le t_debut_stat a ete initialise... Sinon, on ne va pas les calculer au cours de ce calcul)
-  if ((t_debut_statistiques_ < 1.e10))
+  if (is_stats_plans_activated())
     {
       allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
       allocate_velocity(grad_P_, domaine_ijk_, 1);
@@ -2171,71 +2153,73 @@ void Postprocessing_IJK::improved_initial_pressure_guess(bool imp)
     }
 }
 
-void Postprocessing_IJK::postraiter_fin(bool stop)
+void Postprocessing_IJK::postraiter_thermals(bool stop)
+{
+  if (ref_ijk_ft_->has_thermals())
+    thermals_->set_first_step_thermals_post(first_step_thermals_post_);
+
+  // TODO review this:
+
+//   if (ref_ijk_ft_->has_thermals())
+//     if (stop || first_step_thermals_post_
+//         || (nb_pas_dt_post_thermals_probes_ >= 0 && tstep_sauv % nb_pas_dt_post_thermals_probes_ == nb_pas_dt_post_thermals_probes_ - 1)
+//         || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
+//       {
+//         Cout << "tstep : " << tstep << finl;
+//         thermals_->thermal_subresolution_outputs(nb_pas_dt_post_thermals_probes_);
+//       }
+}
+
+bool Postprocessing_IJK::is_stats_bulles_activated() const
+{
+  return nb_pas_dt_post_stats_bulles_ > 0 || time_interval_post_stats_bulles_ >= 0.;
+}
+
+// Warning: this one looking at t_debut_statistiques_ too
+bool Postprocessing_IJK::is_stats_plans_activated() const
+{
+  return (nb_pas_dt_post_stats_plans_ > 0 || time_interval_post_stats_plans_ >= 0.) && t_debut_statistiques_ > 0.0;
+}
+
+bool Postprocessing_IJK::is_stats_cisaillement_activated() const
+{
+  return nb_pas_dt_post_stats_cisaillement_ > 0 || time_interval_post_stats_cisaillement_ >= 0.;
+}
+
+bool Postprocessing_IJK::is_stats_rmf_activated() const
+{
+  return nb_pas_dt_post_stats_rmf_ > 0 || time_interval_post_stats_rmf_ >= 0.;
+}
+
+void Postprocessing_IJK::postraiter_stats(bool stop)
 {
   Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
   int tstep = sch.get_tstep(),
       tstep_init = sch.get_tstep_init();
   double current_time = sch.get_current_time(),
          timestep = sch.get_timestep();
-  Nom lata_name = nom_fich_;
-  const DoubleTab& gravite = ref_ijk_ft_->milieu_ijk().gravite().valeurs();
   const Nom& nom_cas = nom_du_cas();
 
-
   const int tstep_sauv = tstep + tstep_init;
-  if (ref_ijk_ft_->has_thermals())
-    thermals_->set_first_step_thermals_post(first_step_thermals_post_);
-//  if (stop || first_step_thermals_post_
-//      || (nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == nb_pas_dt_post_ - 1)
-//      || (std::floor((current_time-timestep)/time_interval_post_) < std::floor(current_time/time_interval_post_)))
-//    {
-//      if (post_par_paires_ ==1) { cout << "tstep : " << tstep << endl;}
-//      posttraiter_champs_instantanes(lata_name, current_time, tstep);
-//    }
-//  else if ((post_par_paires_ == 1 && nb_pas_dt_post_ >= 0 && tstep_sauv % nb_pas_dt_post_ == 0)) // Pour reconstruire au post-traitement la grandeur du/dt, on peut choisir de relever u^{dt_post} et u^{dt_post+1} :
-//    {
-//      cout << "deuxieme de la paire, tstep : " << tstep << endl;
-//      posttraiter_champs_instantanes(lata_name, current_time, tstep);
-//    }
 
-  if (ref_ijk_ft_->has_thermals())
-    if (stop || first_step_thermals_post_
-        || (nb_pas_dt_post_thermals_probes_ >= 0 && tstep_sauv % nb_pas_dt_post_thermals_probes_ == nb_pas_dt_post_thermals_probes_ - 1)
-        || (std::floor((current_time-timestep)/time_interval_post_thermals_probes_) < std::floor(current_time/time_interval_post_thermals_probes_)))
-      {
-        Cout << "tstep : " << tstep << finl;
-        thermals_->thermal_subresolution_outputs(nb_pas_dt_post_thermals_probes_);
-      }
-  if (stop
-      || (nb_pas_dt_post_stats_bulles_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_bulles_ == nb_pas_dt_post_stats_bulles_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_stats_bulles_) < std::floor(current_time/time_interval_post_stats_bulles_)))
-    {
-      ecrire_statistiques_bulles(0, nom_cas, gravite, current_time);
-    }
-  if (stop
-      || (nb_pas_dt_post_stats_plans_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_plans_ == nb_pas_dt_post_stats_plans_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_stats_plans_) < std::floor(current_time/time_interval_post_stats_plans_)))
-    {
-      if (current_time >= t_debut_statistiques_)
-        posttraiter_statistiques_plans(current_time);
-    }
-  if (stop
-      || (nb_pas_dt_post_stats_cisaillement_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_cisaillement_ == nb_pas_dt_post_stats_cisaillement_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_stats_cisaillement_) < std::floor(current_time/time_interval_post_stats_cisaillement_)))
-    {
-      ecrire_statistiques_cisaillement(0, nom_cas, current_time);
-    }
-  if (stop
-      || (nb_pas_dt_post_stats_rmf_ >= 0 && tstep_sauv % nb_pas_dt_post_stats_rmf_ == nb_pas_dt_post_stats_rmf_ - 1)
-      || (std::floor((current_time-timestep)/time_interval_post_stats_rmf_) < std::floor(current_time/time_interval_post_stats_rmf_)))
-    {
-      ecrire_statistiques_rmf(0, nom_cas, current_time);
-    }
-  // Pour ne post-traiter qu'a la frequence demandee :
-  les_sondes_.mettre_a_jour(current_time, timestep);
-  // Pour le faire a chaque pas de temps :
-  // les_sondes_.postraiter();
+  // Helper function, indicating for a given nb_pas_dt_XXX if post for this XXX category should be triggered:
+  auto should_post = [&](int nb_pas_dt, double time_interv)
+  {
+    if (stop
+        || (nb_pas_dt >= 0 && tstep_sauv % nb_pas_dt == nb_pas_dt - 1)
+        || (std::floor((current_time-timestep)/time_interv) < std::floor(current_time/time_interv)))
+      return true;
+    return false;
+  };
+
+  if (is_stats_bulles_activated() && should_post(nb_pas_dt_post_stats_bulles_, time_interval_post_stats_bulles_))
+    ecrire_statistiques_bulles(0, nom_cas, current_time);
+  if (is_stats_plans_activated() && should_post(nb_pas_dt_post_stats_plans_, time_interval_post_stats_plans_))
+    posttraiter_statistiques_plans(current_time);
+  if (is_stats_cisaillement_activated() && should_post(nb_pas_dt_post_stats_cisaillement_, time_interval_post_stats_cisaillement_))
+    ecrire_statistiques_cisaillement(0, nom_cas, current_time);
+  if (is_stats_rmf_activated() && should_post(nb_pas_dt_post_stats_rmf_, time_interval_post_stats_rmf_))
+    ecrire_statistiques_rmf(0, nom_cas, current_time);
 }
 
 // NEW INTERPOLATING FUNCTION TO AVOID EULERIAN POINTS LYING IN THE BUBBLES OR ON THE INTERFACE

@@ -73,7 +73,7 @@ public:
 
   void posttraiter_champs_instantanes(const char * lata_name, double time, int time_iteration);
   void posttraiter_statistiques_plans(double time);
-  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const DoubleTab& gravite, const double current_time) const;
+  void ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time) const;
   void ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const;
   void ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const;
   void update_stat_ft(const double dt);
@@ -86,8 +86,6 @@ public:
   IJK_Field_vector3_double& coords()  { return coords_;  }
   IJK_Field_double& integrated_timescale() { return integrated_timescale_; }
   bool postraiter_sous_pas_de_temps() const { return postraiter_sous_pas_de_temps_; }
-
-  double get_timestep_simu_post(double current_time, double max_simu_time) const;
 
   int post_par_paires() const { return post_par_paires_; }
   double t_debut_statistiques() const { return t_debut_statistiques_; }
@@ -148,19 +146,18 @@ protected:
 
   // Post-traitement selon un nombre de pas de temps
   // The main postprocessing freq (nb_pas_dt_post) is in the base class
-  int nb_pas_dt_post_thermals_probes_ = 100;
-  int nb_pas_dt_post_stats_bulles_ = 1; // intervalle de posttraitement des donnees par bulles
-  int nb_pas_dt_post_stats_plans_ = 1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
-  int nb_pas_dt_post_stats_cisaillement_ = 100; // intervalle de posttraitement des données liés au cisaillement
-  int nb_pas_dt_post_stats_rmf_ = 100; // intervalle de posttraitement des données liés au au rmf
+  int nb_pas_dt_post_thermals_probes_ = -1;
+  int nb_pas_dt_post_stats_bulles_ = -1; // intervalle de posttraitement des donnees par bulles
+  int nb_pas_dt_post_stats_plans_ = -1; // intervalle de posttraitement des donnees par plan (pour les statistiques de canal)
+  int nb_pas_dt_post_stats_cisaillement_ = -1; // intervalle de posttraitement des données liés au cisaillement
+  int nb_pas_dt_post_stats_rmf_ = -1; // intervalle de posttraitement des données liés au au rmf
 
   // Post-traitement selon un intervale de temps (en secondes)
-  double time_interval_post_ = DMAXFLOAT;
-  double time_interval_post_thermals_probes_ = DMAXFLOAT;
-  double time_interval_post_stats_bulles_ = DMAXFLOAT;
-  double time_interval_post_stats_plans_ = DMAXFLOAT;
-  double time_interval_post_stats_cisaillement_ = DMAXFLOAT;
-  double time_interval_post_stats_rmf_ = DMAXFLOAT;
+  double time_interval_post_thermals_probes_ = -1.0;
+  double time_interval_post_stats_bulles_ = -1.0;
+  double time_interval_post_stats_plans_ = -1.0;
+  double time_interval_post_stats_cisaillement_ = -1.0;
+  double time_interval_post_stats_rmf_ = -1.0;
 
   Motcles liste_post_instantanes_; // liste des champs instantanes a postraiter
   // Pour numeroter les fichiers .lata il faut compter combien on en a ecrit:
@@ -320,12 +317,18 @@ protected:
   // Pour le post-traitement des champs cut-cell
   int cut_cell_activated_ = 0;
 
-  void postraiter_fin(bool stop);
   void register_one_field(const Motcle& fld_nam, const Motcle& loc);
 
 private:
   IJK_Field_vector3_double post_projected_field_; ///< Temporary storage space used when invoking 'interpolate_to_center'
 
+  void postraiter_thermals(bool stop);
+
+  bool is_stats_bulles_activated() const;
+  bool is_stats_plans_activated() const;
+  bool is_stats_cisaillement_activated() const;
+  bool is_stats_rmf_activated() const;
+  void postraiter_stats(bool stop);
 };
 
 #endif /* Postprocessing_IJK_included */

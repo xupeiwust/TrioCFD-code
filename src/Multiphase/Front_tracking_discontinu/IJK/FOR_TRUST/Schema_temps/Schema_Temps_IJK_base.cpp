@@ -266,14 +266,11 @@ void Schema_Temps_IJK_base::check_stop_criteria(bool& stop) const
 
 double Schema_Temps_IJK_base::computeTimeStep(bool& stop) const
 {
-  const Probleme_FTD_IJK_base& pb_ijk = ref_cast(Probleme_FTD_IJK_base, mon_probleme.valeur());
-
   if (timestep_facsec_ > 0. && !stop)
     {
-      Schema_Temps_IJK_base& sh_non_cst = const_cast<Schema_Temps_IJK_base&>(*this); // FIXME
-      double max_post_simu_timestep = pb_ijk.get_post().get_timestep_simu_post(get_current_time(), max_simu_time_);
       // WTF - find_timestep non const ?!!
-      sh_non_cst.dt_ = sh_non_cst.find_timestep(std::min(max_timestep_, max_post_simu_timestep), cfl_, fo_, oh_);
+      Schema_Temps_IJK_base& sh_non_cst = const_cast<Schema_Temps_IJK_base&>(*this); // FIXME
+      sh_non_cst.dt_ = sh_non_cst.find_timestep(max_timestep_, cfl_, fo_, oh_);
     }
 
   return dt_;

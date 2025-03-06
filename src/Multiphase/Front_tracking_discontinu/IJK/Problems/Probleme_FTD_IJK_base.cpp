@@ -723,18 +723,18 @@ void Probleme_FTD_IJK_base::preparer_calcul()
   if ((!Option_IJK::DISABLE_DIPHASIQUE) && ns.get_suppression_rejetons())
     interf.detecter_et_supprimer_rejeton(true);
 
-  if (reprise_)
-    {
-      // On ecrit a la suite du fichier. Cela suppose qu'il est bien a jour.
-      // L'instant initial a deja ete ecrit a la fin du calcul precedent donc on ne le reecrit pas.
-    }
-  else
-    {
-      // On creer de nouveaux fichiers :
-      Cout << "BF ecrire_statistiques_bulles" << finl;
-      get_post().ecrire_statistiques_bulles(1 /* reset files */, nom_du_cas(), milieu_ijk().gravite().valeurs(), schema_temps_ijk().get_current_time());
-      Cout << "AF ecrire_statistiques_bulles" << finl;
-    }
+//  if (reprise_)
+//    {
+//      // On ecrit a la suite du fichier. Cela suppose qu'il est bien a jour.
+//      // L'instant initial a deja ete ecrit a la fin du calcul precedent donc on ne le reecrit pas.
+//    }
+//  else
+//    {
+//      // On creer de nouveaux fichiers :
+//      Cout << "BF ecrire_statistiques_bulles" << finl;
+//      get_post().ecrire_statistiques_bulles(1 /* reset files */, nom_du_cas(), milieu_ijk().gravite().valeurs(), schema_temps_ijk().get_current_time());
+//      Cout << "AF ecrire_statistiques_bulles" << finl;
+//    }
 
   // Ecrire la valeur initiale dans les sondes :
   // Ecriture de la valeur initiale seulement hors reprise
@@ -969,7 +969,7 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
   // On la laisse croitre pendant les sous dt 0 et 1 puis on la corrige a la fin du 2eme :
 
   int& rk_step = rk3.get_rk_step();
-  const double timestep = rk3.get_timestep(), current_time = rk3.get_current_time();
+  const double timestep = rk3.get_timestep();
 
   // FIXME
   Navier_Stokes_FTD_IJK& ns = ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
@@ -1010,14 +1010,14 @@ void Probleme_FTD_IJK_base::solveTimeStep_RK3(DoubleTrav& var_volume_par_bulle)
       // GAB, qdm : passe en attribut de classe car utilise au moment de l'ecriture de mon out
       rk3.get_current_time_at_rk3_step() += fractionnal_timestep;
 
-      // On ne postraite pas le sous-dt 2 car c'est fait plus bas si on post-traite le pas de temps :
-      if (get_post().postraiter_sous_pas_de_temps()
-          && ((rk3.get_tstep() % get_post().nb_pas_dt_post() == get_post().nb_pas_dt_post() - 1)
-              || (std::floor((current_time - timestep) / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time()))
-                  < std::floor(current_time / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time())))) && (rk_step != 2))
-        {
+//      // On ne postraite pas le sous-dt 2 car c'est fait plus bas si on post-traite le pas de temps :
+//      if (get_post().postraiter_sous_pas_de_temps()
+//          && ((rk3.get_tstep() % get_post().nb_pas_dt_post() == get_post().nb_pas_dt_post() - 1)
+//              || (std::floor((current_time - timestep) / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time()))
+//                  < std::floor(current_time / get_post().get_timestep_simu_post(current_time, rk3.get_max_simu_time())))) && (rk_step != 2))
+//        {
 //          get_post().posttraiter_champs_instantanes(lata_name_, current_time_at_rk3_step, rk3.get_tstep());
-        }
+//        }
     }
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
