@@ -3093,7 +3093,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
                file+="_Moment_total_sur_";
   else if ( type=="particles_trajectory" )
     files[5]=type,
-             file+="_particles_trajectory";
+             file+="_particles_trajectory_";
   else if ( type=="mean_rms_particles_velocity")
     files[6]=type,
              file+="_mean_rms_particles_velocity_";
@@ -3378,34 +3378,38 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
                     }
                   Particles_trajectory << finl;
                 }
+            }
 
-              if (compute_particles_rms_)
+          if (compute_particles_rms_)
+            {
+              SFichier Moy_Rms_Vitesse_Particule;
+              ouvrir_fichier(Moy_Rms_Vitesse_Particule,"mean_rms_particles_velocity",1,*this);
+              schema_temps().imprimer_temps_courant(Moy_Rms_Vitesse_Particule);
+              Moy_Rms_Vitesse_Particule << "Time "  << schema_temps().temps_courant() << finl;
+              const DoubleTab& mean_velocity=get_mean_particles_volumic_velocity();
+              const DoubleTab& rms_velocity=get_mean_particles_volumic_squared_velocity();
+              const DoubleTab& mean_squared_velocity=get_rms_particles_volumic_velocity();
+              const DoubleTab& particles_purely_solid_mesh_volume=get_particles_purely_solid_mesh_volume();
+              for (int particle=0; particle<nb_particles_tot_; particle++)
                 {
-                  SFichier Moy_Rms_Vitesse_Particule;
-                  ouvrir_fichier(Moy_Rms_Vitesse_Particule,"mean_rms_particles_velocity",1,*this);
-                  schema_temps().imprimer_temps_courant(Moy_Rms_Vitesse_Particule);
-                  const DoubleTab& mean_velocity=get_mean_particles_volumic_velocity();
-                  const DoubleTab& rms_velocity=get_mean_particles_volumic_squared_velocity();
-                  const DoubleTab& mean_squared_velocity=get_rms_particles_volumic_velocity();
-                  const DoubleTab& particles_purely_solid_mesh_volume=get_particles_purely_solid_mesh_volume();
-                  for (int particle=0; particle<nb_particles_tot_; particle++)
-                    {
-                      Moy_Rms_Vitesse_Particule << espace;
-                      Moy_Rms_Vitesse_Particule << particles_purely_solid_mesh_volume<< espace;
-                      for (int dim=0; dim<dimension; dim++)
-                        Moy_Rms_Vitesse_Particule << espace << mean_velocity(particle,dim);
-                      Moy_Rms_Vitesse_Particule << espace;
+                  Moy_Rms_Vitesse_Particule << particle << " ";
+                  Moy_Rms_Vitesse_Particule << espace;
+                  Moy_Rms_Vitesse_Particule << particles_purely_solid_mesh_volume(particle)<< espace;
+                  for (int dim=0; dim<dimension; dim++)
+                    Moy_Rms_Vitesse_Particule << espace << mean_velocity(particle,dim);
+                  Moy_Rms_Vitesse_Particule << espace;
 
-                      for (int dim=0; dim<dimension; dim++)
-                        Moy_Rms_Vitesse_Particule << espace << mean_squared_velocity(particle,dim);
-                      Moy_Rms_Vitesse_Particule << espace;
+                  for (int dim=0; dim<dimension; dim++)
+                    Moy_Rms_Vitesse_Particule << espace << mean_squared_velocity(particle,dim);
+                  Moy_Rms_Vitesse_Particule << espace;
 
-                      for (int dim=0; dim<dimension; dim++)
-                        Moy_Rms_Vitesse_Particule << espace << rms_velocity(particle,dim);
-                    }
+                  for (int dim=0; dim<dimension; dim++)
+                    Moy_Rms_Vitesse_Particule << espace << rms_velocity(particle,dim);
+
                   Moy_Rms_Vitesse_Particule << finl;
                 }
             }
+
 
           SFichier Particles_data;
           ouvrir_fichier(Particles_data,"particles_data",1,*this);

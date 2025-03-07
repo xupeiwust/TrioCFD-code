@@ -36,7 +36,6 @@ Sortie& Collision_Model_FT_sphere::printOn(Sortie& os) const
   return os;
 }
 
-
 void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_Diphasique& two_phase_fluid,
                                                                   const DoubleTab& particles_position,
                                                                   const DoubleTab& particles_velocity,
@@ -59,6 +58,7 @@ void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_D
   lagrangian_contact_forces_=0;
   collision_number_=0;
   particles_collision_number_=0;
+
   for (int ind_particle_i = 0; ind_particle_i < nb_real_particles_; ind_particle_i++)
     {
       int particle_i=get_particle_i(ind_particle_i);

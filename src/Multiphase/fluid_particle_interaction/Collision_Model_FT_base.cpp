@@ -549,8 +549,7 @@ void Collision_Model_FT_base::research_collision_pairs_Verlet(const Navier_Stoke
     {
       for (int ind_part_i=0; ind_part_i <nb_real_particles_; ind_part_i++)
         {
-          Cerr << "part " << ind_part_i << " : ";
-          Cerr << "Verlet_tables_[part_i].size() " << Verlet_tables_[ind_part_i].size() << " -- ";
+          Cerr << "Verlet_tables_["<<ind_part_i<<"].size() " << Verlet_tables_[ind_part_i].size() << " -- ";
           for (int ind_part_j=0; ind_part_j<Verlet_tables_[ind_part_i].size(); ind_part_j++)
             Cerr << " " << Verlet_tables_[ind_part_i][ind_part_j];
           Cerr << finl;
@@ -562,8 +561,9 @@ int Collision_Model_FT_base::get_last_id(const ArrOfInt& list_particles_to_check
 {
   if (detection_method_==Detection_method::CHECK_ALL)
     Process::exit("Collision_Model_FT_base::get_last_id Should not be in here!");
-  else if (detection_method_==Detection_method::VERLET ||
-           detection_method_==Detection_method::LC_VERLET)
+  else if (detection_method_==Detection_method::VERLET)
+    return nb_particles_tot_;
+  else if(detection_method_==Detection_method::LC_VERLET)
     return(list_particles_to_check_LC.size_array());
   return 0;
 }
@@ -622,7 +622,6 @@ void Collision_Model_FT_base::compute_Verlet_tables(const DoubleTab& particles_p
                                                     const ArrOfInt& list_particles_to_check_LC)
 {
   int last_id = get_last_id(list_particles_to_check_LC);
-
   for (int ind_id_particle_i=0; ind_id_particle_i< nb_real_particles_; ind_id_particle_i++)
     {
       int id_particle_i=get_id(list_particles_to_check_LC,ind_id_particle_i);
@@ -769,7 +768,9 @@ void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Sc
   Cerr << "list_coord_recv.dimensions " << list_coord_recv.dimension(0) << " "
        << list_coord_recv.dimension(1) << finl;
   int nb_elem_recv=0;
+
   schema_com.begin_comm();
+
   for (int ind_pe_dest=0; ind_pe_dest<nb_joints; ind_pe_dest++)
     {
       const Joint& joint_temp = domain_vf.joint(ind_pe_dest);
@@ -777,7 +778,9 @@ void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Sc
       assert(pe_dest!=Process::me());
       schema_com.send_buffer(pe_dest)  << x0 << y0 << z0;
     }
+
   schema_com.echange_taille_et_messages();
+
   const ArrOfInt& recv_pe_list = schema_com.get_recv_pe_list();
   const int nb_recv_pe = recv_pe_list.size_array();
   for (int i=0; i<nb_recv_pe; i++)
@@ -795,7 +798,9 @@ void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Sc
           list_pe_recv.append_line(pe_source);
         }
     }
+
   schema_com.end_comm();
+
   list_coord_recv.resize(nb_elem_recv,dimension);
   list_pe_recv.resize(nb_elem_recv);
 
@@ -836,3 +841,4 @@ void Collision_Model_FT_base::add_collision(const int part_i, const int part_j, 
   if (part_j<nb_particles_tot_)
     particles_collision_number_(part_i)+=contrib;
 }
+
