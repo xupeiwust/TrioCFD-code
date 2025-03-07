@@ -202,9 +202,9 @@ void Postprocessing_IJK::lire_entete_bloc_interface(Entree& is)
     }
 }
 
-void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle& loc)
+void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle& reqloc_s)
 {
-  Entity e = str_to_entity(loc);
+  Entity reqloc = str_to_entity(reqloc_s);
   noms_champs_a_post_.add(fld_nam);
   // Lookup the field in champs_postraitables_
   int idx = 0;
@@ -212,15 +212,18 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
     {
       Motcle nom2 = get<0>(f);
       Entity loc2 = get<1>(f);
-      if(nom2 == fld_nam && e == loc2)
+      bool want_interp = (reqloc == Entity::ELEMENT && loc2 == Entity::FACE);
+      if(nom2 == fld_nam
+          && (reqloc == loc2 || want_interp)) // allow FACE to ELEMENT interpolation
         {
           // If already there, error:
-          if (std::find(field_post_idx_.begin(), field_post_idx_.end(), idx) != field_post_idx_.end())
+          std::pair<int,bool> k = {idx, want_interp};
+          if (std::find(field_post_idx_.begin(), field_post_idx_.end(), k) != field_post_idx_.end())
             {
-              Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< loc <<"' duplicated in list of fields to be postprocessed!!" << finl;
+              Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< reqloc_s <<"' duplicated in list of fields to be postprocessed!!" << finl;
               Process::exit();
             }
-          field_post_idx_.push_back(idx);
+          field_post_idx_.push_back(k);
           // Prepare entries in storage map (some of them might not be used for example when postprocessing
           // an unknown directly):
           scalar_post_fields_[fld_nam] = IJK_Field_double();
@@ -231,7 +234,7 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
     }
   if (idx == (int)champs_postraitables_.size())
     {
-      Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< loc <<"' is not available for postprocessing!!" << finl;
+      Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< reqloc_s <<"' is not available for postprocessing!!" << finl;
       Process::exit();
     }
 }
@@ -407,13 +410,15 @@ int Postprocessing_IJK::postraiter_champs()
   write_extra_mesh();
 
   // Dump requested fields:
-  for (auto& idx : field_post_idx_)
+  for (const std::pair<int,bool>& v : field_post_idx_)
     {
-      const auto& fld_info = champs_postraitables_[idx];
+      int idx = get<0>(v);
+      bool want_interpolation = get<1>(v);
+      const FieldInfo_t& fld_info = champs_postraitables_[idx];
       Motcle fld_nam = get<0>(fld_info);
-      Entity loc = get<1>(fld_info);
+      Entity fld_loc = get<1>(fld_info);  // the natural localisation of field
       Nature_du_champ nat = get<2>(fld_info);
-      bool need_interp = get<3>(fld_info);
+      bool is_on_interf = get<3>(fld_info);
 
       if (!ref_ijk_ft_->has_champ(fld_nam) && !ref_ijk_ft_->has_champ_vectoriel(fld_nam) )
         {
@@ -428,46 +433,66 @@ int Postprocessing_IJK::postraiter_champs()
 
       if (nat == Nature_du_champ::scalaire)
         {
-          bool is_on_interf = interfaces_->has_champ(fld_nam);
           const IJK_Field_double& fld = ref_ijk_ft_->get_IJK_field(fld_nam);
 
-          if (!check_loc_compat(loc, fld.get_localisation()) && !is_on_interf)  // for now, loc validity is not check for interf fields ...
+          if (!check_loc_compat(fld_loc, fld.get_localisation()) && !is_on_interf)  // for now, loc validity is not checked for interf fields ...
             {
-              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(loc) << "'!" << finl;
+              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(fld_loc) << "'!" << finl;
               Process::exit();
             }
-          if (!is_on_interf)
-            dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
+          if (is_on_interf)
+            dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(fld_loc), fld.data(), latastep);
           else
-            {
-              const ArrOfDouble& arr = fld.data();
-              dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(loc), arr, latastep);
-            }
+            dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
         }
       else if (nat == Nature_du_champ::vectoriel)
         {
-          const IJK_Field_vector3_double& fld = ref_ijk_ft_->get_IJK_field_vector(fld_nam);
-          assert(fld.nature_du_champ() == Nature_du_champ::vectoriel);
-          if (loc == Entity::NODE)
+          if(is_on_interf)
             {
-              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation 'SOM' !" << finl;
+              Cerr << "ERROR: post-processing of vectorial field on the interface not implemented (here '" << fld_nam << "') !" << finl;
               Process::exit();
             }
-          if (need_interp)
+
+          const IJK_Field_vector3_double& fld = ref_ijk_ft_->get_IJK_field_vector(fld_nam);
+          const Entity loc = fld.localisation();
+          assert(fld.nature_du_champ() == Nature_du_champ::vectoriel);
+          if (loc == Entity::ELEMENT && fld_loc == Entity::FACE)
             {
+              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing on '" << entity_to_str(loc) << "' and can not be projected to '" << entity_to_str(fld_loc) << "'" << finl;
+              Process::exit();
+            }
+          if (want_interpolation)   // needs interpolation
+            {
+              assert(loc == Entity::FACE && fld_loc == Entity::FACE);
               // First time we interpolate - needs to allocate storage:
               if (post_projected_field_.get_ptr(0) == nullptr)
                 allocate_cell_vector(post_projected_field_, domaine_ijk_, 0);
               interpolate_to_center(post_projected_field_, fld);
               dumplata_cellvector(nom_fich_,Nom("CELL_") + fld_nam, post_projected_field_, latastep);
             }
-          else
+          if(fld_loc != loc) // Incompatible localisations, not interpolation possible
             {
-              dumplata_vector(nom_fich_, fld_nam, fld[0], fld[1], fld[2], latastep);
+              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(fld_loc) << "' !" << finl;
+              Process::exit();
             }
-        }
+
+          switch(loc)
+            {
+            case Entity::NODE:
+              Process::exit("ERROR: post-processing vectorial field on NODES not implemented!");
+              break;
+            case Entity::ELEMENT:
+              dumplata_cellvector(nom_fich_, fld_nam, fld, latastep);
+              break;
+            case Entity::FACE:
+              dumplata_vector(nom_fich_, fld_nam, fld[0], fld[1], fld[2], latastep);
+              break;
+            default:
+              Process::exit("ERROR: Unexpected error!");
+            }
+        } // if(nat == vectoriel)
       else // nat ==  Nature_du_champ::multi_scalaire
-        Process::exit("No multiscalar!!");
+        Process::exit("ERROR: no multiscalar support!!");
     }
   return 1;
 }
@@ -1618,7 +1643,7 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
 {
   std::vector<FieldInfo_t> c =
   {
-    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
 
     { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
@@ -1626,7 +1651,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "NUM_COMPO", Entity::FACE, Nature_du_champ::scalaire, false },
     { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "FORCE_PH", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "LAMBDA2", Entity::ELEMENT, Nature_du_champ::scalaire, false },
 
@@ -1648,11 +1672,9 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "OP_CONV", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "GRAD_P", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
 
     // Tenseur aussi?
     { "GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
@@ -1679,9 +1701,7 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
     { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "BK_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "COURBURE_AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "NORMALE_EULER", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
@@ -1692,7 +1712,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "BARYCENTRE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
 
     { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SHIELD_REPULSION", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "VARIABLE_SOURCE", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "INTEGRATED_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "INTEGRATED_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },

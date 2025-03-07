@@ -27,7 +27,7 @@ class Motcle;
 class Champs_compris_IJK_interface
 {
 public :
-  /** Name / Localisation (elem, face, node) / Nature (vector, scalar) / Needs interpolation?
+  /** Name / Localisation (elem, face, node) / Nature (vector, scalar) / true=Lagrangian (interface), false=Eulerian
    */
   using FieldInfo_t = std::tuple<Motcle, Entity, Nature_du_champ, bool>;
 

@@ -133,7 +133,10 @@ public:
 
 protected:
   static std::vector<FieldInfo_t> champs_postraitables_;  ///< list of fields that can be potentially postprocessed
-  std::vector<int> field_post_idx_;    ///< index in 'champs_postraitables_' of each of the requested field for post-processing
+  /** Index in 'champs_postraitables_' of each of the requested field for post-processing
+   * and flag indicating if interpolation will be needed:
+   */
+  std::vector<std::pair<int,bool>> field_post_idx_;
 
   Champs_compris_IJK champs_compris_;  ///< the actual fields registered and managed by the post-processing part (=all the extra fields, not the main unknowns)
 

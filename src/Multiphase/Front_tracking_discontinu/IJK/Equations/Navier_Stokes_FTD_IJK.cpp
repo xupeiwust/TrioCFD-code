@@ -254,12 +254,10 @@ void Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>
 {
   std::vector<FieldInfo_t> c =
   {
-    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Needs interpolation
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /    Located on interface?
 
     { "VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "VELOCITY", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "VITESSE", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "VITESSE", Entity::ELEMENT, Nature_du_champ::vectoriel, true },
     { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "PRESSION", Entity::ELEMENT, Nature_du_champ::scalaire, false }
   };
