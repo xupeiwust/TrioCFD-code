@@ -24,11 +24,12 @@ Solid_Particle_spheroid::Solid_Particle_spheroid()
 
 Entree& Solid_Particle_spheroid::readOn (Entree& is)
 {
+  Solid_Particle_base::readOn(is); // do to first
   set_equivalent_diameter(half_long_axis_spheroid_); // for impact activation distance and Verlet tables detection
   set_equivalent_radius(half_long_axis_spheroid_/2); // for impact activation distance and Verlet tables detection
-  //set_diameter(); not coded yet
-  //set_volume(); not coded yet
-  Solid_Particle_base::readOn(is);
+  // set_diameter(); not coded yet
+  // set_volume(); not coded yet
+  // set_mass(); not coded yet
   return is;
 }
 

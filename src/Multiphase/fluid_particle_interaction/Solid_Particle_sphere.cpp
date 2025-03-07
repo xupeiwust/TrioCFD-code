@@ -24,11 +24,13 @@ Solid_Particle_sphere::Solid_Particle_sphere()
 
 Entree& Solid_Particle_sphere::readOn (Entree& is)
 {
+  Solid_Particle_base::readOn(is); // to do first
   set_diameter(2*radius_);
   set_equivalent_diameter(diameter_);
   set_equivalent_radius(radius_);
   set_volume(4 * M_PI * pow(radius_, 3) / 3);
-  Solid_Particle_base::readOn(is);
+  const double solid_density = masse_volumique().valeurs()(0, 0);
+  set_mass(volume_*solid_density);
   return is;
 }
 

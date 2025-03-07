@@ -57,6 +57,8 @@ void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_D
   const double min_threshold=1e-10;
   DoubleTab dX(dimension), dU(dimension);
   lagrangian_contact_forces_=0;
+  collision_number_=0;
+  particles_collision_number_=0;
   for (int ind_particle_i = 0; ind_particle_i < nb_real_particles_; ind_particle_i++)
     {
       int particle_i=get_particle_i(ind_particle_i);
@@ -76,6 +78,7 @@ void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_D
           F_now_(particle_i, particle_j) = 0;
           if (dist_between_particles <= 0) // contact
             {
+              add_collision(particle_i,particle_j,is_particle_particle_collision);
               DoubleTab norm(dimension);
               for (int d = 0; d < dimension; d++)
                 norm(d) = dX(d) / dist_gravity_center;
@@ -111,7 +114,6 @@ void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_D
                                         particle_j,
                                         dX_scal_dU<=0,
                                         is_particle_particle_collision);
-
               for (int d = 0; d < dimension; d++)
                 {
                   lagrangian_contact_forces_(particle_i, d) += fabs(force_contact(d)) <=
@@ -132,6 +134,8 @@ void Collision_Model_FT_sphere::compute_lagrangian_contact_forces(const Fluide_D
       mp_max_for_each_item(F_old_);
       mp_max_for_each_item(F_now_);
       mp_max_for_each_item(e_eff_);
+      mp_sum_for_each_item(particles_collision_number_);
+      collision_number_=Process::check_int_overflow(Process::mp_sum(collision_number_));
     }
 }
 

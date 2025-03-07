@@ -24,13 +24,14 @@ Solid_Particle_arbitrary::Solid_Particle_arbitrary()
 
 Entree& Solid_Particle_arbitrary::readOn (Entree& is)
 {
+  Solid_Particle_base::readOn(is); // do to first
   /* not coded yet
   set_equivalent_diameter(); // for impact activation distance and Verlet tables detection
   set_equivalent_radius();
   set_diameter();
   set_volume();
+  set_mass();
   */
-  Solid_Particle_base::readOn(is);
   return is;
 }
 

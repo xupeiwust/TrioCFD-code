@@ -50,6 +50,7 @@ public:
   {
     lagrangian_contact_forces_.resize(nb_particles_tot_,dimension);
   }
+  void resize_particles_collision_number() {particles_collision_number_.resize(nb_particles_tot_);}
   void associate_transport_equation(const Equation_base& equation);
   int check_for_duplicates(ArrOfInt& vector);
   void compute_fictive_wall_coordinates(const double& radius);
@@ -90,7 +91,7 @@ public:
   double compute_damper_breugem(const double& mass_eff, const double& e_dry) // See. W-P. Breugem, 2010.
   {return -2*(mass_eff * log(e_dry)) / (collision_duration_);}
 
-  void add_collision() { collision_number_++; }
+  void add_collision(const int part_i, const int part_j, const bool is_part_part_collision);
   bool is_Verlet_activated();
   bool is_LC_activated();
 
@@ -125,6 +126,10 @@ public:
   const double& get_delta_n() const { return activation_distance_percentage_diameter_; }
   const double& get_s_Verlet() const  { return detection_thickness_Verlet_; }
   const DoubleVect& get_wall_coordinates() const { return fictive_wall_coordinates_; }
+  const DoubleVect& get_origin() const { return origin_; }
+  const DoubleVect& get_domain_dimensions() const { return domain_dimensions_; }
+  const DoubleTab& get_lagrangian_contact_forces() const { return lagrangian_contact_forces_; }
+  const DoubleTab& get_particles_collision_number() const { return particles_collision_number_; }
   const ArrOfInt& get_list_upper_zone() const { return list_upper_zone_; }
   const ArrOfInt& get_list_lower_zone() const { return list_lower_zone_; }
   const IntLists& get_Verlet_table() const { return Verlet_tables_; }
@@ -133,8 +138,9 @@ public:
   DoubleTab& get_set_e_eff() { return e_eff_; }
   DoubleTab& get_set_F_old() { return F_old_; }
   DoubleTab& get_set_F_now() { return F_now_; }
-  DoubleTab& get_set_solid_forces() { return lagrangian_contact_forces_; }
+  DoubleTab& get_set_lagrangian_contact_forces() { return lagrangian_contact_forces_; }
   int& get_set_nb_dt_Verlet() { return nb_dt_Verlet_; }
+
 
 protected:
   int is_collision_activated_before_impact_ = 1; // to activate, or not, the collision process before the impact
@@ -150,10 +156,10 @@ protected:
   double collision_duration_ = 0.; // duration of the collision in seconds
   double detection_thickness_Verlet_ = 0.;
 
+  DoubleTab particles_collision_number_;
   DoubleTab e_eff_; // effective restitution coefficient
   DoubleTab F_old_;
   DoubleTab F_now_;
-
   DoubleTab lagrangian_contact_forces_;
   DoubleVect collision_detected_;
   ArrOfInt list_upper_zone_;

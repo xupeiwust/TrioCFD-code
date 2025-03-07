@@ -345,11 +345,20 @@ protected:
   // for fpi module
   // getters
   const bool& get_is_solid_particle() const { return is_solid_particle_; }
+  const DoubleTab& get_mean_particles_volumic_velocity() const
+  { return mean_particles_volumic_velocity_; }
+  const DoubleTab& get_mean_particles_volumic_squared_velocity() const
+  { return mean_particles_volumic_squared_velocity_; }
+  const DoubleTab& get_rms_particles_volumic_velocity() const
+  { return rms_particles_volumic_velocity_; }
+  const DoubleTab& get_particles_purely_solid_mesh_volume() const
+  { return particles_purely_solid_mesh_volume_; }
   //setters
   void set_is_solid_particle(const bool is_solid_particle) { is_solid_particle_=is_solid_particle; }
 
   void init_particles_position_velocity();
   void swap_particles_lagrangian_position_velocity();
+  void compute_particles_rms();
 
   OBS_PTR(Probleme_base) probleme_base_;
   OBS_PTR(Navier_Stokes_FT_Disc) equation_ns_;
@@ -378,10 +387,15 @@ protected:
 
   // for fpi module
   bool is_solid_particle_=false; // pointer to NS_FT_Disc::is_solid_particle_
+  int compute_particles_rms_=0;
   OWN_PTR(Collision_Model_FT_base) collision_model_;
   mutable DoubleTab particles_position_collision_; // for contact forces computation
   mutable DoubleTab particles_velocity_collision_; // for contact forces computation
-  ArrOfInt gravity_center_elem_; // number of the element which contains the gravity center of the particles
+  mutable ArrOfInt gravity_center_elem_; // number of the element which contains the gravity center of the particles
+  DoubleTab mean_particles_volumic_velocity_;
+  DoubleTab mean_particles_volumic_squared_velocity_;
+  DoubleTab rms_particles_volumic_velocity_;
+  DoubleTab particles_purely_solid_mesh_volume_;
 
 
 private:

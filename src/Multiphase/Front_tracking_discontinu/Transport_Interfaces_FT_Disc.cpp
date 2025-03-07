@@ -500,6 +500,7 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   //param.ajouter_non_std("indic_faces_modifiee", (this)) ;
   param.ajouter_non_std("type_indic_faces", (this)) ;
   param.ajouter("collision_model_fpi",&collision_model_);
+  param.ajouter_flag("compute_particles_rms",&compute_particles_rms_);
 }
 
 int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
@@ -1745,6 +1746,10 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
     {
       compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
       init_particles_position_velocity();
+      mean_particles_volumic_velocity_.resize(nb_particles_tot_,dimension);
+      mean_particles_volumic_squared_velocity_.resize(nb_particles_tot_,dimension);
+      rms_particles_volumic_velocity_.resize(nb_particles_tot_,dimension);
+      particles_purely_solid_mesh_volume_.resize(nb_particles_tot_);
     }
   if (collision_model_.non_nul())
     {
@@ -1753,11 +1758,12 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
       collision_model_.valeur().set_nb_particles_tot(nb_particles_tot_);
       collision_model_.valeur().set_nb_real_particles(nb_particles_tot_);
       collision_model_.valeur().resize_lagrangian_contact_force();
+      collision_model_.valeur().resize_particles_collision_number();
       const Navier_Stokes_FT_Disc& equation_ns = equation_ns_.valeur();
       const Fluide_Diphasique& two_phase_elem=equation_ns.fluide_diphasique();
-      const int solid_phase=1-two_phase_elem.get_id_fluid_phase();
+      const int id_solid_phase=1-two_phase_elem.get_id_fluid_phase();
       const Solid_Particle_base& solid_particle=ref_cast(Solid_Particle_base,
-                                                         two_phase_elem.fluide_phase(solid_phase));
+                                                         two_phase_elem.fluide_phase(id_solid_phase));
       const double& diameter=solid_particle.get_equivalent_diameter();
       collision_model_.valeur().set_activation_distance(diameter);
       collision_model_.valeur().compute_fictive_wall_coordinates(diameter/2);
@@ -2430,10 +2436,13 @@ void Transport_Interfaces_FT_Disc::calculer_vitesse_transport_interpolee(
         // it to add velocity contributions.
         // As it add complexity to the implementation and communication time between CPU,
         // the naive method is implemented.
+        const Fluide_Diphasique& two_phase_elem=ns.fluide_diphasique();
+        const int id_solid_phase=1-two_phase_elem.get_id_fluid_phase();
         for (int elem=0; elem<domain_vdf.nb_elem(); elem++)
           {
             // the mean is realized on pure elem only
-            if (phase_indicator_function(elem)==0)
+
+            if (phase_indicator_function(elem)==id_solid_phase)
               {
                 const int compo=  particles_eulerian_id_number(elem);
                 V_compo_elem(compo)+=volumes_maille(elem)*(1-phase_indicator_function(elem));
@@ -2477,6 +2486,8 @@ void Transport_Interfaces_FT_Disc::calculer_vitesse_transport_interpolee(
         s_scompo.ref_array(Particles_surfaces);
         tab_divide_any_shape(Positions_compo, s_scompo);
         particles_position_collision_ = Positions_compo;
+        const Domaine& domain = domaine_dis().domaine();
+        domain.chercher_elements(particles_position_collision_, gravity_center_elem_);
 
         // STEP 3 : identification of the id number of lagrangian vertices
         IntVect id_number_lagrangian_vertices;
@@ -3080,65 +3091,133 @@ void Transport_Interfaces_FT_Disc::calcul_source(const DoubleTab& inco_val,
 void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transport_Interfaces_FT_Disc& equation)
 {
 
-  // flag nul on n'ouvre pas le fichier
   if (flag==0)
     return ;
-  Nom fichier=Objet_U::nom_du_cas();
+  Noms files(8);
+  Nom file=Objet_U::nom_du_cas();
   if (type=="force")
-    fichier+="_Force_totale_sur_";
+    files[0]=type,
+             file+="_Force_totale_sur_";
   else if( type=="force_totale" )
-    fichier+="_Friction_totale_sur_" ;
+    files[1]= type,
+              file+="_Friction_totale_sur_";
   else if( type=="Friction" )
-    fichier+="_Friction_conv_diff_sur_" ;
+    files[2]= type,
+              file+="_Friction_conv_diff_sur_";
   else if( type=="Pressure" )
-    fichier+="_Friction_Pression_sur_" ;
+    files[3]= type ,
+              file+="_Friction_Pression_sur_";
+  else if ( type =="moment")
+    files[4]+= type,
+               file+="_Moment_total_sur_";
+  else if ( type=="particles_trajectory" )
+    files[5]=type,
+             file+="_particles_trajectory";
+  else if ( type=="mean_rms_particles_velocity")
+    files[6]=type,
+             file+="_mean_rms_particles_velocity_";
+  else if (type=="particles_data")
+    files[7]=type,
+             file+="_particles_data_";
   else
-    fichier+="_Moment_total_sur_";
-  fichier+=equation.le_nom();
-  fichier+=".out";
+    {
+      Cerr << "The file " << type << " is not understood by Transport_Interfaces_FT_Disc::ouvrir_fichier. "
+           << finl;
+    }
+
+  const int rang=files.search(type);
+  file+=equation.le_nom();
+  file+=".out";
+
   const Schema_Temps_base& sch=equation.probleme().schema_temps();
   const int precision=sch.precision_impr();
-  // On cree le fichier a la premiere impression avec l'en tete ou si le fichier n'existe pas
+  // We create the file during the first writting sequence, or if it does not exist
   struct stat f;
-  if (stat(fichier,&f) || (sch.nb_impr()==1 && !equation.probleme().reprise_effectuee()))
+  if ((stat(file,&f) && (sch.nb_impr()==1 && !equation.probleme().reprise_effectuee())))
     {
-      os.ouvrir(fichier);
+      os.ouvrir(file);
       SFichier& fic=os;
       Nom espace="\t\t";
-      fic << (Nom)"# Printing " << (type=="moment"?"of the drag moment exerted":"of the drag exerted");
-      fic << " by the fluid on the interface " << equation.le_nom();
-      fic << " " << (type=="moment"?"[N.m]":"[N]") << finl;
-      int nb_compo=(type=="moment" && Objet_U::dimension==2?1:Objet_U::dimension);
-      fic << "# Time";
-
-      Nom ch=espace;
-      if (type=="moment")
+      if (rang<5)
         {
-          if (Objet_U::dimension==2) ch+="Mz";
+          fic << (Nom)"# Printing " << (type=="moment"?"of the drag moment exerted":"of the drag exerted");
+          fic << " by the fluid on the interface " << equation.le_nom();
+          fic << " " << (type=="moment"?"[N.m]":"[N]") << finl;
+          int nb_compo=(type=="moment" && Objet_U::dimension==2?1:Objet_U::dimension);
+          fic << "# Time";
+
+          Nom ch=espace;
+          if (type=="moment")
+            {
+              if (Objet_U::dimension==2) ch+="Mz";
+              else
+                {
+                  ch+="Mx";
+                  ch+=espace+"My";
+                  ch+=espace+"Mz";
+                }
+            }
           else
             {
-              ch+="Mx";
-              ch+=espace+"My";
-              ch+=espace+"Mz";
+              if (nb_compo>1) ch+="Fx";
+              if (nb_compo>=2) ch+=espace+"Fy";
+              if (nb_compo>=3) ch+=espace+"Fz";
             }
+          fic << ch << finl;
         }
-      else
+      else if (rang==5)
         {
-          if (nb_compo>1) ch+="Fx";
-          if (nb_compo>=2) ch+=espace+"Fy";
-          if (nb_compo>=3) ch+=espace+"Fz";
+          espace="\t";
+          fic << "#########################################" << finl;
+          fic << "# Position - Velocity - Collision force #" << finl;
+          fic << "#########################################" << finl;
+          fic << "# Time [s]" << finl;
+          fic << "# Position of the gravity center of the particle [m] (px py pz)" << finl;
+          fic << "# Velocity of the gravity center of the particle [m/s] (vx vy vz)" << finl;
+          fic << "# Collision force discretized on the particle volume [N] (fcx fcy fcz)" << finl;
+          fic << finl;
+          fic << "# Time" << espace << "px py pz" << espace << "vx vy vz" << espace << "fcx fcy fcz" << finl;
+          fic << finl;
         }
-      fic << ch << finl;
+      else if (rang==6)
+        {
+          espace="\t";
+          fic << "#####################################################" << finl;
+          fic << "# Average velocity - Average velocity squared - RMS #" << finl;
+          fic << "#####################################################" << finl;
+          fic << "# Time [s]" << finl;
+          fic << "# Average velocity of purely solid cells. For each purely solid cell, the velocity at gravity center is computed as the average velocity of the opposing faces weighted by its volume. [m/s] (vx_av vy_av vz_av)" << finl;
+          fic << "# Average velocity squared of purely solid cells. [m^2/s^2] (vx2_av vy2_av vz2_av)" << finl;
+          fic << "# Once the average velocity and the average velocity squared is known, the RMS is computed as sqrt(abs(vi_av^2 - vi2_av)) with i in {x,y,z}. [-] (rmsx rmsy rmsz)" << finl;
+          fic << finl;
+          fic << "# Time" << espace << "vx_av vy_av vz_av" << espace << "vx2_av vy2_av vz2_av" << espace << "rmsx rmsy rmsz" << finl;
+          fic << finl;
+        }
+      else if (rang==7)
+        {
+          espace="\t";
+          fic << "############################################################" << finl;
+          fic << "# Position - Velocity - Collision force - Collision number #" << finl;
+          fic << "############################################################" << finl;
+          fic << "# Time [s] - Total number of collision " << finl;
+          fic << "# Position of the gravity center of the particle [m] (px py pz)" << finl;
+          fic << "# Velocity of the gravity center of the particle [m/s] (vx vy vz)" << finl;
+          fic << "# Collision force discretized on the particle volume [N] (fcx fcy fcz)" << finl;
+          fic << finl;
+          fic << "# Time" <<espace <<"total collision number" << finl;
+          fic << "particle_id px py pz vx vy vz fcx fcy fcz number_of_particles_in_collision"<< finl;
+          fic << finl;
+        }
+
     }
-  // Sinon on l'ouvre
+  // otherwise, we open it
   else
     {
-      os.ouvrir(fichier,ios::app);
+      os.ouvrir(file,ios::app);
     }
   os.precision(precision);
   os.setf(ios::scientific);
 }
-
 void Transport_Interfaces_FT_Disc::modifie_source(DoubleTab& termes_sources_face,const DoubleTab& source_val,const DoubleTab& rho_faces,
                                                   const int n,const int m, const int is_QC,
                                                   const DoubleVect& vol_entrelaces,const Solveur_Masse_base& un_solv_masse)
@@ -3287,6 +3366,96 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
           for(int k=0; k<moment_.size_array(); k++)
             Moment << espace << moment_[k];
           Moment << finl;
+        }
+
+      if (is_solid_particle_)
+        {
+          espace= " ";
+          int dim_max_impr=5; // on imprime pas les valeurs si il y a plus de 5 particules dans le domaine
+          if (nb_particles_tot_<dim_max_impr)
+            {
+              SFichier Particles_trajectory;
+              ouvrir_fichier(Particles_trajectory,"particles_trajectory",1,*this);
+              schema_temps().imprimer_temps_courant(Particles_trajectory);
+              for (int particle=0; particle<nb_particles_tot_; particle++)
+                {
+                  Particles_trajectory << espace;
+                  for (int dim=0; dim<dimension; dim++)
+                    Particles_trajectory << espace << particles_position_collision_(particle,dim);
+                  Particles_trajectory << espace;
+
+                  for (int dim=0; dim<dimension; dim++)
+                    Particles_trajectory << espace << particles_velocity_collision_(particle,dim);
+                  Particles_trajectory << espace;
+
+                  if (collision_model_.non_nul())
+                    {
+                      const DoubleTab& lagrangian_contact_forces=
+                        collision_model_.valeur().get_lagrangian_contact_forces();
+                      for (int dim=0; dim<dimension; dim++)
+                        Particles_trajectory << espace << lagrangian_contact_forces(particle,dim);
+                    }
+                  Particles_trajectory << finl;
+                }
+
+              if (compute_particles_rms_)
+                {
+                  SFichier Moy_Rms_Vitesse_Particule;
+                  ouvrir_fichier(Moy_Rms_Vitesse_Particule,"mean_rms_particles_velocity",1,*this);
+                  schema_temps().imprimer_temps_courant(Moy_Rms_Vitesse_Particule);
+                  const DoubleTab& mean_velocity=get_mean_particles_volumic_velocity();
+                  const DoubleTab& rms_velocity=get_mean_particles_volumic_squared_velocity();
+                  const DoubleTab& mean_squared_velocity=get_rms_particles_volumic_velocity();
+                  const DoubleTab& particles_purely_solid_mesh_volume=get_particles_purely_solid_mesh_volume();
+                  for (int particle=0; particle<nb_particles_tot_; particle++)
+                    {
+                      Moy_Rms_Vitesse_Particule << espace;
+                      Moy_Rms_Vitesse_Particule << particles_purely_solid_mesh_volume<< espace;
+                      for (int dim=0; dim<dimension; dim++)
+                        Moy_Rms_Vitesse_Particule << espace << mean_velocity(particle,dim);
+                      Moy_Rms_Vitesse_Particule << espace;
+
+                      for (int dim=0; dim<dimension; dim++)
+                        Moy_Rms_Vitesse_Particule << espace << mean_squared_velocity(particle,dim);
+                      Moy_Rms_Vitesse_Particule << espace;
+
+                      for (int dim=0; dim<dimension; dim++)
+                        Moy_Rms_Vitesse_Particule << espace << rms_velocity(particle,dim);
+                    }
+                  Moy_Rms_Vitesse_Particule << finl;
+                }
+            }
+
+          SFichier Particles_data;
+          ouvrir_fichier(Particles_data,"particles_data",1,*this);
+          if (collision_model_.non_nul())
+            {
+              const int collision_number=collision_model_.valeur().get_collision_number();
+              Particles_data << "Time "  << schema_temps().temps_courant() << "\t" <<
+                             collision_number<< finl;
+            }
+          for (int particle = 0; particle < nb_particles_tot_; particle++)
+            {
+              Particles_data << particle << " ";
+              for (int d = 0; d < dimension; d++)
+                Particles_data << particles_position_collision_(particle,d) << espace ;
+
+              for (int d = 0; d < dimension; d++)
+                Particles_data << particles_velocity_collision_(particle,d) << espace ;
+
+              if (collision_model_.non_nul())
+                {
+                  const DoubleTab& lagrangian_contact_forces=
+                    collision_model_.valeur().get_lagrangian_contact_forces();
+                  const ArrOfDouble particles_collision_number=collision_model_.valeur().get_particles_collision_number();
+
+                  for (int d = 0; d < dimension; d++)
+                    Particles_data << lagrangian_contact_forces(particle,d) << espace ;
+
+                  Particles_data << particles_collision_number(particle) << espace ;
+                }
+              Particles_data << finl;
+            }
         }
     }
   return 1;
@@ -7496,6 +7665,17 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
   //TF : Gestion de l avancee en temps de la derivee
   if (calculate_time_derivative()) derivee_en_temps().changer_temps(temps);
   //Fin de TF
+  if (is_solid_particle_)
+    {
+      Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+      if (sub_type(Navier_Stokes_FT_Disc,eqn_hydraulique))
+        {
+          Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+          ns.compute_particles_eulerian_id_number(collision_model_);
+          ns.swap_particles_eulerian_id_number(gravity_center_elem_);
+        }
+      if (schema_temps().limpr()) compute_particles_rms();
+    }
 }
 
 // Deplace les sommets de l'interface du deplacement prescrit (vitesse * coeff)
@@ -7759,8 +7939,6 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
 int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
 {
   Cerr << "Transport_Interfaces_FT_Disc::reprendre" << finl;
-  int is_solid_particle = is_solid_particle_ ? 1 : 0;
-  Cerr << "is_solid_particle_ " << is_solid_particle << finl;
   Equation_base::reprendre(is);
   {
     if(!TRUST_2_PDI::is_PDI_restart())
@@ -7802,11 +7980,9 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
             is >> particles_position_collision_;
             is >> particles_velocity_collision_;
           }
-        Cerr << "particles_position_collision_ " << particles_position_collision_ << finl;
-        Cerr << "nb_particles_tot_ " << nb_particles_tot_;
+        const Domaine& domain = domaine_dis().domaine();
+        domain.chercher_elements(particles_position_collision_, gravity_center_elem_);
       }
-    Cerr <<"there" << finl;
-
   }
   return 1;
 }
@@ -8928,6 +9104,8 @@ void Transport_Interfaces_FT_Disc::calculer_vmoy_composantes_connexes(const Mail
     {
       particles_velocity_collision_ = vitesses;
       particles_position_collision_ = positions;
+      const Domaine& domain = domaine_dis().domaine();
+      domain.chercher_elements(particles_position_collision_, gravity_center_elem_);
     }
 
 }
@@ -9206,8 +9384,11 @@ void Transport_Interfaces_FT_Disc::init_particles_position_velocity()
         s.ref_array(particles_surfaces);
         tab_divide_any_shape(particles_position_collision_, s);
       }
-      domain.chercher_elements(particles_position_collision_,gravity_center_elem_);
     }
+  domain.chercher_elements(particles_position_collision_,gravity_center_elem_);
+  Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+  Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+  ns.swap_particles_eulerian_id_number(gravity_center_elem_);
 }
 
 /*! @brief WARNING, particles_position_collision_ and particles_velocity_collision_ are not used to transport particles
@@ -9268,5 +9449,63 @@ void Transport_Interfaces_FT_Disc::swap_particles_lagrangian_position_velocity()
   particles_velocity_collision_ = correct_particles_velocity;
 }
 
+void Transport_Interfaces_FT_Disc::compute_particles_rms()
+{
+  const Domaine_VF& domain_vf = ref_cast(Domaine_VF, domaine_dis());
+  const DoubleVect& mesh_volumes = domain_vf.volumes();
+  const IntTab& elem_faces = domain_vf.elem_faces();
+  const DoubleTab& phase_indicator_function = indicatrice_->valeurs();
+  Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+  Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+  const Fluide_Diphasique& two_phase_elem=ns.fluide_diphasique();
+  const int id_solid_phase=1-two_phase_elem.get_id_fluid_phase();
+  const IntTab& particles_eulerian_id_number = ns.get_particles_eulerian_id_number();
+  const DoubleTab& tab_velocity=ns.inconnue().valeurs();
 
+  mean_particles_volumic_velocity_=0;
+  mean_particles_volumic_squared_velocity_=0;
+  particles_purely_solid_mesh_volume_=0;
+  rms_particles_volumic_velocity_=0;
+
+  for (int elem=0; elem<domain_vf.nb_elem(); elem++)
+    {
+      // the mean is realized on pure elem only
+      if (phase_indicator_function(elem)==id_solid_phase)
+        {
+          const int particle=  particles_eulerian_id_number(elem);
+          particles_purely_solid_mesh_volume_(particle)+=mesh_volumes(elem);
+          for (int dim=0; dim<dimension; dim++)
+            {
+              mean_particles_volumic_velocity_(particle,dim)+=0.5*(
+                                                                tab_velocity(elem_faces(elem,dim))+
+                                                                tab_velocity(elem_faces(elem,dim+dimension))
+                                                              )*mesh_volumes(elem);
+
+              mean_particles_volumic_squared_velocity_(particle,dim)+=pow(
+                                                                        0.5*(tab_velocity(elem_faces(elem,dim))+
+                                                                             tab_velocity(elem_faces(elem,dim+dimension))
+                                                                            )*mesh_volumes(elem),2);
+            }
+        }
+    }
+
+  mp_sum_for_each_item(mean_particles_volumic_velocity_);
+  mp_sum_for_each_item(mean_particles_volumic_squared_velocity_);
+  mp_sum_for_each_item(particles_purely_solid_mesh_volume_);
+  DoubleVect s_vparticles;
+  s_vparticles.ref_array(particles_purely_solid_mesh_volume_);
+  tab_divide_any_shape(mean_particles_volumic_velocity_, s_vparticles);
+  tab_divide_any_shape(mean_particles_volumic_squared_velocity_, s_vparticles);
+
+  for (int particle=0; particle<nb_particles_tot_; particle++)
+    {
+      for (int dim=0; dim<dimension; dim++)
+        {
+          rms_particles_volumic_velocity_(particle,dim)=
+            sqrt(fabs(pow(mean_particles_volumic_velocity_(particle,dim),2)
+                      -mean_particles_volumic_squared_velocity_(particle,dim)));
+        }
+    }
+
+}
 

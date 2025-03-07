@@ -32,8 +32,6 @@ Sortie& Solid_Particle_base::printOn(Sortie& os) const
 Entree& Solid_Particle_base::readOn(Entree& is)
 {
   Fluide_Incompressible::readOn(is);
-  const double solid_density = masse_volumique().valeurs()(0, 0);
-  set_mass(volume_*solid_density);
   return is;
 }
 

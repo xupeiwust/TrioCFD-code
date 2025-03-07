@@ -870,8 +870,8 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
         FT_disc_calculer_champs_rho_mu_nu_dipha(domaine_dis(), fluide_diphasique(), ref_equation->get_update_indicatrice().valeurs(), // indicatrice
                                                 champ_rho_elem_->valeurs(), champ_nu_->valeurs(), champ_mu_->valeurs(), champ_rho_faces_->valeurs());
         const OWN_PTR(Collision_Model_FT_base)& ptr_collision_model=ref_equation.valeur().get_ptr_collision_model();
-        if (ptr_collision_model.non_nul())
-          compute_particles_eulerian_id_number(ref_equation.valeur().get_collision_model());
+        if (is_solid_particle_)
+          compute_particles_eulerian_id_number(ptr_collision_model); // swap in T_I_FT_D::preparer_calcul
       }
     else
       {
@@ -3923,7 +3923,6 @@ void Navier_Stokes_FT_Disc::swap_particles_eulerian_id_number(const ArrOfInt& gr
   const int nb_elem=particles_eulerian_id_number_.dimension(0);
   const int nb_elem_tot=particles_eulerian_id_number_.dimension_tot(0);
   const int nb_particles_tot=gravity_center_elem.size_array();
-
   // We associate the particle lagrangian ID number to the particle eulerian ID number
   // The link between lagrange and euler ID numbers is made with the gravity center of each particle.
   // Example for 3 particles:
@@ -3940,6 +3939,7 @@ void Navier_Stokes_FT_Disc::swap_particles_eulerian_id_number(const ArrOfInt& gr
       // center inside elem
       if (elem>-1 && elem < nb_elem_tot)
         particle_lagrangian_id_number(particles_eulerian_id_number_(elem))=id_number;
+
     }
   // now, each eulerian id number is linked to a lagrangian id number
   mp_max_for_each_item(particle_lagrangian_id_number);
@@ -3960,21 +3960,20 @@ void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
 {
   Cerr << "Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces" << finl;
 
-  static const Stat_Counter_Id count = statistiques().new_counter(1,
-                                                                  "compute_eulerian_field_contact_forces", 0);
+  static const Stat_Counter_Id count = statistiques().new_counter(1,"compute_eulerian_field_contact_forces", 0);
   statistiques().begin_count(count);
 
   auto& eq_transport=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
   const auto& eq_transport_const=variables_internes().ref_eq_interf_proprietes_fluide.valeur();
   const Navier_Stokes_FT_Disc& eq_ns = *this;
   Collision_Model_FT_base& collision_model=eq_transport.get_set_collision_model();
-  const OWN_PTR(Collision_Model_FT_base)& collision_model_ptr=eq_transport.get_ptr_collision_model();
+  //const OWN_PTR(Collision_Model_FT_base)& collision_model_ptr=eq_transport.get_ptr_collision_model();
   const DoubleTab& particles_position=eq_transport.get_particles_position();
   const DoubleTab& particles_velocity=eq_transport.get_particles_velocity();
   const Fluide_Diphasique& two_phase_fluid = fluide_diphasique();
 
   // Step 1: Collision detection
-  const ArrOfInt& gravity_center_elem = eq_transport.get_gravity_center_elem();
+  //const ArrOfInt& gravity_center_elem = eq_transport.get_gravity_center_elem();
   int& nb_dt_Verlet = collision_model.get_set_nb_dt_Verlet();
   const int nb_dt_compute_Verlet_ = collision_model.get_nb_dt_compute_Verlet();
   const double delta_t=schema_temps().pas_de_temps();
@@ -3990,6 +3989,8 @@ void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
                                                     particles_position,
                                                     particles_velocity,
                                                     delta_t);
+
+
   // Step 3: conservation of eulerian id number
   // to discretize lagrangian collision force on the eulerian field
   // we need to update the particle eulerian ID number.
@@ -3998,15 +3999,15 @@ void Navier_Stokes_FT_Disc::compute_eulerian_field_contact_forces
   // particles eulerian ID number may change .A given particle will
   // therefore have a different Eulerian identification number from that
   // of the previous time step. To conserve the particle eulerian ID number
-  // we use the particle lagrangian ID number. The procedure is only employed
-  // for contact forces computing.
-  const DoubleTab& volumic_phase_indicator_function_face =
-    eq_transport.get_compute_indicatrice_faces().valeurs();
+  // we use the particle lagrangian ID number.
+  /*
   compute_particles_eulerian_id_number(collision_model_ptr);
   swap_particles_eulerian_id_number(gravity_center_elem);
-
+  */
   // Step 4: Discretisation of the lagrangian contact forces to the eulerian field
   const Domaine_VF& domain_vf=ref_cast(Domaine_VF,domaine_dis());
+  const DoubleTab& volumic_phase_indicator_function_face =
+    eq_transport.get_compute_indicatrice_faces().valeurs();
   DoubleTab& contact_force = variables_internes().contact_force_source_term->valeurs();
   contact_force=0;
   collision_model.discretize_contact_forces_eulerian_field(

@@ -280,6 +280,8 @@ void Collision_Model_FT_base::compute_fictive_wall_coordinates(const double& rad
   fictive_wall_coordinates_(3) = origin_(0) + domain_dimensions_(0) + radius - offset_values(3);
   fictive_wall_coordinates_(4) = origin_(1) + domain_dimensions_(1) + radius - offset_values(4);
   fictive_wall_coordinates_(5) = origin_(2) + domain_dimensions_(2) + radius - offset_values(5);
+
+  Cerr << "fictive_wall_coordinates\n" << fictive_wall_coordinates_ << finl;
 }
 
 /*! @brief Recover the geometric parameters of the domain:
@@ -794,4 +796,11 @@ void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Sc
   Cerr << "max number of lower zone  = " << mp_max(ninf) << finl;
 }
 
-
+void Collision_Model_FT_base::add_collision(const int part_i, const int part_j, const bool is_part_part_collision)
+{
+  const double contrib=is_part_part_collision? 1 : .2; // for wall_particle_collision we add .2 (for post-processing)
+  if (part_i<nb_particles_tot_)
+    particles_collision_number_(part_i)+=contrib;
+  if (part_j<nb_particles_tot_)
+    particles_collision_number_(part_i)+=contrib;
+}
