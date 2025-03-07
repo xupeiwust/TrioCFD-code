@@ -23,6 +23,7 @@
 #ifndef Navier_Stokes_FT_Disc_interne_included
 #define Navier_Stokes_FT_Disc_interne_included
 
+
 class Navier_Stokes_FT_Disc_interne
 {
 public:
@@ -134,6 +135,8 @@ public:
   double x_pfl_imp;
   double y_pfl_imp;
   double z_pfl_imp;
+
+  Post_Processing_Hydrodynamic_Forces post_process_hydro_forces_;
 };
 
 #endif /* Navier_Stokes_FT_Disc_interne_included */

@@ -39,6 +39,7 @@
 #include <EcritureLectureSpecial.h>
 #include <Avanc.h>
 
+
 #define NS_VERBOSE 0 // To activate verbose mode on err ...
 
 Implemente_instanciable(Navier_Stokes_FT_Disc, "Navier_Stokes_FT_Disc", Navier_Stokes_Turbulent);
@@ -871,7 +872,11 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
                                                 champ_rho_elem_->valeurs(), champ_nu_->valeurs(), champ_mu_->valeurs(), champ_rho_faces_->valeurs());
         const OWN_PTR(Collision_Model_FT_base)& ptr_collision_model=ref_equation.valeur().get_ptr_collision_model();
         if (is_solid_particle_)
-          compute_particles_eulerian_id_number(ptr_collision_model); // swap in T_I_FT_D::preparer_calcul
+          {
+            compute_particles_eulerian_id_number(ptr_collision_model); // swap in T_I_FT_D::preparer_calcul
+            variables_internes_.post_process_hydro_forces_.associate_transport_equation(ref_equation);
+            //variables_internes_.post_process_hydro_forces_.associate_ns_equation(*this);
+          }
       }
     else
       {
