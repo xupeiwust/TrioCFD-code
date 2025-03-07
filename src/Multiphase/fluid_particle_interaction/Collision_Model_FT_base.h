@@ -43,6 +43,11 @@ public:
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   int reprendre(Entree& is) override;
   int sauvegarder(Sortie& os) const override;
+  int preparer_calcul(const Domaine_VDF& domain_vdf,
+                      const int nb_particles_tot,
+                      const Navier_Stokes_FT_Disc& ns,
+                      const Transport_Interfaces_FT_Disc& eq_transport,
+                      const Schema_Comm_FT& schema_comm_FT);
   void set_param(Param& p);
   void reset(); // Tables must have the right dimension to be correctly read during the restart
   void resize_geometric_parameters();

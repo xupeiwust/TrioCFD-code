@@ -222,6 +222,38 @@ int Collision_Model_FT_base::sauvegarder(Sortie& os) const
   return 0;
 }
 
+int Collision_Model_FT_base::preparer_calcul(const Domaine_VDF& domain_vdf,
+                                             const int nb_particles_tot,
+                                             const Navier_Stokes_FT_Disc& ns,
+                                             const Transport_Interfaces_FT_Disc& eq_transport,
+                                             const Schema_Comm_FT& schema_comm_FT)
+{
+  set_geometric_parameters(domain_vdf);
+  set_nb_particles_tot(nb_particles_tot);
+  set_nb_real_particles(nb_particles_tot);
+  resize_lagrangian_contact_force();
+  resize_particles_collision_number();
+  const Fluide_Diphasique& two_phase_elem=ns.fluide_diphasique();
+  const int id_solid_phase=1-two_phase_elem.get_id_fluid_phase();
+  const Solid_Particle_base& solid_particle=ref_cast(Solid_Particle_base,
+                                                     two_phase_elem.fluide_phase(id_solid_phase));
+  const double& diameter=solid_particle.get_equivalent_diameter();
+  set_activation_distance(diameter);
+  compute_fictive_wall_coordinates(diameter/2);
+  associate_transport_equation(eq_transport);
+
+  if (is_LC_activated())
+    set_LC_zones(domain_vdf,schema_comm_FT);
+
+  set_spring_properties(solid_particle);
+
+  if ((F_old_.dimension(0)!=nb_particles_tot) ||
+      (F_now_.dimension(0)!=nb_particles_tot) )
+    reset();
+
+  return 1;
+}
+
 void Collision_Model_FT_base::resize_geometric_parameters()
 {
   domain_dimensions_.resize(dimension);

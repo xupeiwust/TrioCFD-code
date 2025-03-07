@@ -1753,30 +1753,11 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
     }
   if (collision_model_.non_nul())
     {
+      const Navier_Stokes_FT_Disc& ns = equation_ns_.valeur();
       const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, domaine_dis());
-      collision_model_.valeur().set_geometric_parameters(domain_vdf);
-      collision_model_.valeur().set_nb_particles_tot(nb_particles_tot_);
-      collision_model_.valeur().set_nb_real_particles(nb_particles_tot_);
-      collision_model_.valeur().resize_lagrangian_contact_force();
-      collision_model_.valeur().resize_particles_collision_number();
-      const Navier_Stokes_FT_Disc& equation_ns = equation_ns_.valeur();
-      const Fluide_Diphasique& two_phase_elem=equation_ns.fluide_diphasique();
-      const int id_solid_phase=1-two_phase_elem.get_id_fluid_phase();
-      const Solid_Particle_base& solid_particle=ref_cast(Solid_Particle_base,
-                                                         two_phase_elem.fluide_phase(id_solid_phase));
-      const double& diameter=solid_particle.get_equivalent_diameter();
-      collision_model_.valeur().set_activation_distance(diameter);
-      collision_model_.valeur().compute_fictive_wall_coordinates(diameter/2);
-      collision_model_.valeur().associate_transport_equation(*this);
       const Schema_Comm_FT& schema_comm_FT=maillage_interface().get_schema_comm_FT();
-      if (collision_model_.valeur().is_LC_activated())
-        collision_model_.valeur().set_LC_zones(domain_vdf,schema_comm_FT);
-      collision_model_.valeur().set_spring_properties(solid_particle);
-      DoubleTab& F_old=collision_model_.valeur().get_set_F_old();
-      DoubleTab& F_now=collision_model_.valeur().get_set_F_now();
-      if ((F_old.dimension(0)!=nb_particles_tot_) ||
-          (F_now.dimension(0)!=nb_particles_tot_) )
-        collision_model_.valeur().reset();
+      collision_model_.valeur().preparer_calcul(domain_vdf, nb_particles_tot_,
+                                                ns, *this, schema_comm_FT);
     }
 
   const double temps = schema_temps().temps_courant();
