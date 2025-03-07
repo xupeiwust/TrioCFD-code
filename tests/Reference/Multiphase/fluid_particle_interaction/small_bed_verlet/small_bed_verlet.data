@@ -1,0 +1,218 @@
+system "mkdir -p lata"
+
+dimension 3
+domaine dom
+Probleme_FT_Disc_gen pb
+
+Mailler dom 
+{
+	Pave Cavite 
+	{
+		Origine  -1e-4 0 -1e-04
+		Nombre_de_Noeuds 35 35 35
+		Longueurs +2e-04 +2e-04 +2e-04
+	}
+	{
+		Bord Gauche   X = -1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+		Bord Droit    X = +1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+		Bord Bas      Y = 0        -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+		Bord Haut     Y = +2e-4    -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+		Bord Devant   Z = -1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+		Bord Derriere Z = +1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+	}
+}
+
+VDF dis
+
+Schema_Euler_explicite le_schema_temporel
+Lire le_schema_temporel 
+{
+	tinit 0.
+	tmax  40
+	nb_pas_dt_max 3000
+	facsec 1
+	dt_min 1e-7
+	dt_max 2e-6
+	diffusion_implicite 1
+	seuil_diffusion_implicite 1e-6
+	impr_diffusion_implicite 1
+	dt_impr 2e-4
+	seuil_statio -1
+	tcpumax 23.75
+	periode_sauvegarde_securite_en_heures 5
+}
+
+Associate pb dom
+Associate pb le_schema_temporel
+
+Discretize pb dis
+
+Lire pb 
+{
+	solved_equations
+	{
+		Navier_Stokes_FT_Disc           	 eq_navier_stokes_FTD 
+		Transport_Interfaces_FT_Disc    	 interf
+	}
+        
+	Fluide_Diphasique
+        {
+                fluide0 Solid_Particle_sphere
+                {
+                        mu  	Champ_Uniforme 1 1.85e-3
+                        rho 	Champ_Uniforme 1 3300
+                        e_dry   0.95
+                        radius 3.5e-5
+                }
+                fluide1 Fluide_Incompressible
+                {
+                        mu  	Champ_Uniforme 1 1.85e-5
+                        rho 	Champ_Uniforme 1 10
+                }
+
+                sigma   	Champ_Uniforme 1 0.
+		gravite 	Champ_Uniforme 3 0. -9.81 0.
+                formule_mu harmonic
+        }
+
+	eq_navier_stokes_FTD
+	{
+		modele_turbulence sous_maille_wale 
+		{
+			Cw			   0.
+			turbulence_paroi negligeable
+		}
+		solveur_pression GCP 
+		{
+			precond ssor { omega 1.5 }
+			seuil 1.e-8 impr
+		}
+		convection { quick }
+		diffusion  { }
+		
+		clipping_courbure_interface 100
+		terme_gravite rho_g
+		conditions_initiales { vitesse champ_uniforme 3 0. 0. 0. }
+
+		equation_interfaces_proprietes_fluide interf
+		mpoint_inactif_sur_qdm
+
+		boundary_conditions 
+		{
+			Haut	  frontiere_ouverte_pression_imposee champ_front_uniforme 1 0.
+			Bas	  frontiere_ouverte_vitesse_imposee  champ_front_uniforme 3 0. 0.013 0.
+			Gauche	  paroi_fixe
+			Droit	  paroi_fixe
+			Devant	  paroi_fixe
+			Derriere  paroi_fixe
+		}
+	}
+
+	interf 
+	{
+		interpolation_repere_local
+		methode_transport vitesse_interpolee eq_navier_stokes_FTD
+		
+		conditions_initiales 
+		{
+			fonction (((x-6.15e-05)^2+(y-1.14e-04)^2+(z-2.02e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+6.15e-05)^2+(y-9.63e-05)^2+(z-1.13e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+2.29e-06)^2+(y-8.22e-05)^2+(z+6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x-6.15e-05)^2+(y-3.85e-05)^2+(z+6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x-6.15e-05)^2+(y-1.29e-04)^2+(z+6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+6.15e-05)^2+(y-3.85e-05)^2+(z-6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+6.15e-05)^2+(y-1.26e-04)^2+(z+6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x-1.18e-05)^2+(y-7.29e-05)^2+(z-6.15e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+1.48e-05)^2+(y-3.85e-05)^2+(z+2.34e-06)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x-6.15e-05)^2+(y-3.85e-05)^2+(z-1.53e-05)^2-(+3.50e-05)^2)) ,
+			fonction_ignorer_collision ajout_phase0 (((x+6.15e-05)^2+(y-3.85e-05)^2+(z+6.15e-05)^2-(+3.50e-05)^2))
+		}
+	
+
+		parcours_interface { correction_parcours_thomas	}
+		iterations_correction_volume 0
+		n_iterations_distance 0
+		methode_interpolation_v VDF_lineaire 
+                
+		collision_model_fpi Collision_Model_FT_sphere
+                {
+                        collision_model hybrid_esi
+                        detection_method
+                        {
+                                verlet
+                                detection_thickness_Verlet 2.1e-5 # =30% of the diameter #
+                                nb_pas_dt_max_Verlet 50
+                        }
+                        collision_duration 32e-6 # 16 delta_t # 
+                        activate_collision_before_impact 1
+                        activation_distance_percentage_diameter 2 # 2% of the diameter #
+                        force_on_two_phase_elem 0
+                }
+		compute_particles_rms
+		remaillage 
+		{
+			pas 1e15
+			nb_iter_barycentrage 1
+			relax_barycentrage 1
+			seuil_dvolume_residuel 0 
+			nb_iter_correction_volume 6
+			nb_iter_remaillage 1
+			facteur_longueur_ideale  1
+			lissage_courbure_coeff -0.1
+			lissage_courbure_iterations_systematique 0
+			lissage_courbure_iterations_si_remaillage 10
+		}
+
+		boundary_conditions 
+		{
+			Haut	 Paroi_FT_disc symetrie
+			Bas	 Paroi_FT_disc symetrie
+			Gauche   Paroi_FT_disc symetrie
+			Droit    Paroi_FT_disc symetrie
+			Devant   Paroi_FT_disc symetrie
+			Derriere Paroi_FT_disc symetrie
+		}
+	}
+
+        Postraitement
+        {
+                Champs dt_post 2e-3
+                {
+                        pression elem
+                        vitesse elem
+                        indicatrice_interf elem
+                }
+        }
+	
+	liste_postraitements 
+	{
+		Postraitement_ft_lata post2 
+		{
+			fichier lata/post_dom
+			format lata_v2
+			champs dt_post 2e-4 
+			{
+				particles_eulerian_id_number elem
+				indicatrice_interf elem
+				vitesse elem
+				pression elem
+				contact_force_source_term faces
+				vitesse faces
+			}
+
+			interfaces interf 
+			{
+				vitesse som
+				courbure som
+				normale_unitaire elem
+				compo_connexe elem
+			}
+		}
+	}
+
+	sauvegarde_simple xyz small_bed_verlet.xyz
+}
+
+Solve pb
+Fin
+

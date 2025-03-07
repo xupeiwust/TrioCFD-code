@@ -1,0 +1,29 @@
+dimension 3
+domaine dom
+
+Mailler dom
+{
+        Pave Cavite
+        {
+                Origine  -1e-4 0 -1e-04
+                Nombre_de_Noeuds 35 35 35
+                Longueurs +2e-04 +2e-04 +2e-04
+        }
+        {
+                Bord Gauche   X = -1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+                Bord Droit    X = +1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+                Bord Bas      Y = 0        -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+                Bord Haut     Y = +2e-4    -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+                Bord Devant   Z = -1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+                Bord Derriere Z = +1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+        }
+}
+
+Partition dom
+{
+        Partitionneur tranche { tranches 2 2 2 }
+        Larg_joint 2
+        Nom_Zones DOM
+}
+Fin
+
