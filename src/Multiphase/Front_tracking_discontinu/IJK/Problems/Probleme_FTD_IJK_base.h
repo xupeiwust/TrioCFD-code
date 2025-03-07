@@ -141,17 +141,42 @@ public :
   bool has_interface() const { return has_interface_; }
   bool has_thermals() const { return has_thermals_; }
 
-  const Navier_Stokes_FTD_IJK& eq_ns() const { assert (has_ns_); return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
-  Navier_Stokes_FTD_IJK& eq_ns() { assert (has_ns_); return has_ns_ ? ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur()) : throw; }
+  const Navier_Stokes_FTD_IJK& eq_ns() const
+  {
+    assert (has_ns_);
+    if (!has_ns_) { throw; };
+    return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
+  }
+  Navier_Stokes_FTD_IJK& eq_ns()
+  {
+    assert (has_ns_);
+    if (!has_ns_) { throw; };
+    return ref_cast(Navier_Stokes_FTD_IJK, equations_.front().valeur());
+  }
 
-  const IJK_Interfaces& get_interface() const { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : interface_to_remove_later_when_clean_; }
-  IJK_Interfaces& get_interface() { return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : interface_to_remove_later_when_clean_; }
+  const IJK_Interfaces& get_interface() const
+  {
+    if (!has_interface_) { return interface_to_remove_later_when_clean_; }; // TODO (teo.boutin) (just in case we forget, and I'm not the one who did that)
+    return ref_cast(IJK_Interfaces, equations_[1].valeur());
+  }
+  IJK_Interfaces& get_interface()
+  {
+    if (!has_interface_) {  return interface_to_remove_later_when_clean_; };
+    return ref_cast(IJK_Interfaces, equations_[1].valeur());
+  }
 
-//  const IJK_Interfaces& get_interface() const { assert (has_interface_);  return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
-//  IJK_Interfaces& get_interface() { assert (has_interface_); return has_interface_ ? ref_cast(IJK_Interfaces, equations_[1].valeur()) : throw; }
-
-  const Maillage_FT_IJK& get_maillage_ft_ijk() const { assert (has_interface_); return has_interface_ ? get_interface().maillage_ft_ijk() : throw; }
-  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const { assert (has_interface_); return has_interface_ ? get_interface().remaillage_ft_ijk() : throw; }
+  const Maillage_FT_IJK& get_maillage_ft_ijk() const
+  {
+    assert (has_interface_);
+    if (!has_interface_) { throw; };
+    return get_interface().maillage_ft_ijk();
+  }
+  const Remaillage_FT_IJK& get_remaillage_ft_ijk() const
+  {
+    assert (has_interface_);
+    if (!has_interface_) { throw; };
+    return get_interface().remaillage_ft_ijk();
+  }
 
   const IJK_Thermals& get_ijk_thermals() const
   {
