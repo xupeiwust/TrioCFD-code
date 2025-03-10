@@ -497,6 +497,8 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
                                                           const double current_time,
                                                           int& n)
 {
+  throw; // THIS METHOD SHOULD NOT BE CALLED ANYMORE
+
   Cerr << "Post-process Eulerian fields related to the temperature resolution" << finl;
   int idx_th = 0;
   for (auto &itr : liste_thermique_)

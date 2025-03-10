@@ -253,7 +253,7 @@ protected:
 //  IJK_Field_vector3_double rot_;
   IJK_Field_vector3_double grad_I_ns_;
   IJK_Field_vector3_double grad_P_;
-  IJK_Field_double num_compo_ft_;
+//  IJK_Field_double num_compo_ft_;
 
   // Pour la verification des stats :
   // Le gradient de pression aux faces :

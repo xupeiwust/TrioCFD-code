@@ -713,6 +713,7 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
   {
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   / Located on interface?
     { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true }
   };
 
@@ -758,24 +759,26 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
     {
       const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
-      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE");
+      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE_FT");
       indicatrice_ft_[old()].data() = 1.;
       indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
-      indicatrice_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE");
+      indicatrice_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE_FT");
       indicatrice_ft_[next()].data() = 1.;
       indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
-
-      // Register INDICATRICE:
+      // Register INDICATRICE_FT:
       champs_compris_.ajoute_champ(indicatrice_ft_[old()]);  // or next() ??
 
-      indicatrice_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
+      indicatrice_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells, "INDICATRICE");
       indicatrice_ns_[old()].data() = 1.;
       allocate_cell_vector(groups_indicatrice_ns_[old()], domaine_NS, 1);
       allocate_cell_vector(groups_indicatrice_ns_[next()], domaine_NS, 1);
       indicatrice_ns_[old()].echange_espace_virtuel(indicatrice_ns_[old()].ghost());
-      indicatrice_ns_[next()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells);
+      indicatrice_ns_[next()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells, "INDICATRICE");
       indicatrice_ns_[next()].data() = 1.;
       indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
+      // Register INDICATRICE_FT:
+      champs_compris_.ajoute_champ(indicatrice_ns_[old()]);  // or next() ??
+
       indicatrice_avant_remaillage_ft_.allocate(domaine_FT, Domaine_IJK::ELEM, 2);
       indicatrice_avant_remaillage_ft_.data() = 1.;
       indicatrice_avant_remaillage_ft_.echange_espace_virtuel(indicatrice_avant_remaillage_ft_.ghost());
@@ -1197,11 +1200,13 @@ int IJK_Interfaces::posttraiter_champs_instantanes(const Motcles& liste_post_ins
                                                    const char *lata_name,
                                                    const int lata_step) const
 {
+  throw; // THIS METHOD SHOULD NOT BE CALLED ANYMORE
+
   int n = 0; // nombre de champs postraites
   if (liste_post_instantanes.contient_("INTERFACES"))
     n++, dumplata_ft_mesh(lata_name, "INTERFACES", lata_step);
-  if (liste_post_instantanes.contient_("COMPO_CONNEXE"))
-    n++, dumplata_ft_field(lata_name, "INTERFACES", "COMPO_CONNEXE", "ELEM",  maillage_ft_ijk_.compo_connexe_facettes(), lata_step);
+//  if (liste_post_instantanes.contient_("COMPO_CONNEXE"))
+//    n++, dumplata_ft_field(lata_name, "INTERFACES", "COMPO_CONNEXE", "ELEM",  maillage_ft_ijk_.compo_connexe_facettes(), lata_step);
   if (liste_post_instantanes.contient_("COLOR_Y"))
     {
       if (!follow_colors_)

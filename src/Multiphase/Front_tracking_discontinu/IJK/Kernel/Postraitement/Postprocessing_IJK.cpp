@@ -291,6 +291,9 @@ int Postprocessing_IJK::lire_champs_a_postraiter(Entree& is, bool expect_acco)
  */
 void Postprocessing_IJK::init()
 {
+  if(!nom_fich_.finit_par(".lata"))
+    nom_fich_ = nom_fich_ + Nom(".lata");
+
   // Post_processing field allocations:
   alloc_fields();
   alloc_velocity_and_co();
@@ -373,6 +376,8 @@ void Postprocessing_IJK::postraiter(int forcer)
   les_sondes_.mettre_a_jour(current_time, timestep);
 }
 
+/** Override. Write the interface mesh if present, and the integer field 'COMPO_CONNEXE' on it.
+ */
 int Postprocessing_IJK::write_extra_mesh()
 {
   if(!ref_ijk_ft_->has_interface())
@@ -381,6 +386,11 @@ int Postprocessing_IJK::write_extra_mesh()
   int latastep = sch.get_tstep();
   const IJK_Interfaces& interf = ref_ijk_ft_->get_interface();
   interf.dumplata_ft_mesh(nom_fich_.getChar(), "INTERFACES", latastep);
+
+  // Writing systematically COMPO_CONNEXE, the only integer field:
+  const ArrOfInt& comp_c = ref_ijk_ft_->get_interface().maillage_ft_ijk().compo_connexe_facettes();
+  dumplata_ft_field(nom_fich_, "INTERFACES", "COMPO_CONNEXE", "ELEM", comp_c, latastep);
+
   return 1;
 }
 
@@ -496,7 +506,6 @@ int Postprocessing_IJK::postraiter_champs()
     }
   return 1;
 }
-
 
 void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& dom_ft)
 {
@@ -718,6 +727,8 @@ void Postprocessing_IJK::init_indicatrice_non_perturbe()
 
 void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, double current_time, int time_iteration)
 {
+  throw; // THIS METHOD SHOULD NOT BE CALLED ANYMORE
+
   statistiques().begin_count(postraitement_counter_);
 
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
@@ -786,21 +797,21 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
       else
         Cerr << "Posttraitement demande pour EXTERNAL_FORCE but ignored because coef_immobilisation_ <= 1e-16" << endl;
     }
-  if (liste_post_instantanes_.contient_("NUM_COMPO"))
-    {
-      const int ni = num_compo_ft_.ni();
-      const int nj = num_compo_ft_.nj();
-      const int nk = num_compo_ft_.nk();
-      const IntVect& num_compo = interfaces_->get_num_compo();
-      for (int k = 0; k < nk; k++)
-        for (int j = 0; j < nj; j++)
-          for (int i = 0; i < ni; i++)
-            {
-              const int num_elem = domaine_ft_->convert_ijk_cell_to_packed(i, j, k);
-              num_compo_ft_(i, j, k) = num_compo[num_elem];
-            }
-      n--, dumplata_scalar(lata_name, "NUM_COMPO", num_compo_ft_, latastep);
-    }
+//  if (liste_post_instantanes_.contient_("NUM_COMPO"))
+//    {
+//      const int ni = num_compo_ft_.ni();
+//      const int nj = num_compo_ft_.nj();
+//      const int nk = num_compo_ft_.nk();
+//      const IntVect& num_compo = interfaces_->get_num_compo();
+//      for (int k = 0; k < nk; k++)
+//        for (int j = 0; j < nj; j++)
+//          for (int i = 0; i < ni; i++)
+//            {
+//              const int num_elem = domaine_ft_->convert_ijk_cell_to_packed(i, j, k);
+//              num_compo_ft_(i, j, k) = num_compo[num_elem];
+//            }
+//      n--, dumplata_scalar(lata_name, "NUM_COMPO", num_compo_ft_, latastep);
+//    }
 //  if (liste_post_instantanes_.contient_("VELOCITY"))
 //    n--, dumplata_vector(lata_name, "VELOCITY", velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2], latastep);
   if (liste_post_instantanes_.contient_("FORCE_PH"))
@@ -1649,7 +1660,7 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "NUM_COMPO", Entity::FACE, Nature_du_champ::scalaire, false },
+    { "NUM_COMPO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "LAMBDA2", Entity::ELEMENT, Nature_du_champ::scalaire, false },
@@ -1743,6 +1754,20 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
   if (nom == "LAMBDA2" || nom == "CRITERE_Q" || nom == "CURL")
     get_update_lambda2_and_rot_and_Q();
+
+  if (nom == "NUM_COMPO")
+    {
+      IJK_Field_double& num_compo_ft = scalar_post_fields_.at("NUM_COMPO");
+      const int ni = num_compo_ft.ni(), nj = num_compo_ft.nj(), nk = num_compo_ft.nk();
+      const IntVect& num_compo = interfaces_->get_num_compo();
+      for (int k = 0; k < nk; k++)
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            {
+              const int num_elem = domaine_ft_->convert_ijk_cell_to_packed(i, j, k);
+              num_compo_ft(i, j, k) = num_compo[num_elem];
+            }
+    }
 
   return champs_compris_.get_champ(nom);
 
@@ -2091,8 +2116,12 @@ void Postprocessing_IJK::alloc_fields()
       allocate_cell_vector(ana_grad2Wi_, domaine_ijk_, 0);
       allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
     }
-  if (liste_post_instantanes_.contient_("NUM_COMPO"))
-    num_compo_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
+  if (is_post_required("NUM_COMPO"))
+    {
+      IJK_Field_double& num_c = scalar_post_fields_.at("NUM_COMPO");
+      num_c.allocate(domaine_ft_, Domaine_IJK::ELEM, 0, "NUM_COMPO");
+      champs_compris_.ajoute_champ(num_c);
+    }
 //  if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
 //    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))

@@ -831,7 +831,7 @@ void Probleme_FTD_IJK_base::terminate()
   if (Process::je_suis_maitre())
     {
       SFichier master_file;
-      master_file.ouvrir(lata_name_, ios::app);
+      master_file.ouvrir(get_post().nom_fich() , ios::app);
       master_file << "FIN" << finl;
       master_file.close();
     }
