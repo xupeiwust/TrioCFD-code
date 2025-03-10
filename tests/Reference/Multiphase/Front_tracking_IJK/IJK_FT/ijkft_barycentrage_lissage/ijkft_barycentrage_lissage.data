@@ -107,17 +107,33 @@ lire pb
     timestep_reprise_interface       1
     lata_meshname   FTMESH
     remaillage_ft_ijk {
-  nb_iter_barycentrage 1
-  relax_barycentrage 1
-  nb_iter_correction_volume 4
-  lissage_courbure_iterations_systematique 2
+          nb_iter_barycentrage 1
+          relax_barycentrage 1
+          nb_iter_correction_volume 4
+          lissage_courbure_iterations_systematique 2
     }
   }
 
   {
-      dt_post 100
-      champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE
   }
+  
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 100
+    
+    fields 
+    {
+       indicatrice elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
+  }
+  
 }
 solve pb 
 Fin
+

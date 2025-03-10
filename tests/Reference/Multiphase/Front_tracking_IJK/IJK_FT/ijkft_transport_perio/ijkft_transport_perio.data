@@ -115,10 +115,26 @@ lire pb
   }
 
   {
-    dt_post 1000
-    champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE NUM_COMPO
+  }
+  
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1000
+    
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 
 }
 solve pb
 Fin
+
