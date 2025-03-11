@@ -233,7 +233,7 @@ protected:
   // Pour postraitement :
   IJK_Field_double rebuilt_indic_;
   IJK_Field_double potentiel_;
-  IJK_Field_double ai_ft_;
+//  IJK_Field_double ai_ft_;
   int extended_pressure_computed_ = 0;
   IJK_Field_double pressure_ft_;
   IJK_Field_double extended_pl_ft_;

@@ -1180,11 +1180,11 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
   //    n--,dumplata_scalar(lata_name,"POTENTIEL_FT", potentiel_, latastep);
   if (liste_post_instantanes_.contient_("REPULSION_FT"))
     n--, dumplata_scalar(lata_name, "REPULSION_FT", potentiel_, latastep);
-  if (liste_post_instantanes_.contient_("AIRE_INTERF"))
-    {
-      interfaces_->calculer_aire_interfaciale(ai_ft_);
-      n--, dumplata_scalar(lata_name, "AIRE_INTERF", ai_ft_, latastep);
-    }
+//  if (liste_post_instantanes_.contient_("AIRE_INTERF"))
+//    {
+//      interfaces_->calculer_aire_interfaciale(ai_ft_);
+//      n--, dumplata_scalar(lata_name, "AIRE_INTERF", ai_ft_, latastep);
+//    }
   if (liste_post_instantanes_.contient_("COURBURE_AIRE_INTERF"))
     {
       // On suppose implicitement qu'il est bien calcule et mis a jour avant d'arriver ici.
@@ -1552,9 +1552,10 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
     {
       for (int igroup = -1; igroup < nb_groups; igroup++)
         {
-          interfaces_->calculer_normales_et_aires_interfaciales(ai_ft_, kappa_ai_ft_, normale_cell_ft_, igroup);
+          IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
+          interfaces_->calculer_normales_et_aires_interfaciales(ai_ft, kappa_ai_ft_, normale_cell_ft_, igroup);
           // Puis les redistribue sur le ns :
-          ns.redistribute_from_splitting_ft_elem_.redistribute(ai_ft_, ai_ns_);
+          ns.redistribute_from_splitting_ft_elem_.redistribute(ai_ft, ai_ns_);
           ns.redistribute_from_splitting_ft_elem_.redistribute(kappa_ai_ft_, kappa_ai_ns_);
           ns.redistribute_from_splitting_ft_elem_.redistribute(normale_cell_ft_, normale_cell_ns_);
           // (pas besoin d'echange EV car ils n'ont pas de ghost).
@@ -1770,6 +1771,12 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
               const int num_elem = domaine_ft_->convert_ijk_cell_to_packed(i, j, k);
               num_compo_ft(i, j, k) = num_compo[num_elem];
             }
+    }
+
+  if (nom == "AIRE_INTERF")
+    {
+      IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
+      interfaces_->calculer_aire_interfaciale(ai_ft);
     }
 
   return champs_compris_.get_champ(nom);
@@ -2026,8 +2033,12 @@ void Postprocessing_IJK::alloc_fields()
 {
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
   potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  if (!Option_IJK::DISABLE_DIPHASIQUE && ((liste_post_instantanes_.contient_("AIRE_INTERF")) || liste_post_instantanes_.contient_("TOUS") || is_stats_plans_activated()))
-    ai_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
+  if (!Option_IJK::DISABLE_DIPHASIQUE && (is_post_required("AIRE_INTERF") || is_stats_plans_activated()))
+    {
+      IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
+      ai_ft.allocate(domaine_ft_, Domaine_IJK::ELEM, 0, "AIRE_INTERF");
+      champs_compris_.ajoute_champ(ai_ft);
+    }
   // Pour les stats, on calcule kappa*ai :
   if (!Option_IJK::DISABLE_DIPHASIQUE && is_stats_plans_activated())
     {
