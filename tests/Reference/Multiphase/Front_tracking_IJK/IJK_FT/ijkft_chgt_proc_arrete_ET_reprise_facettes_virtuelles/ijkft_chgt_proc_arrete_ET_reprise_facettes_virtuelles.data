@@ -120,8 +120,23 @@ lire pb
   }
 
   {
-    dt_post 2
-    champs_a_postraiter 5 INTERFACES COMPO_CONNEXE MU COURBURE VELOCITY
+  }
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 2
+    
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+       velocity elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 }
 solve pb

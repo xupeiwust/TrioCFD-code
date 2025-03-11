@@ -136,10 +136,18 @@ lire pb
       lissage_courbure_iterations_systematique 2
     }
   }
-
   {
-    dt_post 100
-    champs_a_postraiter 1 INDICATRICE
+  }
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 100
+    
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 }
 solve pb
