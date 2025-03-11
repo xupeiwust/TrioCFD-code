@@ -52,6 +52,7 @@ public:
   void set_param(Param& param) override;
   void lire_entete_bloc_interface(Entree& is) override;
   int lire_champs_a_postraiter(Entree& is, bool expect_acco) override;
+  void register_one_field(const Motcle& fld_nam, const Motcle& loc);
   void register_interface_field(const Motcle& nom_champ, const Motcle& loc) override;
 
   void init() override;
@@ -328,8 +329,6 @@ protected:
 
   // Pour le post-traitement des champs cut-cell
   int cut_cell_activated_ = 0;
-
-  void register_one_field(const Motcle& fld_nam, const Motcle& loc);
 
 private:
   IJK_Field_vector3_double post_projected_field_; ///< Temporary storage space used when invoking 'interpolate_to_center'

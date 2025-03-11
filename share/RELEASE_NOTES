@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+13/03/25 (TrioCFD) Change      : IJK probes: for elem fields, points are moved automatically to cell center, for face fields, moved to face centers. 'grav' keyword may be used to project a component of a face field to cell center. 
 11/09/24 (TrioCFD) New feature : k-omega and k-tau CMFD turbulence models are now compatible with pb_(thermo)hydraulique (VDF and PolyMAC_P0 only)
 19/02/25 (TrioCFD) New feature : Keyword 'interface' may be used in 'postprocessing' block of a FT problem. See an example in FTD_reprise_xyz_vdf_3d
 19/02/25 (TrioCFD) New feature : Standard 'postprocessing' keyword can now be used to postprocess FT datasets with interfaces. If format is not LATA, interfaces are ignored.

@@ -33,16 +33,26 @@ class Sonde_IJK : public Sonde
 public :
 
   void completer() override;
-  void initialiser() override;
-  void mettre_a_jour(const double temps, const double dt) override;
-  void postraiter() override;
 
 protected :
+  const Domaine& get_domaine_geom() const override;
+  void validate_type(const Motcle& loc) const override;
+  void validate_position() const override;
+  void create_champ_generique(Entree& is, const Motcle& motlu) override { /* do nothing */ }
+  void fix_probe_position() override;
+  void fix_probe_position_grav() override;
+  void fill_local_values() override;
+  void update_source(double un_temps) override { /* do nothing */ }
 
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(IJK_Field_double) ref_ijk_field_;
+  IJK_Field_double tmp_storage_;
+
   int ncomp = 1;                           ///< Number of the component to handle
   int nbre_points_tot;
+
+private:
+  void fix_probe_position_generic(Domaine_IJK::Localisation loc);
 };
 
 #endif /* Sonde_IJK_included */
