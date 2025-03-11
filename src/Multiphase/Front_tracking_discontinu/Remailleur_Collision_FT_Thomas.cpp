@@ -26,8 +26,10 @@
 #include <Param.h>
 #include <communications.h>
 #include <SFichier.h>
+#include <Synonyme_info.h>
 
 Implemente_instanciable_sans_constructeur(Remailleur_Collision_FT_Thomas,"Remailleur_Collision_FT_Thomas",Remailleur_Collision_FT_Juric);
+Add_synonym(Remailleur_Collision_FT_Thomas, "Thomas");
 
 Remailleur_Collision_FT_Thomas::Remailleur_Collision_FT_Thomas()
 {

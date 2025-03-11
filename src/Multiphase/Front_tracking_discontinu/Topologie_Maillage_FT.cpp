@@ -58,7 +58,7 @@ Entree& Topologie_Maillage_FT::readOn(Entree& is)
   int phase_continue;
   Param param(que_suis_je());
   param.ajouter_flag("active", &active_);
-  param.ajouter_deriv("type_remaillage", "Remailleur_Collision_FT_", &remailleur_Collision_, Param::REQUIRED);
+  param.ajouter("type_remaillage", &remailleur_Collision_, Param::REQUIRED);
   param.ajouter_flag("juric_pour_tout", &juric_pour_tout);
   param.ajouter_flag("juric_local", &juric_local_);
   param.ajouter("phase_continue", &phase_continue);

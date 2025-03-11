@@ -26,8 +26,10 @@
 #include <Domaine.h>
 #include <Param.h>
 #include <Scatter.h>
+#include <Synonyme_info.h>
 
 Implemente_instanciable_sans_constructeur(Remailleur_Collision_FT_Juric,"Remailleur_Collision_FT_Juric",Remailleur_Collision_FT_base);
+Add_synonym(Remailleur_Collision_FT_Juric, "Juric");
 
 Remailleur_Collision_FT_Juric::Remailleur_Collision_FT_Juric() :
   source_isovaleur_(INDICATRICE) // Valeur par defaut: la plus robuste.
