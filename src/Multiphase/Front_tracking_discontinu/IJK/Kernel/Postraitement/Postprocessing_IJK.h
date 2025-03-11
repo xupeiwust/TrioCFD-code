@@ -131,6 +131,11 @@ public:
 
   void compute_extended_pressures();
 
+  bool is_stats_bulles_activated() const;
+  bool is_stats_plans_activated() const;
+  bool is_stats_cisaillement_activated() const;
+  bool is_stats_rmf_activated() const;
+
 protected:
   static std::vector<FieldInfo_t> champs_postraitables_;  ///< list of fields that can be potentially postprocessed
   /** Index in 'champs_postraitables_' of each of the requested field for post-processing
@@ -196,7 +201,7 @@ protected:
   // 2020.03.12. CHOIX : Meme en disable_diphasique, on fait appel a la classe fille stats FT.
   // La classe de stats monophasique n'est plus maintenue. Suppression du membre.
   // Statistiques_dns_ijk_monophasique statistiques_;
-  double t_debut_statistiques_ = 1.e20;
+  double t_debut_statistiques_ = -1.0;
   // -------------------------------------------------
 
   // Pour les cas a bulles fixes
@@ -327,10 +332,6 @@ private:
 
   void postraiter_thermals(bool stop);
 
-  bool is_stats_bulles_activated() const;
-  bool is_stats_plans_activated() const;
-  bool is_stats_cisaillement_activated() const;
-  bool is_stats_rmf_activated() const;
   void postraiter_stats(bool stop);
 };
 

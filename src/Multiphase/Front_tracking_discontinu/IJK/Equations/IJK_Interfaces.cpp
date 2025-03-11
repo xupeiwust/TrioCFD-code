@@ -2300,16 +2300,17 @@ void IJK_Interfaces::calculer_kappa_ft(IJK_Field_double& kappa_ft)
 }
 
 
-// Le champ de normale n'est pas sur une grille decallee.
-// Il doit etre a la meme localisation que "ai" : Domaine_IJK::ELEM
-// Le champ kappa_ai contient le produit de la courbure moyenne sur la cellule
-// eulerienne par l'aire interfaciale dans cette cellule,
-// divisee par le volume de la cellule.
-//
-// Le calcul repose sur la conversion vdf -> ijk du numero : num_elem
-// Pour que cette conversion soit valide, il faut que le champ soit sur le
-// splitting_ft_ car le dom_vdf n'est pas construit pour le splitting ns. Par
-// definition, mettre igroup a -1 pour inclure toutes les bulles
+/** Le champ de normale n'est pas sur une grille decallee.
+ * Il doit etre a la meme localisation que "ai" : Domaine_IJK::ELEM
+ * Le champ kappa_ai contient le produit de la courbure moyenne sur la cellule
+ * eulerienne par l'aire interfaciale dans cette cellule,
+ * divisee par le volume de la cellule.
+
+ * Le calcul repose sur la conversion vdf -> ijk du numero : num_elem
+ * Pour que cette conversion soit valide, il faut que le champ soit sur le
+ * splitting_ft_ car le dom_vdf n'est pas construit pour le splitting ns. Par
+ * definition, mettre igroup a -1 pour inclure toutes les bulles
+ */
 void IJK_Interfaces::calculer_normales_et_aires_interfaciales(IJK_Field_double& ai, IJK_Field_double& kappa_ai,
                                                               IJK_Field_vector3_double& normale_cell,
                                                               const int igroup) const

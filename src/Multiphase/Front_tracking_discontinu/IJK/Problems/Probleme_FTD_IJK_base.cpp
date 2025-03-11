@@ -878,7 +878,7 @@ bool Probleme_FTD_IJK_base::solveTimeStep()
 
   create_forced_dilation(); // rien si Probleme_FTD_IJK_cut_cell
 
-  if (schema_temps_ijk().get_current_time() >= get_post().t_debut_statistiques())
+  if (get_post().is_stats_plans_activated() && schema_temps_ijk().get_current_time() >= get_post().t_debut_statistiques())
     {
       ns.update_v_or_rhov(true /* with pressure */);
 

@@ -1548,34 +1548,37 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
   // S'il n'y a pas de groupes de bulles (monophasique ou monodisperse), on passe exactement une fois dans la boucle
   if (nb_groups == 1)
     nb_groups = 0; // Quand il n'y a qu'un groupe, on ne posttraite pas les choses pour ce groupe unique puisque c'est identique au cas global
-  for (int igroup = -1; igroup < nb_groups; igroup++)
+  if(is_post_required(""))
     {
-      interfaces_->calculer_normales_et_aires_interfaciales(ai_ft_, kappa_ai_ft_, normale_cell_ft_, igroup);
-      // Puis les redistribue sur le ns :
-      ns.redistribute_from_splitting_ft_elem_.redistribute(ai_ft_, ai_ns_);
-      ns.redistribute_from_splitting_ft_elem_.redistribute(kappa_ai_ft_, kappa_ai_ns_);
-      ns.redistribute_from_splitting_ft_elem_.redistribute(normale_cell_ft_, normale_cell_ns_);
-      // (pas besoin d'echange EV car ils n'ont pas de ghost).
+      for (int igroup = -1; igroup < nb_groups; igroup++)
+        {
+          interfaces_->calculer_normales_et_aires_interfaciales(ai_ft_, kappa_ai_ft_, normale_cell_ft_, igroup);
+          // Puis les redistribue sur le ns :
+          ns.redistribute_from_splitting_ft_elem_.redistribute(ai_ft_, ai_ns_);
+          ns.redistribute_from_splitting_ft_elem_.redistribute(kappa_ai_ft_, kappa_ai_ns_);
+          ns.redistribute_from_splitting_ft_elem_.redistribute(normale_cell_ft_, normale_cell_ns_);
+          // (pas besoin d'echange EV car ils n'ont pas de ghost).
 
-      // Calcul du gradient de l'indicatrice et de vitesse :
-      if (igroup == -1)
-        {
-          // interfaces_.In().echange_espace_virtuel(1);
-          // Calcul des champs grad_P_, grad_I_ns_
-          calculer_gradient_indicatrice_et_pression(interfaces_->In());
-          ns.transfer_ft_to_ns(); // pour remplir : terme_repulsion_interfaces_ft_ et terme_abs_repulsion_interfaces_ft_
-          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
-          statistiques_FT_.update_stat(ref_ijk_ft_, dt);
-        }
-      else
-        {
-          // interfaces_.groups_indicatrice_n_ns()[igroup].echange_espace_virtuel(1);
-          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
-          calculer_gradient_indicatrice_et_pression(interfaces_->groups_indicatrice_n_ns()[igroup]);
-          ns.transfer_ft_to_ns();
-          groups_statistiques_FT_[igroup].update_stat(ref_ijk_ft_, dt);
+          // Calcul du gradient de l'indicatrice et de vitesse :
+          if (igroup == -1)
+            {
+              // interfaces_.In().echange_espace_virtuel(1);
+              // Calcul des champs grad_P_, grad_I_ns_
+              calculer_gradient_indicatrice_et_pression(interfaces_->In());
+              ns.transfer_ft_to_ns(); // pour remplir : terme_repulsion_interfaces_ft_ et terme_abs_repulsion_interfaces_ft_
+              // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+              // a partir de pressure_, interfaces_.In(), et terme_*_ft_
+              statistiques_FT_.update_stat(ref_ijk_ft_, dt);
+            }
+          else
+            {
+              // interfaces_.groups_indicatrice_n_ns()[igroup].echange_espace_virtuel(1);
+              // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+              // a partir de pressure_, interfaces_.In(), et terme_*_ft_
+              calculer_gradient_indicatrice_et_pression(interfaces_->groups_indicatrice_n_ns()[igroup]);
+              ns.transfer_ft_to_ns();
+              groups_statistiques_FT_[igroup].update_stat(ref_ijk_ft_, dt);
+            }
         }
     }
   statistiques().end_count(updtstat_counter_);
@@ -2226,7 +2229,7 @@ bool Postprocessing_IJK::is_stats_bulles_activated() const
 // Warning: this one looking at t_debut_statistiques_ too
 bool Postprocessing_IJK::is_stats_plans_activated() const
 {
-  return (nb_pas_dt_post_stats_plans_ > 0 || time_interval_post_stats_plans_ >= 0.) && t_debut_statistiques_ > 0.0;
+  return (nb_pas_dt_post_stats_plans_ > 0 || time_interval_post_stats_plans_ >= 0.) && t_debut_statistiques_ >= 0.0;
 }
 
 bool Postprocessing_IJK::is_stats_cisaillement_activated() const
