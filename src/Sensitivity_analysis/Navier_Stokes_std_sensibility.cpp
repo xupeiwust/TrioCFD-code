@@ -30,7 +30,7 @@
 
 Implemente_instanciable_sans_constructeur_ni_destructeur( Navier_Stokes_std_sensibility, "Navier_Stokes_standard_sensibility", Navier_Stokes_std) ;
 // XD Navier_Stokes_standard_sensibility navier_stokes_standard Navier_Stokes_standard_sensibility -1 Resolution of Navier-Stokes sensitivity problem
-Navier_Stokes_std_sensibility::Navier_Stokes_std_sensibility() :  poly_chaos(0)
+Navier_Stokes_std_sensibility::Navier_Stokes_std_sensibility() : uncertain_var("velocity"),  poly_chaos(0), adjoint(false)
 {
 
 }
@@ -55,14 +55,9 @@ void Navier_Stokes_std_sensibility::set_param(Param& param)
 
   Navier_Stokes_std::set_param(param);
   param.ajouter_non_std("state",(this),Param::REQUIRED); // XD_ADD_P bloc_lecture Block to indicate the state problem. Between the braces, you must specify the key word 'pb_champ_evaluateur' then the name of the state problem and the velocity unknown  NL2 Example:  state { pb_champ_evaluateur pb_state  velocity }
-  param.ajouter_non_std("uncertain_variable",(this),Param::REQUIRED); // XD_ADD_P bloc_lecture Block to indicate the name of the uncertain variable. Between the braces, you must specify the name of the unknown variable. Choice between velocity and mu.  NL2 Example: uncertain_variable { velocity }
+  param.ajouter_non_std("uncertain_variable",(this),Param::OPTIONAL); // XD_ADD_P bloc_lecture Block to indicate the name of the uncertain variable. Between the braces, you must specify the name of the unknown variable. Choice between velocity and mu.  NL2 Example: uncertain_variable { velocity }
   param.ajouter_non_std("polynomial_chaos",(this),Param::OPTIONAL); // XD_ADD_P floattant It is the method that we will use to study the sensitivity of the Navier Stokes equation: NL2 if poly_chaos=0, the sensitivity will be treated by the standard sentivity method. If different than 0, it will be treated by the polynomial chaos method
-
-  /* if (schema_temps().diffusion_implicite())
-     {
-       Cerr<<"diffusion implicite forbidden within Navier_Stokes_std_sensibility  "<<finl;
-       Process::exit();
-     }*/
+  param.ajouter_non_std("adjoint",(this),Param::OPTIONAL);
   if( schema_temps().que_suis_je() != "Schema_euler_explicite" )
     {
       Cerr<<"Time  scheme: "<<schema_temps().que_suis_je() <<finl;
@@ -157,6 +152,12 @@ int Navier_Stokes_std_sensibility::lire_motcle_non_standard(const Motcle& mot, E
       poly_chaos = value;
       return 1;
     }
+  else if (mot=="adjoint")
+    {
+      Cerr << "Reading and typing of the  option adjoint: " << finl;
+      adjoint = true;
+      return 1;
+    }
   else
     return Navier_Stokes_std::lire_motcle_non_standard(mot, is);
 }
@@ -205,11 +206,6 @@ void Navier_Stokes_std_sensibility::update_evaluator_field(const Nom& one_name_s
   pb = ref_cast(Probleme_base,ob);
   rch = pb->get_champ(one_name_state_field);
   state_field = ref_cast(Champ_Inc_base,rch.valeur()) ;
-
-// Cerr <<"  state_field.que_suis_je() = "<<state_field->valeurs().que_suis_je()<<finl; //DoubleTab
-  //Cerr <<"  state_field nb comp = "<<state_field->nb_comp()<<finl;// nb_composants vitesse (2,3) ou 1 pour la pression
-  //Cerr <<"  state_field nom = "<<state_field->le_nom()<<finl;//vitesse ou pression
-  //Cerr<<" innconue valeurs  =  "<<state_field->valeurs()<<finl;// les valeurs
 }
 void Navier_Stokes_std_sensibility::mettre_a_jour(double temps)
 {
@@ -235,4 +231,10 @@ const double& Navier_Stokes_std_sensibility::get_poly_chaos_value() const
 {
 
   return poly_chaos;
+}
+
+const bool& Navier_Stokes_std_sensibility::get_adjoint_value() const
+{
+
+  return adjoint;
 }

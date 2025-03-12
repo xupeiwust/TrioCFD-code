@@ -48,6 +48,7 @@ public :
   const Champ_Inc_base& get_state() const;
   const Motcle& get_uncertain_variable_name() const;
   const double& get_poly_chaos_value() const;
+  const bool& get_adjoint_value() const;
 
 protected :
   OBS_PTR(Champ_Inc_base) state_field;  //Reference to the unknown field of the state problem
@@ -56,6 +57,7 @@ protected :
   Motcle uncertain_var;     				//name of the unknown field of the uncertain variable
   double poly_chaos;               //It is the method that we will use to study the sensitivity of the Navier Stokes equation:
   // if poly_chaos=0. thats mean that the sensitivity will be treated by the standard sentivity method and if not it will be treated by the polynomial chaos method
+  bool adjoint;
 };
 
 #endif /* Navier_Stokes_std_sensibility_included */
