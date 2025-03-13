@@ -118,7 +118,7 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
 
   for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
     {
-      double dmin = std::max(distmin(face), 1e-12);
+      double const dmin = std::max(distmin(face), 1e-12);
       double const enerK = K_Omega(face, 0);
       double const omega = K_Omega(face, 1);
 

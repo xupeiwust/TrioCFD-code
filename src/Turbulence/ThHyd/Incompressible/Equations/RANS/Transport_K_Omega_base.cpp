@@ -130,10 +130,7 @@ int Transport_K_Omega_base::controler_K_Omega()
   if (size < 0)
     {
       if (!sub_type(Champ_Inc_P0_base, le_champ_K_Omega.valeur()))
-        {
-          Cerr << "Unsupported K_Omega field in Transport_K_Omega_base::controler_K_Omega()" << finl;
-          Process::exit();
-        }
+        Process::exit("Unsupported K_Omega field in Transport_K_Omega_base::controler_K_Omega()");
       size = le_champ_K_Omega->equation().domaine_dis().domaine().nb_elem();
     }
 
@@ -250,7 +247,7 @@ int Transport_K_Omega_base::controler_K_Omega()
             }
         }
     }
-
+  Debog::verifier("Transport_K_Omega_base::controler_K_Omega K_Omega middle", K_Omega);
   K_Omega.echange_espace_virtuel();
   if (schema_temps().limpr())
     {

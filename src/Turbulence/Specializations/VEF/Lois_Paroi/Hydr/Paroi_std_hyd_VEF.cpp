@@ -1290,15 +1290,10 @@ int Paroi_std_hyd_VEF::calculer_hyd(DoubleTab& tab_2eq)
                       // approximation: d(k)/d(n) = 0 a la paroi
                       // c'est faux mais ca marche
                       tab_2eq(num[nf], 0) = 0.;
-                      if (turbulence_model_type == 1) // second equation is epsilon
-                        tab_2eq(num[nf], 1) = 0.;
-                      else if (turbulence_model_type == 2) // second equation is omega
-                        {
-                          // cAlan : c'est sale car on reprend la valeur de d_visco et de dist de
-                          // l'itération précédente. A améliorer quand on optimisera cette fonction.
-                          assert(dist > 0);
-                          tab_2eq(num[nf], 1) = 6*d_visco/(BETA_OMEGA*dist*dist);
-                        }
+
+                      // cAlan : we use 0 for the wall face for both cases.
+                      tab_2eq(num[nf], 1) = 0.;
+
                       int nk = 0;
 
                       for (int k = 0; k < nfac; k++)

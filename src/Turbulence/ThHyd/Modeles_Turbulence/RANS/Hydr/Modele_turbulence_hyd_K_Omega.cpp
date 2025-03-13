@@ -190,12 +190,18 @@ void Modele_turbulence_hyd_K_Omega::fill_turbulent_viscosity_tab(const DoubleTab
  */
 void Modele_turbulence_hyd_K_Omega::init_F1_F2_enstrophy()
 {
-  // Need dimension_tot to allow the faces_to_cells interpolation
-  int const n = K_Omega().valeurs().dimension_tot(0);
+  const Domaine_VF& domain = ref_cast(Domaine_VF, eqn_transp_K_Omega().domaine_dis());
+  const MD_Vector& mdf = domain.md_vector_faces();
+  const int n = domain.nb_faces();
 
   tabF1_.resize(n, 1);
+  MD_Vector_tools::creer_tableau_distribue(mdf, tabF1_);
+
   tabF2_.resize(n);
+  MD_Vector_tools::creer_tableau_distribue(mdf, tabF2_);
+
   enstrophy_.resize(n);
+  MD_Vector_tools::creer_tableau_distribue(mdf, enstrophy_);
 }
 
 /*! @brief Prepare the computation of the k-omega model.
