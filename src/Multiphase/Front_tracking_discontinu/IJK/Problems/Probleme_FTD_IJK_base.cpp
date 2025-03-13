@@ -1047,10 +1047,6 @@ bool Probleme_FTD_IJK_base::run()
 
   schema_temps_ijk().set_max_timestep(schema_temps_ijk().get_timestep());
 
-  Cerr<<"First postprocessing, this can take some minutes"<<finl;
-  postraiter(1);
-  Cerr<<"First postprocessing OK"<<finl;
-
   statistiques().end_count(initialisation_calcul_counter_);
 
   if (!disable_TU)
@@ -1069,6 +1065,9 @@ bool Probleme_FTD_IJK_base::run()
 
   for (tstep = 0; tstep < schema_temps_ijk().get_nb_timesteps() && !stop_; tstep++)
     {
+      // In IJK, the post is done at the begining of the time step - at this point tstep and dt are still coherent.
+      // After 'computeTimeStep()' we are in a situation where loop index 'tstep' has not advanced, but 'dt' (double value) has.
+      postraiter(stop_);
       statistiques().begin_count(timestep_counter_);
 
       schema_temps_ijk().set_timestep() = computeTimeStep(stop_);
@@ -1099,9 +1098,6 @@ bool Probleme_FTD_IJK_base::run()
       else // The resolution was successful, validate and go to the next time step.
         validateTimeStep();
 
-      if(tstep>0)  // avoid duplicating initial post
-        postraiter(stop_);
-
       statistiques().end_count(timestep_counter_);
 
       if (JUMP_3_FIRST_STEPS && tstep < 3)
@@ -1113,6 +1109,9 @@ bool Probleme_FTD_IJK_base::run()
       else
         statistiques().compute_avg_min_max_var_per_step(tstep);
     }
+
+  // Last post:
+  postraiter(true);
 
   if (!disable_TU)
     {
