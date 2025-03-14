@@ -22,9 +22,9 @@ Schema_RK3_IJK sch
 lire sch
 {    
   tinit 0.0
+  nb_pas_dt_max 1
   timestep 1.0e-9
   timestep_facsec 1
-  nb_pas_dt_max 1
   dt_sauvegarde 1
 }
 
@@ -114,10 +114,23 @@ lire pb
   }
 
   {
-  dt_post 1
-  # champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE VELOCITY INDICATRICE #
-  champs_a_postraiter 3 INTERFACES COURBURE VELOCITY 
   sauvegarder_xyz
+  }
+  
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1
+    
+    fields 
+    {
+       indicatrice elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    }
   }
 
 

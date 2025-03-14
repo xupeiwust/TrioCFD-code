@@ -114,10 +114,23 @@ lire pb
   }
 
   {
-  dt_post 1
-  # champs_a_postraiter 5 INTERFACES COMPO_CONNEXE COURBURE VELOCITY INDICATRICE #
-  champs_a_postraiter 3 INTERFACES COURBURE VELOCITY 
   sauvegarder_xyz
+  }
+  
+  post_processing 
+  {
+    format lml
+    nb_pas_dt_post 1
+    
+    fields 
+    {
+       indicatrice elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    }
   }
 
 

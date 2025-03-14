@@ -41,10 +41,10 @@ Schema_Euler_explicite  sch
 Lire sch
 {
 	tinit 0
-	nb_pas_dt_max 0
+	nb_pas_dt_max 1
 	tmax  0.2
-	dt_min 1.e-4
-	dt_max 1.e-4
+	dt_min 1.0e-9
+	dt_max 1.0e-9
 	dt_impr 0.2
 	dt_sauv 0.1
 	seuil_statio -1.e-8
@@ -153,6 +153,7 @@ Lire pb
 		    champs dt_post 0.035 { 
 		        velocity faces 
 		       indicatrice_interf som
+		       indicatrice_interf elem
 		    }
 		    interfaces interf { 
 		        courbure som 
