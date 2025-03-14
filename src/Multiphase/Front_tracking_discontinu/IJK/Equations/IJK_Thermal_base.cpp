@@ -276,7 +276,8 @@ void IJK_Thermal_base::post_process_std_thermal_field(const Motcles& liste_post_
 
 void IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int idx)
 {
-  temperature_->allocate(splitting, Domaine_IJK::ELEM, 1);
+  temperature_->allocate(splitting, Domaine_IJK::ELEM, 1, Nom("TEMPERATURE_")+Nom(rang_));
+  champs_compris_.ajoute_champ(*temperature_);
   if (fichier_reprise_temperature_ == "??") // si on ne fait pas une reprise on initialise V
     {
       Cerr << "Please provide initial conditions for temperature, either by an expression or a field for restart."
@@ -328,7 +329,8 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   /*
    * Fields
    */
-  temperature_->allocate(splitting, Domaine_IJK::ELEM, ghost_cells_);
+  temperature_->allocate(splitting, Domaine_IJK::ELEM, ghost_cells_,Nom("TEMPERATURE_")+Nom(rang_));
+  champs_compris_.ajoute_champ(*temperature_);
   temperature_for_ini_per_bubble_.allocate(splitting, Domaine_IJK::ELEM, 1);
 
   d_temperature_->allocate(splitting, Domaine_IJK::ELEM, 2);
@@ -1004,6 +1006,64 @@ void IJK_Thermal_base::associer_post(const Postprocessing_IJK& ijk_ft_post)
 void IJK_Thermal_base::associer_switch(const Switch_FT_double& ijk_ft_switch)
 {
   ref_ijk_ft_switch_ = ijk_ft_switch;
+}
+
+void IJK_Thermal_base::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
+{
+  /* does nothing
+  * this should be done in IJK_thermals
+  * if you want to write a new field for your own IJK_Thermal_xxx equation
+  * add the base name of your field to IJK_Thermals::Fill_postprocessable_fields
+  * for example { "BASE_NAME", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+  *
+  * your field must be named with "BASE_NAME_" + Nom(rang_):
+  * champ.nommer("BASE_NAME_" + Nom(rang_))
+  *
+  * then add the field to champs_compris from the equation (here or in derived class)
+  * champs_compris.ajoute_champ(champ)
+  */
+}
+
+void IJK_Thermal_base::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
+
+bool IJK_Thermal_base::has_champ(const Motcle& nom) const
+{
+  if (champs_compris_.liste_noms_compris().contient_(nom))
+    return champs_compris_.has_champ(nom);
+  else if (champs_compris_.liste_noms_compris_vectoriel().contient_(nom))
+    return champs_compris_.has_champ_vectoriel(nom);
+  else
+    return false;
+}
+
+const IJK_Field_double& IJK_Thermal_base::get_IJK_field(const Motcle& nom)
+{
+  if (champs_compris_.liste_noms_compris().contient_(nom))
+    return champs_compris_.get_champ(nom);
+  else
+    {
+      Cerr << "ERROR in IJK_Thermal_base::get_IJK_field : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermal_base::get_IJK_field()." << finl;
+      throw;
+    }
+}
+
+const IJK_Field_vector3_double& IJK_Thermal_base::get_IJK_field_vector(const Motcle& nom)
+{
+  if (champs_compris_.liste_noms_compris_vectoriel().contient_(nom))
+    return champs_compris_.get_champ_vectoriel(nom);
+  else
+    {
+      Cerr << "ERROR in IJK_Thermal_base::get_IJK_field_vector : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermal_base::get_IJK_field_vector()." << finl;
+      throw;
+    }
 }
 
 void IJK_Thermal_base::associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,

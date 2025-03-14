@@ -70,7 +70,7 @@ public :
   static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
   void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const override;
 
-
+  void split_name(const Motcle& nom, Nom& var, int& rank) const;
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell_,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face_);
   void retrieve_ghost_fluid_params();
@@ -156,7 +156,6 @@ protected :
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   OBS_PTR(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
 
-  Champs_compris_IJK champs_compris_;
 
   IJK_Ghost_Fluid_Fields ghost_fluid_fields_;
 

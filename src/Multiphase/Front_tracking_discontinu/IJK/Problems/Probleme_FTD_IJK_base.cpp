@@ -270,7 +270,7 @@ void Probleme_FTD_IJK_base::get_noms_champs_postraitables(Noms& noms,Option opt)
 
   if (has_thermals_)
     {
-      get_interface().get_noms_champs_postraitables(nams, opt);
+      get_ijk_thermals().get_noms_champs_postraitables(nams, opt);
       for (const auto &n: nams) noms.add(n);
       nams.reset();
     }

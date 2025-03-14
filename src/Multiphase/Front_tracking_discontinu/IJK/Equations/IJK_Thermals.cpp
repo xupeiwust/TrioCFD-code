@@ -203,69 +203,73 @@ void IJK_Thermals::associer_switch(const Switch_FT_double& ijk_ft_switch)
   for (auto& itr : liste_thermique_)
     itr->associer_switch(ref_ijk_ft_switch_);
 }
-
+/*
+* Here, Name is actually a prefix
+* In the individual thermal equations, it must be appended with "_" + Nom(rang_)
+* when named with method nommer (or at allocation with the 4th argument of allocate)
+* It must be named before being added to the list of understood fields (champs_compris, method ajoute_champ)
+*
+* See in Postprocessing_IJK::register_one_field what is done with these prefixes
+*/
 void IJK_Thermals::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 {
-  // TODO
-  // TODO
+
+  std::vector<FieldInfo_t> c =
+  {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
+    { "TEMPERATURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "TEMPERATURE_ADIMENSIONNELLE_THETA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+
+  };
+  chps.insert(chps.end(), c.begin(), c.end());
 }
 
 void IJK_Thermals::get_noms_champs_postraitables(Noms& noms,Option opt) const
 {
-  for (const auto& n : champs_compris_.liste_noms_compris())
-    noms.add(n);
-  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
-    noms.add(n);
+  for (auto& itr : liste_thermique_)
+    {
+      itr->get_noms_champs_postraitables(noms,opt);
+    }
 }
 
 bool IJK_Thermals::has_champ(const Motcle& nom) const
 {
-  // TODO use champs_compris_ member
 
-//  return champs_compris_.has_champ(nom);
-  if (nom.contient("TEMPERATURE") || nom.contient("ECART_T") || nom== "INTERFACE_PHIN")
-    return true;
-  else
-    return false;
+  for (auto& itr : liste_thermique_)
+    {
+      if (itr->has_champ(nom))
+        {
+          return true;
+        }
+    }
+  return false;
+
 }
-
 
 const IJK_Field_double& IJK_Thermals::get_IJK_field(const Motcle& nom)
 {
-  // TODO use champs_compris_ member
-//  return champs_compris_.get_IJK_field();
-
-  for (int i = 0; i < (int) liste_thermique_.size(); i++)
+  for (auto& itr : liste_thermique_)
     {
-      if (nom== Nom("TEMPERATURE_")+Nom(i))
-        return *((liste_thermique_.operator[](i))->get_temperature());
-
-      if (nom== Nom("TEMPERATURE_ANA_")+Nom(i))
-        return ((liste_thermique_.operator[](i))->get_temperature_ana());
-
-      if (nom== Nom("ECART_T_ANA_")+Nom(i))
-        return ((liste_thermique_.operator[](i))->get_ecart_t_ana());
-
-      if (nom== Nom("INTERFACE_PHIN_")+Nom(i))
-        return ((liste_thermique_.operator[](i))->get_grad_T_interface_ns());
-
-      if (nom== Nom("TEMPERATURE_ADIMENSIONNELLE_THETA_")+Nom(i))
-        return ((liste_thermique_.operator[](i))->get_temperature_adim_theta());
+      if (itr->has_champ(nom))
+        {
+          return itr->get_IJK_field(nom);
+        }
     }
-
-  Cerr << "ERROR in IJK_Thermals::get_IJK_field : " << finl;
-  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermals::get_IJK_field()." << finl;
+  Cerr << "IJK_Thermals::get_IJK_field requested field " << nom << " is not known by any equation"<< finl;
   throw;
 }
 
 const IJK_Field_vector3_double& IJK_Thermals::get_IJK_field_vector(const Motcle& nom)
 {
-  // TODO use champs_compris_ member
-
-  Cerr << "ERROR in IJK_Thermals::get_IJK_field_vector : " << finl;
-  Cerr << "Requested field '" << nom << "' is not recognized by IJK_Thermals::get_IJK_field_vector()." << finl;
+  for (auto& itr : liste_thermique_)
+    {
+      if (itr->has_champ(nom))
+        {
+          return itr->get_IJK_field_vector(nom);
+        }
+    }
+  Cerr << "IJK_Thermals::get_IJK_field requested field vector " << nom << " is not known by any equation"<< finl;
   throw;
-
 }
 
 void IJK_Thermals::associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,

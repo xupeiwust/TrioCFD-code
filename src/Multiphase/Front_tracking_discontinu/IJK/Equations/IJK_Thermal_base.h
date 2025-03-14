@@ -41,12 +41,13 @@ class Switch_FT_double;
 class IJK_Interfaces;
 class Postprocessing_IJK;
 
-class IJK_Thermal_base : public Objet_U
+class IJK_Thermal_base : public Objet_U, public Champs_compris_IJK_interface
 {
   Declare_base( IJK_Thermal_base ) ;
   friend class IJK_One_Dimensional_Subproblems;
   friend class IJK_One_Dimensional_Subproblem;
 public:
+  using FieldInfo_t = Champs_compris_IJK_interface::FieldInfo_t;
   /*
    * Initialisation
    */
@@ -67,6 +68,16 @@ public:
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void associer_post(const Postprocessing_IJK& ijk_ft_post);
   void associer_switch(const Switch_FT_double& ijk_ft_switch);
+
+  // Interface Champs_compris_IJK_interface:
+  bool has_champ(const Motcle& nom) const override;
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return false; }
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
+
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face);
   void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);
@@ -476,7 +487,8 @@ public:
   void thermal_subresolution_outputs(const Nom& interfacial_quantities_thermal_probes, const Nom& shell_quantities_thermal_probes, const Nom& overall_bubbles_quantities, const Nom& local_quantities_thermal_probes_time_index_folder, const Nom& local_quantities_thermal_slices_time_index_folder, const Nom& local_quantities_thermal_lines_time_index_folder);
 
   static void typer_lire_thermal_equation(OWN_PTR(IJK_Thermal_base)&, Entree&);
-
+  inline const Noms noms_compris() const { return champs_compris().liste_noms_compris(); }
+  inline const Champs_compris_IJK& champs_compris() const { return champs_compris_; }
 protected:
   int needs_op_unform_= 1;
   OBS_PTR(Milieu_base) le_fluide_;
@@ -484,6 +496,7 @@ protected:
   Nom thermal_problem_type_ = "subresolution";
   Motcles thermal_words_, lata_suffix_;
   enum THERMAL_TYPE {SUBRES, MSUBRES, ONEFLUID, ONEFLUIDE, CUTCELL};
+  Champs_compris_IJK champs_compris_;
 
   void compute_cell_volume();
   void compute_min_cell_delta();
@@ -578,7 +591,6 @@ protected:
   OBS_PTR(Intersection_Interface_ijk_cell) ref_intersection_ijk_cell_;
   OBS_PTR(Intersection_Interface_ijk_face) ref_intersection_ijk_face_;
   OWN_PTR(Corrige_flux_FT_base) corrige_flux_;
-  const IJK_Field_double& get_IJK_field(const Nom& nom) const;
   int rang_ = 0; // default value, used as an index for the list of thermal sub-problems
 
   /*

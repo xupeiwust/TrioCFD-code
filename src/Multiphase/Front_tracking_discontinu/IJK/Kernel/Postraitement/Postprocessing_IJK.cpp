@@ -206,6 +206,50 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
 {
   Entity reqloc = str_to_entity(reqloc_s);
   noms_champs_a_post_.add(fld_nam);
+
+  Motcle true_field_name = fld_nam;
+
+
+  // IJK_Thermals gives a list of possible prefixes. The field names are appended with _index when added to champs_compris by individual thermal equations
+  // Because of that, we have to get the prefix from the field name asked
+  const std::string& str = fld_nam.getString();
+  std::string key ("_");
+  std::size_t found = str.rfind(key);
+  if (found!=std::string::npos)
+    {
+      Nom var = Nom(str.substr(0,found));
+      found++;
+      try
+        {
+          // this may raise exception if field name did not finish with integer. Then we go to catch block below
+          std::stoi(str.substr(found));
+          // if field was ending with integer, check that the prefix is known by ijk thermals
+          std::vector<FieldInfo_t> prefix_thermals;
+          IJK_Thermals::Fill_postprocessable_fields(prefix_thermals);
+          for (const auto& f : prefix_thermals)
+            {
+              Nom prefix = std::get<0>(f);
+              if (prefix == var)
+                {
+                  // if we found a matching prefix, we know that the field location must be defined by the prefix
+                  true_field_name=prefix;
+                  Cerr << "field name changed: " << fld_nam << " to " << true_field_name<<finl;
+
+                  // then we must add an entry to champs_postraitables_ so that the field can be found
+                  std::vector<FieldInfo_t> c = {{ fld_nam, std::get<1>(f), std::get<2>(f), std::get<3>(f)}};
+                  champs_postraitables_.insert(champs_postraitables_.end(), c.begin(), c.end());
+                }
+            }
+        }
+      catch ( const std::invalid_argument& exception )
+        {
+          // in that case, everything is fine, field name should be treated as normal (not from thermals)
+          // Cerr << "field was not suffixed with an integer" << fld_nam<<finl;
+        }
+    }
+
+
+
   // Lookup the field in champs_postraitables_
   int idx = 0;
   for (const auto& f : champs_postraitables_)
