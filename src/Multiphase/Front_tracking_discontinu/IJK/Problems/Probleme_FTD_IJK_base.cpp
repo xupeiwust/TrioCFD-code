@@ -110,12 +110,9 @@ Entree& Probleme_FTD_IJK_base::readOn(Entree& is)
 
 void Probleme_FTD_IJK_base::set_param(Param& param)
 {
-  int flg;
   param.ajouter("nom_sauvegarde", &nom_sauvegarde_); // XD_ADD_P chaine Definition of filename to save the calculation
-  param.ajouter_flag("sauvegarder_xyz", &flg); // XD_ADD_P rien save in xyz format
+  param.ajouter_flag("sauvegarder_xyz", &sauvegarder_xyz_); // XD_ADD_P rien save in xyz format
   param.ajouter("nom_reprise", &nom_reprise_); // XD_ADD_P chaine Enable restart from filename given
-
-  sauvegarder_xyz_ = (flg != 0);
 }
 
 int Probleme_FTD_IJK_base::associer_(Objet_U& obj)
