@@ -121,15 +121,28 @@ lire pb
 
   }
 
-  {
-    dt_post 1 # 100 #
-    champs_a_postraiter 1 tous
-    
+  {    
     # Pour Creer le fichier de Reprise #
     nom_sauvegarde bidon.repr
 
-   nom_reprise test.repr
- }
+    nom_reprise test.repr
+  }
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1
+    
+    fields 
+    {
+       indicatrice elem
+       VELOCITY elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
+  }
 }
 solve pb
 Fin
