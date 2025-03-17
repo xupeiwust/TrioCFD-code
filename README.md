@@ -25,7 +25,8 @@ git clone https://github.com/cea-trust-platform/TrioCFD-code.git TrioCFD-1.9.5
 cd TrioCFD-1.9.5
 source PathToTRUST-1.9.5/env_TRUST.sh
 baltik_build_configure -execute
-make optim debug
+make optim
+make debug # TRUST should be built in debug mode
 ```
 
 ### **Second method**
@@ -36,7 +37,8 @@ mv TrioCFD TrioCFD-1.9.5
 cd TrioCFD-1.9.5
 source PathToTRUST-1.9.5/env_TRUST.sh
 baltik_build_configure -execute
-make optim debug
+make optim
+make debug # TRUST should be built in debug mode
 ```
 
 # **How to install TrioCFD's development version ?**
@@ -51,7 +53,8 @@ cd TrioCFD-next
 git checkout next
 source PathToTRUST-next/env_TRUST.sh
 baltik_build_configure -execute
-make optim debug
+make optim
+make debug # TRUST should be built in debug mode
 ```
 # **How to start ?**
 ```bash
@@ -60,14 +63,16 @@ source ./env_TrioCFD.sh
 
 To check:
 ```bash
-# All non-regression test cases:
-make check_optim or make ctest_optim
-make check_debug or make ctest_debug
+# All non-regression test cases in optimized mode:
+make ctest_optim  # or make check_optim (slower)
+
+# All non-regression test cases in debug mode:
+make ctest_debug # or make check_debug (slower)
 
 # A given non-regression test list
 make check_optim TESTLIST="./share/testList/{nameOfTheTestList}"
 
-# All validation report (warning it may take many days !):
+# All validation report (warning it may take many days!):
 make check_validation
 
 # A given list of validation reports
