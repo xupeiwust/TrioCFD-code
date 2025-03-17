@@ -114,7 +114,8 @@ void Source_Transport_K_Omega_VEF_Face::compute_blending_F1(DoubleTab& gradKgrad
   DoubleTab& tabF2 = ref_cast_non_const(DoubleTab, turbulence_model->get_tabF2());
 
   DoubleTab visc_face(le_dom_VEF->nb_faces_tot()); // dimension_tot(0)
-  Discretisation_tools::cells_to_faces(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
+  // Discretisation_tools::cells_to_faces(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
+  elem_to_face(le_dom_VEF.valeur(), kinematic_viscosity, visc_face);
 
   for (int face = 0; face < le_dom_VEF->nb_faces(); face++)
     {

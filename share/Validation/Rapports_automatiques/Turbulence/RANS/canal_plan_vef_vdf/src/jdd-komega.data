@@ -47,7 +47,7 @@ $triangulate
 Partition dom
 {
   /* Choose Nb_parts so to have ~ 25000 cells per processor */
-  Partition_tool metis { nb_parts 4 }
+  Partition_tool metis { nb_parts 2 }
   Larg_joint 2
   zones_name DOM
 }
@@ -120,7 +120,6 @@ Read pb
       k  k  periode 1e8 position_like vitesse
       diss  omega  periode 1e8 position_like vitesse
       dist_paroi Distance_paroi  periode 1e8 position_like vitesse
-      # y_plus  y_plus   periode 1e8 segment 20 0 0.0 100 0.0 #
       y_plus   y_plus   periode 1e8 segment 20 0 0.0 100 0.0
       pression pression  periode 1e8 segment 100 0 0.8 100 0.8
       gradp  Gradient_pression  periode 1e8 segment 20 0 0.8 100 0.8
