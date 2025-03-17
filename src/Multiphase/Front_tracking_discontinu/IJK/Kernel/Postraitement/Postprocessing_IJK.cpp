@@ -1688,7 +1688,10 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
   double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
 
-  if (nom == "LAMBDA2" || nom == "CRITERE_Q" || nom == "CURL")
+  // TODO pas optimal :
+  if (nom == "LAMBDA2")
+    get_update_lambda2();
+  if (nom == "CRITERE_Q" || nom == "CURL")
     get_update_lambda2_and_rot_and_Q();
 
   if (nom == "NUM_COMPO")
@@ -2144,7 +2147,10 @@ void Postprocessing_IJK::alloc_fields()
       dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       if (is_post_required("LAMBDA2"))
-        scalar_post_fields_.at("LAMBDA2").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "LAMBDA2");
+        {
+          scalar_post_fields_.at("LAMBDA2").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "LAMBDA2");
+          champs_compris_.ajoute_champ( scalar_post_fields_.at("LAMBDA2"));
+        }
       if (is_post_required("CRITERE_Q") || is_post_required("CURL"))
         {
           scalar_post_fields_.at("CRITERE_Q").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "CRITERE_Q");
