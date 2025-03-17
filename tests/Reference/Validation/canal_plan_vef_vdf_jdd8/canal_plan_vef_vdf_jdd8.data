@@ -107,10 +107,10 @@ Read pb
       {
         convection { amont }
         diffusion { }
-        conditions_initiales  { k_omega champ_uniforme 2 0.01 5.555555555555556 }
+        conditions_initiales  { k_omega champ_uniforme 2 1e-4 1e1 }
         conditions_limites {
-          entree frontiere_ouverte_K_omega_impose Champ_Front_Uniforme 2 0.01 5.555555555555556
-          sortie frontiere_ouverte k_omega_ext Champ_Front_Uniforme 2 0.01 5.555555555555556
+          entree frontiere_ouverte_K_omega_impose Champ_Front_Uniforme 2 1e-4 1e1
+          sortie frontiere_ouverte k_omega_ext Champ_Front_Uniforme 2 1e-4 1e1
           bas paroi
           haut symetrie
         }
