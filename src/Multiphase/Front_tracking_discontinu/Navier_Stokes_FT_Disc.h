@@ -31,6 +31,7 @@ class Navier_Stokes_FT_Disc: public Navier_Stokes_Turbulent
 {
   Declare_instanciable(Navier_Stokes_FT_Disc);
 public:
+  friend class Post_Processing_Hydrodynamic_Forces;
 
   void set_param(Param& titi) override;
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
@@ -77,6 +78,9 @@ public:
   void compute_particles_eulerian_id_number(const OWN_PTR(Collision_Model_FT_base)& collision_model_ptr);
   void swap_particles_eulerian_id_number(const ArrOfInt& gravity_center_elem);
 
+  DoubleTab& get_set_velocity_field_Stokes_th() { return velocity_field_Stokes_th_->valeurs(); }
+  DoubleTab& get_set_pressure_field_Stokes_th() { return pressure_field_Stokes_th_->valeurs(); }
+
 protected:
 
   // Methode surchargee de Navier_Stokes_std :
@@ -115,6 +119,8 @@ protected:
   int id_fluid_phase_=1; // number (0 or 1) of the Fluid_Incompressible phase
   IntTab particles_eulerian_id_number_;
   OWN_PTR(Champ_Fonc_base)  particles_eulerian_id_number_post_; // for post-processing only
+  OWN_PTR(Champ_Fonc_base) velocity_field_Stokes_th_;
+  OWN_PTR(Champ_Fonc_base) pressure_field_Stokes_th_;
 
 private:
   const Navier_Stokes_FT_Disc_interne& variables_internes() const;

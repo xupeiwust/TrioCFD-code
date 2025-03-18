@@ -60,6 +60,11 @@
 #include <TRUST_2_PDI.h>
 #include <Avanc.h>
 
+#include <map>
+#include <variant>
+#include <functional>
+#include <vector>
+
 Implemente_instanciable_sans_constructeur_ni_destructeur(Transport_Interfaces_FT_Disc,"Transport_Interfaces_FT_Disc",Transport_Interfaces_base);
 
 /*! @brief Classe outil ou on stocke tout le bazar qui sert au fonctionnement de l'equation de transport.
@@ -501,6 +506,7 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   param.ajouter_non_std("type_indic_faces", (this)) ;
   param.ajouter("collision_model_fpi",&collision_model_);
   param.ajouter_flag("compute_particles_rms",&compute_particles_rms_);
+  param.ajouter("post_process_hydrodynamic_forces", &post_process_hydro_forces_);
 }
 
 int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
@@ -1742,6 +1748,7 @@ void Transport_Interfaces_FT_Disc::remailler_interface()
 int Transport_Interfaces_FT_Disc::preparer_calcul()
 {
   Process::Journal()<<"Transport_Interfaces_FT_Disc::preparer_calcul"<<finl;
+
   if (is_solid_particle_)
     {
       compute_nb_particles_tot(); // must be done before Collision_Model_FT::reprendre
@@ -1750,7 +1757,17 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
       mean_particles_volumic_squared_velocity_.resize(nb_particles_tot_,dimension);
       rms_particles_volumic_velocity_.resize(nb_particles_tot_,dimension);
       particles_purely_solid_mesh_volume_.resize(nb_particles_tot_);
+      post_process_hydro_forces_.associate_ns_equation(equation_ns_);
+      post_process_hydro_forces_.associate_transport_equation(*this);
+      post_process_hydro_forces_Stokes_.associate_ns_equation(equation_ns_);
+      post_process_hydro_forces_Stokes_.associate_transport_equation(*this);
+      post_process_hydro_forces_Stokes_.set_param(post_process_hydro_forces_);
+      post_process_hydro_forces_.resize_and_init_tables(nb_particles_tot_);
+      post_process_hydro_forces_Stokes_.resize_and_init_tables(nb_particles_tot_);
+
+
     }
+
   if (collision_model_.non_nul())
     {
       const Navier_Stokes_FT_Disc& ns = equation_ns_.valeur();
@@ -1800,6 +1817,7 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
   indicatrice_->valeurs() = get_update_indicatrice().valeurs();
   get_update_distance_interface();
   get_update_normale_interface();
+  maillage_interface().compute_gravity_center_fa7();
 
   // On verifie que la methode de transport a bien ete fournie dans le jeu
   // de donnees:
@@ -3074,7 +3092,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
 
   if (flag==0)
     return ;
-  Noms files(8);
+  Noms files(11);
   Nom file=Objet_U::nom_du_cas();
   if (type=="force")
     files[0]=type,
@@ -3100,6 +3118,22 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
   else if (type=="particles_data")
     files[7]=type,
              file+="_particles_data_";
+  else if (type=="particle_hydrodynamic_forces")
+    {
+      files[8]=type,
+               file+="_particle_hydrodynamic_forces_";
+    }
+  else if( type=="Stokes_theoretical_forces" )
+    {
+      files[9]=type,
+               file+= "_Stokes_theoretical_forces_";
+    }
+  else if (type=="particle_hydrodynamic_forces_bed")
+    {
+      files[10]=type,
+                file+= "_particle_hydrodynamic_forces_bed_";
+    }
+
   else
     {
       Cerr << "The file " << type << " is not understood by Transport_Interfaces_FT_Disc::ouvrir_fichier. "
@@ -3167,11 +3201,16 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
           fic << "# Average velocity - Average velocity squared - RMS #" << finl;
           fic << "#####################################################" << finl;
           fic << "# Time [s]" << finl;
-          fic << "# Average velocity of purely solid cells. For each purely solid cell, the velocity at gravity center is computed as the average velocity of the opposing faces weighted by its volume. [m/s] (vx_av vy_av vz_av)" << finl;
+          fic << "# Average velocity of purely solid cells. For each purely solid cell,"
+              " the velocity at gravity center is computed as the average velocity of"
+              " the opposing faces weighted by its volume. [m/s] (vx_av vy_av vz_av)" << finl;
           fic << "# Average velocity squared of purely solid cells. [m^2/s^2] (vx2_av vy2_av vz2_av)" << finl;
-          fic << "# Once the average velocity and the average velocity squared is known, the RMS is computed as sqrt(abs(vi_av^2 - vi2_av)) with i in {x,y,z}. [-] (rmsx rmsy rmsz)" << finl;
+          fic << "# Once the average velocity and the average velocity squared is known,"
+              " the RMS is computed as sqrt(abs(vi_av^2 - vi2_av)) with i in {x,y,z}."
+              " [-] (rmsx rmsy rmsz)" << finl;
           fic << finl;
-          fic << "# Time" << espace << "vx_av vy_av vz_av" << espace << "vx2_av vy2_av vz2_av" << espace << "rmsx rmsy rmsz" << finl;
+          fic << "# Time" << espace << "vx_av vy_av vz_av" << espace << "vx2_av vy2_av vz2_av"
+              << espace << "rmsx rmsy rmsz" << finl;
           fic << finl;
         }
       else if (rang==7)
@@ -3187,6 +3226,51 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
           fic << finl;
           fic << "# Time" <<espace <<"total collision number" << finl;
           fic << "particle_id px py pz vx vy vz fcx fcy fcz number_of_particles_in_collision"<< finl;
+          fic << finl;
+        }
+      else if (rang==8)
+        {
+          fic << "###################################" << finl;
+          fic << "# Hydrodynamic force computation #"  << finl;
+          fic << "###################################" << finl;
+          fic << finl;
+          fic << "# Time [s]"<< espace << "Particle surface [m^2]" << espace <<
+              "Pressure force [N] (fpx fpy fpz)" << espace << "Friction force [N] (ffx ffy ffz)" << finl;
+          fic << finl;
+        }
+      else if (rang==9)
+        {
+          fic << "#####################################################################" << finl;
+          fic << "# Hydrodynamic force computation - Stokes theoretical configuration #"  << finl;
+          fic << "#####################################################################" << finl;
+          fic << "# Time [s]"<< finl;
+          fic << "# Stokes theoretical PRESSURE FORCE computed from the integration, on the lagrangian mesh,"
+              " of the discretized analytical solution [N] (fpx_th fpy_th fpz_th)" << finl;
+          fic << "# Stokes PRESSURE FORCE computed with the developed method on the theoretical"
+              " pressure field discretized on the eulerian mesh [N] (fpx_th_interp fpy_th_interp"
+              " fpz_th_interp)" << finl;
+          fic << "# Stokes theoretical FRICTION FORCE computed from the integration,"
+              " on the lagrangian mesh, of the discretized analytical solution [N]"
+              " (ffx_th ffy_th ffz_th)" << finl;
+          fic << "# Stokes FRICTION FORCE computed with the developed method on the theoretical"
+              " velocity field discretized on the eulerian mesh [N] (ffx_th_interp"
+              " ffy_th_interp ffz_th_interp)" << finl;
+          fic << finl;
+          fic << "# Time" << espace << "fpx_th fpy_th fpz_th" << espace <<
+              "fpx_th_interp fpy_th_interp fpz_th_interp" << espace << "ffx_th ffy_th ffz_th" <<
+              espace << "ffx_th_interp ffy_th_interp ffz_th_interp" << finl;
+          fic << finl;
+        }
+      else if (rang==10)
+        {
+          fic << "#########################################################" << finl;
+          fic << "# Hydrodynamic force computation in a particle assembly #"  << finl;
+          fic << "#########################################################" << finl;
+          fic << finl;
+          fic << "# Time [s]" << espace << "particle_id" << espace << "Pressure force [N] (fpx fpy fpz)"
+              << espace << "Friction force [N] (ffx ffy ffz)" << espace <<
+              "Percentage of facets for which forces were computable" << espace <<
+              "Average fluid velocity in P2" << "Percentage of purely fluid cells in P2"<<  finl;
           fic << finl;
         }
 
@@ -3390,11 +3474,13 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
               const DoubleTab& rms_velocity=get_mean_particles_volumic_squared_velocity();
               const DoubleTab& mean_squared_velocity=get_rms_particles_volumic_velocity();
               const DoubleTab& particles_purely_solid_mesh_volume=get_particles_purely_solid_mesh_volume();
+
               for (int particle=0; particle<nb_particles_tot_; particle++)
                 {
                   Moy_Rms_Vitesse_Particule << particle << " ";
                   Moy_Rms_Vitesse_Particule << espace;
                   Moy_Rms_Vitesse_Particule << particles_purely_solid_mesh_volume(particle)<< espace;
+
                   for (int dim=0; dim<dimension; dim++)
                     Moy_Rms_Vitesse_Particule << espace << mean_velocity(particle,dim);
                   Moy_Rms_Vitesse_Particule << espace;
@@ -3409,7 +3495,6 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
                   Moy_Rms_Vitesse_Particule << finl;
                 }
             }
-
 
           SFichier Particles_data;
           ouvrir_fichier(Particles_data,"particles_data",1,*this);
@@ -3440,6 +3525,99 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
                   Particles_data << particles_collision_number(particle) << espace ;
                 }
               Particles_data << finl;
+            }
+
+          const Transport_Interfaces_FT_Disc& mon_eq = *this;
+          if (post_process_hydro_forces_.get_is_compute_forces())
+            {
+              const DoubleTab& total_pressure_force=post_process_hydro_forces_.get_pressure_force();
+              const DoubleTab& total_friction_force=post_process_hydro_forces_.get_friction_force();
+              const DoubleVect& total_surface_interf=post_process_hydro_forces_.get_total_surface_interf();
+
+              if (nb_particles_tot_<dim_max_impr)
+                {
+                  SFichier particle_hydro_forces;
+                  ouvrir_fichier(particle_hydro_forces,"particle_hydrodynamic_forces",1,mon_eq);
+                  schema_temps().imprimer_temps_courant(particle_hydro_forces);
+
+                  for (int compo=0; compo<nb_particles_tot_; compo++)
+                    {
+                      particle_hydro_forces << espace << total_surface_interf(compo) << espace;
+                      for (int dim=0; dim<dimension; dim++) particle_hydro_forces <<
+                                                                                    espace << total_pressure_force(compo,dim);
+                      particle_hydro_forces << espace;
+                      for (int dim=0; dim<dimension; dim++) particle_hydro_forces <<
+                                                                                    espace << total_friction_force(compo,dim);
+                      particle_hydro_forces << espace;
+                    }
+
+                  particle_hydro_forces << finl;
+                }
+              else
+                {
+                  SFichier particle_hydro_forces_bed;
+                  ouvrir_fichier(particle_hydro_forces_bed,"particle_hydrodynamic_forces_bed",1,mon_eq);
+                  particle_hydro_forces_bed << "TIME ";
+                  schema_temps().imprimer_temps_courant(particle_hydro_forces_bed);
+                  particle_hydro_forces_bed << finl;
+                  const DoubleTab& U_P2_moy = post_process_hydro_forces_.get_U_P2_moy();
+                  const DoubleTab& Nb_fa7_ok_prop = post_process_hydro_forces_.get_prop_fa7_ok_P2();
+                  const DoubleTab& Prop_indic_fluide_P2 = post_process_hydro_forces_.get_prop_P2_fluid();
+                  for (int particle = 0; particle < nb_particles_tot_; particle++)
+                    {
+                      int dim;
+                      particle_hydro_forces_bed << particle ;
+                      particle_hydro_forces_bed << espace << total_surface_interf(particle) << espace;
+                      for (dim=0; dim<dimension; dim++) particle_hydro_forces_bed << espace <<
+                                                                                    total_pressure_force(particle,dim);
+                      particle_hydro_forces_bed << espace;
+                      for (dim=0; dim<dimension; dim++) particle_hydro_forces_bed << espace <<
+                                                                                    total_friction_force(particle,dim);
+                      particle_hydro_forces_bed << espace;
+                      for (dim=0; dim<dimension; dim++) particle_hydro_forces_bed << espace <<
+                                                                                    Nb_fa7_ok_prop(particle,dim);
+                      for (dim=0; dim<dimension; dim++) particle_hydro_forces_bed << espace <<
+                                                                                    U_P2_moy(particle,dim);
+                      particle_hydro_forces_bed << espace << Prop_indic_fluide_P2(particle);
+                      particle_hydro_forces_bed << finl;
+                    }
+                }
+
+            }
+
+          if (post_process_hydro_forces_.get_is_compute_forces_Stokes_th() && schema_temps().nb_pas_dt()==1)
+            {
+              const DoubleTab& total_pressure_force=post_process_hydro_forces_Stokes_.get_pressure_force();
+              const DoubleTab& total_friction_force=post_process_hydro_forces_Stokes_.get_friction_force();
+              const DoubleTab& total_pressure_force_Stokes=post_process_hydro_forces_Stokes_.
+                                                           get_pressure_force_Stokes_th();
+              const DoubleTab& total_friction_force_Stokes=post_process_hydro_forces_Stokes_.
+                                                           get_friction_force_Stokes_th();
+              int nb_particles_tot = total_pressure_force.dimension(0);
+
+              if (nb_particles_tot<dim_max_impr)
+                {
+                  SFichier Force_Particule_th;
+                  ouvrir_fichier(Force_Particule_th,"Stokes_theoretical_forces",1,mon_eq);
+                  schema_temps().imprimer_temps_courant(Force_Particule_th);
+                  for (int particle=0; particle<nb_particles_tot; particle++)
+                    {
+                      Force_Particule_th << espace;
+                      for (int dim=0; dim<dimension; dim++) Force_Particule_th << espace <<
+                                                                                 total_pressure_force_Stokes(particle,dim);
+                      Force_Particule_th << espace;
+                      for (int dim=0; dim<dimension; dim++) Force_Particule_th << espace <<
+                                                                                 total_pressure_force(particle,dim);
+                      Force_Particule_th << espace;
+                      for (int dim=0; dim<dimension; dim++) Force_Particule_th << espace <<
+                                                                                 total_friction_force_Stokes(particle,dim);
+                      Force_Particule_th << espace;
+                      for (int dim=0; dim<dimension; dim++) Force_Particule_th << espace <<
+                                                                                 total_friction_force(particle,dim);
+                      Force_Particule_th << finl;
+                    }
+                }
+
             }
         }
     }
@@ -7162,6 +7340,8 @@ void Transport_Interfaces_FT_Disc::deplacer_maillage_ft_v_fluide(const double te
 
   if (collision_model_.non_nul() && nb_particles_tot_>1)
     swap_particles_lagrangian_position_velocity();
+
+  maillage.compute_gravity_center_fa7();
 }
 
 void Transport_Interfaces_FT_Disc::ajouter_contribution_saut_vitesse(DoubleTab& deplacement) const
@@ -7659,7 +7839,16 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           ns.compute_particles_eulerian_id_number(collision_model_);
           ns.swap_particles_eulerian_id_number(gravity_center_elem_);
         }
-      if (schema_temps().limpr()) compute_particles_rms();
+      if (schema_temps().limpr())
+        {
+          compute_particles_rms();
+          post_process_hydro_forces_.drop_the_flag();
+          post_process_hydro_forces_Stokes_.drop_the_flag();
+          if (post_process_hydro_forces_.get_is_compute_forces())
+            post_process_hydro_forces_.compute_hydrodynamic_forces();
+          if (post_process_hydro_forces_Stokes_.get_is_compute_forces())
+            post_process_hydro_forces_Stokes_.compute_hydrodynamic_forces();
+        }
     }
 }
 
@@ -7992,6 +8181,212 @@ const Algorithmes_Transport_FT_Disc& Transport_Interfaces_FT_Disc::algorithmes_t
   return variables_internes_->algorithmes_transport_.valeur();
 }
 
+
+void Transport_Interfaces_FT_Disc::fill_map_post_FT(Transport_Interfaces_FT_Disc::
+                                                    my_map& map_post, DoubleTab *ftab) const
+{
+  const Motcle som = "sommets";
+  const Motcle elem = "elements";
+  const Motcle bi = "elements et sommets";
+  const DoubleTab dummytab;
+
+  map_post.emplace(Postraitement_base::demande_description, map_element_post_FT(bi,&Transport_Interfaces_FT_Disc::
+                                                                                fill_ftab_vertices_curvature, ftab, dummytab));
+  map_post.emplace("courbure", map_element_post_FT(som,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_vertices_curvature, ftab, dummytab));
+  map_post.emplace("vitesse", map_element_post_FT (som,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_velocity, ftab, dummytab));
+  map_post.emplace("vitesse_repere_local", map_element_post_FT (som,&Transport_Interfaces_FT_Disc::
+                                                                fill_ftab_local_reference_frame_velocity, ftab, dummytab));
+  map_post.emplace("normale_unitaire", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                            fill_ftab_normal_unit, ftab, dummytab));
+  map_post.emplace("pressure", map_element_post_FT(elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_pressure, ftab, dummytab));
+  map_post.emplace("pressure_force", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                          fill_ftab_pressure_force, ftab, dummytab));
+  map_post.emplace("friction_force", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                          fill_ftab_friction_force, ftab, dummytab));
+
+  map_post.emplace("sigma_xx", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_xx_fa7()));
+  map_post.emplace("sigma_xy", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_xy_fa7()));
+  map_post.emplace("sigma_xz", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_xz_fa7()));
+  map_post.emplace("sigma_yx", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_yx_fa7()));
+  map_post.emplace("sigma_yy", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_yy_fa7()));
+  map_post.emplace("sigma_yz", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_yz_fa7()));
+  map_post.emplace("sigma_zx", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_zx_fa7()));
+  map_post.emplace("sigma_zy", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_zy_fa7()));
+  map_post.emplace("sigma_zz", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_.get_sigma_zz_fa7()));
+  map_post.emplace("pressure_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_Stokes_pressure_interp, ftab, dummytab));
+  map_post.emplace("pressure_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_Stokes_pressure_th, ftab, dummytab));
+  map_post.emplace("pressure_force_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                           fill_ftab_Stokes, ftab, post_process_hydro_forces_Stokes_.get_pressure_force_fa7()));
+  map_post.emplace("pressure_force_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_Stokes, ftab, post_process_hydro_forces_Stokes_.get_pressure_force_Stokes_th_fa7()));
+  map_post.emplace("friction_force_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                           fill_ftab_Stokes, ftab, post_process_hydro_forces_Stokes_.get_friction_force_fa7()));
+  map_post.emplace("friction_force_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_Stokes, ftab, post_process_hydro_forces_Stokes_.get_friction_force_Stokes_th_fa7()));
+
+  map_post.emplace("sigma_xx_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xx_fa7()));
+  map_post.emplace("sigma_xy_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xy_fa7()));
+  map_post.emplace("sigma_xz_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xz_fa7()));
+  map_post.emplace("sigma_yx_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_yx_fa7()));
+  map_post.emplace("sigma_yy_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_yy_fa7()));
+  map_post.emplace("sigma_yz_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_yz_fa7()));
+  map_post.emplace("sigma_zx_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_zx_fa7()));
+  map_post.emplace("sigma_zy_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_zy_fa7()));
+  map_post.emplace("sigma_zz_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                     fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_zz_fa7()));
+
+  map_post.emplace("sigma_xx_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xx_fa7_Stokes_th()));
+  map_post.emplace("sigma_xy_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xy_fa7_Stokes_th()));
+  map_post.emplace("sigma_xz_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_xz_fa7_Stokes_th()));
+  map_post.emplace("sigma_yy_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_yy_fa7_Stokes_th()));
+  map_post.emplace("sigma_yz_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_yz_fa7_Stokes_th()));
+  map_post.emplace("sigma_zz_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                              fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_sigma_zz_fa7_Stokes_th()));
+
+  map_post.emplace("dUdx_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdx_P1()));
+  map_post.emplace("dUdy_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdy_P1()));
+  map_post.emplace("dUdz_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdz_P1()));
+  map_post.emplace("dVdx_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdx_P1()));
+  map_post.emplace("dVdy_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdy_P1()));
+  map_post.emplace("dVdz_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdz_P1()));
+  map_post.emplace("dWdx_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdx_P1()));
+  map_post.emplace("dWdy_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdy_P1()));
+  map_post.emplace("dWdz_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdz_P1()));
+
+  map_post.emplace("dUdx_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdx_P2()));
+  map_post.emplace("dUdy_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdy_P2()));
+  map_post.emplace("dUdz_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dUdz_P2()));
+  map_post.emplace("dVdx_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdx_P2()));
+  map_post.emplace("dVdy_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdy_P2()));
+  map_post.emplace("dVdz_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dVdz_P2()));
+  map_post.emplace("dWdx_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdx_P2()));
+  map_post.emplace("dWdy_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdy_P2()));
+  map_post.emplace("dWdz_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                   fill_ftab_scalar, ftab, post_process_hydro_forces_.get_dWdz_P2()));
+
+  map_post.emplace("dUdx_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdx_P1()));
+  map_post.emplace("dUdy_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdy_P1()));
+  map_post.emplace("dUdz_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdz_P1()));
+  map_post.emplace("dVdx_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdx_P1()));
+  map_post.emplace("dVdy_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdy_P1()));
+  map_post.emplace("dVdz_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdz_P1()));
+  map_post.emplace("dWdx_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdx_P1()));
+  map_post.emplace("dWdy_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdy_P1()));
+  map_post.emplace("dWdz_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdz_P1()));
+
+  map_post.emplace("dUdx_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdx_P2()));
+  map_post.emplace("dUdy_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdy_P2()));
+  map_post.emplace("dUdz_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdz_P2()));
+  map_post.emplace("dVdx_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdx_P2()));
+  map_post.emplace("dVdy_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdy_P2()));
+  map_post.emplace("dVdz_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdz_P2()));
+  map_post.emplace("dWdx_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdx_P2()));
+  map_post.emplace("dWdy_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdy_P2()));
+  map_post.emplace("dWdz_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                    fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdz_P2()));
+
+  map_post.emplace("dUdx_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdx_P1_Stokes_th()));
+  map_post.emplace("dUdz_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdz_P1_Stokes_th()));
+  map_post.emplace("dVdz_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdz_P1_Stokes_th()));
+  map_post.emplace("dWdx_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdx_P1_Stokes_th()));
+  map_post.emplace("dWdy_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdy_P1_Stokes_th()));
+  map_post.emplace("dWdz_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdz_P1_Stokes_th()));
+
+  map_post.emplace("dUdx_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdx_P2_Stokes_th()));
+  map_post.emplace("dUdz_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dUdz_P2_Stokes_th()));
+  map_post.emplace("dVdz_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dVdz_P2_Stokes_th()));
+  map_post.emplace("dWdx_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdx_P2_Stokes_th()));
+  map_post.emplace("dWdy_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdy_P2_Stokes_th()));
+  map_post.emplace("dWdz_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                             fill_ftab_scalar, ftab, post_process_hydro_forces_Stokes_.get_dWdz_P2_Stokes_th()));
+
+  map_post.emplace("U_P1", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                fill_ftab_vector, ftab, post_process_hydro_forces_.get_U_P1()));
+  map_post.emplace("U_P2", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                fill_ftab_vector, ftab, post_process_hydro_forces_.get_U_P2()));
+  map_post.emplace("U_P1_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                 fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P1()));
+  map_post.emplace("U_P2_Stokes_th_interp", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                                 fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P2()));
+  map_post.emplace("U_P1_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                          fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P1_Stokes_th()));
+  map_post.emplace("U_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
+                                                          fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P2_Stokes_th()));
+
+}
+
 /*! @brief Cherche le champ discret aux interfaces dont le nom est "champ", et verifie qu'il peut etre postraite a la localisation demandee (loc).
  *
  *   Si oui on renvoie 1 et, si ftab est non nul, on remplit le champ ftab
@@ -8006,159 +8401,62 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
 {
   int res = 1;
 
-  const Motcle som = "sommets";            //postraitement possible uniquement aux sommets
-  const Motcle elem = "elements";          //postraitement possible uniquement aux elements
-  const Motcle bi = "elements et sommets"; //postraitement possible aux sommets et aux elements
-  const int nb_champs = 5;
-  Motcles les_champs(nb_champs);
-  {
-    les_champs[0] = Postraitement_base::demande_description;
-    les_champs[1] = "courbure";
-    les_champs[2] = "vitesse";
-    les_champs[3] = "vitesse_repere_local";
-    les_champs[4] = "normale_unitaire";
-  }
-  Motcles localisations(nb_champs);
-  {
-    localisations[0] = bi;
-    localisations[1] = som;
-    localisations[2] = som;
-    localisations[3] = som;
-    localisations[4] = elem;
-  }
+  const Motcle som = "sommets";            // post-processing at the vertices only
+  const Motcle elem = "elements";          // post-processing at the element only
+  const Motcle bi = "elements et sommets"; // post-processing at both location
 
-  int rang=les_champs.search(champ), i;
+  Transport_Interfaces_FT_Disc::my_map map_post;
+  fill_map_post_FT(map_post,ftab);
 
-  if (rang==0)
+  Motcle the_key="key";
+  Motcle the_loc="loc";
+  map_element_post_FT::func_type the_function=&Transport_Interfaces_FT_Disc::fill_ftab_scalar;
+  DoubleTab  the_tab_values;
+  bool elem_found=false;
+
+  // I didn't manage to use std::map::find properly, so I loop on map_post to find the element
+  for (const auto& [key, value] : map_post)
+    {
+      if (key==champ)
+        {
+          the_key=key;
+          the_loc=value.location_;
+          the_function=value.function_;
+          the_tab_values=value.values_;
+          elem_found=true;
+          break;
+        }
+    }
+
+  if (the_key==Postraitement_base::demande_description)
     {
       Cerr<<"The real fields to be post-processed are :"<<finl;
-      for (i=1 ; i<nb_champs ; i++)
+      int i=0;
+      for (const auto& [key, value] : map_post)
         {
-          Cerr << " Fields("<<i<<") : "<< les_champs[i] << " # Localisations : " << localisations[i] << finl;
+          Cerr << " Fields("<<i<<") : " << key << ", Location : ";
+
+          Cerr << value.location_ << finl;
+          i++;
         }
       res = 0;
     }
-  else if (rang==-1)     //test champ existe ?
-    {
-      //champ inexistant
-      res = 0;
-    }
-  else if (! (localisations[rang]==bi
-              || (localisations[rang]==som && loc==Postraitement_base::SOMMETS)
-              || (localisations[rang]==elem && loc==Postraitement_base::ELEMENTS)) )   //test localisation autorisee ?
-    {
-      //localisation non autorisee
-      res = 0;
-    }
+  else if (!elem_found)     // existing field?
+    res = 0;  // inexisting field
+  else if (! (the_loc==bi
+              || (the_loc==som && loc==Postraitement_base::SOMMETS)
+              || (the_loc==elem && loc==Postraitement_base::ELEMENTS)) )   // authorized location?
+    res = 0; // unauthorized location
   else
     {
-      switch(rang)
+      if (ftab)
         {
-        case 1:
-          {
-            if (!ftab) break; // Pointeur nul : ne pas calculer la valeur du champ.
-            const Maillage_FT_Disc& mesh = maillage_interface_pour_post();
-            const ArrOfDouble& valeurs = mesh.get_update_courbure_sommets();
-            const int n = valeurs.size_array();
-            ftab->resize(n,1);
-            for (int ii = 0; ii < n; ii++)
-              (*ftab)(ii,0) = valeurs[ii];
-            break;
-          }
-        case 2:
-          {
-            if (!ftab) break; // Pointeur nul : ne pas calculer la valeur du champ.
-            if (variables_internes_->refequation_vitesse_transport.non_nul())
-              {
-                DoubleTabFT vit;
-                // Calcul de la vitesse de deplacement des sommets par interpolation
-                // (deplacement contient en fait la vitesse en m/s)
-                const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
-                const Champ_base& champ_vitesse = eqn_hydraulique.inconnue();
-                int flag = 1;
-                if (sub_type(Navier_Stokes_FT_Disc, eqn_hydraulique))
-                  {
-                    const Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
-                    if (ns.get_delta_vitesse_interface())
-                      flag=0;
-                  }
-                calculer_vitesse_transport_interpolee(champ_vitesse, maillage_interface_pour_post(), vit,
-                                                      0 /* ne pas recalculer le champ de vitesse L2 */,  // GB 2020/03/20 -> Je suis surpris par cette option 0 en desaccord avec le moment du calcul
-                                                      // mais je ne prends pas la responsabilite de changer car je ne sais pas trop ce que ca represente (c'est du VEF uniquement?)
-                                                      flag /* Interpolation Multi-lineaire en VDF */);
-                // Pour ajouter le saut de vitesse a l'interface :
-                ajouter_contribution_saut_vitesse(vit); // ici, l'interpolation depend de ns.get_new_mass_source()
-                const int nb_noeuds = vit.dimension(0);
-                const int nb_compo = vit.line_size();
-                ftab->resize(nb_noeuds, nb_compo);
-                int som2,k;
-                for (som2=0 ; som2<nb_noeuds ; som2++)
-                  for (k=0 ; k<nb_compo ; k++)
-                    (*ftab)(som2,k) = vit(som2,k);
-              }
-            else
-              {
-                // Coder le postraitement d'une vitesse imposee
-                Cerr << "Error : velocity nodes post-processing : to be developped." << finl;
-                assert(0);
-                Process::exit();
-              }
-            break;
-          }
-        case 3:
-          {
-            if (!ftab) break; // Pointeur nul : ne pas calculer la valeur du champ.
-            if (variables_internes_->refequation_vitesse_transport.non_nul())
-              {
-                DoubleTabFT vit;
-                DoubleTab Positions,Vitesses;
-                // Calcul de la vitesse de deplacement des sommets par interpolation
-                // (deplacement contient en fait la vitesse en m/s)
-                const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
-                const Champ_base& champ_vitesse = eqn_hydraulique.inconnue();
-                calculer_vitesse_transport_interpolee(champ_vitesse, maillage_interface_pour_post(), vit,
-                                                      0 /* ne pas recalculer le champ de vitesse L2 */,  // GB 2020/03/20 -> Je suis surpris par cette option 0 en desaccord avec le moment du calcul
-                                                      // mais je ne prends pas la responsabilite de changer car je ne sais pas trop ce que ca represente (c'est du VEF uniquement?)
-                                                      1 /* Interpolation Multi-lineaire en VDF */);
-                // Pour ajouter le saut de vitesse a l'interface :
-                ajouter_contribution_saut_vitesse(vit);// ici, l'interpolation depend de ns.get_new_mass_source()
-                calculer_vitesse_repere_local( maillage_interface_pour_post(), vit,Positions,Vitesses);
+          if(post_process_hydro_forces_.get_is_compute_forces())
+            post_process_hydro_forces_.compute_hydrodynamic_forces();
+          if(post_process_hydro_forces_.get_is_compute_forces_Stokes_th())
+            post_process_hydro_forces_Stokes_.compute_hydrodynamic_forces();
+          (this->*the_function)(ftab,the_tab_values);
 
-                const int nb_noeuds = vit.dimension(0);
-                const int nb_compo = vit.line_size();
-                ftab->resize(nb_noeuds, nb_compo);
-                int som2,k;
-                for (som2=0 ; som2<nb_noeuds ; som2++)
-                  for (k=0 ; k<nb_compo ; k++)
-                    (*ftab)(som2,k) = vit(som2,k);
-              }
-            else
-              {
-                // Coder le postraitement d'une vitesse imposee
-                Cerr << "Error : vitesse_repere_local nodes post-processing : to be developped." << finl;
-                assert(0);
-                Process::exit();
-              }
-            break;
-          }
-        case 4:
-          {
-            if (!ftab) break; // Pointeur nul : ne pas calculer la valeur du champ.
-            const Maillage_FT_Disc& mesh = maillage_interface_pour_post();
-            const DoubleTab& valeurs = mesh.get_update_normale_facettes();
-            const int nb_fa7 = valeurs.dimension(0);
-            const int nb_compo = valeurs.line_size();
-            ftab->resize(nb_fa7, nb_compo);
-            int fa7,k;
-            for (fa7=0 ; fa7<nb_fa7 ; fa7++)
-              for (k=0 ; k<nb_compo ; k++)
-                (*ftab)(fa7,k) = valeurs(fa7,k);
-            break;
-          }
-        default:
-          Cerr << "Error for the method Transport_Interfaces_FT_Disc::get_champ_post_FT" << finl;
-          assert(0);
-          Process::exit();
         }
       res = 1;
     }
@@ -8179,13 +8477,13 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
   const Motcle elem = "elements";          //postraitement possible uniquement aux elements
   const Motcle bi = "elements et sommets"; //postraitement possible aux sommets et aux elements
   const int nb_champs = 5;
-  Motcles les_champs(nb_champs);
+  Motcles fields(nb_champs);
   {
-    les_champs[0] = Postraitement_base::demande_description;
-    les_champs[1] = "pe";        // PE owner
-    les_champs[2] = "numero";    // numero local du sommet/element
-    les_champs[3] = "pe_local";  // PE local
-    les_champs[4] = "compo_connexe";
+    fields[0] = Postraitement_base::demande_description;
+    fields[1] = "pe";        // PE owner
+    fields[2] = "numero";    // numero local du sommet/element
+    fields[3] = "pe_local";  // PE local
+    fields[4] = "compo_connexe";
   }
   Motcles localisations(nb_champs);
   {
@@ -8196,25 +8494,25 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
     localisations[4] = elem;
   }
 
-  int rang=les_champs.search(champ), i;
+  int rank=fields.search(champ), i;
 
-  if (rang==0)
+  if (rank==0)
     {
       Cerr<<"The integer fields to be post-processed are:"<<finl;
       for (i=1 ; i<nb_champs ; i++)
         {
-          Cerr << " Fields("<<i<<") : "<< les_champs[i] << " # Localisations : " << localisations[i] << finl;
+          Cerr << " Fields("<<i<<") : "<< fields[i] << " # Localisations : " << localisations[i] << finl;
         }
       res = 0;
     }
-  else if (rang==-1)
+  else if (rank==-1)
     {
       //champ inexistant
       res = 0;
     }
-  else if (! (localisations[rang]==bi
-              || (localisations[rang]==som && loc==Postraitement_base::SOMMETS)
-              || (localisations[rang]==elem && loc==Postraitement_base::ELEMENTS)) )   //test localisation autorisee ?
+  else if (! (localisations[rank]==bi
+              || (localisations[rank]==som && loc==Postraitement_base::SOMMETS)
+              || (localisations[rank]==elem && loc==Postraitement_base::ELEMENTS)) )   //test localisation autorisee ?
     {
       //localisation non autorisee
       res = 0;
@@ -8232,7 +8530,7 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
           int i2;
           itab->resize(n);
 
-          switch (rang )
+          switch (rank )
             {
             case 1:
               {
@@ -9492,5 +9790,152 @@ void Transport_Interfaces_FT_Disc::compute_particles_rms()
         }
     }
 
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_scalar(DoubleTab *ftab,
+                                                    const ArrOfDouble& values) const
+{
+  const int nb_fa7 = values.size_array();
+  ftab->resize(nb_fa7, 1);
+  for (int fa7=0 ; fa7<nb_fa7 ; fa7++)
+    (*ftab)(fa7,0) = (float) values(fa7);
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_scalar(DoubleTab *ftab,
+                                                    const DoubleVect& values) const
+{
+  const int nb_fa7 = values.size_array();
+  ftab->resize(nb_fa7, 1);
+  for (int fa7=0 ; fa7<nb_fa7 ; fa7++)
+    (*ftab)(fa7,0) = (float) values(fa7);
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_scalar(DoubleTab *ftab,
+                                                    const DoubleTab& values) const
+{
+  const int nb_fa7 = values.dimension(0);
+  ftab->resize(nb_fa7, 1);
+  for (int fa7=0 ; fa7<nb_fa7 ; fa7++)
+    (*ftab)(fa7,0) = (float) values(fa7);
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_vector(DoubleTab *ftab, const DoubleTab& values) const
+{
+
+  const int nb_fa7 = values.dimension(0);
+  const int nb_compo = values.dimension(1);
+  ftab->resize(nb_fa7, nb_compo);
+  for (int fa7=0 ; fa7<nb_fa7 ; fa7++)
+    for (int k=0 ; k<nb_compo ; k++)
+      (*ftab)(fa7,k) = (float) values(fa7,k);
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_vertices_curvature(DoubleTab *ftab, const DoubleTab& dummytab) const
+{
+  const Maillage_FT_Disc& mesh = maillage_interface_pour_post();
+  fill_ftab_scalar(ftab,mesh.get_update_courbure_sommets());
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_velocity(DoubleTab *ftab,const DoubleTab& dummytab) const
+{
+  if (variables_internes_->refequation_vitesse_transport.non_nul())
+    {
+      DoubleTabFT vit;
+      // Calcul de la vitesse de deplacement des sommets par interpolation
+      // (deplacement contient en fait la vitesse en m/s)
+      const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+      const Champ_base& champ_vitesse = eqn_hydraulique.inconnue();
+      int flag = 1;
+      if (sub_type(Navier_Stokes_FT_Disc, eqn_hydraulique))
+        {
+          const Navier_Stokes_FT_Disc& ns = ref_cast(Navier_Stokes_FT_Disc, eqn_hydraulique);
+          if (ns.get_delta_vitesse_interface())
+            flag=0;
+        }
+      calculer_vitesse_transport_interpolee(champ_vitesse, maillage_interface_pour_post(), vit,
+                                            0 /* ne pas recalculer le champ de vitesse L2 */,  // GB 2020/03/20 -> Je suis surpris par cette option 0 en desaccord avec le moment du calcul
+                                            // mais je ne prends pas la responsabilite de changer car je ne sais pas trop ce que ca represente (c'est du VEF uniquement?)
+                                            flag /* Interpolation Multi-lineaire en VDF */);
+      // Pour ajouter le saut de vitesse a l'interface :
+      ajouter_contribution_saut_vitesse(vit); // ici, l'interpolation depend de ns.get_new_mass_source()
+      fill_ftab_vector(ftab,vit);
+    }
+  else
+    {
+      // Coder le postraitement d'une vitesse imposee
+      Cerr << "Error : velocity nodes post-processing : to be developped." << finl;
+      assert(0);
+      Process::exit();
+    }
+
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_local_reference_frame_velocity(DoubleTab *ftab, const DoubleTab& dummytab) const
+{
+  if (variables_internes_->refequation_vitesse_transport.non_nul())
+    {
+      DoubleTabFT vit;
+      DoubleTab Positions,Vitesses;
+      // Calcul de la vitesse de deplacement des sommets par interpolation
+      // (deplacement contient en fait la vitesse en m/s)
+      const Equation_base& eqn_hydraulique = variables_internes_->refequation_vitesse_transport.valeur();
+      const Champ_base& champ_vitesse = eqn_hydraulique.inconnue();
+      calculer_vitesse_transport_interpolee(champ_vitesse, maillage_interface_pour_post(), vit,
+                                            0 /* ne pas recalculer le champ de vitesse L2 */,  // GB 2020/03/20 -> Je suis surpris par cette option 0 en desaccord avec le moment du calcul
+                                            // mais je ne prends pas la responsabilite de changer car je ne sais pas trop ce que ca represente (c'est du VEF uniquement?)
+                                            1 /* Interpolation Multi-lineaire en VDF */);
+      // Pour ajouter le saut de vitesse a l'interface :
+      ajouter_contribution_saut_vitesse(vit);// ici, l'interpolation depend de ns.get_new_mass_source()
+      calculer_vitesse_repere_local( maillage_interface_pour_post(), vit,Positions,Vitesses);
+      fill_ftab_vector(ftab,vit);
+    }
+  else
+    {
+      // Coder le postraitement d'une vitesse imposee
+      Cerr << "Error : vitesse_repere_local nodes post-processing : to be developped." << finl;
+      assert(0);
+      Process::exit();
+    }
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_normal_unit(DoubleTab *ftab,const DoubleTab& dummytab) const
+{
+  const Maillage_FT_Disc& mesh = maillage_interface_pour_post();
+  fill_ftab_vector(ftab,mesh.get_update_normale_facettes());
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_pressure_force(DoubleTab *ftab,const DoubleTab& dummytab) const
+{
+  if (post_process_hydro_forces_.get_is_post_process_pressure_force_fa7())
+    fill_ftab_vector(ftab,post_process_hydro_forces_.get_pressure_force_fa7());
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_friction_force(DoubleTab *ftab,const DoubleTab& dummytab) const
+{
+  if (post_process_hydro_forces_.get_is_post_process_friction_force_fa7())
+    fill_ftab_vector(ftab,post_process_hydro_forces_.get_friction_force_fa7());
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_Stokes(DoubleTab* ftab, const DoubleTab& values) const
+{
+  if(post_process_hydro_forces_Stokes_.get_is_compute_forces_Stokes_th())
+    fill_ftab_vector(ftab,values);
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_pressure(DoubleTab *ftab,const DoubleTab& dummytab) const
+{
+  if(post_process_hydro_forces_.get_is_post_process_pressure_fa7())
+    fill_ftab_scalar(ftab,post_process_hydro_forces_.get_pressure_fa7());
+}
+
+void Transport_Interfaces_FT_Disc::fill_ftab_Stokes_pressure_interp(DoubleTab* ftab, const DoubleTab& dummytab) const
+{
+  if(post_process_hydro_forces_Stokes_.get_is_compute_forces_Stokes_th())
+    fill_ftab_scalar(ftab,post_process_hydro_forces_Stokes_.get_pressure_fa7());
+}
+void Transport_Interfaces_FT_Disc::fill_ftab_Stokes_pressure_th(DoubleTab* ftab, const DoubleTab& dummytab) const
+{
+  if(post_process_hydro_forces_Stokes_.get_is_compute_forces_Stokes_th())
+    fill_ftab_scalar(ftab,post_process_hydro_forces_Stokes_.get_pressure_fa7_Stokes_th());
 }
 

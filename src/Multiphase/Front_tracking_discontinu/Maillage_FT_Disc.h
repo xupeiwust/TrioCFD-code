@@ -47,6 +47,8 @@ class Maillage_FT_Disc : public Ensemble_Lagrange_base
 {
   Declare_instanciable_sans_constructeur(Maillage_FT_Disc);
 public:
+  friend class Post_Processing_Hydrodynamic_Forces;
+
   enum Statut_Maillage { RESET = 0, MINIMAL = 1, PARCOURU = 2, COMPLET = 3};
   //
   // Methodes reimplementees de Objet_U
@@ -225,6 +227,8 @@ public:
   const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
   const Schema_Comm_FT& get_schema_comm_FT() const { return schema_comm_domaine_; }
 
+  const DoubleTab& get_gravity_center_fa7() const { return gravity_center_fa7_; }
+  void compute_gravity_center_fa7();
 protected:
   void pre_lissage_courbure(ArrOfDouble& store_courbure_sommets, const int niter) const;
   void correction_costheta(const double c, const int s0, const int facette,
@@ -480,7 +484,7 @@ protected:
   double weight_CL_;
 
   bool is_solid_particle_=false; // for fpi module, pointer to NS_FT_Disc::is_solid_particle_
-
+  DoubleTab gravity_center_fa7_; // EB
 };
 
 // Description :

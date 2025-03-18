@@ -41,6 +41,12 @@
 #include <TRUST_Ref.h>
 
 #include <Collision_Model_FT_base.h>
+#include <Post_Processing_Hydrodynamic_Forces.h>
+#include <Post_Processing_Hydrodynamic_Forces_Stokes.h>
+
+#include <map>
+#include <variant>
+#include <functional>
 
 class Probleme_base;
 class Milieu_base;
@@ -55,6 +61,7 @@ class Transport_Interfaces_FT_Disc : public Transport_Interfaces_base
 public:
 
   Transport_Interfaces_FT_Disc();
+  friend class Post_Processing_Hydrodynamic_Forces;
   //
   void set_param(Param& titi) override;
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
@@ -65,7 +72,7 @@ public:
   Operateur&        operateur(int i) override;         // Erreur
   const Champ_Inc_base& inconnue() const override;         // C'est l'indicatrice
   Champ_Inc_base&        inconnue() override;
-  //
+
   // Methodes surchargees de Equation_base
   //
   void                associer_milieu_base(const Milieu_base& milieu) override;
@@ -147,6 +154,7 @@ public:
   {
     return maillage_interface_pour_post().get_mesh_tag();
   };
+
 
   //Methode d acces au probleme
   const Probleme_base& get_probleme_base() const;
@@ -303,6 +311,8 @@ public:
   const DoubleTab& get_particles_position() const { return particles_position_collision_; }
   const DoubleTab& get_particles_velocity() const { return particles_velocity_collision_; }
   const ArrOfInt& get_gravity_center_elem() const { return gravity_center_elem_; }
+  Post_Processing_Hydrodynamic_Forces& get_post_process_hydro_forces()
+  { return post_process_hydro_forces_; }
 
 protected:
 
@@ -355,10 +365,21 @@ protected:
   { return particles_purely_solid_mesh_volume_; }
   //setters
   void set_is_solid_particle(const bool is_solid_particle) { is_solid_particle_=is_solid_particle; }
-
   void init_particles_position_velocity();
   void swap_particles_lagrangian_position_velocity();
   void compute_particles_rms();
+
+  void add_fields_to_post_FT(Motcles& fields) const;
+  void fill_ftab_vertices_curvature(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_velocity(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_local_reference_frame_velocity(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_normal_unit(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_pressure(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_pressure_force(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_friction_force(DoubleTab *ftab,const DoubleTab& dummytab) const;
+  void fill_ftab_Stokes_pressure_interp(DoubleTab* ftab, const DoubleTab& values) const;
+  void fill_ftab_Stokes_pressure_th(DoubleTab* ftab, const DoubleTab& values) const;
+  void fill_ftab_Stokes(DoubleTab* ftab, const DoubleTab& values) const;
 
   OBS_PTR(Probleme_base) probleme_base_;
   OBS_PTR(Navier_Stokes_FT_Disc) equation_ns_;
@@ -384,7 +405,6 @@ protected:
 
   OWN_PTR(Champ_Fonc_base)  vitesse_imp_interp_;
 
-
   // for fpi module
   bool is_solid_particle_=false; // pointer to NS_FT_Disc::is_solid_particle_
   int compute_particles_rms_=0;
@@ -397,11 +417,15 @@ protected:
   DoubleTab rms_particles_volumic_velocity_;
   DoubleTab particles_purely_solid_mesh_volume_;
 
+  mutable Post_Processing_Hydrodynamic_Forces post_process_hydro_forces_;
+  mutable Post_Processing_Hydrodynamic_Forces_Stokes post_process_hydro_forces_Stokes_;
+
+
+
 
 private:
   // Variables internes a la methode de transport
   Transport_Interfaces_FT_Disc_interne *variables_internes_;
-
 
   double temps_debut_;
 
@@ -412,7 +436,34 @@ private:
   ArrOfDouble moment_;
 
   void compute_nb_particles_tot();
+  // for map_element_post_FT ...
+  void fill_ftab_scalar(DoubleTab *ftab, const ArrOfDouble& values) const;
+  void fill_ftab_scalar(DoubleTab *ftab, const DoubleVect& values) const;
+  void fill_ftab_scalar(DoubleTab *ftab, const DoubleTab& values) const;
+  void fill_ftab_vector(DoubleTab *ftab, const DoubleTab& values) const;
+
   int nb_particles_tot_=0;
+
+  struct map_element_post_FT
+  {
+    using func_type=  void (Transport_Interfaces_FT_Disc::*)(DoubleTab*,const DoubleTab&) const;
+    map_element_post_FT() {};
+    map_element_post_FT(const Motcle& location, func_type function, DoubleTab* ptr, const DoubleTab&  values):
+      location_(location),
+      function_(function),
+      ptr_(ptr),
+      values_(values)
+    {};
+    Motcle location_;
+    func_type function_;
+    DoubleTab* ptr_;
+    DoubleTab  values_;
+  };
+
+  using my_map=std::map<Motcle, map_element_post_FT>;
+
+  void fill_map_post_FT(my_map& map_post, DoubleTab *ftab) const;
+
 };
 
 class Transport_Interfaces_FT_Disc_interne : public Objet_U

@@ -874,8 +874,28 @@ int Navier_Stokes_FT_Disc::preparer_calcul()
         if (is_solid_particle_)
           {
             compute_particles_eulerian_id_number(ptr_collision_model); // swap in T_I_FT_D::preparer_calcul
-            variables_internes_.post_process_hydro_forces_.associate_transport_equation(ref_equation);
-            //variables_internes_.post_process_hydro_forces_.associate_ns_equation(*this);
+            const double temps = schema_temps().temps_courant();
+            const Discretisation_base& dis = discretisation();
+            const Domaine_dis_base& mon_domaine_dis = domaine_dis();
+            LIST(OBS_PTR(Champ_base)) & champs_compris = variables_internes().liste_champs_compris;
+            Post_Processing_Hydrodynamic_Forces& post_process_hydro_forces=
+              ref_equation.valeur().get_post_process_hydro_forces();
+            if (post_process_hydro_forces.get_is_compute_forces_Stokes_th())
+              {
+                dis.discretiser_champ("vitesse", mon_domaine_dis,
+                                      "vitesse_stokes_th", "m/s",
+                                      3 , temps,
+                                      velocity_field_Stokes_th_);
+                champs_compris.add(velocity_field_Stokes_th_.valeur());
+                champs_compris_.ajoute_champ(velocity_field_Stokes_th_);
+
+                dis.discretiser_champ("pression", mon_domaine_dis,
+                                      "pression_stokes_th", "pa",
+                                      1 , temps,
+                                      pressure_field_Stokes_th_);
+                champs_compris.add(pressure_field_Stokes_th_.valeur());
+                champs_compris_.ajoute_champ(pressure_field_Stokes_th_);
+              }
           }
       }
     else

@@ -37,6 +37,7 @@ class Convection_Diffusion_Temperature_FT_Disc: public Convection_Diffusion_Temp
 {
   Declare_instanciable_sans_constructeur(Convection_Diffusion_Temperature_FT_Disc);
 public:
+  friend class Post_Processing_Hydrodynamic_Forces;
 
   Convection_Diffusion_Temperature_FT_Disc();
   void set_param(Param& titi) override;
@@ -89,6 +90,11 @@ public:
   void calculer_grad_t();
   void calculer_mpoint(Champ_base& mpoint);
   void calculer_mpoint();
+
+  enum class Thermal_correction_discretization_method { P1, ELEM_DIPH, P1_ALL };
+  const Thermal_correction_discretization_method& get_thermal_correction_discretization_method()
+  const  { return thermal_correction_discretization_method_; }
+
 protected:
   void correct_mpoint();
   // Quelle phase cette equation concerne-t-elle ? 0 ou 1
@@ -139,5 +145,9 @@ protected:
   ArrOfDouble lost_fluxes_diffu_;
   ArrOfInt mixed_elems_conv_;
   ArrOfDouble lost_fluxes_conv_;
+
+  Thermal_correction_discretization_method thermal_correction_discretization_method_=
+    Thermal_correction_discretization_method::P1_ALL;
+
 };
 #endif

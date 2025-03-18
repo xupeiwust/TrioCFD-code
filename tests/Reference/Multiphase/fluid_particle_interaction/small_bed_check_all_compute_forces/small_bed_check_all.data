@@ -1,11 +1,26 @@
-# PARALLEL ONLY 8 #
 system "mkdir -p lata"
 
 dimension 3
 domaine dom
 Probleme_FT_Disc_gen pb
 
-Scatter mesh/DOM.Zones dom
+Mailler dom 
+{
+	Pave Cavite 
+	{
+		Origine  -1e-4 0 -1e-04
+		Nombre_de_Noeuds 35 35 35
+		Longueurs +2e-04 +2e-04 +2e-04
+	}
+	{
+		Bord Gauche   X = -1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+		Bord Droit    X = +1e-4     0    <= Y <= +2e-4   -1e-4 <= Z <= +1e-4
+		Bord Bas      Y = 0        -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+		Bord Haut     Y = +2e-4    -1e-4 <= X <= +1e-4   -1e-4 <= Z <= +1e-4
+		Bord Devant   Z = -1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+		Bord Derriere Z = +1e-4    -1e-4 <= X <= +1e-4    0    <= Y <= +2e-4
+	}
+}
 
 VDF dis
 
@@ -124,7 +139,7 @@ Lire pb
                         collision_model hybrid_esi
                         detection_method
                         {
-                                lc_verlet
+                                check_all
                                 detection_thickness_Verlet 2.1e-5 # =30% of the diameter #
                                 nb_pas_dt_max_Verlet 50
                         }

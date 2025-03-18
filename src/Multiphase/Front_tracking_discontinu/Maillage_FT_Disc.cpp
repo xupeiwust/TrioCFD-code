@@ -6531,3 +6531,30 @@ void Maillage_FT_Disc::creer_tableau_elements(Array_base& x, RESIZE_OPTIONS opt)
   const MD_Vector& md = desc_facettes().get_md_vector();
   MD_Vector_tools::creer_tableau_distribue(md, x, opt);
 }
+
+void Maillage_FT_Disc::compute_gravity_center_fa7()
+{
+  const int nb_fa7=nb_facettes();
+  gravity_center_fa7_.resize(nb_fa7,dimension);
+  for (int fa7=0; fa7<nb_fa7; fa7++)
+    {
+      int s0 = facettes_(fa7,0);
+      int s1 = facettes_(fa7,1);
+      int s2=-1;
+      double x2=1e15,y2=1e15;
+      double z0=1e15,z1=1e15,z2=1e15;
+      if (dimension==3) s2 = facettes_(fa7,2);
+      double x0 = sommets_(s0,0);
+      double y0 = sommets_(s0,1);
+      if (dimension==3) z0 = sommets_(s0,2);
+      double x1 = sommets_(s1,0);
+      double y1 = sommets_(s1,1);
+      if (dimension==3) z1 = sommets_(s1,2);
+      if (dimension==3) x2 = sommets_(s2,0);
+      if (dimension==3) y2 = sommets_(s2,1);
+      if (dimension==3) z2 = sommets_(s2,2);
+      gravity_center_fa7_(fa7,0)=(x0+x1+x2)/dimension;
+      gravity_center_fa7_(fa7,1)=(y0+y1+y2)/dimension;
+      if (dimension==3) gravity_center_fa7_(fa7,2)=(z0+z1+z2)/dimension;
+    }
+}
