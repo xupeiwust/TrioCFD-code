@@ -689,6 +689,13 @@ const IJK_Field_double& IJK_Interfaces::get_IJK_field(const Motcle& nom)
       courb.data() = maillage_ft_ijk_.get_update_courbure_sommets();
     }
 
+  if (nom=="DISTANCE_AUTRES_INTERFACES")
+    {
+      DoubleTab vr_to_closer; // The velocity of the closest neighbour
+      IJK_Field_double& d = scalar_post_fields_.at("DISTANCE_AUTRES_INTERFACES");
+      calculer_distance_autres_compo_connexe2(d.data(), vr_to_closer);
+    }
+
   if(has_champ(nom))
     return champs_compris_.get_champ(nom);
 
@@ -716,6 +723,7 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "DISTANCE_AUTRES_INTERFACES", Entity::NODE, Nature_du_champ::scalaire, true }
   };
 
   chps.insert(chps.end(), c.begin(), c.end());
@@ -1127,7 +1135,10 @@ void IJK_Interfaces::register_fields()
   courb.nommer("COURBURE");
   champs_compris_.ajoute_champ(courb);
 
-
+  scalar_post_fields_["DISTANCE_AUTRES_INTERFACES"] = IJK_Field_double();
+  auto& d = scalar_post_fields_.at("DISTANCE_AUTRES_INTERFACES");
+  d.nommer("DISTANCE_AUTRES_INTERFACES");
+  champs_compris_.ajoute_champ(d);
 }
 
 const Milieu_base& IJK_Interfaces::milieu() const
@@ -1176,7 +1187,6 @@ void IJK_Interfaces::posttraiter_tous_champs(Motcles& liste) const
 {
   liste.add("INTERFACES");
   liste.add("COMPO_CONNEXE");
-  liste.add("COURBURE");
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
       liste.add("CONCENTRATION_INTERFACE");
@@ -1303,21 +1313,6 @@ int IJK_Interfaces::posttraiter_champs_instantanes(const Motcles& liste_post_ins
     {
       const ArrOfDouble& laplacian_concentration = maillage_ft_ijk_.Surfactant_facettes().get_Laplacian_FT_field_Array();
       n++, dumplata_ft_field(lata_name, "INTERFACES", "LAPLACIAN_CONCENTRATION_INTERFACE", "ELEM",  laplacian_concentration, lata_step);
-    }
-  if (liste_post_instantanes.contient_("DISTANCE_AUTRES_INTERFACES"))
-    {
-      const ArrOfDoubleFT& d = get_distance_autres_interfaces();
-      if (Process::mp_sum(d.size_array()) == 0)
-        {
-          Cerr << "Warning : DISTANCE_AUTRES_INTERFACES was not computed and is not post-processed" << finl;
-          Cerr << "If you want it, you should force computation using the flag compute_distance_autres_interfaces in the datafile. " <<
-               "It is important then to also set a portee_force_repulsion to define the range of the distance calculation." << finl;
-          n++;
-        }
-      else
-        {
-          n++, dumplata_ft_field(lata_name, "INTERFACES", "DISTANCE_AUTRES_INTERFACES", "SOM", d , lata_step);
-        }
     }
   if (liste_post_instantanes.contient_("VI"))
     {
@@ -4749,8 +4744,10 @@ void IJK_Interfaces::calculer_indicatrice(IJK_Field_double& indic)
                   }
 
                 if (nb_increment_somme_contrib > 1)
-                  Process::exit("Error in IJK_Interfaces::calculer_indicatrice !");
-
+                  {
+                    Cerr << "nb_increment_somme_contrib= " << nb_increment_somme_contrib << finl;
+                    // Process::exit("Error in IJK_Interfaces::calculer_indicatrice !");
+                  }
                 // GB Fix 2022: tolerance play:
                 // Si l'on est proche de 0 ou de 1, on ne sait pas vraiment si on a bien fait nos calculs
                 // (les modulos et les sommes peuvent avoir conduit a une imprecision).

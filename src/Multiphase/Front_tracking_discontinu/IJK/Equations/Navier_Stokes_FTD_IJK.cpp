@@ -262,7 +262,14 @@ void Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>
     { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "PRESSION", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "PRESSION_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false }
+    { "PRESSION_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SHIELD_REPULSTION", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "SHIELD_REPULSTION_ABS", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "DENSITY", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "VISCOSITY", Entity::ELEMENT, Nature_du_champ::scalaire, false }
   };
   chps.insert(chps.end(), c.begin(), c.end());
 }
@@ -596,9 +603,9 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
 
   if (!Option_IJK::DISABLE_DIPHASIQUE && (boundary_conditions_.get_correction_interp_monofluide() == 1 || boundary_conditions_.get_correction_interp_monofluide() == 2))
     {
-      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1);
+      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, "VISCOSITY");
       molecular_mu_.allocate_shear_BC(2, mu_v, mu_l);
-      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1);
+      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, 0, 1, "DENSITY");
       rho_field_.allocate_shear_BC( 2, rho_v, rho_l);
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = rho_l;
@@ -614,8 +621,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     {
       IJK_Shear_Periodic_helpler::rho_vap_ref_for_poisson_ = rho_v;
       IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = rho_l;
-      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
-      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
+      molecular_mu_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, "VISCOSITY");
+      rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2, "DENSITY");
       if (use_inv_rho_)
         {
           inv_rho_field_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
@@ -623,6 +630,10 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = 1. / rho_l;
         }
     }
+  rho_field_.add_synonymous("RHO");
+  champs_compris_.ajoute_champ(rho_field_);
+  molecular_mu_.add_synonymous("MU");
+  champs_compris_.ajoute_champ(molecular_mu_);
 
   if (schema_temps_ijk().get_first_step_interface_smoothing())
     {
@@ -667,7 +678,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
    * Check the difference between elem and faces ? and for interpolation of the velocity ?
    */
   constexpr int ft_ghost_cells = 4;
-  allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells);
+  allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells, "VELOCITY_FT");
+  champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
 
   kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2);
 
@@ -678,10 +690,16 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
       for (auto field : fields)
         allocate_velocity(*field, dom_ijk, 1);
 
-      auto fields_ft = { &terme_source_interfaces_ft_, &terme_repulsion_interfaces_ft_, &terme_abs_repulsion_interfaces_ft_ };
+      //auto fields_ft = { &terme_source_interfaces_ft_, &terme_repulsion_interfaces_ft_, &terme_abs_repulsion_interfaces_ft_ };
+      // for (auto field : fields_ft)
+      //  allocate_velocity(*field, pb_ijk.get_domaine_ft(), 1);
 
-      for (auto field : fields_ft)
-        allocate_velocity(*field, pb_ijk.get_domaine_ft(), 1);
+      allocate_velocity(terme_source_interfaces_ft_, pb_ijk.get_domaine_ft(), 1, "SOURCE_QDM_INTERF");
+      champs_compris_.ajoute_champ_vectoriel(terme_source_interfaces_ft_);
+      allocate_velocity(terme_repulsion_interfaces_ft_, pb_ijk.get_domaine_ft(), 1, "SHIELD_REPULSION");
+      champs_compris_.ajoute_champ_vectoriel(terme_repulsion_interfaces_ft_);
+      allocate_velocity(terme_abs_repulsion_interfaces_ft_, pb_ijk.get_domaine_ft(), 1, "SHIELD_REPULSION_ABS");
+      champs_compris_.ajoute_champ_vectoriel(terme_abs_repulsion_interfaces_ft_);
     }
 
   // FIXME: on a oublie pleins de choses la !
@@ -706,9 +724,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   velocity_.nommer("VELOCITY");
   velocity_.add_synonymous("VITESSE");
   velocity_.add_synonymous("VELOCITY_FT");
-  velocity_ft_.nommer("VELOCITY");
   velocity_ft_.add_synonymous("VITESSE");
-  velocity_ft_.add_synonymous("VELOCITY_FT");
+  velocity_ft_.add_synonymous("VELOCITY");
   if (Option_IJK::DISABLE_DIPHASIQUE)
     champs_compris_.ajoute_champ_vectoriel(velocity_);
   else

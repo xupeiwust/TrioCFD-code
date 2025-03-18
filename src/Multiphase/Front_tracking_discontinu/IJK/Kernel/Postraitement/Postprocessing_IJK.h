@@ -220,7 +220,6 @@ protected:
   IJK_Field_vector3_double ecart_ana_;
   IJK_Field_vector3_double op_conv_;
   IJK_Field_vector3_double cell_op_conv_;
-  IJK_Field_vector3_double rho_Ssigma_;
   IJK_Field_vector3_double cell_rho_Ssigma_;
 
   IJK_Field_vector3_double d_velocity_ana_;

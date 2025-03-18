@@ -520,6 +520,9 @@ int Postprocessing_IJK::postraiter_champs()
               // First time we interpolate - needs to allocate storage:
               if (post_projected_field_.get_ptr(0) == nullptr)
                 allocate_cell_vector(post_projected_field_, domaine_ijk_, 0);
+              // TODO: pour ABN from GB : problem avec le const ! -> faire un ref_cast_non_const tout moche?
+              // for (int dir2 = 0; dir2 < 3; dir2++)
+              //   fld[dir2].echange_espace_virtuel(fld[dir2].ghost());
               interpolate_to_center(post_projected_field_, fld);
               dumplata_cellvector(nom_fich_,Nom("CELL_") + fld_nam, post_projected_field_, latastep);
             }
@@ -943,11 +946,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
   if (liste_post_instantanes_.contient_("CELL_OP_CONV"))
     {
       n--,dumplata_cellvector(lata_name,"CELL_OP_CONV" /* AT CELL-CENTER */, cell_op_conv_, latastep);
-    }
-  if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
-    {
-      // rho_Ssigma est cree dans fill_surface_force
-      n--,dumplata_vector(lata_name,"RHO_SOURCE_QDM_INTERF", rho_Ssigma_[0],rho_Ssigma_[1],rho_Ssigma_[2], latastep);
     }
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF"))
     {
@@ -1586,6 +1584,7 @@ bool Postprocessing_IJK::is_post_required(const Motcle& nom) const
   return bool(scalar_post_fields_.count(nom)) || bool(vect_post_fields_.count(nom));
 }
 
+// Pour qu'un champ vectoriel puisse etre interpole a l'element, il faut qu'il ait au moins 1 ghost.
 void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 {
   std::vector<FieldInfo_t> c =
@@ -1620,8 +1619,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
 
     // Tenseur aussi?
@@ -1645,8 +1642,13 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "REBUILT_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
+    // Dans NS :
+    // { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    // { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "RHO_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "RHO_SOURCE_QDM_INTERF", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
+
     { "AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "COURBURE_AIRE_INTERF", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "NORMALE_EULER", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
@@ -1656,7 +1658,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "SURFACE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "BARYCENTRE_VAPEUR_PAR_FACE", Entity::FACE, Nature_du_champ::vectoriel, false },
 
-    { "SHIELD_REPULSION", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "VARIABLE_SOURCE", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "INTEGRATED_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "INTEGRATED_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
@@ -2008,16 +2009,20 @@ void Postprocessing_IJK::fill_surface_force(IJK_Field_vector3_double& the_field_
   for (int i = 0; i < 3; i++)
     volume *= domaine_ijk_->get_constant_delta(i);
 
-  if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
-    for (int dir = 0; dir < 3; dir++)
-      {
-        IJK_Field_double& source = ref_ijk_ft_->eq_ns().terme_source_interfaces_ns_[dir];
-        for (int k = 0; k < source.nk(); k++)
-          for (int j = 0; j < source.nj(); j++)
-            for (int i = 0; i < source.ni(); i++)
-              rho_Ssigma_[dir](i,j,k) = source(i,j,k)/volume;
-      }
+  if (is_post_required("RHO_SOURCE_QDM_INTERF"))
+    {
+      IJK_Field_vector3_double& rho_Ssigma = vect_post_fields_.at("RHO_SOURCE_QDM_INTERF");
+      for (int dir = 0; dir < 3; dir++)
+        {
+          IJK_Field_double& source = ref_ijk_ft_->eq_ns().terme_source_interfaces_ns_[dir];
+          for (int k = 0; k < source.nk(); k++)
+            for (int j = 0; j < source.nj(); j++)
+              for (int i = 0; i < source.ni(); i++)
+                rho_Ssigma[dir](i,j,k) = source(i,j,k)/volume;
+        }
+    }
 
+  // TODO : probablement inutile nouvelle syntaxe
   if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF"))
     {
       interpolate_to_center(cell_rho_Ssigma_,ref_ijk_ft_->eq_ns().terme_source_interfaces_ns_);
@@ -2149,7 +2154,7 @@ void Postprocessing_IJK::alloc_fields()
       if (is_post_required("LAMBDA2"))
         {
           scalar_post_fields_.at("LAMBDA2").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "LAMBDA2");
-          champs_compris_.ajoute_champ( scalar_post_fields_.at("LAMBDA2"));
+          champs_compris_.ajoute_champ(scalar_post_fields_.at("LAMBDA2"));
         }
       if (is_post_required("CRITERE_Q") || is_post_required("CURL"))
         {
@@ -2237,10 +2242,14 @@ void Postprocessing_IJK::alloc_velocity_and_co()
       //                                          On veut qqch d'aligne pour copier les data() l'un dans l'autre
     }
 
-  if (liste_post_instantanes_.contient_("RHO_SOURCE_QDM_INTERF"))
-    allocate_velocity(rho_Ssigma_, domaine_ijk_, 0);
-  if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF"))
-    allocate_cell_vector(cell_rho_Ssigma_, domaine_ijk_, 0);
+  if (is_post_required("RHO_SOURCE_QDM_INTERF"))
+    {
+      IJK_Field_vector3_double& rho_Ssigma = vect_post_fields_.at("RHO_SOURCE_QDM_INTERF");
+      allocate_velocity(rho_Ssigma, domaine_ijk_, 1, "RHO_SOURCE_QDM_INTERF");
+      champs_compris_.ajoute_champ_vectoriel(rho_Ssigma);
+      // TODO : probablement inutile maintenant:
+      allocate_cell_vector(cell_rho_Ssigma_, domaine_ijk_, 0);
+    }
 
   // Pour le calcul des statistiques diphasiques :
   // (si le t_debut_stat a ete initialise... Sinon, on ne va pas les calculer au cours de ce calcul)
