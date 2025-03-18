@@ -14,6 +14,7 @@ EOF
 
 ./cree_multi_bulles.sh deplacements.txt init.lata
 
-sed -e "s/rho_liquide 1000./rho_liquide 1000.\n   rho_vapeur 500./" \
+sed -e "s/nproc 1 1 1/nproc 2 2 2/" test_sigma_seq.data > test_sigma_par8.data
+sed -e "/rho_vapeur/s/1000./500./" \
     -e "s/nb_pas_dt_max .*/nb_pas_dt_max 10/" \
     test_sigma_seq.data > test_sigma_drho_seq.data
