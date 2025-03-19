@@ -1,43 +1,74 @@
-IJK_Grid_Geometry DOM
 # PARALLEL ONLY 8 #
+dimension 3
+Probleme_FTD_IJK pb
 
+Domaine_IJK DOM
 Lire DOM
 {
-  nbelem_i 32
-  nbelem_j 32
-  nbelem_k 32
-  uniform_domain_size_i 0.008
-  uniform_domain_size_j 0.008
-  uniform_domain_size_k 0.008
-  perio_i
-  perio_j
-}
-
-IJK_Splitting grid_splitting
-Lire grid_splitting
-{
-  ijk_grid_geometry DOM
-  nproc_i 2
-  nproc_j 2
-  nproc_k 2
-}
-
-IJK_FT_double
-{
-  Boundary_Conditions {
-                bctype_kmin Paroi
-                bctype_kmax Paroi
-  }
-  ijk_splitting grid_splitting
+  nbelem 32 32 32
+  size_dom 0.008 0.008 0.008
+  perio 1 1 0
+  nproc 2 2 2
   ijk_splitting_ft_extension 24
+}
+
+# RK3_IJK sch #
+schema_euler_explicite_IJK sch
+
+lire sch {
+  tinit 0.0
   timestep 0.001
   timestep_facsec 0.4
-  dt_post 1
-  champs_a_postraiter 1 tous
+  nb_pas_dt_max 1 
   dt_sauvegarde 1000
-  # tinit #
-  Nb_pas_dt_max 1
+  cfl 1.0
+  fo  1.0
+  oh  1.0
+}
+
+option_ijk { check_divergence }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    IJK_Interfaces interf
+  }
   
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 1.e-3
+        rho Champ_Uniforme 1 800.   # rho_vapeur # 
+    }
+    fluide1 Fluide_Incompressible # Liquid # 
+    {
+        mu  Champ_Uniforme 1 1.e-3
+        rho Champ_Uniforme 1 1000.
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.07
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. -9.81
+  }
+
+  hydraulique
+  {
+        Boundary_Conditions 
+        {
+          bctype_kmin paroi
+          bctype_kmax paroi
+        }
+
   multigrid_solver {
     solver_precision mixed
     coarsen_operators 3
@@ -51,17 +82,18 @@ IJK_FT_double
     solveur_grossier GCP { seuil 1e-11  precond ssor { omega 1.5 } }
     seuil 1e-10
     nb_full_mg_steps 2 4 1
-    
   }
-  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-  interfaces 
+  expression_vx_init 1.0
+  expression_vy_init 0.8
+  expression_vz_init 0.0  
+  }
+  
+  interf 
   {
-    # Soit un fichier genere externe #
-    # Choix1 #
     fichier_reprise_interface init2.lata
     timestep_reprise_interface       1
     lata_meshname   FTMESH
-    compute_distance_autres_interfaces 
+    compute_distance_autres_interfaces
     portee_force_repulsion 0.003
     delta_p_max_repulsion 1
        remaillage_ft_ijk {
@@ -72,18 +104,26 @@ IJK_FT_double
     }
  
   }
-  # FIN AJOUT #
-  check_divergence
-  gravite 3 0. 0. -9.81
-  # vitesse_entree 0.01 #
-   rho_liquide 1000.
-   mu_liquide 1e-3
-   rho_vapeur 800.
-   mu_vapeur 1e-3
-   sigma 0.07
-  expression_vx_init 1.
-  expression_vy_init 0.8
-  expression_vz_init 0.
+  
+ {
+ 
+ }
+ 
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1
+    fields 
+    {
+       Velocity faces
+    }
+interfaces interf
+    {
+       courbure som
+	DISTANCE_AUTRES_INTERFACES SOM
+    }
+  }
 }
-# lata convert #
+solve pb
+# Lata_to_other lml NOM_DU_CAS NOM_DU_CAS #
 Fin

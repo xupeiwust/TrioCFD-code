@@ -28,3 +28,8 @@ cat >deplacements2.txt <<EOF
 0.002 0.006 0.006 bulle4.msh
 EOF
 ./cree_multi_bulles.sh deplacements2.txt init2.lata
+
+sed -e "s/nb_pas_dt_max 1800/nb_pas_dt_max 600/" \
+	-e "s/delta_p_max_repulsion 60/delta_p_max_repulsion 30/" \
+	-e "s/sigma   Champ_Uniforme 1 0.07/sigma   Champ_Uniforme 1 0.01/" \
+	repulsion.data > repulsion2.data
