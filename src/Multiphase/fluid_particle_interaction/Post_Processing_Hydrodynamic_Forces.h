@@ -40,18 +40,24 @@ public:
   { ptr_eq_transport_=ptr_eq_transport; }
   void associate_ns_equation(const Navier_Stokes_FT_Disc& eqn)
   { ptr_eq_ns_=eqn; }
+  void associate_temp_equation(const Convection_Diffusion_Temperature_FT_Disc& eqn)
+  { ptr_eq_temp_ = eqn; }
 
   void drop_the_flag() { flag_force_computation_=0; }
   void raise_the_flag() { flag_force_computation_=1; }
+  void drop_the_flag_heat_transfer() { flag_heat_transfer_computation_=0; }
+  void raise_the_flag_heat_transfer() { flag_heat_transfer_computation_=1; }
   virtual void compute_hydrodynamic_forces();
+  void compute_heat_transfer();
 
   const DoubleVect& get_pressure_fa7() const { return pressure_fa7_; }
   const DoubleVect& get_total_surface_interf() const { return total_surface_interf_; }
-
+  const DoubleVect& get_heat_transfer() const { return total_heat_transfer_; }
   const DoubleTab& get_pressure_force() const { return total_pressure_force_; }
   const DoubleTab& get_friction_force() const { return total_friction_force_; }
   const DoubleTab& get_pressure_force_fa7() const { return pressure_force_fa7_; }
   const DoubleTab& get_friction_force_fa7() const { return friction_force_fa7_; }
+  const DoubleTab& get_heat_transfer_fa7() const { return heat_transfer_fa7_; }
   const DoubleTab& get_U_P1() const { return U_P1_; }
   const DoubleTab& get_U_P2() const { return U_P2_; }
   const DoubleTab& get_U_P2_moy() const { return U_P2_moy_; }
@@ -87,11 +93,11 @@ public:
 
   int get_is_compute_forces() const { return is_compute_forces_; }
   int get_is_compute_forces_Stokes_th() const { return is_compute_stokes_theoretical_forces_; }
+  int get_is_compute_heat_transfer() const { return is_compute_heat_transfer_; }
   int get_is_post_process_pressure_force_fa7() const { return is_post_process_pressure_force_fa7_; }
   int get_is_post_process_friction_force_fa7() const { return is_post_process_friction_force_fa7_; }
   int get_is_post_process_stress_tensor_fa7() const { return is_post_process_stress_tensor_fa7_; }
   int get_is_post_process_pressure_fa7() const { return is_post_process_pressure_fa7_; }
-  int get_is_compute_heat_transfer() const { return is_compute_heat_transfer_; }
 
   const double& get_interpolation_distance_pressure_P1() const { return interpolation_distance_pressure_P1_; }
   const double& get_interpolation_distance_pressure_P2() const { return interpolation_distance_pressure_P2_; }
@@ -117,6 +123,7 @@ public:
 protected:
   OBS_PTR(Transport_Interfaces_FT_Disc) ptr_eq_transport_;
   OBS_PTR(Navier_Stokes_FT_Disc) ptr_eq_ns_;
+  OBS_PTR(Convection_Diffusion_Temperature_FT_Disc) ptr_eq_temp_;
 
   int elem_faces_for_interp(int num_face,int i) const;
   int face_voisins_for_interp(int num_face,int i) const;
@@ -214,6 +221,7 @@ protected:
   int is_compute_forces_=0;
 
   int flag_force_computation_=0;
+  int flag_heat_transfer_computation_=0;
 
   double interpolation_distance_temperature_P1_=0;
   double interpolation_distance_temperature_P2_=0;
@@ -225,6 +233,7 @@ protected:
   DoubleVect phase_indicator_function_P1_;
   DoubleVect phase_indicator_function_P2_;
   DoubleVect total_surface_interf_;
+  DoubleVect total_heat_transfer_;
   DoubleVect pressure_fa7_;
 
   mutable IntTab list_elem_P1_all_;
@@ -238,6 +247,7 @@ protected:
   DoubleTab prop_P2_fluid_compo_;
   DoubleTab pressure_force_fa7_;
   DoubleTab friction_force_fa7_;
+  DoubleTab heat_transfer_fa7_;
   DoubleTab U_P2_moy_;
   DoubleTab U_P1_;
   DoubleTab U_P2_;
@@ -276,6 +286,8 @@ protected:
   DoubleTab coord_neighbor_fluid_fa7_pressure_2_;
   DoubleTab coord_neighbor_fluid_fa7_gradU_1_;
   DoubleTab coord_neighbor_fluid_fa7_gradU_2_;
+  DoubleTab coord_neighbor_fluid_fa7_temp_1_;
+  DoubleTab coord_neighbor_fluid_fa7_temp_2_;
 };
 
 #endif

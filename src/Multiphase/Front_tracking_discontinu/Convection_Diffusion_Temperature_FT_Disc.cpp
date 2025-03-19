@@ -1548,6 +1548,9 @@ void Convection_Diffusion_Temperature_FT_Disc::suppression_interfaces(const IntV
 
 int Convection_Diffusion_Temperature_FT_Disc::preparer_calcul()
 {
+  set_is_solid_particle(ref_eq_interface_.valeur().get_is_solid_particle());
+  if (is_solid_particle_)
+    ref_eq_interface_.valeur().associate_temp_equation_post_processing(*this);
   return Equation_base::preparer_calcul();
 }
 
@@ -1778,4 +1781,9 @@ double Convection_Diffusion_Temperature_FT_Disc::get_Twall(const int num_face) c
   const double Twall = temperature(elem) - d/k*flux;
 // Cerr << "We have Twall = "<< Twall << " at face= " << num_face << " elem= " << elem << finl;
   return Twall;
+}
+
+const double& Convection_Diffusion_Temperature_FT_Disc::get_tsat_constant() const
+{
+  return TSAT_CONSTANTE;
 }

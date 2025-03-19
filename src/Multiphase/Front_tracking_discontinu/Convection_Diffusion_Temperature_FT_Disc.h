@@ -51,6 +51,7 @@ public:
   double get_flux_to_face(const int num_face) const;
   double get_Twall_at_face(const int num_face) const;
   double get_Twall_at_elem(const int elem) const;
+  const double& get_tsat_constant() const;
   void get_flux_and_Twall(const int num_face,
                           double& flux, double& Twall) const;
   double get_Twall(const int num_face) const;
@@ -64,6 +65,7 @@ public:
   int get_phase() const;
   void discretiser_assembleur_pression();
   void completer() override;
+
 
   const DoubleTab& get_mpoint() const
   {
@@ -95,13 +97,17 @@ public:
   const Thermal_correction_discretization_method& get_thermal_correction_discretization_method()
   const  { return thermal_correction_discretization_method_; }
 
+
 protected:
   void correct_mpoint();
+  void set_is_solid_particle(const bool is_solid_particle) { is_solid_particle_=is_solid_particle; }
+
   // Quelle phase cette equation concerne-t-elle ? 0 ou 1
   int phase_;
   //GB : Ajout de variables :
   int stencil_width_;
   int correction_courbure_ordre_;
+  int is_solid_particle_;
   Nom nom_sous_domaine_;
   double temp_moy_ini_;
   bool maintien_temperature_;

@@ -45,8 +45,6 @@
 #include <Post_Processing_Hydrodynamic_Forces_Stokes.h>
 
 #include <map>
-#include <variant>
-#include <functional>
 
 class Probleme_base;
 class Milieu_base;
@@ -313,6 +311,9 @@ public:
   const ArrOfInt& get_gravity_center_elem() const { return gravity_center_elem_; }
   Post_Processing_Hydrodynamic_Forces& get_post_process_hydro_forces()
   { return post_process_hydro_forces_; }
+  void associate_temp_equation_post_processing(OBS_PTR(Convection_Diffusion_Temperature_FT_Disc) ref_eq_temp)
+  { post_process_hydro_forces_.associate_temp_equation(ref_eq_temp); }
+  const bool& get_is_solid_particle() const { return is_solid_particle_; }
 
 protected:
 
@@ -354,7 +355,6 @@ protected:
 
   // for fpi module
   // getters
-  const bool& get_is_solid_particle() const { return is_solid_particle_; }
   const DoubleTab& get_mean_particles_volumic_velocity() const
   { return mean_particles_volumic_velocity_; }
   const DoubleTab& get_mean_particles_volumic_squared_velocity() const

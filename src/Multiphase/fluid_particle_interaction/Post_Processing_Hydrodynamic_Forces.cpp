@@ -2287,3 +2287,123 @@ void Post_Processing_Hydrodynamic_Forces::compute_proportion_fa7_ok_and_is_fluid
 
     }
 }
+
+void Post_Processing_Hydrodynamic_Forces::compute_heat_transfer()
+{
+  if(!flag_heat_transfer_computation_)
+    {
+      Cerr << "Convection_Diffusion_Temperature_FT_Disc::calcul_flux_interface"  <<  finl;
+      const Navier_Stokes_FT_Disc& eq_ns = ptr_eq_ns_.valeur();
+      Transport_Interfaces_FT_Disc& eq_transport = ptr_eq_transport_.valeur();
+      Convection_Diffusion_Temperature_FT_Disc& eq_temp = ptr_eq_temp_.valeur();
+      const DoubleTab& temperature = eq_temp.inconnue().valeurs();
+      const Maillage_FT_Disc& mesh = eq_transport.maillage_interface();
+      const Domaine_VDF& domaine_vdf = ref_cast(Domaine_VDF, eq_ns.domaine_dis());
+      const Domaine& domaine = domaine_vdf.domaine();
+      const Fluide_Diphasique& mon_fluide = eq_ns.fluide_diphasique();
+      double lambda_f=mon_fluide.fluide_phase(1).conductivite().valeurs()(0, 0);
+      const int nb_fa7 = mesh.nb_facettes();
+
+      IntVect compo_connexes_fa7(nb_fa7);
+      int n = search_connex_components_local_FT(mesh, compo_connexes_fa7);
+      int nb_compo_tot=compute_global_connex_components_FT(mesh, compo_connexes_fa7, n);
+
+      if (total_heat_transfer_.size_array() != nb_compo_tot)
+        {
+          total_heat_transfer_.resize(nb_compo_tot);
+          total_heat_transfer_=0;
+        }
+
+      if (nb_fa7>0)
+        {
+          const ArrOfDouble& les_surfaces_fa7 = mesh.get_update_surface_facettes();
+          const DoubleTab& les_normales_fa7 = mesh.get_update_normale_facettes();
+          heat_transfer_fa7_.resize(nb_fa7);
+          heat_transfer_fa7_=1e15;
+
+          const DoubleTab& les_cg_fa7=mesh.get_gravity_center_fa7();
+          coord_neighbor_fluid_fa7_temp_1_.resize(nb_fa7,dimension);
+          coord_neighbor_fluid_fa7_temp_2_.resize(nb_fa7,dimension);
+
+          for (int fa7 =0 ; fa7<nb_fa7 ; fa7++)
+            {
+              if (!mesh.facette_virtuelle(fa7))
+                {
+                  DoubleVect normale_fa7(dimension);
+                  int elem_diph=domaine.chercher_elements(les_cg_fa7(fa7,0),
+                                                          les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
+                  DoubleVect delta_i(dimension);
+                  for (int dim=0; dim<dimension; dim++)
+                    {
+                      int elem_haut=face_voisins_for_interp(elem_faces_for_interp(elem_diph,
+                                                                                  dim+dimension),1);
+                      int elem_bas=face_voisins_for_interp(elem_faces_for_interp(elem_diph, dim),0);
+                      if (les_normales_fa7(fa7,dim)>0)
+                        delta_i(dim) =  (elem_haut>=0) ? fabs(domaine_vdf.dist_elem(elem_diph,
+                                                                                    elem_haut, dim)) : fabs(domaine_vdf.dist_elem(elem_diph,elem_bas, dim));
+                      else delta_i(dim) =  (elem_bas>=0) ? fabs(domaine_vdf.dist_elem(elem_diph,
+                                                                                        elem_bas, dim)) : fabs(domaine_vdf.dist_elem(elem_diph,elem_haut, dim));
+                    }
+                  double epsilon=0;
+                  for (int dim=0; dim<dimension; dim++)
+                    epsilon+= fabs(delta_i(dim)*fabs(les_normales_fa7(fa7,dim)));
+                  for (int dim=0; dim<dimension; dim++)
+                    {
+                      normale_fa7(dim)=les_normales_fa7(fa7,dim);
+                      coord_neighbor_fluid_fa7_temp_1_(fa7,dim)=les_cg_fa7(fa7,dim)+
+                                                                interpolation_distance_temperature_P1_*epsilon*normale_fa7(dim);
+                      coord_neighbor_fluid_fa7_temp_2_(fa7,dim)=les_cg_fa7(fa7,dim)+
+                                                                interpolation_distance_temperature_P2_*epsilon*normale_fa7(dim);
+                    }
+                }
+            }
+
+          DoubleTab temp_P1(nb_fa7);
+          DoubleTab temp_P2(nb_fa7);
+
+          int interp_T_P1_ok=trilinear_interpolation_elem(temperature,
+                                                          coord_neighbor_fluid_fa7_temp_1_, temp_P1);
+          int interp_T_P2_ok=trilinear_interpolation_elem(temperature,
+                                                          coord_neighbor_fluid_fa7_temp_2_, temp_P2);
+          if (interp_T_P1_ok &&  interp_T_P2_ok)
+            {
+              for (int fa7=0; fa7<nb_fa7; fa7++)
+                {
+                  int compo=compo_connexes_fa7(fa7);
+                  if (!mesh.facette_virtuelle(fa7))
+                    {
+                      int elem_diph=domaine.chercher_elements(les_cg_fa7(fa7,0),
+                                                              les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
+                      DoubleVect delta_i(dimension);
+                      delta_i(0) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
+                                                                domaine_vdf.elem_faces(elem_diph, 0+dimension),1), 0));
+                      delta_i(1) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
+                                                                domaine_vdf.elem_faces(elem_diph, 1+dimension),1), 1));
+                      if (dimension==3)
+                        {
+                          if (les_normales_fa7(fa7,2)>0)
+                            {
+                              delta_i(2) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
+                                                                        domaine_vdf.elem_faces(elem_diph, 2+dimension),1), 2));
+                            }
+                          else
+                            {
+                              delta_i(2) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
+                                                                        domaine_vdf.elem_faces(elem_diph, 2),0), 2));
+                            }
+                        }
+
+                      double epsilon=0;
+                      for (int dim=0; dim<dimension; dim++)
+                        epsilon+= fabs(delta_i(dim)*fabs(les_normales_fa7(fa7,dim))); // la distance d'interpolation varie en fonction du raffinement du maillage
+                      heat_transfer_fa7_(fa7)=lambda_f*(-temp_P2(fa7)+4.*temp_P1(fa7)-3.*eq_temp.get_tsat_constant())/(2.*epsilon)*les_surfaces_fa7(fa7); // schema decentre avant d'ordre 2
+                      total_heat_transfer_(compo)+=heat_transfer_fa7_(fa7);
+                    }
+                }
+            }
+        }
+      mp_sum_for_each_item(total_heat_transfer_);
+      raise_the_flag_heat_transfer();
+    }
+}
+

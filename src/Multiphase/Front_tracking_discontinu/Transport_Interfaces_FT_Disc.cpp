@@ -1764,8 +1764,6 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
       post_process_hydro_forces_Stokes_.set_param(post_process_hydro_forces_);
       post_process_hydro_forces_.resize_and_init_tables(nb_particles_tot_);
       post_process_hydro_forces_Stokes_.resize_and_init_tables(nb_particles_tot_);
-
-
     }
 
   if (collision_model_.non_nul())
@@ -3092,7 +3090,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
 
   if (flag==0)
     return ;
-  Noms files(11);
+  Noms files(13);
   Nom file=Objet_U::nom_du_cas();
   if (type=="force")
     files[0]=type,
@@ -3133,7 +3131,16 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
       files[10]=type,
                 file+= "_particle_hydrodynamic_forces_bed_";
     }
-
+  else if (type=="fluid_to_particle_heat_transfer")
+    {
+      files[11]=type,
+                file+= "_fluid_to_particle_heat_transfer_";
+    }
+  else if (type=="fluid_to_particle_heat_transfer_bed")
+    {
+      files[12]=type,
+                file+= "_fluid_to_particle_heat_transfer_bed_";
+    }
   else
     {
       Cerr << "The file " << type << " is not understood by Transport_Interfaces_FT_Disc::ouvrir_fichier. "
@@ -3241,7 +3248,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
       else if (rang==9)
         {
           fic << "#####################################################################" << finl;
-          fic << "# Hydrodynamic force computation - Stokes theoretical configuration #"  << finl;
+          fic << "# Hydrodynamic force computation - Stokes theoretical configuration #" << finl;
           fic << "#####################################################################" << finl;
           fic << "# Time [s]"<< finl;
           fic << "# Stokes theoretical PRESSURE FORCE computed from the integration, on the lagrangian mesh,"
@@ -3264,7 +3271,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
       else if (rang==10)
         {
           fic << "#########################################################" << finl;
-          fic << "# Hydrodynamic force computation in a particle assembly #"  << finl;
+          fic << "# Hydrodynamic force computation in a particle assembly #" << finl;
           fic << "#########################################################" << finl;
           fic << finl;
           fic << "# Time [s]" << espace << "particle_id" << espace << "Pressure force [N] (fpx fpy fpz)"
@@ -3273,7 +3280,29 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
               "Average fluid velocity in P2" << "Percentage of purely fluid cells in P2"<<  finl;
           fic << finl;
         }
-
+      else if (rang==11)
+        {
+          fic << "#########################" << finl;
+          fic << "# Heat flux computation #" << finl;
+          fic << "#########################" << finl;
+          fic << "# Time [s]" << finl;
+          fic << "# Computation of the heat flux received by the particle from the surrounding fluid. [W] (phi)" << finl;
+          fic << finl;
+          fic << "# Time" << espace << "phi" << finl;
+          fic << finl;
+        }
+      else if (rang==12)
+        {
+          fic << "################################################" << finl;
+          fic << "# Heat flux computation in a particle assembly #" << finl;
+          fic << "################################################" << finl;
+          fic << "# Time [s]" << finl;
+          fic << "# Computation of the heat flux received by the particle from the surrounding fluid. [W] (phi_i), where i stands for the particle number." << finl;
+          fic << "# Average temperature of purely fluid cells in P2. [K] (T_i)" << finl;
+          fic << finl;
+          fic << "Time" << espace << "phi_0 T_0 ... phi_N T_N" << finl;
+          fic << finl;
+        }
     }
   // otherwise, we open it
   else
@@ -3618,6 +3647,38 @@ int Transport_Interfaces_FT_Disc::impr(Sortie& os) const
                     }
                 }
 
+            }
+
+          if (post_process_hydro_forces_.get_is_compute_heat_transfer())
+            {
+              const DoubleVect& total_heat_transfer =
+                post_process_hydro_forces_.get_heat_transfer();
+              if (nb_particles_tot_ < dim_max_impr)
+                {
+                  SFichier Heat_Transfer;
+                  ouvrir_fichier(Heat_Transfer,
+                                 "fluid_to_particle_heat_transfer", 1, mon_eq);
+                  schema_temps().imprimer_temps_courant(Heat_Transfer);
+                  for (int particle = 0; particle < nb_particles_tot_;
+                       particle++)
+                    {
+                      Heat_Transfer << espace << total_heat_transfer(particle);
+                    }
+                  Heat_Transfer << finl;
+                }
+              else
+                {
+                  SFichier Heat_Transfer_bed;
+                  ouvrir_fichier(Heat_Transfer_bed,
+                                 "fluid_to_particle_heat_transfer_bed", 1, mon_eq);
+                  schema_temps().imprimer_temps_courant(Heat_Transfer_bed);
+                  for (int particle = 0; particle < nb_particles_tot_;
+                       particle++)
+                    {
+                      Heat_Transfer_bed << espace	<< total_heat_transfer(particle);
+                    }
+                  Heat_Transfer_bed << finl;
+                }
             }
         }
     }
@@ -7839,17 +7900,25 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           ns.compute_particles_eulerian_id_number(collision_model_);
           ns.swap_particles_eulerian_id_number(gravity_center_elem_);
         }
+
+      // the mesh has changed, we need to recompute the data located to the fa7
+      post_process_hydro_forces_.drop_the_flag();
+      post_process_hydro_forces_Stokes_.drop_the_flag();
+      post_process_hydro_forces_.drop_the_flag_heat_transfer();
+
       if (schema_temps().limpr())
         {
           compute_particles_rms();
-          post_process_hydro_forces_.drop_the_flag();
-          post_process_hydro_forces_Stokes_.drop_the_flag();
           if (post_process_hydro_forces_.get_is_compute_forces())
             post_process_hydro_forces_.compute_hydrodynamic_forces();
           if (post_process_hydro_forces_Stokes_.get_is_compute_forces())
             post_process_hydro_forces_Stokes_.compute_hydrodynamic_forces();
+          if (post_process_hydro_forces_.get_is_compute_heat_transfer())
+            post_process_hydro_forces_.compute_heat_transfer();
         }
+
     }
+
 }
 
 // Deplace les sommets de l'interface du deplacement prescrit (vitesse * coeff)
@@ -8384,6 +8453,8 @@ void Transport_Interfaces_FT_Disc::fill_map_post_FT(Transport_Interfaces_FT_Disc
                                                           fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P1_Stokes_th()));
   map_post.emplace("U_P2_Stokes_th", map_element_post_FT (elem,&Transport_Interfaces_FT_Disc::
                                                           fill_ftab_vector, ftab, post_process_hydro_forces_Stokes_.get_U_P2_Stokes_th()));
+  map_post.emplace("heat_transfer", map_element_post_FT(elem,	&Transport_Interfaces_FT_Disc::fill_ftab_scalar,
+                                                        ftab,post_process_hydro_forces_.get_heat_transfer_fa7()));
 
 }
 
@@ -8455,8 +8526,9 @@ int Transport_Interfaces_FT_Disc::get_champ_post_FT(const Motcle& champ, Postrai
             post_process_hydro_forces_.compute_hydrodynamic_forces();
           if(post_process_hydro_forces_.get_is_compute_forces_Stokes_th())
             post_process_hydro_forces_Stokes_.compute_hydrodynamic_forces();
+          if (post_process_hydro_forces_.get_is_compute_heat_transfer())
+            post_process_hydro_forces_.compute_heat_transfer();
           (this->*the_function)(ftab,the_tab_values);
-
         }
       res = 1;
     }
