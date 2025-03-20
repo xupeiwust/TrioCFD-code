@@ -7911,7 +7911,7 @@ void Transport_Interfaces_FT_Disc::mettre_a_jour(double temps)
           compute_particles_rms();
           if (post_process_hydro_forces_.get_is_compute_forces())
             post_process_hydro_forces_.compute_hydrodynamic_forces();
-          if (post_process_hydro_forces_Stokes_.get_is_compute_forces())
+          if (post_process_hydro_forces_Stokes_.get_is_compute_forces_Stokes_th())
             post_process_hydro_forces_Stokes_.compute_hydrodynamic_forces();
           if (post_process_hydro_forces_.get_is_compute_heat_transfer())
             post_process_hydro_forces_.compute_heat_transfer();

@@ -1754,6 +1754,7 @@ void Post_Processing_Hydrodynamic_Forces::resize_and_init_tables(int nb_particle
   U_P2_moy_.resize(nb_particles_tot, dimension);
   total_surface_interf_.resize(nb_particles_tot);
   Nb_fa7_tot_par_compo_.resize(nb_particles_tot);
+  total_heat_transfer_.resize(nb_particles_tot);
 
   total_pressure_force_=0;
   total_friction_force_=0;
@@ -2090,7 +2091,6 @@ void Post_Processing_Hydrodynamic_Forces::compute_friction_force_projected_tenso
                 }
             }
         }
-
     }
 }
 
@@ -2292,14 +2292,14 @@ void Post_Processing_Hydrodynamic_Forces::compute_heat_transfer()
 {
   if(!flag_heat_transfer_computation_)
     {
-      Cerr << "Convection_Diffusion_Temperature_FT_Disc::calcul_flux_interface"  <<  finl;
+      Cerr << "Post_Processing_Hydrodynamic_Forces::compute_heat_transfer"  <<  finl;
       const Navier_Stokes_FT_Disc& eq_ns = ptr_eq_ns_.valeur();
       Transport_Interfaces_FT_Disc& eq_transport = ptr_eq_transport_.valeur();
       Convection_Diffusion_Temperature_FT_Disc& eq_temp = ptr_eq_temp_.valeur();
       const DoubleTab& temperature = eq_temp.inconnue().valeurs();
       const Maillage_FT_Disc& mesh = eq_transport.maillage_interface();
-      const Domaine_VDF& domaine_vdf = ref_cast(Domaine_VDF, eq_ns.domaine_dis());
-      const Domaine& domaine = domaine_vdf.domaine();
+      const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, eq_ns.domaine_dis());
+      const Domaine& domain = domain_vdf.domaine();
       const Fluide_Diphasique& mon_fluide = eq_ns.fluide_diphasique();
       double lambda_f=mon_fluide.fluide_phase(1).conductivite().valeurs()(0, 0);
       const int nb_fa7 = mesh.nb_facettes();
@@ -2330,8 +2330,8 @@ void Post_Processing_Hydrodynamic_Forces::compute_heat_transfer()
               if (!mesh.facette_virtuelle(fa7))
                 {
                   DoubleVect normale_fa7(dimension);
-                  int elem_diph=domaine.chercher_elements(les_cg_fa7(fa7,0),
-                                                          les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
+                  int elem_diph=domain.chercher_elements(les_cg_fa7(fa7,0),
+                                                         les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
                   DoubleVect delta_i(dimension);
                   for (int dim=0; dim<dimension; dim++)
                     {
@@ -2339,10 +2339,10 @@ void Post_Processing_Hydrodynamic_Forces::compute_heat_transfer()
                                                                                   dim+dimension),1);
                       int elem_bas=face_voisins_for_interp(elem_faces_for_interp(elem_diph, dim),0);
                       if (les_normales_fa7(fa7,dim)>0)
-                        delta_i(dim) =  (elem_haut>=0) ? fabs(domaine_vdf.dist_elem(elem_diph,
-                                                                                    elem_haut, dim)) : fabs(domaine_vdf.dist_elem(elem_diph,elem_bas, dim));
-                      else delta_i(dim) =  (elem_bas>=0) ? fabs(domaine_vdf.dist_elem(elem_diph,
-                                                                                        elem_bas, dim)) : fabs(domaine_vdf.dist_elem(elem_diph,elem_haut, dim));
+                        delta_i(dim) =  (elem_haut>=0) ? fabs(domain_vdf.dist_elem(elem_diph,
+                                                                                   elem_haut, dim)) : fabs(domain_vdf.dist_elem(elem_diph,elem_bas, dim));
+                      else delta_i(dim) =  (elem_bas>=0) ? fabs(domain_vdf.dist_elem(elem_diph,
+                                                                                       elem_bas, dim)) : fabs(domain_vdf.dist_elem(elem_diph,elem_haut, dim));
                     }
                   double epsilon=0;
                   for (int dim=0; dim<dimension; dim++)
@@ -2372,26 +2372,21 @@ void Post_Processing_Hydrodynamic_Forces::compute_heat_transfer()
                   int compo=compo_connexes_fa7(fa7);
                   if (!mesh.facette_virtuelle(fa7))
                     {
-                      int elem_diph=domaine.chercher_elements(les_cg_fa7(fa7,0),
-                                                              les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
+                      int elem_diph=domain.chercher_elements(les_cg_fa7(fa7,0),
+                                                             les_cg_fa7(fa7,1),les_cg_fa7(fa7,2));
                       DoubleVect delta_i(dimension);
-                      delta_i(0) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
-                                                                domaine_vdf.elem_faces(elem_diph, 0+dimension),1), 0));
-                      delta_i(1) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
-                                                                domaine_vdf.elem_faces(elem_diph, 1+dimension),1), 1));
-                      if (dimension==3)
-                        {
-                          if (les_normales_fa7(fa7,2)>0)
-                            {
-                              delta_i(2) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
-                                                                        domaine_vdf.elem_faces(elem_diph, 2+dimension),1), 2));
-                            }
-                          else
-                            {
-                              delta_i(2) = fabs(domaine_vdf.dist_elem(elem_diph, domaine_vdf.face_voisins(
-                                                                        domaine_vdf.elem_faces(elem_diph, 2),0), 2));
-                            }
-                        }
+                      int elem00=face_voisins_for_interp(elem_faces_for_interp(elem_diph, 0+dimension),1);
+                      int elem11=face_voisins_for_interp(elem_faces_for_interp(elem_diph, 1+dimension),1);
+                      int elem22=face_voisins_for_interp(elem_faces_for_interp(elem_diph, 2+dimension),1);
+                      int elem33=face_voisins_for_interp(elem_faces_for_interp(elem_diph, 2),0);
+
+                      delta_i(0) = elem00>=0 ? fabs(domain_vdf.dist_elem(elem_diph, elem00, 0)) : -1e15;
+                      delta_i(1) = elem11>=0 ? fabs(domain_vdf.dist_elem(elem_diph, elem11, 1)) : -1e15;
+
+                      if (les_normales_fa7(fa7,2)>0)
+                        delta_i(2) = elem22>=0 ? fabs(domain_vdf.dist_elem(elem_diph, elem22, 2)) : -1e15;
+                      else
+                        delta_i(2) = elem33>=0 ? fabs(domain_vdf.dist_elem(elem_diph, elem33 , 2)) : -1e15;
 
                       double epsilon=0;
                       for (int dim=0; dim<dimension; dim++)

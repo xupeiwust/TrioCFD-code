@@ -976,40 +976,46 @@ void Maillage_FT_Disc::calcul_indicatrice(DoubleVect& indicatrice,
       }
   }
 
+  const Transport_Interfaces_FT_Disc& eq_interfaces = refequation_transport_.valeur();
+  const int nb_particles_tot=eq_interfaces.get_nb_particles_tot();
   // Calcul de l'indicatrice au voisinage de l'interface a l'aide
   // de la fonction distance.
   // Il reste dans elements_calcules[i] == 0 les voisins de l'interface
-  {
-    const DoubleTab& distance = equation_transport().get_update_distance_interface().valeurs();
-    int i;
-    int error_count = 0;
+  // in the case of solid particles, the distance to the interface is corrupted
+  // in cells where two particles overlap. Thus, it cannot be used to correct
+  // the phase indicator.
+  if (!is_solid_particle_ || (is_solid_particle_ && nb_particles_tot==1))
+    {
+      const DoubleTab& distance = equation_transport().get_update_distance_interface().valeurs();
+      int i;
+      int error_count = 0;
 
-    for (i = 0; i < nb_elem; i++)
-      {
+      for (i = 0; i < nb_elem; i++)
+        {
 
-        if (elements_calcules[i] == 0)
-          {
-            double x = distance(i);
-            // La distance a-t-elle ete calculee pour cet element ?
-            if (x > -1e10)
-              {
-                double v = (x > 0.) ? 1. : 0.;
-                indicatrice[i] = v;
-              }
-            else
-              {
-                // Probleme : un element a une indicatrice suspecte et
-                // on ne peut pas l'evaluer avec la fonction distance
-                // (augmenter le nombre d'iterations du calcul de distance ?)
-                error_count++;
-              }
-          }
-      }
-    if (error_count)
-      {
-        Cerr << "[" << me() << "] calcul_indicatrice : error_count = " << error_count << finl;
-      }
-  }
+          if (elements_calcules[i] == 0)
+            {
+              double x = distance(i);
+              // La distance a-t-elle ete calculee pour cet element ?
+              if (x > -1e10)
+                {
+                  double v = (x > 0.) ? 1. : 0.;
+                  indicatrice[i] = v;
+                }
+              else
+                {
+                  // Probleme : un element a une indicatrice suspecte et
+                  // on ne peut pas l'evaluer avec la fonction distance
+                  // (augmenter le nombre d'iterations du calcul de distance ?)
+                  error_count++;
+                }
+            }
+        }
+      if (error_count)
+        {
+          Cerr << "[" << me() << "] calcul_indicatrice : error_count = " << error_count << finl;
+        }
+    }
   indicatrice.echange_espace_virtuel();
 
   // Certains elements ont une indicatrice erronee (error_count).
