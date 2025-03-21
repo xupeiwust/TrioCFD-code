@@ -54,7 +54,7 @@ Lire pb
 {
 	Milieu_composite
 	{
-	liquide_r134a Fluide_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase liquid } gaz_r134a Fluide_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase vapor } saturation_r134a saturation_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase liquid sigma_mano 0.004999019378771977 }
+	liquide_r134a Fluide_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase liquid } gaz_r134a Fluide_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase vapor } saturation_r134a saturation_generique_CoolProp { model BICUBIC&HEOS fluid r134a phase liquid user_uniform_sigma 0.004999019378771977 }
 	}
 
     correlations
