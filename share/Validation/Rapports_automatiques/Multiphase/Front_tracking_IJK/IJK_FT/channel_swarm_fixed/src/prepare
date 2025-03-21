@@ -11,8 +11,10 @@ sed -e "s/ nom_sauvegarde diph_fixe.sauv/ nom_sauvegarde reprise.sauv/g" \
     -e "s/ expression_vx_init.*/  # expression_vx_init 0.0/g" \
     -e "s/ expression_vz_init.*/  expression_vz_init 0.0 #/g"  DNS_fixe.data > DNS_fixe_reprise.data 
     
-echo "reset test for fixed bubbles"
-sed -e "s/diph_fixe.sauv/diph_fixe_reset.sauv/" DNS_fixe_reprise.data > DNS_fixe_reprise_reset.data
+echo "reset test for fixed bubbles"# reset_reprise_integrated #
+sed -e "s/diph_fixe.sauv/diph_fixe_reset.sauv/" \
+    -e "s/# reset_reprise_integrated #/reset_reprise_integrated/" \
+    DNS_fixe_reprise.data > DNS_fixe_reprise_reset.data
 
 echo "preparation d'une reprise du canal refined"
 sed -e "s/DOM/DOM_NEW/g" \

@@ -83,6 +83,7 @@ lire pb
 
   hydraulique
   {
+    velocity_convection_op Centre
     vol_bulle_monodisperse 5.23583e-10
     # ajout des mots clefs suivants pour fixer les bulles #
     coef_mean_force 0.0
@@ -146,11 +147,34 @@ lire pb
     # REPRISE #
     # nom_reprise diph_init.sauv #
     sauvegarder_xyz
-    dt_post 50
-    dt_post_stats_bulles 5
-    dt_post_stats_plans 50
+    # champs_a_postraiter 11 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES EXTERNAL_FORCE INTEGRATED_VELOCITY INTEGRATED_PRESSURE INTEGRATED_TIMESCALE INDICATRICE_PERTURBE #
+  }
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 50
+    nb_pas_dt_post_stats_bulles 5
+    nb_pas_dt_post_stats_plans 50
     t_debut_statistiques 0.0
-    champs_a_postraiter 11 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES EXTERNAL_FORCE INTEGRATED_VELOCITY INTEGRATED_PRESSURE INTEGRATED_TIMESCALE INDICATRICE_PERTURBE
+    
+    # reset_reprise_integrated #
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+       PRESSURE ELEM
+       VELOCITY ELEM
+       EXTERNAL_FORCE ELEM
+       INTEGRATED_VELOCITY ELEM
+       INTEGRATED_PRESSURE ELEM
+       INTEGRATED_TIMESCALE ELEM
+       INDICATRICE_PERTURBE ELEM
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 }
 solve pb

@@ -31,7 +31,7 @@ lire sch
   tinit 0.0
   timestep 1e-4
   timestep_facsec 1.0
-  nb_pas_dt_max 3
+  nb_pas_dt_max 300
   dt_sauvegarde 50
   cfl 1.0
   fo  1.0
@@ -82,6 +82,7 @@ lire pb
 
   hydraulique
   {
+    velocity_convection_op Centre
     vol_bulle_monodisperse 5.23583e-10
     Boundary_Conditions
     {
@@ -141,11 +142,29 @@ lire pb
     # Pour Creer le fichier de Reprise #
     nom_sauvegarde diph_swarm.sauv
     sauvegarder_xyz
-    dt_post 50
-    dt_post_stats_bulles 50
-    dt_post_stats_plans 50
+    # champs_a_postraiter 6 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES #
+  }
+  
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 50
+    nb_pas_dt_post_stats_bulles 50
+    nb_pas_dt_post_stats_plans 50
     t_debut_statistiques 0.0
-    champs_a_postraiter 6 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES
+    
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+       PRESSURE ELEM
+       VELOCITY ELEM
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 }
 solve pb

@@ -31,7 +31,7 @@ lire sch
   tinit 0.0
   timestep 0.02
   timestep_facsec 1.0
-  nb_pas_dt_max 3
+  nb_pas_dt_max 100
   dt_sauvegarde 50
   cfl 1.0
   fo  1.0
@@ -82,6 +82,7 @@ lire pb
 
   hydraulique
   {
+    velocity_convection_op Centre
     vol_bulle_monodisperse 0.0141371669
     
     # timestep_reprise_vitesse 1 #
@@ -142,12 +143,33 @@ lire pb
     sauvegarder_xyz
     # REPRISE #
     # nom_reprise diph_init.sauv #
-    dt_post 50
-    dt_post_stats_bulles 5
-    dt_post_stats_plans 50
+    # champs_a_postraiter 9 INTERFACES COURBURE COMPO_CONNEXE DISTANCE_AUTRES_INTERFACES
+                          VELOCITY CURL PRESSURE_LIQ PRESSURE INDICATRICE #
+  }
+  
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 50
+    nb_pas_dt_post_stats_bulles 5
+    nb_pas_dt_post_stats_plans 50
     t_debut_statistiques 0.0
-    champs_a_postraiter 9 INTERFACES COURBURE COMPO_CONNEXE DISTANCE_AUTRES_INTERFACES
-                          VELOCITY CURL PRESSURE_LIQ PRESSURE INDICATRICE
+    
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+       VELOCITY FACES
+       PRESSURE elem
+       PRESSURE_LIQ elem
+       CURL elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+       DISTANCE_AUTRES_INTERFACES som
+    } 
   }
 }
 solve pb
