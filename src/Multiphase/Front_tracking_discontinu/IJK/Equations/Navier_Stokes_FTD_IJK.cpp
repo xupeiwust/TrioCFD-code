@@ -269,7 +269,8 @@ void Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>
     { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "DENSITY", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "VISCOSITY", Entity::ELEMENT, Nature_du_champ::scalaire, false }
+    { "VISCOSITY", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
   };
   chps.insert(chps.end(), c.begin(), c.end());
 }
@@ -284,6 +285,19 @@ void Navier_Stokes_FTD_IJK::get_noms_champs_postraitables(Noms& noms,Option opt)
 
 const IJK_Field_vector3_double& Navier_Stokes_FTD_IJK::get_IJK_field_vector(const Motcle& nom)
 {
+
+  if (nom=="EXTERNAL_FORCE")
+    {
+      if ( coef_immobilisation_ > 1e-16)
+        {
+          if (!probleme_ijk().get_interface().get_forcing_method())
+            for (int dir = 0; dir < 3; dir++)
+              redistribute_from_splitting_ft_faces_[dir].redistribute( force_rappel_ft_[dir], force_rappel_[dir]);
+        }
+      else
+        Cerr << "Posttraitement demande pour EXTERNAL_FORCE but ignored because coef_immobilisation_ <= 1e-16" << endl;
+    }
+
   if (has_champ_vectoriel(nom))
     return champs_compris_.get_champ_vectoriel(nom);
 
@@ -882,7 +896,7 @@ int Navier_Stokes_FTD_IJK::preparer_calcul()
       probleme_ijk().update_thermal_properties();
       const double indic_moyen = calculer_v_moyen(interfaces_->I());
       rho_moyen_ = indic_moyen * rho_l + (1 - indic_moyen) * rho_v;
-      if (probleme_ijk().get_post().get_liste_post_instantanes().contient_("EXTERNAL_FORCE"))
+      if (probleme_ijk().get_post().is_post_required("EXTERNAL_FORCE"))
         for (int dir = 0; dir < 3; dir++)
           compute_add_external_forces(dir);
     }
@@ -966,7 +980,8 @@ void Navier_Stokes_FTD_IJK::initialise_ijk_fields()
 
   if (coef_immobilisation_ > 1e-16)
     {
-      allocate_velocity(force_rappel_, pb_ijk.domaine_ijk(), 2);
+      allocate_velocity(force_rappel_, pb_ijk.domaine_ijk(), 2, "EXTERNAL_FORCE");
+      champs_compris_.ajoute_champ_vectoriel(force_rappel_);
       allocate_velocity(force_rappel_ft_, pb_ijk.get_domaine_ft(), 2);
       // A la reprise, c'est fait par le IJK_Interfaces::readOn
       if (interfaces_->get_flag_positions_reference() == 0) // (!reprise_)

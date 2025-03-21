@@ -142,6 +142,8 @@ protected:
    */
   std::vector<std::pair<int,bool>> field_post_idx_;
 
+  std::vector<Motcle> list_post_required_;
+
   Champs_compris_IJK champs_compris_;  ///< the actual fields registered and managed by the post-processing part (=all the extra fields, not the main unknowns)
 
   // Storage of all the extra fields created for post processing:
@@ -208,6 +210,8 @@ protected:
   IJK_Field_double integrated_pressure_;
   IJK_Field_double indicatrice_non_perturbe_;
   IJK_Field_double integrated_timescale_;
+
+  bool reset_reprise_integrated_ = false;
   // Pour la reprise bulles fixes, parametres de lecture de champ de condition initiale pour variables de post-tt:
   Nom fichier_reprise_integrated_velocity_ = "??";
   Nom fichier_reprise_integrated_pressure_ = "??";

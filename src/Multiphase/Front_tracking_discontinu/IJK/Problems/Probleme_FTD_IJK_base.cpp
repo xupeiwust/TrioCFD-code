@@ -377,6 +377,8 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     get_interface().sauvegarder_interfaces(lata_name, interf_name);
 
+  dumplata_finish(lata_name);
+
   if (has_thermals_)
     get_ijk_thermals().sauvegarder_temperature(lata_name, stop);
 
@@ -422,6 +424,9 @@ void Probleme_FTD_IJK_base::sauvegarder_probleme(const char *fichier_sauvegarde,
 
 }
 
+
+// TODO teo boutin: les mot clé ajoutés ici ne devraient pas être conditionnels à la présence du mot clé nom_reprise
+// quelle solution pour faire une dépendance entre mot clé propre ??
 void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 {
   // Lecture par tous les processeurs, on retire les commentaires etc...
@@ -469,7 +474,7 @@ void Probleme_FTD_IJK_base::initialise_ijk_fields()
   eq_ns.initialise_ijk_fields();
 
   // L'indicatrice non-perturbee est remplie (si besoin, cad si post-traitement) par le post.complete()
-  get_post().fill_indic(reprise_);
+  // get_post().fill_indic(reprise_);
 
   /*
    * Thermal problems

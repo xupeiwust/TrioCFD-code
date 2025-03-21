@@ -167,6 +167,9 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("expression_ddWdydz_ana", &expression_grad2W_analytique_[5]);
 
   param.ajouter("t_debut_statistiques", &t_debut_statistiques_);
+
+  // mots clés pour la reprise de stats
+  param.ajouter_flag("reset_reprise_integrated", &reset_reprise_integrated_);
 }
 
 void Postprocessing_IJK::lire_entete_bloc_interface(Entree& is)
@@ -223,6 +226,7 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
         {
           // this may raise exception if field name did not finish with integer. Then we go to catch block below
           std::stoi(str.substr(found));
+          // Cerr << "field was suffixed with an integer: " << fld_nam<<finl;
           // if field was ending with integer, check that the prefix is known by ijk thermals
           std::vector<FieldInfo_t> prefix_thermals;
           IJK_Thermals::Fill_postprocessable_fields(prefix_thermals);
@@ -233,7 +237,7 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
                 {
                   // if we found a matching prefix, we know that the field location must be defined by the prefix
                   true_field_name=prefix;
-                  Cerr << "field name changed: " << fld_nam << " to " << true_field_name<<finl;
+                  Cerr << "   For IJK_thermals: postpro field name '" << fld_nam << "' matched with prefix " << true_field_name << " defined in IJK_thermals::Fill_postprocessable_fields " << finl;
 
                   // then we must add an entry to champs_postraitables_ so that the field can be found
                   std::vector<FieldInfo_t> c = {{ fld_nam, std::get<1>(f), std::get<2>(f), std::get<3>(f)}};
@@ -244,7 +248,7 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
       catch ( const std::invalid_argument& exception )
         {
           // in that case, everything is fine, field name should be treated as normal (not from thermals)
-          // Cerr << "field was not suffixed with an integer" << fld_nam<<finl;
+          // Cerr << "field was not suffixed with an integer: " << fld_nam<<finl;
         }
     }
 
@@ -254,8 +258,19 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
   int idx = 0;
   for (const auto& f : champs_postraitables_)
     {
-      Motcle nom2 = get<0>(f);
-      Entity loc2 = get<1>(f);
+      Motcle nom2 = std::get<0>(f);
+      Entity loc2 = std::get<1>(f);
+
+      // Prepare entries in storage map (some of them might not be used for example when postprocessing
+      // an unknown directly):
+      // Teo Boutin: moved here because sometime a post may depend on another.
+      // Then some fields in the map may not be prepared
+      // For example: if CURL is asked in post but not CRITERE_Q, we try in alloc_fields to allocate scalar_post_fields_.at("CRITERE_Q") which was not pre initialized.
+      // now we pre fill for every post processable field. Probably there is a better solution
+      scalar_post_fields_[nom2] = IJK_Field_double();
+      vect_post_fields_[nom2] = IJK_Field_vector3_double();
+
+
       bool want_interp = (reqloc == Entity::ELEMENT && loc2 == Entity::FACE);
       if(nom2 == fld_nam
           && (reqloc == loc2 || want_interp)) // allow FACE to ELEMENT interpolation
@@ -268,14 +283,13 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
               Process::exit();
             }
           field_post_idx_.push_back(k);
-          // Prepare entries in storage map (some of them might not be used for example when postprocessing
-          // an unknown directly):
-          scalar_post_fields_[fld_nam] = IJK_Field_double();
-          vect_post_fields_[fld_nam] = IJK_Field_vector3_double();
+          list_post_required_.push_back(fld_nam);
           break;
         }
+
       idx++;
     }
+
   if (idx == (int)champs_postraitables_.size())
     {
       Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< reqloc_s <<"' is not available for postprocessing!!" << finl;
@@ -345,7 +359,7 @@ void Postprocessing_IJK::init()
   // Integrated field initialisation
   init_integrated_and_ana(ref_ijk_ft_->get_reprise());
 
-  fill_indic(ref_ijk_ft_->get_reprise());
+
 
   completer_sondes();
 
@@ -563,20 +577,41 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
 {
   Navier_Stokes_FTD_IJK& ns = ref_ijk_ft_->eq_ns();
 
-  // pour relire les champs de temps integres:
-  if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
+
+  // En reprise, il se peut que le champ ne soit pas dans la liste des posts, mais qu'on l'ait quand meme.
+  // Dans ce cas, on choisi de le lire, remplir le field et le re-sauvegarder a la fin (on n'en a rien fait de plus entre temps...)
+  if (
+    (( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated())
+    || is_post_required("INDICATRICE_PERTURBE")
+    || ((reprise) && ((ns.fichier_reprise_vitesse_ != "??"))) // TODO teo boutin: read from fichier_reprise_interface maybe ??
+  )
     {
-      integrated_timescale_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      if ((reprise) && (fichier_reprise_integrated_timescale_ != "RESET"))
+      indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "INDICATRICE_PERTURBE");
+      champs_compris_.ajoute_champ(indicatrice_non_perturbe_);
+      fill_indic(ref_ijk_ft_->get_reprise());
+    }
+
+  // pour relire les champs de temps integres:
+  if (is_post_required("INTEGRATED_TIMESCALE"))
+    {
+      integrated_timescale_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "INTEGRATED_TIMESCALE");
+      champs_compris_.ajoute_champ(integrated_timescale_);
+      if ((reprise) && (!reset_reprise_integrated_))
         {
-          if (fichier_reprise_integrated_timescale_ == "??")
+          if (ns.fichier_reprise_vitesse_ == "??")
             {
-              Cerr << "fichier_reprise_integrated_timescale should be specified in the restart file" << endl;
+              Cerr << "fichier_reprise_vitesse_ should be specified in the restart file in Navier_Stokes_FTD_IJK object" << endl;
               Process::exit();
             }
           const int timestep_reprise_integrated_timescale_ = 1;
           const Nom& geom_name = integrated_timescale_.get_domaine().le_nom();
-          lire_dans_lata(fichier_reprise_integrated_timescale_, timestep_reprise_integrated_timescale_, geom_name, "INTEGRATED_TIMESCALE", integrated_timescale_); // fonction qui lit un champ a partir d'un lata .
+
+          if (!lata_has_field(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_timescale_, geom_name, "INTEGRATED_TIMESCALE"))
+            {
+              Cerr << "fichier_reprise_vitesse_ " <<  ns.fichier_reprise_vitesse_ << " does not contain field INTEGRATED_TIMESCALE to restart statistics. You may specify the flag reset_reprise_integrated in postprocessing to reset statistics" << endl;
+              Process::exit();
+            }
+          lire_dans_lata(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_timescale_, geom_name, "INTEGRATED_TIMESCALE", integrated_timescale_); // fonction qui lit un champ a partir d'un lata .
         }
       else
         {
@@ -588,21 +623,31 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
     }
 
   // Pour relire les champs de vitesse et pression integres :
-  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
-    allocate_velocity(integrated_velocity_, domaine_ijk_, 2);
-  if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
+  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || is_post_required("INTEGRATED_VELOCITY"))
     {
-      if ((reprise) && (fichier_reprise_integrated_velocity_ != "RESET"))
+      allocate_velocity(integrated_velocity_, domaine_ijk_, 2, "INTEGRATED_VELOCITY");
+      champs_compris_.ajoute_champ_vectoriel(integrated_velocity_);
+    }
+  if (is_post_required("INTEGRATED_VELOCITY"))
+    {
+      if ((reprise) && (!reset_reprise_integrated_))
         {
-          if (fichier_reprise_integrated_velocity_ == "??")
+          if (ns.fichier_reprise_vitesse_ == "??")
             {
-              Cerr << "fichier_reprise_integrated_velocity should be specified in the restart file" << endl;
+              Cerr << "fichier_reprise_vitesse_ should be specified in the restart file in Navier_Stokes_FTD_IJK object" << endl;
               Process::exit();
             }
           const int timestep_reprise_integrated_velocity_ = 1;
-          cout << "Lecture vitesse integree initiale dans fichier " << fichier_reprise_integrated_velocity_ << " timestep= " << timestep_reprise_integrated_velocity_ << endl;
           const Nom& geom_name = velocity_.valeur()[0].get_domaine().le_nom();
-          lire_dans_lata(fichier_reprise_integrated_velocity_, timestep_reprise_integrated_velocity_, geom_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1],
+
+          if (!lata_has_field(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_velocity_, geom_name, "INTEGRATED_VELOCITY"))
+            {
+              Cerr << "fichier_reprise_vitesse_ " <<  ns.fichier_reprise_vitesse_ << " does not contain field INTEGRATED_VELOCITY to restart statistics. You may specify the flag reset_reprise_integrated in postprocessing to reset statistics" << endl;
+              Process::exit();
+            }
+
+          cout << "Lecture vitesse integree initiale dans fichier " << ns.fichier_reprise_vitesse_ << " timestep= " << timestep_reprise_integrated_velocity_ << endl;
+          lire_dans_lata(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_velocity_, geom_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1],
                          integrated_velocity_[2]); // fonction qui lit un champ a partir d'un lata .
         }
       else
@@ -618,22 +663,31 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
         }
     }
 
-  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
-    integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-
-  if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
+  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || is_post_required("INTEGRATED_PRESSURE"))
     {
-      if ((reprise) && (fichier_reprise_integrated_velocity_ != "RESET"))
+      integrated_pressure_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "INTEGRATED_PRESSURE");
+      champs_compris_.ajoute_champ(integrated_pressure_);
+    }
+
+  if (is_post_required("INTEGRATED_PRESSURE"))
+    {
+      if ((reprise) && (!reset_reprise_integrated_))
         {
-          if (fichier_reprise_integrated_pressure_ == "??")
+          if (ns.fichier_reprise_vitesse_ == "??")
             {
-              Cerr << "fichier_reprise_integrated_pressure should be specified in the restart file" << endl;
+              Cerr << "fichier_reprise_vitesse_ should be specified in the restart file in Navier_Stokes_FTD_IJK object" << endl;
               Process::exit();
             }
           const int timestep_reprise_integrated_pressure_ = 1;
-          cout << "Lecture pression integree initiale dans fichier " << fichier_reprise_integrated_pressure_ << " timestep= " << timestep_reprise_integrated_pressure_ << endl;
           const Nom& geom_name = pressure_->get_domaine().le_nom();
-          lire_dans_lata(fichier_reprise_integrated_pressure_, timestep_reprise_integrated_pressure_, geom_name, "INTEGRATED_PRESSURE", integrated_pressure_); // fonction qui lit un champ a partir d'un lata .
+
+          if (!lata_has_field(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_pressure_, geom_name, "INTEGRATED_PRESSURE"))
+            {
+              Cerr << "fichier_reprise_vitesse_ " <<  ns.fichier_reprise_vitesse_ << " does not contain field INTEGRATED_PRESSURE to restart statistics. You may specify the flag reset_reprise_integrated in postprocessing to reset statistics" << endl;
+              Process::exit();
+            }
+          cout << "Lecture pression integree initiale dans fichier " << ns.fichier_reprise_vitesse_ << " timestep= " << timestep_reprise_integrated_pressure_ << endl;
+          lire_dans_lata(ns.fichier_reprise_vitesse_, timestep_reprise_integrated_pressure_, geom_name, "INTEGRATED_PRESSURE", integrated_pressure_); // fonction qui lit un champ a partir d'un lata .
 
         }
       else
@@ -644,14 +698,6 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
           update_integral_pressure(pressure_, integrated_pressure_, interfaces_->In(), integrated_timescale_);
 
         }
-    }
-
-  // En reprise, il se peut que le champ ne soit pas dans la liste des posts, mais qu'on l'ait quand meme.
-  // Dans ce cas, on choisi de le lire, remplir le field et le re-sauvegarder a la fin (on n'en a rien fait de plus entre temps...)
-  if ((( ns.coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INDICATRICE_PERTURBE")
-      || ((reprise) && ((fichier_reprise_indicatrice_non_perturbe_ != "??"))))
-    {
-      indicatrice_non_perturbe_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
     }
 
   // Pour le post-traitement de lambda2  -  ALREADY DONE IN alloc_fields() !!!
@@ -721,7 +767,7 @@ void Postprocessing_IJK::fill_indic(bool reprise)
   // Meme if que pour l'allocation.
   // On ne fait le calcul/remplissage du champ que dans un deuxieme temps car on
   // n'avait pas les interfaces avant (lors de l'init)
-  if (((ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || liste_post_instantanes_.contient_("INDICATRICE_PERTURBE")
+  if (((ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && is_stats_plans_activated()) || is_post_required("INDICATRICE_PERTURBE")
       || (reprise && (fichier_reprise_indicatrice_non_perturbe_ != "??")))
     {
       init_indicatrice_non_perturbe();
@@ -753,15 +799,19 @@ void Postprocessing_IJK::init_indicatrice_non_perturbe()
 {
   // Est-il deja rempli et stocke?
   // Si on n'est pas en reprise de calcul, le fichier "fichier_reprise_indicatrice_non_perturbe_" est forcement a "??"
-  if ((fichier_reprise_indicatrice_non_perturbe_ != "??") && (fichier_reprise_indicatrice_non_perturbe_ != "RESET"))
+  if ((fichier_reprise_indicatrice_non_perturbe_ != "??") && (!reset_reprise_integrated_))
     {
       const int timestep_reprise_indicatrice_non_perturbe = 1; // 1 ou 0 est le premier? attention au get_db ou latadb...
       cout << "Lecture indicatrice non perturbee dans fichier " << fichier_reprise_indicatrice_non_perturbe_ << " timestep= " << timestep_reprise_indicatrice_non_perturbe << endl;
       const Nom& geom_name = indicatrice_non_perturbe_.get_domaine().le_nom();
       lire_dans_lata(fichier_reprise_indicatrice_non_perturbe_, timestep_reprise_indicatrice_non_perturbe, geom_name, "INDICATRICE_PERTURBE", indicatrice_non_perturbe_); // fonction qui lit un champ a partir d'un lata .
     }
-  else
+  else if (
+    (( ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16) && is_stats_plans_activated())
+    || is_post_required("INDICATRICE_PERTURBE")
+  )
     {
+
       // Sinon, on le calcule une fois pour toute (cas bulles fixe = le champ ne varie pas en temps...)
       ArrOfDouble volume_reel;
       DoubleTab position;
@@ -872,11 +922,7 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
           Cerr << "Post-processing of FORCE_PH demanded, but the spectral force is not present, not initialized" << endl;
         }
     }
-  if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
-    {
-      update_integral_velocity(velocity_, integrated_velocity_, interfaces_->In(), integrated_timescale_);
-      n--, dumplata_vector(lata_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1], integrated_velocity_[2], latastep);
-    }
+
   if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
     {
       //      integrated_pressure_ += timestep_*pressure_;
@@ -1550,38 +1596,11 @@ void Postprocessing_IJK::get_update_lambda2_and_rot_and_Q()
         }
 }
 
-
-bool is_number(const std::string& s)
-{
-  std::string::const_iterator it = s.begin();
-  while (it != s.end() && std::isdigit(*it))
-    ++it;
-  return !s.empty() && it == s.end();
-}
-
-int convert_suffix_to_int(const Nom& nom)
-{
-  std::string nom_str = nom.getString();
-  std::size_t index = nom_str.find_last_of("_");
-  std::string suffix("");
-  if (index != std::string::npos)
-    suffix = nom_str.substr(index + 1);
-
-  bool is_suffix_number = is_number(suffix);
-  int suffix_int = -1;
-  if (is_suffix_number)
-    {
-      suffix_int = std::stoi(suffix);
-      Cerr << suffix_int << finl;
-    }
-  return suffix_int;
-}
-
 /** Was the field of name 'nom' requested for postprocessing?
  */
 bool Postprocessing_IJK::is_post_required(const Motcle& nom) const
 {
-  return bool(scalar_post_fields_.count(nom)) || bool(vect_post_fields_.count(nom));
+  return (std::find(list_post_required_.begin(), list_post_required_.end(), nom) != list_post_required_.end());
 }
 
 // Pour qu'un champ vectoriel puisse etre interpole a l'element, il faut qu'il ait au moins 1 ghost.
@@ -1594,7 +1613,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "EXTERNAL_FORCE", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "NUM_COMPO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "COORDS", Entity::FACE, Nature_du_champ::vectoriel, false },
@@ -1922,6 +1940,24 @@ const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_field_vector(const M
       Cerr << finl;
     }
 
+  if (nom == "INTEGRATED_VELOCITY")
+    {
+      update_integral_velocity(velocity_, integrated_velocity_, interfaces_->In(), integrated_timescale_);
+    }
+  if (nom == "INTEGRATED_PRESSURE")
+    {
+      update_integral_pressure(pressure_, integrated_pressure_, interfaces_->In(), integrated_timescale_);
+    }
+  if (nom == "INTEGRATED_TIMESCALE")
+    {
+      update_integral_indicatrice(interfaces_->In(), 1. /* Should be the integration timestep */, integrated_timescale_);
+    }
+  if (nom == "INDICATRICE_PERTURBE")
+    {
+      //Faut-il faire un update_...( indicatrice_non_perturbe_) avant?
+    }
+
+
 
   return champs_compris_.get_champ_vectoriel(nom);
 }
@@ -1935,16 +1971,16 @@ const int& Postprocessing_IJK::get_IJK_flag(const Nom& nom) const
 
 void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
 {
-  if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
+  if (is_post_required("INTEGRATED_VELOCITY"))
     dumplata_vector(lata_name, "INTEGRATED_VELOCITY", integrated_velocity_[0], integrated_velocity_[1], integrated_velocity_[2], 0);
 
-  if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
+  if (is_post_required("INTEGRATED_PRESSURE"))
     dumplata_scalar(lata_name, "INTEGRATED_PRESSURE", integrated_pressure_, 0);
 
-  if (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
+  if (is_post_required("INDICATRICE_PERTURBE"))
     dumplata_scalar(lata_name, "INDICATRICE_PERTURBE", indicatrice_non_perturbe_, 0);
 
-  if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
+  if (is_post_required("INTEGRATED_TIMESCALE"))
     dumplata_scalar(lata_name, "INTEGRATED_TIMESCALE", integrated_timescale_, 0);
 //  // Not necessary, but convenient for picturing...
 //  if (liste_post_instantanes_.contient_("LAMBDA2"))
@@ -1956,14 +1992,6 @@ void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
 
 void Postprocessing_IJK::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
 {
-  if (liste_post_instantanes_.contient_("INTEGRATED_VELOCITY"))
-    fichier << " fichier_reprise_integrated_velocity " << lata_name << "\n";
-  if (liste_post_instantanes_.contient_("INTEGRATED_PRESSURE"))
-    fichier << " fichier_reprise_integrated_pressure " << lata_name << "\n";
-  if (liste_post_instantanes_.contient_("INTEGRATED_TIMESCALE"))
-    fichier << " fichier_reprise_integrated_timescale " << lata_name << "\n";
-  if (liste_post_instantanes_.contient_("INDICATRICE_PERTURBE"))
-    fichier << " fichier_reprise_indicatrice_non_perturbe " << lata_name << "\n";
 
   if (statistiques_FT_.t_integration() > 0.)
     {
@@ -1983,15 +2011,8 @@ void Postprocessing_IJK::reprendre_post(Param& param)
 {
   param.ajouter("statistiques_FT", &statistiques_FT_);
   param.ajouter("groups_statistiques_FT", &groups_statistiques_FT_);
-
-  if (ref_ijk_ft_->eq_ns().coef_immobilisation_ > 1e-16)
-    {
-      param.ajouter("fichier_reprise_integrated_velocity", &fichier_reprise_integrated_velocity_);
-      param.ajouter("fichier_reprise_integrated_pressure", &fichier_reprise_integrated_pressure_);
-      param.ajouter("fichier_reprise_integrated_timescale", &fichier_reprise_integrated_timescale_);
-      param.ajouter("fichier_reprise_indicatrice_non_perturbe", &fichier_reprise_indicatrice_non_perturbe_);
-    }
 }
+
 
 void Postprocessing_IJK::fill_op_conv()
 {
@@ -2086,12 +2107,14 @@ void Postprocessing_IJK::alloc_fields()
 
   // For the pressure field extension:
   if (!Option_IJK::DISABLE_DIPHASIQUE
-      && ((liste_post_instantanes_.contient_("PRESSURE_LIQ")) || (liste_post_instantanes_.contient_("PRESSURE_VAP")) || (liste_post_instantanes_.contient_("TOUS")) || is_stats_plans_activated()))
+      && ((is_post_required("PRESSURE_LIQ")) || (is_post_required("PRESSURE_VAP")) || is_stats_plans_activated()))
     {
       extended_pressure_computed_ = 1;
       pressure_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 5);
-      extended_pl_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
-      extended_pv_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0);
+      extended_pl_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "PRESSURE_LIQ");
+      champs_compris_.ajoute_champ(extended_pl_);
+      extended_pv_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "PRESSURE_VAP");
+      champs_compris_.ajoute_champ(extended_pv_);
       extended_pl_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
       extended_pv_ft_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
     }
@@ -2099,9 +2122,9 @@ void Postprocessing_IJK::alloc_fields()
     extended_pressure_computed_ = 0;
 
   // Allocation du champ de normale aux cellules :
-  if (!Option_IJK::DISABLE_DIPHASIQUE && ((liste_post_instantanes_.contient_("NORMALE_INTERF")) || (liste_post_instantanes_.contient_("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
-                                          || (liste_post_instantanes_.contient_("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
-                                          || (liste_post_instantanes_.contient_("TOUS")) || is_stats_plans_activated()))
+  if (!Option_IJK::DISABLE_DIPHASIQUE && ((is_post_required("NORMALE_INTERF")) || (is_post_required("PRESSURE_LIQ")) // Je ne suis pas sur que ce soit necessaire. Seulement si on l'utilise dans le calcul de p_ext
+                                          || (is_post_required("PRESSURE_VAP")) // Je ne suis pas sur que ce soit necessaire.
+                                          || is_stats_plans_activated()))
     {
       allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
     }
@@ -2139,6 +2162,7 @@ void Postprocessing_IJK::alloc_fields()
     }
 
 
+
   // Allocation des champs derivee de vitesse :
   if (is_stats_plans_activated() || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
     {
@@ -2159,8 +2183,10 @@ void Postprocessing_IJK::alloc_fields()
       if (is_post_required("CRITERE_Q") || is_post_required("CURL"))
         {
           scalar_post_fields_.at("CRITERE_Q").allocate(domaine_ijk_, Domaine_IJK::ELEM, 0, "CRITERE_Q");
+          champs_compris_.ajoute_champ(scalar_post_fields_.at("CRITERE_Q"));
           // Le rotationnel, aux elems aussi :
           allocate_cell_vector(vect_post_fields_.at("CURL"), domaine_ijk_, 0, "CURL");
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at("CURL"));
         }
     }
 
