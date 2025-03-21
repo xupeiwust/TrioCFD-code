@@ -24,7 +24,6 @@
 #include <Param.h>
 
 Implemente_base(Source_injection_QDM_base, "Source_injection_QDM_base", Source_base);
-// XD
 
 
 Sortie& Source_injection_QDM_base::printOn(Sortie& os) const { return os;}
