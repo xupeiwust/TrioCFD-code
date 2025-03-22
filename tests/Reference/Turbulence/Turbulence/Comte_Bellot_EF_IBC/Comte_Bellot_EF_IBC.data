@@ -10,7 +10,7 @@
   mu =1.812 e-5 #
 
 dimension 3
-Pb_Thermohydraulique_Turbulent pb
+Pb_Thermohydraulique_ibm_Turbulent pb
 Domaine dom
 
 # DEBUT MAILLAGE #
@@ -84,7 +84,7 @@ Read pb
        beta_th Champ_Uniforme 1 1.0e-3
    }
    
-       Navier_Stokes_Turbulent
+       Navier_Stokes_ibm_Turbulent
     {
         modele_turbulence combinaison {
                 nb_var 0
@@ -156,7 +156,7 @@ Read pb
             Entree frontiere_ouverte_vitesse_imposee Champ_front_fonc_txyz 3 0. ((x_GT_0.09+1.0e-6)*(x_LT_0.0941)*(1551.034*x-139.497)+(x_GT_0.0941)*(x_LT_0.2659)*(-18950.5*x*x*x*x+13637.507*x*x*x-3946.121*x*x+537.066*x-18.548)+(x_GT_0.2659)*(x_LT_0.27-1.0e-6)*(-1551.034*x+418.544))    0. 
         }
     }
-    Convection_Diffusion_Temperature_Turbulent {
+    Convection_Diffusion_Temperature_ibm_Turbulent {
         Modele_turbulence Prandtl
                { Turbulence_paroi negligeable_scalaire
 	       }
