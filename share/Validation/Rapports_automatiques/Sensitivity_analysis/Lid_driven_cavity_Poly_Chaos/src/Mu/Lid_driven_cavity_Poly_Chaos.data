@@ -127,7 +127,7 @@ Read pb_etat
 
 	}
     }
-    Sauvegarde_simple single_hdf Cas_etat.sauv
+    Sauvegarde_simple pdi Cas_etat.sauv
 }
 
 Read pb_sensibilite
@@ -188,7 +188,7 @@ Read pb_sensibilite
 
 	}
     }
-   Sauvegarde_simple single_hdf Cas_sens.sauv	
+   Sauvegarde_simple pdi Cas_sens.sauv	
 }
 
 

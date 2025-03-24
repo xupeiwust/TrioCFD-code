@@ -119,8 +119,8 @@ Lire pb
 			
 	}
 
-	Sauvegarde_simple single_hdf Cas.sauv
-	}
+	Sauvegarde_simple pdi Cas.sauv
+}
 
 EcritureLectureSpecial 0
 

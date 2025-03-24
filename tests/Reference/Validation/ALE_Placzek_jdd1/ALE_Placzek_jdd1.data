@@ -127,8 +127,8 @@ Read pb
 		} #
 	
 	} 
-	# Resume_last_time single_hdf Cas.sauv #
-	Sauvegarde_simple single_hdf Cas.sauv
+	# Resume_last_time pdi Cas.sauv #
+	Sauvegarde_simple pdi Cas.sauv
 	
 }
 # The problem is solved with #

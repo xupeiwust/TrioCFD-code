@@ -138,7 +138,7 @@ Read pb
             ALEMeshVelocity som
         }
     }
- Sauvegarde single_hdf Beam_CF.sauv
+ Sauvegarde pdi Beam_CF.sauv
 }
 EcritureLectureSpecial 0
 # The problem is solved with #
