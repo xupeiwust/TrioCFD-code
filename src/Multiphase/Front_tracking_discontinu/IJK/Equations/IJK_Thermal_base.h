@@ -77,7 +77,7 @@ public:
   const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
   static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
   void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
-
+  Nom get_field_name_with_rank(Nom basename) const;
   void associer_interface_intersections(const Intersection_Interface_ijk_cell& intersection_ijk_cell,
                                         const Intersection_Interface_ijk_face& intersection_ijk_face);
   void associer_ghost_fluid_fields(const IJK_Ghost_Fluid_Fields& ghost_fluid_fields);

@@ -79,21 +79,23 @@ public :
 
   void allocate_persistant(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers=0, int nb_compo=1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, this->le_nom());
     associer_persistant(cut_cell_disc);
   }
 
   void allocate_ephemere(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, this->le_nom());
     associer_ephemere(cut_cell_disc);
   }
 
   void allocate_paresseux(Cut_cell_FT_Disc& cut_cell_disc, const Domaine_IJK& splitting, Domaine_IJK::Localisation loc, int ghost_size, int additional_k_layers = 0, int nb_compo = 1)
   {
-    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo);
+    IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, this->le_nom());
     associer_paresseux(cut_cell_disc);
   }
+  void dumplata_scalar(const char *filename, int step) override;
+
 
   _TYPE_& from_signed_independent_index(int signed_independent_index);
   const _TYPE_& from_signed_independent_index(int signed_independent_index) const;

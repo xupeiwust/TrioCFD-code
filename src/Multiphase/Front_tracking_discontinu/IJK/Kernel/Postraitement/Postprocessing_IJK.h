@@ -135,6 +135,9 @@ public:
   bool is_stats_cisaillement_activated() const;
   bool is_stats_rmf_activated() const;
 
+
+  double get_max_timestep_for_post(double current_time) const;
+
 protected:
   static std::vector<FieldInfo_t> champs_postraitables_;  ///< list of fields that can be potentially postprocessed
   /** Index in 'champs_postraitables_' of each of the requested field for post-processing
@@ -162,6 +165,7 @@ protected:
   int nb_pas_dt_post_stats_rmf_ = -1; // intervalle de posttraitement des données liés au au rmf
 
   // Post-traitement selon un intervale de temps (en secondes)
+  double time_interval_post_ = -1.0;
   double time_interval_post_thermals_probes_ = -1.0;
   double time_interval_post_stats_bulles_ = -1.0;
   double time_interval_post_stats_plans_ = -1.0;

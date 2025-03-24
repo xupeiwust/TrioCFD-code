@@ -185,7 +185,12 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
   if (pb_ijk.has_thermals())
     pb_ijk.get_ijk_thermals().compute_timestep(dt_thermals, dxmin);
 
-  const double dt = std::min(max_timestep, timestep_facsec_ * std::min(dt_eq_velocity, dt_thermals));
+  // to enforce max simulation time
+  const double dt_max_for_simu_time = std::max(0.0, max_simu_time_ - temps_courant_);
+
+  const double dt = std::min({max_timestep, timestep_facsec_ * std::min(dt_eq_velocity, dt_thermals), dt_max_for_simu_time});
+
+
 
   if (Process::je_suis_maitre())
     {
@@ -209,6 +214,8 @@ double Schema_Temps_IJK_base::find_timestep(const double max_timestep, const dou
   envoyer_broadcast(temps_cpu_ecoule_,0);
 
   assert(dt > 0);
+
+
 
   return dt;
 }

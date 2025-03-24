@@ -722,6 +722,7 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "CUT_FIELDS_BARY_L", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
     { "DISTANCE_AUTRES_INTERFACES", Entity::NODE, Nature_du_champ::scalaire, true }
   };
@@ -856,7 +857,8 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
 
       allocate_cell_vector(barycentre_phase1_ft_[old()], domaine_FT, 2);
       allocate_cell_vector(barycentre_phase1_ft_[next()], domaine_FT, 2);
-      allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells);
+      allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells, "CUT_FIELDS_BARY_L");
+      champs_compris_.ajoute_champ_vectoriel(barycentre_phase1_ns_[old()]);
       allocate_cell_vector(barycentre_phase1_ns_[next()], domaine_NS, nb_ghost_cells);
 
       for (int bary_compo = 0; bary_compo < 3; bary_compo++)

@@ -1064,6 +1064,8 @@ bool Probleme_FTD_IJK_base::run()
   bool ok = true;
   int& tstep = schema_temps_ijk().get_tstep();
 
+
+
   for (tstep = 0; tstep < schema_temps_ijk().get_nb_timesteps() && !stop_; tstep++)
     {
       // In IJK, the post is done at the begining of the time step - at this point tstep and dt are still coherent.
@@ -1071,7 +1073,18 @@ bool Probleme_FTD_IJK_base::run()
       postraiter(stop_);
       statistiques().begin_count(timestep_counter_);
 
+      // max time step is modified in order to land as close as possible to a postpro interval (if using intervals)
+      // this is useful to obtain regularly spaced outputs
+      // TODO(teo.boutin) set this as optional with a flag in dataset
+      double max_timestep_for_post_at_intervals = get_post().get_max_timestep_for_post(schema_temps_ijk().get_current_time());
+      double old_max_timestep = schema_temps_ijk().get_max_timestep();
+      schema_temps_ijk().set_max_timestep_if_smaller(max_timestep_for_post_at_intervals);
+
       schema_temps_ijk().set_timestep() = computeTimeStep(stop_);
+
+      // reset the max_timestep to normal value
+      schema_temps_ijk().set_max_timestep(old_max_timestep);
+
 
       /* Contrary to what is done in the classical Probleme_base::run() method, here we do not stop directly
        * we still go through the end of the loop:

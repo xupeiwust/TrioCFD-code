@@ -91,6 +91,7 @@ void Postprocessing_IJK::set_param(Param& param)
   param.ajouter("nb_pas_dt_post_stats_cisaillement", &nb_pas_dt_post_stats_cisaillement_);
   param.ajouter("nb_pas_dt_post_stats_rmf", &nb_pas_dt_post_stats_rmf_);
 
+  param.ajouter("time_interval_post_", &time_interval_post_);
   param.ajouter("time_interval_post_thermals_probes", &time_interval_post_thermals_probes_);
   param.ajouter("time_interval_post_stats_bulles", &time_interval_post_stats_bulles_);
   param.ajouter("time_interval_post_stats_plans", &time_interval_post_stats_plans_);
@@ -500,17 +501,22 @@ int Postprocessing_IJK::postraiter_champs()
 
       if (nat == Nature_du_champ::scalaire)
         {
-          const IJK_Field_double& fld = ref_ijk_ft_->get_IJK_field(fld_nam);
+          const IJK_Field_double* fld = &(ref_ijk_ft_->get_IJK_field(fld_nam));
 
-          if (!check_loc_compat(fld_loc, fld.get_localisation()) && !is_on_interf)  // for now, loc validity is not checked for interf fields ...
+          if (!check_loc_compat(fld_loc, fld->get_localisation()) && !is_on_interf)  // for now, loc validity is not checked for interf fields ...
             {
               Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(fld_loc) << "'!" << finl;
               Process::exit();
             }
           if (is_on_interf)
-            dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(fld_loc), fld.data(), latastep);
+            dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(fld_loc), fld->data(), latastep);
           else
-            dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
+            {
+              // dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
+              IJK_Field_double* fld_not_const = const_cast<IJK_Field_double*>(fld); // FIXME
+              fld_not_const->dumplata_scalar(nom_fich_, latastep);
+            }
+
         }
       else if (nat == Nature_du_champ::vectoriel)
         {
@@ -2856,3 +2862,45 @@ void Postprocessing_IJK::posttraiter_tous_champs_energie(Motcles& liste, const i
   liste.add("DIV_RHO_CP_T_V");
 }
 
+// local utilitary functions for the method Postprocessing_IJK::get_max_timestep_for_post
+namespace{
+
+// returns remainder of division between real numbers
+double modulo(double dividend, double divisor)
+{
+  return ((std::floor(dividend/divisor) + 1)*divisor - dividend);
+}
+
+// Note : the (1+1e-12) safety factor ensures that the simulation reaches the target.
+// Otherwise, the simulation time might fall just below the target due to numerical errors, not triggering the desired post.
+// If you happen to miss an interval, you may adjust the factor to a higher value
+void add_max_timestep(std::vector<double>& timesteps, double current_time, double interval)
+{
+  if (interval>0 && (modulo(current_time, interval) != 0))
+    timesteps.push_back(modulo(current_time, interval)*(1+1e-12));
+
+}
+
+}
+
+/// @brief Compute the max possible timestep to use during the next iteration
+/// in order to not skip a time interval for postpro
+/// @param current_time
+/// @return max time step acceptable in order to land on a time for requirede post
+double Postprocessing_IJK::get_max_timestep_for_post(double current_time) const
+{
+
+  std::vector<double> timesteps;
+  timesteps.push_back(DMAXFLOAT);
+  add_max_timestep(timesteps, current_time, time_interval_post_);
+  add_max_timestep(timesteps, current_time, time_interval_post_thermals_probes_);
+  add_max_timestep(timesteps, current_time, time_interval_post_stats_bulles_);
+  add_max_timestep(timesteps, current_time, time_interval_post_stats_plans_);
+  add_max_timestep(timesteps, current_time, time_interval_post_stats_cisaillement_);
+  add_max_timestep(timesteps, current_time, time_interval_post_stats_rmf_);
+
+  double min=*std::min_element(timesteps.begin(),timesteps.end());
+  assert(min>0);
+  return min;
+
+}

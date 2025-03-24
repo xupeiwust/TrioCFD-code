@@ -55,6 +55,7 @@ public :
   double get_timestep_facsec() const { return timestep_facsec_; }
   double get_modified_time_ini() const { return modified_time_ini_; }
   double get_max_simu_time() const { return max_simu_time_; }
+  double get_max_timestep() const { return max_timestep_; }
   double get_current_time() const { return temps_courant(); }
   double get_timestep() const { return pas_de_temps(); } // en double
   double& set_timestep() { return set_dt(); } // en double
@@ -74,6 +75,7 @@ public :
 
   void set_modified_time_ini(const double t) { modified_time_ini_ = t; }
   void set_max_timestep(const double t) { max_timestep_ = t; }
+  void set_max_timestep_if_smaller(const double t) { max_timestep_ = std::min(max_timestep_, t); }
   void set_current_time(const double t) { changer_temps_courant(t); }
   void set_tstep_sauv(const int ts) { tstep_sauv_ = ts; }
 

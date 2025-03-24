@@ -276,7 +276,7 @@ void IJK_Thermal_base::post_process_std_thermal_field(const Motcles& liste_post_
 
 void IJK_Thermal_base::initialize_switch(const Domaine_IJK& splitting, const int idx)
 {
-  temperature_->allocate(splitting, Domaine_IJK::ELEM, 1, Nom("TEMPERATURE_")+Nom(rang_));
+  temperature_->allocate(splitting, Domaine_IJK::ELEM, 1, get_field_name_with_rank("TEMPERATURE"));
   champs_compris_.ajoute_champ(*temperature_);
   if (fichier_reprise_temperature_ == "??") // si on ne fait pas une reprise on initialise V
     {
@@ -329,7 +329,7 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   /*
    * Fields
    */
-  temperature_->allocate(splitting, Domaine_IJK::ELEM, ghost_cells_,Nom("TEMPERATURE_")+Nom(rang_));
+  temperature_->allocate(splitting, Domaine_IJK::ELEM, ghost_cells_, get_field_name_with_rank("TEMPERATURE"));
   champs_compris_.ajoute_champ(*temperature_);
   temperature_for_ini_per_bubble_.allocate(splitting, Domaine_IJK::ELEM, 1);
 
@@ -342,14 +342,16 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
    */
   gfm_vapour_mixed_only_ = !gfm_vapour_liquid_vapour_;
 
-  // if (!diff_temperature_negligible_)
-  {
-    div_coeff_grad_T_volume_->allocate(splitting, Domaine_IJK::ELEM, 2);
-    div_coeff_grad_T_volume_->data() = 0.;
-  }
-  if (liste_post_instantanes_.contient_("DIV_LAMBDA_GRAD_T"))
+  if (!diff_temperature_negligible_)
     {
-      div_coeff_grad_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
+      div_coeff_grad_T_volume_->allocate(splitting, Domaine_IJK::ELEM, 2, get_field_name_with_rank("DIV_LAMBDA_GRAD_T_VOLUME"));
+      div_coeff_grad_T_volume_->data() = 0.;
+      champs_compris_.ajoute_champ(*div_coeff_grad_T_volume_);
+    }
+  if (ref_ijk_ft_->get_post().is_post_required("DIV_LAMBDA_GRAD_T"))
+    {
+      div_coeff_grad_T_.allocate(splitting, Domaine_IJK::ELEM, 0, get_field_name_with_rank("DIV_LAMBDA_GRAD_T"));
+      champs_compris_.ajoute_champ(div_coeff_grad_T_);
       div_coeff_grad_T_.data() = 0.;
     }
   if (store_flux_operators_for_energy_balance_)
@@ -359,14 +361,15 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
       for (int c=0; c<3; c++)
         div_coeff_grad_T_raw_[c].data() = 0.;
     }
-  // if (!conv_temperature_negligible_)
-  {
-    u_T_convective_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
-    u_T_convective_volume_.data() = 0.;
-  }
-  if (liste_post_instantanes_.contient_("U_T_CONVECTIVE"))
+  if (!conv_temperature_negligible_)
     {
-      u_T_convective_.allocate(splitting, Domaine_IJK::ELEM, 0);
+      u_T_convective_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
+      u_T_convective_volume_.data() = 0.;
+    }
+  if (ref_ijk_ft_->get_post().is_post_required("U_T_CONVECTIVE"))
+    {
+      u_T_convective_.allocate(splitting, Domaine_IJK::ELEM, 0, "U_T_CONVECTIVE");
+      champs_compris_.ajoute_champ(u_T_convective_);
       u_T_convective_.data() = 0.;
     }
   if (store_flux_operators_for_energy_balance_)
@@ -1023,6 +1026,12 @@ void IJK_Thermal_base::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chp
   * champs_compris.ajoute_champ(champ)
   */
 }
+
+Nom IJK_Thermal_base::get_field_name_with_rank(Nom basename) const
+{
+  return basename + Nom("_") + Nom(rang_);
+}
+
 
 void IJK_Thermal_base::get_noms_champs_postraitables(Noms& noms,Option opt) const
 {

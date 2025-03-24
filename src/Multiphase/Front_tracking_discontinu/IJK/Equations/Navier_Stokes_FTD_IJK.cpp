@@ -596,6 +596,7 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     pressure_.allocate(dom_ijk, Domaine_IJK::ELEM, 3);
   pressure_.nommer("PRESSURE");
   pressure_.add_synonymous("PRESSION");
+  champs_compris_.ajoute_champ(pressure_);
 
   if (include_pressure_gradient_in_ustar_)
     {
@@ -744,7 +745,6 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     champs_compris_.ajoute_champ_vectoriel(velocity_);
   else
     champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
-  champs_compris_.ajoute_champ(pressure_);
 }
 
 void Navier_Stokes_FTD_IJK::projeter()
