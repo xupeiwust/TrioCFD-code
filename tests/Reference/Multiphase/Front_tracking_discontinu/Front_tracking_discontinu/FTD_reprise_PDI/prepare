@@ -1,0 +1,4 @@
+# Genere le fichier prepare.sauv
+# PARALLEL ONLY #
+make_PAR.data prepare
+trust PAR_prepare 4
