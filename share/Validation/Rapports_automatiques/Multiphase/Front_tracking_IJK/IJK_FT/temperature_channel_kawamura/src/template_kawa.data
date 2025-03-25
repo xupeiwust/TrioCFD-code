@@ -162,19 +162,31 @@ lire pb
   }
  {
  
+ }
  
-Sondes
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 200
+    fields 
+    {
+       Pressure elem
+       LAMBDA2 elem 
+       VELOCITY faces
+       Pressure_RHS elem
+       TEMPERATURE elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA elem
+    }
+
+    t_debut_statistiques 2.78251442e+02
+    nb_pas_dt_post_stats_plans 1000
+#    nb_pas_dt_post_stats_bulles 1000 #
+    Sondes
     {
        pp_T temperature_0 periode 1e-9 points 1 0.003 0.0015 0.0015
-    }
-   
-  dt_post 200 # 1000 #
-  dt_post_stats_plans 100
-  dt_post_stats_bulles 10
-  t_debut_statistiques 2.78251442e+02
-  champs_a_postraiter 6 PRESSURE VELOCITY TEMPERATURE TEMPERATURE_ADIMENSIONNELLE_THETA LAMBDA2 pressure_rhs
-  # Pour Creer le fichier de Reprise #
- }
+       pp_VX velocity_X  periode 1e-9 points 1 0.003 0.0015 0.0015
+    } 
+  }
 }
 solve pb
 # Lata_to_other lml NOM_DU_CAS NOM_DU_CAS #

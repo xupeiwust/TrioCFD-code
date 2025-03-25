@@ -13,6 +13,7 @@
  *
  *****************************************************************************/
 
+#include <Check_espace_virtuel.h>
 #include <Postprocessing_IJK.h>
 #include <Schema_Euler_explicite_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
@@ -543,6 +544,8 @@ int Postprocessing_IJK::postraiter_champs()
               // TODO: pour ABN from GB : problem avec le const ! -> faire un ref_cast_non_const tout moche?
               // for (int dir2 = 0; dir2 < 3; dir2++)
               //   fld[dir2].echange_espace_virtuel(fld[dir2].ghost());
+              /* Exit in error if the virtual spaces of the distributed array are not up to date */
+              // for (int dir2 = 0; dir2 < 3; dir2++) assert(check_espace_virtuel_vect(fld[dir2]));
               interpolate_to_center(post_projected_field_, fld);
               dumplata_cellvector(nom_fich_,Nom("CELL_") + fld_nam, post_projected_field_, latastep);
             }
