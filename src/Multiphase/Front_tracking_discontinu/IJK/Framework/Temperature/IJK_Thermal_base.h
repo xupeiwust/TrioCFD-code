@@ -533,6 +533,7 @@ protected:
   void force_upstream_temperature(IJK_Field_double& temperature, double T_imposed,
                                   const IJK_Interfaces& interfaces, double nb_diam, int upstream_dir,
                                   int gravity_dir, int upstream_stencil);
+
   virtual void enforce_periodic_temperature_boundary_value() {  }
 
   int debug_ = 0;

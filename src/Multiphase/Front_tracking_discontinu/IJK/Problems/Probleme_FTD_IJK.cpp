@@ -13,26 +13,26 @@
 *
 *****************************************************************************/
 
-#include <IJK_FT.h>
+#include <Probleme_FTD_IJK.h>
 #include <IJK_Field_vector.h>
 #include <IJK_FT_base.h>
 #include <IJK_Navier_Stokes_tools.h>
 #include <EFichier.h>
 
 
-Implemente_instanciable(IJK_FT, "IJK_FT_double", IJK_FT_base);
+Implemente_instanciable(Probleme_FTD_IJK, "Probleme_FTD_IJK", IJK_FT_base);
 
-Sortie& IJK_FT::printOn(Sortie& os) const
+Sortie& Probleme_FTD_IJK::printOn(Sortie& os) const
 {
   return os;
 }
 
-Entree& IJK_FT::readOn(Entree& is)
+Entree& Probleme_FTD_IJK::readOn(Entree& is)
 {
   return is;
 }
 
-Entree& IJK_FT::interpreter(Entree& is)
+Entree& Probleme_FTD_IJK::interpreter(Entree& is)
 {
   IJK_FT_base::interpreter(is);
 
@@ -40,18 +40,11 @@ Entree& IJK_FT::interpreter(Entree& is)
   return is;
 }
 
-void IJK_FT::set_param(Param& param)
-{
-  IJK_FT_base::set_param(param);
-
-}
-
-
-void IJK_FT::run()
+void Probleme_FTD_IJK::run()
 {
   splitting_.get_local_mesh_delta(DIRECTION_K, 2 /* ghost cells */,
                                   delta_z_local_);
-  Cerr << "IJK_FT::run()" << finl;
+  Cerr << "Probleme_FTD_IJK::run()" << finl;
   int nalloc = 0;
   thermal_probes_ghost_cells_ = 4;
   thermals_.compute_ghost_cell_numbers_for_subproblems(splitting_, thermal_probes_ghost_cells_);
@@ -281,8 +274,6 @@ void IJK_FT::run()
     poisson_solver_.initialize(splitting_);
 
 
-  nalloc += initialise_interfaces();
-
   // C'est ici aussi qu'on alloue les champs de temperature.
   nalloc += initialise();
 
@@ -451,7 +442,7 @@ void IJK_FT::run()
     }
   else
     {
-      Cerr << "Cas normal diphasique IJK_FT::run()" << finl;
+      Cerr << "Cas normal diphasique Probleme_FTD_IJK::run()" << finl;
 
       /*
        * TODO: Change this block with DERIV CLASS IJK_Thermal
@@ -869,6 +860,7 @@ void IJK_FT::run()
       current_time_ += timestep_;
       // stock dans le spliting le decallage periodique total avec condition de shear (current_time_) et celui du pas de temps (timestep_)
       IJK_Shear_Periodic_helpler::shear_x_time_ = boundary_conditions_.get_dU_perio()*(current_time_ + boundary_conditions_.get_t0_shear());
+
       // Pour creer une dilatation forcee (cas test champs FT)
       if (coeff_evol_volume_!=0.)
         {
@@ -877,6 +869,7 @@ void IJK_FT::run()
           for (int ib = 0; ib < nb_reelles; ib++)
             vol_bulles_[ib] = vol_bulle_monodisperse_;
         }
+
       if (current_time_ >= post_.t_debut_statistiques())
         {
           if (boundary_conditions_.get_correction_conserv_qdm()==2)
@@ -1017,7 +1010,7 @@ void IJK_FT::run()
 
 }
 
-void IJK_FT::euler_time_step(ArrOfDouble& var_volume_par_bulle)
+void Probleme_FTD_IJK::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 {
   static Stat_Counter_Id euler_rk3_counter_ = statistiques().new_counter(2, "Mise a jour de la vitesse");
   statistiques().begin_count(euler_rk3_counter_);
@@ -1331,7 +1324,7 @@ void IJK_FT::euler_time_step(ArrOfDouble& var_volume_par_bulle)
 // Perform one sub-step of rk3 for FT algorithm, called 3 times per time step.
 // rk_step = 0, 1 or 2
 // total_timestep = not the fractionnal timestep !
-void IJK_FT::rk3_sub_step(const int rk_step, const double total_timestep,
+void Probleme_FTD_IJK::rk3_sub_step(const int rk_step, const double total_timestep,
                           const double fractionnal_timestep, const double time )
 {
   assert(rk_step>=0 && rk_step<3);

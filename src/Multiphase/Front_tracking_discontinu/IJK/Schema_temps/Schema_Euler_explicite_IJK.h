@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2015 - 2016, CEA
+* Copyright (c) 2022, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -13,30 +13,21 @@
 *
 *****************************************************************************/
 
-#ifndef IJK_FT_included
-#define IJK_FT_included
+#ifndef Schema_Euler_explicite_IJK_included
+#define Schema_Euler_explicite_IJK_included
 
-#include <IJK_FT_base.h>
+#include <Schema_Temps_base.h>
 
-/*! @brief : class IJK_FT
+/*! @brief Explicit Euler scheme for IJK setups.
  *
- *  La classe IJK_FT herite de la classe IJK_FT_base.
- *
+ * @sa Schema_Temps_base
  */
-class IJK_FT : public IJK_FT_base
+class Schema_Euler_explicite_IJK: public Schema_Temps_base
 {
-  friend class IJK_Thermique;
-  friend class Statistiques_dns_ijk_FT;
-  Declare_instanciable(IJK_FT) ;
+  Declare_instanciable(Schema_Euler_explicite_IJK);
 
 public :
-  Entree& interpreter(Entree&) override;
-  void set_param(Param& param) override;
-  void run() override;
-  void euler_time_step(ArrOfDouble& var_volume_par_bulle) override;
-  void rk3_sub_step(const int rk_step, const double total_timestep, const double fractionnal_timestep, const double time) override;
-
-protected :
+  int faire_un_pas_de_temps_eqn_base(Equation_base&) override;
 };
 
-#endif /* IJK_FT_included */
+#endif /* Schema_Euler_explicite_IJK_included */
