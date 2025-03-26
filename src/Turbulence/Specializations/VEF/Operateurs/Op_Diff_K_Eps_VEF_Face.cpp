@@ -95,34 +95,36 @@ void Op_Diff_K_Eps_VEF_Face::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTab&
   const Turbulence_paroi_base& mod=le_modele_turbulence->loi_paroi();
   const Paroi_hyd_base_VEF& paroi=ref_cast(Paroi_hyd_base_VEF,mod);
   const ArrOfInt& face_keps_imposee=paroi.face_keps_imposee();
-  int size=secmem.dimension(0);
-  const IntVect& tab1=matrice.get_tab1();
-  DoubleVect& coeff = matrice.get_set_coeff();
-  const DoubleTab& val=equation().inconnue().valeurs();
-  const int nb_comp = equation().inconnue().valeurs().line_size();
 
   if (face_keps_imposee.size_array()>0) //TODO a reformuler (Kokkos ?)
-    // en plus des dirichlets ????
-    // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
-    for (int face=0; face<size; face++)
-      {
-        if (face_keps_imposee[face]!=-2)
-          {
-            for (int comp=0; comp<nb_comp; comp++)
-              {
-                // on doit remettre la ligne a l'identite et le secmem a l'inconnue
-                int idiag = tab1[face*nb_comp+comp]-1;
-                coeff[idiag]=1;
-                // pour les voisins
-                int nbvois = tab1[face*nb_comp+1+comp] - tab1[face*nb_comp+comp];
-                for (int k=1; k < nbvois; k++)
-                  {
-                    coeff[idiag+k]=0;
-                  }
-                secmem(face,comp)=val(face,comp);
-              }
-          }
-      }
+    {
+      int size=secmem.dimension(0);
+      const IntVect& tab1=matrice.get_tab1();
+      DoubleVect& coeff = matrice.get_set_coeff();
+      const DoubleTab& val=equation().inconnue().valeurs();
+      const int nb_comp = equation().inconnue().valeurs().line_size();
 
+      // en plus des dirichlets ????
+      // on change la matrice et le resu sur toutes les lignes ou k_eps_ est imposee....
+      for (int face=0; face<size; face++)
+        {
+          if (face_keps_imposee[face]!=-2)
+            {
+              for (int comp=0; comp<nb_comp; comp++)
+                {
+                  // on doit remettre la ligne a l'identite et le secmem a l'inconnue
+                  int idiag = tab1[face*nb_comp+comp]-1;
+                  coeff[idiag]=1;
+                  // pour les voisins
+                  int nbvois = tab1[face*nb_comp+1+comp] - tab1[face*nb_comp+comp];
+                  for (int k=1; k < nbvois; k++)
+                    {
+                      coeff[idiag+k]=0;
+                    }
+                  secmem(face,comp)=val(face,comp);
+                }
+            }
+        }
+    }
 }
 

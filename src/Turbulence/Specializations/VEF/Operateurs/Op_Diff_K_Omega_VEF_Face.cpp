@@ -43,15 +43,6 @@ Entree& Op_Diff_K_Omega_VEF_Face::readOn(Entree& s )
 }
 
 
-double Op_Diff_K_Omega_VEF_Face::blender(double const val1, double const val2,
-                                         int const face) const
-{
-  const DoubleTab& F1 = turbulence_model->get_blenderF1();
-  return F1(face)*val1 + (1 - F1(face))*val2;
-}
-
-
-
 DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue_org, DoubleTab& resu) const
 {
   remplir_nu(nu_); // On remplit le tableau nu car ajouter peut se faire avant le premier pas de temps
@@ -63,34 +54,23 @@ DoubleTab& Op_Diff_K_Omega_VEF_Face::ajouter(const DoubleTab& inconnue_org, Doub
   flux_bords_.resize(le_dom_vef->nb_faces_bord(), nb_comp);
   flux_bords_ = 0.;
 
-  int n_tot = nu_.dimension_tot(0); //TODO peut mieux faire
-  DoubleTab nu_turb_m(n_tot, 2);
+  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
 
+  double invPrdtK = 1./Prdt_K;
+  double invPrdtOmega = 1./Prdt_Omega;
   const bool is_SST = turbulence_model->is_SST();
   DoubleTab F1elem(domaine_VEF.nb_elem_tot(), 1);
   const DoubleTab& F1face = turbulence_model->get_tabF1();
   if (is_SST)
     Discretisation_tools::faces_to_cells(domaine_VEF, F1face, F1elem);
 
-  const IntTab& elem_faces=le_dom_vef->elem_faces();
-  int nb_face_elem=elem_faces.dimension(1);
+  int n_tot = nu_.dimension_tot(0); //TODO peut mieux faire
+  DoubleTab nu_turb_m(n_tot, 2);
 
-  DoubleTab F1_elem(n_tot);
-
-  for (int ele=0; ele<n_tot; ele++)
-    if (is_SST)
-      for (int s=0; s<nb_face_elem; s++)
-        F1_elem(ele)+=blender(SIGMA_OMEGA1, SIGMA_OMEGA2, elem_faces(ele,s));
-    else
-      F1_elem(ele) = 1./Prdt_Omega;
-
-  double inv_nb_face_elem=1./(nb_face_elem);
-  F1_elem*=inv_nb_face_elem;
-
-  for (int ele=0; ele<n_tot; ele++)
+  for (int elem=0; elem<n_tot; elem++)
     {
-      nu_turb_m(ele,0) = nu_turb(ele)/Prdt_K;
-      nu_turb_m(ele,1) = nu_turb(ele)*F1_elem(ele);
+      nu_turb_m(elem,0) = nu_turb(elem) * (is_SST ? 1/(F1elem(elem)*SIGMA_K1 + (1 - F1elem(elem))*SIGMA_K2) : invPrdtK);
+      nu_turb_m(elem,1) = nu_turb(elem) * (is_SST ? 1/(F1elem(elem)*SIGMA_OMEGA1 + (1 - F1elem(elem))*SIGMA_OMEGA2) : invPrdtOmega);
     }
 
   ajouter_bord_gen<Type_Champ::SCALAIRE, true>(inconnue_org, resu, flux_bords_, nu_, nu_turb_m);
@@ -116,30 +96,23 @@ void Op_Diff_K_Omega_VEF_Face::contribuer_a_avec(const DoubleTab& inco,
 
   const DoubleTab& nu_turb = diffusivite_turbulente().valeurs();
 
-  int n_tot = nu_.dimension_tot(0);
+  const Domaine_VEF& domaine_VEF = le_dom_vef.valeur();
+
+  double invPrdtK = 1./Prdt_K;
+  double invPrdtOmega = 1./Prdt_Omega;
+  const bool is_SST = turbulence_model->is_SST();
+  DoubleTab F1elem(domaine_VEF.nb_elem_tot(), 1);
+  const DoubleTab& F1face = turbulence_model->get_tabF1();
+  if (is_SST)
+    Discretisation_tools::faces_to_cells(domaine_VEF, F1face, F1elem);
+
+  int n_tot = nu_.dimension_tot(0); //TODO peut mieux faire
   DoubleTab nu_turb_m(n_tot, 2);
 
-  const bool is_SST = turbulence_model->is_SST();
-
-  const IntTab& elem_faces=le_dom_vef->elem_faces();
-  int nb_face_elem=elem_faces.dimension(1);
-
-  DoubleTab F1_elem(n_tot);
-
-  for (int ele=0; ele<n_tot; ele++)
-    if (is_SST)
-      for (int s=0; s<nb_face_elem; s++)
-        F1_elem(ele)+=blender(SIGMA_OMEGA1, SIGMA_OMEGA2, elem_faces(ele,s));
-    else
-      F1_elem(ele) = 1./Prdt_Omega;
-
-  double inv_nb_face_elem=1./(nb_face_elem);
-  F1_elem*=inv_nb_face_elem;
-
-  for (int ele=0; ele<n_tot; ele++)
+  for (int elem=0; elem<n_tot; elem++)
     {
-      nu_turb_m(ele,0) = nu_turb(ele)/Prdt_K;
-      nu_turb_m(ele,1) = nu_turb(ele)*F1_elem(ele);
+      nu_turb_m(elem,0) = nu_turb(elem) * (is_SST ? 1/(F1elem(elem)*SIGMA_K1 + (1 - F1elem(elem))*SIGMA_K2) : invPrdtK);
+      nu_turb_m(elem,1) = nu_turb(elem) * (is_SST ? 1/(F1elem(elem)*SIGMA_OMEGA1 + (1 - F1elem(elem))*SIGMA_OMEGA2) : invPrdtOmega);
     }
 
   int marq = phi_psi_diffuse(equation());
@@ -165,11 +138,6 @@ void Op_Diff_K_Omega_VEF_Face::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTa
   const Turbulence_paroi_base& mod=le_modele_turbulence->loi_paroi();
   const Paroi_hyd_base_VEF& paroi = ref_cast(Paroi_hyd_base_VEF, mod);
   const ArrOfInt& face_komega_imposee = paroi.face_keps_imposee();
-  int size = secmem.dimension(0);
-  const IntVect& tab1 = matrice.get_tab1();
-  DoubleVect& coeff = matrice.get_set_coeff();
-  const DoubleTab& val = equation().inconnue().valeurs();
-  const int nb_comp = equation().inconnue().valeurs().line_size();
 
   if (face_komega_imposee.size_array() > 0)
     {
@@ -177,6 +145,7 @@ void Op_Diff_K_Omega_VEF_Face::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTa
       const int size = secmem.dimension(0);
       const IntVect& tab1 = matrice.get_tab1();
       DoubleVect& coeff = matrice.get_set_coeff();
+      const int nb_comp = equation().inconnue().valeurs().line_size();
 
       // en plus des dirichlets ????
       // on change la matrice et le resu sur toutes les lignes ou k_omega_ est imposee....
@@ -184,7 +153,6 @@ void Op_Diff_K_Omega_VEF_Face::modifier_pour_Cl(Matrice_Morse& matrice, DoubleTa
         {
           if (face_komega_imposee[face] != -2)
             {
-              const int nb_comp = 2;
               for (int comp = 0; comp < nb_comp; comp++)
                 {
                   // on doit remettre la ligne a l'identite et le secmem a l'inconnue

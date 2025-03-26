@@ -48,10 +48,6 @@ public:
 
   void modifier_pour_Cl(Matrice_Morse& matrice, DoubleTab& secmem) const override;
 
-protected:
-
-  double blender(double const val1, double const val2, int const face) const;
-
 };
 
 #endif
