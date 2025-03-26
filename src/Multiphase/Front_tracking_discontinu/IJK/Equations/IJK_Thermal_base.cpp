@@ -398,9 +398,10 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   /*
    * Dimensionless temperature field (thermostat)
    */
+  const Nom name_T_adim = get_field_name_with_rank("TEMPERATURE_ADIMENSIONNELLE_THETA");
   if ((wall_flux_) || liste_post_instantanes_.contient_("SOURCE_TEMPERATURE")
       || liste_post_instantanes_.contient_("TEMPERATURE_PHYSIQUE_T")
-      || liste_post_instantanes_.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA") || ref_ijk_ft_post_->is_post_required("TEMPERATURE_ADIMENSIONNELLE_THETA_0")
+      || liste_post_instantanes_.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA") || ref_ijk_ft_post_->is_post_required(name_T_adim)
       || (type_T_source_ != "??"))
     {
       Cout << "Allocating field for the thermal source term & co. " << finl;
@@ -410,7 +411,8 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
       d_source_Tv_.allocate(splitting, Domaine_IJK::ELEM, 1);
       d_source_Tl_.allocate(splitting, Domaine_IJK::ELEM, 1);
       temperature_physique_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
-      temperature_adimensionnelle_theta_.allocate(splitting, Domaine_IJK::ELEM, 2, "TEMPERATURE_ADIMENSIONNELLE_THETA");
+      temperature_adimensionnelle_theta_.allocate(splitting, Domaine_IJK::ELEM, 2, name_T_adim);
+      champs_compris_.ajoute_champ(temperature_adimensionnelle_theta_);
       // par defaut s'il n'y a pas de source renseignee, on utilise la source de Dabiri/Kawamura
       // cela veut dire que dans le cas des SWARMS il faut imperativement renseigner le nom de
       // la source
@@ -1021,6 +1023,8 @@ void IJK_Thermal_base::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chp
   *
   * your field must be named with "BASE_NAME_" + Nom(rang_):
   * champ.nommer("BASE_NAME_" + Nom(rang_))
+  * or :
+  * champ.nommer(get_field_name_with_rank("BASE_NAME_"))
   *
   * then add the field to champs_compris from the equation (here or in derived class)
   * champs_compris.ajoute_champ(champ)

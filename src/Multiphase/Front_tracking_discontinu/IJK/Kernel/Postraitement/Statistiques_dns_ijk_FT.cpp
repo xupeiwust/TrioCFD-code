@@ -1449,6 +1449,84 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
                   dIdz = (gradI[2](i,j,k) + gradI[2](i, j, k+1)) * 0.5;
                 }
 
+              if (ref_ijk_ft_->has_thermals())
+                {
+                  int idx =0;
+                  for (auto& itr : ref_ijk_ft_->get_ijk_thermals().get_liste_eqs())
+                    {
+                      const IJK_Field_double& temperature = *itr->get_temperature();
+                      const double T = temperature(i,j,k);
+
+                      double T_adim_bulles;
+                      if (liste_post_instantanes.contient_("TEMPERATURE_ADIM_BULLES"))
+                        {
+                          const IJK_Field_double& temperature_adim_bulles = itr->get_temperature_adim_bulles();
+                          T_adim_bulles = temperature_adim_bulles(i,j,k);
+                        }
+                      else
+                        {
+                          T_adim_bulles = 0;
+                        }
+
+
+                      // Derivee seconde de la temperature :
+                      const IJK_Field_vector3_double& gradT = itr->get_gradient_temperature();
+                      double ddTdxdx = 0.;
+                      double ddTdxdy = 0.;
+                      double ddTdxdz = 0.;
+                      double ddTdydx = 0.;
+                      double ddTdydy = 0.;
+                      double ddTdydz = 0.;
+                      double ddTdzdx = 0.;
+                      double ddTdzdy = 0.;
+                      double ddTdzdz = 0.;
+                      face_to_cell_gradient(gradT[0],gradT[1],gradT[2],
+                                            i,j,k,
+                                            dz,
+                                            ddTdxdx,ddTdydx,ddTdzdx,
+                                            ddTdxdy,ddTdydy,ddTdzdy,
+                                            ddTdxdz,ddTdydz,ddTdzdz,
+                                            on_the_first_cell, on_the_last_cell,
+                                            1 /* bc_type for gradT at the wall :
+									    assumed equal to faces values */);
+#define AJOUTT(somme,val) moyv(somme,idx) += val
+                      AJOUTT(TI_MOY,chi*T);
+                      AJOUTT(TTI_MOY, chi*T*T);
+                      AJOUTT(ITU_MOY, chi*T*u);
+                      AJOUTT(ITV_MOY, chi*T*v);
+                      AJOUTT(ITW_MOY, chi*T*w);
+                      AJOUTT(ITUU_MOY, chi*T*u*u);
+                      AJOUTT(ITUV_MOY, chi*T*u*v);
+                      AJOUTT(ITUW_MOY, chi*T*u*w);
+                      AJOUTT(ITVV_MOY, chi*T*v*v);
+                      AJOUTT(ITVW_MOY, chi*T*v*w);
+                      AJOUTT(ITWW_MOY, chi*T*w*w);
+                      AJOUTT(ITdPdx_MOY, chi*T*dPdx);
+                      AJOUTT(ITdPdy_MOY, chi*T*dPdy);
+                      AJOUTT(ITdPdz_MOY, chi*T*dPdz);
+                      AJOUTT(ITddUdxdx_MOY, chi*T*ddUdxdx);
+                      AJOUTT(ITddUdydy_MOY, chi*T*ddUdydy);
+                      AJOUTT(ITddUdzdz_MOY, chi*T*ddUdzdz);
+                      AJOUTT(ITddVdxdx_MOY, chi*T*ddVdxdx);
+                      AJOUTT(ITddVdydy_MOY, chi*T*ddVdydy);
+                      AJOUTT(ITddVdzdz_MOY, chi*T*ddVdzdz);
+                      AJOUTT(ITddWdxdx_MOY, chi*T*ddWdxdx);
+                      AJOUTT(ITddWdydy_MOY, chi*T*ddWdydy);
+                      AJOUTT(ITddWdzdz_MOY, chi*T*ddWdzdz);
+                      AJOUTT(IUddTdxdx_MOY, chi*u*ddTdxdx);
+                      AJOUTT(IUddTdydy_MOY, chi*u*ddTdydy);
+                      AJOUTT(IUddTdzdz_MOY, chi*u*ddTdzdz);
+                      AJOUTT(IVddTdxdx_MOY, chi*v*ddTdxdx);
+                      AJOUTT(IVddTdydy_MOY, chi*v*ddTdydy);
+                      AJOUTT(IVddTdzdz_MOY, chi*v*ddTdzdz);
+                      AJOUTT(IWddTdxdx_MOY, chi*w*ddTdxdx);
+                      AJOUTT(IWddTdydy_MOY, chi*w*ddTdydy);
+                      AJOUTT(IWddTdzdz_MOY, chi*w*ddTdzdz);
+                      AJOUTT(ITbulles_MOY, chi*T_adim_bulles);
+#undef AJOUTT
+                      idx++;
+                    }
+                }
 
 #define AJOUT(somme,val) moy[somme] += val
               // moyennes
@@ -2492,7 +2570,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
 // This method is called only on master proc.
 void Statistiques_dns_ijk_FT::postraiter_thermique(const double current_time) const
 {
-  if ((!Process::je_suis_maitre()) && (nb_thermal_fields_ !=0))
+  if ((!Process::je_suis_maitre()) || (nb_thermal_fields_==0))
     return;
 
   const int nz = elem_coord_.size_array(); // nombre de points en K
@@ -2642,16 +2720,6 @@ void Statistiques_dns_ijk_FT::completer_read(Param& param)
 {
   // At this stage, nz is 0, we haven't read the initialize.
   // Thus, we cannot resize integrale_temporelle_temperature_ or moyenne_spatiale_instantanee_temperature_ correctly.
-  // However, we can do something for nb_thermal_fields_ from the problem !
-  {
-    int idx =0;
-    //curseur = ref_ijk_ft_->thermique_; //RAZ
-    nb_thermal_fields_ = idx;
-    Journal() <<"ooooo "<<Process::me() << finl;
-    //envoyer_broadcast(nb_thermal_fields_, 0);
-    Cerr << "nb_thermal_fields=" << nb_thermal_fields_<< finl;
-    Journal() <<"nb_thermal_fields=" << nb_thermal_fields_<< finl;
-  }
 
   param.ajouter_non_std("thermal_fields",(this));
   // ou pour lire quand meme les anciens directement sans accolade :
@@ -2677,11 +2745,11 @@ void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, co
   for (int i = 0; i < n; i++)
     elem_coord_[i] = (coord_z[i] + coord_z[i+1]) * 0.5;
 
-  int idx =0;
-  //curseur = ref_ijk_ft_->thermique_; //RAZ
-  nb_thermal_fields_ = idx;
-  Journal() <<"ooooo "<< Process::me() << " with nb_thermal_fields=" << nb_thermal_fields_ << finl;
-  Cerr <<"ooooo "<< Process::me() << " with nb_thermal_fields=" << nb_thermal_fields_ << finl;
+  if (ref_ijk_ft_->has_thermals())
+    {
+      nb_thermal_fields_ = ref_ijk_ft_->get_ijk_thermals().size();
+      Cerr << que_suis_je() << " initialised with nb_thermal_fields=" << nb_thermal_fields_ << finl;
+    }
   if (Process::je_suis_maitre())
     {
       moyenne_spatiale_instantanee_.dimensionner(nval_);
