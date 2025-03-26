@@ -2434,25 +2434,6 @@ int Remaillage_FT::permuter_aretes(Maillage_FT_Disc& maillage) const
 //=============================================================================================
 // FONCTIONS DE DIVISION DES GRANDES ARETES
 
-static const IntTabFT* static_tab_sort;
-// Fonction de comparaison lexicographique de deux aretes a scinder:
-// Note : la fonction utilise non pas les donnees du tableau passe en parametre,
-//   mais les donnees du tableau static_tab_sort pour la comparaison.
-// Tri par ordre croissant de 2e colonne, puis 3e, puis 4e colonne.
-True_int fct_compare_tab_aretes(const void *pt1, const void *pt2)
-{
-  const int index1 = *(const int *) pt1;
-  const int index2 = *(const int *) pt2;
-
-  True_int x = FTd_compare_sommets_global((*static_tab_sort)(index1,0), (*static_tab_sort)(index1,1), (*static_tab_sort)(index2,0), (*static_tab_sort)(index2,1));
-  if (x==0)
-    {
-      x = FTd_compare_sommets_global((*static_tab_sort)(index1,2), (*static_tab_sort)(index1,3), (*static_tab_sort)(index2,2), (*static_tab_sort)(index2,3));
-    }
-
-  return x;
-}
-
 /*! @brief Cette fonction divise les grandes aretes en 2
  *
  * @param (maillage) maillage a remailler
@@ -2981,11 +2962,13 @@ int Remaillage_FT::marquer_aretes(Maillage_FT_Disc& maillage, IntTab& tab_aretes
     {
       tab_index[indice] = indice;
     }
-  //on initialise le tableau servant au tri de la liste d'index
-  static_tab_sort = &tab_aretes;
-  //on recupere un tableau d'indices triant tab_fa7AScinder selon ses colonnes [1 2 3]
-  qsort(tab_index.addr(),nb_tab_aretes,sizeof(int), fct_compare_tab_aretes);
-
+  std::sort(tab_index.begin(), tab_index.end(), [&](int a, int b)
+  {
+    int cmp = FTd_compare_sommets_global(tab_aretes(a,0), tab_aretes(a,1), tab_aretes(b,0), tab_aretes(b,1));
+    if (cmp==0)
+      cmp = FTd_compare_sommets_global(tab_aretes(a,2), tab_aretes(a,3), tab_aretes(b,2), tab_aretes(b,3));
+    return (cmp==-1);
+  });
   double lgr2=-1.,lgr_ideale02=-1.,lgr_ideale12,d;
   int pe0p,numOwner0p,pe1p,numOwner1p;
   pe0p = numOwner0p = pe1p = numOwner1p = -1;

@@ -23,6 +23,7 @@
 #include <TRUST_Deriv.h>
 #include <Domaine_VF.h>
 #include <TRUST_Ref.h>
+#include <Array_tools.h>
 
 Implemente_instanciable(Connectivite_frontieres,"Connectivite_frontieres",Objet_U);
 
@@ -40,20 +41,6 @@ Sortie& Connectivite_frontieres::printOn(Sortie& is) const
   assert(0);
   Process::exit();
   return is;
-}
-
-static True_int fonction_tri_lexicographique_3_colonnes(const void *ptr1,
-                                                        const void *ptr2)
-{
-  const int * tab1 = (const int *) ptr1;
-  const int * tab2 = (const int *) ptr2;
-  int delta;
-  delta = tab1[0] - tab2[0];
-  if (delta) return delta;
-  delta = tab1[1] - tab2[1];
-  if (delta) return delta;
-  delta = tab1[2] - tab2[2];
-  return delta;
 }
 
 void Connectivite_frontieres::remplir_def_face_aretes(const Domaine_VF& domaine_vf)
@@ -231,11 +218,18 @@ void Connectivite_frontieres::remplir_faces_voisins(const Domaine_VF& domaine_vf
   //  par ordre croissant de sommet0, puis de sommet1, puis de i_face
   assert(les_aretes.dimension(1) == 4);
   if (nb_aretes > 0)
-    qsort(les_aretes.addr(),
-          nb_aretes,
-          sizeof(int) * 4,
-          fonction_tri_lexicographique_3_colonnes);
-
+    {
+      using quadruplet = std::array<int, 4>;
+      quadruplet* ptr = reinterpret_cast<quadruplet*>(les_aretes.addr());
+      std::sort(ptr, ptr+nb_aretes, [&](const quadruplet& q1, const quadruplet& q2)
+      {
+        if (q1[0] != q2[0])
+          return ( q1[0]<q2[0] );
+        if (q1[1] != q2[1])
+          return ( q1[1]<q2[1] );
+        return ( q1[2]<q2[2] );
+      });
+    }
   // Maintenant, les aretes identiques se suivent dans le tableau.
   // On trouve donc des couples de numeros de faces adjacentes.
   // On remplit le tableau des faces voisines...

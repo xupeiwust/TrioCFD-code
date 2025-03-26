@@ -18,112 +18,29 @@
 #include <IJK_Interfaces.h>
 #include <IJK_Navier_Stokes_tools.h>
 
-struct struct_two_int_columns
+template <typename _TYPE_>
+void compare_second_column(_TYPE_* ptr, int sz)
 {
-  int index;
-  int value;
-};
-
-struct struct_three_int_columns
-{
-  int index;
-  int first_value;
-  int second_value;
-};
-
-int compare_second_int_column(const void *a, const void *b)
-{
-  struct_two_int_columns *a1 = (struct_two_int_columns *)a;
-  struct_two_int_columns *a2 = (struct_two_int_columns *)b;
-  if ((*a1).value < (*a2).value)
-    return -1;
-  else if ((*a1).value > (*a2).value)
-    return 1;
-  else
-    return 0;
+  using pair = std::array<_TYPE_, 2>;
+  pair* tmp = reinterpret_cast<pair*>(ptr);
+  std::sort(tmp, tmp+sz, [&](const pair& p1, const pair& p2)
+  {
+    return (p1[1] < p2[1]);
+  });
 }
 
-int compare_second_then_third_int_column(const void *a, const void *b)
+template <typename _TYPE_>
+void compare_second_then_third_column(_TYPE_* ptr, int sz)
 {
-  struct_three_int_columns *a1 = (struct_three_int_columns *)a;
-  struct_three_int_columns *a2 = (struct_three_int_columns *)b;
-  if ((*a1).first_value < (*a2).first_value)
-    {
-      return -1;
-    }
-  else if ((*a1).first_value > (*a2).first_value)
-    {
-      return 1;
-    }
-  else
-    {
-      if ((*a1).second_value < (*a2).second_value)
-        {
-          return -1;
-        }
-      else if ((*a1).second_value > (*a2).second_value)
-        {
-          return 1;
-        }
-      else
-        {
-          return 0;
-        }
-    }
-}
-
-struct struct_two_double_columns
-{
-  double index;
-  double value;
-};
-
-struct struct_three_double_columns
-{
-  double index;
-  double first_value;
-  double second_value;
-};
-
-int compare_second_double_column(const void *a, const void *b)
-{
-  struct_two_double_columns *a1 = (struct_two_double_columns *)a;
-  struct_two_double_columns *a2 = (struct_two_double_columns *)b;
-  if ((*a1).value < (*a2).value)
-    return -1;
-  else if ((*a1).value > (*a2).value)
-    return 1;
-  else
-    return 0;
-}
-
-int compare_second_then_third_double_column(const void *a, const void *b)
-{
-  struct_three_double_columns *a1 = (struct_three_double_columns *)a;
-  struct_three_double_columns *a2 = (struct_three_double_columns *)b;
-  if ((*a1).first_value < (*a2).first_value)
-    {
-      return -1;
-    }
-  else if ((*a1).first_value > (*a2).first_value)
-    {
-      return 1;
-    }
-  else
-    {
-      if ((*a1).second_value < (*a2).second_value)
-        {
-          return -1;
-        }
-      else if ((*a1).second_value > (*a2).second_value)
-        {
-          return 1;
-        }
-      else
-        {
-          return 0;
-        }
-    }
+  using triplet = std::array<_TYPE_, 3>;
+  triplet* tmp = reinterpret_cast<triplet*>(ptr);
+  std::sort(tmp, tmp+sz, [&](const triplet& p1, const triplet& p2)
+  {
+    if(p1[1] == p2[1])
+      return (p1[2] < p2[2]);
+    else
+      return (p1[1] < p2[1]);
+  });
 }
 
 template<typename _TYPE_>
@@ -154,7 +71,7 @@ void TRUSTTabFT_cut_cell<int>::sort_tot(int column)
     {
       if (column == 1)
         {
-          qsort(addr(), cut_cell_disc_->get_n_tot(), dimension(1)*sizeof(int), compare_second_int_column);
+          compare_second_column<int>(addr(), cut_cell_disc_->get_n_tot());
         }
       else
         {
@@ -176,7 +93,7 @@ void TRUSTTabFT_cut_cell<double>::sort_tot(int column)
     {
       if (column == 1)
         {
-          qsort(addr(), cut_cell_disc_->get_n_tot(), dimension(1)*sizeof(double), compare_second_double_column);
+          compare_second_column<double>(addr(), cut_cell_disc_->get_n_tot());
         }
       else
         {
@@ -198,7 +115,7 @@ void TRUSTTabFT_cut_cell<int>::sort_tot(int column_1, int column_2)
     {
       if (column_1 == 1 && column_2 == 2)
         {
-          qsort(addr(), cut_cell_disc_->get_n_tot(), dimension(1)*sizeof(int), compare_second_then_third_int_column);
+          compare_second_then_third_column<int>(addr(), cut_cell_disc_->get_n_tot());
         }
       else
         {
@@ -220,7 +137,7 @@ void TRUSTTabFT_cut_cell<double>::sort_tot(int column_1, int column_2)
     {
       if (column_1 == 1 && column_2 == 2)
         {
-          qsort(addr(), cut_cell_disc_->get_n_tot(), dimension(1)*sizeof(double), compare_second_then_third_double_column);
+          compare_second_then_third_column<double>(addr(), cut_cell_disc_->get_n_tot());
         }
       else
         {

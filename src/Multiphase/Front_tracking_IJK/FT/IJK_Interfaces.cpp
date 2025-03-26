@@ -4248,7 +4248,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
     }
 
   // On allege chaque liste, mais il faut de toute facon le refaire a la fin :
-  liste_bulles_crees.array_trier_retirer_doublons();
+  array_trier_retirer_doublons(liste_bulles_crees);
   assert(ghost_compo_converter_.size_array() == nb_bulles_ghost_);
   // Si moi ou un autre proc a cree des bulles, il faut mettre a jour
   // nb_bulles_ghost_ et ghost_compo_converter_ :
@@ -4271,7 +4271,7 @@ void IJK_Interfaces::dupliquer_bulle_perio(ArrOfInt& masque_duplicata_pour_compo
             }
 
           // On retire les doublons (duplicatas trouves sur plusieurs procs...);
-          liste_bulles_crees.array_trier_retirer_doublons();
+          array_trier_retirer_doublons(liste_bulles_crees);
 
           // On a cree des bulles ghost :
           nbulles_crees = liste_bulles_crees.size_array();

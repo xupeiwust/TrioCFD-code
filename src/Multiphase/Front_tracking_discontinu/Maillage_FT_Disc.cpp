@@ -4120,22 +4120,6 @@ int Maillage_FT_Disc::check_sommets(int error_is_fatal) const
   return 0;
 }
 
-static True_int fct_tri_facettes(const void *pt1, const void *pt2)
-{
-  const int *a = (const int *) pt1;
-  const int *b = (const int *) pt2;
-
-  int i, x = 0;
-  const int dim = Objet_U::dimension;
-  for (i = 0; i < dim; i++)
-    {
-      x = a[i] - b[i];
-      if (x != 0)
-        break;
-    }
-  return x;
-}
-
 // Description
 //  Verifie la coherence des structures de donnees de l'interface (notamment
 //  la distribution des donnees sur les differents processeurs, espaces
@@ -4287,37 +4271,15 @@ int Maillage_FT_Disc::check_mesh(int error_is_fatal, int skip_facette_pe, int sk
 
       // Verification qu'il n'existe pas deux fois la meme facette
       {
-        IntTabFT copie_facettes = facettes_;
-        // tri du tableau
-        int * data = copie_facettes.addr();
-        const int nbr_facettes = facettes_.dimension(0);
+        const int nb_facettes = facettes_.dimension(0);
         assert(Objet_U::dimension == facettes_.dimension(1));
-        qsort(data, nbr_facettes, facettes_.dimension(1)*sizeof(int),
-              fct_tri_facettes);
-        // recherche des doublons
-        int ii, jj;
-        int count = 0;
-        const int nb_som_facettes = Objet_U::dimension;
-        for (ii = 1; ii < nbr_facettes; ii++)
-          {
-            int facette_a_supprimer = (copie_facettes(ii,0) == copie_facettes(ii,1));
-            if (! facette_a_supprimer)
-              {
-                for (jj = 0; jj < nb_som_facettes; jj++)
-                  {
-                    if (copie_facettes(ii,jj) != copie_facettes(ii-1,jj))
-                      break;
-                  }
-                if (jj == nb_som_facettes)
-                  {
-                    count++;
-                  }
-              }
-          }
+
+        // tri du tableau + suppression doublons
+        IntTabFT copie_facettes = facettes_;
+        tableau_trier_retirer_doublons(copie_facettes);
+        int count = nb_facettes - copie_facettes.dimension(0);
         if (count > 0)
-          {
-            Cerr << "Erreur facette : " << count << " facettes identiques sur PE " << me() << finl;
-          }
+          Cerr << "Erreur facette : " << count << " facettes identiques sur PE " << me() << finl;
       }
 
       // Verification du proprietaire de la facette.

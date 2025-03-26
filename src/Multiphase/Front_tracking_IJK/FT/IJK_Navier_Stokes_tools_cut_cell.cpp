@@ -54,47 +54,6 @@ struct Sommet
   int count;
 };
 
-int compare_sommet(const void *a, const void *b)
-{
-  Sommet *a1 = (Sommet *)a;
-  Sommet *a2 = (Sommet *)b;
-  if ((*a1).sommet > (*a2).sommet)   // Sorting in descending order
-    {
-      return -1;
-    }
-  else if ((*a1).sommet < (*a2).sommet)
-    {
-      return 1;
-    }
-  else
-    {
-      if ((*a1).fa7 > (*a2).fa7) // Secondly, sorting in descending order of the fa7
-        return -1;
-      else if ((*a1).fa7 < (*a2).fa7)
-        return 1;
-      else
-        return 0;
-    }
-}
-
-struct struct_index_dist
-{
-  int index;
-  double dist;
-};
-
-int compare_value_index_dist(const void *a, const void *b)
-{
-  struct_index_dist *a1 = (struct_index_dist *)a;
-  struct_index_dist *a2 = (struct_index_dist *)b;
-  if ((*a1).dist < (*a2).dist)
-    return -1;
-  else if ((*a1).dist > (*a2).dist)
-    return 1;
-  else
-    return 0;
-}
-
 struct Candidate
 {
   int index;
@@ -110,30 +69,6 @@ struct Candidate_with_direct_value
   Vecteur3 coord;
   double value;
 };
-
-int compare_value_candidate(const void *a, const void *b)
-{
-  Candidate *a1 = (Candidate *)a;
-  Candidate *a2 = (Candidate *)b;
-  if ((*a1).dist < (*a2).dist)
-    return -1;
-  else if ((*a1).dist > (*a2).dist)
-    return 1;
-  else
-    return 0;
-}
-
-int compare_value_candidate_with_direct_value(const void *a, const void *b)
-{
-  Candidate_with_direct_value *a1 = (Candidate_with_direct_value *)a;
-  Candidate_with_direct_value *a2 = (Candidate_with_direct_value *)b;
-  if ((*a1).dist < (*a2).dist)
-    return -1;
-  else if ((*a1).dist > (*a2).dist)
-    return 1;
-  else
-    return 0;
-}
 
 static const int max_number_of_involved_sommet = 512; // Note: Pour ce maximum, les sommets sont comptes une fois pour chaque facette et pour chaque cellule contenant cette facette
 
@@ -321,7 +256,10 @@ static void ijk_interpolate_cut_cell_for_given_index(bool next_time, int phase, 
 
   assert(number_of_candidates <= max_number_of_candidates);
   assert(number_of_candidates <= max_number_of_cell_candidates);
-  qsort(candidates, number_of_candidates, sizeof(Candidate), compare_value_candidate);
+  std::sort(candidates, candidates + number_of_candidates, [&](const Candidate& c1, const Candidate& c2)
+  {
+    return (c1.dist < c2.dist);
+  });
 
   // On boucle d'abord sur n_neighbours, le nombre de points que l'on s'autorise a chercher
   // dans la liste des voisins. Par exemple, n_neighbours=6 veut dire que l'on cherche a former
@@ -631,7 +569,13 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
         };
     }
 
-  qsort(involved_sommet, number_of_involved_sommet, sizeof(Sommet), compare_sommet);
+  std::sort(involved_sommet, involved_sommet + number_of_involved_sommet, [&](const Sommet& s1, const Sommet& s2)
+  {
+    if(s1.sommet == s2.sommet)
+      return (s1.fa7 > s2.fa7);
+    else
+      return (s1.sommet > s2.sommet);
+  });
 
   int initial_number_of_involved_sommet = number_of_involved_sommet;
 
@@ -682,7 +626,14 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
       involved_sommet[i].count = 1;
     }
 
-  qsort(involved_sommet, initial_number_of_involved_sommet, sizeof(Sommet), compare_sommet);
+  std::sort(involved_sommet, involved_sommet + initial_number_of_involved_sommet, [&](const Sommet& s1, const Sommet& s2)
+  {
+    if(s1.sommet == s2.sommet)
+      return (s1.fa7 > s2.fa7);
+    else
+      return (s1.sommet > s2.sommet);
+  });
+
 
   for (int i = 0; i < number_of_involved_sommet; i++)
     {
@@ -708,7 +659,10 @@ static double ijk_interpolate_cut_cell_using_interface_for_given_index(bool next
     }
 
   assert(number_of_candidates <= max_number_of_candidates);
-  qsort(candidates, number_of_candidates, sizeof(Candidate_with_direct_value), compare_value_candidate_with_direct_value);
+  std::sort(candidates, candidates + number_of_candidates, [&](const Candidate_with_direct_value& c1, const Candidate_with_direct_value& c2)
+  {
+    return (c1.dist < c2.dist);
+  });
 
   // On boucle d'abord sur n_neighbours, le nombre de points que l'on s'autorise a chercher
   // dans la liste des voisins. Par exemple, n_neighbours=6 veut dire que l'on cherche a former

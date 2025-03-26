@@ -28,6 +28,7 @@
 #include <Parser.h>
 #include <Comm_Group.h>
 #include <communications.h>
+#include <Array_tools.h>
 
 Implemente_instanciable_sans_constructeur(Marching_Cubes,"Marching_Cubes",Objet_U);
 
@@ -432,13 +433,6 @@ void Marching_Cubes::remplir_data_marching_cubes(const Domaine& domaine)
   assert(facettes[i] == -1); // Signature de fin de tableau...
 }
 
-True_int fonction_tri_mcubes_renum_virt_loc(const void *pt1, const void *pt2)
-{
-  int x = *(const int *) pt1;
-  int y = *(const int *) pt2;
-  return x - y;
-}
-
 // Pour chaque joint, on construit un tableau de correspondance :
 //  Pour i=0..nombre de sommets de joint,
 //   renum_virt_loc(joint)(i,0) = numero distant d'un sommet eulerien de joint
@@ -462,18 +456,19 @@ void Marching_Cubes::remplir_renum_virt_loc(const Domaine& domaine)
 
       const Joint& joint = domaine.joint(num_joint);
       const IntTab& renum_unsorted = joint.renum_virt_loc();
-      const int nb_sommets_joint = renum_unsorted.dimension(0);
       IntTab& renum_sorted = renum_virt_loc_[num_joint];
+      const int nb_sommets_joint = renum_unsorted.dimension(0);
 
       // On copie le tableau, puis on le trie par ordre croissant
       // de la premiere colonne.
       renum_sorted = renum_unsorted;
       assert(renum_sorted.dimension_tot(1) == 2);
-
-      qsort(renum_sorted.addr(),
-            nb_sommets_joint,
-            2 * sizeof(int),
-            fonction_tri_mcubes_renum_virt_loc);
+      using pair = std::array<int, 2>;
+      pair* ptr = reinterpret_cast<pair*>(renum_sorted.addr());
+      std::sort(ptr, ptr+nb_sommets_joint, [&](const pair& p1, const pair& p2)
+      {
+        return (p1[0]<p2[0]);
+      });
 
       const int PE_voisin = joint.PEvoisin();
       indice_joint_[PE_voisin] = num_joint;
@@ -867,32 +862,22 @@ void Marching_Cubes::construire_noeuds_joints(const ArrOfBit& signe,
 // - si 2eme sommet identique, ordre croissant du PE associe
 // Complexite : N * log(N) (N=nombre de noeuds dupliques du maillage lagrangien)
 
-// Fonction de comparaison lexicographique de deux noeuds:
-// Tri par ordre croissant de premiere colonne,
-// puis deuxieme, puis troisieme colonne.
-
-True_int fct_compar_mcubes_noeuds(const void *pt1, const void *pt2)
-{
-  const int * const p1 = (const int *) pt1;
-  const int * const p2 = (const int *) pt2;
-  int x;
-  x = p1[0] - p2[0];
-  if (x) return x;
-  x = p1[1] - p2[1];
-  if (x) return x;
-  x = p1[2] - p2[2];
-  return x;
-}
-
 void Marching_Cubes::trier_les_noeuds(IntTab& def_noeud) const
 {
-  int nb_lignes = def_noeud.dimension(0);
-  int nb_colonnes = def_noeud.dimension(1);
-
-  qsort(def_noeud.addr(),             // tableau a trier
-        nb_lignes,                    // nombre d'elements du tableau
-        nb_colonnes * sizeof(int), // taille de chaque element
-        fct_compar_mcubes_noeuds);    // fonction de comparaison
+  if(def_noeud.dimension(1) == 4)
+    tri_lexicographique_tableau(def_noeud);
+  else if(def_noeud.dimension(1) == 5)
+    {
+      int nb_noeuds = def_noeud.dimension(0);
+      using quintuplet = std::array<int, 5>;
+      quintuplet* ptr = reinterpret_cast<quintuplet*>(def_noeud.addr());
+      std::sort(ptr, ptr+nb_noeuds);
+    }
+  else
+    {
+      Cerr << "Marching_Cubes::trier_les_noeuds wrong dimension" << finl;
+      Process::exit();
+    }
 }
 
 // #########################################################################
@@ -1171,8 +1156,7 @@ void Marching_Cubes::correspondance_espaces_distant_virtuel(const IntTab& def_no
 
       // Maintenant, on trie ces cles par ordre lexicographique (meme tri que
       // le tableau def_noeud)
-      qsort(cles_pe.addr(), nb_elements, 3 * sizeof(int),
-            fct_compar_mcubes_noeuds);
+      tri_lexicographique_tableau(cles_pe);
       // Les cles apparaissent maintenant dans le meme ordre que dans le
       // tableau def_noeud, donc dans le meme ordre que dans l'espace virtuel, soit:
       //   (exemple : cles_pe = { (b,1), (c,2), (d,0), (f,3) })

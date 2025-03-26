@@ -971,59 +971,49 @@ int Transport_Interfaces_FT_Disc::verif_Cl() const
   return 1;
 }
 
-static void fct_tri_sommet_fa7(const int* in, int* out)
+template <int _DIM_>
+int facettes_trier_retirer_doublons(IntTab& fa7)
 {
-  const int dim = Objet_U::dimension;
-  out[0]=in[0];
-  out[1]=in[1];
-  for (int i=2; i<dim; i++)
-    out[i]=in[i];
+  using line = std::array<int, _DIM_>;
+  line* chunked_fa7 = reinterpret_cast<line*>(fa7.addr());
+  int nb_facettes = fa7.dimension(0);
+  int dim = _DIM_;
+  auto same_fa7 = [&](line A, line B)
+  {
+    // here, A and B are copies, so we can sort them
+    std::sort(A.begin(), A.end());
+    std::sort(B.begin(), B.end());
+    int cmp = 0;
+    for (int i = 0; i < dim; i++)
+      {
+        cmp = A[i] - B[i];
+        if (cmp != 0)
+          break;
+      }
+    return cmp;
+  };
 
-  if(out[1]<out[0])
+  // sorting
+  std::sort(chunked_fa7, chunked_fa7 + nb_facettes, [&](const line& fa1, const line& fa2)
+  {
+    return (same_fa7(fa1,fa2) < 0);
+  });
+
+  // cleaning
+  int count = 0;
+  for (int i = 1; i < nb_facettes; i++)
     {
-      const int temp=out[1];
-      out[1]=out[0];
-      out[0]=temp;
-    }
-  if(dim==3)
-    {
-      out[2]=in[2];
-      if(out[2]<out[1])
+      line& fa1 = chunked_fa7[i];
+      line& fa2 = chunked_fa7[i-1];
+      if(same_fa7(fa1,fa2)!=0)
         {
-          const int temp=out[2];
-          out[2]=out[1];
-          out[1]=temp;
-        }
-      if(out[1]<out[0])
-        {
-          const int temp=out[1];
-          out[1]=out[0];
-          out[0]=temp;
+          count++;
+          for(int j=0; j<dim; j++)
+            fa7(count,j)=fa7(i,j);
         }
     }
-  else
-    out[2]=-123;
-}
-
-static True_int fct_tri_facettes(const void *pt1, const void *pt2)
-{
-  const int *a = (const int *) pt1;
-  const int *b = (const int *) pt2;
-
-  int i, x = 0;
-  const int dim = Objet_U::dimension;
-
-  int A[3],B[3];
-  fct_tri_sommet_fa7(a,A);
-  fct_tri_sommet_fa7(b,B);
-
-  for (i = 0; i < dim; i++)
-    {
-      x = A[i] - B[i];
-      if (x != 0)
-        break;
-    }
-  return x;
+  fa7.resize(count+1,dim);
+  return count;
 }
 
 void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
@@ -1181,27 +1171,15 @@ void Transport_Interfaces_FT_Disc::lire_maillage_ft_cao(Entree& is)
     IntTab& fa7 = domaine.les_elems();
 
     // tri du tableau
-    int * data = fa7.addr();
     const int nb_facettes = fa7.dimension(0);
     assert(Objet_U::dimension == fa7.line_size());
-    qsort(data, nb_facettes, fa7.line_size()*sizeof(int),
-          fct_tri_facettes);
 
-    // recherche et suppression des doublons
-    int i;
     int count = 0;
-    const int nb_som_facettes = Objet_U::dimension;
-    for (i = 1; i < nb_facettes; i++)
-      {
-        if(fct_tri_facettes(&fa7(i,0),&fa7(i-1,0))!=0)
-          {
-            count++;
-            for(int j=0; j<nb_som_facettes; j++)
-              fa7(count,j)=fa7(i,j);
+    if(Objet_U::dimension==2)
+      count = facettes_trier_retirer_doublons<2>(fa7);
+    else if(Objet_U::dimension == 3)
+      count = facettes_trier_retirer_doublons<3>(fa7);
 
-          }
-      }
-    fa7.resize(count+1,dimension);
     Scatter::init_sequential_domain(ref_dom.valeur());
     Cerr<<"End correction SM 12/08 the removed faces number is: "<<  nb_facettes <<" - "<< count+1 << " = " << nb_facettes-count-1 << finl;
   }
