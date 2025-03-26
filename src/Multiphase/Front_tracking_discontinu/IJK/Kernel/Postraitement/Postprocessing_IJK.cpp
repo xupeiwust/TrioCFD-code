@@ -2866,7 +2866,8 @@ void Postprocessing_IJK::posttraiter_tous_champs_energie(Motcles& liste, const i
 }
 
 // local utilitary functions for the method Postprocessing_IJK::get_max_timestep_for_post
-namespace{
+namespace
+{
 
 // returns remainder of division between real numbers
 double modulo(double dividend, double divisor)

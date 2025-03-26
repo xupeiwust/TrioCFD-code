@@ -767,6 +767,7 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "CUT_FIELDS_BARY_L", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
     { "CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
     { "GRADX_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
@@ -825,16 +826,24 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
     {
       const int nb_ghost_cells = std::max(thermal_probes_ghost_cells, (int) 4);
 
-      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE_FT");
+
+      // IMPORTANT
+      // fields using the old/next syntax must be given a name each
+      // starting with OLD_ for the one at old(). Same name after that
+      // then these pointers are switched in champ_compris_ when old and next are swapped
+      // see method Champs_compris_IJK::switch_ft_fields()
+
+      indicatrice_ft_[old()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "OLD_INDICATRICE_FT");
       indicatrice_ft_[old()].data() = 1.;
       indicatrice_ft_[old()].echange_espace_virtuel(indicatrice_ft_[old()].ghost());
       indicatrice_ft_[next()].allocate(domaine_FT, Domaine_IJK::ELEM, 2, "INDICATRICE_FT");
       indicatrice_ft_[next()].data() = 1.;
       indicatrice_ft_[next()].echange_espace_virtuel(indicatrice_ft_[next()].ghost());
       // Register INDICATRICE_FT:
-      champs_compris_.ajoute_champ(indicatrice_ft_[old()]);  // or next() ??
+      champs_compris_.ajoute_champ(indicatrice_ft_[old()]);
+      champs_compris_.ajoute_champ(indicatrice_ft_[next()]);
 
-      indicatrice_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells, "INDICATRICE");
+      indicatrice_ns_[old()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells, "OLD_INDICATRICE");
       indicatrice_ns_[old()].data() = 1.;
       allocate_cell_vector(groups_indicatrice_ns_[old()], domaine_NS, 1);
       allocate_cell_vector(groups_indicatrice_ns_[next()], domaine_NS, 1);
@@ -842,8 +851,9 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
       indicatrice_ns_[next()].allocate(domaine_NS, Domaine_IJK::ELEM, nb_ghost_cells, "INDICATRICE");
       indicatrice_ns_[next()].data() = 1.;
       indicatrice_ns_[next()].echange_espace_virtuel(indicatrice_ns_[next()].ghost());
-      // Register INDICATRICE_FT:
-      champs_compris_.ajoute_champ(indicatrice_ns_[old()]);  // or next() ??
+      // Register INDICATRICE:
+      champs_compris_.ajoute_champ(indicatrice_ns_[old()]);
+      champs_compris_.ajoute_champ(indicatrice_ns_[next()]);
 
       indicatrice_avant_remaillage_ft_.allocate(domaine_FT, Domaine_IJK::ELEM, 2);
       indicatrice_avant_remaillage_ft_.data() = 1.;
@@ -910,9 +920,10 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
 
       allocate_cell_vector(barycentre_phase1_ft_[old()], domaine_FT, 2);
       allocate_cell_vector(barycentre_phase1_ft_[next()], domaine_FT, 2);
-      allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells, "CUT_FIELDS_BARY_L");
+      allocate_cell_vector(barycentre_phase1_ns_[old()], domaine_NS, nb_ghost_cells, "OLD_CUT_FIELDS_BARY_L");
+      allocate_cell_vector(barycentre_phase1_ns_[next()], domaine_NS, nb_ghost_cells, "CUT_FIELDS_BARY_L");
       champs_compris_.ajoute_champ_vectoriel(barycentre_phase1_ns_[old()]);
-      allocate_cell_vector(barycentre_phase1_ns_[next()], domaine_NS, nb_ghost_cells);
+      champs_compris_.ajoute_champ_vectoriel(barycentre_phase1_ns_[next()]);
 
       for (int bary_compo = 0; bary_compo < 3; bary_compo++)
         {
@@ -8451,6 +8462,8 @@ void IJK_Interfaces::switch_indicatrice_next_old()
     return;
 
   old_en_premier_ = not old_en_premier_;
+
+  champs_compris_.switch_ft_fields();
 
   // TODO: verifier la liste des echanges espace virtuels
   // TODO: il faut choisir, soit je les fait sur les next soit sur les old, mais

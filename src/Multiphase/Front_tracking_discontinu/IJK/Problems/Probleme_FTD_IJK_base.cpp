@@ -600,7 +600,7 @@ void Probleme_FTD_IJK_base::update_indicator_field()
 {
   IJK_Interfaces& interf = get_interface();
   const double delta_rho = milieu_ijk().get_delta_rho();
-  interf.switch_indicatrice_next_old();
+  get_interface().switch_indicatrice_next_old();
   interf.calculer_indicatrice_next(milieu_ijk().gravite().valeurs(),
                                    delta_rho,
                                    milieu_ijk().sigma(),

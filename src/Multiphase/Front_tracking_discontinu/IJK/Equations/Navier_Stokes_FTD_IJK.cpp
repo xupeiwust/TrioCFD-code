@@ -696,7 +696,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells, "VELOCITY_FT");
   champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
 
-  kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2);
+  kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2, "KAPPA_FT");
+  champs_compris_.ajoute_champ(kappa_ft_);
 
   if (!Option_IJK::DISABLE_DIPHASIQUE)
     {
@@ -738,13 +739,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // Register champs compris
   velocity_.nommer("VELOCITY");
   velocity_.add_synonymous("VITESSE");
-  velocity_.add_synonymous("VELOCITY_FT");
-  velocity_ft_.add_synonymous("VITESSE");
-  velocity_ft_.add_synonymous("VELOCITY");
-  if (Option_IJK::DISABLE_DIPHASIQUE)
-    champs_compris_.ajoute_champ_vectoriel(velocity_);
-  else
-    champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
+  champs_compris_.ajoute_champ_vectoriel(velocity_);
+
 }
 
 void Navier_Stokes_FTD_IJK::projeter()
