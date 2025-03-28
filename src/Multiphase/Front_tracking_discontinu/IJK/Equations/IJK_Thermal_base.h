@@ -89,6 +89,9 @@ public:
                             const double time);
   virtual void sauvegarder_temperature(Nom& lata_name, int idx, const int& stop=0);
 
+  virtual void euler_rustine_step(const double timestep) { };
+  virtual void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
+                                    const double fractionnal_timestep, const double time) { };
   double compute_global_energy(const IJK_Field_double& temperature);
   virtual double compute_global_energy()
   {
@@ -425,14 +428,8 @@ public:
   }
   virtual void set_field_T_ana();
 
-  void euler_rustine_step(const double timestep, const double dE);
-  void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
-                            const double fractionnal_timestep, const double time, const double dE);
   virtual int& get_conserv_energy_global() { return conserv_energy_global_; };
   const double& get_E0() const { return E0_; };
-
-  void compute_dT_rustine(const double dE);
-  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   virtual void calculer_ecart_T_ana();
   virtual void compute_interfacial_temperature2(
@@ -488,6 +485,7 @@ public:
 
   static void typer_lire_thermal_equation(OWN_PTR(IJK_Thermal_base)&, Entree&);
   inline const Noms noms_compris() const { return champs_compris().liste_noms_compris(); }
+  //inline const bool is_post_required(const Nom&  nom) const { return ref_ijk_ft_->get_post().is_post_required(nom); }
   inline const Champs_compris_IJK& champs_compris() const { return champs_compris_; }
 protected:
   int needs_op_unform_= 1;
@@ -509,7 +507,7 @@ protected:
 
   void compute_temperature_convective_fluxes(const IJK_Field_vector3_double& velocity);
   void compute_temperature_convection(const IJK_Field_vector3_double& velocity);
-
+  virtual void compute_temperature_convection_conservative(const IJK_Field_vector3_double& velocity) { throw; } ;
   void compute_boundary_conditions_thermal();
   void compute_temperature_diffusive_fluxes();
   virtual void add_temperature_diffusion();
@@ -581,9 +579,6 @@ protected:
    * Patch to conserve energy
    */
   double E0_ = 0.; //volumique
-  IJK_Field_double T_rust_;
-  IJK_Field_double d_T_rustine_; // Temperature increment to conserve the energy.
-  IJK_Field_double RK3_F_rustine_; // Temporary storage for substeps in the RK3 algorithm for the rustine calculation.
 
   OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   OBS_PTR(Postprocessing_IJK) ref_ijk_ft_post_;
@@ -662,6 +657,7 @@ protected:
    */
   int diff_temperature_negligible_ = 0;
   int conv_temperature_negligible_ = 0;
+  int type_temperature_convection_form_ = 1;  // Default value: 1 : non conservative
 
   /*
    * type_temperature_convection_op_:
@@ -669,6 +665,7 @@ protected:
    * 2 : Centre2
    */
   Operateur_IJK_elem_conv temperature_convection_op_;
+  Operateur_IJK_elem_conv rho_cp_convection_op_; // TODO : mathis check : type was OpConvDiscQuickIJKScalar_double rho_cp_convection_op_quick_
   Operateur_IJK_elem_diff temperature_diffusion_op_;
   IJK_Field_vector3_double div_coeff_grad_T_raw_;
   std::shared_ptr<IJK_Field_double> div_coeff_grad_T_volume_;
@@ -691,6 +688,7 @@ protected:
   int ghost_cells_ = 4;
   IJK_Field_double rho_cp_;
   IJK_Field_double rho_cp_T_;
+  IJK_Field_double div_rho_cp_T_;
   std::shared_ptr<IJK_Field_double> temperature_;
   IJK_Field_double temperature_for_ini_per_bubble_;
   IJK_Field_double temperature_before_extrapolation_;

@@ -62,8 +62,17 @@ public :
                           const double dxmin);
   void update_thermal_properties() override;
   void set_param( Param& param ) override;
+  virtual void euler_rustine_step(const double timestep) override;
+  virtual void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
+                                    const double fractionnal_timestep, const double time) override;
+  void euler_rustine_step(const double timestep, const double dE);
+  void rk3_rustine_sub_step(const int rk_step, const double total_timestep,
+                            const double fractionnal_timestep, const double time, const double dE);
+  void compute_temperature_convection_conservative(const IJK_Field_vector3_double& velocity)  override ;
 
 protected :
+  void compute_dT_rustine(const double dE);
+  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   void add_temperature_diffusion() override;
   void compute_diffusion_increment() override;
@@ -77,14 +86,14 @@ protected :
 
   //Rustine
   double E0_;//volumique
-  IJK_Field_double T_rust_;
-  void compute_T_rust(const IJK_Field_vector3_double& velocity);
 
   int deprecated_rho_cp_;
   int rho_cp_moy_harmonic_;
   int lambda_moy_arith_;
-  int type_temperature_convection_form_;
 
+  IJK_Field_double T_rust_;
+  IJK_Field_double d_T_rustine_; // Temperature increment to conserve the energy.
+  IJK_Field_double RK3_F_rustine_; // Temporary storage for substeps in the RK3 algorithm for the rustine calculation.
   IJK_Field_double div_rho_cp_T_;
   IJK_Field_double lambda_;
   IJK_Field_double cp_;

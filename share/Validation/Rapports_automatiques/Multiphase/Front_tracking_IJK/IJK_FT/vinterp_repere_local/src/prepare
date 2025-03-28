@@ -21,7 +21,8 @@ sed -e "s/# DEBUT REMAILL/# DEBUT REMAILL #/" \
 
 # Calcul RK3 avec lissage : 
 mkdir -p RK3 
-sed -e "/time_scheme/s/#//g" \
+sed -e "/RK3_IJK/s/#//g" \
+	-e "/schema_euler_explicite_IJK/d" \
     vinterp_repere_local_avec_remaillage.data > RK3/vinterp_repere_local_avec_remaillage.data
 
 cd RK3

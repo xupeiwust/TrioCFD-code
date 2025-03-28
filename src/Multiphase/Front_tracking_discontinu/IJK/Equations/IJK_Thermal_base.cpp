@@ -200,6 +200,9 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter_flag("avoid_gfm_parallel_calls", &avoid_gfm_parallel_calls_);
   //  param.ajouter_flag("gfm_recompute_field_ini", &gfm_recompute_field_ini_);
   //  param.ajouter_flag("gfm_zero_neighbour_value_mean", &gfm_zero_neighbour_value_mean_);
+  param.ajouter("type_temperature_convection_form", &type_temperature_convection_form_);
+  param.dictionnaire("non conservative",1);
+  param.dictionnaire("conservative",2);
 
 }
 
@@ -317,7 +320,15 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
    * Initialise the operators
    */
   if (!conv_temperature_negligible_)
-    temperature_convection_op_.initialize(splitting);
+    {
+      temperature_convection_op_.initialize(splitting);
+      if (type_temperature_convection_form_ == 2)
+        {
+          rho_cp_convection_op_.typer_convection_op("disc"); // TODO Mathis : je ne sais pas le typer
+          rho_cp_convection_op_.initialize(splitting);
+          // rho_cp_convection_op_.set_indicatrice(ref_ijk_ft_->itfce().I());// TODO Mathis
+        }
+    }
   if (!diff_temperature_negligible_)
     temperature_diffusion_op_.initialize(splitting);
 
@@ -363,12 +374,13 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     }
   if (!conv_temperature_negligible_)
     {
-      u_T_convective_volume_.allocate(splitting, Domaine_IJK::ELEM, 0);
+      u_T_convective_volume_.allocate(splitting, Domaine_IJK::ELEM, 0, get_field_name_with_rank("U_T_CONVECTIVE_VOLUME"));
+      champs_compris_.ajoute_champ(u_T_convective_volume_);
       u_T_convective_volume_.data() = 0.;
     }
   if (ref_ijk_ft_->get_post().is_post_required("U_T_CONVECTIVE"))
     {
-      u_T_convective_.allocate(splitting, Domaine_IJK::ELEM, 0, "U_T_CONVECTIVE");
+      u_T_convective_.allocate(splitting, Domaine_IJK::ELEM, 0, get_field_name_with_rank("U_T_CONVECTIVE"));
       champs_compris_.ajoute_champ(u_T_convective_);
       u_T_convective_.data() = 0.;
     }
@@ -383,9 +395,11 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   rho_cp_post_ = (liste_post_instantanes_.size() && liste_post_instantanes_.contient_("RHO_CP"));
   if (rho_cp_post_)
     rho_cp_.allocate(splitting, Domaine_IJK::ELEM, 2);
-  if (calculate_local_energy_)
+  if ((calculate_local_energy_) || (type_temperature_convection_form_==2))
     rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
 
+  if (type_temperature_convection_form_==2)
+    div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);
   /*
    * Storage for temperature gradient post-processing or method
    */
@@ -941,9 +955,10 @@ void IJK_Thermal_base::update_thermal_properties()
   const int nz = temperature.nk();
   const double rhocpl = get_rhocp_l();
   const double ene_ini = compute_global_energy();
+  const bool rho_cp_post = rho_cp_post_ || ((type_temperature_convection_form_ == 2) || (conserv_energy_global_));
   if (Option_IJK::DISABLE_DIPHASIQUE)
     {
-      if (rho_cp_post_) rho_cp_.data()= rhocpl;
+      if (rho_cp_post) rho_cp_.data()= rhocpl;
       if (calculate_local_energy_)
         for (int k=0; k < nz ; k++)
           for (int j=0; j< ny; j++)
@@ -959,15 +974,15 @@ void IJK_Thermal_base::update_thermal_properties()
           for (int i=0; i < nx; i++)
             {
               double chi_l = indic(i,j,k);
-              if (rho_cp_post_)
+              if (rho_cp_post)
                 rho_cp_(i,j,k) = rhocpl*chi_l + rhocpv*(1-chi_l);
-              if (calculate_local_energy_)
+              if ((calculate_local_energy_) || (type_temperature_convection_form_ == 2))
                 rho_cp_T_(i,j,k) = (rhocpl*chi_l + rhocpv*(1-chi_l))*temperature(i,j,k);
             }
     }
-  if (rho_cp_post_)
+  if (rho_cp_post)
     rho_cp_.echange_espace_virtuel(rho_cp_.ghost());
-  if (calculate_local_energy_)
+  if ((calculate_local_energy_) || (type_temperature_convection_form_ == 2))
     rho_cp_T_.echange_espace_virtuel(rho_cp_T_.ghost());
 
   // Semble un endroit approprie pour calculer la variation d'energie due au transport de l'interface:
@@ -1315,7 +1330,17 @@ void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
 
   if (debug_)
     Cerr << "Convection of temperature" << finl;
-  compute_temperature_convection(velocity);
+  switch (type_temperature_convection_form_)
+    {
+    case 1:
+      compute_temperature_convection(velocity);
+      break;
+    case 2:
+      compute_temperature_convection_conservative(velocity);
+      break;
+    default:
+      Cerr << "Pb du switch de convection" << finl;
+    }
   const double ene_postConv = compute_global_energy(*d_temperature_);
 
   if (debug_)
@@ -1641,7 +1666,7 @@ void IJK_Thermal_base::compute_temperature_convection(const IJK_Field_vector3_do
       statistiques().end_count(cnt_conv_temp_op);
 
       statistiques().begin_count(cnt_conv_temp_factor);
-      const int post_pro_u_T_convective = liste_post_instantanes_.contient_("U_T_CONVECTIVE");
+      const bool post_pro_u_T_convective = ref_ijk_ft_->get_post().is_post_required("U_T_CONVECTIVE");
       const int ni = d_temperature.ni();
       const int nj = d_temperature.nj();
       const int nk = d_temperature.nk();
@@ -2552,74 +2577,6 @@ int IJK_Thermal_base::imposer_flux_thermique_bord(const IJK_Field_double& temper
         }
     }
   return k;
-}
-
-void IJK_Thermal_base::euler_rustine_step(const double timestep, const double dE)
-{
-  compute_dT_rustine(dE);
-  // Update the temperature :
-  const int kmax = temperature_->nk();
-  const double ene_ini = compute_global_energy();
-  for (int k = 0; k < kmax; k++)
-    ref_ijk_ft_->eq_ns().euler_explicit_update(d_T_rustine_, *temperature_, k);
-  temperature_->echange_espace_virtuel(temperature_->ghost());
-  const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<" euler rustine] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
-       << " " << ene_ini
-       << " " << ene_post << " [W.m-3]."
-       << " dE "<< dE
-       << finl;
-  source_callback();
-}
-
-void IJK_Thermal_base::compute_dT_rustine(const double dE)
-{
-  const int ni = T_rust_.ni();
-  const int nj = T_rust_.nj();
-  const int nk = T_rust_.nk();
-  const double rho_l = ref_ijk_ft_->milieu_ijk().get_rho_liquid();
-  const double rho_v = ref_ijk_ft_->milieu_ijk().get_rho_vapour();
-  const IJK_Field_double& indic = ref_ijk_ft_->get_interface().I();
-  double int_rhocpTrust = 0;
-  for (int k = 0; k < nk; k++)
-    for (int j = 0; j < nj; j++)
-      for (int i = 0; i < ni; i++)
-        {
-          int_rhocpTrust +=  (rho_l*cp_liquid_*indic(i,j,k) + rho_v*cp_vapour_*(1.-indic(i,j,k)))*T_rust_(i,j,k);
-        }
-  const int ntot = T_rust_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_I)
-                   *T_rust_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_J)
-                   *T_rust_.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
-  int_rhocpTrust = mp_sum(int_rhocpTrust)/(double)(ntot);
-  Cerr << "Le coeff de manque d'energie dE/int_rhocpTrust vaut : " << dE/int_rhocpTrust << finl;
-  if (int_rhocpTrust)
-    {
-      for (int k = 0; k < nk; k++)
-        for (int j = 0; j < nj; j++)
-          for (int i = 0; i < ni; i++)
-            {
-              d_T_rustine_(i,j,k) = dE/ int_rhocpTrust * T_rust_(i,j,k);
-            }
-    }
-}
-
-void IJK_Thermal_base::rk3_rustine_sub_step(const int rk_step, const double total_timestep,
-                                            const double fractionnal_timestep, const double time, const double dE)
-{
-  compute_dT_rustine(dE);
-  // Update the temperature :
-  const int kmax = temperature_->nk();
-  const double ene_ini = compute_global_energy();
-  for (int k = 0; k < kmax; k++)
-    {
-      runge_kutta3_update(d_T_rustine_, RK3_F_rustine_, *temperature_, rk_step, k, total_timestep);
-    }
-  temperature_->echange_espace_virtuel(temperature_->ghost());
-  const double ene_post = compute_global_energy();
-  Cerr << "[Energy-Budget-T"<<rang_<<"RK3 rustine step "<<rk_step<<"] time t=" << ref_ijk_ft_->schema_temps_ijk().get_current_time()
-       << " " << ene_ini
-       << " " << ene_post << " [W.m-3]. [step"<< rk_step << "]" << finl;
-  source_callback();
 }
 
 void IJK_Thermal_base::compute_interfacial_temperature2(ArrOfDouble& interfacial_temperature,

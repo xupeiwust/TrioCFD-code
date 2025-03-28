@@ -13,9 +13,10 @@
 *
 *****************************************************************************/
 
-#include <IJK_Thermals.h>
+#include <IJK_Thermal_Onefluid.h>
 #include <Probleme_FTD_IJK.h>
 #include <IJK_switch_FT.h>
+#include <IJK_Thermals.h>
 #include <IJK_switch.h>
 #include <Option_IJK.h>
 
@@ -219,7 +220,11 @@ void IJK_Thermals::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
     { "TEMPERATURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "TEMPERATURE_ADIMENSIONNELLE_THETA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "T_RUST", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "DIV_LAMBDA_GRAD_T_VOLUME", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "DIV_RHO_CP_T_VOLUME", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "U_T_CONVECTIVE_VOLUME", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "U_T_CONVECTIVE", Entity::ELEMENT, Nature_du_champ::scalaire, false }
 
   };
   chps.insert(chps.end(), c.begin(), c.end());
@@ -437,15 +442,8 @@ void IJK_Thermals::euler_time_step(const double timestep)
 void IJK_Thermals::euler_rustine_step(const double timestep)
 {
   for (auto& itr : liste_thermique_)
-    if (itr->get_thermal_problem_type() == Nom("onefluid"))
-      {
-        itr->update_thermal_properties();
-        if (itr->get_conserv_energy_global())
-          {
-            const double dE = itr->get_E0() - itr->compute_global_energy();
-            itr->euler_rustine_step(timestep, dE);
-          }
-      }
+    // Make sense only if (sub_type(IJK_Thermal_Onefluid, itr.valeur())) but empty methods are coded otherwise...
+    itr->euler_rustine_step(timestep);
 }
 
 void IJK_Thermals::rk3_sub_step(const int rk_step, const double total_timestep, const double time)
@@ -482,15 +480,7 @@ void IJK_Thermals::rk3_rustine_sub_step(const int rk_step, const double total_ti
                                         const double fractionnal_timestep, const double time)
 {
   for (auto& itr : liste_thermique_)
-    if (itr->get_thermal_problem_type() == Nom("onefluid") )
-      {
-        itr->update_thermal_properties();
-        if (itr->get_conserv_energy_global())
-          {
-            const double dE = itr->get_E0() - itr->compute_global_energy();
-            itr->rk3_rustine_sub_step(rk_step, total_timestep, fractionnal_timestep, time, dE);
-          }
-      }
+    itr->rk3_rustine_sub_step(rk_step, total_timestep, fractionnal_timestep, time);
 }
 
 void IJK_Thermals::ecrire_statistiques_bulles(int reset, const Nom& nom_cas, const double current_time, const ArrOfDouble& surface)
