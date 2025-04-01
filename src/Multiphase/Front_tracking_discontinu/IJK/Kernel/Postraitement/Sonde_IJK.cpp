@@ -81,6 +81,25 @@ const Domaine& Sonde_IJK::get_domaine_geom() const
   return ref_ijk_ft_->probleme(geom_ft).domaine();
 }
 
+const Noms Sonde_IJK::get_noms_champ() const
+{
+  Noms ret;
+  ret.add(ref_ijk_field_->le_nom());
+  return ret;
+}
+
+int Sonde_IJK::get_nb_compo_champ() const
+{
+  return ref_ijk_field_->nb_comp();
+}
+
+// Here no difference between time of the field, and current time as given by the problem
+double Sonde_IJK::get_temps_champ() const
+{
+  return ref_ijk_ft_->schema_temps().temps_courant();
+}
+
+
 /** In IJK, velocity components might be interpolated/moved to element center.
  * This is equivalent to having a ELEM field.
  */
@@ -91,7 +110,7 @@ void Sonde_IJK::fix_probe_position_grav()
 
 void Sonde_IJK::fix_probe_position_generic(Domaine_IJK::Localisation loc)
 {
-  int nbre_points = les_positions_.dimension(0);
+  int nbre_points = les_positions_sondes_.dimension(0);
   const Domaine_IJK& geom_ft = ref_ijk_ft_->get_domaine_ft();
   const Domaine_IJK& field_splitting = ref_ijk_field_->get_domaine();
   Vecteur3 origin(0., 0., 0.), delta(0., 0., 0.);
@@ -164,11 +183,11 @@ void Sonde_IJK::fix_probe_position()
 
 void Sonde_IJK::fill_local_values()
 {
-  valeurs_locales.resize(elem_.size());
+  valeurs_locales.resize(elem_.size(),1);  // WARNING: must be dim 2 to be compatible with TRUST ...
   const int nb_pts = elem_.size();
 
   // Make sure to call get_IJK_field() to trigger the update of the field:
-  const IJK_Field_double* ijk_field = &(ref_ijk_ft_->get_post().get_IJK_field(ref_ijk_ft_->le_nom()));
+  const IJK_Field_double* ijk_field = &(ref_ijk_ft_->get_IJK_field(ref_ijk_field_->le_nom()));
   const Domaine_IJK& dom = ijk_field->get_domaine();
 
   // If necessary, interpolate to cell center:
@@ -183,6 +202,11 @@ void Sonde_IJK::fill_local_values()
   for (int idx =0; idx < nb_pts; idx++)
     {
       const int num_elem = elem_[idx];
+      if (num_elem < 0)
+        {
+          Cerr << "ERROR - Sonde_IJK::fill_local_values() - the probe '" << nom_ << "' defines point #" << idx << " which falls outside the domain!!" << finl;
+          Process::exit();
+        }
       const Int3 ijk = dom.convert_packed_to_ijk_cell(num_elem);
       valeurs_locales[idx] = (*ijk_field)(ijk[0],ijk[1],ijk[2]);
     }

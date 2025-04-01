@@ -36,6 +36,9 @@ public :
 
 protected :
   const Domaine& get_domaine_geom() const override;
+  const Noms get_noms_champ() const override;
+  int get_nb_compo_champ() const override;
+  double get_temps_champ() const override;
   void validate_type(const Motcle& loc) const override;
   void validate_position() const override;
   void create_champ_generique(Entree& is, const Motcle& motlu) override { /* do nothing */ }
