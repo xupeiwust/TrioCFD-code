@@ -231,6 +231,8 @@ void IJK_Thermals::get_noms_champs_postraitables(Noms& noms,Option opt) const
     {
       itr->get_noms_champs_postraitables(noms,opt);
     }
+
+  ghost_fluid_fields_.get_noms_champs_postraitables(noms,opt);
 }
 
 bool IJK_Thermals::has_champ(const Motcle& nom) const
@@ -242,6 +244,11 @@ bool IJK_Thermals::has_champ(const Motcle& nom) const
         {
           return true;
         }
+    }
+
+  if (ghost_fluid_fields_.has_champ(nom))
+    {
+      return true;
     }
   return false;
 
@@ -256,6 +263,11 @@ const IJK_Field_double& IJK_Thermals::get_IJK_field(const Motcle& nom)
           return itr->get_IJK_field(nom);
         }
     }
+
+  if (ghost_fluid_fields_.has_champ(nom))
+    {
+      return ghost_fluid_fields_.get_IJK_field(nom);
+    }
   Cerr << "IJK_Thermals::get_IJK_field requested field " << nom << " is not known by any equation"<< finl;
   throw;
 }
@@ -268,6 +280,11 @@ const IJK_Field_vector3_double& IJK_Thermals::get_IJK_field_vector(const Motcle&
         {
           return itr->get_IJK_field_vector(nom);
         }
+    }
+
+  if (ghost_fluid_fields_.has_champ(nom))
+    {
+      return ghost_fluid_fields_.get_IJK_field_vector(nom);
     }
   Cerr << "IJK_Thermals::get_IJK_field requested field vector " << nom << " is not known by any equation"<< finl;
   throw;

@@ -670,6 +670,7 @@ void Probleme_FTD_IJK_base::Fill_postprocessable_fields()
   IJK_Interfaces::Fill_postprocessable_fields(chps);
   IJK_Thermals::Fill_postprocessable_fields(chps);
   Postprocessing_IJK::Fill_postprocessable_fields(chps);
+  IJK_Ghost_Fluid_Fields::Fill_postprocessable_fields(chps);
 
   alreadyDone = true;
 

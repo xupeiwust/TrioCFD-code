@@ -19,10 +19,12 @@
 #include <Objet_U.h>
 #include <IJK_Field_vector.h>
 #include <IJK_Field.h>
+#include <Champs_compris_IJK_interface.h>
+#include <Champs_compris_IJK.h>
 
 class Probleme_FTD_IJK_base;
 
-class IJK_Ghost_Fluid_Fields : public Objet_U
+class IJK_Ghost_Fluid_Fields : public Objet_U, public Champs_compris_IJK_interface
 {
 
   Declare_instanciable( IJK_Ghost_Fluid_Fields ) ;
@@ -31,6 +33,15 @@ public :
 
   void associer(const Probleme_FTD_IJK_base& ijk_ft);
   void initialize(const Domaine_IJK& splitting);
+
+  // Interface Champs_compris_IJK_interface:
+  bool has_champ(const Motcle& nom) const override;
+  bool has_champ(const Motcle& nom, OBS_PTR(Champ_base)& ref_champ) const { /* not used */ throw; }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return false; }
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
 
   void compute_eulerian_distance();
   void enforce_zero_value_eulerian_distance();
@@ -181,6 +192,9 @@ protected :
 
   bool has_computed_distance_ = false;
   bool has_computed_curvature_ = false;
+
+
+  Champs_compris_IJK champs_compris_;
 };
 
 #endif /* IJK_Ghost_Fluid_Fields_included */

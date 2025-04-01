@@ -131,6 +131,62 @@ void IJK_Ghost_Fluid_Fields::initialize(const Domaine_IJK& splitting)
     }
 }
 
+void IJK_Ghost_Fluid_Fields::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
+{
+  std::vector<FieldInfo_t> c =
+  {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
+    { "TEMPERATURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "TEMPERATURE_ADIMENSIONNELLE_THETA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "DIV_LAMBDA_GRAD_T_VOLUME", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+
+  };
+  chps.insert(chps.end(), c.begin(), c.end());
+}
+
+
+
+void IJK_Ghost_Fluid_Fields::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
+
+bool IJK_Ghost_Fluid_Fields::has_champ(const Motcle& nom) const
+{
+  if (champs_compris_.liste_noms_compris().contient_(nom))
+    return champs_compris_.has_champ(nom);
+  else if (champs_compris_.liste_noms_compris_vectoriel().contient_(nom))
+    return champs_compris_.has_champ_vectoriel(nom);
+  else
+    return false;
+}
+
+const IJK_Field_double& IJK_Ghost_Fluid_Fields::get_IJK_field(const Motcle& nom)
+{
+  if (champs_compris_.liste_noms_compris().contient_(nom))
+    return champs_compris_.get_champ(nom);
+  else
+    {
+      Cerr << "ERROR in IJK_Ghost_Fluid_Fields::get_IJK_field : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by IJK_Ghost_Fluid_Fields::get_IJK_field()." << finl;
+      throw;
+    }
+}
+
+const IJK_Field_vector3_double& IJK_Ghost_Fluid_Fields::get_IJK_field_vector(const Motcle& nom)
+{
+  if (champs_compris_.liste_noms_compris_vectoriel().contient_(nom))
+    return champs_compris_.get_champ_vectoriel(nom);
+  else
+    {
+      Cerr << "ERROR in IJK_Ghost_Fluid_Fields::get_IJK_field_vector : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by IJK_Ghost_Fluid_Fields::get_IJK_field_vector()." << finl;
+      throw;
+    }
+}
 static void enforce_zero_value_eulerian_field(IJK_Field_double& eulerian_field)
 {
   const int nx = eulerian_field.ni();

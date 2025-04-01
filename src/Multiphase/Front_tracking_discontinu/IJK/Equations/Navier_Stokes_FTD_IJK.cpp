@@ -645,8 +645,10 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
           IJK_Shear_Periodic_helpler::rho_liq_ref_for_poisson_ = 1. / rho_l;
         }
     }
+  rho_field_.nommer("DENSITY");
   rho_field_.add_synonymous("RHO");
   champs_compris_.ajoute_champ(rho_field_);
+  molecular_mu_.nommer("VISCOSITY");
   molecular_mu_.add_synonymous("MU");
   champs_compris_.ajoute_champ(molecular_mu_);
 
@@ -693,8 +695,7 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
    * Check the difference between elem and faces ? and for interpolation of the velocity ?
    */
   constexpr int ft_ghost_cells = 4;
-  allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells, "VELOCITY_FT");
-  champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
+  allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells); // named at the end
 
   kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2, "KAPPA_FT");
   champs_compris_.ajoute_champ(kappa_ft_);
@@ -739,7 +740,12 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // Register champs compris
   velocity_.nommer("VELOCITY");
   velocity_.add_synonymous("VITESSE");
-  champs_compris_.ajoute_champ_vectoriel(velocity_);
+  velocity_ft_.nommer("VELOCITY");
+  velocity_ft_.add_synonymous("VITESSE");
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
+    champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
+  else
+    champs_compris_.ajoute_champ_vectoriel(velocity_);
 
 }
 
