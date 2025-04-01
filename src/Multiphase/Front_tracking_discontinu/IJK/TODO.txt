@@ -9,3 +9,16 @@
 - const correctness ... ah ah
 - le shear perio qui bave dans les IJK_Field, c'est tres moche, genre allocate qui prend un "rho_liquide", "rho_vapeur" ... -> devrait vivre a cote de IJK_Field
 - update probes in  void Postprocessing_IJK::postraiter(int forcer) -> pas necessaire?
+
+- plus de finesse sur le traitement des ghost
+    Idée: autoriser des maillages 1D (dim X = 1 et/ou dim Y = 1) tout en gardant un grand Z, et sans avoir à réduirte la taille des ghosts
+    (changer les ghosts = compliqué, ils ne sont pas directionnels; et utilisés partout)
+    - faire en sorte que pour une dimension sequentielle (typiquement dim X =1 ne sera pas découpé en //, ie nproc_x = 1) on puisse quand meme avoir ghost > 1
+    mais que dans ce cas le comportement de echange_espace_virtuel soit d'utiliser la périodicité. La 2eme, 3eme, 4eme, etc ... cell ghost est juste un réplicat 
+    de l'unique cell en X.
+    TODO: 
+        - Dans IJK_Field_local_template::allocate() -> relâcher la condition sur la taille des ghosts par rapport à la taille locale
+        - dans IJK_Field_template<_TYPE_, _TYPE_ARRAY_>::exchange_data(), mettre les modulos qui vont bien
+        - ecrire un test ! (bon candidat pour GTest)
+
+
