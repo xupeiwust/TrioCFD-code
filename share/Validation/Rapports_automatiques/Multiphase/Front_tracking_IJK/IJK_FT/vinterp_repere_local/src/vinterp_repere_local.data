@@ -12,7 +12,6 @@ Lire DOM
   ijk_splitting_ft_extension 15
 }
 
-# RK3_IJK sch #
 schema_euler_explicite_IJK sch
 
 lire sch {

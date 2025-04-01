@@ -446,12 +446,16 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
   if (ref_ijk_ft_.non_nul() && sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()))
     RK3_F_temperature_->allocate(splitting, Domaine_IJK::ELEM, 0);
 
-  if (liste_post_instantanes_.size() && (liste_post_instantanes_.contient_("TEMPERATURE_ANA")
-                                         || liste_post_instantanes_.contient_("ECART_T_ANA") || liste_post_instantanes_.contient_("ECART_T_ANA_REL")))
+  if (ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA"))
+      || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA")) || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA"))
+     )
     {
-      temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      ecart_t_ana_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      ecart_t_ana_rel_.allocate(splitting, Domaine_IJK::ELEM, 1);
+      temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1, get_field_name_with_rank("TEMPERATURE_ANA"));
+      ecart_t_ana_.allocate(splitting, Domaine_IJK::ELEM, 1, get_field_name_with_rank("ECART_T_ANA"));
+      ecart_t_ana_rel_.allocate(splitting, Domaine_IJK::ELEM, 1, get_field_name_with_rank("ECART_T_ANA_REL"));
+      champs_compris_.ajoute_champ(temperature_ana_);
+      champs_compris_.ajoute_champ(ecart_t_ana_);
+      champs_compris_.ajoute_champ(ecart_t_ana_rel_);
       temperature_ana_.data() = 0.;
       ecart_t_ana_.data() = 0.;
       ecart_t_ana_rel_.data() = 0.;
@@ -1072,7 +1076,18 @@ bool IJK_Thermal_base::has_champ(const Motcle& nom) const
 
 const IJK_Field_double& IJK_Thermal_base::get_IJK_field(const Motcle& nom)
 {
-  if (champs_compris_.liste_noms_compris().contient_(nom))
+  if ((nom == get_field_name_with_rank("TEMPERATURE_ANA")) || (nom == get_field_name_with_rank("ECART_T_ANA")))
+    {
+      Cerr << "Setting analytical temperature "<< rang_ <<" field to "<< expression_T_ana_ << finl;
+      set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
+    }
+
+  if (nom == get_field_name_with_rank("ECART_T_ANA"))
+    {
+      calculer_ecart_T_ana();
+    }
+
+  if (champs_compris_.has_champ(nom))
     return champs_compris_.get_champ(nom);
   else
     {
@@ -1340,6 +1355,7 @@ void IJK_Thermal_base::calculer_dT(const IJK_Field_vector3_double& velocity)
       break;
     default:
       Cerr << "Pb du switch de convection" << finl;
+      Process::exit();
     }
   const double ene_postConv = compute_global_energy(*d_temperature_);
 
@@ -2359,46 +2375,37 @@ void IJK_Thermal_base::set_field_T_ana()
 
 void IJK_Thermal_base::calculer_ecart_T_ana()
 {
-  if (liste_post_instantanes_.contient_("ECART_T_ANA"))
+  const IJK_Field_double& temperature = *temperature_;
+
+  double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
+  Cerr << "GB: ERROR T FIELD " << ct;
+  double err = 0.;
+  set_field_data(temperature_ana_, expression_T_ana_, ct);
+  const int ni = temperature.ni();
+  const int nj = temperature.nj();
+  const int nk = temperature.nk();
+  const trustIdType ntot=Process::mp_sum(ni*nj*nk);
+  // La temperature est definie a une constante pres:
+  // const double cst_temp = temperature_ana_(0,0,0) - curseur->temperature_(0,0,0);
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          const double val =   temperature_ana_(i,j,k) - temperature(i,j,k); //- cst_temp;
+          ecart_t_ana_(i,j,k) = val;
+          err += val*val;
+        }
+  err=Process::mp_sum(err);
+  err=sqrt(err/static_cast<double>(ntot));
+  Cerr << " " << err ;
+  if (!Process::je_suis_maitre())
     {
-      const IJK_Field_double& temperature = *temperature_;
-
-      if (!liste_post_instantanes_.contient_("TEMPERATURE_ANA"))
-        {
-          set_field_data(temperature_ana_, expression_T_ana_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
-        }
-      // do some work
-
-      double ct = ref_ijk_ft_->schema_temps_ijk().get_current_time();
-      Cerr << "GB: ERROR T FIELD " << ct;
-      double err = 0.;
-      set_field_data(temperature_ana_, expression_T_ana_, ct);
-      const int ni = temperature.ni();
-      const int nj = temperature.nj();
-      const int nk = temperature.nk();
-      const trustIdType ntot=Process::mp_sum(ni*nj*nk);
-      // La temperature est definie a une constante pres:
-      // const double cst_temp = temperature_ana_(0,0,0) - curseur->temperature_(0,0,0);
-      for (int k = 0; k < nk; k++)
-        for (int j = 0; j < nj; j++)
-          for (int i = 0; i < ni; i++)
-            {
-              const double val =   temperature_ana_(i,j,k) - temperature(i,j,k); //- cst_temp;
-              ecart_t_ana_(i,j,k) = val;
-              err += val*val;
-            }
-      err=Process::mp_sum(err);
-      err=sqrt(err/static_cast<double>(ntot));
-      Cerr << " " << err ;
-      if (!Process::je_suis_maitre())
-        {
-          Process::Journal() << "IJK_FT_Post::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_T_ANA sur ce proc (ni,nj,nk,ntot):"
-                             << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
-        }
-      ecart_t_ana_.echange_espace_virtuel(ecart_t_ana_.ghost());
-      Cerr << finl ;
-      //  n++,dumplata_scalar(lata_name,"ECART_T_ANA", ecart_t_ana_, latastep);
+      Process::Journal() << "IJK_FT_Post::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_T_ANA sur ce proc (ni,nj,nk,ntot):"
+                         << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
     }
+  ecart_t_ana_.echange_espace_virtuel(ecart_t_ana_.ghost());
+  Cerr << finl ;
+  //  n++,dumplata_scalar(lata_name,"ECART_T_ANA", ecart_t_ana_, latastep);
 }
 
 void IJK_Thermal_base::calculer_gradient_temperature(const IJK_Field_double& temperature, IJK_Field_vector3_double& grad_T)

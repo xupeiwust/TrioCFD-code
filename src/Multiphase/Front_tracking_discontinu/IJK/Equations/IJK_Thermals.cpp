@@ -219,6 +219,8 @@ void IJK_Thermals::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
   {
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
     { "TEMPERATURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "TEMPERATURE_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "ECART_T_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "TEMPERATURE_ADIMENSIONNELLE_THETA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "T_RUST", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "DIV_LAMBDA_GRAD_T_VOLUME", Entity::ELEMENT, Nature_du_champ::scalaire, false },

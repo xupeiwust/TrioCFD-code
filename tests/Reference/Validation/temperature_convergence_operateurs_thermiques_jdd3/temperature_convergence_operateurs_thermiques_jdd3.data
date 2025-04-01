@@ -116,8 +116,22 @@ ijk_thermals thermals
     
     }
   }
-
-{ 
+ 
+ {
+    # Pour Creer le fichier de Reprise #
+    nom_sauvegarde bidon.repr
+ 
+ }
+   post_processing 
+  {
+    format lml
+    nb_pas_dt_post 20
+    fields 
+    {
+       TEMPERATURE_0 elem
+       TEMPERATURE_ANA_0 elem
+       ECART_T_ANA_0 elem
+    }
 Sondes
     {
        # Il faut mettre +epsilon pour etre sur d'avoir la vitesse sur la bonne face...
@@ -125,11 +139,6 @@ Sondes
        pp_T temperature_0 periode 1e-9 points 1 0.003 0.003 0.0015
        pp_deltaT0 ecart_t_ana_0 periode 1e-9 points 1 0.003 0.003 0.0015
     }
-  champs_a_postraiter 3 TEMPERATURE TEMPERATURE_ANA ECART_T_ANA
-    
-    # Pour Creer le fichier de Reprise #
-    nom_sauvegarde bidon.repr
-  dt_post 20
  }
 
 }

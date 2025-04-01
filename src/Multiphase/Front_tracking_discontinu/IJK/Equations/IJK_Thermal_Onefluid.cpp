@@ -31,7 +31,6 @@ IJK_Thermal_Onefluid::IJK_Thermal_Onefluid()
 {
   needs_op_unform_ = 0;
   lambda_moy_arith_=0;
-  type_temperature_convection_form_ = 0;  // Default value: 0 : non conservative
   conserv_energy_global_=0;
   rho_cp_moy_harmonic_=0;
   rho_cp_post_=0;

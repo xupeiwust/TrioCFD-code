@@ -44,7 +44,7 @@ do
    fi
    #
    # RK3 :
-   sed -e "/time_scheme/s/#//g" ${jdd}.data > ${jdd}_RK3.data 
+   sed -e "s/schema_euler_explicite_IJK/Schema_RK3_IJK/g" ${jdd}.data > ${jdd}_RK3.data
    echo -n "Calculating DT_RK_$n....."
    trust ${jdd}_RK3 1> out 2> err
    echo "Done!"
