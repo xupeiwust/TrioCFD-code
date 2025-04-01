@@ -1,0 +1,219 @@
+%% The amssymb package provides various useful mathematical symbols
+% \usepackage{amssymb}
+% %% The amsthm package provides extended theorem environments
+% %% \usepackage{amsthm}
+% 
+% %% The lineno packages adds line numbers. Start line numbering with
+% %% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+% %% for the whole article with \linenumbers.
+% %% \usepackage{lineno}
+% 
+\usepackage[utf8x]{inputenc}
+\usepackage{changes}
+% \usepackage{rotating} % Pour tourner le tableau
+% % \usepackage{multirow} % Pour le multi-ligne
+\usepackage{csquotes} % Pour \guillemot
+\usepackage{booktabs} % \toprule, \midrule
+\usepackage{amsmath}  % \text{...}
+\usepackage{multirow} % \multirow
+% \usepackage{pdflscape} % \begin{landscape}
+\usepackage{ulem}      % Pour le \uwave de revoir... 
+\usepackage{subfig}    % \subfloat
+% \showcaptionsetup[uniq]{subfloat}
+\captionsetup[subfloat]{font={rm,md,sc},
+captionskip=0pt, farskip=0pt, nearskip=0pt,
+margin=0pt, parskip=0pt,
+hangindent=0pt, indention=0pt, singlelinecheck=true}%,aboveskip=0pt,parskip=0pt}
+% 
+\usepackage{xspace}
+\usepackage{calrsfs}
+\usepackage{graphicx}
+\usepackage{tikz}
+% \usepackage{pgf,tikz,pgfplots}
+% \pgfplotsset{compat=1.15}
+% \usepackage{mathrsfs}
+% \usetikzlibrary{arrows}
+
+% \usetikzlibrary{arrows,patterns,plotmarks,shapes,snakes,er,3d,automata,backgrounds,topaths,trees,petri,mindmap}
+% % % % \usetikzlibrary{arrows,patterns,plotmarks,shapes,decorations,er,3d,automata,backgrounds,topaths,trees,petri,mindmap}
+% % % % \def\smallbluebox{
+% % % %    \begin{tikzpicture}[scale=.2]
+% % % %      \draw[very thick,fill=blue!10!white,draw=blue!50] (0,0) rectangle
+% % % % (1,1) {};
+% % % %    \end{tikzpicture}}
+
+\newif\ifrevisionmode
+\revisionmodetrue % Version Revision 
+% \revisionmodefalse % Version Publique
+\ifrevisionmode
+ \newcommand{\ajout}[1]{{\color{blue}\uuline{#1}}}
+ \newcommand{\correct}[1]{{\color{red}\sout{#1}}}
+ \newcommand{\revoir}[1]{{\color{green}\uwave{#1}}}
+ \def\code#1{{\color{blue}{\texttt{\detokenize{#1 }}}}}
+%  \newcommand{\code}[1]{{\color{blue}{Code information: }{#1}}}
+\else
+ \newcommand{\ajout}[1]{{#1}}
+ \newcommand{\correct}[1]{{}}
+ \newcommand{\revoir}[1]{{}}
+ \newcommand{\code}[1]{{}}
+\fi
+
+\newcommand{\tbd}[0]{\revoir{To be written elsewhere? ICMF, journal\dots}}
+
+% Shortcuts : 
+\renewcommand{\emph}[1]{\textit{#1}}
+\newcommand{\ncfd}[0]{NEPTUNE\_CFD\xspace}
+\def\lrp#1{\left( #1\right)}
+\def\pard#1#2{\frac{\partial #1}{\partial #2}}
+\def\lrc#1{\left\langle #1\right\rangle}
+\def\lrb#1{\left[ #1\right]}
+% % \def\tens#1{\uuline{#1}}
+% \def\tens#1{\underline{#1}}
+\newcommand{\bfs}[1]{\mathbf{#1}}
+\renewcommand{\vec}[1]{\bfs{#1}}
+\newcommand{\ve}[1]{\vec{#1}}
+\newcommand{\into}[0]{\hookleftarrow}
+\newcommand{\Rey}[0]{\text{Re}}
+\newcommand{\We}[0]{\text{We}}
+\newcommand{\Eo}[0]{\text{Eo}}
+\newcommand{\Fr}[0]{\text{Fr}}
+% \newcommand{\Pe}[0]{\text{Pe}}
+% \newcommand{\Ja}[0]{\text{Ja}}
+\newcommand{\Fo}[0]{\text{Fo}}
+% \newcommand{\Nu}[0]{\text{Nu}}
+\newcommand{\At}[0]{\text{At}}
+\newcommand{\Ar}[0]{\text{Ar}}
+\newcommand{\up}[0]{\text{w.u.}}
+\newcommand{\ua}[0]{\text{d.u.}}
+\newcommand{\Mo}[0]{\text{Mo}}
+\newcommand{\Ca}[0]{\text{Ca}}
+\newcommand{\Eotvos}[0]{E\"{o}tv\"{o}s\xspace}
+% % 
+\def\red#1{\textcolor{red}{ #1}}
+\def\f#1{\overline{ #1}}
+\def\fii#1{\overline{ #1}^i}
+%
+% \def\ff#1{\overline{\overline{#1}}}
+\def\fk#1{\overline{ #1}^k}
+\def\fl#1{\overline{ #1}^l}
+\def\fv#1{\overline{ #1}^v}
+% %
+\def\fuk{\fk{\vec{u}}_k}
+\def\fpl{\fl{p}_l}
+\def\fpv{\fv{p}_v}
+\def\fpk{\fk{p}_k}
+\def\ful{\fl{\vec{u}}_l}
+\def\fuv{\fv{\vec{u}}_v}
+% \def\fu#1{\fk{\vec{u}}_{#1}}
+% \def\fupk{\fk{\vec{u}'}_k}
+% \def\frk{\fk{\vec{u}_k'\vec{u}_k'}}
+% \def\psat{p^\text{sat}}
+% % 
+\def\norm#1{\parallel \! #1 \! \parallel} % Norme
+% \def\Id{\vec{\text{Id}}}
+\def\Cg{\lrc{\vec{\mathcal{C} }_g}}  %\def\Cg{\tilde{\vec{\mathcal{C} }}}
+\def\xr{\vec{x}_r}
+\newcommand{\tr}[1]{\text{tr}\lrp{#1}}
+% % 
+\newcommand{\tento}[1]{\, 10^{#1}}
+\newcommand{\qetq}[0]{{\quad\mbox{and}\quad}}
+\newcommand{\qouq}[0]{{\quad\mbox{or}\quad}}
+\newcommand{\qq}[1]{\quad\mbox{#1}\quad}
+\newcommand{\ie}[0]{\textit{i.\,e.,\,}}
+\newcommand{\eg}[0]{\textit{e.\,g.,\,}}
+% \def\eref#1{Eq.~\eqref{#1}}
+\def\erefs#1#2{\eqref{#1} et~\eqref{#2}}
+% \def\erefss#1#2#3{\eqref{#1}, \eqref{#2} et~\eqref{#3}}
+\def\eqref#1{(\ref{#1})}
+\def\refs#1#2{\eqref{#1} and~\eqref{#2}}
+
+\newcommand{\guillemot}[1]{\blockquote{#1}}
+% \newcommand{\guillemot}[1]{\textquote{#1}}
+% \newcommand{\citet}[1]{\citeauthor{#1}~\cite{#1}}
+\renewcommand{\otimes}{\,}
+
+\newcommand{\Cp}[0]{c_p}
+\newcommand{\rhoCp}[0]{\rho\,c_p}
+\newcommand{\Cpl}[0]{c_{pl}}
+\newcommand{\Cpv}[0]{c_{pv}}
+\newcommand{\Cpk}[0]{c_{pk}}
+\newcommand{\Ti}[0]{{T^{i}}}
+\newcommand{\Tsat}[0]{{T^{\mathrm{sat}}}}
+\newcommand{\Tle}[0]{{T_l^{ext}}}
+\newcommand{\Lvap}[0]{\mathcal{L}^{vap}}
+
+% Creation de double brackets :
+\newsavebox{\sembox}
+\newlength{\semwidth}
+\newlength{\boxwidth}
+\newcommand{\jump}[1]{%
+\sbox{\sembox}{\ensuremath{#1}}%
+\settowidth{\semwidth}{\usebox{\sembox}}%
+\sbox{\sembox}{\ensuremath{\left[\usebox{\sembox}\right]}}%
+\settowidth{\boxwidth}{\usebox{\sembox}}%
+\addtolength{\boxwidth}{-\semwidth}%
+\left[\hspace{-0.3\boxwidth}%
+\usebox{\sembox}%
+\hspace{-0.3\boxwidth}\right]%
+}
+\newcommand{\svm}[0]{\jump{1/\rho}} 
+\newcommand{\nv}[0]{\vec{n}^\textrm{v}} 
+\newcommand{\ns}[0]{\vec{n}^s} 
+\newcommand{\q}[0]{{\dot{q}}}         % flux de chaleur
+\newcommand{\Q}[0]{Q}                 % flux de chaleur lineique
+\newcommand{\qlog}[0]{{\mathring q}}  
+
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+ }
+ 
+ 
+ % la bibliographie
+ \usepackage[%
+ natbib=false,        % If you want to keep on using the natbib names even with
+ %                     biblatex, you can load biblatex with the option
+ %                     natbib=true to load the natbib compatibility mode. Note
+ %                     that the natbib compatibility mode will also change
+ %                     nameyeardelim, see Is there a disadvantage to using
+ %                     natbib=true with biblatex?.
+ %                     https://tex.stackexchange.com/q/149313/35864
+ backend=biber,      % On utilise biber pour la compilation biblatex
+ citestyle=numeric,  % citation de la forme [1] ou pour plusieurs, [1], [2]
+ bibstyle=numeric,   % complementaire à citestyle numeric pour la biblio finale
+ sorting=anyt,        % Tri dans l'ordre : nom, année, titre.
+ maxnames=2,         % Les citations dans le texte avec \textcite n'affiche que
+ %                     le nom du premier auteur et met un "et al.".
+ maxbibnames=99,     % Limite haute pour mettre tous les noms dans la biblio (ne met pas de et al. dans la bibliographie)
+ giveninits=true,    % ne mets que les initiales
+ language=french,    % test du français
+ alldates=year,      % la date n'affiche que l'année
+ isbn=false,         % Ne pas afficher l'isbn
+ url=false,          % Ne pas afficher l'url
+ doi=true,          % Ne pas afficher le lien DOI
+ eprint=false,       % Ne pas afficher le numéro eprint
+ %refsegment=chapter, % pour faire des bibliographies par chapitre
+ backref=true       % Ajouter une mention renvoyant où la publication a été citée
+ ]{biblatex}
+ \renewbibmacro{in:}{}
+ 
+ 
+ \newbibmacro{stringanddoiurlisbn}[1]{%
+ 	\iffieldundef{doi}{%
+ 		\iffieldundef{url}{%
+ 			\iffieldundef{isbn}{%
+ 				\iffieldundef{issn}{%
+ 					#1%
+ 				}{\href{https://books.google.com/books?vid=ISSN\thefield{issn}}{#1}}%
+ 			}{\href{https://books.google.com/books?vid=ISBN\thefield{isbn}}{#1}}%
+ 		}{\href{\thefield{url}}{#1}}%
+ 	}{\href{https://doi.org/\thefield{doi}}{#1}}%
+ }
+ 
+ \DeclareFieldFormat{title}{\usebibmacro{stringanddoiurlisbn}{\mkbibemph{#1}}}
+ \DeclareFieldFormat[article,incollection,inproceedings,thesis,inbook]{title}%
+ {\usebibmacro{stringanddoiurlisbn}{\mkbibquote{#1}}}
+ 

@@ -1,0 +1,226 @@
+% !TeXspellcheck = en_GB
+\documentclass[]{article}
+\usepackage{lineno,hyperref}
+\modulolinenumbers[5]
+\bibliographystyle{elsarticle-num}%\biboptions{authoryear}
+\bibliography{FT-short}
+
+%opening
+\title{Short description of the mixed Front-Tracking/Volume-of-Fluid/Level-set algorithm of TrioCFD}
+\author{Guillaume Bois}%\fnref{myfootnote}}%
+\date{}
+
+\input{header.tex}
+\begin{document}
+	
+\maketitle
+	
+\begin{abstract}
+	Short description of the Front-Tracking algorithm implemented in the open-source code TrioCFD.
+\end{abstract}
+
+%\linenumbers
+\section{Governing equations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A finite-difference method with a mixed Front-Tracking/Volume-of-Fluid (FT/VoF) algorithm is implemented in TrioCFD.
+We consider a two-phase flow, with discontinuous interfaces.  
+The formulation rely on the one-fluid Navier-Stokes equations \parencite{Kataoka1986,Bunner2003} 
+\begin{align}
+ \pard{\chi_v}{t} + \vec{u} \cdot \nabla \chi_v &= 0, \label{eq:ELI-Transport} \\
+ \nabla\cdot\vec{u}&=0, \label{eq:ELI-masse}\\
+ \pard{\rho \vec{u}}{t} + \nabla \cdot \lrp{\rho \vec{u} \otimes \vec{u}} &= -\nabla P + \rho \vec{g} + \nabla \cdot \lrb{\mu \lrp{\nabla \vec{u}+\nabla^T \vec{u}}} 
++ \sigma \kappa \vec{n}_v \delta^i, \label{eq:ELI-QdM} \\
+ \pard{{\rho \, \Cp T}}{t} &+ \nabla \cdot \lrp{\rho \vec{u} \Cp T} = \nabla \cdot \lrp{\lambda \nabla T} \label{eq:ELI-T}
+\end{align}
+where each of the one-fluid variables is defined as a mixture of phase variables: ${\psi=\sum_k\chi_k\phi_k}$ 
+{($\psi$ can be $\vec{u}$, $P$, $T$, $\rho$, $\mu$, $\lambda$ or $\Cp$, respectively the velocity, pressure, 
+	temperature, density, dynamic viscosity, conductivity or thermal capacity at constant pressure in phase $k$)}. 
+Physical properties are assumed constant within each phase. Both phases are considered incompressible. $\vec{g}$ 
+is the gravity vector, $\sigma$ is the constant surface tension, $\delta^i$ is a three-dimensional Dirac 
+impulse at the interface {$i$}. $\kappa=-\nabla_s \cdot \vec{n}_v$ is twice the mean curvature (usually negative 
+for bubbles) defined from the surface divergence $(\nabla_s \cdot)$ of the unit normal to the interface $\vec{n}_v$, 
+orientated towards the liquid. The normal vector is related to the phase indicator function $\chi_v$ by 
+$\nabla\chi_v=-\vec{n}_v\delta^i$ where $\chi_v$ is equal to one in the vapour and zero in the liquid. This phase indicator function is transported in equation~\eqref{eq:ELI-Transport} by the interfacial velocity $\vec{u}^i =\vec{u}_k$ which is simply the value of the (continuous) fluid velocity at the interface location.
+
+\section{Numerical method}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The numerical method mostly rely on the front-tracking method \parencite{Bunner2003}, where the interfaces are tracked with 
+a moving surface mesh. While volume of fluid (VoF) and level set (LS) methods only use one fixed volume grid (referred 
+to as eulerian mesh), the front-tracking method involves both a fixed grid and a dynamic surface grid (termed lagrangian 
+mesh or front). The main drawback of this method is the complexity of the dynamic re-meshing algorithms that ensure a good 
+lagrangian mesh quality and handles topology changes. But this costly choice can be used to an advantage to accurately 
+represent the location of the interfaces and associated jumps, the contact angle and the contact line velocity. Although based on a moving surface mesh, our implementation of the front-tracking method also takes advantage of many 
+interesting aspects of the VoF and LS methods.
+
+In the following, we present the main features of the general algorithm which illustrates the time advancement procedure. 
+
+\subsection{Coupled resolution and time advancement scheme}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Many variables are connected and time advancement of the system has to be performed. Here, we present it 
+for the simplest explicit time scheme (euler explicit); TrioCFD code also proposes a coupled 
+3\textsuperscript{rd} order Runge--Kutta scheme \parencite{Toutant2006th}.
+
+Each equation is updated in turn, but the update of the indicator function is delayed from the actual mesh transport. This enables the computation of velocity, pressure and temperature in an explicit fashion, without having advanced values for physical properties or curvature. 
+
+The interface is first transported by the interfacial velocity field ($\vec{u}_i^{n}$ based on an interpolation of the Eulerian $\vec{u}^n$. Then, 
+remeshing algorithms are used.
+Then, temperature or scalar fields are updated before Navier-Sokes equations are solved by a predictor/corrector SIMPLE algorithm to compute and update $P$ and $\vec{u}$ at timestep $n+1$. Finally, auxiliary variables 
+($\phi$ and $\rho$, etc.) like interfacial potential, physical properties are updated. 
+% 
+~\\\code{(see from Probleme_base::iterateTimeStep}\\
+\code{ Schema_Temps_IJK_base::iterateTimeStep )}\\
+The general procedure is : 
+\begin{itemize}
+	\item[$\bullet$] Interface motion
+	\item[$\bullet$] Compute geometrical properties
+	\item[$\bullet$] Energy update
+	\item[$\bullet$] Navier-Stokes update
+	\item[$\bullet$] update all fields
+\end{itemize}
+Some fields have two time storages, while others do not. 
+Updating a field $F$ in the code is noted : 
+\begin{equation}
+	F\into F^{n+1}  \code{  --> turn_the_wheel() or old_to_new() or affectation;}
+\end{equation}
+At initialisation, before the time-loop, all variables are initialized (with the same value in both old and new fields when available).
+
+\subsubsection{Interface motion}
+Compute the new interface position: 
+\begin{align} 
+	&\ve{x}^n \to \ve{x}^* \to \ve{x}^{n+1} \\
+	&\ve{x}^* = \mathcal{T}(\ve{u}^n) = \ve{x}^n +\mathcal{I}(u^n) \Delta t \quad \code{  --> interfaces_->transporter_maillage();} \\
+	&\ve{x}^{n+1} = \mathcal{R}(\ve{x}^*) \quad \code{  --> interfaces_->remailler_interface();}
+\end{align}
+\code{  --> interfaces_.deplacer_interface();}\\
+Corresponding code's unkowns are: $\ve{x}_i$, the markers positions (and connectivity).
+$\mathcal{T}$ formally denotes the transport, $\mathcal{I}$ the interpolation from Eulerian faces to Front nodes and $\mathcal{R}$ the complex remeshing operations.
+
+\subsubsection{Compute geometrical properties}
+\code{  --> Class IJK_Geometrical_properties;} \todo{Proposal}\\
+Compute:
+\begin{align*} 
+	&\mathrm{Intersect}\lrp{\ve{x}^{n+1}} \quad &\code{  --> gp_->parcourir();} \\
+	& \kappa \into \kappa^{n+1}=\kappa(\ve{x}^{n+1}) \quad &\code{  --> maillage.calculer_courbure();}
+\end{align*}
+Geometrical properties are different in baseline and Cut-cell. 
+\paragraph{Baseline}
+Compute : 
+\begin{align*} 
+	&I^{n+1}, \rho^{n+1}, \mu^{n+1},  \lambda^{n+1}, \rhoCp^{n+1} &\code{  --> gp_->compute();} &\\ 
+	& &\code{ ou gp_->calculer_rho_mu_indic...();} &\\
+	& \phi^{n+1}=\phi(\ve{x}^{n+1}) \quad &\code{  --> gp_.calculer_potentiel();} &
+\end{align*}
+Curvature is updated at compute step (no dual storage). However, the potential at the element $(i,j,k)$ is computed from the FT vertex and stored in the future value ${n+1}$:
+\begin{align*}
+	\phi^{n+1}(i,j,k) &= \sum_f a_i^{n+1}(f) \phi^{n+1}(f)/\mathcal{A}^{n+1}(i,j,k) \\
+	\qq{with} \phi^{n+1}(f) &= \sum_{k=1}^3 \hat{\phi}^{n+1}(k) \qetq 
+	\hat{\phi}^{n+1}(k)= a_g\vec{x}_k^{n+1}\cdot \vec{g} \lrp{\rho_v - \rho_l} + \kappa^{n+1}(k) \sigma  
+\end{align*}
+where $(i,j,k)$ refers to an Eulerian cell and $f$ to a Front element in the cell, $a_i$ its portion of surface within cell $(i,j,k)$, $\mathcal{A}^{n+1}=\sum_f a_i^{n+1}(f)$ the total interfacial area in that cell, while $\vec{x}_k$ is at a Front vertex. $a_g=1$ when the option \code{terme_gravite gradI} is activated.
+
+Corresponding code's unkowns are: $I$, $\rho$, $\mu$, $\lambda$, $\rhoCp$ and $\phi$. Their present values are not updated yet, unlike the curvature and markers' positions that are updated to $\kappa^{n+1}$ and $x^{n+1}$.
+
+\paragraph{Cut-cell}
+Compute : 
+\begin{align} 
+	&V^{n+1}, \f{S}_f^{n+1}, \ve{b}_{ij}^{n+1} \quad \code{  --> gp_->xxxx();}
+\end{align}
+
+Corresponding code's unkowns are: $\f{S}_f$, $V$, $\ve{b}_{ij}$,  wetting-fraction of cell-faces, partial volume, and face-barycentre and volume-barycentre of a given phase.
+
+Update:\todo{Dorian A DEPLACER au bon endroit}
+\begin{align} 
+	&\ve{b}_{ij} \into \ve{b}_{ij}^{n+1} \\
+	& \f{S}_f \into \ve{S}^{n+1} \qouq \lrp{\ve{S}^{n}+\ve{S}^{n+1}}/2 \qouq \f{S}_f^{n+1} \mbox{ from Eq.~\eqref{eq:dynamic-conserv}} \quad \code{  --> gp_->compute();} %\\
+%	&  \f{S}_f^{n+1} \mbox{ from Eq.~\eqref{eq:dynamic-conserv}} \quad \code{  --> gp_->update();}\\
+%	& \kappa \into \kappa^{n+1}=\kappa(\ve{x}^{n+1}) \quad &\code{  --> maillage.calculer_courbure();} &
+\end{align}
+with dynamic volume-conservation given by:
+\begin{align}
+&\f{S}_f^{n+1} \quad \mbox{such that} \quad\f{S}_f^{n+1}=\f{S}_f^{n}+\Delta t \delta S
+	\label{eq:dynamic-conserv} \\
+	&\ve{A} \delta S = B
+\end{align}
+
+\subsubsection{Energy update}
+For each temperature field in the list, compute: 
+\begin{align} 
+	&T^\star = T^n \qouq T^{GFM}=\mathcal{E}(T^t) 
+	\code{  --> thermal_->gfm(T_);} \\
+	&\frac{dT}{dt}= \lrp{-\mathcal{C}(T^{n})
+		+\frac{1}{\rhoCp^n}\mathcal{D}(T^{n})}
+		 \code{  --> thermal_->derivee_en_temps_inco(dT_);} \\
+	&T \into T^{n+1}=T^n +\Delta t \frac{dT}{dt} \code{  --> thermal_->euler_explicit_update();} \\
+\end{align}
+%
+Differences between baseline and cut-cell lie in the operators, in the time-advancing procedure (Reynolds Theorem) and on the general algorithm.
+\paragraph{Baseline}
+\begin{align}
+	 V\mathcal{C}(T^{n}) &= -\sum_f \lrp{T^n \ve{u}^n \cdot\ve{S}_f}\\
+	 V\mathcal{D}(T^{n}) &= \sum_f \lrp{\lambda^n \nabla T^n\cdot\ve{S}_f}
+\end{align}
+	
+\paragraph{Cut-cell}
+\begin{align}
+	\mathcal{C}(T^{n}) &= \\
+	\mathcal{D}(T^{n}) &= 
+\end{align}
+
+\subsubsection{Navier-Stokes update}
+The pressure-velocity coupling is solved with a SIMPLE algorithm with prediction/correction strategy. 
+We compute: 
+\begin{itemize}
+	\item Prediction:
+	\begin{align}
+		\dot{\vec{v}}=&\pard{\vec{u}^\star }{t}= \underline{\mathcal{C}}(\ve{u}^{n})
+			+\frac{1}{\rho^n}\underline{\mathcal{D}}(\ve{u}^{n})
+			+\frac{1}{\rho^n}\underline{\mathcal{S}}_\sigma(I^n, \phi^n)
+			+(1-a_g) \vec{g} \nonumber \\
+		&\code{  --> ns_->derivee_en_temps_inco(d_velocity_);} \\
+		&\vec{u}^\star = \vec{u}^n + \Delta t \dot{\vec{v}}
+	\end{align}
+	\item Projection:
+	\begin{align}
+		\nabla \cdot \frac{1}{\rho^n} \nabla P^{n+1/2} &= \nabla \cdot \dot{\vec{v}} =\frac{\nabla \cdot \vec{u}^\star}{\Delta t}
+	\end{align}
+	\item Correction:
+	\begin{align}
+\vec{u}^{n+1} &= \vec{u}^\star - \Delta t \frac{1}{\rho^n}\nabla P^{n+1/2}
+	\end{align}
+\end{itemize}
+
+Pressure and velocity fields are updated at the end of this step:
+\begin{align} 
+	&\vec{u} \into \vec{u}^{n+1} \\
+	&P \into P^{n+1/2} 
+\end{align}
+
+\paragraph{Baseline}
+\begin{align}
+	V\underline{\mathcal{C}}(\ve{u}^{n}) &= V\nabla \cdot \lrp{\ve{u}^n\ve{u}^n}=\sum_f \lrp{\ve{u}^n \ve{u}^n \cdot\ve{S}_f}\\
+	V\underline{\mathcal{D}}(\ve{u}^{n}) &= 
+	\nabla \cdot \lrb{\vphantom{\sum}\mu^n \lrp{\nabla \vec{u}^n + \nabla^T \vec{u}^n }}
+	=\sum_f \lrp{\mu^n \nabla^\dagger \ve{u}^n\cdot\ve{S}_f} \\
+	\underline{\mathcal{S}}_\sigma^n &=\underline{\mathcal{S}}_\sigma(I^n, \phi^n)= -\phi^n \nabla I^n  
+\end{align}
+with $\nabla^\dagger \ve{u}^n=\nabla \ve{u}^n+\nabla^T \ve{u}^n$
+
+\paragraph{Cut-cell}
+\begin{align}
+	\underline{\mathcal{C}}(\ve{u}^{n}) &= \\
+	\underline{\mathcal{D}}(\ve{u}^{n}) &=
+\end{align}
+
+\subsubsection{Update all fields with dual-storage}
+We update all properties:
+\code{  --> gp_.turn_the_wheel() or gp_.old_to_new();}
+\begin{align} 
+	&I \into I^{n+1} \\
+	&\rho \into \rho^{n+1} \qetq \mu, \lambda, \rhoCp  \code{  --> gp_.calculer_rho_mu_indic();}
+	\\
+	&\phi \into \phi^{n+1} \code{  --> gp_.calculer_eulerian_potentiel();} \\
+	&\underline{\mathcal{S}}_\sigma \into \underline{\mathcal{S}}_\sigma^{n+1} \code{  --> gp_.calculer_eulerian_potentiel();} 
+\end{align}
+
+\printbibliography
+\end{document}

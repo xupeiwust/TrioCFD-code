@@ -1,0 +1,157 @@
+dimension 3
+Probleme_FTD_IJK pb
+
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 6 4 24 # TODO : passer ny a 2 #
+  size_dom 0.6 0.6 1.8
+  origin -0.3 -0.3 -0.7
+  perio 1 1 1
+  nproc 1 1 1
+  ijk_splitting_ft_extension 0
+}
+
+schema_euler_explicite_IJK sch
+
+lire sch 
+{
+  tinit 0.0
+  timestep 0.06123724356957945 # dt**2 = C*dx/g avec C=0.5 # 
+  timestep_facsec 100.
+  nb_pas_dt_max 6
+  cfl 1
+  fo  1
+  oh  1
+  dt_sauvegarde 100
+
+  # Smooth interface during the first time-step #
+  # first_step_interface_smoothing #
+}
+
+option_ijk { check_divergence disable_diphasique }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+system "mkdir -p lata"
+system "mkdir -p NEXT"
+
+lire pb
+{
+  Solved_Equations
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    IJK_Thermals thermals
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible # Vapour #
+    {
+      mu  Champ_Uniforme 1 1.
+      rho Champ_Uniforme 1 1.
+      lambda Champ_Uniforme 1 1.
+      cp Champ_Uniforme 1 1.
+    }
+    fluide1 Fluide_Incompressible # Liquid #
+    {
+      mu  Champ_Uniforme 1 1.
+      rho Champ_Uniforme 1 1.
+      lambda Champ_Uniforme 1 1.
+      cp Champ_Uniforme 1 1.
+    }
+    # Surface tension #
+    sigma Champ_Uniforme 1 0.0
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 10.
+  }
+
+  hydraulique
+  {
+    Boundary_Conditions
+    {
+      bctype_kmin perio
+      bctype_kmax perio
+    }
+
+    # disable_diffusion_qdm
+    disable_convection_qdm
+    disable_solveur_poisson #
+
+    multigrid_solver
+    {
+      solver_precision mixed
+      coarsen_operators 0
+      ghost_size 1
+      pre_smooth_steps 1 7
+      smooth_steps 1 7
+      relax_jacobi 1 0.7
+      solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 }  }
+      seuil 1e-8
+      nb_full_mg_steps 2 20 1
+    }
+
+    expression_vx_init 0.0
+    expression_vy_init 0.0
+    expression_vz_init 0.0
+    # vitesse_upstream 0. #
+ 
+    # TEMPS
+    expression_derivee_force 0.0
+    TEMPS #
+  }
+  thermals
+  {
+    ONEFLUID
+    {
+      boundary_conditions
+      {
+        bctype_kmin Perio
+        bctype_kmax Perio
+      }
+
+      # Initial conditions #
+      # expression_T_init ((1.0*sin((z-(0.5))*3.141592654)*((z_GE_(0.5))))+(1.0*sin((z-(-0.5))*3.141592654)*((z_LE_(-0.5))))) #
+      expression_T_init ff
+      diff_temperature_negligible
+      temperature_convection_op centre
+    }
+  }
+  {
+    nom_sauvegarde NEXT/planes_diffusion_lrs.repr
+    
+  }
+  post_processing 
+  {
+    format LATA
+    fichier lata/monop.lata
+    nb_pas_dt_post 1
+    fields 
+    {
+       # INTERFACIAL_AREA elem #
+       Pressure_RHS elem
+       Velocity FACES
+       TEMPERATURE_0 elem
+       U_T_CONVECTIVE_VOLUME_0 ELEM
+       # DIV_LAMBDA_GRAD_T_VOLUME_0 ELEM #
+    }
+    Sondes
+    {
+       pp_VZ velocity_Z  periode 1e-9 points 2 0.0 0.0 -0.6 0.0 0.0 1.0
+    } #
+    {
+       ps_T temperature_0 periode 1e-9 points 2 0.0 0.0 -0.7 0.0 0.0 1.1
+       pp_T temperature_0 periode 1e-9 segment 100 0.0 0.0 -0.7 0.0 0.0 1.1
+       pp_VZ velocity_Z  periode 1e-9 segment 100 0.0 0.0 -0.7 0.0 0.0 1.1
+    } #
+
+    # dt_post_thermals_probes 50 #
+  }
+}
+solve pb
+Fin

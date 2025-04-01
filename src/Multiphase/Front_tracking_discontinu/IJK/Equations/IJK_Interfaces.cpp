@@ -768,6 +768,8 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   / Located on interface?
     { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "OLD_INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "OLD_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "CUT_FIELDS_BARY_L", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
