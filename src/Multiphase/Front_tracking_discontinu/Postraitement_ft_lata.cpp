@@ -142,7 +142,7 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
       lire_champ_interface(is);
 
       // This is put here to make sure we have read all keywords anyway:
-      if(Motcle(format) == "LML")
+      if( Motcle(format).debute_par("LATA")==0)
         {
           Cerr << "**** Output format is not LATA, interfaces will be silently ignored." << finl;
           // Nullify reference, this will skip interfaces in the rest of the process
