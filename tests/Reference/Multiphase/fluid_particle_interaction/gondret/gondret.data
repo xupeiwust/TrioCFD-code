@@ -29,7 +29,7 @@ Lire sch
 {
 	tinit 0
 	tmax 0.02
- 	nb_pas_dt_max 2 
+ 	nb_pas_dt_max 100
     	dt_min 1e-7
 	dt_max 3.75e-5
 	diffusion_implicite 1
@@ -109,7 +109,7 @@ Lire pb
 		conditions_initiales
 		{
 
-		   fonction  (+1*((x)^2+(y-8.88e-3)^2+(z)^2-(1.5e-3)^2))
+		   fonction  (+1*((x)^2+(y-1.51e-3)^2+(z)^2-(1.5e-3)^2))
 
        		}
         	iterations_correction_volume 0
