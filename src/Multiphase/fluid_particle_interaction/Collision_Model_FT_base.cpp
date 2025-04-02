@@ -43,12 +43,12 @@ Sortie& Collision_Model_FT_base::printOn(Sortie& os) const
 
 void Collision_Model_FT_base::set_param(Param& p)
 {
-  p.ajouter_non_std("collision_model", (this),Param::REQUIRED);
-  p.ajouter_non_std("detection_method", (this),Param::REQUIRED);
+  p.ajouter_non_std("collision_model", (this),Param::REQUIRED); // XD_ADD_P name of the collision model
+  p.ajouter_non_std("detection_method", (this),Param::REQUIRED); // XD_ADD_P method to detect collisions
   p.ajouter("collision_duration", &collision_duration_, Param::REQUIRED); // XD_ADD_P duration of the collision in seconds;
-  p.ajouter("activate_collision_before_impact", &is_collision_activated_before_impact_, Param::REQUIRED);
-  p.ajouter("activation_distance_percentage_diameter", &activation_distance_percentage_diameter_, Param::REQUIRED);
-  p.ajouter("force_on_two_phase_elem", &is_force_on_two_phase_elem_, Param::REQUIRED);
+  p.ajouter("activate_collision_before_impact", &is_collision_activated_before_impact_, Param::REQUIRED); // XD_ADD_P activate collision before impact (1) or not (0)
+  p.ajouter("activation_distance_percentage_diameter", &activation_distance_percentage_diameter_, Param::REQUIRED); // XD_ADD_P activation distance of the collision process as a percentage of the particle diameter
+  p.ajouter("force_on_two_phase_elem", &is_force_on_two_phase_elem_, Param::REQUIRED); // XD_ADD_P force on two phase elements (1) or not (0). Only valid for a single particle.
 }
 
 int Collision_Model_FT_base::lire_motcle_non_standard(const Motcle& word, Entree& is)

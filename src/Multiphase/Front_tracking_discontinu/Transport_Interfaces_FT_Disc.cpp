@@ -504,9 +504,9 @@ void Transport_Interfaces_FT_Disc::set_param(Param& param)
   //param.ajouter("indic_faces_modifiee", &variables_internes_->indic_faces_modif) ;
   //param.ajouter_non_std("indic_faces_modifiee", (this)) ;
   param.ajouter_non_std("type_indic_faces", (this)) ;
-  param.ajouter("collision_model_fpi",&collision_model_);
-  param.ajouter_flag("compute_particles_rms",&compute_particles_rms_);
-  param.ajouter("post_process_hydrodynamic_forces", &post_process_hydro_forces_);
+  param.ajouter("collision_model_fpi",&collision_model_); // XD_ADD_P collision model for fluid particle interaction
+  param.ajouter_flag("compute_particles_rms",&compute_particles_rms_); // XD_ADD_P compute particles velocity root mean square
+  param.ajouter("post_process_hydrodynamic_forces", &post_process_hydro_forces_); // XD_ADD_P post process hydrodynamic forces (pressure + friction) for each particle
 }
 
 int Transport_Interfaces_FT_Disc::lire_motcle_non_standard(const Motcle& un_mot, Entree& is)
