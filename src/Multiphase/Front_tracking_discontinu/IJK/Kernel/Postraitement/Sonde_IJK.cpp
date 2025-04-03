@@ -144,16 +144,17 @@ void Sonde_IJK::fix_probe_position_generic(Domaine_IJK::Localisation loc)
       // Corrige la position de la sonde :
       for (int i = 0; i < 3; i++)
         les_positions_sondes_(idx, i) = origin[i]+(ijk[i]+offset[i])*delta[i];
-      Cerr << "Sonde " << le_nom() << " Point " << idx
+      Cerr << "Sonde " << nom_ << " Point " << idx
            << " x= " << les_positions_sondes_(idx, 0)
            << " y= " << les_positions_sondes_(idx, 1)
            << " z= " << les_positions_sondes_(idx, 2) << finl;
 
       //
       // TODO ABN to be removed once no more extended domain:
-      //
+      // TODO: GB : So strange, geom_ft.ft_extension() = 0 whereas field_splitting.ft_extension() !=0
       if ((field_splitting != geom_ft) &&
-          (ref_ijk_ft_->get_domaine_ft().ft_extension() != 0))
+          (field_splitting.ft_extension() != 0))
+        //(geom_ft.ft_extension() != 0))
         {
           // Les 2 splittings ne sont pas identiques il faut changer l'elem :
           for (int i = 0; i < 3; i++)
@@ -162,7 +163,7 @@ void Sonde_IJK::fix_probe_position_generic(Domaine_IJK::Localisation loc)
               if (geom_ft.get_periodic_flag(i))
                 {
                   //assert(int((field_geom.get_origin(i)-geom.get_origin(i))/delta[i]) == ref_ijk_ft_->get_splitting_extension());
-                  new_ijk[i] -= ref_ijk_ft_->get_domaine_ft().ft_extension();
+                  new_ijk[i] -= field_splitting.ft_extension();
                 }
             }
           const int new_num_elem =  field_splitting.convert_ijk_cell_to_packed(new_ijk[0], new_ijk[1], new_ijk[2]);
