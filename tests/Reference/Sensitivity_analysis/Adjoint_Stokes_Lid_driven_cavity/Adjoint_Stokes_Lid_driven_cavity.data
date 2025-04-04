@@ -1,0 +1,233 @@
+# Solve adjoint Stokes problem #
+# Hydraulique 2D laminar #
+# PARALLEL OK #
+dimension 2    
+
+# Currently, the only possible choice is the  'Scheme_euler_explicit' #
+Scheme_euler_explicit mon_schema_1
+Read mon_schema_1
+{
+        # Time step #
+          # Initial time [s] #
+	tinit 0
+          # Min time step #
+	 dt_min 1.e-6
+	 dt_max 1.e-3
+	 facsec 10
+          # make the diffusion term in NS equation implicit : disable(0) or enable(1) #
+        diffusion_implicite 1
+
+          # facsec such as dt = facsec * min(dt(CFL),dt_max) ; for explicit scheme facsec <= 1. By default facsec equals to 1 #
+        # Output criteria #
+          # .out files printing period #
+        dt_impr 1.e-6 # Note: small value to print at each time step #
+          # Convergence threshold (see .dt_ev file) #
+	seuil_statio 1.e-4
+	# Max number of time steps #
+        nb_pas_dt_max 10
+}
+
+# Currently, the only possible choice is the  'Scheme_euler_explicit' #
+Scheme_euler_explicit mon_schema_2
+Read mon_schema_2
+{
+        # Time step #
+          # Initial time [s] #
+	tinit 0
+          # Min time step #
+	 dt_min 1.e-6
+	 dt_max 1.e-3
+	 facsec 10
+          # make the diffusion term in NS equation implicit : disable(0) or enable(1) #
+        diffusion_implicite 1
+
+          # facsec such as dt = facsec * min(dt(CFL),dt_max) ; for explicit scheme facsec <= 1. By default facsec equals to 1 #
+        # Output criteria #
+          # .out files printing period #
+        dt_impr 1.e-6 # Note: small value to print at each time step #
+          # Convergence threshold (see .dt_ev file) #
+	seuil_statio 1.e-4
+	# Max number of time steps #
+        nb_pas_dt_max 10
+}
+
+
+Pb_Hydraulique pb_etat
+Pb_Hydraulique_sensibility pb_adjoint
+
+
+Domaine dom
+
+# BEGIN MESH #
+Lire_MED { 
+   domain dom 
+   file ../carre150.med 
+}
+
+# END MESH #
+
+VEFPreP1B dis
+
+
+
+Associate pb_etat dom
+Associer pb_etat mon_schema_1
+Discretiser pb_etat dis
+
+
+Associate pb_adjoint dom
+Associer pb_adjoint mon_schema_2
+Discretiser pb_adjoint dis
+
+
+
+Read pb_etat
+{
+   	fluide_incompressible {
+            mu Champ_Uniforme 1 0.01
+            rho Champ_Uniforme 1 1.
+  	 }
+        Navier_Stokes_standard
+        {       
+		
+      		# solveur_pression gcp  { precond ssor { omega 1.5 } seuil 1.e-10 } #
+               solveur_pression PETSc Cholesky { }      
+                convection { negligeable }
+                diffusion { }
+                initial_conditions {
+                         vitesse Champ_Uniforme 2 0. 0. 
+
+                        }
+                boundary_conditions {
+          
+                        Lower paroi_fixe
+                        Inlet paroi_fixe
+                        Upper paroi_defilante Champ_Front_Uniforme 2 1. 0.
+			Outlet paroi_fixe
+
+                }
+        }
+	Post_processing { 
+	
+	 Definition_champs {
+		dj_energie_cinetique transformation
+			{
+				sources	{ refChamp { Pb_champ pb_etat vitesse nom_source u } }
+				methode formule	
+				expression 1 -1*u
+			}
+	  }
+   	  Probes
+		{
+		       
+		
+		
+		U_V1 nodes vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                 P_V1 grav pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H1 nodes vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H1 grav pression_pa periode 1e-6 segment 100 0 0.5 1 0.5  
+                
+                U_V vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V pression_pa periode 1e-6 segment 100 0.5 0 0.5 1. 
+                Source_V dj_energie_cinetique periode 1e-6 segment 100 0.5 0 0.5 1.          
+                 
+		U_H  vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+               P_H pression_pa periode 1e-6 segment 100 0 0.5 1 0.5
+                Source_H dj_energie_cinetique periode 1e-6 segment 100 0 0.5 1 0.5        
+              
+		}
+	# Fields #
+	fichier etat
+        format lml # lata for VisIt tool #
+	fields dt_post 1.e+5  # Note: Warning to memory space if dt_post too small #
+	{
+	  vitesse som
+          pression elem
+          pression_pa elem
+
+	}
+    }
+    sauvegarde_simple single_hdf Lid_pb_etat.sauv
+}
+
+Resoudre pb_etat
+lata_to_med etat.lata etat.med 
+
+Read pb_adjoint
+{
+	Fluide_Incompressible
+	{
+		mu Champ_Uniforme 1 0.01
+		rho Champ_Uniforme 1 1.
+	}
+        Navier_Stokes_standard_sensibility
+        {       
+                uncertain_variable { vitesse }
+		state { pb_champ_evaluateur pb_etat  vitesse } 
+      		solveur_pression gcp  { precond ssor { omega 1.5 } seuil 1.e-8 }  
+                convection { negligeable } 
+                diffusion { }
+                initial_conditions {
+                        vitesse Champ_Uniforme 2 0. 0.
+
+                        }
+                boundary_conditions {
+          
+                        Lower paroi_fixe
+                        Inlet paroi_fixe
+                        Upper paroi_fixe
+			Outlet paroi_fixe
+
+                }
+                
+                Sources	{
+			  Source_Qdm Champ_Fonc_MED {   domain dom
+                                                        file etat_0000.med 
+                                                        field dj_energie_cinetique
+                					loc som
+                					last_time
+                                                        }
+			}
+        }
+	Post_processing
+	{
+	  Definition_champs {
+		source_u_etat		operateur_eqn	{
+                numero_source 0
+                sources { refChamp { pb_champ pb_adjoint vitesse } }
+         }
+        }
+       Probes
+		{      
+		U_V1_sens nodes vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V1_sens grav pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H1_sens nodes vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H1_sens grav pression_pa periode 1e-6 segment 100 0 0.5 1 0.5  
+                
+                U_V_sens vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V_sens pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.                             
+                Source_V_sens source_u_etat periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H_sens  vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H_sens pression_pa periode 1e-6 segment 100 0 0.5 1 0.5
+                Source_H_sens source_u_etat periode 1e-6 segment 100 0 0.5 1 0.5        
+		}
+	# Fields #
+	fichier sensibilite
+        format lml # lata for VisIt tool #
+	fields dt_post 1.e+5  # Note: Warning to memory space if dt_post too small #
+	{
+	  vitesse som
+          pression elem
+          pression_pa elem
+
+	}
+    }	
+    sauvegarde_simple single_hdf Lid_pb_ajoint.sauv
+}
+
+Resoudre pb_adjoint
+
+End
