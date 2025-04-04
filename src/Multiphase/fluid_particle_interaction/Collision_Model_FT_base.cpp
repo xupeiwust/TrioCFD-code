@@ -408,7 +408,7 @@ ArrOfInt send_receive_list_id_particles(ArrOfInt& list_id_real_particles_to_send
 {
   ArrOfInt list_id_particle_recv;
   list_id_particle_recv.resize_array(0);
-  int nb_elem_recv=0;
+  //int nb_elem_recv=0;
   const int nb_real_particles_to_send=list_id_real_particles_to_send.size_array();
 
   schema_comm.begin_comm();
@@ -440,7 +440,7 @@ ArrOfInt send_receive_list_id_particles(ArrOfInt& list_id_real_particles_to_send
             break;
           if (id_particle_recv<0)
             Process::exit();
-          nb_elem_recv++;
+          //nb_elem_recv++;
           list_id_particle_recv.append_array(id_particle_recv);
         }
     }
