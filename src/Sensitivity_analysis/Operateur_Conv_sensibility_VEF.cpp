@@ -94,13 +94,19 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
           const DoubleTab& state_field = eq.get_state_field();
           const Motcle& uncertain_var =  eq.get_uncertain_variable_name();
           const double& poly_chaos_value= eq.get_poly_chaos_value();
+          const bool& adjoint= eq.get_adjoint_value();
+
           // Dimensionnement du tableau des flux convectifs au bord du domaine de calcul
           DoubleTab& flux_b = flux_bords_;
           int nb_faces_bord=domaine_VEF.nb_faces_bord();
           flux_b.resize(nb_faces_bord,inco.dimension(1));
           flux_b = 0.;
-          ajouter_conv_term(state,inco ,resu, flux_b);
-          ajouter_conv_term(la_vitesse,state_field ,resu, flux_b);
+
+          if(adjoint==false)
+            {
+              ajouter_conv_term(state,inco ,resu, flux_b);
+              ajouter_conv_term(la_vitesse,state_field ,resu, flux_b);
+            }
 
           //If we treat the Navier Stokes equations by the polynomial chaos method to calculate the sensitivity equations of this system,
           //we find that we have to add one more convection term on the Navier_Stokes_standard_sensibility which is +2*\sigma u_a. grad u_a
@@ -115,8 +121,6 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
               ajouter_conv_term(vitesse ,var, resu, flux_b);
             }
 
-          //ajouter_Lstate_sensibility_Amont(state, inco, resu);
-          //ajouter_Lsensibility_state_Amont(inco, state, resu);
           if(uncertain_var=="MU")
             add_diffusion_term(state.valeurs(), resu);
           opConvVEFbase.modifier_flux(*this); // Multiplication by rho

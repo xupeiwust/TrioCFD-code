@@ -238,3 +238,20 @@ const bool& Navier_Stokes_std_sensibility::get_adjoint_value() const
 
   return adjoint;
 }
+
+void Navier_Stokes_std_sensibility::modify_corriger_derivee_add_gradP_adjoint(DoubleTab& derivee, const DoubleTab& gradP)
+{
+  if(adjoint)
+    derivee += gradP;
+
+}
+
+void Navier_Stokes_std_sensibility::modify_corriger_derivee_remove_gradP_adjoint(DoubleTab& derivee, const DoubleTab& gradP)
+{
+  if(adjoint)
+    derivee -= gradP;
+
+}
+
+
+
