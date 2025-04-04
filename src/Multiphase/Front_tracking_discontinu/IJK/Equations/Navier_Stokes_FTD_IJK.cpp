@@ -744,12 +744,13 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // Register champs compris
   velocity_.nommer("VELOCITY");
   velocity_.add_synonymous("VITESSE");
-  velocity_ft_.nommer("VELOCITY");
-  velocity_ft_.add_synonymous("VITESSE");
   if (!Option_IJK::DISABLE_DIPHASIQUE)
-    champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
-  else
-    champs_compris_.ajoute_champ_vectoriel(velocity_);
+    {
+      velocity_ft_.nommer("VELOCITY_FT");
+      velocity_ft_.add_synonymous("VITESSE_FT");
+      champs_compris_.ajoute_champ_vectoriel(velocity_ft_);
+    }
+  champs_compris_.ajoute_champ_vectoriel(velocity_);
 
 }
 
