@@ -219,7 +219,6 @@ int Collision_Model_FT_base::sauvegarder(Sortie& os) const
       bytes += 8 * e_eff_.size_array();
       return bytes;
     }
-  return 0;
 }
 
 int Collision_Model_FT_base::preparer_calcul(const Domaine_VDF& domain_vdf,
