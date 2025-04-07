@@ -337,6 +337,9 @@ private:
   void postraiter_thermals(bool stop);
 
   void postraiter_stats(bool stop);
+
+
+  bool interface_post_required_ = false;
 };
 
 #endif /* Postprocessing_IJK_included */

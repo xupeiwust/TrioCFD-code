@@ -313,7 +313,8 @@ void Postprocessing_IJK::register_interface_field(const Motcle& nom_champ, const
     {
       Motcle nom2 = get<0>(f);
       Entity loc2 = get<1>(f);
-      if(nom2 == nom_champ && e == loc2)
+      bool isOnInterface = get<3>(f); // must check that it is truly on interface, as IJK_Interfaces also defines eulerian fields
+      if(isOnInterface && nom2 == nom_champ && e == loc2)
         {
           ok = true;
           break;
@@ -326,6 +327,7 @@ void Postprocessing_IJK::register_interface_field(const Motcle& nom_champ, const
     }
   // Everything ok, we register the field for post:
   register_one_field(nom_champ, loc_lu);
+  interface_post_required_ = true;
 }
 
 /** Override to have a simpler logic than base class. We really want to retrieve names + location.
@@ -440,7 +442,7 @@ void Postprocessing_IJK::postraiter(int forcer)
  */
 int Postprocessing_IJK::write_extra_mesh()
 {
-  if(!ref_ijk_ft_->has_interface())
+  if(!interface_post_required_ || !ref_ijk_ft_->has_interface())
     return 1;
   Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
   int latastep = sch.get_tstep();
