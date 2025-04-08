@@ -94,7 +94,7 @@ public :
     IJK_Field_template<_TYPE_,_TYPE_ARRAY_>::allocate(splitting, loc, ghost_size, additional_k_layers, nb_compo, this->le_nom());
     associer_paresseux(cut_cell_disc);
   }
-  void dumplata_scalar(const char *filename, int step) override;
+  void dumplata_scalar(const char *filename, int step) const override;
 
 
   _TYPE_& from_signed_independent_index(int signed_independent_index);

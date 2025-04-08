@@ -664,7 +664,7 @@ void Probleme_FTD_IJK_base::Fill_postprocessable_fields()
 
   if (alreadyDone) return;
 
-  auto& chps = Postprocessing_IJK::Get_champs_postraitables();
+  std::vector<FieldInfo_t>& chps = Postprocessing_IJK::Get_champs_postraitables();
 
   Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(chps);
   IJK_Interfaces::Fill_postprocessable_fields(chps);
@@ -672,8 +672,24 @@ void Probleme_FTD_IJK_base::Fill_postprocessable_fields()
   Postprocessing_IJK::Fill_postprocessable_fields(chps);
   IJK_Ghost_Fluid_Fields::Fill_postprocessable_fields(chps);
 
+  // Complete the list with all the components for all vectorial fields.
+  std::vector<FieldInfo_t> more;
+  const std::vector<std::string> compos = {"_X", "_Y", "_Z"};
+  for (const auto& c: chps)
+    {
+      if (get<2>(c) == Nature_du_champ::vectoriel)
+        {
+          for (int d=0; d<Objet_U::dimension; d++)
+            {
+              FieldInfo_t n = c; // deep copy
+              get<0>(n) += Nom(compos[d]);
+              get<2>(n) = Nature_du_champ::scalaire;
+              more.push_back(n);
+            }
+        }
+    }
+  chps.insert(chps.end(), more.begin(), more.end());
   alreadyDone = true;
-
 }
 
 void Probleme_FTD_IJK_base::initialize()

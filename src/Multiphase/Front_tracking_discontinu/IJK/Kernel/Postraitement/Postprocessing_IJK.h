@@ -140,11 +140,19 @@ public:
   double get_max_timestep_for_post(double current_time) const;
 
 protected:
+  /** Handy type to register the reference of a field to be postprocessed:
+   * - first part is the index in champs_postraitables_ array
+   * - second part is a boolean indicating if an interpolation will be needed (when projecting from face to elem)
+   */
+  using FieldIndex_t = std::pair<int, bool>;
+
   static std::vector<FieldInfo_t> champs_postraitables_;  ///< list of fields that can be potentially postprocessed
-  /** Index in 'champs_postraitables_' of each of the requested field for post-processing
+  /** Index in 'champs_postraitables_' of each of the requested field for post-processing:
+   * - first part is the index in champs_postraitables_
+   * - second part is the field component number (-1) when not relevant
    * and flag indicating if interpolation will be needed:
    */
-  std::vector<std::pair<int,bool>> field_post_idx_;
+  std::vector<FieldIndex_t> field_post_idx_;
 
   std::vector<Motcle> list_post_required_;
 
@@ -331,7 +339,7 @@ protected:
   int cut_cell_activated_ = 0;
 
 private:
-  IJK_Field_vector3_double post_projected_field_; ///< Temporary storage space used when invoking 'interpolate_to_center'
+  mutable IJK_Field_vector3_double post_projected_field_; ///< Temporary storage space used when invoking 'interpolate_to_center*'
 
   void postraiter_thermals(bool stop);
 

@@ -419,27 +419,25 @@ void Cut_field_template<double,ArrOfDouble>::set_field_data(const Nom& parser_ex
 }
 
 template<>
-void Cut_field_template<double,ArrOfDouble>::dumplata_scalar(const char *filename, int step)
+void Cut_field_template<double,ArrOfDouble>::dumplata_scalar(const char *filename, int step) const
 {
-  echange_diph_vers_pure_cellules_finalement_pures();
-  remplir_tableau_pure_cellules_diphasiques(true);
-
+  Cut_field_template<double,ArrOfDouble> *this_non_const = const_cast<Cut_field_template<double,ArrOfDouble>*>(this);
+  this_non_const->echange_diph_vers_pure_cellules_finalement_pures();
+  this_non_const->remplir_tableau_pure_cellules_diphasiques(true);
 
   IJK_Field_template<double,ArrOfDouble>::dumplata_scalar(filename, step);
 
+  this_non_const->cut_cell_disc_->fill_buffer_with_variable(diph_l_);
+  this_non_const->cut_cell_disc_->get_write_buffer().nommer(this->le_nom() + "_CUT_L");
+  this_non_const->cut_cell_disc_->get_write_buffer().dumplata_scalar(filename, step);
 
-
-  cut_cell_disc_->fill_buffer_with_variable(diph_l_);
-  cut_cell_disc_->get_write_buffer().nommer(this->le_nom() + "_CUT_L");
-  cut_cell_disc_->get_write_buffer().dumplata_scalar(filename, step);
-
-  cut_cell_disc_->fill_buffer_with_variable(diph_v_);
-  cut_cell_disc_->get_write_buffer().nommer(this->le_nom() + "_CUT_V");
-  cut_cell_disc_->get_write_buffer().dumplata_scalar(filename, step);
+  this_non_const->cut_cell_disc_->fill_buffer_with_variable(diph_v_);
+  this_non_const->cut_cell_disc_->get_write_buffer().nommer(this->le_nom() + "_CUT_V");
+  this_non_const->cut_cell_disc_->get_write_buffer().dumplata_scalar(filename, step);
 
 }
 template<>
-void Cut_field_template<int,ArrOfInt>::dumplata_scalar(const char *filename, int step)
+void Cut_field_template<int,ArrOfInt>::dumplata_scalar(const char *filename, int step) const
 {
   Cerr << "not implemented"<<finl;
   throw;

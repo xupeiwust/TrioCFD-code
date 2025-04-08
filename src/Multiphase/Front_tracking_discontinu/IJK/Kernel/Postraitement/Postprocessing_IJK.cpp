@@ -53,6 +53,21 @@ inline Nom entity_to_str(const Entity& e)
   if (e == Entity::FACE) return "FACES";
   return "??";
 }
+
+inline int extract_component(const Nom& fld_name)
+{
+  const std::vector<std::string> compos = {"_X", "_Y", "_Z"};
+  std::string s = fld_name.getString();
+  std::string end = s.substr(s.size()-2, 2);
+  auto it = std::find(compos.begin(), compos.end(), end);
+  if(it == compos.end())
+    {
+      Cerr << "ERROR: field name '" << fld_name << "' does not end with a component name (_X, _Y or _Z)!! Should not happend?" << finl;
+      Process::exit();
+    }
+  return (int)std::distance(compos.begin(), it);
+}
+
 }
 
 Postprocessing_IJK::Postprocessing_IJK()
@@ -214,7 +229,6 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
 
   Motcle true_field_name = fld_nam;
 
-
   // IJK_Thermals gives a list of possible prefixes. The field names are appended with _index when added to champs_compris by individual thermal equations
   // Because of that, we have to get the prefix from the field name asked
   const std::string& str = fld_nam.getString();
@@ -254,8 +268,6 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
         }
     }
 
-
-
   // Lookup the field in champs_postraitables_
   int idx = 0;
   for (const auto& f : champs_postraitables_)
@@ -269,16 +281,17 @@ void Postprocessing_IJK::register_one_field(const Motcle& fld_nam, const Motcle&
       // Then some fields in the map may not be prepared
       // For example: if CURL is asked in post but not CRITERE_Q, we try in alloc_fields to allocate scalar_post_fields_.at("CRITERE_Q") which was not pre initialized.
       // now we pre fill for every post processable field. Probably there is a better solution
-      scalar_post_fields_[nom2] = IJK_Field_double();
-      vect_post_fields_[nom2] = IJK_Field_vector3_double();
-
+      if (!scalar_post_fields_.count(nom2))
+        scalar_post_fields_[nom2] = IJK_Field_double();
+      if(!vect_post_fields_.count(nom2))
+        vect_post_fields_[nom2] = IJK_Field_vector3_double();
 
       bool want_interp = (reqloc == Entity::ELEMENT && loc2 == Entity::FACE);
       if(nom2 == fld_nam
           && (reqloc == loc2 || want_interp)) // allow FACE to ELEMENT interpolation
         {
           // If already there, error:
-          std::pair<int,bool> k = {idx, want_interp};
+          FieldIndex_t k = {idx, want_interp};
           if (std::find(field_post_idx_.begin(), field_post_idx_.end(), k) != field_post_idx_.end())
             {
               Cerr << "ERROR: field '" << fld_nam << "' at localisation '"<< reqloc_s <<"' duplicated in list of fields to be postprocessed!!" << finl;
@@ -362,8 +375,6 @@ void Postprocessing_IJK::init()
 
   // Integrated field initialisation
   init_integrated_and_ana(ref_ijk_ft_->get_reprise());
-
-
 
   completer_sondes();
 
@@ -456,15 +467,22 @@ int Postprocessing_IJK::write_extra_mesh()
   return 1;
 }
 
-static inline bool check_loc_compat(Entity loc, Domaine_IJK::Localisation loc_ijk)
+static inline bool check_loc_compat(Entity requested_loc, Domaine_IJK::Localisation loc_ijk, bool want_interp)
 {
   using LocIJK = Domaine_IJK::Localisation;
-  if (loc == Entity::ELEMENT && loc_ijk == LocIJK::ELEM)
+  if (requested_loc == Entity::ELEMENT && loc_ijk == LocIJK::ELEM)
     return true;
-  if (loc == Entity::NODE && loc_ijk == LocIJK::NODES)
+  if (requested_loc == Entity::NODE && loc_ijk == LocIJK::NODES)
     return true;
-  if (loc == Entity::FACE && (loc_ijk == LocIJK::FACES_I || loc_ijk == LocIJK::FACES_J || loc_ijk == LocIJK::FACES_K))
-    return true;
+  if ((loc_ijk == LocIJK::FACES_I || loc_ijk == LocIJK::FACES_J || loc_ijk == LocIJK::FACES_K))
+    {
+      if(requested_loc == Entity::FACE) return true;
+      if(requested_loc == Entity::ELEMENT)  // natural localisation is face, user wants interpolation to ELEM - OK
+        {
+          assert(want_interp);
+          return true;
+        }
+    }
   return false;
 }
 
@@ -481,7 +499,7 @@ int Postprocessing_IJK::postraiter_champs()
   write_extra_mesh();
 
   // Dump requested fields:
-  for (const std::pair<int,bool>& v : field_post_idx_)
+  for (const FieldIndex_t& v : field_post_idx_)
     {
       int idx = get<0>(v);
       bool want_interpolation = get<1>(v);
@@ -505,21 +523,31 @@ int Postprocessing_IJK::postraiter_champs()
       if (nat == Nature_du_champ::scalaire)
         {
           const IJK_Field_double* fld = &(ref_ijk_ft_->get_IJK_field(fld_nam));
+          assert(fld->nature_du_champ() == Nature_du_champ::scalaire);
 
-          if (!check_loc_compat(fld_loc, fld->get_localisation()) && !is_on_interf)  // for now, loc validity is not checked for interf fields ...
-            {
-              Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(fld_loc) << "'!" << finl;
-              Process::exit();
-            }
-          if (is_on_interf)
+          if (is_on_interf)     // for now, loc validity is not checked for interf fields ...
             dumplata_ft_field(nom_fich_, "INTERFACES", fld_nam, entity_to_str(fld_loc), fld->data(), latastep);
           else
             {
-              // dumplata_scalar(nom_fich_, fld_nam, fld, latastep);
-              IJK_Field_double* fld_not_const = const_cast<IJK_Field_double*>(fld); // FIXME
-              fld_not_const->dumplata_scalar(nom_fich_, latastep);
+              if (!check_loc_compat(fld_loc, fld->get_localisation(), want_interpolation))
+                {
+                  Cerr << "ERROR Field '" << fld_nam << "' is available for postprocessing, but NOT at localisation '" << entity_to_str(fld_loc) << "'!" << finl;
+                  Process::exit();
+                }
+              if(want_interpolation)
+                {
+                  // First time we interpolate - needs to allocate storage:
+                  if (post_projected_field_.get_ptr(0) == nullptr)
+                    allocate_cell_vector(post_projected_field_, domaine_ijk_, 0);
+                  // Identify the correct component to use for temp storage (we could have had separate temporary members for
+                  // component interpolation, but I don't think this would have made the below any better/shorter ...):
+                  int compo_num = extract_component(fld_nam);
+                  interpolate_to_center_compo(post_projected_field_[compo_num], *fld);
+                  post_projected_field_[compo_num].dumplata_scalar(nom_fich_, latastep);
+                }
+              else
+                fld->dumplata_scalar(nom_fich_, latastep);
             }
-
         }
       else if (nat == Nature_du_champ::vectoriel)
         {
