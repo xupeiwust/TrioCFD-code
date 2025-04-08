@@ -35,6 +35,7 @@ void Sonde_IJK::completer()
 {
   ref_ijk_ft_ = ref_cast(Probleme_FTD_IJK_base, mon_post->probleme());
   ref_ijk_field_ = ref_ijk_ft_->get_IJK_field(nom_champ_lu_);
+  field_name_ = ref_ijk_field_->le_nom();
 
   // Make sure the cell-projected counterpart of the initial field is registered for postprocessing:
   if(grav && ref_ijk_field_->get_localisation() != Domaine_IJK::ELEM)
@@ -188,7 +189,7 @@ void Sonde_IJK::fill_local_values()
   const int nb_pts = elem_.size();
 
   // Make sure to call get_IJK_field() to trigger the update of the field:
-  const IJK_Field_double* ijk_field = &(ref_ijk_ft_->get_IJK_field(ref_ijk_field_->le_nom()));
+  const IJK_Field_double* ijk_field = &(ref_ijk_ft_->get_IJK_field(field_name_));
   const Domaine_IJK& dom = ijk_field->get_domaine();
 
   // If necessary, interpolate to cell center:

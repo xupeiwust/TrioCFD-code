@@ -56,6 +56,12 @@ protected :
 
 private:
   void fix_probe_position_generic(Domaine_IJK::Localisation loc);
+
+  /** In IJK we need to store the initial name of the requested field because of the switch done on some fields
+   *  (see Champs_compris_IJK::switch_ft_fields()). This switch might rename the field, but we want this to stay
+   *  constant for a probe!
+   */
+  Nom field_name_;
 };
 
 #endif /* Sonde_IJK_included */
