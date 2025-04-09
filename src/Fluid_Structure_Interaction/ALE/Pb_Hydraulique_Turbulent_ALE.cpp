@@ -45,7 +45,7 @@ Implemente_instanciable(Pb_Hydraulique_Turbulent_ALE,"Pb_Hydraulique_Turbulent_A
  */
 Sortie& Pb_Hydraulique_Turbulent_ALE::printOn(Sortie& os) const
 {
-  return Pb_Fluide_base::printOn(os);
+  return Pb_Hydraulique_Turbulent::printOn(os);
 }
 
 
@@ -56,7 +56,7 @@ Sortie& Pb_Hydraulique_Turbulent_ALE::printOn(Sortie& os) const
  */
 Entree& Pb_Hydraulique_Turbulent_ALE::readOn(Entree& is)
 {
-  return Pb_Fluide_base::readOn(is);
+  return Pb_Hydraulique_Turbulent::readOn(is);
 }
 
 /*! @brief Renvoie le nombre d'equation, Renvoie 1 car il y a seulement 1 equation a un probleme
