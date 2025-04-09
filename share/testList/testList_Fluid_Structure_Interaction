@@ -1,5 +1,6 @@
 3dOscillatingBeamALE_CoarseMesh
 ALE_K_Eps_Wall
+ALE_K_Omega_Wall
 ALE_with_Periodic_BC_3D
 ALE_with_Periodic_BC
 Neumann_BC_for_grid_problem
