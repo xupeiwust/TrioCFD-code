@@ -164,9 +164,6 @@ void Source_Transport_K_Omega_VEF_Face::compute_cross_diffusion(DoubleTab& gradK
   // = Definition of the gradients
   // Get number of componants, for gradient resize
   // We use the velocity field to resize the gradient as the velocity is on faces
-  /*const Navier_Stokes_std& eqHyd = ref_cast(Navier_Stokes_std,
-                                            ref_cast(Pb_Hydraulique_Turbulent,
-                                                     mon_equation->probleme()).equation(0));*/
   const Navier_Stokes_std& eqHyd = ref_cast(Navier_Stokes_std, mon_equation->probleme().equation(0));
   const DoubleTab& velocity_field_face = eqHyd.vitesse().valeurs(); // Velocity on faces
   const int nbr_velocity_components = velocity_field_face.dimension(1); // dimension_tot ?
