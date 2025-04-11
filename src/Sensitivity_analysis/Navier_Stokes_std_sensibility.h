@@ -49,8 +49,7 @@ public :
   const Motcle& get_uncertain_variable_name() const;
   const double& get_poly_chaos_value() const;
   const bool& get_adjoint_value() const;
-  void modify_corriger_derivee_add_gradP_adjoint(DoubleTab&, const DoubleTab&) override;
-  void modify_corriger_derivee_remove_gradP_adjoint(DoubleTab&, const DoubleTab&) override;
+
 
 protected :
   OBS_PTR(Champ_Inc_base) state_field;  //Reference to the unknown field of the state problem
