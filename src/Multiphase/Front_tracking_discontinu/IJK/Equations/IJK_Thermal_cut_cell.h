@@ -191,8 +191,6 @@ protected :
   void correct_temperature_for_eulerian_fluxes() override { ; };
 
 
-  int type_temperature_convection_form_ = 0;
-
   OBS_PTR(Probleme_FTD_IJK_cut_cell) ref_ijk_ft_cut_cell_;
 
   IJK_Field_double div_rho_cp_T_;

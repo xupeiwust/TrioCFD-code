@@ -71,10 +71,6 @@ Entree& IJK_Thermal_cut_cell::readOn( Entree& is )
 void IJK_Thermal_cut_cell::set_param( Param& param )
 {
   IJK_Thermal_base::set_param(param);
-  param.ajouter("type_temperature_convection_form", &type_temperature_convection_form_);
-  param.dictionnaire("non conservative",0);
-  param.dictionnaire("conservative",1);
-  param.ajouter("conserv_energy_global", &conserv_energy_global_);
   param.ajouter_flag("postraiter_champs_intermediaires", &postraiter_champs_intermediaires_);
 
   param.ajouter_flag("deactivate_diffusion_interface", &deactivate_diffusion_interface_);
@@ -220,7 +216,7 @@ void IJK_Thermal_cut_cell::initialize(const Domaine_IJK& splitting, const int id
       Cerr << "conserv_energy_global_ is used." << finl;
       Process::exit();
     }
-  if (type_temperature_convection_form_==1)
+  if (type_temperature_convection_form_==2)
     {
       rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
       div_rho_cp_T_.allocate(splitting, Domaine_IJK::ELEM, 0);

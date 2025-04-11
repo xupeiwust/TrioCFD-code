@@ -203,7 +203,7 @@ void IJK_Thermal_base::set_param(Param& param)
   param.ajouter("type_temperature_convection_form", &type_temperature_convection_form_);
   param.dictionnaire("non conservative",1);
   param.dictionnaire("conservative",2);
-
+  param.ajouter_flag("conserv_energy_global", &conserv_energy_global_);
 }
 
 /********************************************

@@ -69,7 +69,6 @@ Entree& IJK_Thermal_Onefluid::readOn( Entree& is )
 void IJK_Thermal_Onefluid::set_param( Param& param )
 {
   IJK_Thermal_base::set_param(param);
-  param.ajouter_flag("conserv_energy_global", &conserv_energy_global_);
   param.ajouter_flag("lambda_moy_arith_", &lambda_moy_arith_);
   param.ajouter_flag("rho_cp_moy_harmonic", &rho_cp_moy_harmonic_);
   param.ajouter_flag("deprecated_rho_cp", &deprecated_rho_cp_);
