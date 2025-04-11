@@ -5909,14 +5909,14 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                         index = data.index_facette_suivante_;
                       };
 
-                    int nb_increment_somme_contrib = 0;
+                    // int nb_increment_somme_contrib = 0;
                     while (somme_contrib > 1.)
                       {
                         somme_contrib -= 1.;
                         somme_contrib_baryc[0] -= 1./2.;
                         somme_contrib_baryc[1] -= 1./2.;
                         somme_contrib_baryc[2] -= 1./2.;
-                        nb_increment_somme_contrib++;
+                        // nb_increment_somme_contrib++;
                       }
                     while (somme_contrib < 0.)
                       {
@@ -5924,17 +5924,11 @@ void IJK_Interfaces::calculer_barycentre(IJK_Field_vector3_double& baric, IJK_Fi
                         somme_contrib_baryc[0] += 1./2.;
                         somme_contrib_baryc[1] += 1./2.;
                         somme_contrib_baryc[2] += 1./2.;
-                        nb_increment_somme_contrib++;
+                        // nb_increment_somme_contrib++;
                       }
-
-                    if (nb_increment_somme_contrib > 1)
-                      Process::exit("Error in IJK_Interfaces::calculer_barycentre !");
 
                     // Note : On recalcule l'indicatrice, c'est un peu dommage
-                    if (indic(i, j, k) != somme_contrib)
-                      {
-                        assert(false);
-                      }
+                    assert(indic(i, j, k) == somme_contrib);
 
                     baric[0](i, j, k) = somme_contrib_baryc[0]/abs(somme_contrib);
                     baric[1](i, j, k) = somme_contrib_baryc[1]/abs(somme_contrib);
