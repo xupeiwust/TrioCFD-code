@@ -1,7 +1,6 @@
 # Hydraulique 2D laminar : Adjoint Stokes equation #
 # Adjoint #
 # First, solve the direct Stokes problem. Then, save the source in a .med file for use in the adjoint Stokes equation #
-# PARALLEL OK #
 dimension 2    
 
 
@@ -115,8 +114,8 @@ Read pb_direct
                 convection { negligeable }
                 diffusion { }
                 initial_conditions {
-                         # vitesse Champ_Uniforme 2 0. 0. #
-                         vitesse Champ_Fonc_Reprise Solution_Direct_Stokes_pb/Lid_Stokes.xyz pb_direct vitesse last_time 
+                         vitesse Champ_Uniforme 2 0. 0. 
+                        # vitesse Champ_Fonc_Reprise ./Solution_Direct_Stokes_pb/Lid_Stokes.xyz pb_direct vitesse last_time #
                         }
                 boundary_conditions {
           
@@ -236,7 +235,6 @@ Read pb_adjoint
                 Source_H_sens source_u_direct periode 1e-6 segment 100 0 0.5 1 0.5        
 		}
 	# Fields #
-	fichier adjoint
         format lml # lata for VisIt tool #
 	fields dt_post 1.e+5  # Note: Warning to memory space if dt_post too small #
 	{

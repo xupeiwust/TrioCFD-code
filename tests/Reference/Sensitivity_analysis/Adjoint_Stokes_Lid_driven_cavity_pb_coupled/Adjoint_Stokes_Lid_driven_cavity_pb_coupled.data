@@ -3,6 +3,7 @@
 # Address a coupled problem composed of two subproblems:  pb_direct: representing the direct Stokes problem, and pb_ajdoint, the Stokes adjoint problem. #
 # At each time step, the source term is exchanged between the two subproblems #
 # PARALLEL OK #
+
 dimension 2    
 
 # Currently, the only possible choice is the  'Scheme_euler_explicit' #
@@ -37,7 +38,7 @@ Domaine dom
 # BEGIN MESH #
 Lire_MED { 
    domain dom 
-   file ../Adjoint_Stokes_Lid_driven_cavity/carre150.med 
+   file carre150.med 
 }
 # END MESH #
 
@@ -53,9 +54,10 @@ END PARTITION #
 
 
 
-# BEGIN SCATTER 
-Scatter DOM.Zones dom 
-END SCATTER #
+# BEGIN SCATTER #
+# Scatter DOM.Zones dom #
+# END SCATTER #
+
 
 VEFPreP1B dis
 
@@ -85,8 +87,8 @@ Read pb_direct
                 convection { negligeable }
                 diffusion { }
                 initial_conditions {
-                         # vitesse Champ_Uniforme 2 0. 0. #
-                         vitesse Champ_Fonc_Reprise ../Adjoint_Stokes_Lid_driven_cavity/Solution_Direct_Stokes_pb/Lid_Stokes.xyz pb_direct vitesse last_time 
+                         vitesse Champ_Uniforme 2 0. 0. 
+                        # vitesse Champ_Fonc_Reprise ../Adjoint_Stokes_Lid_driven_cavity/Solution_Direct_Stokes_pb/Lid_Stokes.xyz pb_direct vitesse last_time #
                         }
                 boundary_conditions {
           
@@ -129,7 +131,7 @@ Read pb_direct
 		}
 	# Fields #
 	fichier direct
-        format lml # lata for VisIt tool #
+        format lata # lata for VisIt tool #
 	fields dt_post 1.e+5  # Note: Warning to memory space if dt_post too small #
 	{
 	  vitesse som
@@ -208,7 +210,6 @@ Read pb_ajdoint
               
 		}
 	# Fields #
-	fichier adjoint
         format lml # lata for VisIt tool #
 	fields dt_post 1.e-3  # Note: Warning to memory space if dt_post too small #
 	{
