@@ -1,0 +1,226 @@
+# Hydraulique 2D laminar : Adjoint Stokes equation #
+# Adjoint #
+# Address a coupled problem composed of two subproblems:  pb_direct: representing the direct Stokes problem, and pb_ajdoint, the Stokes adjoint problem. #
+# At each time step, the source term is exchanged between the two subproblems #
+# PARALLEL OK #
+dimension 2    
+
+# Currently, the only possible choice is the  'Scheme_euler_explicit' #
+Scheme_euler_explicit mon_schema
+Read mon_schema
+{
+        # Time step #
+          # Initial time [s] #
+	tinit 0
+          # Min time step #
+	 dt_min 1.e-6
+	 dt_max 1.e-3
+	 facsec 10
+          # make the diffusion term in NS equation implicit : disable(0) or enable(1) #
+        diffusion_implicite 1
+
+          # facsec such as dt = facsec * min(dt(CFL),dt_max) ; for explicit scheme facsec <= 1. By default facsec equals to 1 #
+        # Output criteria #
+          # .out files printing period #
+        dt_impr 1.e-6 # Note: small value to print at each time step #
+          # Convergence threshold (see .dt_ev file) #
+	seuil_statio 1.e-5
+	nb_pas_dt_max 10
+}
+
+
+Pb_Hydraulique pb_direct
+Pb_Hydraulique_sensibility pb_ajdoint
+
+Domaine dom
+
+# BEGIN MESH #
+Lire_MED { 
+   domain dom 
+   file ../Adjoint_Stokes_Lid_driven_cavity/carre150.med 
+}
+# END MESH #
+
+# BEGIN PARTITION
+Partition dom
+{
+	Partition_tool metis { Nb_parts 2 }
+	Larg_joint 2
+	zones_name DOM
+}
+End
+END PARTITION #
+
+
+
+# BEGIN SCATTER 
+Scatter DOM.Zones dom 
+END SCATTER #
+
+VEFPreP1B dis
+
+
+Associate pb_direct dom
+Associate pb_ajdoint dom
+
+
+Probleme_Couple pbc
+Associate pbc pb_direct
+Associate pbc pb_ajdoint
+Associate pbc mon_schema
+Discretize pbc dis
+
+
+Read pb_direct
+{
+   	fluide_incompressible {
+            mu Champ_Uniforme 1 0.01
+            rho Champ_Uniforme 1 1.
+  	 }
+        Navier_Stokes_standard
+        {       
+		
+      		# solveur_pression gcp  { precond ssor { omega 1.5 } seuil 1.e-10 } #
+               solveur_pression PETSc Cholesky { }      
+                convection { negligeable }
+                diffusion { }
+                initial_conditions {
+                         # vitesse Champ_Uniforme 2 0. 0. #
+                         vitesse Champ_Fonc_Reprise ../Adjoint_Stokes_Lid_driven_cavity/Solution_Direct_Stokes_pb/Lid_Stokes.xyz pb_direct vitesse last_time 
+                        }
+                boundary_conditions {
+          
+                        Lower paroi_fixe
+                        Inlet paroi_fixe
+                        Upper paroi_defilante Champ_Front_Uniforme 2 1. 0.
+			Outlet paroi_fixe
+
+                }
+        }
+	Post_processing { 
+	
+	 Definition_champs {
+		dj_energie_cinetique transformation
+			{
+				sources	{ refChamp { Pb_champ pb_direct vitesse nom_source u } }
+				methode formule	
+				expression 1 -1.*u
+			}
+	  }
+   	  Probes
+		{
+		       
+		
+		
+		U_V1 nodes vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                 P_V1 grav pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H1 nodes vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H1 grav pression_pa periode 1e-6 segment 100 0 0.5 1 0.5  
+                
+                U_V vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.   
+                Source_V dj_energie_cinetique periode 1e-6 segment 100 0.5 0 0.5 1.         
+                 
+		U_H  vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H pression_pa periode 1e-6 segment 100 0 0.5 1 0.5
+                Source_H dj_energie_cinetique periode 1e-6 segment 100 0 0.5 1 0.5
+              
+		}
+	# Fields #
+	fichier direct
+        format lml # lata for VisIt tool #
+	fields dt_post 1.e+5  # Note: Warning to memory space if dt_post too small #
+	{
+	  vitesse som
+          pression elem
+          pression_pa elem
+          dj_energie_cinetique elem
+
+	}
+    }
+}
+
+Read pb_ajdoint
+{
+	Fluide_Incompressible
+	{
+		mu Champ_Uniforme 1 0.01
+		rho Champ_Uniforme 1 1.
+	}
+        Navier_Stokes_standard_sensibility
+        {       
+                adjoint
+		state { pb_champ_evaluateur pb_direct  vitesse } 
+      		solveur_pression gcp  { precond ssor { omega 1.5 } seuil 1.e-8 }  
+                convection { negligeable } 
+                diffusion { }
+                initial_conditions {
+                        vitesse Champ_Uniforme 2 0. 0. 
+                        }
+                boundary_conditions {
+          
+                        Lower paroi_fixe
+                        Inlet paroi_fixe
+                        Upper paroi_fixe
+			Outlet paroi_fixe
+
+                }
+                
+                Sources	{			   
+			  Source_Generique Transformation {
+               			 		methode formule expression 1 -1.*VITESSE_NATIF_DOM 
+               			 		source refChamp { Pb_champ pb_direct vitesse }
+            			}
+
+			}
+        }
+	Post_processing
+	{ 
+
+	
+	 Definition_champs {
+	 
+	 source_u_direct		operateur_eqn	{
+                numero_source 0
+                sources { refChamp { pb_champ pb_ajdoint vitesse } }
+            }
+	 
+	 }
+   	  Probes
+		{
+		       
+		
+		
+		U_V1_sens nodes vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V1_sens grav pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H1_sens nodes vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H1_sens grav pression_pa periode 1e-6 segment 100 0 0.5 1 0.5  
+                
+                U_V_sens vitesse periode 1e-6 segment 100 0.5 0 0.5 1. 
+                P_V_sens pression_pa periode 1e-6 segment 100 0.5 0 0.5 1.
+                Source_V_sens source_u_direct periode 1e-6 segment 100 0.5 0 0.5 1.   
+                 
+		U_H_sens  vitesse periode 1e-6 segment 100 0 0.5 1 0.5 
+                P_H_sens pression_pa periode 1e-6 segment 100 0 0.5 1 0.5
+                Source_H_sens source_u_direct periode 1e-6 segment 100 0 0.5 1 0.5  
+              
+		}
+	# Fields #
+	fichier adjoint
+        format lml # lata for VisIt tool #
+	fields dt_post 1.e-3  # Note: Warning to memory space if dt_post too small #
+	{
+	  vitesse som
+          pression elem
+          pression_pa elem
+          source_u_direct elem
+
+	}
+    }	
+    # sauvegarde_simple single_hdf Adjoint.sauv	 #
+}
+EcritureLectureSpecial 0
+Solve pbc
+End
