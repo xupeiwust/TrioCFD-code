@@ -155,7 +155,7 @@ Read pb_fluide
 # Resume_last_time binaire cavity_2.sauv #
 }
 
-# EcritureLectureSpecial EcrFicPartageBin #
+# EcritureLectureSpecial 1 #
 Solve pb_fluide
 
  

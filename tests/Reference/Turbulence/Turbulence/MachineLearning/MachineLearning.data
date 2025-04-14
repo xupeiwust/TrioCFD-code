@@ -155,7 +155,7 @@ Lire pb
 	}
 }
 
-EcritureLectureSpecial EcrFicPartageBin
+EcritureLectureSpecial 1
 
 Resoudre pb
 Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
