@@ -16,6 +16,7 @@
 #include <Probleme_FT_Disc_gen.h>
 
 
+// XD Solid_Particle_spheroid Solid_Particle_base Solid_Particle_spheroid -1 spheroid particle for collision model
 Implemente_instanciable_sans_constructeur(Solid_Particle_spheroid,"Solid_Particle_spheroid",Solid_Particle_base);
 
 Solid_Particle_spheroid::Solid_Particle_spheroid()
@@ -43,6 +44,6 @@ Sortie& Solid_Particle_spheroid::printOn(Sortie& os) const
 void Solid_Particle_spheroid::set_param(Param& param)
 {
   Solid_Particle_base::set_param(param);
-  param.ajouter("half_small_axis", &half_small_axis_spheroid_, Param::REQUIRED); // XD_ADD_P half small axis of the spheroid
-  param.ajouter("half_long_axis", &half_long_axis_spheroid_, Param::REQUIRED); // XD_ADD_P half long axis of the spheroid
+  param.ajouter("half_small_axis", &half_small_axis_spheroid_, Param::REQUIRED); // XD_ADD_P double small half-axis of the spheroid
+  param.ajouter("half_long_axis", &half_long_axis_spheroid_, Param::REQUIRED); // XD_ADD_P double long half-axis of the spheroid
 }

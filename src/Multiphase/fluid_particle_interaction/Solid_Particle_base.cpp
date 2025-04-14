@@ -16,6 +16,7 @@
 #include <Param.h>
 #include <Solid_Particle_base.h>
 
+// XD Solid_Particle_base fluide_incompressible Solid_Particle_base -1 base particle type for collision model
 Implemente_base_sans_constructeur(Solid_Particle_base,"Solid_Particle_base",Fluide_Incompressible);
 
 Solid_Particle_base::Solid_Particle_base()
@@ -38,5 +39,5 @@ Entree& Solid_Particle_base::readOn(Entree& is)
 void Solid_Particle_base::set_param(Param& param)
 {
   Fluide_Incompressible::set_param(param);
-  param.ajouter("e_dry", &e_dry_,Param::REQUIRED); // XD_ADD_P dry coefficient;
+  param.ajouter("e_dry", &e_dry_,Param::REQUIRED); // XD_ADD_P double dry coefficient
 }

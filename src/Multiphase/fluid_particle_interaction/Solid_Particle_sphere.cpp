@@ -15,7 +15,7 @@
 #include <Solid_Particle_sphere.h>
 #include <Probleme_FT_Disc_gen.h>
 
-
+// XD  Solid_Particle_sphere  Solid_Particle_base  Solid_Particle_sphere  -1  spherical particle for collision model
 Implemente_instanciable_sans_constructeur(Solid_Particle_sphere,"Solid_Particle_sphere",Solid_Particle_base);
 
 Solid_Particle_sphere::Solid_Particle_sphere()
@@ -44,5 +44,5 @@ Sortie& Solid_Particle_sphere::printOn(Sortie& os) const
 void Solid_Particle_sphere::set_param(Param& param)
 {
   Solid_Particle_base::set_param(param);
-  param.ajouter("radius", &radius_, Param::REQUIRED); // XD_ADD_P radius of a spherical particle
+  param.ajouter("radius", &radius_, Param::REQUIRED); // XD_ADD_P double radius of a spherical particle
 }
