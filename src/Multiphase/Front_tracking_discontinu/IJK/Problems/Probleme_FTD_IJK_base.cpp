@@ -16,10 +16,12 @@
 #include <Navier_Stokes_FTD_IJK_tools.h>
 #include <Schema_Euler_explicite_IJK.h>
 #include <IJK_Navier_Stokes_tools.h>
+#include <Statistiques_dns_ijk_FT.h>
 #include <EcritureLectureSpecial.h>
 #include <Probleme_FTD_IJK_tools.h>
 #include <Probleme_FTD_IJK_base.h>
 #include <Navier_Stokes_FTD_IJK.h>
+#include <Postprocessing_IJK.h>
 #include <IJK_discretisation.h>
 #include <LecFicDiffuse_JDD.h>
 #include <IJK_Field_vector.h>
@@ -670,6 +672,7 @@ void Probleme_FTD_IJK_base::Fill_postprocessable_fields()
   IJK_Interfaces::Fill_postprocessable_fields(chps);
   IJK_Thermals::Fill_postprocessable_fields(chps);
   Postprocessing_IJK::Fill_postprocessable_fields(chps);
+  Statistiques_dns_ijk::Fill_postprocessable_fields(chps);
   IJK_Ghost_Fluid_Fields::Fill_postprocessable_fields(chps);
 
   // Complete the list with all the components for all vectorial fields.

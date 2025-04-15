@@ -116,7 +116,7 @@ public:
   void fill_surface_force_bis(const char * lata_name, double time, int time_iteration);
   IJK_Field_vector3_double get_rho_Ssigma();
 
-  void calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic);
+  void calculer_gradient_indicatrice(const IJK_Field_double& indic);
 
   void improved_initial_pressure_guess(bool imp);
 
@@ -139,6 +139,16 @@ public:
 
   double get_max_timestep_for_post(double current_time) const;
 
+  Noms expression_gradP_analytique_; // on attend trois expressions
+  Noms expression_gradU_analytique_; // on attend trois expressions
+  Noms expression_gradV_analytique_; // on attend trois expressions
+  Noms expression_gradW_analytique_; // on attend trois expressions
+  // Second gradient (laplacian_P or Hessienne
+  Noms expression_grad2P_analytique_; // on attend 6 expressions (car tens sym)
+  // And for the 3 components of velocity :
+  Noms expression_grad2U_analytique_; // on attend 6 expressions (car tens sym)
+  Noms expression_grad2V_analytique_; // on attend 6 expressions (car tens sym)
+  Noms expression_grad2W_analytique_; // on attend 6 expressions (car tens sym)
 protected:
   /** Handy type to register the reference of a field to be postprocessed:
    * - first part is the index in champs_postraitables_ array
@@ -195,16 +205,6 @@ protected:
 
   // Pour check_stats (and_grads)
   int check_stats_ = 0;
-  Noms expression_gradP_analytique_; // on attend trois expressions
-  Noms expression_gradU_analytique_; // on attend trois expressions
-  Noms expression_gradV_analytique_; // on attend trois expressions
-  Noms expression_gradW_analytique_; // on attend trois expressions
-  // Second gradient (laplacian_P or Hessienne
-  Noms expression_grad2P_analytique_; // on attend 6 expressions (car tens sym)
-  // And for the 3 components of velocity :
-  Noms expression_grad2U_analytique_; // on attend 6 expressions (car tens sym)
-  Noms expression_grad2V_analytique_; // on attend 6 expressions (car tens sym)
-  Noms expression_grad2W_analytique_; // on attend 6 expressions (car tens sym)
 
   // -------------------------------------------------
   // Statistiques temporelles
@@ -259,18 +259,20 @@ protected:
   IJK_Field_double ai_ns_;
   IJK_Field_double kappa_ai_ns_;
   IJK_Field_vector3_double normale_cell_ns_;
+
   // For lambda and curl
+  // TODO : Clean theses : dudx_  and vectorise with what's in statistiques ... gradU[2]
   IJK_Field_double dudx_;
   IJK_Field_double dvdy_;
   IJK_Field_double dwdx_;
   IJK_Field_double dudz_;
   IJK_Field_double dvdz_;
   IJK_Field_double dwdz_;
-//  IJK_Field_double lambda2_;
+
+  //  IJK_Field_double lambda2_;
 //  IJK_Field_double critere_Q_;
 //  IJK_Field_vector3_double rot_;
   IJK_Field_vector3_double grad_I_ns_;
-  IJK_Field_vector3_double grad_P_;
 //  IJK_Field_double num_compo_ft_;
 
   // Pour la verification des stats :

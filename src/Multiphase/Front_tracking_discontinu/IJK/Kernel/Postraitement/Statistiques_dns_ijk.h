@@ -27,6 +27,7 @@
 
 //
 class Domaine_IJK;
+class Probleme_FTD_IJK_base;
 class Statistiques_dns_ijk : public Objet_U, public Champs_compris_IJK_interface
 {
   Declare_instanciable(Statistiques_dns_ijk);
@@ -89,13 +90,15 @@ public:
   }
   virtual void initialize(const Domaine_IJK& ,const double T_KMAX, const double T_KMIN, const double constante_specifique_gaz);
 
-
   // Interface Champs_compris_IJK_interface
   bool has_champ(const Motcle& nom) const override { return champs_compris_.has_champ(nom);  }
   bool has_champ_vectoriel(const Motcle& nom) const override { return champs_compris_.has_champ_vectoriel(nom); }
   const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
   const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
 
+  void associer_domaine(Domaine_IJK& dom_ijk);
+  bool is_stats_plans_activated() const;
+  bool is_post_required(const Motcle& nom) const;
   static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
   void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
 
@@ -206,6 +209,8 @@ protected:
   double dy_;//modif AT 20/06/2013
   //  double dz_;//modif AT 20/06/2013
   ArrOfDouble tab_dz_;//modif AT 20/06/2013
+  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
+  OBS_PTR(Domaine_IJK) domaine_ijk_;
 
   // Last instantaneous value of the space average (only on processor 0)
   VECT(ArrOfDouble) moyenne_spatiale_instantanee_;

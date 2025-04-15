@@ -981,7 +981,6 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_double& extended_pressure_vap= (cas.get_post().extended_pressure_computed_) ? cas.get_post().extended_pv_: ns.pressure_;
   IJK_Field_double& pression=ns.pressure_;
   const IJK_Field_double& indicatrice=cas.get_interface().I();
-  IJK_Field_vector3_double& gradP=cas.get_post().grad_P_;
 
   // Nombre total de mailles en K
   const int nktot = pression.get_domaine().get_nb_items_global(Domaine_IJK::ELEM, DIRECTION_K);
@@ -1013,12 +1012,28 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   IJK_Field_double& field_ai=cas.get_post().ai_ns_;
   IJK_Field_double& field_kappa_ai=cas.get_post().kappa_ai_ns_;
   IJK_Field_vector3_double& normale_cell=cas.get_post().normale_cell_ns_;
-  IJK_Field_double& field_dudx=cas.get_post().dudx_ ;
-  IJK_Field_double& field_dvdy=cas.get_post().dvdy_ ;
-  IJK_Field_double& field_dwdx=cas.get_post().dwdx_ ;
-  IJK_Field_double& field_dudz=cas.get_post().dudz_ ;
-  IJK_Field_double& field_dvdz=cas.get_post().dvdz_ ;
-  IJK_Field_double& field_dwdz=cas.get_post().dwdz_ ;
+
+  // Compute pressure gradient :
+  IJK_Field_vector3_double& gradP=vect_post_fields_.at("dPd");
+  for (int dir = 0; dir < 3; dir++)
+    gradP[dir].data() = 0.;
+
+  add_gradient_times_constant(pression, 1. /*constant*/, gradP[0], gradP[1], gradP[2]);
+  for (int dir = 0; dir < 3; dir++)
+    gradP[dir].echange_espace_virtuel(1);
+
+  IJK_Field_vector3_double& gradU=vect_post_fields_.at("dUd");
+  IJK_Field_vector3_double& gradV=vect_post_fields_.at("dVd");
+  IJK_Field_vector3_double& gradW=vect_post_fields_.at("dWd");
+  // TODO: Help for GB : check_stats_ ?
+  IJK_Field_vector3_double& grad2Pi = vect_post_fields_.at("ddPdd");
+  IJK_Field_vector3_double& grad2Pc = vect_post_fields_.at("ddPddc");
+  IJK_Field_vector3_double& grad2Ui = vect_post_fields_.at("ddUdd");
+  IJK_Field_vector3_double& grad2Uc = vect_post_fields_.at("ddUddc");
+  IJK_Field_vector3_double& grad2Vi = vect_post_fields_.at("ddVdd");
+  IJK_Field_vector3_double& grad2Vc = vect_post_fields_.at("ddVddc");
+  IJK_Field_vector3_double& grad2Wi = vect_post_fields_.at("ddWdd");
+  IJK_Field_vector3_double& grad2Wc = vect_post_fields_.at("ddWddc");
   const Motcles& liste_post_instantanes = ref_ijk_ft_->get_post().get_liste_post_instantanes();
 
   double coef_immobilisation_=ns.coef_immobilisation_;
@@ -1053,8 +1068,8 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
   // Calcul le gradient de U aux cellules a partir de la vitesse aux faces :
   compute_and_store_gradU_cell(vitesse_i, vitesse_j, vitesse_k,
                                /* Et les champs en sortie */
-                               field_dudx, field_dvdy, field_dwdx,
-                               field_dudz, field_dvdz, field_dwdz);
+                               gradU[0], gradV[1], gradW[0], /* field_dudx, field_dvdy, field_dwdx, */
+                               gradU[2], gradV[2], gradW[2]); /* field_dudz, field_dvdz, field_dwdz, */
 
 #ifdef STAT_VERBOSE
   // Pour verifications :
@@ -1173,24 +1188,24 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
               // Pour verifier un peu les stats ou pour le post-traitement, on stocke (systematiquement) les grad de vitesse :
               //if ((check_stats_) || (postraitement des gradients demande?))
               //{
-              gradU_[0](i,j,k) = dUdx;
-              gradU_[1](i,j,k) = dUdy;
-              gradU_[2](i,j,k) = dUdz;
-              gradV_[0](i,j,k) = dVdx;
-              gradV_[1](i,j,k) = dVdy;
-              gradV_[2](i,j,k) = dVdz;
-              gradW_[0](i,j,k) = dWdx;
-              gradW_[1](i,j,k) = dWdy;
-              gradW_[2](i,j,k) = dWdz;
+              gradU[0](i,j,k) = dUdx;
+              gradU[1](i,j,k) = dUdy;
+              gradU[2](i,j,k) = dUdz;
+              gradV[0](i,j,k) = dVdx;
+              gradV[1](i,j,k) = dVdy;
+              gradV[2](i,j,k) = dVdz;
+              gradW[0](i,j,k) = dWdx;
+              gradW[1](i,j,k) = dWdy;
+              gradW[2](i,j,k) = dWdz;
               //}
 #ifdef STAT_VERBOSE
               // Debug pour verifier que je m'emmele pas les pinceaux dans les variables :
-              erreur = std::fabs(field_dudx(i,j,k)  - dUdx)
-                       + std::fabs(field_dvdy(i,j,k)  - dVdy)
-                       + std::fabs(field_dwdx(i,j,k)  - dWdx)
-                       + std::fabs(field_dudz(i,j,k)  - dUdz)
-                       + std::fabs(field_dvdz(i,j,k)  - dVdz)
-                       + std::fabs(field_dwdz(i,j,k)  - dWdz);
+              erreur = std::fabs(gradU[0](i,j,k)  - dUdx)
+                       + std::fabs(gradV[1](i,j,k)  - dVdy)
+                       + std::fabs(gradW[0](i,j,k)  - dWdx)
+                       + std::fabs(gradU[2](i,j,k)  - dUdz)
+                       + std::fabs(gradV[2](i,j,k)  - dVdz)
+                       + std::fabs(gradW[2](i,j,k)  - dWdz);
 
               if (erreur > PRECISION_DERIVEES)
                 {
@@ -1253,8 +1268,8 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
               //double ddWdzdx = ddWdxdz;
               //double ddWdzdy = ddWdydz;
               cell_to_cell_gradient(i,j,k,
-                                    field_dudx, field_dvdy, field_dwdx,
-                                    field_dudz, field_dvdz, field_dwdz,
+                                    gradU[0], gradV[1], gradW[0],
+                                    gradU[2], gradV[2], gradW[2],  /* field_dudz, field_dvdz, field_dwdz, */
                                     /* Et les outputs en ref aussi!! */
                                     ddUdxdy, ddUdxdz, ddUdydz,
                                     ddVdxdy, ddVdxdz, ddVdydz,
@@ -1263,29 +1278,29 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
               // Pour verifier un peu les stats, on peut stocker le double grad :
               if (check_stats_)
                 {
-                  grad2Ui_[0](i,j,k) = ddUdxdx;
-                  grad2Ui_[1](i,j,k) = ddUdydy;
-                  grad2Ui_[2](i,j,k) = ddUdzdz;
+                  grad2Ui[0](i,j,k) = ddUdxdx;
+                  grad2Ui[1](i,j,k) = ddUdydy;
+                  grad2Ui[2](i,j,k) = ddUdzdz;
                   // Et les croisees :
-                  grad2Uc_[0](i,j,k) = ddUdxdy;
-                  grad2Uc_[1](i,j,k) = ddUdxdz;
-                  grad2Uc_[2](i,j,k) = ddUdydz;
+                  grad2Uc[0](i,j,k) = ddUdxdy;
+                  grad2Uc[1](i,j,k) = ddUdxdz;
+                  grad2Uc[2](i,j,k) = ddUdydz;
                   //
-                  grad2Vi_[0](i,j,k) = ddVdxdx;
-                  grad2Vi_[1](i,j,k) = ddVdydy;
-                  grad2Vi_[2](i,j,k) = ddVdzdz;
+                  grad2Vi[0](i,j,k) = ddVdxdx;
+                  grad2Vi[1](i,j,k) = ddVdydy;
+                  grad2Vi[2](i,j,k) = ddVdzdz;
                   // Et les croisees :
-                  grad2Vc_[0](i,j,k) = ddVdxdy;
-                  grad2Vc_[1](i,j,k) = ddVdxdz;
-                  grad2Vc_[2](i,j,k) = ddVdydz;
+                  grad2Vc[0](i,j,k) = ddVdxdy;
+                  grad2Vc[1](i,j,k) = ddVdxdz;
+                  grad2Vc[2](i,j,k) = ddVdydz;
                   //
-                  grad2Wi_[0](i,j,k) = ddWdxdx;
-                  grad2Wi_[1](i,j,k) = ddWdydy;
-                  grad2Wi_[2](i,j,k) = ddWdzdz;
+                  grad2Wi[0](i,j,k) = ddWdxdx;
+                  grad2Wi[1](i,j,k) = ddWdydy;
+                  grad2Wi[2](i,j,k) = ddWdzdz;
                   // Et les croisees :
-                  grad2Wc_[0](i,j,k) = ddWdxdy;
-                  grad2Wc_[1](i,j,k) = ddWdxdz;
-                  grad2Wc_[2](i,j,k) = ddWdydz;
+                  grad2Wc[0](i,j,k) = ddWdxdy;
+                  grad2Wc[1](i,j,k) = ddWdxdz;
+                  grad2Wc[2](i,j,k) = ddWdydz;
                   //
                 }
 
@@ -1351,13 +1366,13 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
               // Pour verifier un peu les stats, on peut stocker le double grad :
               if (check_stats_)
                 {
-                  grad2Pi_[0](i,j,k) = ddPdxdx;
-                  grad2Pi_[1](i,j,k) = ddPdydy;
-                  grad2Pi_[2](i,j,k) = ddPdzdz;
+                  grad2Pi[0](i,j,k) = ddPdxdx;
+                  grad2Pi[1](i,j,k) = ddPdydy;
+                  grad2Pi[2](i,j,k) = ddPdzdz;
                   // Et les croisees :
-                  grad2Pc_[0](i,j,k) = ddPdxdy;
-                  grad2Pc_[1](i,j,k) = ddPdxdz;// ou ddPdzdx (sont equivalents d'ordre 2)
-                  grad2Pc_[2](i,j,k) = ddPdzdy;// ou ddPdzdy (sont equivalents d'ordre 2)
+                  grad2Pc[0](i,j,k) = ddPdxdy;
+                  grad2Pc[1](i,j,k) = ddPdxdz;// ou ddPdzdx (sont equivalents d'ordre 2)
+                  grad2Pc[2](i,j,k) = ddPdzdy;// ou ddPdzdy (sont equivalents d'ordre 2)
                 }
 
 #ifdef STAT_VERBOSE
@@ -2802,72 +2817,190 @@ void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, co
   check_stats_ = 0;
 }
 
+void Statistiques_dns_ijk_FT::alloc_fields()
+{
+  // Pour verification des stats :
+  if (check_stats_)
+    {
+      const int ghost = 1; // 1 ghost cell necessary to permit face-to-cell interpolation in post-pro...
+      // Face-vectors (std vectors)
+      const std::vector<std::string> noms_vecto_faces = {"dPd"};
+      for (const auto& nam : noms_vecto_faces)
+        {
+          if (is_post_required(nam))
+            {
+              vect_post_fields_[nam] = IJK_Field_vector3_double();
+              allocate_velocity(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
+            }
+          const Nom& fld_nam = Nom("ANA_")+Nom(nam);
+          const std::string& ana_nam = fld_nam.getString();
+          if (check_stats_ || is_post_required(ana_nam))
+            {
+              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+              allocate_velocity(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+            }
+        }
+
+      // Cell-vectors
+      const std::vector<std::string> noms_vectoriels = {"dUd", "dVd", "dWd"};
+      for (const auto& nam : noms_vectoriels)
+        {
+          if (is_stats_plans_activated() || check_stats_ || is_post_required(nam))
+            {
+              vect_post_fields_[nam] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
+            }
+          const Nom fld_nam = Nom("ANA_")+Nom(nam);
+          const std::string ana_nam = fld_nam.getString();
+          if (check_stats_ || is_post_required(ana_nam))
+            {
+              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+            }
+        }
+
+      // TODO:  Deal with tensors for crossed compo "ddPd", "ddUd"
+      /* Temorary fix : allocate a second cell-vector for cross-components and register it. For example, compos are in this order:
+       * ddPdxdy, ddPdxdz, ddPdydz
+       * But their names are :
+       * ddPddc_x, ddPddc_y, ddPddc_z -> c: cross-component
+       */
+      // TODO: rename components ?
+      const std::vector<std::string> noms_tensoriels = {"ddPdd", "ddUdd", "ddVdd", "ddWdd"};
+      for (const auto& nam : noms_tensoriels)
+        {
+          if (is_post_required(nam))
+            {
+              vect_post_fields_[nam] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, 0, nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
+            }
+          const std::string nam2 = Nom(nam+"c").getString(); // For off-diagonal components
+          if (is_post_required(nam2))
+            {
+              vect_post_fields_[nam2] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(nam2), domaine_ijk_, 0, nam2);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam2));
+            }
+          const Nom& fld_nam = Nom("ANA_")+Nom(nam);
+          const std::string ana_nam = fld_nam.getString();
+          if (check_stats_ || is_post_required(ana_nam))
+            {
+              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+            }
+          const std::string ana_nam2 = Nom(fld_nam+"c").getString();
+          if (check_stats_ || is_post_required(ana_nam2))
+            {
+              vect_post_fields_[ana_nam2] = IJK_Field_vector3_double();
+              allocate_cell_vector(vect_post_fields_.at(ana_nam2), domaine_ijk_, 0, ana_nam2);
+              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam2));
+            }
+        }
+    }
+}
+
 void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom,
                                          const int check_stats)
 {
   initialize(ijk_ft,geom);
-  // Pour les deriv de U, V et W :
-  allocate_cell_vector(gradU_, geom, 0);
-  allocate_cell_vector(gradV_, geom, 0);
-  allocate_cell_vector(gradW_, geom, 0);
   // veut-on verifier les derivees :
   check_stats_ = check_stats;
-  if (check_stats_)
-    {
-      // Pour verification des stats :
-      // Pour stocker les deriv secondes :
-      allocate_cell_vector(grad2Pi_, geom, 0);
-      allocate_cell_vector(grad2Pc_, geom, 0);
-      allocate_cell_vector(grad2Ui_, geom, 0);
-      allocate_cell_vector(grad2Uc_, geom, 0);
-      allocate_cell_vector(grad2Vi_, geom, 0);
-      allocate_cell_vector(grad2Vc_, geom, 0);
-      allocate_cell_vector(grad2Wi_, geom, 0);
-      allocate_cell_vector(grad2Wc_, geom, 0);
-    }
+  alloc_fields();
 }
 
-const IJK_Field_vector3_double& Statistiques_dns_ijk_FT::get_IJK_vector_field(const Nom& nom) const
+/** Retrieve requested field for postprocessing, potentially updating it.
+ */
+const IJK_Field_double& Statistiques_dns_ijk_FT::get_IJK_field(const Motcle& nom)
 {
+  if (!has_champ(nom))
+    {
+      Cerr << "ERROR in Statistiques_dns_ijk::get_IJK_field : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Statistiques_dns_ijk::get_IJK_field()." << finl;
+      throw;
+    }
 
-  if (nom== "gradU")
-    return gradU_;
+  return champs_compris_.get_champ(nom);
+}
 
-  if (nom== "gradV")
-    return gradV_;
+const IJK_Field_vector3_double& Statistiques_dns_ijk_FT::get_IJK_field_vector(const Motcle& nom)
+{
+  if (!has_champ_vectoriel(nom))
+    {
+      Cerr << "ERROR in Statistiques_dns_ijk::get_IJK_field_vector : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Statistiques_dns_ijk::get_IJK_field_vector()." << finl;
+      throw;
+    }
 
-  if (nom== "gradW")
-    return gradW_;
-
-  if (nom== "grad2Pi")
-    return grad2Pi_;
-
-  if (nom == "grad2Pc")
-    return grad2Pc_;
-
-  if (nom== "grad2Ui")
-    return grad2Ui_;
-
-  if (nom == "grad2Uc")
-    return grad2Uc_;
-
-  if (nom== "grad2Vi")
-    return grad2Vi_;
-
-  if (nom == "grad2Vc")
-    return grad2Vc_;
-
-  if (nom== "grad2Wi")
-    return grad2Wi_;
-
-  if (nom == "grad2Wc")
-    return grad2Wc_;
-
-  Cerr << "Erreur dans Statistiques_dns_ijk_FT::get_IJK_vector_field : "
-       << "Champ demande : " << nom
-       << "Liste des champs possibles : "  << finl;
-  Process::exit();
-  throw;
+  double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
+  if (nom == "ANA_dPd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_gradP_analytique_[i], current_time);
+    }
+  if (nom == "ANA_dUd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_gradU_analytique_[i], current_time);
+    }
+  if (nom == "ANA_dVd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_gradV_analytique_[i], current_time);
+    }
+  if (nom == "ANA_dWd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_gradW_analytique_[i], current_time);
+    }
+  // Pour les deriv secondes :
+  if (nom == "ANA_ddPdd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2P_analytique_[i], current_time);
+    }
+  if (nom == "ANA_ddUdd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2U_analytique_[i], current_time);
+    }
+  if (nom == "ANA_ddVdd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2V_analytique_[i], current_time);
+    }
+  if (nom == "ANA_ddWdd")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2W_analytique_[i], current_time);
+    }
+  // Et pour les croise des deriv secondes : (Attention au +3 dans les compo du parser
+  if (nom == "ANA_ddPddc")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2P_analytique_[i+3], current_time);
+    }
+  if (nom == "ANA_ddUddc")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2U_analytique_[i+3], current_time);
+    }
+  if (nom == "ANA_ddVddc")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2V_analytique_[i+3], current_time);
+    }
+  if (nom == "ANA_ddWddc")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(vect_post_fields_.at(nom)[i], ref_ijk_ft_->get_post().expression_grad2W_analytique_[i+3], current_time);
+    }
+  return champs_compris_.get_champ_vectoriel(nom);
 }
 
 double Statistiques_dns_ijk_FT::compute_desequil_alpha(const Domaine_IJK& geom_NS,

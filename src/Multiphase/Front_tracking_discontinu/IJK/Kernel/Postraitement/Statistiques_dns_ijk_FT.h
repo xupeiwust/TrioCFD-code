@@ -33,6 +33,7 @@ public:
   void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK&);
   void initialize(const Probleme_FTD_IJK_base& ijk_ft,const Domaine_IJK& splitting,
                   const int check_stats);
+  void alloc_fields();
   Sortie& completer_print(Sortie& os) const override;
   void completer_read(Param& param) override;
   int lire_motcle_non_standard(const Motcle& mot, Entree& is) override;
@@ -44,27 +45,13 @@ public:
   double compute_desequil_alpha(const Domaine_IJK& geom_NS,
                                 const double portee_wall_repulsion) const;
 
-  const IJK_Field_vector3_double& get_IJK_vector_field(const Nom& nom) const;
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
 
-  // Pour les deriv de U, V et W :
-  IJK_Field_vector3_double gradU_;
-  IJK_Field_vector3_double gradV_;
-  IJK_Field_vector3_double gradW_;
-
-  // Pour les deriv secondes de P, U, V et W :
-  IJK_Field_vector3_double grad2Pi_; // Partie diagonale de la jacobienne
-  IJK_Field_vector3_double grad2Pc_; // contient les deriv croisees
-  IJK_Field_vector3_double grad2Ui_; // Partie diagonale de la jacobienne
-  IJK_Field_vector3_double grad2Uc_; // contient les deriv croisees
-  IJK_Field_vector3_double grad2Vi_; // Partie diagonale de la jacobienne
-  IJK_Field_vector3_double grad2Vc_; // contient les deriv croisees
-  IJK_Field_vector3_double grad2Wi_; // Partie diagonale de la jacobienne
-  IJK_Field_vector3_double grad2Wc_; // contient les deriv croisees
 protected:
   int check_stats_;
   int nb_thermal_fields_; // Number of objects thermique_ in the list
   int nvalt_;             // Number of variables post-processed per field
-  OBS_PTR(Probleme_FTD_IJK_base) ref_ijk_ft_;
   // Last instantaneous value of the space average (only on processor 0)
   DoubleTab moyenne_spatiale_instantanee_temperature_; // (i,j,k) ->  (nvalt_,nb_elem_k_tot,nb_thermal_fields_)
   // Temporal integral of statistics variables

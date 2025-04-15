@@ -610,6 +610,7 @@ void Postprocessing_IJK::associer_domaines(Domaine_IJK& dom_ijk, Domaine_IJK& do
 {
   domaine_ijk_ = dom_ijk;
   domaine_ft_ = dom_ft;
+  statistiques_FT_.associer_domaine(dom_ijk);
 }
 
 void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
@@ -779,25 +780,7 @@ void Postprocessing_IJK::init_integrated_and_ana(bool reprise)
            << expression_grad2W_analytique_[2];
       Cout << "\nddWdxdy = " << expression_grad2W_analytique_[3] << "\nddWdxdz = " << expression_grad2W_analytique_[4] << "\nddWdydz = " << expression_grad2W_analytique_[5] << finl;
 
-      for (int i = 0; i < 3; i++)
-        {
-          set_field_data(ana_gradP_[i], expression_gradP_analytique_[i]);
-          set_field_data(ana_dUd_[i], expression_gradU_analytique_[i]);
-          set_field_data(ana_dVd_[i], expression_gradV_analytique_[i]);
-          set_field_data(ana_dWd_[i], expression_gradW_analytique_[i]);
-          // Pour les deriv secondes :
-          set_field_data(ana_grad2Pi_[i], expression_grad2P_analytique_[i]);
-          set_field_data(ana_grad2Pc_[i], expression_grad2P_analytique_[3 + i]);
-          // And for the 3 components of velocity :
-          set_field_data(ana_grad2Ui_[i], expression_grad2U_analytique_[i]);
-          set_field_data(ana_grad2Uc_[i], expression_grad2U_analytique_[3 + i]);
-          set_field_data(ana_grad2Vi_[i], expression_grad2V_analytique_[i]);
-          set_field_data(ana_grad2Vc_[i], expression_grad2V_analytique_[3 + i]);
-          set_field_data(ana_grad2Wi_[i], expression_grad2W_analytique_[i]);
-          set_field_data(ana_grad2Wc_[i], expression_grad2W_analytique_[3 + i]);
-
-          // Pas necessaire d'echange_espace_virtuel car ghost_ = 0
-        }
+      // Le remplissage des set_field est fait par l'objet Statistiques au moment de l'appel a get_IJK_...
     }
 }
 
@@ -1038,8 +1021,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
       n--,dumplata_cellvector(lata_name,"CELL_RHO_SOURCE_QDM_INTERF" /* AT CELL-CENTER */, cell_rho_Ssigma_, latastep);
     }
 
-  if ((liste_post_instantanes_.contient_("GRAD_P")) or (liste_post_instantanes_.contient_("CELL_GRAD_P")))
-    n--, dumplata_vector(lata_name, "dPd", grad_P_[0], grad_P_[1], grad_P_[2], latastep);
   // Pour le check_stats_ :
   if (check_stats_)
     {
@@ -1092,8 +1073,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
         }
       if (liste_post_instantanes_.contient_("GRAD2_P"))
         {
-          const IJK_Field_vector3_double& grad2Pi = statistiques_FT_.get_IJK_vector_field("grad2Pi");
-          const IJK_Field_vector3_double& grad2Pc = statistiques_FT_.get_IJK_vector_field("grad2Pc");
+          const IJK_Field_vector3_double& grad2Pi = statistiques_FT_.get_IJK_field_vector("grad2Pi");
+          const IJK_Field_vector3_double& grad2Pc = statistiques_FT_.get_IJK_field_vector("grad2Pc");
           n--, dumplata_cellvector(lata_name, "ddPdd", grad2Pi, latastep);
           dumplata_scalar(lata_name, "ddPdxdy", grad2Pc[0], latastep);
           dumplata_scalar(lata_name, "ddPdxdz", grad2Pc[1], latastep);
@@ -1101,8 +1082,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
         }
       if (liste_post_instantanes_.contient_("GRAD2_U"))
         {
-          const IJK_Field_vector3_double& grad2Ui = statistiques_FT_.get_IJK_vector_field("grad2Ui");
-          const IJK_Field_vector3_double& grad2Uc = statistiques_FT_.get_IJK_vector_field("grad2Uc");
+          const IJK_Field_vector3_double& grad2Ui = statistiques_FT_.get_IJK_field_vector("grad2Ui");
+          const IJK_Field_vector3_double& grad2Uc = statistiques_FT_.get_IJK_field_vector("grad2Uc");
           n--, dumplata_cellvector(lata_name, "ddUdd", grad2Ui, latastep);
           dumplata_scalar(lata_name, "ddUdxdy", grad2Uc[0], latastep);
           dumplata_scalar(lata_name, "ddUdxdz", grad2Uc[1], latastep);
@@ -1110,8 +1091,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
         }
       if (liste_post_instantanes_.contient_("GRAD2_V"))
         {
-          const IJK_Field_vector3_double& grad2Vi = statistiques_FT_.get_IJK_vector_field("grad2Vi");
-          const IJK_Field_vector3_double& grad2Vc = statistiques_FT_.get_IJK_vector_field("grad2Vc");
+          const IJK_Field_vector3_double& grad2Vi = statistiques_FT_.get_IJK_field_vector("grad2Vi");
+          const IJK_Field_vector3_double& grad2Vc = statistiques_FT_.get_IJK_field_vector("grad2Vc");
           n--, dumplata_cellvector(lata_name, "ddVdd", grad2Vi, latastep);
           dumplata_scalar(lata_name, "ddVdxdy", grad2Vc[0], latastep);
           dumplata_scalar(lata_name, "ddVdxdz", grad2Vc[1], latastep);
@@ -1119,8 +1100,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
         }
       if (liste_post_instantanes_.contient_("GRAD2_W"))
         {
-          const IJK_Field_vector3_double& grad2Wi = statistiques_FT_.get_IJK_vector_field("grad2Wi");
-          const IJK_Field_vector3_double& grad2Wc = statistiques_FT_.get_IJK_vector_field("grad2Wc");
+          const IJK_Field_vector3_double& grad2Wi = statistiques_FT_.get_IJK_field_vector("grad2Wi");
+          const IJK_Field_vector3_double& grad2Wc = statistiques_FT_.get_IJK_field_vector("grad2Wc");
           n--, dumplata_cellvector(lata_name, "ddWdd", grad2Wi, latastep);
           dumplata_scalar(lata_name, "ddWdxdy", grad2Wc[0], latastep);
           dumplata_scalar(lata_name, "ddWdxdz", grad2Wc[1], latastep);
@@ -1137,24 +1118,19 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
       interpolate_to_center(cell_source_spectrale_,source_spectrale_);
       n--,dumplata_cellvector(lata_name,"CELL_FORCE_PH" /* AT CELL-CENTER */, cell_source_spectrale_, latastep);
     }
-  if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
-    {
-      interpolate_to_center(cell_grad_p_,grad_P_);
-      n--,dumplata_cellvector(lata_name,"CELL_GRAD_P" /* AT CELL-CENTER */, cell_grad_p_, latastep);
-    }
   if (liste_post_instantanes_.contient_("GRAD_U"))
     {
-      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
+      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_field_vector("gradU");
       n--, dumplata_cellvector(lata_name, "dUd", gradU, latastep);
     }
   if (liste_post_instantanes_.contient_("GRAD_V"))
     {
-      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
+      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_field_vector("gradV");
       n--, dumplata_cellvector(lata_name, "dVd", gradV, latastep);
     }
   if (liste_post_instantanes_.contient_("GRAD_W"))
     {
-      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
+      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_field_vector("gradW");
       n--, dumplata_cellvector(lata_name, "dWd", gradW, latastep);
     }
 
@@ -1545,16 +1521,7 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
   statistiques().begin_count(updtstat_counter_);
   if (Option_IJK::DISABLE_DIPHASIQUE)
     {
-      // Calcul du champ grad_P_:
-      for (int dir = 0; dir < 3; dir++)
-        grad_P_[dir].data() = 0.;
-
-      // pressure gradient requires the "left" value in all directions:
-      //  pressure_.echange_espace_virtuel(1 /*, IJK_Field_double::EXCHANGE_GET_AT_LEFT_IJK*/);
-      add_gradient_times_constant(pressure_, 1. /*constant*/, grad_P_[0], grad_P_[1], grad_P_[2]);
-      for (int dir = 0; dir < 3; dir++)
-        grad_P_[dir].echange_espace_virtuel(1);
-
+      // Calcul du champ grad_P_ est fait dans update_stat
       statistiques_FT_.update_stat(ref_ijk_ft_, dt);
       return;
     }
@@ -1580,19 +1547,19 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
       if (igroup == -1)
         {
           // interfaces_.In().echange_espace_virtuel(1);
-          // Calcul des champs grad_P_, grad_I_ns_
-          calculer_gradient_indicatrice_et_pression(interfaces_->In());
+          // Calcul des champs grad_I_ns_
+          calculer_gradient_indicatrice(interfaces_->In());
           ns.transfer_ft_to_ns(); // pour remplir : terme_repulsion_interfaces_ft_ et terme_abs_repulsion_interfaces_ft_
-          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
+          // Calcul des champs grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+          // a partir de interfaces_.In(), et terme_*_ft_
           statistiques_FT_.update_stat(ref_ijk_ft_, dt);
         }
       else
         {
           // interfaces_.groups_indicatrice_n_ns()[igroup].echange_espace_virtuel(1);
-          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
-          calculer_gradient_indicatrice_et_pression(interfaces_->groups_indicatrice_n_ns()[igroup]);
+          // Calcul des champs grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+          // a partir de interfaces_.In(), et terme_*_ft_
+          calculer_gradient_indicatrice(interfaces_->groups_indicatrice_n_ns()[igroup]);
           ns.transfer_ft_to_ns();
           groups_statistiques_FT_[igroup].update_stat(ref_ijk_ft_, dt);
         }
@@ -1606,6 +1573,7 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
 void Postprocessing_IJK::get_update_lambda2()
 {
   IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
+  // TODO : Clean theses : dudx_  and vectorise with what's in statistiques ... gradU[2]
   compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2],
                                /* Et les champs en sortie */
                                dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */, dudy_, dvdx_, dwdy_, lambda2);
@@ -1663,31 +1631,8 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "ECART_P_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "D_VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
 
-    { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_P", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    // A mettre dans un unique tenseur? :
-    { "ANA_GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "ANA_GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-
-    { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "D_VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "OP_CONV", Entity::FACE, Nature_du_champ::vectoriel, false },
-    { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
-
-    // Tenseur aussi?
-    { "GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-
-    // Idem
-    { "GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-    { "GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
-
     { "D_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
@@ -1857,7 +1802,7 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
   //  if (nom.debute_par("dU"))
   //    {
-  //      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_vector_field("gradU");
+  //      const IJK_Field_vector3_double& gradU = statistiques_FT_.get_IJK_field_vector("gradU");
   //      if (nom == "DUDX")
   //        return gradU[0];
   //      if (nom == "DUDY")
@@ -1867,7 +1812,7 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
   //    }
   //  if (nom.debute_par("dV"))
   //    {
-  //      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_vector_field("gradV");
+  //      const IJK_Field_vector3_double& gradV = statistiques_FT_.get_IJK_field_vector("gradV");
   //      if (nom == "DVDX")
   //        return gradV[0];
   //      if (nom == "DVDY")
@@ -1877,7 +1822,7 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
   //    }
   //  if (nom.debute_par("dW"))
   //    {
-  //      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_vector_field("gradW");
+  //      const IJK_Field_vector3_double& gradW = statistiques_FT_.get_IJK_field_vector("gradW");
   //      if (nom == "DWDX")
   //        return gradW[0];
   //      if (nom == "DWDY")
@@ -2127,29 +2072,23 @@ void Postprocessing_IJK::fill_surface_force(IJK_Field_vector3_double& the_field_
 // Calcul du gradient de l'indicatrice et de pression :
 //   Attention, il faut que la pression et l'indicatrice soient a jour
 //   dans leur espaces virtuels avant d'appeler cette methode
-// Methode qui calcule des champs grad_P_, grad_I_ns_,
+// Methode qui calcule des champs grad_I_ns_,
 // a partir de pressure_ et indicatrice_ns__
-void Postprocessing_IJK::calculer_gradient_indicatrice_et_pression(const IJK_Field_double& indic)
+void Postprocessing_IJK::calculer_gradient_indicatrice(const IJK_Field_double& indic)
 {
   // Remise a zero :
   for (int dir = 0; dir < 3; dir++)
     {
       grad_I_ns_[dir].data() = 0.;
-      grad_P_[dir].data() = 0.;
     }
 
   // From IJK_Navier_Stokes_Tools.cpp
   // interfaces_.In().echange_espace_virtuel(1);
   add_gradient_times_constant(indic, 1. /*Constante multiplicative*/, grad_I_ns_[DIRECTION_I], grad_I_ns_[DIRECTION_J], grad_I_ns_[DIRECTION_K]);
 
-  // pressure gradient requires the "left" value in all directions:
-  //  pressure_.echange_espace_virtuel(1 /*, IJK_Field_double::EXCHANGE_GET_AT_LEFT_IJK*/);
-  add_gradient_times_constant(pressure_, 1. /*constant*/, grad_P_[0], grad_P_[1], grad_P_[2]);
-
   for (int dir = 0; dir < 3; dir++)
     {
       grad_I_ns_[dir].echange_espace_virtuel(1);
-      grad_P_[dir].echange_espace_virtuel(1);
     }
 }
 
@@ -2230,15 +2169,15 @@ void Postprocessing_IJK::alloc_fields()
 
 
   // Allocation des champs derivee de vitesse :
-  if (is_stats_plans_activated() || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
+  if (is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
     {
       dudx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dudy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dudz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dvdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dvdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
-      dwdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
-      dudz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dvdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
+      dwdx_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdy_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       dwdz_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
       if (is_post_required("LAMBDA2"))
@@ -2295,10 +2234,6 @@ void Postprocessing_IJK::alloc_fields()
       allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
     }
 
-
-
-//  if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
-//    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
     allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
@@ -2348,7 +2283,6 @@ void Postprocessing_IJK::alloc_velocity_and_co()
   if (is_stats_plans_activated())
     {
       allocate_velocity(grad_I_ns_, domaine_ijk_, 1);
-      allocate_velocity(grad_P_, domaine_ijk_, 1);
     }
   else if (flag_variable_source)
     allocate_velocity(grad_I_ns_, domaine_ijk_, 1);

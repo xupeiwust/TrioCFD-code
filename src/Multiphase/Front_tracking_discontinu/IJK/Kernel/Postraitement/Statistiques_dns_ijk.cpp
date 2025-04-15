@@ -20,6 +20,7 @@
 #include <communications.h>
 #include <IJK_Navier_Stokes_tools.h> // pour initialiser les IJK_double
 #include <Statistiques.h>
+#include <Probleme_FTD_IJK_base.h>
 
 Implemente_instanciable_sans_constructeur(Statistiques_dns_ijk,"Statistiques_dns_ijk",Objet_U);
 
@@ -535,17 +536,78 @@ void Statistiques_dns_ijk::initialize(const Domaine_IJK& geom,double T_KMAX , do
     }
 }
 
+void Statistiques_dns_ijk::associer_domaine(Domaine_IJK& dom_ijk)
+{
+  domaine_ijk_ = dom_ijk;
+}
+
+// Warning: this one looking at t_debut_statistiques_ too
+bool Statistiques_dns_ijk::is_stats_plans_activated() const
+{
+  return ref_ijk_ft_->get_post().is_stats_plans_activated();
+}
+
+/** Was the field of name 'nom' requested for postprocessing?
+ */
+bool Statistiques_dns_ijk::is_post_required(const Motcle& nom) const
+{
+  return ref_ijk_ft_->get_post().is_post_required(nom);
+  //return (std::find(list_post_required_.begin(), list_post_required_.end(), nom) != list_post_required_.end());
+}
+
 void Statistiques_dns_ijk::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 {
   std::vector<FieldInfo_t> c =
   {
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
+    // exemple:	    { "GRAD2_P", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
-    // exemple { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+    /* DEPRECATED NAMES:
+    		    { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD2_P", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    		    // A mettre dans un unique tenseur? :
+    		    { "ANA_GRAD2_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD2_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD2_W", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
+    		    { "GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    		    { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
+    */
   };
 
   chps.insert(chps.end(), c.begin(), c.end());
+
+  // VECTOR at FACES :
+  const std::vector<std::string> noms_faces = {"dPd"};
+  for (const auto& nam : noms_faces)
+    {
+      const Nom fld_nam = Nom("ANA_")+Nom(nam);
+      const std::string ana_nam = fld_nam.getString();
+      chps.insert(chps.end(),
+      {
+        { nam, Entity::FACE, Nature_du_champ::vectoriel, false },
+        { ana_nam, Entity::FACE, Nature_du_champ::vectoriel, false },
+      });
+    }
+
+  // VECTOR at ELEMENT :
+  const std::vector<std::string> noms = {"dUd", "dVd", "dWd", "ddPdd", "ddUdd", "ddVdd", "ddWdd"};
+  for (const auto& nam : noms)
+    {
+      const Nom fld_nam = Nom("ANA_")+Nom(nam);
+      const std::string nam2 = Nom(nam+"c").getString(); // For off-diagonal components
+      const std::string ana_nam = fld_nam.getString();
+      const std::string ana_nam2 = Nom(fld_nam+"c").getString();
+      chps.insert(chps.end(),
+      {
+        { nam, Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+        { nam2, Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+        { ana_nam, Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+        { ana_nam2, Entity::ELEMENT, Nature_du_champ::vectoriel, false },
+      });
+    }
 }
 
 void Statistiques_dns_ijk::get_noms_champs_postraitables(Noms& noms,Option opt) const
