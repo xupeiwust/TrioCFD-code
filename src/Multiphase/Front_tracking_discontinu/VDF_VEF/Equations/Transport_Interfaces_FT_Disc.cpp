@@ -315,9 +315,8 @@ int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
   else if(TRUST_2_PDI::is_PDI_checkpoint())
     {
       std::string name = pb_name_.getString() + "_" + ident_.getString() + "_indicatrice_cache_tag";
-      int& ictag = const_cast<int&>(indicatrice_cache_tag);
       TRUST_2_PDI pdi_interface;
-      pdi_interface.TRUST_start_sharing(name, &ictag);
+      pdi_interface.TRUST_start_sharing(name, &indicatrice_cache_tag);
     }
   else
     os << indicatrice_cache_tag << finl;

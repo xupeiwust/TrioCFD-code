@@ -47,6 +47,7 @@ public :
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
   inline const Champ_Fonc_base& viscosite_turbulente() const;
   inline const Modele_turbulence_hyd_base& modele_turbulence() const;
+  std::vector<YAML_data> data_a_sauvegarder() const override;
   int sauvegarder(Sortie&) const override;
   int reprendre(Entree&) override;
   int preparer_calcul() override;

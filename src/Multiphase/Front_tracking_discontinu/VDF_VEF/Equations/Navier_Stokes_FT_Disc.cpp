@@ -221,6 +221,20 @@ Entree& Navier_Stokes_FT_Disc::readOn(Entree& is)
   return Navier_Stokes_Turbulent::readOn(is);
 }
 
+/*! @brief for PDI IO: retrieve name, type and dimensions of the fields to save/restore
+ *
+ */
+std::vector<YAML_data> Navier_Stokes_FT_Disc::data_a_sauvegarder() const
+{
+  std::vector<YAML_data> data = Navier_Stokes_Turbulent::data_a_sauvegarder();
+  if (is_solid_particle_)
+    {
+      std::vector<YAML_data> particles = particles_eulerian_id_number_post_->data_a_sauvegarder();
+      data.insert(data.end(), particles.begin(), particles.end());
+    }
+  return data;
+}
+
 int Navier_Stokes_FT_Disc::sauvegarder(Sortie& os) const
 {
   int bytes=0;
@@ -229,6 +243,7 @@ int Navier_Stokes_FT_Disc::sauvegarder(Sortie& os) const
     bytes += particles_eulerian_id_number_post_->sauvegarder(os);
   return bytes;
 }
+
 int Navier_Stokes_FT_Disc::reprendre(Entree& is)
 {
   Navier_Stokes_Turbulent::reprendre(is);

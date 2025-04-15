@@ -89,6 +89,17 @@ void Modele_turbulence_hyd_RANS_K_Omega_base::get_noms_champs_postraitables(Noms
     equation_k_omega(i).get_noms_champs_postraitables(nom, opt);
 }
 
+/*! @brief for PDI IO: retrieve name, type and dimensions of the fields to save/restore
+ *
+ */
+std::vector<YAML_data> Modele_turbulence_hyd_RANS_K_Omega_base::data_a_sauvegarder() const
+{
+  std::vector<YAML_data> data = Modele_turbulence_hyd_base::data_a_sauvegarder();
+  std::vector<YAML_data> eqn_transp = eqn_transp_K_Omega().data_a_sauvegarder();
+  data.insert(data.end(), eqn_transp.begin(), eqn_transp.end());
+  return data;
+}
+
 /*! @brief Sauvegarde le modele de turbulence sur un flot de sortie.
  *
  * (en vue d'une reprise)

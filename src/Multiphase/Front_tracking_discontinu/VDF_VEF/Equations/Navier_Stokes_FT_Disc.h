@@ -39,6 +39,7 @@ public:
   Milieu_base& milieu() override;
   void associer_pb_base(const Probleme_base& probleme) override;
   void discretiser() override;
+  std::vector<YAML_data> data_a_sauvegarder() const override;
   int sauvegarder(Sortie&) const override;
   int reprendre(Entree&) override;
   int preparer_calcul() override;

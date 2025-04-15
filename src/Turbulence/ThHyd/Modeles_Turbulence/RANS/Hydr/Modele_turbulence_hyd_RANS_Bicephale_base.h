@@ -47,6 +47,7 @@ public:
   int sauvegarder(Sortie& os) const override;
   int reprendre(Entree& is) override;
   int lire_motcle_non_standard(const Motcle&, Entree&) override;
+  std::vector<YAML_data> data_a_sauvegarder() const override;
 
   const Champ_base& get_champ(const Motcle& nom) const override;
   bool has_champ(const Motcle& nom, OBS_PTR(Champ_base) &ref_champ) const override;

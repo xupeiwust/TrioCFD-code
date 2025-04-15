@@ -1,0 +1,13 @@
+
+#untar mesh
+tar xzf keps_2D_VEF_Def.geom.tar.gz keps_2D_VEF_Def.geom
+
+# Create .sauv files in sequential:
+trust keps_2D_VEF_Def_PDI || exit -1
+if [ "$TRUST_DISABLE_MPI" != 1 ]
+then
+   # Build also .sauv files in parallel:
+   trust -partition keps_2D_VEF_Def_PDI
+   sed -i "s/sauvegarde_simple pdi keps_2D_VEF_Def_PDI.sauv/sauvegarde_simple pdi PAR_keps_2D_VEF_Def_PDI.sauv/g" PAR_keps_2D_VEF_Def_PDI.data
+   trust PAR_keps_2D_VEF_Def_PDI 2 || exit -1
+fi
