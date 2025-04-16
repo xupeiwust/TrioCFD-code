@@ -59,7 +59,7 @@ public :
     return { "alpha_rho_k_WIT", calculer_alpha_rho_k_WIT };
   }
 
-  virtual int positive_unkown() override {return 1;};
+  virtual bool positive_unkown() override {return true;};
 
 protected :
 

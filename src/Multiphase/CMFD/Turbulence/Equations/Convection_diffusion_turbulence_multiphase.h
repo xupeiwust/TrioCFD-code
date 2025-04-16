@@ -46,7 +46,7 @@ public :
   Milieu_base& milieu() override;
   int impr(Sortie& os) const override;
   const Motcle& domaine_application() const override;
-  int positive_unkown() override {return 1;};
+  bool positive_unkown() override {return true;};
   inline const Operateur_Grad& operateur_gradient_inconnue() const { return Op_Grad_;}
 
 protected :
