@@ -226,7 +226,7 @@ int Collision_Model_FT_base::preparer_calcul(const Domaine_VDF& domain_vdf,
                                              const int nb_particles_tot,
                                              const Navier_Stokes_FT_Disc& ns,
                                              const Transport_Interfaces_FT_Disc& eq_transport,
-                                             const Schema_Comm_FT& schema_comm_FT)
+                                             const Schema_Comm& schema_comm_FT)
 {
   set_geometric_parameters(domain_vdf);
   set_nb_particles_tot(nb_particles_tot);
@@ -405,7 +405,7 @@ int Collision_Model_FT_base::check_for_duplicates(ArrOfInt& vector)
  */
 ArrOfInt send_receive_list_id_particles(ArrOfInt& list_id_real_particles_to_send,
                                         const ArrOfInt& list_lower_zone,
-                                        const Schema_Comm_FT& schema_comm)
+                                        const Schema_Comm& schema_comm)
 {
   ArrOfInt list_id_particle_recv;
   list_id_particle_recv.resize_array(0);
@@ -459,7 +459,7 @@ void Collision_Model_FT_base::research_collision_pairs_Verlet(const Navier_Stoke
   const Domaine_VF& domain_vf=ref_cast(Domaine_VF,eq_ns.domaine_dis());
   const int& nb_elem=domain_vf.nb_elem();
   const Maillage_FT_Disc& mesh=eq_transport.maillage_interface();
-  const Schema_Comm_FT& schema_comm=mesh.get_schema_comm_FT();
+  const Schema_Comm& schema_comm=mesh.get_schema_comm_FT();
   const DoubleTab& particles_velocity=eq_transport.get_particles_velocity();
   const DoubleTab& particles_position=eq_transport.get_particles_position();
   const Fluide_Diphasique& two_phase_elem=eq_ns.fluide_diphasique();
@@ -743,7 +743,7 @@ bool Collision_Model_FT_base::is_LC_activated()
   return false;
 }
 
-void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Schema_Comm_FT& schema_com)
+void Collision_Model_FT_base::set_LC_zones(const Domaine_VF& domain_vf, const Schema_Comm& schema_com)
 {
   int nsup=0;
   int ninf=0;

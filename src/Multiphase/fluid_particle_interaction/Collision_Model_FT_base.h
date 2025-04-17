@@ -5,7 +5,7 @@
 
 #include <TRUSTTabFT_forward.h>
 #include <Fluide_Diphasique.h>
-#include <Schema_Comm_FT.h>
+#include <Schema_Comm.h>
 #include <Champ_Don_base.h>
 #include <Matrice_Morse.h>
 #include <Domaine_VDF.h>
@@ -47,7 +47,7 @@ public:
                       const int nb_particles_tot,
                       const Navier_Stokes_FT_Disc& ns,
                       const Transport_Interfaces_FT_Disc& eq_transport,
-                      const Schema_Comm_FT& schema_comm_FT);
+                      const Schema_Comm& schema_comm_FT);
   void set_param(Param& p);
   void reset(); // Tables must have the right dimension to be correctly read during the restart
   void resize_geometric_parameters();
@@ -113,7 +113,7 @@ public:
   void set_domain_dimensions(DoubleVect& Longueurs) { domain_dimensions_=Longueurs; }
   void set_origin(DoubleVect& Origin) { origin_=Origin; }
   void set_geometric_parameters(const Domaine_VDF& domaine_vdf);
-  void set_LC_zones(const Domaine_VF& domaine_vf, const Schema_Comm_FT& schema_com);
+  void set_LC_zones(const Domaine_VF& domaine_vf, const Schema_Comm& schema_com);
 
   // getters
   const int& get_nb_dt_Verlet() const { return nb_dt_Verlet_; }

@@ -1770,7 +1770,7 @@ int Transport_Interfaces_FT_Disc::preparer_calcul()
     {
       const Navier_Stokes_FT_Disc& ns = equation_ns_.valeur();
       const Domaine_VDF& domain_vdf = ref_cast(Domaine_VDF, domaine_dis());
-      const Schema_Comm_FT& schema_comm_FT=maillage_interface().get_schema_comm_FT();
+      const Schema_Comm& schema_comm_FT=maillage_interface().get_schema_comm_FT();
       collision_model_.valeur().preparer_calcul(domain_vdf, nb_particles_tot_,
                                                 ns, *this, schema_comm_FT);
     }

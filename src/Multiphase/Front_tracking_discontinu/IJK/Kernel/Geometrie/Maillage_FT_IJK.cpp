@@ -523,10 +523,11 @@ void Maillage_FT_IJK::lire_maillage_ft_dans_lata(const char *filename_with_path,
         const LataDBField& db_field = db.get_field(tstep, geometryname, "COMPO_CONNEXE", "ELEM");
         BigIntTab tmp;
         db.read_data(db_field, tmp);
+
         // TODO : fix ref_as_XXXX for tabs in TRUST:
-        assert(tmp.nb_dim() == 2);
-        compo_connexe_facettes_ = IntTab((int)tmp.dimension(0), tmp.dimension_int(1));
-        tmp.ref_as_small(compo_connexe_facettes_); // Will check possible overflow issue
+        IntTab small_tmp;
+        tmp.ref_as_small(small_tmp); // Will check possible overflow issue
+        compo_connexe_facettes_ = small_tmp;
       }
 
       BigIntTab tmp_fac;

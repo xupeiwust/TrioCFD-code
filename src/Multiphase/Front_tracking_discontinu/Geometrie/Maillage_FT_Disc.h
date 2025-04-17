@@ -225,7 +225,7 @@ public:
 
   void set_is_solid_particle(const bool is_solid_particle) {is_solid_particle_=is_solid_particle;} // for fpi module
   const bool& get_is_solid_particle() const {return is_solid_particle_; } // for fpi module
-  const Schema_Comm_FT& get_schema_comm_FT() const { return schema_comm_domaine_; }
+  const Schema_Comm& get_schema_comm_FT() const { return schema_comm_domaine_; }
 
   const DoubleTab& get_gravity_center_fa7() const { return gravity_center_fa7_; }
   void compute_gravity_center_fa7();
