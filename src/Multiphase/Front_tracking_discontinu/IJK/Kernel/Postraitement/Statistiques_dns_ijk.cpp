@@ -384,23 +384,28 @@ static inline double calculer_mu_air(double temperature)
   return calc;
 } */
 
-static inline double calculer_rho_air(double temperature, double constante_specifique_gaz, double pression_thermodynamique)
+namespace
+{
+
+inline double calculer_rho_air(double temperature, double constante_specifique_gaz, double pression_thermodynamique)
 {
   return ( pression_thermodynamique / ( constante_specifique_gaz * temperature ) );
 }
 
 // calcule la derivee premiere en maillage anisotrope !!
-static inline double derivee_aniso( double alpha /* rapport des distances a la maille sup et inf */
-                                    , double un_sur_alpha /* inverse de alpha */
-                                    , double un_sur_dp_plus_dm /* inverse de la somme des distances aux elems inf et sup */
-                                    , double val_moins /* valeur dans la maille inf */
-                                    , double val_centre /* valeur dans la maille */
-                                    , double val_plus /* valeur dans la maille sup */ )
+inline double derivee_aniso( double alpha /* rapport des distances a la maille sup et inf */
+                             , double un_sur_alpha /* inverse de alpha */
+                             , double un_sur_dp_plus_dm /* inverse de la somme des distances aux elems inf et sup */
+                             , double val_moins /* valeur dans la maille inf */
+                             , double val_centre /* valeur dans la maille */
+                             , double val_plus /* valeur dans la maille sup */ )
 {
   double derivee  = (val_plus - val_centre) * un_sur_alpha; // contribution sup pondere
   derivee += (val_centre - val_moins ) * alpha; // contribution moins pondere
   derivee *= un_sur_dp_plus_dm; // division
   return derivee;
+}
+
 }
 //static inline double derivee_2_aniso( double un_sur_delta_moins /* inverse da la distance a la maille inf */
 //                                     , double un_sur_delta_plus /* inverse da la distance a la maille sup */
@@ -529,6 +534,59 @@ void Statistiques_dns_ijk::initialize(const Domaine_IJK& geom,double T_KMAX , do
         }
     }
 }
+
+void Statistiques_dns_ijk::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
+{
+  std::vector<FieldInfo_t> c =
+  {
+    // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
+
+    // exemple { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
+
+  };
+
+  chps.insert(chps.end(), c.begin(), c.end());
+}
+
+void Statistiques_dns_ijk::get_noms_champs_postraitables(Noms& noms,Option opt) const
+{
+  for (const auto& n : champs_compris_.liste_noms_compris())
+    noms.add(n);
+  for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
+    noms.add(n);
+}
+
+/** Retrieve requested field for postprocessing, potentially updating it.
+ */
+const IJK_Field_double& Statistiques_dns_ijk::get_IJK_field(const Motcle& nom)
+{
+  if (!has_champ(nom))
+    {
+      Cerr << "ERROR in Statistiques_dns_ijk::get_IJK_field : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Statistiques_dns_ijk::get_IJK_field()." << finl;
+      throw;
+    }
+
+
+  return champs_compris_.get_champ(nom);
+
+
+}
+
+const IJK_Field_vector3_double& Statistiques_dns_ijk::get_IJK_field_vector(const Motcle& nom)
+{
+  if (!has_champ_vectoriel(nom))
+    {
+      Cerr << "ERROR in Statistiques_dns_ijk::get_IJK_field_vector : " << finl;
+      Cerr << "Requested field '" << nom << "' is not recognized by Statistiques_dns_ijk::get_IJK_field_vector()." << finl;
+      throw;
+    }
+
+
+
+  return champs_compris_.get_champ_vectoriel(nom);
+}
+
 
 void Statistiques_dns_ijk::update_stat(const IJK_Field_vector3_double& vitesse,
                                        const IJK_Field_double& pression,

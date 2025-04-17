@@ -95,8 +95,8 @@ public:
   bool is_post_required(const Motcle& nom) const;
 
   // Interface Champs_compris_IJK_interface
-  bool has_champ(const Motcle& nom) const override { return champs_compris_.has_champ(nom);  }
-  bool has_champ_vectoriel(const Motcle& nom) const override { return champs_compris_.has_champ_vectoriel(nom); }
+  bool has_champ(const Motcle& nom) const override;
+  bool has_champ_vectoriel(const Motcle& nom) const override;
   const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
   const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
 

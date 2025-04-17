@@ -1727,16 +1727,38 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
 
 void Postprocessing_IJK::get_noms_champs_postraitables(Noms& noms,Option opt) const
 {
+  statistiques_FT_.get_noms_champs_postraitables(noms, opt);
   for (const auto& n : champs_compris_.liste_noms_compris())
     noms.add(n);
   for (const auto& n : champs_compris_.liste_noms_compris_vectoriel())
     noms.add(n);
 }
-
+bool Postprocessing_IJK::has_champ(const Motcle& nom) const
+{
+  if (statistiques_FT_.has_champ(nom))
+    {
+      return true;
+    }
+  return champs_compris_.has_champ(nom);
+}
+bool Postprocessing_IJK::has_champ_vectoriel(const Motcle& nom) const
+{
+  if (statistiques_FT_.has_champ_vectoriel(nom))
+    {
+      return true;
+    }
+  return champs_compris_.has_champ_vectoriel(nom);
+}
 /** Retrieve requested field for postprocessing, potentially updating it.
  */
 const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 {
+
+  if (statistiques_FT_.has_champ(nom))
+    {
+      return statistiques_FT_.get_IJK_field(nom);
+    }
+
   if (!has_champ(nom))
     {
       Cerr << "ERROR in Postprocessing_IJK::get_IJK_field : " << finl;
@@ -1935,6 +1957,11 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
 const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_field_vector(const Motcle& nom)
 {
+
+  if (statistiques_FT_.has_champ_vectoriel(nom))
+    {
+      return statistiques_FT_.get_IJK_field_vector(nom);
+    }
   if (!has_champ_vectoriel(nom))
     {
       Cerr << "ERROR in Postprocessing_IJK::get_IJK_field_vector : " << finl;

@@ -22,10 +22,12 @@
 #include <TRUSTArrays.h>
 #include <Noms.h>
 #include <Param.h>
+#include <Champs_compris_IJK.h>
+#include <Champs_compris_IJK_interface.h>
 
 //
 class Domaine_IJK;
-class Statistiques_dns_ijk : public Objet_U
+class Statistiques_dns_ijk : public Objet_U, public Champs_compris_IJK_interface
 {
   Declare_instanciable(Statistiques_dns_ijk);
 public:
@@ -86,6 +88,18 @@ public:
     Process::exit();
   }
   virtual void initialize(const Domaine_IJK& ,const double T_KMAX, const double T_KMIN, const double constante_specifique_gaz);
+
+
+  // Interface Champs_compris_IJK_interface
+  bool has_champ(const Motcle& nom) const override { return champs_compris_.has_champ(nom);  }
+  bool has_champ_vectoriel(const Motcle& nom) const override { return champs_compris_.has_champ_vectoriel(nom); }
+  const IJK_Field_vector3_double& get_IJK_field_vector(const Motcle& nom) override;
+  const IJK_Field_double& get_IJK_field(const Motcle& nom) override;
+
+  static void Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps);
+  void get_noms_champs_postraitables(Noms& noms,Option opt=NONE) const;
+
+
   const double& t_integration() const
   {
     return t_integration_;
@@ -214,5 +228,10 @@ protected:
   double TCL_kmax_;
   double TCL_kmin_;
   double constante_specifique_gaz_;
+
+  // Storage of all the extra fields created for post processing:
+  std::map<Motcle, IJK_Field_double> scalar_post_fields_;
+  std::map<Motcle, IJK_Field_vector3_double> vect_post_fields_;
+  Champs_compris_IJK champs_compris_;  ///< the actual fields registered and managed by the post-processing part (=all the extra fields, not the main unknowns)
 };
 #endif
