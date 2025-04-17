@@ -57,7 +57,7 @@ Entree& Postraitement_ft_lata::readOn(Entree& is)
       Cerr << "*********************************************************************" << finl;
     }
 
-  if (!sub_type(Format_Post_Lata, format_post.valeur()))
+  if (!sub_type(Format_Post_Lata, format_post_.valeur()))
     {
       Cerr << "****************************************************************************" << finl;
       Cerr << "   WARNING WARNING " << finl;
@@ -142,7 +142,7 @@ int Postraitement_ft_lata::lire_motcle_non_standard(const Motcle& mot, Entree& i
       lire_champ_interface(is);
 
       // This is put here to make sure we have read all keywords anyway:
-      if( Motcle(format).debute_par("LATA")==0)
+      if( Motcle(format_).debute_par("LATA")==0)
         {
           Cerr << "**** Output format is not LATA, interfaces will be silently ignored." << finl;
           // Nullify reference, this will skip interfaces in the rest of the process
@@ -256,7 +256,7 @@ int Postraitement_ft_lata::ecrire_maillage_ft_disc()
   int dim = mesh.sommets().dimension(1);
   Motcle type_elem = dim == 2 ? "Segment" : "Triangle";
 
-  Format_Post_Lata& fpl = ref_cast(Format_Post_Lata, format_post.valeur());  // this is check above
+  Format_Post_Lata& fpl = ref_cast(Format_Post_Lata, format_post_.valeur());  // this is check above
   if (no_virtuals_)
     {
       IntTab real_fa7;

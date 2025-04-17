@@ -554,7 +554,7 @@ void Traitement_particulier_NS_CEG::critere_cea_jaea()
             {
               const Postraitement& post = ref_cast(Postraitement,mon_equation->probleme().postraitements()[0].valeur());
               // Si dt_post pas lu dans le jeu de donnees, on prend celui du postraitement
-              if (dt_post_<0) dt_post_ = post.dt_post_ch();
+              if (dt_post_<0) dt_post_ = post.dt_post();
               // Impression des criteres
               Noms Critere_nom(3);
               Critere_nom[0]="CEA_JAEA_alpha";
