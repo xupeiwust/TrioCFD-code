@@ -2816,90 +2816,82 @@ void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, co
 
 void Statistiques_dns_ijk_FT::alloc_fields()
 {
+  // TODO (teo boutin) only allocate these fields when needed, but right now I don't have the time to determine when that is
   // Pour verification des stats :
-  if (check_stats_)
-    {
-      const int ghost = 1; // 1 ghost cell necessary to permit face-to-cell interpolation in post-pro...
-      // Face-vectors (std vectors)
-      const std::vector<std::string> noms_vecto_faces = {"dPd"};
-      for (const auto& nam : noms_vecto_faces)
+  {
+    const int ghost = 1; // 1 ghost cell necessary to permit face-to-cell interpolation in post-pro...
+    // Face-vectors (std vectors)
+    const std::vector<std::string> noms_vecto_faces = {"dPd"};
+    for (const auto& nam : noms_vecto_faces)
+      {
         {
-          if (is_post_required(nam))
-            {
-              vect_post_fields_[nam] = IJK_Field_vector3_double();
-              allocate_velocity(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
-            }
-          const Nom& fld_nam = Nom("ANA_")+Nom(nam);
-          const std::string& ana_nam = fld_nam.getString();
-          if (check_stats_ || is_post_required(ana_nam))
-            {
-              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
-              allocate_velocity(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
-            }
+          vect_post_fields_[nam] = IJK_Field_vector3_double();
+          allocate_velocity(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
         }
+        const Nom& fld_nam = Nom("ANA_")+Nom(nam);
+        const std::string& ana_nam = fld_nam.getString();
+        {
+          vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+          allocate_velocity(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+        }
+      }
 
-      // Cell-vectors
-      const std::vector<std::string> noms_vectoriels = {"dUd", "dVd", "dWd"};
-      for (const auto& nam : noms_vectoriels)
+    // Cell-vectors
+    const std::vector<std::string> noms_vectoriels = {"dUd", "dVd", "dWd"};
+    for (const auto& nam : noms_vectoriels)
+      {
         {
-          if (is_stats_plans_activated() || check_stats_ || is_post_required(nam))
-            {
-              vect_post_fields_[nam] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
-            }
-          const Nom fld_nam = Nom("ANA_")+Nom(nam);
-          const std::string ana_nam = fld_nam.getString();
-          if (check_stats_ || is_post_required(ana_nam))
-            {
-              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
-            }
+          vect_post_fields_[nam] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, ghost, nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
         }
+        const Nom fld_nam = Nom("ANA_")+Nom(nam);
+        const std::string ana_nam = fld_nam.getString();
+        {
+          vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+        }
+      }
 
-      // TODO:  Deal with tensors for crossed compo "ddPd", "ddUd"
-      /* Temorary fix : allocate a second cell-vector for cross-components and register it. For example, compos are in this order:
-       * ddPdxdy, ddPdxdz, ddPdydz
-       * But their names are :
-       * ddPddc_x, ddPddc_y, ddPddc_z -> c: cross-component
-       */
-      // TODO: rename components ?
-      const std::vector<std::string> noms_tensoriels = {"ddPdd", "ddUdd", "ddVdd", "ddWdd"};
-      for (const auto& nam : noms_tensoriels)
+    // TODO:  Deal with tensors for crossed compo "ddPd", "ddUd"
+    /* Temorary fix : allocate a second cell-vector for cross-components and register it. For example, compos are in this order:
+     * ddPdxdy, ddPdxdz, ddPdydz
+     * But their names are :
+     * ddPddc_x, ddPddc_y, ddPddc_z -> c: cross-component
+     */
+    // TODO: rename components ?
+    const std::vector<std::string> noms_tensoriels = {"ddPdd", "ddUdd", "ddVdd", "ddWdd"};
+    for (const auto& nam : noms_tensoriels)
+      {
         {
-          if (is_post_required(nam))
-            {
-              vect_post_fields_[nam] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, 0, nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
-            }
-          const std::string nam2 = Nom(nam+"c").getString(); // For off-diagonal components
-          if (is_post_required(nam2))
-            {
-              vect_post_fields_[nam2] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(nam2), domaine_ijk_, 0, nam2);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam2));
-            }
-          const Nom& fld_nam = Nom("ANA_")+Nom(nam);
-          const std::string ana_nam = fld_nam.getString();
-          if (check_stats_ || is_post_required(ana_nam))
-            {
-              vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
-            }
-          const std::string ana_nam2 = Nom(fld_nam+"c").getString();
-          if (check_stats_ || is_post_required(ana_nam2))
-            {
-              vect_post_fields_[ana_nam2] = IJK_Field_vector3_double();
-              allocate_cell_vector(vect_post_fields_.at(ana_nam2), domaine_ijk_, 0, ana_nam2);
-              champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam2));
-            }
+          vect_post_fields_[nam] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(nam), domaine_ijk_, 0, nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam));
         }
-    }
+        const std::string nam2 = Nom(nam+"c").getString(); // For off-diagonal components
+        {
+          vect_post_fields_[nam2] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(nam2), domaine_ijk_, 0, nam2);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(nam2));
+        }
+        const Nom& fld_nam = Nom("ANA_")+Nom(nam);
+        const std::string ana_nam = fld_nam.getString();
+        {
+          vect_post_fields_[ana_nam] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(ana_nam), domaine_ijk_, 0, ana_nam);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam));
+        }
+        const std::string ana_nam2 = Nom(fld_nam+"c").getString();
+        {
+          vect_post_fields_[ana_nam2] = IJK_Field_vector3_double();
+          allocate_cell_vector(vect_post_fields_.at(ana_nam2), domaine_ijk_, 0, ana_nam2);
+          champs_compris_.ajoute_champ_vectoriel(vect_post_fields_.at(ana_nam2));
+        }
+      }
+  }
 }
 
 void Statistiques_dns_ijk_FT::initialize(const Probleme_FTD_IJK_base& ijk_ft, const Domaine_IJK& geom,
