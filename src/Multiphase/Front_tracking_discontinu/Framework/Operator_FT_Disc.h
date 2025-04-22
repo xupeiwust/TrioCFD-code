@@ -27,8 +27,20 @@ class Operator_FT_Disc
 public:
   void Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Facet,const Maillage_FT_Disc& FTmesh, ArrOfDouble& Laplacian_Phi_Facet,DoubleTab& Grad_Phi_Sommet);
 
+  /*void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
+                                    DoubleTab& Grad_Phi_Sommet, bool Normalised_with_Surface);*/
+
   void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
-                                    DoubleTab& Grad_Phi_Sommet, bool times_ai = false);
+                                    DoubleTab& Grad_Phi_Sommet, bool Normalised_with_Surface=true);
+
+  void Compute_interfaciale_source(const ArrOfDouble& sigma_Facet, const Maillage_FT_Disc& FTmesh,
+                                   DoubleTab& df_sigma, bool Normalised_with_Surface, bool use_tryggvason_formulation, bool with_marangoni=false);
+  void Operator_integral_bord_facette_phi_p_dl(const ArrOfDouble& Surface_sommet, const ArrOfDouble& Phi_sommet, const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
+                                               DoubleTab& int_phi_p_dl, DoubleTab& int_p_dl);
+  void Sommets_to_Facettes(DoubleTab& Phi_Facet, const DoubleTab& Phi_Som, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface);
+  void Sommets_to_Facettes(ArrOfDouble& Phi_Facet, const ArrOfDouble& Phi_Som, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface);
+  void Facette_to_Sommets(ArrOfDouble& Surface_sommet, DoubleTab& Phi_Som, const DoubleTab& Phi_Facet, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface);
+  void Facette_to_Sommets(ArrOfDouble& Surface_sommet, ArrOfDouble& Phi_Som, const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface);
   //void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, DoubleTab& Grad_Phi_Sommet, const Maillage_FT_Disc& FTmesh);
   void produit_vectoriel(const ArrOfDouble& a, const ArrOfDouble& b, ArrOfDouble& resu);
   double norme(const ArrOfDouble& a);

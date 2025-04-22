@@ -176,7 +176,7 @@ private:
   IntTab indice_facette_finaux_ ;
   bool variable_intensive_=false;
   bool disable_surfactant_=true;
-  int Taylor_test_ = 0;
+  double Taylor_test_ = 0.;
   int disable_marangoni_source_term_ = 0;
   int print_debug_surfactant_ = 0;
   int only_remaillage_ = 0;
@@ -205,7 +205,7 @@ public:
   FT_Field();
   void initialize(const Maillage_FT_IJK& mesh, const DoubleTab& centre_mass);
   void update_gradient_laplacien_FT(const Maillage_FT_IJK& mesh);
-  void update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting);
+  DoubleTab update_sigma_and_interfacial_source_term_sommet(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting, bool compute_interfacial_source, bool use_tryggvason_formulation);
   void dimensionner_remaillage_FT_Field(Maillage_FT_IJK& mesh, const ArrOfIntFT& table_old_new);
   void sauvegarder_triangle(const Maillage_FT_IJK& mesh, const int i, const int avant_apres_remaillage);
   void echanger_triangles(Maillage_FT_IJK& mesh);
@@ -223,7 +223,7 @@ public:
   double Gamma_inf_;
   ArrOfDouble sigma_sommets_;
   ArrOfDouble sigma_facettes_;
-  DoubleTab Grad_sigma_sommets_;
+  DoubleTab interfacial_source_term_sommet_;
   void avancer_en_temps(const Maillage_FT_IJK& mesh, const double time_step);
   void passer_variable_extensive(const Maillage_FT_IJK& mesh);
   void passer_variable_intensive(const Maillage_FT_IJK& mesh);
@@ -292,7 +292,7 @@ public:
     Grad_FT_field_Array_.copy_array(copy.Grad_FT_field_Array_);
     Laplacian_FT_field_Array_.copy_array(copy.Laplacian_FT_field_Array_);
     sigma_facettes_.copy_array(copy.sigma_facettes_);
-    Grad_sigma_sommets_.copy_array(copy.Grad_sigma_sommets_);
+    interfacial_source_term_sommet_.copy_array(copy.interfacial_source_term_sommet_);
     copy.OpFTDisc_=OpFTDisc_;
     copy.disable_surfactant_=disable_surfactant_;
   };
@@ -393,30 +393,30 @@ public:
   {
     return sigma_sommets_;
   };
-  DoubleTab get_grad_sigma_sommets() const
+  DoubleTab get_interfacial_source_term_sommets() const
   {
-    return Grad_sigma_sommets_;
+    return interfacial_source_term_sommet_;
   };
-  ArrOfDouble get_grad_sigma_sommets(int dir) const
+  ArrOfDouble get_interfacial_source_term_sommets(int dir) const
   {
-    int nbsom = Grad_sigma_sommets_.dimension(0);
+    int nbsom = interfacial_source_term_sommet_.dimension(0);
     ArrOfDouble  Grad_dir;
     Grad_dir.resize(nbsom);
     for (int som=0 ; som<nbsom ; som++)
       {
-        Grad_dir(som)=Grad_sigma_sommets_(som, dir);
+        Grad_dir(som)=interfacial_source_term_sommet_(som, dir);
       }
     return Grad_dir;
   };
 
-  ArrOfDouble get_grad_sigma_sommets_non_const(int dir)
+  ArrOfDouble get_interfacial_source_term_sommets_non_const(int dir)
   {
-    int nbsom = Grad_sigma_sommets_.dimension(0);
+    int nbsom = interfacial_source_term_sommet_.dimension(0);
     ArrOfDouble  Grad_dir;
     Grad_dir.resize(nbsom);
     for (int som=0 ; som<nbsom ; som++)
       {
-        Grad_dir(som)=Grad_sigma_sommets_(som, dir);
+        Grad_dir(som)=interfacial_source_term_sommet_(som, dir);
       }
     return Grad_dir;
   };

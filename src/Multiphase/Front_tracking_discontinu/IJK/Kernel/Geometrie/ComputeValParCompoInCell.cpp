@@ -236,6 +236,82 @@ void ComputeValParCompoInCell::calculer_valeur_par_compo(
     mesh_->get_update_courbure_sommets(),
     courbure_par_compo);
 }
+void ComputeValParCompoInCell::calculer_somme_field_sommet_par_compo(
+  const ArrOfDouble& val_on_sommet,
+  FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo) const
+{
+
+  const ArrOfInt& compo_connexe = mesh_->compo_connexe_facettes();
+  const Intersections_Elem_Facettes& intersections = mesh_->intersections_elem_facettes();
+  const IntTab& facettes = mesh_->facettes();
+  const ArrOfDouble& surface_facettes = mesh_->get_update_surface_facettes();
+  for (int c = 0; c < max_authorized_nb_of_components_; c++)
+    field_par_compo[c].data() = 0.;
+
+  // Boucle sur les elements:
+  const int ni = field_par_compo[0].ni();
+  const int nj = field_par_compo[0].nj();
+  const int nk = field_par_compo[0].nk();
+
+  ArrOfInt liste_composantes_connexes_dans_element;
+  liste_composantes_connexes_dans_element = 0;
+  for (int k = 0; k < nk; k++)
+    for (int j = 0; j < nj; j++)
+      for (int i = 0; i < ni; i++)
+        {
+          // A present, elle est dans le splitting :
+          const int elem = ref_domaine_->convert_ijk_cell_to_packed(i, j, k);
+          const int nb_compo_traversantes =
+            compute_list_compo_connex_in_element(elem, liste_composantes_connexes_dans_element);
+          // Pour chaque element, est-il traverse par une ou plusieurs interface ?
+          assert(nb_compo_traversantes < max_authorized_nb_of_components_);
+
+          // On boucle sur les composantes connexes trouvees dans l'element
+          for (int i_compo = 0; i_compo < nb_compo_traversantes; i_compo++)
+            {
+              const int num_compo = liste_composantes_connexes_dans_element[i_compo];
+              // Calcul de la moyenne de field dans l'element :
+              double moy_field = 0.;
+              int index = intersections.index_elem()[elem];
+              assert(index >= 0); // Aucune facette dans cet element.
+
+              double moy_field_fa7 = 0.;
+              // Boucle sur les facettes qui traversent l'element elem :
+              while (index >= 0)
+                {
+                  const Intersections_Elem_Facettes_Data& data = intersections.data_intersection(index);
+                  const int fa7 = data.numero_facette_;
+                  const int icompo = compo_connexe[fa7];
+                  moy_field_fa7 = 0.;
+                  if (icompo == num_compo)
+                    {
+                      const double surface_facette = surface_facettes[fa7];
+                      const double surf = data.fraction_surface_intersection_ * surface_facette;
+                      // Les coordonnees du barycentre de la fraction de facette :
+                      //Vecteur3 coord_barycentre_fraction(0., 0., 0.);
+                      for (int isom = 0; isom < 3; isom++)
+                        {
+                          // numero du sommet dans le tableau sommets
+                          const int num_som = facettes(fa7, isom);
+                          const double val = val_on_sommet[num_som];
+                          // Coordonnees barycentriques du centre de gravite de
+                          // l'intersection par rapport aux trois sommets de la facette.
+                          const double bary_som = data.barycentre_[isom];
+                          // pour avoir la moyenne du champ au centre du triangle
+                          moy_field_fa7 += bary_som * val;
+                        }
+                      moy_field += moy_field_fa7 * surf;
+                    }
+                  index = data.index_facette_suivante_;
+                }
+
+              field_par_compo[i_compo](i, j, k) = moy_field;
+            }
+        }
+
+  // Mise a jour des espaces virtuels :
+  field_par_compo.echange_espace_virtuel();
+}
 
 void ComputeValParCompoInCell::calculer_moy_field_sommet_par_compo(
   const ArrOfDouble& val_on_sommet,

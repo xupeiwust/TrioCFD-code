@@ -35,6 +35,7 @@
 #include <variant>
 #include <Remaillage_FT_IJK.h>
 #include <IJK_communications.h>
+#include <Operator_FT_Disc.h>
 
 using namespace std;
 Implemente_instanciable(Maillage_FT_IJK,"Maillage_FT_IJK",Objet_U) ;
@@ -53,7 +54,7 @@ Entree& Maillage_FT_IJK::readOn(Entree& is)
   return is;
 }
 
-void Maillage_FT_IJK::initialize(const Domaine_IJK& dom, const Domaine_dis_base& domaine_dis, const Parcours_interface& parcours)
+void Maillage_FT_IJK::initialize(const Domaine_IJK& dom, const Domaine_dis_base& domaine_dis, const Parcours_interface& parcours, const bool use_tryggvason_interfacial_source)
 {
   ref_domaine_ = dom;
   // Mise a jour des tableaux de processeurs voisins :
@@ -61,6 +62,7 @@ void Maillage_FT_IJK::initialize(const Domaine_IJK& dom, const Domaine_dis_base&
   nbmailles_euler_i_ = dom.get_nb_elem_local(DIRECTION_I);
   nbmailles_euler_j_ = dom.get_nb_elem_local(DIRECTION_J);
   nbmailles_euler_k_ = dom.get_nb_elem_local(DIRECTION_K);
+  use_tryggvason_interfacial_source_ = use_tryggvason_interfacial_source ;
 
   associer_domaine_dis_parcours(domaine_dis, parcours);
 }
@@ -1260,6 +1262,43 @@ void Maillage_FT_IJK::calculer_compo_connexe_sommets(ArrOfIntFT& compo_connexe_s
   const Desc_Structure_FT& desc_som = desc_sommets();
   desc_som.collecter_espace_virtuel(compo_connexe_sommets, MD_Vector_tools::EV_MAX);
   desc_som.echange_espace_virtuel(compo_connexe_sommets);
+
+}
+
+DoubleTab Maillage_FT_IJK::update_sigma_and_interfacial_source_term_sommet(const Domaine_IJK& splitting, bool compute_interfacial_source, bool, const double sigma_const)
+
+{
+
+  if (!Surfactant_facettes_.get_disable_surfactant())
+    {
+      // on est dans un cas sigma variable
+      return Surfactant_facettes_.update_sigma_and_interfacial_source_term_sommet(*this, splitting, compute_interfacial_source, use_tryggvason_interfacial_source_);
+    }
+  else if (Surfactant_facettes_.get_disable_marangoni_source_term() and use_tryggvason_interfacial_source_)
+    {
+      // on est dans un cas sigma = cte, mais on veut le terme source de Tryggvason
+      DoubleTab interfacial_source_term ;
+      if (compute_interfacial_source)
+        {
+          const int nbfa7=nb_facettes();
+          ArrOfDouble sigma_facettes;
+          sigma_facettes.resize(nbfa7);
+          for (int fa=0 ; fa<nbfa7 ; fa++)
+            sigma_facettes[fa]= sigma_const;
+
+          Operator_FT_Disc OpFTDisc;
+          OpFTDisc.Compute_interfaciale_source(sigma_facettes, *this, interfacial_source_term, true, use_tryggvason_interfacial_source_, !Surfactant_facettes_.get_disable_marangoni_source_term());
+        }
+      return interfacial_source_term ;
+    }
+  else
+    {
+      DoubleTab interfacial_source_term ;
+      Cerr << "No surfactant nor tryggvason formulation for interfacial source term --> we must not be here ! " << finl;
+      Process::exit();
+      return interfacial_source_term ;
+    }
+  //
 
 }
 

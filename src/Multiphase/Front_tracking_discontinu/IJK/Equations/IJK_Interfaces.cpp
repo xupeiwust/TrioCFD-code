@@ -361,6 +361,7 @@ Entree& IJK_Interfaces::readOn(Entree& is)
   param.ajouter("timestep_reprise_interface", &timestep_reprise_interface_); // XD_ADD_P entier not_set
   param.ajouter("lata_meshname", &lata_interfaces_meshname_); // XD_ADD_P chaine not_set
   param.ajouter("remaillage_ft_ijk", &remaillage_ft_ijk_); // XD_ADD_P remaillage_ft_ijk not_set
+  param.ajouter_flag("use_tryggvason_interfacial_source", &use_tryggvason_interfacial_source_); // XD_ADD_P remaillage_ft_ijk not_set
   param.ajouter("portee_force_repulsion", &portee_force_repulsion_);
   param.ajouter("delta_p_max_repulsion", &delta_p_max_repulsion_);
   param.ajouter("portee_wall_repulsion", &portee_wall_repulsion_);
@@ -723,17 +724,17 @@ const IJK_Field_double& IJK_Interfaces::get_IJK_field(const Motcle& nom)
   if (nom=="GRADX_SIGMA")
     {
       IJK_Field_double& dsigma_x = scalar_post_fields_.at("GRADX_SIGMA");
-      dsigma_x.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(0);
+      dsigma_x.data() = maillage_ft_ijk_.Surfactant_facettes().get_interfacial_source_term_sommets(0);
     }
   if (nom=="GRADY_SIGMA")
     {
       IJK_Field_double& dsigma_y = scalar_post_fields_.at("GRADY_SIGMA");
-      dsigma_y.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(1);
+      dsigma_y.data() = maillage_ft_ijk_.Surfactant_facettes().get_interfacial_source_term_sommets(1);
     }
   if (nom=="GRADZ_SIGMA")
     {
       IJK_Field_double& dsigma_z = scalar_post_fields_.at("GRADZ_SIGMA");
-      dsigma_z.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(2);
+      dsigma_z.data() = maillage_ft_ijk_.Surfactant_facettes().get_interfacial_source_term_sommets(2);
     }
   if (nom=="DISTANCE_AUTRES_INTERFACES")
     {
@@ -888,15 +889,17 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
           indicatrice_par_compo_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           courbure_par_compo_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           phi_par_compo_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
+          surf_par_compo_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           for (int dir = 0; dir < 3; dir++)
-            grad_sigma_par_compo_[old()][dir][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
+            source_interf_par_compo_[old()][dir][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           repuls_par_compo_[old()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           compos_traversantes_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           surface_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           indicatrice_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           phi_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
+          surf_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           for (int dir = 0; dir < 3; dir++)
-            grad_sigma_par_compo_[next()][dir][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
+            source_interf_par_compo_[next()][dir][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           repuls_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           courbure_par_compo_[next()][i].allocate(domaine_FT, Domaine_IJK::ELEM, 1);
           // Et pour les vecteurs :
@@ -1102,7 +1105,7 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
   connectivite_frontieres_.associer_domaine_vf(domaine_vf);
   parcours_.associer_connectivite_frontieres(connectivite_frontieres_);
 
-  maillage_ft_ijk_.initialize(domaine_FT, domaine_dis, parcours_);
+  maillage_ft_ijk_.initialize(domaine_FT, domaine_dis, parcours_, use_tryggvason_interfacial_source_);
   if (cut_cell_activated_)
     {
       old_maillage_ft_ijk_.initialize(domaine_FT, domaine_dis, parcours_);
@@ -2353,7 +2356,7 @@ double IJK_Interfaces::calculer_aire_interfaciale_for_compo(const int compo, con
           const double surf = data.fraction_surface_intersection_ * sf;
           if (ijk[0]==i_ref and ijk[1]==j_ref and ijk[2]==k_ref)
             {
-              ai += surf + vol*0. ;/// vol;
+              ai += surf / vol;
             }
           index = data.index_element_suivant_;
         }
@@ -3455,7 +3458,8 @@ void IJK_Interfaces::transporter_maillage_remaillage(int correction_semi_locale_
       //creer_duplicata_bulles();
       //mesh.parcourir_maillage();
       mesh.update_gradient_laplacien_Surfactant();
-      mesh.update_sigma_grad_sigma(ref_domaine_);
+      DoubleTab interfacial_source_term_sommet = mesh.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
+
     }
 
 
@@ -6022,285 +6026,295 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
 
   const Domaine_IJK& geom = ref_domaine_.valeur();
 
-  // calculer la courbure et le terme de gravite aux sommets du maillage
-  // lagrangien On appelle ce terme "phi", potentiel aux sommets
-  // ducluz : voir p.93 et suivantes dans MathieuPhD
+  // deux options pour le calcul du terme source interfacial
+  // 1 : use_tryggvason_interfacial_source  --> Voir Muradoglu et Tryggvason
+  // 2 : !use_tryggvason_interfacial_source --> Discretisation originale de B.Mathieu pour les cas sigma = cte (p.92 et suivantes de sa thèse)
+  // on peut aussi faire des mixte : B.Mathieu pour la partie en sigma + terme source de Marangoni avec la formulation de Tryggvason
+  // Le terme source de Marangoni nest code que dans lapproche de tryggvason pour le moment
 
-  // On boucle sur les faces pour calculer le terme sources :
-  const int nkmax = std::max(vpoint[DIRECTION_I].nk(), std::max(vpoint[DIRECTION_J].nk(), vpoint[DIRECTION_K].nk()));
-  Int3 ijk_face;
-  for (int k = 0; k < nkmax; k++)
+  if (use_tryggvason_interfacial_source_ or !maillage_ft_ijk_.Surfactant_facettes().get_disable_marangoni_source_term())
     {
-      for (int direction = 0; direction < 3; direction++)
+      double interf1, interf2 ;
+      double s1, s2 ;
+      Int3 ijk_other_elem;
+      for (int icol1 = 0; icol1 < max_authorized_nb_of_components_; icol1++)
         {
-          if (k >= vpoint[direction].nk())
-            continue;
-
-          const double delta_dir = geom.get_constant_delta(direction);
-          const int offset = geom.get_offset_local(direction);
-          const bool perio = geom.get_periodic_flag(direction);
-          Domaine_IJK::Localisation loc = vpoint[direction].get_localisation();
-          const int nb_items_tot = geom.get_nb_items_global(loc, direction);
-          for (int j = 0; j < vpoint[direction].nj(); j++)
+          for (int direction = 0; direction < 3; direction++)
             {
-              for (int i = 0; i < vpoint[direction].ni(); i++)
+              for (int k = 0; k < vpoint[direction].nk(); k++)
                 {
-                  ijk_face[0] = i;
-                  ijk_face[1] = j;
-                  ijk_face[2] = k;
-                  const int global_face_position = ijk_face[direction] + offset;
-                  if (!perio && (global_face_position == 0 || global_face_position == nb_items_tot))
-                    continue; // on a wall...
-
-                  Int3 ijk_droite = ijk_face; // l'element de droite a le meme num que la face
-                  Int3 ijk_gauche = ijk_face; // l'element de gauche est a l'indice - 1 ...
-                  ijk_gauche[direction]--;
-
-                  // Boucle sur les elements a gauche et a droite de la face.
-                  // Selon le tour, on appelle un des elem  : elem1
-                  // duCluz : on boucle sur les faces de lelement car la tension de surface peut secrire
-                  // comme la somme des tensions au bord de lelement (3.57 dans Mathieu PhD)
-                  for (int gauche_droite = 0; gauche_droite <= 1; gauche_droite++)
+                  for (int j = 0; j < vpoint[direction].nj(); j++)
                     {
-                      // Boucle sur les colonnes de l'elem1 :
-                      for (int icol1 = 0; icol1 < max_authorized_nb_of_components_; icol1++)
+                      for (int i = 0; i < vpoint[direction].ni(); i++)
                         {
-                          const Int3& elem1 = gauche_droite ? ijk_droite : ijk_gauche;
-                          const Int3& elem2 = gauche_droite ? ijk_gauche : ijk_droite;
-                          // Le signe pour le gradient :
-                          int signe = gauche_droite ? -1 : 1;
-                          int num_compo = compos_traversantes_[old()][icol1](elem1[0], elem1[1], elem1[2]);
-                          if (num_compo == NUM_COMPO_INVALID)
-                            break;
-                          // cette composante est-elle presente sur elem2 et a quelle
-                          // colonne ?
-                          int icol2;
-                          for (icol2 = 0; icol2 < max_authorized_nb_of_components_; icol2++)
-                            if (compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo)
-                              break;
+                          // le traitement du terme source de tension de surface doit etre entierement explicit
+                          // on a donc besoin de tout stocker au pas de temps precedent dans next() avant le deplacement de linterface
+                          // on utilise alors les champ old n (avant deplacement).
+                          // les champs _par_compo sont calcules aux elements
+                          // on interpole aux faces pour ajouter à vpoint
+                          ijk_other_elem[0] = i;
+                          ijk_other_elem[1] = j;
+                          ijk_other_elem[2] = k;
+                          ijk_other_elem[direction] -= 1;
+                          s1 = surf_par_compo_[old()][icol1](i,j,k);
+                          s2 = surf_par_compo_[old()][icol1](ijk_other_elem[0],ijk_other_elem[1],ijk_other_elem[2]);
+                          interf1 = source_interf_par_compo_[old()][direction][icol1](i, j, k);
+                          interf2 = source_interf_par_compo_[old()][direction][icol1](ijk_other_elem[0],ijk_other_elem[1],ijk_other_elem[2]);
+                          vpoint[direction](i, j, k) += 1./2. * (s1 * interf1 + s2 * interf2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+  if (!use_tryggvason_interfacial_source_)
+    {
+      // calculer la courbure et le terme de gravite aux sommets du maillage
+      // lagrangien On appelle ce terme "phi", potentiel aux sommets
+      // ducluz : voir p.93 et suivantes dans MathieuPhD
+      Int3 ijk_face;
+      const int nkmax = std::max(vpoint[DIRECTION_I].nk(), std::max(vpoint[DIRECTION_J].nk(), vpoint[DIRECTION_K].nk()));
+      for (int k = 0; k < nkmax; k++)
+        {
+          for (int direction = 0; direction < 3; direction++)
+            {
+              if (k >= vpoint[direction].nk())
+                continue;
 
-                          if (icol2 < max_authorized_nb_of_components_ && gauche_droite == 1)
+              const double delta_dir = geom.get_constant_delta(direction);
+              const int offset = geom.get_offset_local(direction);
+              const bool perio = geom.get_periodic_flag(direction);
+              Domaine_IJK::Localisation loc = vpoint[direction].get_localisation();
+              const int nb_items_tot = geom.get_nb_items_global(loc, direction);
+              for (int j = 0; j < vpoint[direction].nj(); j++)
+                {
+                  for (int i = 0; i < vpoint[direction].ni(); i++)
+                    {
+                      ijk_face[0] = i;
+                      ijk_face[1] = j;
+                      ijk_face[2] = k;
+                      const int global_face_position = ijk_face[direction] + offset;
+                      if (!perio && (global_face_position == 0 || global_face_position == nb_items_tot))
+                        continue; // on a wall...
+
+                      Int3 ijk_droite = ijk_face; // l'element de droite a le meme num que la face
+                      Int3 ijk_gauche = ijk_face; // l'element de gauche est a l'indice - 1 ...
+                      ijk_gauche[direction]--;
+
+                      // Boucle sur les elements a gauche et a droite de la face.
+                      // Selon le tour, on appelle un des elem  : elem1
+                      for (int gauche_droite = 0; gauche_droite <= 1; gauche_droite++)
+                        {
+                          // Boucle sur les colonnes de l'elem1 :
+                          for (int icol1 = 0; icol1 < max_authorized_nb_of_components_; icol1++)
                             {
-                              // on a deja traite cette composante lorsqu'on a fait la boucle
-                              // pour gauche_droite = 0
-                              continue;
-                            }
+                              const Int3& elem1 = gauche_droite ? ijk_droite : ijk_gauche;
+                              const Int3& elem2 = gauche_droite ? ijk_gauche : ijk_droite;
+                              // Le signe pour le gradient :
+                              int signe = gauche_droite ? -1 : 1;
+                              int num_compo = compos_traversantes_[old()][icol1](elem1[0], elem1[1], elem1[2]);
+                              if (num_compo == NUM_COMPO_INVALID)
+                                break;
+                              // cette composante est-elle presente sur elem2 et a quelle
+                              // colonne ?
+                              int icol2;
+                              for (icol2 = 0; icol2 < max_authorized_nb_of_components_; icol2++)
+                                if (compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo)
+                                  break;
 
-                          const double indic = indicatrice_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
-
-
-                          const double phi = phi_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
-
-                          const double surface = surface_par_compo_[old()][icol1](
-                                                   elem1[0], elem1[1], elem1[2]
-                                                 ); // la compo dans l'elem c'est icol1.
-                          const double grad_sigma = surface * grad_sigma_par_compo_[old()][direction][icol1](elem1[0], elem1[1], elem1[2]);
-
-                          //*ai_for_compo[num_compo_for_ai](elem1[0], elem1[1], elem1[2]);
-
-                          const double repul = repuls_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
-                          if (correction_gradient_potentiel_)
-                            {
-                              double indic_voisin = 0., phi_voisin = 0., grad_sigma_voisin = 0., surface_voisin = 0.;
-                              double repul_voisin = 0.;
-                              if (icol2 == max_authorized_nb_of_components_)
+                              if (icol2 < max_authorized_nb_of_components_ && gauche_droite == 1)
                                 {
-                                  // il n'y a aucune intersection (reelle) par num_compo dans
-                                  // l'elem voisin (elem2).
+                                  // on a deja traite cette composante lorsqu'on a fait la boucle
+                                  // pour gauche_droite = 0
+                                  continue;
+                                }
 
-                                  // Determine l'indicatrice dans l'element voisin lorsqu'il
-                                  // n'est pas traverse. Pour cela, on se base sur une
-                                  // comparaison de la position du centre de la face au plan
-                                  // moyen defini par les facettes presentes dans l'element
-                                  // elem.
-                                  //   Point du plan :     bary_facettes_dans_elem
-                                  //   Normale au plan :   normale  (non-unitaire)
-                                  //
-                                  // Equation du plan :
-                                  //   F(X,Y,Z)=X*NX+Y*NY+Z*NZ+ CONSTANTE
-                                  //   CONSTANTE = -(NX*PX+NY*PY+NZ*PZ) ou P est un point du
-                                  //   plan,
-                                  //                                    ici, c'est le cdg des
-                                  //                                    facettes dans l'elem.
-                                  //
-                                  //   F(X,Y,Z) = (X-PX)*NX + (Y-PY)*NY + (Z-PZ)*NZ
+                              const double indic = indicatrice_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
 
-                                  // F n'est pas une distance car normale non-unitaire.
-                                  // Mais F est signee (positive si on va dans le sens de N, cad
-                                  // vers le liquide)
 
-                                  // Coordonnees centre face :
-                                  Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
+                              const double phi = phi_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
 
-                                  Vecteur3 normale;
-                                  Vecteur3 bary_facettes_dans_elem;
-                                  for (int dir = 0; dir < 3; dir++)
+                              const double surface = surface_par_compo_[old()][icol1](
+                                                       elem1[0], elem1[1], elem1[2]
+                                                     ); // la compo dans l'elem c'est icol1.
+
+                              const double repul = repuls_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
+                              if (correction_gradient_potentiel_)
+                                {
+                                  double indic_voisin = 0., phi_voisin = 0.;
+                                  double repul_voisin = 0.;
+                                  if (icol2 == max_authorized_nb_of_components_)
                                     {
-                                      const int idx = icol1 * 3 + dir;
-                                      // TODO: aym attention, il a des chances que
-                                      // normale_par_compo et bary_par_compo_[old()] ne soient pas
-                                      // calcules au meme moment que indic_par_compo par exemple.
-                                      // Ca risque de poser pb. Il faudra donc sirtir le calcul de
-                                      // indic_par_compo de cette methode.
-                                      normale[dir] = normale_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
-                                      bary_facettes_dans_elem[dir] = bary_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
-                                    }
-                                  // Calcul du produit scalaire pour savoir de quel cote on est
-                                  // :
-                                  const double ps = Vecteur3::produit_scalaire(centre_face - bary_facettes_dans_elem, normale);
+                                      // il n'y a aucune intersection (reelle) par num_compo dans
+                                      // l'elem voisin (elem2).
 
-                                  // Si la fonction F est positive, le voisin est liquide :
-                                  indic_voisin = (ps > 0 ? 1. : 0.);
-                                  phi_voisin = phi; // On prend le phi de l'elem1 puisque le
-                                  // voisin (elem2) n'est pas traverse.
-                                  repul_voisin = repul;
-                                  grad_sigma_voisin = grad_sigma;
-                                }
-                              else
-                                {
-                                  // la composante est presente dans l'element voisin
-                                  // Le voisin est aussi traverse par num_compo.
-                                  phi_voisin = phi_par_compo_[old()][icol2](elem2[0], elem2[1],
-                                                                            elem2[2]); // la compo dans le voisin c'est icol2
-                                  repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
-                                                                                 elem2[2]); // la compo dans le voisin c'est icol2
-                                  indic_voisin = indicatrice_par_compo_[old()][icol2](elem2[0], elem2[1], elem2[2]);
+                                      // Determine l'indicatrice dans l'element voisin lorsqu'il
+                                      // n'est pas traverse. Pour cela, on se base sur une
+                                      // comparaison de la position du centre de la face au plan
+                                      // moyen defini par les facettes presentes dans l'element
+                                      // elem.
+                                      //   Point du plan :     bary_facettes_dans_elem
+                                      //   Normale au plan :   normale  (non-unitaire)
+                                      //
+                                      // Equation du plan :
+                                      //   F(X,Y,Z)=X*NX+Y*NY+Z*NZ+ CONSTANTE
+                                      //   CONSTANTE = -(NX*PX+NY*PY+NZ*PZ) ou P est un point du
+                                      //   plan,
+                                      //                                    ici, c'est le cdg des
+                                      //                                    facettes dans l'elem.
+                                      //
+                                      //   F(X,Y,Z) = (X-PX)*NX + (Y-PY)*NY + (Z-PZ)*NZ
 
-                                  surface_voisin = surface_par_compo_[old()][icol2](
-                                                     elem2[0], elem2[1], elem2[2]
-                                                   );
+                                      // F n'est pas une distance car normale non-unitaire.
+                                      // Mais F est signee (positive si on va dans le sens de N, cad
+                                      // vers le liquide)
 
-                                  grad_sigma_voisin = surface_voisin * grad_sigma_par_compo_[old()][direction][icol2](elem2[0], elem2[1], elem2[2]);
-                                }
+                                      // Coordonnees centre face :
+                                      Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
 
-                              // Calcul du gradient a la face :
-                              double gradient_phi_indic = (phi_voisin * indic_voisin - phi * indic) / delta_dir * signe;
-                              double gradient_sigma_face = (grad_sigma_voisin + grad_sigma) / 2.;
+                                      Vecteur3 normale;
+                                      Vecteur3 bary_facettes_dans_elem;
+                                      for (int dir = 0; dir < 3; dir++)
+                                        {
+                                          const int idx = icol1 * 3 + dir;
+                                          // TODO: aym attention, il a des chances que
+                                          // normale_par_compo et bary_par_compo_[old()] ne soient pas
+                                          // calcules au meme moment que indic_par_compo par exemple.
+                                          // Ca risque de poser pb. Il faudra donc sirtir le calcul de
+                                          // indic_par_compo de cette methode.
+                                          normale[dir] = normale_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
+                                          bary_facettes_dans_elem[dir] = bary_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
+                                        }
+                                      // Calcul du produit scalaire pour savoir de quel cote on est
+                                      // :
+                                      const double ps = Vecteur3::produit_scalaire(centre_face - bary_facettes_dans_elem, normale);
 
-                              vpoint[direction](i, j, k) += gradient_phi_indic;
-
-                              if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_marangoni_source_term())
-                                {
-                                  //ai_face = calculer_aire_interfaciale_for_compo(num_compo, i, j, k);
-                                  //ai_face  = ai_all_compo(i,j,k);
-                                  vpoint[direction](i, j, k) += gradient_sigma_face;
-                                }
-
-                              double gradient_repul_indic = (repul_voisin * indic_voisin - repul * indic) / delta_dir * signe;
-                              vrepul[direction](i, j, k) += gradient_repul_indic;
-                              vabsrepul[direction](i, j, k) += fabs(gradient_repul_indic);
-                            }
-                          else
-                            {
-                              double indic_voisin = 0., phi_face = 0., grad_sigma_face = 0.;
-                              double repul_face = 0.;
-                              if (icol2 == max_authorized_nb_of_components_)
-                                {
-                                  // il n'y a aucune intersection (reelle) par num_compo dans
-                                  // l'elem voisin (elem2).
-
-                                  // Determine l'indicatrice dans l'element voisin lorsqu'il
-                                  // n'est pas traverse. Pour cela, on se base sur une
-                                  // comparaison de la position du centre de la face au plan
-                                  // moyen defini par les facettes presentes dans l'element
-                                  // elem.
-                                  //   Point du plan :     bary_facettes_dans_elem
-                                  //   Normale au plan :   normale  (non-unitaire)
-                                  //
-                                  // Equation du plan :
-                                  //   F(X,Y,Z)=X*NX+Y*NY+Z*NZ+ CONSTANTE
-                                  //   CONSTANTE = -(NX*PX+NY*PY+NZ*PZ) ou P est un point du
-                                  //   plan,
-                                  //                                    ici, c'est le cdg des
-                                  //                                    facettes dans l'elem.
-                                  //
-                                  //   F(X,Y,Z) = (X-PX)*NX + (Y-PY)*NY + (Z-PZ)*NZ
-
-                                  // F n'est pas une distance car normale non-unitaire.
-                                  // Mais F est signee (positive si on va dans le sens de N, cad
-                                  // vers le liquide)
-
-                                  // Coordonnees centre face :
-                                  Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
-
-                                  Vecteur3 normale;
-                                  Vecteur3 bary_facettes_dans_elem;
-                                  for (int dir = 0; dir < 3; dir++)
-                                    {
-                                      const int idx = icol1 * 3 + dir;
-                                      // TODO: AYM pareil attention a la synchro avec le maillage.
-                                      normale[dir] = normale_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
-                                      bary_facettes_dans_elem[dir] = bary_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
-                                    }
-                                  // Calcul du produit scalaire pour savoir de quel cote on est
-                                  // :
-                                  const double ps = Vecteur3::produit_scalaire(centre_face - bary_facettes_dans_elem, normale);
-
-                                  // Si la fonction F est positive, le voisin est liquide :
-                                  indic_voisin = (ps > 0 ? 1. : 0.);
-                                  phi_face = phi; // On prend le phi de l'elem1 puisque le
-                                  grad_sigma_face = grad_sigma ;
-                                  // voisin (elem2) n'est pas traverse.
-                                  repul_face = repul;
-
-                                }
-                              else
-                                {
-                                  // la composante est presente dans l'element voisin
-                                  // Le voisin est aussi traverse par num_compo.
-                                  const double phi_voisin = phi_par_compo_[old()][icol2](elem2[0], elem2[1],
-                                                                                         elem2[2]); // la compo dans le voisin c'est icol2
-
-                                  const double repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
-                                                                                              elem2[2]); // la compo dans le voisin c'est icol2
-                                  indic_voisin = indicatrice_par_compo_[old()][icol2](elem2[0], elem2[1], elem2[2]);
-#if 0
-                                  // Seulement pour debug :
-                                  field_indicatrice(elem2[0], elem2[1], elem2[2]) = indic_voisin;
-#endif
-                                  const double surface_voisin = surface_par_compo_[old()][icol2](
-                                                                  elem2[0], elem2[1], elem2[2]
-                                                                ); // la compo dans le voisin c'est icol2
-                                  // assert provisoir :
-
-                                  const double grad_sigma_voisin = surface_voisin * grad_sigma_par_compo_[old()][direction][icol2](elem2[0], elem2[1], elem2[2]);
-
-                                  assert(compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo);
-                                  assert(indic_voisin > -0.5);
-                                  if (est_egal(surface+surface_voisin,0.))
-                                    {
-                                      phi_face = 0.;
-                                      grad_sigma_face = 0.;
-                                      repul_face = 0.;
+                                      // Si la fonction F est positive, le voisin est liquide :
+                                      indic_voisin = (ps > 0 ? 1. : 0.);
+                                      phi_voisin = phi; // On prend le phi de l'elem1 puisque le
+                                      // voisin (elem2) n'est pas traverse.
+                                      repul_voisin = repul;
                                     }
                                   else
                                     {
-                                      // Il faut calculer le phi moyen a la face :
-                                      phi_face = (phi * surface + phi_voisin * surface_voisin) / (surface + surface_voisin);
-                                      grad_sigma_face = (grad_sigma * surface + grad_sigma_voisin * surface_voisin) / (surface + surface_voisin);
-                                      repul_face = (repul * surface + repul_voisin * surface_voisin) / (surface + surface_voisin);
+                                      // la composante est presente dans l'element voisin
+                                      // Le voisin est aussi traverse par num_compo.
+                                      phi_voisin = phi_par_compo_[old()][icol2](elem2[0], elem2[1],
+                                                                                elem2[2]); // la compo dans le voisin c'est icol2
+                                      repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
+                                                                                     elem2[2]); // la compo dans le voisin c'est icol2
+                                      indic_voisin = indicatrice_par_compo_[old()][icol2](elem2[0], elem2[1], elem2[2]);
                                     }
+
+                                  // Calcul du gradient a la face :
+                                  double gradient_phi_indic = (phi_voisin * indic_voisin - phi * indic) / delta_dir * signe;
+
+                                  vpoint[direction](i, j, k) += gradient_phi_indic;
+                                  double gradient_repul_indic = (repul_voisin * indic_voisin - repul * indic) / delta_dir * signe;
+                                  vrepul[direction](i, j, k) += gradient_repul_indic;
+                                  vabsrepul[direction](i, j, k) += fabs(gradient_repul_indic);
                                 }
-                              // Calcul du gradient a la face :
-                              double gradient_indic = (indic_voisin - indic) / delta_dir * signe;
-
-
-                              // terme de repulsion
-                              // parcourir les elements voisins jusqu'a une distance d (en
-                              // mailles) si un element voisin contient une composante connexe
-                              // differente, trouver la plus petite distance a cette
-                              // composante
-
-
-                              vpoint[direction](i, j, k) += phi_face * gradient_indic ;
-                              if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_marangoni_source_term())
+                              else
                                 {
-                                  //ai_face = calculer_aire_interfaciale_for_compo(num_compo, i, j, k);
-                                  //ai_face  = ai_all_compo(i,j,k);
-                                  vpoint[direction](i, j, k) += grad_sigma_face ;
+                                  double indic_voisin = 0., phi_face = 0.;
+                                  double repul_face = 0.;
+                                  if (icol2 == max_authorized_nb_of_components_)
+                                    {
+                                      // il n'y a aucune intersection (reelle) par num_compo dans
+                                      // l'elem voisin (elem2).
+
+                                      // Determine l'indicatrice dans l'element voisin lorsqu'il
+                                      // n'est pas traverse. Pour cela, on se base sur une
+                                      // comparaison de la position du centre de la face au plan
+                                      // moyen defini par les facettes presentes dans l'element
+                                      // elem.
+                                      //   Point du plan :     bary_facettes_dans_elem
+                                      //   Normale au plan :   normale  (non-unitaire)
+                                      //
+                                      // Equation du plan :
+                                      //   F(X,Y,Z)=X*NX+Y*NY+Z*NZ+ CONSTANTE
+                                      //   CONSTANTE = -(NX*PX+NY*PY+NZ*PZ) ou P est un point du
+                                      //   plan,
+                                      //                                    ici, c'est le cdg des
+                                      //                                    facettes dans l'elem.
+                                      //
+                                      //   F(X,Y,Z) = (X-PX)*NX + (Y-PY)*NY + (Z-PZ)*NZ
+
+                                      // F n'est pas une distance car normale non-unitaire.
+                                      // Mais F est signee (positive si on va dans le sens de N, cad
+                                      // vers le liquide)
+
+                                      // Coordonnees centre face :
+                                      Vecteur3 centre_face = geom.get_coords_of_dof(ijk_face[0], ijk_face[1], ijk_face[2], loc);
+
+                                      Vecteur3 normale;
+                                      Vecteur3 bary_facettes_dans_elem;
+                                      for (int dir = 0; dir < 3; dir++)
+                                        {
+                                          const int idx = icol1 * 3 + dir;
+                                          // TODO: AYM pareil attention a la synchro avec le maillage.
+                                          normale[dir] = normale_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
+                                          bary_facettes_dans_elem[dir] = bary_par_compo_[old()][idx](elem1[0], elem1[1], elem1[2]);
+                                        }
+                                      // Calcul du produit scalaire pour savoir de quel cote on est
+                                      // :
+                                      const double ps = Vecteur3::produit_scalaire(centre_face - bary_facettes_dans_elem, normale);
+
+                                      // Si la fonction F est positive, le voisin est liquide :
+                                      indic_voisin = (ps > 0 ? 1. : 0.);
+                                      phi_face = phi; // On prend le phi de l'elem1 puisque le
+                                      // voisin (elem2) n'est pas traverse.
+                                      repul_face = repul;
+
+                                    }
+                                  else
+                                    {
+                                      // la composante est presente dans l'element voisin
+                                      // Le voisin est aussi traverse par num_compo.
+                                      const double phi_voisin = phi_par_compo_[old()][icol2](elem2[0], elem2[1],
+                                                                                             elem2[2]); // la compo dans le voisin c'est icol2
+
+                                      const double repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
+                                                                                                  elem2[2]); // la compo dans le voisin c'est icol2
+                                      indic_voisin = indicatrice_par_compo_[old()][icol2](elem2[0], elem2[1], elem2[2]);
+#if 0
+                                      // Seulement pour debug :
+                                      field_indicatrice(elem2[0], elem2[1], elem2[2]) = indic_voisin;
+#endif
+                                      const double surface_voisin = surface_par_compo_[old()][icol2](
+                                                                      elem2[0], elem2[1], elem2[2]
+                                                                    ); // la compo dans le voisin c'est icol2
+                                      // assert provisoir :
+
+                                      assert(compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo);
+                                      assert(indic_voisin > -0.5);
+                                      if (est_egal(surface+surface_voisin,0.))
+                                        {
+                                          phi_face = 0.;
+                                          repul_face = 0.;
+                                        }
+                                      else
+                                        {
+                                          // Il faut calculer le phi moyen a la face :
+                                          phi_face = (phi * surface + phi_voisin * surface_voisin) / (surface + surface_voisin);
+                                          repul_face = (repul * surface + repul_voisin * surface_voisin) / (surface + surface_voisin);
+                                        }
+                                    }
+                                  // Calcul du gradient a la face :
+                                  double gradient_indic = (indic_voisin - indic) / delta_dir * signe;
+
+
+                                  // terme de repulsion
+                                  // parcourir les elements voisins jusqu'a une distance d (en
+                                  // mailles) si un element voisin contient une composante connexe
+                                  // differente, trouver la plus petite distance a cette
+                                  // composante
+
+
+                                  vpoint[direction](i, j, k) += phi_face * gradient_indic ;
+                                  vrepul[direction](i, j, k) += repul_face * gradient_indic;
+                                  vabsrepul[direction](i, j, k) += fabs(repul_face * gradient_indic);
                                 }
-                              vrepul[direction](i, j, k) += repul_face * gradient_indic;
-                              vabsrepul[direction](i, j, k) += fabs(repul_face * gradient_indic);
                             }
                         }
                     }
@@ -8034,7 +8048,8 @@ void IJK_Interfaces::calculer_indicatrice_next(
 
   // calcul de la force de repulsion
   calculer_phi_repuls_par_compo(
-    grad_sigma_par_compo_[next()],
+    surf_par_compo_[next()],
+    source_interf_par_compo_[next()],
     phi_par_compo_[next()],
     repuls_par_compo_[next()],
     gravite,
@@ -8528,7 +8543,8 @@ void IJK_Interfaces::switch_indicatrice_next_old()
 
 
 void IJK_Interfaces::calculer_phi_repuls_par_compo(
-  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& grad_sigma_par_compo,
+  FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& surf_par_compo,
+  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& source_interf_par_compo,
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
   const DoubleTab& gravite,
@@ -8547,27 +8563,26 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
     potentiels_sommets, phi_par_compo);
 
 
-  if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
+  if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant() or (maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant() and use_tryggvason_interfacial_source_ ))
     {
-      const Domaine_IJK& geom = ref_domaine_.valeur();
-      const double dxi = geom.get_constant_delta(DIRECTION_I);
-      const double dxj = geom.get_constant_delta(DIRECTION_J);
-      const double dxk = geom.get_constant_delta(DIRECTION_K);
-      const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
-      maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
+      // on passe ici si sigma = variable
+      // ou si sigma = cte, mais terme source interf = formulation Tryggvason
+      DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, true, use_tryggvason_interfacial_source_, sigma);
+      ArrOfDouble interfacial_source_term_sommet_dir, unite;
+      interfacial_source_term_sommet_dir.resize(maillage_ft_ijk_.nb_sommets());
+      unite.resize(maillage_ft_ijk_.nb_sommets());
+      for (int som = 0; som < maillage_ft_ijk_.nb_sommets(); som++)
+        unite(som) = 1. ;
+      val_par_compo_in_cell_computation_.calculer_somme_field_sommet_par_compo(unite, surf_par_compo);
+
       for (int dir = 0; dir < 3; dir++)
         {
-          FT_Field& Surf = maillage_ft_ijk_.Surfactant_facettes_non_const();
-          ArrOfDouble grad_sigma_sommets = Surf.get_grad_sigma_sommets_non_const(dir);
-
-          const int nbsom=mesh.nb_sommets();
-          for (int som=0 ; som<nbsom ; som++)
-            for (int dim=0 ; dim<3 ; dim++)
-              grad_sigma_sommets[som]*=dxi*dxj*dxk;
-
-          val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(grad_sigma_sommets, grad_sigma_par_compo[dir]);
+          for (int som = 0; som < maillage_ft_ijk_.nb_sommets(); som++)
+            interfacial_source_term_sommet_dir(som)=interfacial_source_term_sommet(som, dir);
+          val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(interfacial_source_term_sommet_dir, source_interf_par_compo[dir]);
         }
     }
+
   val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(
     repulsions_sommets, repuls_par_compo);
 
@@ -8615,7 +8630,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
   //Il faut quil passe en sigma variable ici dans le cas de surfactant
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
-      maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
+      DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
       const ArrOfDouble& sigma_sommets = maillage_ft_ijk_.Surfactant_facettes().get_sigma_sommets();
       for (int i = 0; i < nb_som; i++)
         {

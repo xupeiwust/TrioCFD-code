@@ -18,7 +18,7 @@
 using namespace std;
 void Operator_FT_Disc::Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Facet,const Maillage_FT_Disc& FTmesh, ArrOfDouble& Laplacian_Phi_Facet,DoubleTab& Grad_Phi_Sommet)
 {
-  Operator_Gradient_FT_sommets(Phi_Facet, FTmesh, Grad_Phi_Sommet);
+  Operator_Gradient_FT_sommets(Phi_Facet, FTmesh, Grad_Phi_Sommet, true);
   const int dim = Objet_U::dimension;
   int nbfa7=FTmesh.nb_facettes();
   DoubleTab sommets=FTmesh.sommets();
@@ -89,84 +89,152 @@ void Operator_FT_Disc::Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Face
   desc_facettes.echange_espace_virtuel(Laplacian_Phi_Facet);
 }
 
+void Operator_FT_Disc::Compute_interfaciale_source(const ArrOfDouble& sigma_Facet, const Maillage_FT_Disc& FTmesh,
+                                                   DoubleTab& df_sigma, bool Normalised_with_Surface, bool use_tryggvason_formulation, bool with_marangoni)
+{
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  int nbsom=FTmesh.nb_sommets();
+  DoubleTab sommets=FTmesh.sommets();
+  IntTab facettes=FTmesh.facettes();
+  //const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
+  const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
+
+  /* initialisation des tableaux locaux */
+  ArrOfDouble Unit_Facet, Unit_Somm, Surface_sommet, sigma_sommet ;
+  DoubleTab df_sigma_bis ;
+  df_sigma.resize(nbsom, dim);
+  df_sigma_bis.resize(nbsom, dim);
+  Unit_Somm.resize(nbsom);
+  Unit_Facet.resize(nbfa7);
+  sigma_sommet.resize(nbsom);
+  Surface_sommet.resize(nbsom);
+  for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+    {
+      Unit_Facet(fa7)=1. ;
+    }
+  for (int som=0 ; som<nbsom ; som++)
+    {
+      Unit_Somm(som)=1.;
+      sigma_sommet(som)=0.;
+      for (int dir=0 ; dir<dim ; dir++)
+        {
+          df_sigma(som, dir)= 0. ;
+          df_sigma_bis(som, dir)= 0. ;
+        }
+    }
+  /* Interpolation aux sommets */
+  Facette_to_Sommets(Surface_sommet, sigma_sommet, sigma_Facet, FTmesh, true);
+  Operator_integral_bord_facette_phi_p_dl(Surface_sommet, sigma_sommet, sigma_Facet, FTmesh, df_sigma, df_sigma_bis);
+
+  if (!with_marangoni and use_tryggvason_formulation)
+    {
+      // on ne veut pas du terme de marangoni
+      // Cela revient à extraire sigma de l'integrale
+      // on veut donc sigma * int_p_dl
+      for (int som=0 ; som<nbsom ; som++)
+        if(! FTmesh.sommet_virtuel(som))
+          for (int dir=0 ; dir<3 ; dir++)
+            df_sigma(som, dir) = df_sigma_bis(som, dir)*sigma_sommet[som];
+
+    }
+  else if(with_marangoni and !use_tryggvason_formulation)
+    {
+      // on ne veut QUE du terme de marangoni
+      // Cela revient à soustraire les deux contribution int_sigma_p_dl - sigma * int_p_dl
+      for (int som=0 ; som<nbsom ; som++)
+        if(! FTmesh.sommet_virtuel(som))
+          for (int dir=0 ; dir<3 ; dir++)
+            df_sigma(som, dir)-=df_sigma_bis(som, dir)*sigma_sommet[som];
+
+    }
+  else if (!with_marangoni and !use_tryggvason_formulation)
+    {
+      // on ne veut rien du tout
+      for (int som=0 ; som<nbsom ; som++)
+        for (int dir=0 ; dir<dim ; dir++)
+          df_sigma(som, dir)= 0. ;
+    }
+  // dans le cas with_marangoni and use_tryggvason_formulation, on veut df_sigma=int_sigma_p_dl
+  // Il n'y a donc rien a changer
+
+  desc_sommets.echange_espace_virtuel(df_sigma);
+}
 
 void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
-                                                    DoubleTab& Grad_Phi_Sommet, bool times_ai)
+                                                    DoubleTab& Grad_Phi_Sommet, bool Normalised_with_Surface)
 {
 
 
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  int nbsom=FTmesh.nb_sommets();
+  DoubleTab sommets=FTmesh.sommets();
+  IntTab facettes=FTmesh.facettes();
+  //const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
+  const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
+
+  /* initialisation des tableaux locaux */
+  ArrOfDouble Unit_Facet, Unit_Somm, Phi_sommet, Surface_sommet ;
+  DoubleTab int_phi_p_dl, int_p_dl ;
+  Grad_Phi_Sommet.resize(nbsom, dim);
+  int_phi_p_dl.resize(nbsom, dim);
+  int_p_dl.resize(nbsom, dim);
+  Unit_Somm.resize(nbsom);
+  Unit_Facet.resize(nbfa7);
+  Phi_sommet.resize(nbsom);
+  Surface_sommet.resize(nbsom);
+  for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+    {
+      Unit_Facet(fa7)=1. ;
+    }
+  for (int som=0 ; som<nbsom ; som++)
+    {
+      Unit_Somm(som)=1.;
+      for (int dir=0 ; dir<dim ; dir++)
+        {
+          Grad_Phi_Sommet(som, dir)= 0. ;
+          int_p_dl(som, dir)=0.;
+          int_phi_p_dl(som, dir)=0.;
+        }
+    }
+
+  /* Interpolation aux sommets */
+  Facette_to_Sommets(Surface_sommet, Phi_sommet, Phi_Facet, FTmesh, true);
+
+  /* Calcul des integrales surfaciques */
+  Operator_integral_bord_facette_phi_p_dl(Surface_sommet, Phi_sommet, Phi_Facet, FTmesh, int_phi_p_dl, int_p_dl);
+
+  /* Assemblage du gradient */
+
+  for (int som=0 ; som<nbsom ; som++)
+    if(! FTmesh.sommet_virtuel(som))
+      for (int dir=0 ; dir<dim ; dir++)
+        Grad_Phi_Sommet(som, dir) = int_phi_p_dl(som, dir)  - int_p_dl(som, dir) *Phi_sommet[som];
+
+  /* normalisation si souhaitee */
+  if (!Normalised_with_Surface)
+    for (int som=0 ; som<nbsom ; som++)
+      if(! FTmesh.sommet_virtuel(som))
+        for (int dir=0 ; dir<dim ; dir++)
+          Grad_Phi_Sommet(som, dir)*= Surface_sommet[som];
+
+  desc_sommets.echange_espace_virtuel(Grad_Phi_Sommet);
+}
+
+void Operator_FT_Disc::Operator_integral_bord_facette_phi_p_dl(const ArrOfDouble& Surface_sommet, const ArrOfDouble& Phi_sommet, const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
+                                                               DoubleTab& int_phi_p_dl, DoubleTab& int_p_dl)
+{
   int dim = Objet_U::dimension;
   double R = 1.; // TODO GUILLAUME
   double pi = 3.1415; // TODO GUILLAUME
   int nbfa7=FTmesh.nb_facettes();
   int nbsom=FTmesh.nb_sommets();
   DoubleTab sommets=FTmesh.sommets();
-  // mes_sommets(i,j)  = j-ieme composante de la position du i-eme sommet du maillage
   IntTab facettes=FTmesh.facettes();
-  // mes_facettes(i,j) = indice du j-ieme sommet de la i-ieme facette du maillage
-  //                     En 2D : j=0..1, en 3D j=0..2
-  //const ArrOfDouble& Csom = FTmesh.get_update_courbure_sommets();
-  const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
   const DoubleTab& nfa7 = FTmesh.get_update_normale_facettes();
-  //DoubleTab d_surface(nsom, dim);
-
-  Phi_sommet_.resize(nbsom);
-  n_sommet_.resize(nbsom, dim);
-  Surface_sommet_.resize(nbsom);
-  Kappa_n_.resize(nbsom, dim);
-  Grad_Phi_Sommet.resize(nbsom, dim);
-  for (int som=0 ; som<nbsom ; som++)
-    {
-      Phi_sommet_[som]=0.;
-      Surface_sommet_[som]=0.;
-      for (int dir=0 ; dir<dim ; dir++)
-        {
-          Grad_Phi_Sommet(som, dir)= 0. ;
-          Kappa_n_(som, dir)=0.;
-          n_sommet_(som, dir)=0.;
-        }
-    }
-
-  // interpolation des valeur de Phi et de la normale aux sommets en moyennant les contributions adjacentes
-
-  for (int fa7=0 ; fa7<nbfa7 ; fa7++)
-    {
-      if(! FTmesh.facette_virtuelle(fa7))
-        {
-          for (int sommet_fa7=0 ; sommet_fa7<dim ; sommet_fa7++)
-            {
-              int indice_sommet = facettes(fa7,sommet_fa7);
-              Phi_sommet_[indice_sommet]+=Phi_Facet[fa7]*Sfa7[fa7]; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
-              Surface_sommet_[indice_sommet]+=Sfa7[fa7]; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
-              for (int dir=0 ; dir<dim ; dir++)
-                n_sommet_(indice_sommet, dir)+=nfa7(fa7, dir)*Sfa7[fa7]; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
-            }
-        }
-    }
-  // On a calcule la contribution de chaque facette reelle aux differents sommets.
-  // Certaines contributions ont ete ajoutees a des sommets virtuels, il
-  // faut recuperer ces contributions sur le sommet reel.
   const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
-  desc_sommets.collecter_espace_virtuel(n_sommet_, MD_Vector_tools::EV_SOMME);
-  desc_sommets.collecter_espace_virtuel(Phi_sommet_, MD_Vector_tools::EV_SOMME);
-  desc_sommets.collecter_espace_virtuel(Surface_sommet_, MD_Vector_tools::EV_SOMME);
-
-  for (int som=0 ; som<nbsom ; som++)
-    {
-      if(! FTmesh.sommet_virtuel(som))
-        {
-          Phi_sommet_[som]/= Surface_sommet_[som];
-          for (int dir=0 ; dir<dim ; dir++)
-            n_sommet_(som, dir)/= Surface_sommet_[som];
-        }
-      Surface_sommet_[som] = 0.;
-    }
-  // les sommets reels sont mis a jour
-  // il reste a mettre a jour les sommets virtuels
-  desc_sommets.echange_espace_virtuel(n_sommet_);
-  desc_sommets.echange_espace_virtuel(Phi_sommet_);
-
-  // Calcul du gradient aux sommets
+// Calcul du gradient aux sommets
   for (int fa7=0 ; fa7<nbfa7 ; fa7++)
     {
       if(! FTmesh.facette_virtuelle(fa7))
@@ -198,7 +266,7 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
             {
               int indice_sommet = facettes(fa7,sommet_fa7);
               int indice_sommet_second = facettes(fa7,((sommet_fa7-1)%dim+dim)%dim);
-              Phi_midpoint1[sommet_fa7] = (Phi_sommet_[indice_sommet]+Phi_sommet_[indice_sommet_second])/2.;
+              Phi_midpoint1[sommet_fa7] = (Phi_sommet[indice_sommet]+Phi_sommet[indice_sommet_second])/2.;
               for (int dir=0 ; dir<dim ; dir++)
                 {
                   x_midpoint1(sommet_fa7, dir)=(sommets(indice_sommet, dir)+sommets(indice_sommet_second, dir))/2.;
@@ -206,15 +274,13 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
               if(dim==3)
                 {
                   int indice_sommet_third= facettes(fa7,((sommet_fa7+1)%dim+dim)%dim);
-                  Phi_midpoint2[sommet_fa7] = (Phi_sommet_[indice_sommet]+Phi_sommet_[indice_sommet_third])/2.;
+                  Phi_midpoint2[sommet_fa7] = (Phi_sommet[indice_sommet]+Phi_sommet[indice_sommet_third])/2.;
                   for (int dir=0 ; dir<dim ; dir++)
                     {
                       x_midpoint2(sommet_fa7, dir)=(sommets(indice_sommet, dir)+sommets(indice_sommet_third, dir))/2.;
                     }
                 }
             }
-
-
           // calcul de l integrale lineique de Phi.p sur le bord de la sous zone e du volument du controle du sommet.
           // La sous-zone e est definie par le croisement des mediane de l element triangulaire.
           // Le bord de la sous-zone est composee de 2 segments --> int = Phi1.p1.DS1 + Phi2.p2.DS2
@@ -266,50 +332,156 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
 
               for (int dir=0 ; dir<dim ; dir++)
                 {
-                  Grad_Phi_Sommet(indice_sommet, dir)+=Phi1*p1[dir];
-                  Kappa_n_(indice_sommet, dir)+=p1[dir];
+                  int_phi_p_dl(indice_sommet, dir)+=Phi1*p1[dir];
                   if (dim==3)
-                    {
-                      Grad_Phi_Sommet(indice_sommet, dir)+=Phi2*p2[dir];
-                      Kappa_n_(indice_sommet, dir)+=p2[dir];
-                    }
+                    int_phi_p_dl(indice_sommet, dir)+=Phi2*p2[dir];
+                  int_p_dl(indice_sommet, dir)+=p1[dir];
+                  if (dim==3)
+                    int_p_dl(indice_sommet, dir)+=p2[dir];
                 }
-              Surface_sommet_[indice_sommet]+=Sfa7[fa7]/dim; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
             }
         }
     }
 
-  desc_sommets.collecter_espace_virtuel(Grad_Phi_Sommet, MD_Vector_tools::EV_SOMME);
-  desc_sommets.collecter_espace_virtuel(Kappa_n_, MD_Vector_tools::EV_SOMME);
-  desc_sommets.collecter_espace_virtuel(Surface_sommet_, MD_Vector_tools::EV_SOMME);
+  desc_sommets.collecter_espace_virtuel(int_phi_p_dl, MD_Vector_tools::EV_SOMME);
+  desc_sommets.collecter_espace_virtuel(int_p_dl, MD_Vector_tools::EV_SOMME);
+
+  for (int som=0 ; som<nbsom ; som++)
+    if(! FTmesh.sommet_virtuel(som))
+      for (int dir=0 ; dir<dim ; dir++)
+        {
+          int_phi_p_dl(som, dir)/= Surface_sommet[som];
+          int_p_dl(som, dir)/= Surface_sommet[som];
+        }
+
+  desc_sommets.echange_espace_virtuel(int_phi_p_dl);
+  desc_sommets.echange_espace_virtuel(int_p_dl);
+}
+
+
+void Operator_FT_Disc::Facette_to_Sommets(ArrOfDouble& Surface_sommet, DoubleTab& Phi_Som, const DoubleTab& Phi_Facet, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface)
+{
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  int nbsom=FTmesh.nb_sommets();
+  ArrOfDouble Phi_Facet_dir ;
+  ArrOfDouble Phi_Som_dir ;
+  Phi_Facet_dir.resize(nbfa7);
+  Phi_Som_dir.resize(nbsom);
+  Phi_Som.resize(nbsom, dim);
+
+  for (int dir=0 ; dir<dim ; dir++)
+    {
+      for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+        Phi_Facet_dir(fa7) = Phi_Facet(fa7, dir);
+
+      Facette_to_Sommets(Surface_sommet, Phi_Som_dir, Phi_Facet_dir, FTmesh, Normalised_with_Surface);
+
+      for (int som=0 ; som<nbsom ; som++)
+        Phi_Som(som, dir) = Phi_Som_dir(som) ;
+    }
+}
+
+void Operator_FT_Disc::Facette_to_Sommets(ArrOfDouble& Surface_sommet, ArrOfDouble& Phi_Som, const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface)
+{
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  int nbsom=FTmesh.nb_sommets();
+  IntTab facettes=FTmesh.facettes();
+  const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
+  Phi_Som.resize(nbsom);
+  Surface_sommet.resize(nbsom);
 
   for (int som=0 ; som<nbsom ; som++)
     {
-      if(! FTmesh.sommet_virtuel(som))
+      Phi_Som[som]=0.;
+      Surface_sommet[som]=0.;
+    }
+
+  // interpolation des valeur de Phi et de la normale aux sommets en moyennant les contributions adjacentes
+  for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+    {
+      if(! FTmesh.facette_virtuelle(fa7))
         {
-          for (int dir=0 ; dir<dim ; dir++)
+          for (int sommet_fa7=0 ; sommet_fa7<dim ; sommet_fa7++)
             {
-              Grad_Phi_Sommet(som, dir)/= Surface_sommet_[som];
-              Kappa_n_(som, dir)/= Surface_sommet_[som];
-              Grad_Phi_Sommet(som, dir)-= Kappa_n_(som, dir)*Phi_sommet_[som];
+              int indice_sommet = facettes(fa7,sommet_fa7);
+              Phi_Som[indice_sommet]+=Phi_Facet[fa7]*Sfa7[fa7]/dim; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
+              Surface_sommet[indice_sommet]+=Sfa7[fa7]/dim; // TODO Guillaume : il faut que Sfa7 en 2D contienne * 2 pi R ; sinon il faut le rajouter ?
             }
-          // GradxPhi = contribution precedente - (courbure * n)|sommet * Phi|sommet
         }
     }
 
-  if (times_ai)
+  // On a calcule la contribution de chaque facette reelle aux differents sommets.
+  // Certaines contributions ont ete ajoutees a des sommets virtuels, il
+  // faut recuperer ces contributions sur le sommet reel.
+  const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
+  desc_sommets.collecter_espace_virtuel(Phi_Som, MD_Vector_tools::EV_SOMME);
+  desc_sommets.collecter_espace_virtuel(Surface_sommet, MD_Vector_tools::EV_SOMME);
+
+  if (Normalised_with_Surface)
+    for (int som=0 ; som<nbsom ; som++)
+      {
+        if(! FTmesh.sommet_virtuel(som))
+          {
+            Phi_Som[som]/= Surface_sommet[som];
+          }
+      }
+
+
+  desc_sommets.echange_espace_virtuel(Phi_Som);
+}
+
+void Operator_FT_Disc::Sommets_to_Facettes(DoubleTab& Phi_Facet, const DoubleTab& Phi_Som, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface)
+{
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  int nbsom=FTmesh.nb_sommets();
+  ArrOfDouble Phi_Facet_dir ;
+  ArrOfDouble Phi_Som_dir ;
+  Phi_Facet_dir.resize(nbfa7);
+  Phi_Som_dir.resize(nbsom);
+  Phi_Facet.resize(nbfa7, dim);
+
+  for (int dir=0 ; dir<dim ; dir++)
     {
       for (int som=0 ; som<nbsom ; som++)
+        Phi_Som_dir(som) = Phi_Som(som, dir);
+
+      Sommets_to_Facettes(Phi_Facet_dir, Phi_Som_dir, FTmesh, Normalised_with_Surface);
+
+      for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+        Phi_Facet(fa7, dir)=Phi_Facet_dir(fa7);
+    }
+}
+
+void Operator_FT_Disc::Sommets_to_Facettes(ArrOfDouble& Phi_Facet, const ArrOfDouble& Phi_Som, const Maillage_FT_Disc& FTmesh, bool Normalised_with_Surface)
+{
+  int dim = Objet_U::dimension;
+  int nbfa7=FTmesh.nb_facettes();
+  IntTab facettes=FTmesh.facettes();
+  const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
+
+  Phi_Facet.resize(nbfa7);
+  for (int fa=0 ; fa<nbfa7 ; fa++)
+    Phi_Facet[fa]=0.;
+
+  // interpolation des valeur de Phi et de la normale aux sommets en moyennant les contributions adjacentes
+  for (int fa7=0 ; fa7<nbfa7 ; fa7++)
+    {
+      if(! FTmesh.facette_virtuelle(fa7))
         {
-          if(! FTmesh.sommet_virtuel(som))
+          for (int sommet_fa7=0 ; sommet_fa7<dim ; sommet_fa7++)
             {
-              for (int dir=0 ; dir<dim ; dir++)
-                Grad_Phi_Sommet(som, dir)*= Surface_sommet_[som];
+              int indice_sommet = facettes(fa7,sommet_fa7);
+              Phi_Facet[fa7]+= Phi_Som[indice_sommet]/dim ;
             }
+          if(!Normalised_with_Surface)
+            Phi_Facet[fa7]*=Sfa7[fa7];
         }
     }
-
-  desc_sommets.echange_espace_virtuel(Grad_Phi_Sommet);
+  const Desc_Structure_FT& desc_facettes = FTmesh.desc_facettes();
+  desc_facettes.echange_espace_virtuel(Phi_Facet);
 }
 
 

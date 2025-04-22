@@ -59,6 +59,11 @@ public:
     const ArrOfDouble& val_on_sommet,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
   ) const;
+  void calculer_somme_field_sommet_par_compo(
+    const ArrOfDouble& val_on_sommet,
+    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& field_par_compo
+  ) const;
+
 
 
   void calculer_moy_field_fa7_par_compo(

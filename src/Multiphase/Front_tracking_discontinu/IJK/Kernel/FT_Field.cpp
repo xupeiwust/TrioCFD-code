@@ -109,7 +109,7 @@ Entree& FT_Field::readOn( Entree& is )
   patch_conservation_surfactant_globale_=0;
   check_triangle_duplicata_=0;
   Diff_coeff_surfactant_=0.;
-  Taylor_test_=0 ;
+  Taylor_test_=0. ;
   disable_marangoni_source_term_ = 0;
   sigma0_ = 0.;
   R_= 8.314; // constante des gaz parfaits
@@ -193,16 +193,15 @@ void FT_Field::update_gradient_laplacien_FT(const Maillage_FT_IJK& mesh)
   OpFTDisc_.Operator_Laplacian_FT_element(FT_field_Array_,mesh, Laplacian_FT_field_Array_, Grad_FT_field_Array_);
 }
 
-void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting)
+DoubleTab FT_Field::update_sigma_and_interfacial_source_term_sommet(const Maillage_FT_IJK& mesh, const Domaine_IJK& splitting, bool compute_interfacial_source, bool use_tryggvason_formulation)
 {
   // on calcule les variations de sigma associees aux variations de FT_field_Array_
   const int nbsom=mesh.nb_sommets();
   const int nbfa7=mesh.nb_facettes();
   sigma_sommets_.resize(nbsom);
   sigma_facettes_.resize(nbfa7);
-
   // on exprime la tension de surface aux facettes, comme pour FT_field_Array_
-  if (!Taylor_test_)
+  if (Taylor_test_==0.)
     {
       for (int fa=0 ; fa<nbfa7 ; fa++)
         {
@@ -240,16 +239,21 @@ void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domain
               double x_centre = Lx/2. + (xg_fa7.x-xg_bulle.x);
               // on prend beta = 1.
               //double pos = std::fmod(std::fmod(pos_ref + offset - decallage_bulle_reel_ext_domaine_reel, Lx) + Lx, Lx) + decallage_bulle_reel_ext_domaine_reel;
-              sigma_facettes_[fa]= sigma0_ *(1.- 1. * x_centre/Lx);
+              sigma_facettes_[fa]= sigma0_ *(1.- Taylor_test_ * x_centre/Lx);
             }
         }
     }
   mesh.desc_facettes().echange_espace_virtuel(sigma_facettes_);
   // calcule du gradient de sigma
-  OpFTDisc_.Operator_Gradient_FT_sommets(sigma_facettes_, mesh, Grad_sigma_sommets_);//, true);
+  //OpFTDisc_.Operator_Gradient_FT_sommets(sigma_facettes_, mesh, Grad_sigma_sommets_, true);
+
+  //OpFTDisc_.Compute_integral_interfaciale_source(sigma_facettes_, mesh, Grad_sigma_sommets_, false);
+  if (compute_interfacial_source)
+    OpFTDisc_.Compute_interfaciale_source(sigma_facettes_, mesh, interfacial_source_term_sommet_, true, use_tryggvason_formulation, !disable_marangoni_source_term_);
 
   // on extrapole la valeur de la tension de surface aux sommets pour l'algo de IJK_Interfaces_
   update_Field_sommets(mesh, sigma_facettes_, sigma_sommets_);
+  return interfacial_source_term_sommet_;
 }
 
 

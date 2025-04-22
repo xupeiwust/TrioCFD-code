@@ -277,7 +277,7 @@ public :
     if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
       {
         maillage_ft_ijk_.update_gradient_laplacien_Surfactant();
-        maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
+        DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
       }
     return;
   };
@@ -823,7 +823,8 @@ protected:
   );
 
   void calculer_phi_repuls_par_compo(
-    FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& grad_sigma_par_compo,
+    FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& surf_par_compo,
+    FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& source_interf_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
     const DoubleTab& gravite,
@@ -929,6 +930,7 @@ protected:
 
   // Activer la repulsion aux parois :
   int active_repulsion_paroi_ = 0;
+  int use_tryggvason_interfacial_source_ = 0;
   // La repulsion paroi est desactive par defaut,
   // meme si l'inter-bulles l'est
 
@@ -1121,7 +1123,8 @@ protected:
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> surface_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> courbure_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> phi_par_compo_;
-  FixedVector<FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>, 2> grad_sigma_par_compo_;
+  FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> surf_par_compo_;
+  FixedVector<FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>, 2> source_interf_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> gradx_sigma_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> grady_sigma_par_compo_;
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 2> gradz_sigma_par_compo_;

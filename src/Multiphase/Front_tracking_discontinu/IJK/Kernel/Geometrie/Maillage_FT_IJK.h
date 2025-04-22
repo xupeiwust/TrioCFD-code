@@ -22,6 +22,7 @@
 #include <Domaine_IJK.h>
 #include <TRUSTTab.h>
 #include <FT_Field.h>
+#include <Operator_FT_Disc.h>
 class Domaine_dis_base;
 
 class Parcours_interface;
@@ -37,7 +38,7 @@ class Maillage_FT_IJK : public Maillage_FT_Disc
 public:
   FT_Field Surfactant_facettes_;
   Maillage_FT_IJK(const Maillage_FT_IJK&) = default;
-  void initialize(const Domaine_IJK&, const Domaine_dis_base&, const Parcours_interface&);
+  void initialize(const Domaine_IJK&, const Domaine_dis_base&, const Parcours_interface&, const bool use_tryggvason_interfacial_source=false);
   const ArrOfInt& compo_connexe_facettes() const
   {
     return compo_connexe_facettes_;
@@ -59,11 +60,7 @@ public:
   {
     Surfactant_facettes_.update_gradient_laplacien_FT(*this);
   };
-  void update_sigma_grad_sigma(const Domaine_IJK& splitting)
-  {
-    Surfactant_facettes_.update_sigma_grad_sigma(*this, splitting);
-  };
-
+  DoubleTab update_sigma_and_interfacial_source_term_sommet(const Domaine_IJK& splitting, bool compute_interfacial_source, bool use_tryggvason_formulation, const double sigma_const = -1.);
   void set_Surfactant_facettes(ArrOfDouble Surfactant_field);
   void set_Surfactant_facettes_sommets(ArrOfDouble Surfactant_field);
 // Surcharge de Maillage_FT_Disc:
@@ -134,6 +131,7 @@ public:
 protected:
   // Surcharge de Maillage_FT_Disc :
   bool during_barycentrage_ = false;
+  bool use_tryggvason_interfacial_source_=false;
   void   calculer_costheta_minmax(DoubleTab& costheta) const override;
 
   const Maillage_FT_IJK& operator=(const Maillage_FT_IJK&)
