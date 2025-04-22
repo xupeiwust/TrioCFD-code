@@ -119,27 +119,44 @@ lire pb
 
   {
     
-  expression_vx_ana 0.*(-1047.1975511966)*9.e-6*z*(0.003-z)*sin(3.14159265358979*t)*cos(1047.1975511966*x)*sin(1047.1975511966*y)
-  expression_vy_ana 0.*1047.1975511966*9.e-6*z*(0.003-z)*sin(3.14159265358979*t)*sin(1047.1975511966*x)*cos(1047.1975511966*y)
-  expression_vz_ana 0.
-  expression_p_ana (sin(x)+sin(y)+sin(z))*cos(t)
   
-  dt_post 1
-#  postraiter_sous_pas_de_temps #
-  dt_post_stats_bulles 1000
-  dt_post_stats_plans 1000
-  # ECART_ANA provoque l'impression de la norme L2 dans cerr  #
-  champs_a_postraiter 9 PRESSURE_RHS PRESSURE VELOCITY_FT D_VELOCITY VARIABLE_SOURCE ECART_ANA VELOCITY_ANA
-			PRESSURE_ANA ECART_P_ANA	
-  Sondes
+	
+  }
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 1
+    
+    t_debut_statistiques 0.0
+    nb_pas_dt_post_stats_plans 1000
+    nb_pas_dt_post_stats_bulles 1000
+    
+    expression_vx_ana 0.*(-1047.1975511966)*9.e-6*z*(0.003-z)*sin(3.14159265358979*t)*cos(1047.1975511966*x)*sin(1047.1975511966*y)
+    expression_vy_ana 0.*1047.1975511966*9.e-6*z*(0.003-z)*sin(3.14159265358979*t)*sin(1047.1975511966*x)*cos(1047.1975511966*y)
+    expression_vz_ana 0.
+    expression_p_ana (sin(x)+sin(y)+sin(z))*cos(t)
+    
+    fields 
+    {
+       PRESSURE_RHS elem
+       PRESSURE elem
+       VELOCITY elem
+       D_VELOCITY elem
+       VARIABLE_SOURCE elem
+       VELOCITY_ANA elem
+       ECART_ANA elem
+       PRESSURE_ANA elem
+       ECART_P_ANA elem
+    }
+
+    Sondes
     {
        pression_s pressure periode   0.00000000000001 Segment 24 0.001 0.001 0.0  0.001 0.001 0.003
        velocity_s velocity_z periode 0.00000000000001 Segment 24 0.001 0.001 0.0  0.001 0.001 0.003
        velocity_p velocity_z periode 0.00000000000001 point 1 0.001 0.001 0.0       
        pression_p pressure periode   0.0000000000000001 point 1 0.001 0.001 0.0
-  }		
+    }	
   }
-
 
 }
 solve pb
