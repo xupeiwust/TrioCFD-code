@@ -32,7 +32,7 @@ lire sch
   tinit 0.0
   timestep 0.9e-4
   timestep_facsec 1.0
-  nb_pas_dt_max 3
+  nb_pas_dt_max 100
   dt_sauvegarde 5000
   cfl 1.0
   fo  1.0
@@ -112,6 +112,7 @@ lire pb
     terme_force_init 0.
     # refuse_patch_conservation_QdM_RK3_source_interf #
     # disable_solveur_poisson #
+    # REPRISE #
     # nom_reprise diph_init.sauv
     timestep_reprise_vitesse 1 #
     expression_vx_init 0. # 0.08944271909999159*(z/0.0005) #
@@ -183,6 +184,7 @@ lire pb
         only_remaillage 0
         patch_conservation_surfactant_locale 0
         patch_conservation_surfactant_globale 0
+	check_triangle_duplicata 1
         Diff_coeff_surfactant 0.
         Surfactant_theoric_case 1
         Concentration_surfactant_init 0.
@@ -192,14 +194,33 @@ lire pb
   }
 
   {
-    dt_post 1
-    dt_post_stats_bulles 10
-    dt_post_stats_plans 10
-    t_debut_statistiques 0.0
-    nom_sauvegarde diph_fixe.sauv
-    sauvegarder_xyz
-    champs_a_postraiter 17 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES INDICATRICE_NS VELOCITY_FT VI CONCENTRATION_INTERFACE GRADX_CONCENTRATION_INTERFACE GRADY_CONCENTRATION_INTERFACE GRADZ_CONCENTRATION_INTERFACE LAPLACIAN_CONCENTRATION_INTERFACE NX_SOMMET NY_SOMMET NZ_SOMMET
   }
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 1
+    
+    t_debut_statistiques 0.0
+    nb_pas_dt_post_stats_plans 10
+    nb_pas_dt_post_stats_bulles 10
+    
+    fields 
+    {
+       PRESSURE elem
+       VELOCITY elem
+       INDICATRICE elem  
+    }
+    interfaces interf
+    {
+       courbure som
+       CONCENTRATION_INTERFACE elem
+       GRADX_CONCENTRATION_INTERFACE som
+       GRADY_CONCENTRATION_INTERFACE som
+       GRADZ_CONCENTRATION_INTERFACE som
+       LAPLACIAN_CONCENTRATION_INTERFACE elem
+    } 
+    
+    }
 }
 solve pb
 Fin

@@ -1,7 +1,6 @@
 #!/bin/bash
-lata=`ls surfactant_advection_diffusion_FT_jdd*lata 2>/dev/null`
-tar xzf ref.tgz
-compare_lata $lata  ref/$lata
-err=$?
-exit $err
+
+${TrioCFD_project_directory}/share/bin/verifie_lata.sh $1
+
+exit $?
 
