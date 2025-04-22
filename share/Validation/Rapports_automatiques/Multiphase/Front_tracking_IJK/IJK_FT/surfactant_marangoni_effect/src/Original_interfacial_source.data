@@ -1,0 +1,240 @@
+# PARALLEL ONLY 8 #
+# Le decoupage ne fait rien #
+# Astuce pour que make_PAR.data trouve deux processeurs de calcul:
+Nom_Zones toto
+#
+# DEBUT DECOUPAGE
+system "touch toto_0000.Zones toto_0001.Zones toto_0002.Zones toto_0003.Zones"
+system "touch toto_0004.Zones toto_0005.Zones toto_0006.Zones toto_0007.Zones"
+Fin
+  FIN DECOUPAGE #
+dimension 3
+Probleme_FTD_IJK pb
+
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 80 80 80
+  size_dom 0.001 0.001 0.001
+  perio 1 1 1
+  # DEBUT MAILLAGE
+  nproc 1 1 1
+   FIN MAILLAGE #
+  # DEBUT LECTURE #
+  nproc 2 2 2
+  # FIN LECTURE #
+  ijk_splitting_ft_extension 20 # To be checked.. #
+}
+
+Schema_RK3_IJK sch
+lire sch
+{
+  tinit 0.0
+  timestep 0.9e-4
+  timestep_facsec 1.
+  nb_pas_dt_max 100
+  dt_sauvegarde 5000
+  cfl 1.0
+  fo  1.0
+  oh  1.0
+}
+
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+Option_IJK
+{
+  check_divergence
+  # disable_diphasique #
+}
+
+lire pb
+{
+
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    # vapeur #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 2.944271909999159e-03
+        rho Champ_Uniforme 1 1000.
+    }
+    # liquide #
+    fluide1 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 2.944271909999159e-03
+        rho Champ_Uniforme 1 1000.
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.0002
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 0.
+  }
+
+
+  hydraulique
+  {
+    velocity_convection_op Centre
+    harmonic_nu_in_diff_operator
+    vol_bulle_monodisperse 4.188666666666667e-12
+    Boundary_Conditions
+    {
+      bctype_kmin perio
+      bctype_kmax perio
+    }
+
+    multigrid_solver
+    {
+      solver_precision mixed
+      coarsen_operators 0
+      # Coarsen_Operator_Uniform { coarsen_i 2 coarsen_j 2 coarsen_k 2 } #
+      # grille_3 Coarsen_Operator_Uniform { coarsen_i 0 coarsen_j 0 coarsen_k 0 } grille_3 #
+      # grille_4 Coarsen_Operator_Uniform { coarsen_i 0 coarsen_j 0 coarsen_k 0 } grille_4 #
+      ghost_size 1
+      pre_smooth_steps 1 7
+      smooth_steps 1 7
+      relax_jacobi 1 0.7
+      solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 }  }
+      seuil 1e-8
+      nb_full_mg_steps 2 20 1
+    }
+    # terme pour maintenir le champ de vitesse liquide et le cisaillement a peu pres constant #
+    terme_force_init 0.
+    # refuse_patch_conservation_QdM_RK3_source_interf #
+    # disable_solveur_poisson #
+    # REPRISE #
+    # nom_reprise diph_init.sauv
+    timestep_reprise_vitesse 1 #
+    expression_vx_init 0. # 0.08944271909999159*(z/0.0005) #
+    expression_vy_init 0.
+    expression_vz_init 0.
+
+    corrections_qdm
+    {
+      type gr
+      correction_x
+      {
+        type_correction cible_constante
+        parametres_cible_constante
+        {
+          vitesse_cible 0.
+        }
+        parametres_moyenne_par_morceaux {  }
+        parametres_moyenne_glissante {  }
+      }
+      correction_y
+      {
+        type_correction cible_constante
+        parametres_cible_constante
+        {
+          vitesse_cible -0.
+        }
+        parametres_moyenne_par_morceaux {  }
+        parametres_moyenne_glissante {  }
+      }
+      correction_z
+      {
+        type_correction cible_constante
+        parametres_cible_constante
+        {
+          vitesse_cible -0.
+        }
+        parametres_moyenne_par_morceaux {  }
+        parametres_moyenne_glissante {  }
+      }
+    }
+  }
+
+  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
+  interf
+  {
+    fichier_reprise_interface init.lata
+    timestep_reprise_interface       1
+    lata_meshname   INTERFACES
+    remaillage_ft_ijk
+    {
+      pas_remaillage 1e-6
+      nb_iter_barycentrage 1 # 1 #
+      relax_barycentrage 1.00000000000000000e+00
+      critere_arete 3.49999999999999978e-01
+      seuil_dvolume_residuel 0.00000000000000000e+00
+      nb_iter_correction_volume 6 # 6 #
+      nb_iter_remaillage 6 # 6 #
+      facteur_longueur_ideale 7.50000000000000000e-01
+      lissage_courbure_coeff -2.50000000000000014e-02
+      lissage_courbure_iterations_systematique 5 # 1 #
+      lissage_courbure_iterations_si_remaillage 10 # 10 #
+    }
+    parcours_interface { Correction_Parcours_Thomas parcours_sans_tolerance }
+    
+    maillage_ft_ijk
+    {
+      FT_Field
+      {
+        print_debug_surfactant 0
+        only_remaillage 0
+        patch_conservation_surfactant_locale 0
+        patch_conservation_surfactant_globale 0
+        check_triangle_duplicata 1
+        Diff_coeff_surfactant 1.e-7
+        Surfactant_theoric_case 1
+        Concentration_surfactant_init 0.
+        sigma0 0.0002 # 0.2 #
+        R 8.314
+        T 1.e-5
+        Gamma_inf 0.5
+        Taylor_test 5.
+        disable_marangoni_source_term 1
+      }
+    }
+  # follow_colors #
+  }
+
+  {
+  }
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 10
+    
+    t_debut_statistiques 0.0
+    nb_pas_dt_post_stats_plans 10
+    nb_pas_dt_post_stats_bulles 10
+    
+    fields 
+    {
+       PRESSURE elem
+       PRESSURE_RHS elem
+       VELOCITY elem
+       D_VELOCITY elem
+       INDICATRICE elem  
+    }
+    interfaces interf
+    {
+       courbure som
+       SIGMA som
+       GRADX_SIGMA som
+       GRADY_SIGMA som
+       GRADZ_SIGMA som
+       CONCENTRATION_INTERFACE elem
+       GRADX_CONCENTRATION_INTERFACE som
+       GRADY_CONCENTRATION_INTERFACE som
+       GRADZ_CONCENTRATION_INTERFACE som
+       LAPLACIAN_CONCENTRATION_INTERFACE elem
+    } 
+    
+    }
+}
+solve pb
+Fin
