@@ -413,18 +413,22 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
    * Dimensionless temperature field (thermostat)
    */
   const Nom name_T_adim = get_field_name_with_rank("TEMPERATURE_ADIMENSIONNELLE_THETA");
-  if ((wall_flux_) || liste_post_instantanes_.contient_("SOURCE_TEMPERATURE")
-      || liste_post_instantanes_.contient_("TEMPERATURE_PHYSIQUE_T")
-      || liste_post_instantanes_.contient_("TEMPERATURE_ADIMENSIONNELLE_THETA") || ref_ijk_ft_post_->is_post_required(name_T_adim)
+  const Nom name_sourceT = get_field_name_with_rank("SOURCE_TEMPERATURE");
+  const Nom name_Tphi = get_field_name_with_rank("TEMPERATURE_PHYSIQUE_T");
+  if ((wall_flux_) || ref_ijk_ft_post_->is_post_required(name_sourceT)
+      || ref_ijk_ft_post_->is_post_required(name_Tphi)
+      || ref_ijk_ft_post_->is_post_required(name_T_adim)
       || (type_T_source_ != "??"))
     {
       Cout << "Allocating field for the thermal source term & co. " << finl;
-      source_temperature_.allocate(splitting, Domaine_IJK::ELEM, 1);
+      source_temperature_.allocate(splitting, Domaine_IJK::ELEM, 1, name_sourceT);
+      champs_compris_.ajoute_champ(source_temperature_);
       source_temperature_v_.allocate(splitting, Domaine_IJK::ELEM, 1);
       source_temperature_l_.allocate(splitting, Domaine_IJK::ELEM, 1);
       d_source_Tv_.allocate(splitting, Domaine_IJK::ELEM, 1);
       d_source_Tl_.allocate(splitting, Domaine_IJK::ELEM, 1);
-      temperature_physique_T_.allocate(splitting, Domaine_IJK::ELEM, 2);
+      temperature_physique_T_.allocate(splitting, Domaine_IJK::ELEM, 2, name_Tphi);
+      champs_compris_.ajoute_champ(temperature_physique_T_);
       temperature_adimensionnelle_theta_.allocate(splitting, Domaine_IJK::ELEM, 2, name_T_adim);
       champs_compris_.ajoute_champ(temperature_adimensionnelle_theta_);
       // par defaut s'il n'y a pas de source renseignee, on utilise la source de Dabiri/Kawamura
@@ -447,7 +451,7 @@ void IJK_Thermal_base::initialize(const Domaine_IJK& splitting, const int idx)
     RK3_F_temperature_->allocate(splitting, Domaine_IJK::ELEM, 0);
 
   if (ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA"))
-      || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA")) || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("TEMPERATURE_ANA"))
+      || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("ECART_T_ANA")) || ref_ijk_ft_post_->is_post_required(get_field_name_with_rank("ECART_T_ANA_REL"))
      )
     {
       temperature_ana_.allocate(splitting, Domaine_IJK::ELEM, 1, get_field_name_with_rank("TEMPERATURE_ANA"));
