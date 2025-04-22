@@ -9,7 +9,6 @@ Lire DOM
   perio 1 1 0
   nproc 1 1 1
   ijk_splitting_ft_extension 0
-
 }
 
 schema_euler_explicite_IJK sch
@@ -105,7 +104,6 @@ lire pb
     type_T_source dabiri
     wall_flux
     } , 
-
     # Source PATCH : # 
     ONEFLUID {
     # conv_temperature_negligible #
@@ -121,7 +119,6 @@ lire pb
     type_T_source patch_dabiri
     wall_flux
     } , 
-
     # Source PATCH : # 
     ONEFLUID {
     # conv_temperature_negligible #
@@ -137,32 +134,44 @@ lire pb
     type_T_source unweighted_dabiri
     wall_flux
     }
-  
   }
-  
-  
+ {
+ 
+ }
+ 
+  post_processing 
   {
-  dt_post 1000
+    format lml
+    nb_pas_dt_post 1000
+    fields 
+    {
+       VELOCITY elem
+       Pressure_RHS elem
+       TEMPERATURE_0 elem
+       TEMPERATURE_1 elem
+       TEMPERATURE_2 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_0 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_1 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_2 elem
+       SOURCE_TEMPERATURE_0 elem
+       SOURCE_TEMPERATURE_1 elem
+       SOURCE_TEMPERATURE_2 elem
+       DIV_LAMBDA_GRAD_T_VOLUME_0 elem
+       DIV_LAMBDA_GRAD_T_VOLUME_1 elem
+       DIV_LAMBDA_GRAD_T_VOLUME_2 elem
+    }
 
-
-  champs_a_postraiter 5 TEMPERATURE SOURCE_TEMPERATURE VELOCITY TEMPERATURE_ADIMENSIONNELLE_THETA DIV_LAMBDA_GRAD_T_VOLUME
-  
-  Sondes
-  {
-    sonde_T0 temperature_0 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
-    sonde_T1 temperature_1 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
-    sonde_streamwise_T1 temperature_1 periode 1e-10 segment 12 0.003 0. 0.0015 0.003 0.006 0.0015
-    sonde_T2 temperature_2 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
-    sonde_streamwise_T2 temperature_2 periode 1e-10 segment 12 0.003 0. 0.0015 0.003 0.006 0.0015
+    Sondes
+    {
+      sonde_T0 temperature_0 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
+      sonde_T1 temperature_1 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
+      sonde_streamwise_T1 temperature_1 periode 1e-10 segment 12 0.003 0. 0.0015 0.003 0.006 0.0015
+      sonde_T2 temperature_2 periode 1e-10 segment 48 0.003 0.003 0. 0.003 0.003 0.003
+      sonde_streamwise_T2 temperature_2 periode 1e-10 segment 12 0.003 0. 0.0015 0.003 0.006 0.0015
+    }
   }
-  
-  
-  }
-  
-  
 }
 solve pb
 Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
-Fin  
-  
+Fin
 
