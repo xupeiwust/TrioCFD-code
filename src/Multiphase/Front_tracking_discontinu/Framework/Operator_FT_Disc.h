@@ -28,7 +28,7 @@ public:
   void Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Facet,const Maillage_FT_Disc& FTmesh, ArrOfDouble& Laplacian_Phi_Facet,DoubleTab& Grad_Phi_Sommet);
 
   void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
-                                    DoubleTab& Grad_Phi_Sommet);
+                                    DoubleTab& Grad_Phi_Sommet, bool times_ai = false);
   //void Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, DoubleTab& Grad_Phi_Sommet, const Maillage_FT_Disc& FTmesh);
   void produit_vectoriel(const ArrOfDouble& a, const ArrOfDouble& b, ArrOfDouble& resu);
   double norme(const ArrOfDouble& a);

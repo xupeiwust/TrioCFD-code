@@ -107,8 +107,10 @@ Entree& FT_Field::readOn( Entree& is )
   only_remaillage_=0;
   patch_conservation_surfactant_locale_=0;
   patch_conservation_surfactant_globale_=0;
+  check_triangle_duplicata_=0;
   Diff_coeff_surfactant_=0.;
   Taylor_test_=0 ;
+  disable_marangoni_source_term_ = 0;
   sigma0_ = 0.;
   R_= 8.314; // constante des gaz parfaits
   T_ = 290 ; // temperature absolue
@@ -118,11 +120,13 @@ Entree& FT_Field::readOn( Entree& is )
   param.ajouter("only_remaillage", &only_remaillage_);
   param.ajouter("patch_conservation_surfactant_locale", &patch_conservation_surfactant_locale_);
   param.ajouter("patch_conservation_surfactant_globale", &patch_conservation_surfactant_globale_);
+  param.ajouter("check_triangle_duplicata", &check_triangle_duplicata_);
   param.ajouter("Diff_coeff_surfactant", &Diff_coeff_surfactant_);
   param.ajouter("Surfactant_theoric_case", &Surfactant_theoric_case_);
   param.ajouter("Concentration_surfactant_init", &Concentration_surfactant_init_);
   param.ajouter("sigma0", &sigma0_);
   param.ajouter("Taylor_test", &Taylor_test_);
+  param.ajouter("disable_marangoni_source_term", &disable_marangoni_source_term_);
   param.ajouter("R", &R_);
   param.ajouter("T", &T_);
   param.ajouter("Gamma_inf", &Gamma_inf_);
@@ -159,12 +163,12 @@ void FT_Field::avancer_en_temps(const Maillage_FT_IJK& mesh, const double time_s
 // au pas de temps N+1, je vais calculer S_{n+1}gamma_{n+1}=S_{n}gamma_{n}+DT*Dgamma_{n+1}+DT*Source
 // S_{n}gamma_{n} est la version intensive de la variable de concentration de Surfactant
 
+
   if (!variable_intensive_)
     {
       std::cout << "la variable doit etre intensive a l'appel de cette fonction" << std::endl;
       Process::exit();
     }
-
   // on met a jour le Laplacien interfacial apres transport
   passer_variable_extensive(mesh);
   update_gradient_laplacien_FT(mesh);
@@ -214,11 +218,17 @@ void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domain
       // on teste le cas analytique de Young (voir Muradoglu & Trygvason 2008)
       const DoubleTab& sommets=mesh.sommets();
       const IntTab& facettes=mesh.facettes();
+      const ArrOfInt& compo_connex = mesh.compo_connexe_facettes();
+      ArrOfDouble volume_reel;
+      DoubleTab position;
+      calculer_volume_bulles(volume_reel, position, mesh);
       double Lx =  splitting.get_domain_length(0);
       for (int fa=0 ; fa<nbfa7 ; fa++)
         {
           if(! mesh.facette_virtuelle(fa))
             {
+              int compo = compo_connex(fa);
+              Point3D xg_bulle = {position(compo, 0), position(compo, 1), position(compo, 2)};
               int indice_sommet1 = facettes(fa,0);
               int indice_sommet2 = facettes(fa,1);
               int indice_sommet3 = facettes(fa,2);
@@ -226,18 +236,23 @@ void FT_Field::update_sigma_grad_sigma(const Maillage_FT_IJK& mesh, const Domain
               Point3D x1 = {sommets(indice_sommet2,0),sommets(indice_sommet2,1),sommets(indice_sommet2,2)};
               Point3D x2 = {sommets(indice_sommet3,0),sommets(indice_sommet3,1),sommets(indice_sommet3,2)};
               Point3D xg_fa7 = (x0 + x1 + x2)/3.;
-              // on prend beta = 2. (cf muradoglu 2008)
-              sigma_facettes_[fa]= sigma0_ *(1.- 2. * xg_fa7.x/Lx);
+              // il faut faire comme si la bulle etait fixe au centre du domaine (voir these kalyani)
+              double x_centre = Lx/2. + (xg_fa7.x-xg_bulle.x);
+              // on prend beta = 1.
+              //double pos = std::fmod(std::fmod(pos_ref + offset - decallage_bulle_reel_ext_domaine_reel, Lx) + Lx, Lx) + decallage_bulle_reel_ext_domaine_reel;
+              sigma_facettes_[fa]= sigma0_ *(1.- 1. * x_centre/Lx);
             }
         }
     }
   mesh.desc_facettes().echange_espace_virtuel(sigma_facettes_);
   // calcule du gradient de sigma
-  OpFTDisc_.Operator_Gradient_FT_sommets(sigma_facettes_, mesh, Grad_sigma_sommets_);
+  OpFTDisc_.Operator_Gradient_FT_sommets(sigma_facettes_, mesh, Grad_sigma_sommets_);//, true);
 
   // on extrapole la valeur de la tension de surface aux sommets pour l'algo de IJK_Interfaces_
   update_Field_sommets(mesh, sigma_facettes_, sigma_sommets_);
 }
+
+
 
 void FT_Field::passer_variable_intensive(const Maillage_FT_IJK& mesh)
 {
@@ -878,72 +893,82 @@ void FT_Field::Calculate_Facette_Intersection_Area(DoubleTab& Surface_fa7init, D
 
 void FT_Field::sauvegarder_triangle(const Maillage_FT_IJK& mesh, const int i, const int avant_apres_remaillage)
 {
-  //bool triangle_already_sauv = false;
-
+  bool triangle_already_sauv = false;
   if (avant_apres_remaillage==0)
     {
-      // Normalement pas necessaire avec la maniere dont est geré le parallelisme
-      /*
-        for (int triangle = 0; triangle < triangle_initiaux_.dimension(0) ; triangle++)
-          {
-            Point3D p1new = {facettes_sommets_full_compo_(i, 0),facettes_sommets_full_compo_(i, 1),facettes_sommets_full_compo_(i, 2)};
-            Point3D p2new = {facettes_sommets_full_compo_(i, 3),facettes_sommets_full_compo_(i, 4),facettes_sommets_full_compo_(i, 5)};
-            Point3D p3new = {facettes_sommets_full_compo_(i, 6),facettes_sommets_full_compo_(i, 7),facettes_sommets_full_compo_(i, 8)};
-            Point3D p1ref = {triangle_initiaux_(triangle, 0, 0),triangle_initiaux_(triangle, 0, 1),triangle_initiaux_(triangle, 0, 2)};
-            Point3D p2ref = {triangle_initiaux_(triangle, 1, 0),triangle_initiaux_(triangle, 1, 1),triangle_initiaux_(triangle, 1, 2)};
-            Point3D p3ref = {triangle_initiaux_(triangle, 2, 0),triangle_initiaux_(triangle, 2, 1),triangle_initiaux_(triangle, 2, 2)};
-            if (p1new == p1ref and p2new == p2ref and p3new == p3ref)
-              triangle_already_sauv = true;
-          }
-
-        if(!triangle_already_sauv)
-          {*/
-      int index_triangle = triangle_initiaux_.dimension(0);
-      triangle_initiaux_.resize(index_triangle+1, 3, 3);
-      normale_facette_initiale_.resize(index_triangle+1, 3);
-      Surfactant_facette_initiale_.resize(index_triangle+1);
-      Surfactant_facette_initiale_(index_triangle) = facettes_sommets_full_compo_(i, 9);
-      for (int i_som = 0; i_som < 3; i_som++)
-        for (int dir = 0; dir < 3; dir++)
-          {
-            triangle_initiaux_(index_triangle, i_som, dir) = facettes_sommets_full_compo_(i, 3*i_som+dir);
-          }
-      for (int dir = 0; dir < 3; dir++)
+      /* Normalement pas necessaire de supprimer les duplicata avec la maniere dont est geré le parallelisme
+       * On nest pas sense en avoir a ce stade
+       * Il y en a malgre tout parfois dans les premiere iteration ou le remaillage est violent
+       * Raison non identifiee --> paliatif
+      */
+      if (check_triangle_duplicata_)
         {
-          normale_facette_initiale_(index_triangle, dir) = facettes_sommets_full_compo_(i, 12+dir);
+          for (int triangle = 0; triangle < triangle_initiaux_.dimension(0) ; triangle++)
+            {
+              Point3D p1new = {facettes_sommets_full_compo_(i, 0),facettes_sommets_full_compo_(i, 1),facettes_sommets_full_compo_(i, 2)};
+              Point3D p2new = {facettes_sommets_full_compo_(i, 3),facettes_sommets_full_compo_(i, 4),facettes_sommets_full_compo_(i, 5)};
+              Point3D p3new = {facettes_sommets_full_compo_(i, 6),facettes_sommets_full_compo_(i, 7),facettes_sommets_full_compo_(i, 8)};
+              Point3D p1ref = {triangle_initiaux_(triangle, 0, 0),triangle_initiaux_(triangle, 0, 1),triangle_initiaux_(triangle, 0, 2)};
+              Point3D p2ref = {triangle_initiaux_(triangle, 1, 0),triangle_initiaux_(triangle, 1, 1),triangle_initiaux_(triangle, 1, 2)};
+              Point3D p3ref = {triangle_initiaux_(triangle, 2, 0),triangle_initiaux_(triangle, 2, 1),triangle_initiaux_(triangle, 2, 2)};
+              if (p1new == p1ref and p2new == p2ref and p3new == p3ref)
+                triangle_already_sauv = true;
+            }
         }
-      //}
+      if(!triangle_already_sauv)
+        {
+          int index_triangle = triangle_initiaux_.dimension(0);
+          triangle_initiaux_.resize(index_triangle+1, 3, 3);
+          normale_facette_initiale_.resize(index_triangle+1, 3);
+          Surfactant_facette_initiale_.resize(index_triangle+1);
+          Surfactant_facette_initiale_(index_triangle) = facettes_sommets_full_compo_(i, 9);
+          for (int i_som = 0; i_som < 3; i_som++)
+            for (int dir = 0; dir < 3; dir++)
+              {
+                triangle_initiaux_(index_triangle, i_som, dir) = facettes_sommets_full_compo_(i, 3*i_som+dir);
+              }
+          for (int dir = 0; dir < 3; dir++)
+            {
+              normale_facette_initiale_(index_triangle, dir) = facettes_sommets_full_compo_(i, 12+dir);
+            }
+        }
     }
   if (avant_apres_remaillage==1)
     {
-      // Normalement pas necessaire avec la maniere dont est geré le parallelisme
-      /*
-        for (int triangle = 0; triangle < triangle_finaux_.dimension(0) ; triangle++)
-          {
-            Point3D p1new = {facettes_sommets_full_compo_(i, 0),facettes_sommets_full_compo_(i, 1),facettes_sommets_full_compo_(i, 2)};
-            Point3D p2new = {facettes_sommets_full_compo_(i, 3),facettes_sommets_full_compo_(i, 4),facettes_sommets_full_compo_(i, 5)};
-            Point3D p3new = {facettes_sommets_full_compo_(i, 6),facettes_sommets_full_compo_(i, 7),facettes_sommets_full_compo_(i, 8)};
-            Point3D p1ref = {triangle_finaux_(triangle, 0, 0),triangle_finaux_(triangle, 0, 1),triangle_finaux_(triangle, 0, 2)};
-            Point3D p2ref = {triangle_finaux_(triangle, 1, 0),triangle_finaux_(triangle, 1, 1),triangle_finaux_(triangle, 1, 2)};
-            Point3D p3ref = {triangle_finaux_(triangle, 2, 0),triangle_finaux_(triangle, 2, 1),triangle_finaux_(triangle, 2, 2)};
-            if (p1new == p1ref and p2new == p2ref and p3new == p3ref)
-              triangle_already_sauv = true;
-          }
-        if(!triangle_already_sauv)
-          {*/
-      int index_triangle = triangle_finaux_.dimension(0);
-      triangle_finaux_.resize(index_triangle+1, 3, 3);
-      normale_facette_finale_.resize(index_triangle+1, 3);
-      indice_facette_finaux_.resize(index_triangle+1);
-      indice_facette_finaux_(index_triangle)=i;
-      for (int i_som = 0; i_som < 3; i_som++)
-        for (int dir = 0; dir < 3; dir++)
-          triangle_finaux_(index_triangle, i_som, dir) = facettes_sommets_full_compo_(i, 3*i_som+dir);
-      for (int dir = 0; dir < 3; dir++)
+      /* Normalement pas necessaire de supprimer les duplicata avec la maniere dont est geré le parallelisme
+       * On nest pas sense en avoir a ce stade
+       * Il y en a malgre tout parfois dans les premiere iteration ou le remaillage est violent
+       * Raison non identifiee --> paliatif
+      */
+      if (check_triangle_duplicata_)
         {
-          normale_facette_finale_(index_triangle, dir) = facettes_sommets_full_compo_(i, 12+dir);
+          for (int triangle = 0; triangle < triangle_finaux_.dimension(0) ; triangle++)
+            {
+              Point3D p1new = {facettes_sommets_full_compo_(i, 0),facettes_sommets_full_compo_(i, 1),facettes_sommets_full_compo_(i, 2)};
+              Point3D p2new = {facettes_sommets_full_compo_(i, 3),facettes_sommets_full_compo_(i, 4),facettes_sommets_full_compo_(i, 5)};
+              Point3D p3new = {facettes_sommets_full_compo_(i, 6),facettes_sommets_full_compo_(i, 7),facettes_sommets_full_compo_(i, 8)};
+              Point3D p1ref = {triangle_finaux_(triangle, 0, 0),triangle_finaux_(triangle, 0, 1),triangle_finaux_(triangle, 0, 2)};
+              Point3D p2ref = {triangle_finaux_(triangle, 1, 0),triangle_finaux_(triangle, 1, 1),triangle_finaux_(triangle, 1, 2)};
+              Point3D p3ref = {triangle_finaux_(triangle, 2, 0),triangle_finaux_(triangle, 2, 1),triangle_finaux_(triangle, 2, 2)};
+              if (p1new == p1ref and p2new == p2ref and p3new == p3ref)
+                triangle_already_sauv = true;
+            }
         }
-      //}
+      if(!triangle_already_sauv)
+        {
+          int index_triangle = triangle_finaux_.dimension(0);
+          triangle_finaux_.resize(index_triangle+1, 3, 3);
+          normale_facette_finale_.resize(index_triangle+1, 3);
+          indice_facette_finaux_.resize(index_triangle+1);
+          indice_facette_finaux_(index_triangle)=i;
+          for (int i_som = 0; i_som < 3; i_som++)
+            for (int dir = 0; dir < 3; dir++)
+              triangle_finaux_(index_triangle, i_som, dir) = facettes_sommets_full_compo_(i, 3*i_som+dir);
+          for (int dir = 0; dir < 3; dir++)
+            {
+              normale_facette_finale_(index_triangle, dir) = facettes_sommets_full_compo_(i, 12+dir);
+            }
+        }
     }
   return;
 }
@@ -951,6 +976,7 @@ void FT_Field::sauvegarder_triangle(const Maillage_FT_IJK& mesh, const int i, co
 
 void FT_Field::remailler_FT_Field(Maillage_FT_IJK& mesh)
 {
+
   int nb_triangle_fin = triangle_finaux_.dimension(0);
   int nb_triangle_init = triangle_initiaux_.dimension(0);
 
@@ -2135,3 +2161,57 @@ void FT_Field::exchange_data(int pe_send_, /* processor to send data */
   delete[] recv_buffer_data_sommet;
 }
 
+
+void FT_Field::calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite, const Maillage_FT_IJK& mesh) const
+{
+  const int n = mesh.nb_facettes();
+  const ArrOfInt& compo_connex = mesh.compo_connexe_facettes();
+  int nb_bulles_reelles = 0 ;
+  if (compo_connex.size_array()!=0)
+    nb_bulles_reelles = max_array(compo_connex);
+  nb_bulles_reelles = Process::mp_max(nb_bulles_reelles) + 1;
+
+  const int nbulles_tot = nb_bulles_reelles ;
+  volumes.resize_array(nbulles_tot, RESIZE_OPTIONS::NOCOPY_NOINIT);
+  volumes = 0.;
+  centre_gravite.resize(nbulles_tot, 3, RESIZE_OPTIONS::NOCOPY_NOINIT);
+  centre_gravite = 0.;
+  const ArrOfDouble& surfaces_facettes = mesh.get_update_surface_facettes();
+  const DoubleTab& normales_facettes = mesh.get_update_normale_facettes();
+  const IntTab& facettes = mesh.facettes();
+  const DoubleTab& sommets = mesh.sommets();
+  const ArrOfInt& compo_facettes = mesh.compo_connexe_facettes();
+  for (int i = 0; i < n; i++)
+    {
+      if (mesh.facette_virtuelle(i))
+        continue;
+      int compo = compo_facettes[i];
+      // les bulles dupliquees a la fin :
+      const double s = surfaces_facettes[i];
+      const double normale_scalaire_direction = normales_facettes(i, 0); // On projette sur x
+      // Coordonnee du centre de gravite de la facette
+      const int i0 = facettes(i, 0);
+      const int i1 = facettes(i, 1);
+      const int i2 = facettes(i, 2);
+      const double coord_centre_gravite_i = (sommets(i0, 0) + sommets(i1, 0) + sommets(i2, 0)) / 3.;
+      const double coord_centre_gravite_j = (sommets(i0, 1) + sommets(i1, 1) + sommets(i2, 1)) / 3.;
+      const double coord_centre_gravite_k = (sommets(i0, 2) + sommets(i1, 2) + sommets(i2, 2)) / 3.;
+      const double volume_prisme = coord_centre_gravite_i * s * normale_scalaire_direction;
+      // centre de gravite du prisme pondere par son volume avec signe
+      centre_gravite(compo, 0) += volume_prisme * (coord_centre_gravite_i * 0.5);
+      centre_gravite(compo, 1) += volume_prisme * coord_centre_gravite_j;
+      centre_gravite(compo, 2) += volume_prisme * coord_centre_gravite_k;
+      volumes[compo] += volume_prisme;
+    }
+  mp_sum_for_each_item(volumes);
+  mp_sum_for_each_item(centre_gravite);
+  //Cerr << "volumes : " << volumes << finl;
+  for (int i = 0; i < nbulles_tot; i++)
+    {
+      // const double x = 1./volumes[i];
+      const double x = (volumes[i] == 0.) ? 0. : 1. / volumes[i];
+      centre_gravite(i, 0) *= x;
+      centre_gravite(i, 1) *= x;
+      centre_gravite(i, 2) *= x;
+    }
+}

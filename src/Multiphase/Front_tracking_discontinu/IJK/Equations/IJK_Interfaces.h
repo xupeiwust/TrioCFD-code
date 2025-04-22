@@ -357,6 +357,9 @@ public :
   void calculer_surfactant(ArrOfDouble& surfactant,ArrOfDouble& surfactant_min,ArrOfDouble& surfactant_max) const;
   void calculer_poussee_bulles(const DoubleTab& gravite, DoubleTab& poussee) const;
   void calculer_aire_interfaciale(IJK_Field_double& ai) const;
+  void calculer_aire_interfaciale_for_compo(IJK_Field_double& ai, const int compo) const;
+  double calculer_aire_interfaciale_for_compo(const int compo, const int i_ref, const int j_ref, const int k_ref) const;
+
   void calculer_normale_et_aire_interfaciale(IJK_Field_double& ai,
                                              IJK_Field_double& kappa_ai,
                                              IJK_Field_vector3_double& normale_cell) const;

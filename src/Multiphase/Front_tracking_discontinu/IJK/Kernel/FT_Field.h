@@ -177,10 +177,12 @@ private:
   bool variable_intensive_=false;
   bool disable_surfactant_=true;
   int Taylor_test_ = 0;
+  int disable_marangoni_source_term_ = 0;
   int print_debug_surfactant_ = 0;
   int only_remaillage_ = 0;
   int patch_conservation_surfactant_locale_ = 0;
   int patch_conservation_surfactant_globale_ = 0;
+  int check_triangle_duplicata_ = 0;
   double Diff_coeff_surfactant_ = 0. ;
   double Concentration_surfactant_init_ = 0. ;
   double Surfactant_theoric_case_=0. ;
@@ -244,7 +246,7 @@ public:
 
   bool sauv_num_pe_echange(int pe);
   bool is_compo_in_proc(const int compo_connexe, const int pe_send);
-
+  void calculer_volume_bulles(ArrOfDouble& volumes, DoubleTab& centre_gravite, const Maillage_FT_IJK& mesh) const;
   // Equality operator for Point3D
   /*bool operator==(const Point3D& lhs, const Point3D& rhs)
   {
@@ -289,6 +291,8 @@ public:
     FT_field_Array_sommets_.copy_array(copy.FT_field_Array_sommets_);
     Grad_FT_field_Array_.copy_array(copy.Grad_FT_field_Array_);
     Laplacian_FT_field_Array_.copy_array(copy.Laplacian_FT_field_Array_);
+    sigma_facettes_.copy_array(copy.sigma_facettes_);
+    Grad_sigma_sommets_.copy_array(copy.Grad_sigma_sommets_);
     copy.OpFTDisc_=OpFTDisc_;
     copy.disable_surfactant_=disable_surfactant_;
   };
@@ -348,6 +352,11 @@ public:
   {
     return disable_surfactant_;
   };
+  int get_disable_marangoni_source_term() const
+  {
+    return disable_marangoni_source_term_;
+  };
+
   void set_disable_surfactant(bool disable_surfactant)
   {
     disable_surfactant_ = disable_surfactant;
@@ -389,6 +398,18 @@ public:
     return Grad_sigma_sommets_;
   };
   ArrOfDouble get_grad_sigma_sommets(int dir) const
+  {
+    int nbsom = Grad_sigma_sommets_.dimension(0);
+    ArrOfDouble  Grad_dir;
+    Grad_dir.resize(nbsom);
+    for (int som=0 ; som<nbsom ; som++)
+      {
+        Grad_dir(som)=Grad_sigma_sommets_(som, dir);
+      }
+    return Grad_dir;
+  };
+
+  ArrOfDouble get_grad_sigma_sommets_non_const(int dir)
   {
     int nbsom = Grad_sigma_sommets_.dimension(0);
     ArrOfDouble  Grad_dir;

@@ -688,7 +688,51 @@ const IJK_Field_double& IJK_Interfaces::get_IJK_field(const Motcle& nom)
       IJK_Field_double& courb = scalar_post_fields_.at("COURBURE");
       courb.data() = maillage_ft_ijk_.get_update_courbure_sommets();
     }
-
+  if (nom=="CONCENTRATION_INTERFACE")
+    {
+      IJK_Field_double& conc_interf = scalar_post_fields_.at("CONCENTRATION_INTERFACE");
+      conc_interf.data() = maillage_ft_ijk_.Surfactant_facettes().get_FT_field_Array();
+    }
+  if (nom=="GRADX_CONCENTRATION_INTERFACE")
+    {
+      IJK_Field_double& dconc_interf_x = scalar_post_fields_.at("GRADX_CONCENTRATION_INTERFACE");
+      dconc_interf_x.data() = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(0);
+    }
+  if (nom=="GRADY_CONCENTRATION_INTERFACE")
+    {
+      IJK_Field_double& dconc_interf_y = scalar_post_fields_.at("GRADY_CONCENTRATION_INTERFACE");
+      dconc_interf_y.data() = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(1);
+    }
+  if (nom=="GRADZ_CONCENTRATION_INTERFACE")
+    {
+      IJK_Field_double& dconc_interf_z = scalar_post_fields_.at("GRADZ_CONCENTRATION_INTERFACE");
+      dconc_interf_z.data() = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(2);
+    }
+  if (nom=="LAPLACIAN_CONCENTRATION_INTERFACE")
+    {
+      IJK_Field_double& lapla_interf = scalar_post_fields_.at("LAPLACIAN_CONCENTRATION_INTERFACE");
+      lapla_interf.data() = maillage_ft_ijk_.Surfactant_facettes().get_Laplacian_FT_field_Array();
+    }
+  if (nom=="SIGMA")
+    {
+      IJK_Field_double& sigma = scalar_post_fields_.at("SIGMA");
+      sigma.data() = maillage_ft_ijk_.Surfactant_facettes().get_sigma_sommets();
+    }
+  if (nom=="GRADX_SIGMA")
+    {
+      IJK_Field_double& dsigma_x = scalar_post_fields_.at("GRADX_SIGMA");
+      dsigma_x.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(0);
+    }
+  if (nom=="GRADY_SIGMA")
+    {
+      IJK_Field_double& dsigma_y = scalar_post_fields_.at("GRADY_SIGMA");
+      dsigma_y.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(1);
+    }
+  if (nom=="GRADZ_SIGMA")
+    {
+      IJK_Field_double& dsigma_z = scalar_post_fields_.at("GRADZ_SIGMA");
+      dsigma_z.data() = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(2);
+    }
   if (nom=="DISTANCE_AUTRES_INTERFACES")
     {
       DoubleTab vr_to_closer; // The velocity of the closest neighbour
@@ -724,6 +768,15 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "CUT_FIELDS_BARY_L", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
+    { "GRADX_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
+    { "GRADY_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
+    { "GRADZ_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
+    { "SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "GRADX_SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "GRADY_SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "GRADZ_SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "LAPLACIAN_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
     { "DISTANCE_AUTRES_INTERFACES", Entity::NODE, Nature_du_champ::scalaire, true }
   };
 
@@ -1137,6 +1190,51 @@ void IJK_Interfaces::register_fields()
   courb.nommer("COURBURE");
   champs_compris_.ajoute_champ(courb);
 
+  scalar_post_fields_["CONCENTRATION_INTERFACE"] = IJK_Field_double();
+  auto& conc_interf = scalar_post_fields_.at("CONCENTRATION_INTERFACE");
+  conc_interf.nommer("CONCENTRATION_INTERFACE");
+  champs_compris_.ajoute_champ(conc_interf);
+
+  scalar_post_fields_["GRADX_CONCENTRATION_INTERFACE"] = IJK_Field_double();
+  auto& dconc_interf_x = scalar_post_fields_.at("GRADX_CONCENTRATION_INTERFACE");
+  dconc_interf_x.nommer("GRADX_CONCENTRATION_INTERFACE");
+  champs_compris_.ajoute_champ(dconc_interf_x);
+
+  scalar_post_fields_["GRADY_CONCENTRATION_INTERFACE"] = IJK_Field_double();
+  auto& dconc_interf_y = scalar_post_fields_.at("GRADY_CONCENTRATION_INTERFACE");
+  dconc_interf_y.nommer("GRADY_CONCENTRATION_INTERFACE");
+  champs_compris_.ajoute_champ(dconc_interf_y);
+
+  scalar_post_fields_["GRADZ_CONCENTRATION_INTERFACE"] = IJK_Field_double();
+  auto& dconc_interf_z = scalar_post_fields_.at("GRADZ_CONCENTRATION_INTERFACE");
+  dconc_interf_z.nommer("GRADZ_CONCENTRATION_INTERFACE");
+  champs_compris_.ajoute_champ(dconc_interf_z);
+
+  scalar_post_fields_["SIGMA"] = IJK_Field_double();
+  auto& sigma = scalar_post_fields_.at("SIGMA");
+  sigma.nommer("SIGMA");
+  champs_compris_.ajoute_champ(sigma);
+
+  scalar_post_fields_["GRADX_SIGMA"] = IJK_Field_double();
+  auto& dsigma_x = scalar_post_fields_.at("GRADX_SIGMA");
+  dsigma_x.nommer("GRADX_SIGMA");
+  champs_compris_.ajoute_champ(dsigma_x);
+
+  scalar_post_fields_["GRADY_SIGMA"] = IJK_Field_double();
+  auto& dsigma_y = scalar_post_fields_.at("GRADY_SIGMA");
+  dsigma_y.nommer("GRADY_SIGMA");
+  champs_compris_.ajoute_champ(dsigma_y);
+
+  scalar_post_fields_["GRADZ_SIGMA"] = IJK_Field_double();
+  auto& dsigma_z = scalar_post_fields_.at("GRADZ_SIGMA");
+  dsigma_z.nommer("GRADZ_SIGMA");
+  champs_compris_.ajoute_champ(dsigma_z);
+
+  scalar_post_fields_["LAPLACIAN_CONCENTRATION_INTERFACE"] = IJK_Field_double();
+  auto& lapla_interf = scalar_post_fields_.at("LAPLACIAN_CONCENTRATION_INTERFACE");
+  lapla_interf.nommer("LAPLACIAN_CONCENTRATION_INTERFACE");
+  champs_compris_.ajoute_champ(lapla_interf);
+
   scalar_post_fields_["DISTANCE_AUTRES_INTERFACES"] = IJK_Field_double();
   auto& d = scalar_post_fields_.at("DISTANCE_AUTRES_INTERFACES");
   d.nommer("DISTANCE_AUTRES_INTERFACES");
@@ -1189,18 +1287,6 @@ void IJK_Interfaces::posttraiter_tous_champs(Motcles& liste) const
 {
   liste.add("INTERFACES");
   liste.add("COMPO_CONNEXE");
-  if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
-    {
-      liste.add("CONCENTRATION_INTERFACE");
-      liste.add("GRADX_CONCENTRATION_INTERFACE");
-      liste.add("GRADY_CONCENTRATION_INTERFACE");
-      liste.add("GRADZ_CONCENTRATION_INTERFACE");
-      liste.add("SIGMA_SOMMETS");
-      liste.add("GRADX_SIGMA_SOMMETS");
-      liste.add("GRADY_SIGMA_SOMMETS");
-      liste.add("GRADZ_SIGMA_SOMMETS");
-      liste.add("LAPLACIAN_CONCENTRATION_INTERFACE");
-    }
   liste.add("DISTANCE_AUTRES_INTERFACES");
   if (follow_colors_)
     liste.add("COLOR_Y");
@@ -1237,84 +1323,9 @@ int IJK_Interfaces::posttraiter_champs_instantanes(const Motcles& liste_post_ins
       calculer_color(color);
       n++, dumplata_ft_field(lata_name, "INTERFACES", "COLOR_Y", "ELEM",  color, lata_step);
     }
-//  if (liste_post_instantanes.contient_("COURBURE"))
-//    {
-//      const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
-//      n++, dumplata_ft_field(lata_name, "INTERFACES", "COURBURE", "SOM",  courbure, lata_step);
-//    }
-
-  if (liste_post_instantanes.contient_("CONCENTRATION_INTERFACE"))
-    {
-      //Surfactant_.update_concentration_FT();
-      //const ArrOfDouble& courbure = maillage_ft_ijk_.get_update_courbure_sommets();
-      const ArrOfDouble& concentration = maillage_ft_ijk_.Surfactant_facettes().get_FT_field_Array();
-      //std::cout << "courbure size = " << courbure.size() << std::endl;
-      //std::cout << "concentration size = " << concentration.size() << std::endl;
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "CONCENTRATION_INTERFACE", "ELEM",  concentration, lata_step);
-    }
   if (liste_post_instantanes.contient_("VINTERP"))
     {
       n++, dumplata_ft_field(lata_name, "INTERFACES", "VINTERP", "SOM",  RK3_G_store_vi_, lata_step);
-    }
-  if (liste_post_instantanes.contient_("CONCENTRATION_SOMMET"))
-    {
-      const ArrOfDouble& CONCENTRATION_SOMMET = maillage_ft_ijk_.Surfactant_facettes().get_FT_field_Array_sommets();
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "CONCENTRATION_SOMMET", "SOM",  CONCENTRATION_SOMMET, lata_step);
-    }
-  if (liste_post_instantanes.contient_("NX_SOMMET"))
-    {
-      const ArrOfDouble& NX_SOMMET = maillage_ft_ijk_.Surfactant_facettes().get_OpFTDisc().get_n_sommet(0);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "NX_SOMMET", "SOM",  NX_SOMMET, lata_step);
-    }
-  if (liste_post_instantanes.contient_("NY_SOMMET"))
-    {
-      const ArrOfDouble& NY_SOMMET = maillage_ft_ijk_.Surfactant_facettes().get_OpFTDisc().get_n_sommet(1);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "NY_SOMMET", "SOM",  NY_SOMMET, lata_step);
-    }
-  if (liste_post_instantanes.contient_("NZ_SOMMET"))
-    {
-      const ArrOfDouble& NZ_SOMMET = maillage_ft_ijk_.Surfactant_facettes().get_OpFTDisc().get_n_sommet(2);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "NZ_SOMMET", "SOM",  NZ_SOMMET, lata_step);
-    }
-  if (liste_post_instantanes.contient_("SIGMA_SOMMETS"))
-    {
-      const ArrOfDouble& sigma = maillage_ft_ijk_.Surfactant_facettes().get_sigma_sommets();
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "SIGMA_SOMMETS", "SOM",  sigma, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADX_SIGMA_SOMMETS"))
-    {
-      const ArrOfDouble& gradx = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(0);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADX_SIGMA_SOMMETS", "SOM",  gradx, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADY_SIGMA_SOMMETS"))
-    {
-      const ArrOfDouble& grady = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(1);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADY_SIGMA_SOMMETS", "SOM",  grady, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADZ_SIGMA_SOMMETS"))
-    {
-      const ArrOfDouble& gradz = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(2);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADZ_SIGMA_SOMMETS", "SOM",  gradz, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADX_CONCENTRATION_INTERFACE"))
-    {
-      const ArrOfDouble& gradx_concentration = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(0);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADX_CONCENTRATION_INTERFACE", "SOM",  gradx_concentration, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADY_CONCENTRATION_INTERFACE"))
-    {
-      const ArrOfDouble& grady_concentration = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(1);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADY_CONCENTRATION_INTERFACE", "SOM",  grady_concentration, lata_step);
-    }
-  if (liste_post_instantanes.contient_("GRADZ_CONCENTRATION_INTERFACE"))
-    {
-      const ArrOfDouble& gradz_concentration = maillage_ft_ijk_.Surfactant_facettes().get_Grad_FT_field_Array(2);
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "GRADZ_CONCENTRATION_INTERFACE", "SOM",  gradz_concentration, lata_step);
-    }
-  if (liste_post_instantanes.contient_("LAPLACIAN_CONCENTRATION_INTERFACE"))
-    {
-      const ArrOfDouble& laplacian_concentration = maillage_ft_ijk_.Surfactant_facettes().get_Laplacian_FT_field_Array();
-      n++, dumplata_ft_field(lata_name, "INTERFACES", "LAPLACIAN_CONCENTRATION_INTERFACE", "ELEM",  laplacian_concentration, lata_step);
     }
   if (liste_post_instantanes.contient_("VI"))
     {
@@ -2224,6 +2235,106 @@ void IJK_Interfaces::calculer_aire_interfaciale(IJK_Field_double& ai) const
           index = data.index_element_suivant_;
         }
     }
+}
+
+void IJK_Interfaces::calculer_aire_interfaciale_for_compo(IJK_Field_double& ai, const int compo) const
+{
+
+  const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+  const Intersections_Elem_Facettes& intersections = mesh.intersections_elem_facettes();
+  const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
+  const ArrOfInt& compo_connex = mesh.compo_connexe_facettes();
+
+  const int n = mesh.nb_facettes();
+  const Domaine_IJK& geom = ai.get_domaine();
+  const double dxi = geom.get_constant_delta(DIRECTION_I);
+  const double dxj = geom.get_constant_delta(DIRECTION_J);
+  const double dxk = geom.get_constant_delta(DIRECTION_K);
+  const double vol = dxi * dxj * dxk;
+
+  // Remise a zero du champ.
+  ai.data() = 0;
+
+  for (int fa7 = 0; fa7 < n; fa7++)
+    {
+
+      // On compte aussi les facettes_virtuelles
+      // if (maillage.facette_virtuelle(fa7))
+      //  continue;
+      int compo_fa7 = compo_connex[fa7];
+
+      // if compo reelle, on fait rien
+      // si compo virtuelle, on stocke les ai des bulles virtuelles a la fin du tableau
+      //if (compo_fa7 < 0)
+      //  compo_fa7 = - compo_fa7 + nb_bulles_reelles_ - 1 ;
+
+      if (compo_fa7 != compo)
+        continue;
+
+
+      const double sf = surface_facettes[fa7];
+      int index = intersections.index_facette()[fa7];
+      while (index >= 0)
+        {
+          const Intersections_Elem_Facettes_Data& data = intersections.data_intersection(index);
+          const int num_elem = data.numero_element_;
+          // Anciennement la methode etait portee par le mesh :
+          //      const Int3 ijk = mesh.convert_packed_to_ijk_cell(num_elem);
+          // A present, elle est dans le splitting :
+          const Int3 ijk = geom.convert_packed_to_ijk_cell(num_elem);
+          const double surf = data.fraction_surface_intersection_ * sf;
+          ai(ijk[0], ijk[1], ijk[2]) += surf / vol;
+          index = data.index_element_suivant_;
+        }
+    }
+}
+
+double IJK_Interfaces::calculer_aire_interfaciale_for_compo(const int compo, const int i_ref, const int j_ref, const int k_ref) const
+{
+
+  const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
+  const Intersections_Elem_Facettes& intersections = mesh.intersections_elem_facettes();
+  const ArrOfDouble& surface_facettes = mesh.get_update_surface_facettes();
+  const ArrOfInt& compo_connex = mesh.compo_connexe_facettes();
+
+  const int n = mesh.nb_facettes();
+  const Domaine_IJK& geom = mesh.get_domaine();
+  const double dxi = geom.get_constant_delta(DIRECTION_I);
+  const double dxj = geom.get_constant_delta(DIRECTION_J);
+  const double dxk = geom.get_constant_delta(DIRECTION_K);
+  const double vol = dxi * dxj * dxk;
+  double ai = 0 ;
+  for (int fa7 = 0; fa7 < n; fa7++)
+    {
+
+      // On compte aussi les facettes_virtuelles
+      // if (maillage.facette_virtuelle(fa7))
+      //  continue;
+
+      const double sf = surface_facettes[fa7];
+      const int compo_fa7 = compo_connex[fa7];
+
+      if (compo_fa7 != compo)
+        continue;
+
+      int index = intersections.index_facette()[fa7];
+      while (index >= 0)
+        {
+          const Intersections_Elem_Facettes_Data& data = intersections.data_intersection(index);
+          const int num_elem = data.numero_element_;
+          // Anciennement la methode etait portee par le mesh :
+          //      const Int3 ijk = mesh.convert_packed_to_ijk_cell(num_elem);
+          // A present, elle est dans le splitting :
+          const Int3 ijk = geom.convert_packed_to_ijk_cell(num_elem);
+          const double surf = data.fraction_surface_intersection_ * sf;
+          if (ijk[0]==i_ref and ijk[1]==j_ref and ijk[2]==k_ref)
+            {
+              ai += surf + vol*0. ;/// vol;
+            }
+          index = data.index_element_suivant_;
+        }
+    }
+  return ai;
 }
 
 // Retourne le code contenant a la fois le numero de bulle et le code de
@@ -5955,12 +6066,18 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
 
 
                           const double phi = phi_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
-                          const double grad_sigma = grad_sigma_par_compo_[old()][direction][icol1](elem1[0], elem1[1], elem1[2]);
+
+                          const double surface = surface_par_compo_[old()][icol1](
+                                                   elem1[0], elem1[1], elem1[2]
+                                                 ); // la compo dans l'elem c'est icol1.
+                          const double grad_sigma = surface * grad_sigma_par_compo_[old()][direction][icol1](elem1[0], elem1[1], elem1[2]);
+
+                          //*ai_for_compo[num_compo_for_ai](elem1[0], elem1[1], elem1[2]);
 
                           const double repul = repuls_par_compo_[old()][icol1](elem1[0], elem1[1], elem1[2]);
                           if (correction_gradient_potentiel_)
                             {
-                              double indic_voisin = 0., phi_voisin = 0.;
+                              double indic_voisin = 0., phi_voisin = 0., grad_sigma_voisin = 0., surface_voisin = 0.;
                               double repul_voisin = 0.;
                               if (icol2 == max_authorized_nb_of_components_)
                                 {
@@ -6013,6 +6130,7 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   phi_voisin = phi; // On prend le phi de l'elem1 puisque le
                                   // voisin (elem2) n'est pas traverse.
                                   repul_voisin = repul;
+                                  grad_sigma_voisin = grad_sigma;
                                 }
                               else
                                 {
@@ -6023,11 +6141,27 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
                                                                                  elem2[2]); // la compo dans le voisin c'est icol2
                                   indic_voisin = indicatrice_par_compo_[old()][icol2](elem2[0], elem2[1], elem2[2]);
+
+                                  surface_voisin = surface_par_compo_[old()][icol2](
+                                                     elem2[0], elem2[1], elem2[2]
+                                                   );
+
+                                  grad_sigma_voisin = surface_voisin * grad_sigma_par_compo_[old()][direction][icol2](elem2[0], elem2[1], elem2[2]);
                                 }
 
                               // Calcul du gradient a la face :
                               double gradient_phi_indic = (phi_voisin * indic_voisin - phi * indic) / delta_dir * signe;
+                              double gradient_sigma_face = (grad_sigma_voisin + grad_sigma) / 2.;
+
                               vpoint[direction](i, j, k) += gradient_phi_indic;
+
+                              if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_marangoni_source_term())
+                                {
+                                  //ai_face = calculer_aire_interfaciale_for_compo(num_compo, i, j, k);
+                                  //ai_face  = ai_all_compo(i,j,k);
+                                  vpoint[direction](i, j, k) += gradient_sigma_face;
+                                }
+
                               double gradient_repul_indic = (repul_voisin * indic_voisin - repul * indic) / delta_dir * signe;
                               vrepul[direction](i, j, k) += gradient_repul_indic;
                               vabsrepul[direction](i, j, k) += fabs(gradient_repul_indic);
@@ -6081,6 +6215,7 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   // Si la fonction F est positive, le voisin est liquide :
                                   indic_voisin = (ps > 0 ? 1. : 0.);
                                   phi_face = phi; // On prend le phi de l'elem1 puisque le
+                                  grad_sigma_face = grad_sigma ;
                                   // voisin (elem2) n'est pas traverse.
                                   repul_face = repul;
 
@@ -6091,8 +6226,6 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   // Le voisin est aussi traverse par num_compo.
                                   const double phi_voisin = phi_par_compo_[old()][icol2](elem2[0], elem2[1],
                                                                                          elem2[2]); // la compo dans le voisin c'est icol2
-                                  const double grad_sigma_voisin = grad_sigma_par_compo_[old()][direction][icol2](elem2[0], elem2[1],
-                                                                                                                  elem2[2]); // la compo dans le voisin c'est icol2
 
                                   const double repul_voisin = repuls_par_compo_[old()][icol2](elem2[0], elem2[1],
                                                                                               elem2[2]); // la compo dans le voisin c'est icol2
@@ -6104,12 +6237,10 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                                   const double surface_voisin = surface_par_compo_[old()][icol2](
                                                                   elem2[0], elem2[1], elem2[2]
                                                                 ); // la compo dans le voisin c'est icol2
-                                  // Dans ce cas, on a aussi besoin de la surface, du potentiel
-                                  // et de l'indic de l'elem :
-                                  const double surface = surface_par_compo_[old()][icol1](
-                                                           elem1[0], elem1[1], elem1[2]
-                                                         ); // la compo dans l'elem c'est icol1.
                                   // assert provisoir :
+
+                                  const double grad_sigma_voisin = surface_voisin * grad_sigma_par_compo_[old()][direction][icol2](elem2[0], elem2[1], elem2[2]);
+
                                   assert(compos_traversantes_[old()][icol2](elem2[0], elem2[1], elem2[2]) == num_compo);
                                   assert(indic_voisin > -0.5);
                                   if (est_egal(surface+surface_voisin,0.))
@@ -6136,10 +6267,14 @@ void IJK_Interfaces::ajouter_terme_source_interfaces(
                               // differente, trouver la plus petite distance a cette
                               // composante
 
-                              vpoint[direction](i, j, k) += phi_face * gradient_indic + grad_sigma_face;
-                              //ducluzeau : a larrivee il faut ajouter ici + grad_s(sigma) pour ajouter leffet marangoni
 
-
+                              vpoint[direction](i, j, k) += phi_face * gradient_indic ;
+                              if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_marangoni_source_term())
+                                {
+                                  //ai_face = calculer_aire_interfaciale_for_compo(num_compo, i, j, k);
+                                  //ai_face  = ai_all_compo(i,j,k);
+                                  vpoint[direction](i, j, k) += grad_sigma_face ;
+                                }
                               vrepul[direction](i, j, k) += repul_face * gradient_indic;
                               vabsrepul[direction](i, j, k) += fabs(repul_face * gradient_indic);
                             }
@@ -8384,12 +8519,26 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
   calculer_phi_repuls_sommet(potentiels_sommets, repulsions_sommets, gravite, delta_rho, sigma, time, itstep);
   val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(
     potentiels_sommets, phi_par_compo);
+
+
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
+      const Domaine_IJK& geom = ref_domaine_.valeur();
+      const double dxi = geom.get_constant_delta(DIRECTION_I);
+      const double dxj = geom.get_constant_delta(DIRECTION_J);
+      const double dxk = geom.get_constant_delta(DIRECTION_K);
+      const Maillage_FT_IJK& mesh = maillage_ft_ijk_;
       maillage_ft_ijk_.update_sigma_grad_sigma(ref_domaine_);
       for (int dir = 0; dir < 3; dir++)
         {
-          const ArrOfDouble& grad_sigma_sommets = maillage_ft_ijk_.Surfactant_facettes().get_grad_sigma_sommets(dir);
+          FT_Field& Surf = maillage_ft_ijk_.Surfactant_facettes_non_const();
+          ArrOfDouble grad_sigma_sommets = Surf.get_grad_sigma_sommets_non_const(dir);
+
+          const int nbsom=mesh.nb_sommets();
+          for (int som=0 ; som<nbsom ; som++)
+            for (int dim=0 ; dim<3 ; dim++)
+              grad_sigma_sommets[som]*=dxi*dxj*dxk;
+
           val_par_compo_in_cell_computation_.calculer_moy_field_sommet_par_compo(grad_sigma_sommets, grad_sigma_par_compo[dir]);
         }
     }

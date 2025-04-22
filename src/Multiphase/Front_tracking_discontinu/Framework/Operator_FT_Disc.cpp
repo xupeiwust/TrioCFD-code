@@ -91,7 +91,7 @@ void Operator_FT_Disc::Operator_Laplacian_FT_element(const ArrOfDouble& Phi_Face
 
 
 void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet, const Maillage_FT_Disc& FTmesh,
-                                                    DoubleTab& Grad_Phi_Sommet)
+                                                    DoubleTab& Grad_Phi_Sommet, bool times_ai)
 {
 
 
@@ -294,6 +294,18 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
               Grad_Phi_Sommet(som, dir)-= Kappa_n_(som, dir)*Phi_sommet_[som];
             }
           // GradxPhi = contribution precedente - (courbure * n)|sommet * Phi|sommet
+        }
+    }
+
+  if (times_ai)
+    {
+      for (int som=0 ; som<nbsom ; som++)
+        {
+          if(! FTmesh.sommet_virtuel(som))
+            {
+              for (int dir=0 ; dir<dim ; dir++)
+                Grad_Phi_Sommet(som, dir)*= Surface_sommet_[som];
+            }
         }
     }
 
