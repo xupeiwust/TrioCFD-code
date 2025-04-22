@@ -773,9 +773,9 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
 
     { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
     { "CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
-    { "GRADX_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
-    { "GRADY_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
-    { "GRADZ_CONCENTRATION_INTERFACE", Entity::ELEMENT, Nature_du_champ::scalaire, true },
+    { "GRADX_CONCENTRATION_INTERFACE", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "GRADY_CONCENTRATION_INTERFACE", Entity::NODE, Nature_du_champ::scalaire, true },
+    { "GRADZ_CONCENTRATION_INTERFACE", Entity::NODE, Nature_du_champ::scalaire, true },
     { "SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
     { "GRADX_SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
     { "GRADY_SIGMA", Entity::NODE, Nature_du_champ::scalaire, true },
