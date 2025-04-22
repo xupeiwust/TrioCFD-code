@@ -1,0 +1,142 @@
+# PARALLEL ONLY 8 #
+# Le decoupage ne fait rien #
+# Astuce pour que make_PAR.data trouve 8 processeurs de calcul:
+Nom_Zones toto
+#
+# DEBUT DECOUPAGE
+system "touch toto_0000.Zones toto_0001.Zones toto_0002.Zones toto_0003.Zones toto_0004.Zones toto_0005.Zones toto_0006.Zones toto_0007.Zones"
+Fin
+  FIN DECOUPAGE #
+dimension 3
+Probleme_FTD_IJK pb
+
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 32 32 32
+  size_dom 0.202 0.202 0.202
+  perio 1 1 0
+  # DEBUT MAILLAGE #
+  nproc 1 1 1
+  # FIN MAILLAGE #
+  # DEBUT LECTURE #
+  nproc 2 2 2
+  # FIN LECTURE #
+  ijk_splitting_ft_extension 7
+}
+
+Schema_euler_explicite_IJK sch
+lire sch
+{
+  tinit 0.0
+	nb_pas_dt_max 3
+  timestep 0.01
+  timestep_facsec 0.4
+  dt_sauvegarde 1000
+  cfl 1.0
+  fo  1.0
+  oh  1.0
+}
+
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+Option_IJK
+{
+  check_divergence
+  # disable_diphasique #
+}
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    ijk_interfaces interf
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    # vapeur #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 0.001
+        rho Champ_Uniforme 1 1000.
+    }
+    # liquide #
+    fluide1 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 0.001
+        rho Champ_Uniforme 1 1000.
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.0
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0.0 0. 0.
+  }
+
+  hydraulique
+  {
+    Boundary_Conditions {
+      bctype_kmin Paroi
+      bctype_kmax Paroi
+    }
+    multigrid_solver {
+      solver_precision mixed
+      coarsen_operators 3
+        Coarsen_Operator_Uniform {  }
+        Coarsen_Operator_Uniform {  }
+        Coarsen_Operator_Uniform {  } 	
+      ghost_size 1
+      pre_smooth_steps 1 7
+      smooth_steps 1 7
+      relax_jacobi 1 0.7
+      solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 } }
+      seuil 1e-8
+      nb_full_mg_steps 2 4 1
+    }
+    expression_vx_init 0.
+    expression_vy_init 0.
+    expression_vz_init 0.
+  }
+
+  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
+  interf 
+  {
+    fichier_reprise_interface init.lata
+    timestep_reprise_interface       1
+    lata_meshname   FTMESH
+    remaillage_ft_ijk {
+	nb_iter_barycentrage 1
+	relax_barycentrage 1
+	nb_iter_correction_volume 4
+	lissage_courbure_iterations_systematique 2
+    }
+  }
+
+  {
+  }
+  
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 24
+    
+    fields 
+    {
+       MU elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
+  }
+}
+solve pb
+Fin

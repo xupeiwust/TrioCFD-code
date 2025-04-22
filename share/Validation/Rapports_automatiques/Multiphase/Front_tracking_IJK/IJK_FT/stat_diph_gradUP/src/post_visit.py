@@ -30,21 +30,26 @@ dbs.sort(key=lambda item: int(item.split("/")[0].strip("N")))
 
 first = dbs[0]
 OpenDatabase("localhost:"+first, 0)
+# Renaming in visit Cell-based off-diagonal components of tensors :
+for s in ["", "ANA_"]:
+      DefineScalarExpression("%sDD%sDxDy_ELEM_DOM"%(s,v), "%sDD%sDDC_X_ELEM_DOM"%(s,v))
+      DefineScalarExpression("%sDD%sDxDz_ELEM_DOM"%(s,v), "%sDD%sDDC_Y_ELEM_DOM"%(s,v))
+      DefineScalarExpression("%sDD%sDyDz_ELEM_DOM"%(s,v), "%sDD%sDDC_Z_ELEM_DOM"%(s,v))
 if (v == "P"):
    # Cas tests en pression : not everything is cell-based.
    # Face-based vector : 
-   DefineVectorExpression("err_d%sd_"%v, "abs(ANA_d%sd_FACES_DOM_dual-d%sd_FACES_DOM_dual)"%(v,v))
+   DefineVectorExpression("err_d%sd_"%v, "abs(ANA_D%sD_FACES_DOM_dual-D%sD_FACES_DOM_dual)"%(v,v))
    DefineScalarExpression("err_d%sdx"%v, "err_d%sd_[0]"%v)
    DefineScalarExpression("err_d%sdy"%v, "err_d%sd_[1]"%v)
    DefineScalarExpression("err_d%sdz"%v, "err_d%sd_[2]"%v)
    errs = ["err_d%sdx"%v, "err_d%sdy"%v, "err_d%sdz"%v]
    # Cell-based vectors and tensors : 
-   l = ["dd%sdd_X"%v, "dd%sdd_Y"%v, "dd%sdd_Z"%v, "dd%sdxdy"%v, "dd%sdxdz"%v, "dd%sdydz"%v] 
+   l = ["DD%sDD_X"%v, "DD%sDD_Y"%v, "DD%sDD_Z"%v, "DD%sDxDy"%v, "DD%sDxDz"%v, "DD%sDyDz"%v] 
    suite = []
 else: 
    # Cas tests en vitesse : all gradients are cell-based (even the first gradients!
    # Cell-based vectors and tensors : 
-   l = ["d%sd_X"%v, "d%sd_Y"%v, "d%sd_Z"%v, "dd%sdd_X"%v, "dd%sdd_Y"%v, "dd%sdd_Z"%v, "dd%sdxdy"%v, "dd%sdxdz"%v, "dd%sdydz"%v]  
+   l = ["D%sD_X"%v, "D%sD_Y"%v, "D%sD_Z"%v, "DD%sDD_X"%v, "DD%sDD_Y"%v, "DD%sDD_Z"%v, "DD%sDxDy"%v, "DD%sDxDz"%v, "DD%sDyDz"%v]  
    errs = []
    #
    #

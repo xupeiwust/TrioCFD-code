@@ -1,0 +1,215 @@
+# PARALLEL ONLY 8 #
+# Le decoupage ne fait rien #
+# Astuce pour que make_PAR.data trouve deux processeurs de calcul:
+Nom_Zones toto
+#
+# DEBUT DECOUPAGE
+system "touch toto_0000.Zones toto_0001.Zones toto_0002.Zones toto_0003.Zones"
+system "touch toto_0004.Zones toto_0005.Zones toto_0006.Zones toto_0007.Zones"
+Fin
+  FIN DECOUPAGE #
+dimension 3
+Probleme_FTD_IJK pb
+
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 16 32 16
+  size_dom 0.031415926535897934 0.015707963267948967 0.01
+  perio 1 1 0
+  # DEBUT MAILLAGE #
+  nproc 1 1 1
+  # FIN MAILLAGE #
+  # DEBUT LECTURE #
+  nproc 2 2 2
+  # FIN LECTURE #
+  ijk_splitting_ft_extension 0
+}
+
+# Schema_RK3_IJK sch #
+schema_euler_explicite_IJK sch
+
+lire sch {
+  tinit 2.7
+	nb_pas_dt_max 3
+  timestep 1.0
+  timestep_facsec 1.0
+  dt_sauvegarde 20000
+  cfl 1.0
+  fo  1.0
+  oh  1.0
+}
+
+option_ijk { check_divergence disable_diphasique }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+lire pb
+{
+  SOLVED_EQUATIONS
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    IJK_Thermals thermals
+  }
+  
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 6.8327e-5
+        rho Champ_Uniforme 1 594.38
+        lambda Champ_Uniforme 3 0 0 0
+        cp Champ_Uniforme 3 0 0 0
+    }
+    fluide1 Fluide_Incompressible # Liquid # 
+    {
+        mu  Champ_Uniforme 1 6.8327e-5
+        rho Champ_Uniforme 1 594.38
+        lambda Champ_Uniforme 3 1 1 1
+	# Reprise des T2, T4 et T7 d'Aymeric, Pr = 1; 0.1; 2.615485479 #
+        cp Champ_Uniforme 3 1.46355028026987998e+04 1.46355028026987998e+03 3.82789450583224971e+04
+    }
+    # Surface tension #
+    sigma   Champ_Uniforme 1 0.0
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 0.
+  }
+
+  hydraulique
+  {
+        Boundary_Conditions 
+        {
+          bctype_kmin paroi
+          bctype_kmax paroi
+        }
+
+  # type_velocity_convection_op Centre #
+  multigrid_solver {
+    solver_precision mixed
+    coarsen_operators 3
+      Coarsen_Operator_Uniform { coarsen_i 1 coarsen_j 1 coarsen_k 2 }
+      Coarsen_Operator_Uniform { coarsen_i 1 coarsen_j 1 coarsen_k 2 }
+      Coarsen_Operator_Uniform { coarsen_i 1 coarsen_j 1 coarsen_k 2 }
+      # Cet operateur permet d'avoir du presque cubique. Ensuite, on fait le max de niveaux : #
+    ghost_size 1
+    pre_smooth_steps 1 7
+    smooth_steps 1 7
+    relax_jacobi 1 0.7
+    solveur_grossier GCP { seuil 1e-8 precond ssor { omega 1.5 } } # 8 # # 1.e-3 au premier pas de temps post switch, puis 1e-8 #
+    seuil 1e-7 # 7 # # 1.e-2 au premier pas de temps post switch, puis 1.e-7 #
+    nb_full_mg_steps 2 20 1
+    impr
+    iterations_mixed_solver 10
+  }
+  # fichier_reprise_vitesse very_coarse.sauv.lata #
+  expression_vx_init x*(0.031415926535897934-x)/0.031415926535897934^2*0.01
+  expression_vy_init 0.0001*cos(4*y)
+  expression_vz_init 0.0001*sin(z/0.01*3.1415926535897934)
+  expression_derivee_force  59438*(0.06468292398802113-v_moyen)+20.*(2.0358956532803925-force) 
+  terme_force_init 2.02300854275639930e+00  # initially, tau/h = 0.010179478266401963 / 0.005 = 2.0358956532803925 #
+  
+  }
+    
+  # interf 
+  {
+    fichier_reprise_interface init.lata
+    timestep_reprise_interface 1
+    remaillage_ft_ijk {
+      pas_remaillage 9.99999999999999955e-07
+      nb_iter_barycentrage 1
+      relax_barycentrage 1.00000000000000000e+00
+      critere_arete 3.49999999999999978e-01
+      seuil_dvolume_residuel 0.00000000000000000e+00
+      nb_iter_correction_volume 6
+      nb_iter_remaillage 6
+      facteur_longueur_ideale 7.50000000000000000e-01
+      equilateral 1
+      lissage_courbure_coeff -2.50000000000000014e-02
+      lissage_courbure_iterations_systematique 1
+      lissage_courbure_iterations_si_remaillage 10
+    }
+    terme_gravite rho_g
+  } #
+  #  vol_bulle_monodisperse 5.235987755982989e-10 #
+ 
+ thermals
+  {
+    ONEFLUID {
+    Boundary_Conditions {
+                 bctype_kmin Paroi_Flux_impose
+                 bctype_kmax Paroi_Flux_impose
+                 flux_impose_kmin 1.000000 
+                 flux_impose_kmax 1.000000 
+    }
+    type_T_source patch_dabiri
+    expression_T_init 0.0
+    fichier_reprise_temperature ?? # very_coarse.sauv.lata #
+    rank_reprise_temperature 2
+    wall_flux 
+    } , 
+    ONEFLUID {
+    Boundary_Conditions {
+                 bctype_kmin Paroi_Flux_impose
+                 bctype_kmax Paroi_Flux_impose
+                 flux_impose_kmin 1.000000 
+                 flux_impose_kmax 1.000000 
+    }
+    type_T_source patch_dabiri
+    expression_T_init 0.0
+    fichier_reprise_temperature ?? # very_coarse.sauv.lata #
+    rank_reprise_temperature 4
+    wall_flux 
+    } , 
+    ONEFLUID {
+    Boundary_Conditions {
+                 bctype_kmin Paroi_Flux_impose
+                 bctype_kmax Paroi_Flux_impose
+                 flux_impose_kmin 1.000000 
+                 flux_impose_kmax 1.000000 
+    }
+    type_T_source patch_dabiri
+    expression_T_init 0.0
+    fichier_reprise_temperature ?? # very_coarse.sauv.lata #
+    rank_reprise_temperature 7
+    wall_flux 
+    }
+  }
+ {
+ 
+ }
+ 
+  post_processing 
+  {
+    format lml
+    nb_pas_dt_post 200
+    fields 
+    {
+       Pressure elem
+       LAMBDA2 elem 
+       VELOCITY FACES
+       Pressure_RHS elem
+       TEMPERATURE_0 elem
+       TEMPERATURE_1 elem
+       TEMPERATURE_2 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_0 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_1 elem
+       TEMPERATURE_ADIMENSIONNELLE_THETA_2 elem
+    }
+
+    t_debut_statistiques 2.700001
+    nb_pas_dt_post_stats_plans 1000
+    Sondes
+    {
+       pp_T temperature_0 periode 1e-9 points 1 0.003 0.0015 0.0015
+       pp_VX velocity_X  periode 1e-9 points 1 0.003 0.0015 0.0015
+    } 
+  }
+}
+solve pb
+# Lata_to_other lml NOM_DU_CAS NOM_DU_CAS #
+Fin

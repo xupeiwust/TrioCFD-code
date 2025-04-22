@@ -142,7 +142,6 @@ lire pb
     # Pour Creer le fichier de Reprise #
     nom_sauvegarde diph_swarm.sauv
     sauvegarder_xyz
-    # champs_a_postraiter 6 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES #
   }
   
   post_processing 
@@ -158,7 +157,7 @@ lire pb
        indicatrice elem
        num_compo elem
        PRESSURE ELEM
-       VELOCITY ELEM
+       VELOCITY FACES
     }
 
     interfaces interf

@@ -1,3 +1,14 @@
+# PARALLEL ONLY 9 #
+# Le decoupage ne fait rien #
+# Astuce pour que make_PAR.data trouve le bon nombre de processeurs de calcul:
+Nom_Zones toto
+#
+# DEBUT DECOUPAGE
+system "touch toto_0000.Zones toto_0001.Zones toto_0002.Zones toto_0003.Zones"
+system "touch toto_0004.Zones toto_0005.Zones toto_0006.Zones toto_0007.Zones"
+system "touch toto_0008.Zones"
+Fin
+  FIN DECOUPAGE #
 dimension 3
 Probleme_FTD_IJK pb
 
@@ -7,7 +18,12 @@ Lire DOM
   nbelem 192 96 96 # 576 #
   size_dom 0.031415926535897934 0.015707963267948967 0.01
   perio 1 1 0
+    # DEBUT MAILLAGE #
+  nproc 1 1 1
+  # FIN MAILLAGE #
+  # DEBUT LECTURE #
   nproc $procs # 3 3 18 #
+  # FIN LECTURE #
   ijk_splitting_ft_extension 0
 }
 
@@ -172,7 +188,7 @@ lire pb
     {
        Pressure elem
        LAMBDA2 elem 
-       VELOCITY faces
+       VELOCITY FACES
        Pressure_RHS elem
        TEMPERATURE_0 elem
        TEMPERATURE_1 elem

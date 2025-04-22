@@ -66,6 +66,8 @@ do
 	  if [ $N -ge 40 ] 
 	  then
 	     sed 's/nproc 1 1 1/nproc 2 2 2/' $fold/ijkft_stat_diph_gradUP.data > $fold/ijkft_stat_diph_gradUP_par8.data
+	  else
+	     sed -i '/PARALLEL/d' $fold/ijkft_stat_diph_gradUP.data 
 	  fi
 	  cd $fold &&  tar xzf ../../init.tgz && cd ../../
 	done
