@@ -714,7 +714,8 @@ void IJK_Interfaces::Fill_postprocessable_fields(std::vector<FieldInfo_t>& chps)
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   / Located on interface?
     { "INDICATRICE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true }
+    { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "COURBURE", Entity::NODE, Nature_du_champ::scalaire, true },
   };
 
   chps.insert(chps.end(), c.begin(), c.end());
@@ -754,6 +755,9 @@ void IJK_Interfaces::initialize(const Domaine_IJK& domaine_FT,
 
   surface_vapeur_par_face_computation_.initialize(domaine_FT);
   val_par_compo_in_cell_computation_.initialize(domaine_FT, maillage_ft_ijk_);
+
+  field_repulsion_.allocate(ref_domaine_, Domaine_IJK::ELEM, 0, "REPULSION_FT");
+  champs_compris_.ajoute_champ(field_repulsion_);
 
   if ((not is_switch) || cut_cell_activated_)
     {
@@ -1122,6 +1126,8 @@ void IJK_Interfaces::register_fields()
   auto& courb = scalar_post_fields_.at("COURBURE");
   courb.nommer("COURBURE");
   champs_compris_.ajoute_champ(courb);
+
+
 }
 
 const Milieu_base& IJK_Interfaces::milieu() const
@@ -7790,7 +7796,6 @@ void IJK_Interfaces::compute_indicatrice_non_perturbe(IJK_Field_double& indic_np
 // A n'appeler qu'apres un deplacement d'interface donc ou pour
 // initialisation.
 void IJK_Interfaces::calculer_indicatrice_next(
-  IJK_Field_double& field_repulsion,
   const DoubleTab& gravite,
   const double delta_rho,
   const double sigma,
@@ -7874,7 +7879,6 @@ void IJK_Interfaces::calculer_indicatrice_next(
     grad_sigma_par_compo_[next()],
     phi_par_compo_[next()],
     repuls_par_compo_[next()],
-    field_repulsion,
     gravite,
     delta_rho,
     sigma,
@@ -8367,7 +8371,6 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
   FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& grad_sigma_par_compo,
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
   FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
-  IJK_Field_double& field_repulsion,
   const DoubleTab& gravite,
   const double delta_rho,
   const double sigma,
@@ -8375,7 +8378,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
   const int itstep
 )
 {
-  field_repulsion.data() = -1.;
+  field_repulsion_.data() = -1.;
 
   ArrOfDouble potentiels_sommets;
   ArrOfDouble repulsions_sommets;
@@ -8403,7 +8406,7 @@ void IJK_Interfaces::calculer_phi_repuls_par_compo(
     for (int j = 0; j < nj; j++)
       for (int i = 0; i < ni; i++)
         {
-          field_repulsion(i, j, k) = repuls_par_compo[0](i, j, k);
+          field_repulsion_(i, j, k) = repuls_par_compo[0](i, j, k);
         }
 }
 

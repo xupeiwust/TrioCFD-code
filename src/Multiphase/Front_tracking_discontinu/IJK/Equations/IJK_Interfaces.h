@@ -689,7 +689,6 @@ public :
   void update_old_intersections(); // Copie de l'interface et des intersections associees au pas de temps precedent
   void switch_indicatrice_next_old();
   void calculer_indicatrice_next(
-    IJK_Field_double& field_repulsion,
     const DoubleTab& gravite,
     const double delta_rho,
     const double sigma,
@@ -824,7 +823,6 @@ protected:
     FixedVector<FixedVector<IJK_Field_double, max_authorized_nb_of_components_>, 3>& grad_sigma_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& phi_par_compo,
     FixedVector<IJK_Field_double, max_authorized_nb_of_components_>& repuls_par_compo,
-    IJK_Field_double& field_repulsion,
     const DoubleTab& gravite,
     const double delta_rho,
     const double sigma,
@@ -1079,6 +1077,9 @@ protected:
 
   FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ns_;
   FixedVector<IJK_Field_vector3_double, 2> barycentre_phase1_ft_;
+
+
+  IJK_Field_double field_repulsion_;
 
   // Indicatrice surfacique aux faces du maillage cartesien,
   // indiquant la fraction de la surface de chaque face associee a la phase.

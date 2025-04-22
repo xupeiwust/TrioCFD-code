@@ -89,7 +89,7 @@ IJK_Field_vector3_double scalar_times_vector(const Probleme_FTD_IJK_base& pb, co
     Cerr << "scalar fields has different dimension from vector field  (nj)" << finl;
 
   const int ni = Vec[0].ni();
-  if (ni != Sca.nk())
+  if (ni != Sca.ni())
     Cerr << "scalar fields has different dimension from vector field  (ni)" << finl;
 
   for (int k = 0; k < nk; ++k)

@@ -599,8 +599,7 @@ void Probleme_FTD_IJK_base::update_indicator_field()
   IJK_Interfaces& interf = get_interface();
   const double delta_rho = milieu_ijk().get_delta_rho();
   interf.switch_indicatrice_next_old();
-  interf.calculer_indicatrice_next(get_post().potentiel(),
-                                   milieu_ijk().gravite().valeurs(),
+  interf.calculer_indicatrice_next(milieu_ijk().gravite().valeurs(),
                                    delta_rho,
                                    milieu_ijk().sigma(),
                                    schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep()
@@ -806,7 +805,7 @@ void Probleme_FTD_IJK_base::sauver() const
           //   soit >= PARCOURU. C'est fait au debut de maj_indicatrice_rho_mu dans
           //   IJK_Interfaces::calculer_indicatrice.
           const double delta_rho = milieu_ijk().get_delta_rho();
-          interf.calculer_indicatrice_next(pb_non_cst.get_post().potentiel(), milieu_ijk().gravite().valeurs(), delta_rho, milieu_ijk().sigma(),
+          interf.calculer_indicatrice_next(milieu_ijk().gravite().valeurs(), delta_rho, milieu_ijk().sigma(),
                                            schema_temps_ijk().get_current_time(), schema_temps_ijk().get_tstep());
         }
     }

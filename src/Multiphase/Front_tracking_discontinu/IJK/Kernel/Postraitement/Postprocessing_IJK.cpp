@@ -410,8 +410,7 @@ static inline bool check_loc_compat(Entity loc, Domaine_IJK::Localisation loc_ij
  */
 int Postprocessing_IJK::postraiter_champs()
 {
-  Schema_Temps_IJK_base& sch = ref_ijk_ft_->schema_temps_ijk();
-  int latastep = sch.get_tstep();
+  int latastep = ref_ijk_ft_->schema_temps_ijk().get_tstep();
 
   // Write out a new time in the lata:
   dumplata_newtime(nom_fich_, ref_ijk_ft_->schema_temps_ijk().get_current_time());
@@ -855,108 +854,8 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
 //      get_update_lambda2();
 //      n--, dumplata_scalar(lata_name, "LAMBDA2", lambda2_, latastep);
 //    }
-  if (liste_post_instantanes_.contient_("VELOCITY_ANA"))
-    {
-      for (int i = 0; i < 3; i++)
-        set_field_data(velocity_ana_[i], expression_vitesse_analytique_[i], current_time);
-      n--, dumplata_vector(lata_name, "VELOCITY_ANA", velocity_ana_[0], velocity_ana_[1], velocity_ana_[2], latastep);
-    }
-  if (liste_post_instantanes_.contient_("VARIABLE_SOURCE"))
-    {
-      n--, dumplata_vector(lata_name, "VARIABLE_SOURCE", ns.variable_source_[0], ns.variable_source_[1], ns.variable_source_[2], latastep);
-    }
 
-  if (liste_post_instantanes_.contient_("ECART_ANA"))
-    {
-      // double err[3] = {0., 0., 0.};
-      Cerr << "GB: ERROR FIELD " << current_time;
-      for (int dir = 0; dir < 3; dir++)
-        {
-          double err = 0.;
-          set_field_data(velocity_ana_[dir], expression_vitesse_analytique_[dir], current_time);
-          const int ni = velocity_.valeur()[dir].ni();
-          const int nj = velocity_.valeur()[dir].nj();
-          const int nk = velocity_.valeur()[dir].nk();
-          const trustIdType ntot = Process::mp_sum(ni * nj * nk);
-          for (int k = 0; k < nk; k++)
-            for (int j = 0; j < nj; j++)
-              for (int i = 0; i < ni; i++)
-                {
-                  const double val = velocity_ana_[dir](i, j, k) - velocity_.valeur()[dir](i, j, k);
-                  ecart_ana_[dir](i, j, k) = val;
-                  err += val * val;
-                }
-          err = Process::mp_sum(err);
-          err = sqrt(err / static_cast<double>(ntot));
-          Cerr << " " << err;
-          if (!Process::je_suis_maitre())
-            {
-              Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
-            }
-        }
-      Cerr << finl;
-      n--, dumplata_vector(lata_name, "ECART_ANA", ecart_ana_[0], ecart_ana_[1], ecart_ana_[2], latastep);
-    }
-  if (liste_post_instantanes_.contient_("PRESSURE_ANA"))
-    {
-      set_field_data(pressure_ana_, expression_pression_analytique_, current_time);
-      n--, dumplata_scalar(lata_name, "PRESSURE_ANA", pressure_ana_, latastep);
-    }
-  if (liste_post_instantanes_.contient_("ECART_P_ANA"))
-    {
-      double ct = current_time;
-      if ( sub_type(Schema_Euler_explicite_IJK, ref_ijk_ft_->schema_temps_ijk()) )
-        {
-          ct -= ref_ijk_ft_->schema_temps_ijk().get_timestep();
-        }
-      else if ( sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()) )
-        {
-          Schema_RK3_IJK& rk3 = ref_cast(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk());
-          Cerr << "rkstep " << rk3.get_rk_step() << finl;
-          int rk_step_before = rk3.get_rk_step();
-          if ((rk_step_before == 0) || (rk_step_before == 3))
-            rk_step_before = 2;
-          else if (rk_step_before == 1)
-            rk_step_before = 0;
-          else
-            /* ici, c'est rk_step_before=2 */
-            rk_step_before = 1;
-          Cerr << "rkstep_before " << rk_step_before << finl;
-          const double intermediate_dt = compute_fractionnal_timestep_rk3(rk3.get_timestep(), rk_step_before);
-          ct -= intermediate_dt;
-        }
-      else
-        {
-          Cerr << "To do for other time scheme" << endl;
-        }
-      Cerr << "GB: ERROR P FIELD " << ct;
-      double err = 0.;
-      set_field_data(pressure_ana_, expression_pression_analytique_, ct);
-      const int ni = pressure_->ni();
-      const int nj = pressure_->nj();
-      const int nk = pressure_->nk();
-      const trustIdType ntot = Process::mp_sum(ni * nj * nk);
-      // La pression est definie a une constante pres:
-      const double cst_press = pressure_ana_(0, 0, 0) - pressure_.valeur()(0, 0, 0);
-      for (int k = 0; k < nk; k++)
-        for (int j = 0; j < nj; j++)
-          for (int i = 0; i < ni; i++)
-            {
-              const double val = pressure_ana_(i, j, k) - pressure_.valeur()(i, j, k) - cst_press;
-              ecart_p_ana_(i, j, k) = val;
-              err += val * val;
-            }
-      err = Process::mp_sum(err);
-      err = sqrt(err / static_cast<double>(ntot));
-      Cerr << " " << err;
-      if (!Process::je_suis_maitre())
-        {
-          Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_P_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
-        }
-      ecart_p_ana_.echange_espace_virtuel(ecart_p_ana_.ghost());
-      Cerr << finl;
-      n--, dumplata_scalar(lata_name, "ECART_P_ANA", ecart_p_ana_, latastep);
-    }
+
   if (liste_post_instantanes_.contient_("D_VELOCITY_ANA"))
     {
       {
@@ -1144,8 +1043,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
     n--, dumplata_scalar(lata_name, "MU", ns.molecular_mu_, latastep);
   if (liste_post_instantanes_.contient_("RHO"))
     n--, dumplata_scalar(lata_name, "RHO", ns.rho_field_, latastep);
-  if (liste_post_instantanes_.contient_("PRESSURE_RHS"))
-    n--, dumplata_scalar(lata_name, "PRESSURE_RHS", ns.pressure_rhs_, latastep);
   if (liste_post_instantanes_.contient_("INDICATRICE_NS"))
     n--, dumplata_scalar(lata_name, "INDICATRICE_NS", ns.I_ns_, latastep);
   if (liste_post_instantanes_.contient_("VELOCITY_FT"))
@@ -1176,15 +1073,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
     n--, dumplata_vector(lata_name, "GRAD_INDICATRICE_FT", grad_I_ft_[0], grad_I_ft_[1], grad_I_ft_[2], latastep);
   if (liste_post_instantanes_.contient_("REBUILT_INDICATRICE_FT"))
     n--, dumplata_scalar(lata_name, "REBUILT_INDICATRICE_FT", rebuilt_indic_, latastep);
-  //  if (liste_post_instantanes_.contient_("POTENTIEL_FT"))
-  //    n--,dumplata_scalar(lata_name,"POTENTIEL_FT", potentiel_, latastep);
-  if (liste_post_instantanes_.contient_("REPULSION_FT"))
-    n--, dumplata_scalar(lata_name, "REPULSION_FT", potentiel_, latastep);
-//  if (liste_post_instantanes_.contient_("AIRE_INTERF"))
-//    {
-//      interfaces_->calculer_aire_interfaciale(ai_ft_);
-//      n--, dumplata_scalar(lata_name, "AIRE_INTERF", ai_ft_, latastep);
-//    }
   if (liste_post_instantanes_.contient_("COURBURE_AIRE_INTERF"))
     {
       // On suppose implicitement qu'il est bien calcule et mis a jour avant d'arriver ici.
@@ -1548,9 +1436,9 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
   // S'il n'y a pas de groupes de bulles (monophasique ou monodisperse), on passe exactement une fois dans la boucle
   if (nb_groups == 1)
     nb_groups = 0; // Quand il n'y a qu'un groupe, on ne posttraite pas les choses pour ce groupe unique puisque c'est identique au cas global
-  if(is_post_required(""))
+  for (int igroup = -1; igroup < nb_groups; igroup++)
     {
-      for (int igroup = -1; igroup < nb_groups; igroup++)
+      if (is_post_required("AIRE_INTERF"))
         {
           IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
           interfaces_->calculer_normales_et_aires_interfaciales(ai_ft, kappa_ai_ft_, normale_cell_ft_, igroup);
@@ -1558,28 +1446,28 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
           ns.redistribute_from_splitting_ft_elem_.redistribute(ai_ft, ai_ns_);
           ns.redistribute_from_splitting_ft_elem_.redistribute(kappa_ai_ft_, kappa_ai_ns_);
           ns.redistribute_from_splitting_ft_elem_.redistribute(normale_cell_ft_, normale_cell_ns_);
-          // (pas besoin d'echange EV car ils n'ont pas de ghost).
+        }
+      // (pas besoin d'echange EV car ils n'ont pas de ghost).
 
-          // Calcul du gradient de l'indicatrice et de vitesse :
-          if (igroup == -1)
-            {
-              // interfaces_.In().echange_espace_virtuel(1);
-              // Calcul des champs grad_P_, grad_I_ns_
-              calculer_gradient_indicatrice_et_pression(interfaces_->In());
-              ns.transfer_ft_to_ns(); // pour remplir : terme_repulsion_interfaces_ft_ et terme_abs_repulsion_interfaces_ft_
-              // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-              // a partir de pressure_, interfaces_.In(), et terme_*_ft_
-              statistiques_FT_.update_stat(ref_ijk_ft_, dt);
-            }
-          else
-            {
-              // interfaces_.groups_indicatrice_n_ns()[igroup].echange_espace_virtuel(1);
-              // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
-              // a partir de pressure_, interfaces_.In(), et terme_*_ft_
-              calculer_gradient_indicatrice_et_pression(interfaces_->groups_indicatrice_n_ns()[igroup]);
-              ns.transfer_ft_to_ns();
-              groups_statistiques_FT_[igroup].update_stat(ref_ijk_ft_, dt);
-            }
+      // Calcul du gradient de l'indicatrice et de vitesse :
+      if (igroup == -1)
+        {
+          // interfaces_.In().echange_espace_virtuel(1);
+          // Calcul des champs grad_P_, grad_I_ns_
+          calculer_gradient_indicatrice_et_pression(interfaces_->In());
+          ns.transfer_ft_to_ns(); // pour remplir : terme_repulsion_interfaces_ft_ et terme_abs_repulsion_interfaces_ft_
+          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
+          statistiques_FT_.update_stat(ref_ijk_ft_, dt);
+        }
+      else
+        {
+          // interfaces_.groups_indicatrice_n_ns()[igroup].echange_espace_virtuel(1);
+          // Calcul des champs grad_P_, grad_I_ns_, terme_repulsion_interfaces_ns_, terme_abs_repulsion_interfaces_ns_
+          // a partir de pressure_, interfaces_.In(), et terme_*_ft_
+          calculer_gradient_indicatrice_et_pression(interfaces_->groups_indicatrice_n_ns()[igroup]);
+          ns.transfer_ft_to_ns();
+          groups_statistiques_FT_[igroup].update_stat(ref_ijk_ft_, dt);
         }
     }
   statistiques().end_count(updtstat_counter_);
@@ -1674,6 +1562,7 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "PRESSURE_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "ECART_P_ANA", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "D_VELOCITY_ANA", Entity::FACE, Nature_du_champ::vectoriel, false },
+
     { "ANA_GRAD_P", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "ANA_GRAD_U", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "ANA_GRAD_V", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
@@ -1704,15 +1593,12 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
     { "D_PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "MU", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "RHO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "INDICATRICE_NS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
 
     // A faire sauter avec le travail de William:
     { "INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "VELOCITY_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "GRAD_INDICATRICE_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "REBUILT_INDICATRICE_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "REPULSION_FT", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "GROUPS_FT", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
 
     { "BK_SOURCE_QDM_INTERF", Entity::FACE, Nature_du_champ::vectoriel, false },
@@ -1756,6 +1642,8 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
       throw;
     }
 
+  double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
+
   if (nom == "LAMBDA2" || nom == "CRITERE_Q" || nom == "CURL")
     get_update_lambda2_and_rot_and_Q();
 
@@ -1777,6 +1665,65 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
     {
       IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
       interfaces_->calculer_aire_interfaciale(ai_ft);
+    }
+  if (nom == "PRESSURE_ANA")
+    {
+      set_field_data(scalar_post_fields_.at("PRESSURE_ANA"), expression_pression_analytique_, current_time);
+    }
+  if (nom == "ECART_P_ANA")
+    {
+      auto& pressure_ana=scalar_post_fields_.at("PRESSURE_ANA");
+      double ct = current_time;
+      if ( sub_type(Schema_Euler_explicite_IJK, ref_ijk_ft_->schema_temps_ijk()) )
+        {
+          ct -= ref_ijk_ft_->schema_temps_ijk().get_timestep();
+        }
+      else if ( sub_type(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk()) )
+        {
+          Schema_RK3_IJK& rk3 = ref_cast(Schema_RK3_IJK, ref_ijk_ft_->schema_temps_ijk());
+          Cerr << "rkstep " << rk3.get_rk_step() << finl;
+          int rk_step_before = rk3.get_rk_step();
+          if ((rk_step_before == 0) || (rk_step_before == 3))
+            rk_step_before = 2;
+          else if (rk_step_before == 1)
+            rk_step_before = 0;
+          else
+            /* ici, c'est rk_step_before=2 */
+            rk_step_before = 1;
+          Cerr << "rkstep_before " << rk_step_before << finl;
+          const double intermediate_dt = compute_fractionnal_timestep_rk3(rk3.get_timestep(), rk_step_before);
+          ct -= intermediate_dt;
+        }
+      else
+        {
+          Cerr << "To do for other time scheme" << endl;
+        }
+      Cerr << "GB: ERROR P FIELD " << ct;
+      double err = 0.;
+      set_field_data(pressure_ana, expression_pression_analytique_, ct);
+      const int ni = pressure_->ni();
+      const int nj = pressure_->nj();
+      const int nk = pressure_->nk();
+      const trustIdType ntot = Process::mp_sum(ni * nj * nk);
+      // La pression est definie a une constante pres:
+      const double cst_press = pressure_ana(0, 0, 0) - pressure_.valeur()(0, 0, 0);
+      for (int k = 0; k < nk; k++)
+        for (int j = 0; j < nj; j++)
+          for (int i = 0; i < ni; i++)
+            {
+              const double val = pressure_ana(i, j, k) - pressure_.valeur()(i, j, k) - cst_press;
+              ecart_p_ana_(i, j, k) = val;
+              err += val * val;
+            }
+      err = Process::mp_sum(err);
+      err = sqrt(err / static_cast<double>(ntot));
+      Cerr << " " << err;
+      if (!Process::je_suis_maitre())
+        {
+          Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_P_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
+        }
+      ecart_p_ana_.echange_espace_virtuel(ecart_p_ana_.ghost());
+      Cerr << finl;
     }
 
   return champs_compris_.get_champ(nom);
@@ -1889,6 +1836,44 @@ const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_field_vector(const M
       Cerr << "Requested field '" << nom << "' is not recognized by Postprocessing_IJK::get_IJK_field_vector()." << finl;
       throw;
     }
+
+  double current_time = ref_ijk_ft_->schema_temps_ijk().get_current_time();
+
+  if (nom == "VELOCITY_ANA")
+    {
+      for (int i = 0; i < 3; i++)
+        set_field_data(velocity_ana_[i], expression_vitesse_analytique_[i], current_time);
+    }
+  if (nom == "ECART_ANA")
+    {
+      Cerr << "GB: ERROR FIELD " << current_time;
+      for (int dir = 0; dir < 3; dir++)
+        {
+          double err = 0.;
+          set_field_data(velocity_ana_[dir], expression_vitesse_analytique_[dir], current_time);
+          const int ni = ref_ijk_ft_->eq_ns().velocity_[dir].ni();
+          const int nj = ref_ijk_ft_->eq_ns().velocity_[dir].nj();
+          const int nk = ref_ijk_ft_->eq_ns().velocity_[dir].nk();
+          const double ntot = Process::mp_sum_as_double(ni * nj * nk);
+          for (int k = 0; k < nk; k++)
+            for (int j = 0; j < nj; j++)
+              for (int i = 0; i < ni; i++)
+                {
+                  const double val = velocity_ana_[dir](i, j, k) - ref_ijk_ft_->eq_ns().velocity_[dir](i, j, k);
+                  ecart_ana_[dir](i, j, k) = val;
+                  err += val * val;
+                }
+          err = Process::mp_sum(err);
+          err = sqrt(err / ntot);
+          Cerr << " " << err;
+          if (!Process::je_suis_maitre())
+            {
+              Process::Journal() << "Postprocessing_IJK::posttraiter_champs_instantanes : OWN_PTR(Champ_base) ECART_ANA sur ce proc (ni,nj,nk,ntot):" << " " << ni << " " << nj << " " << nk << " " << ntot << finl;
+            }
+        }
+      Cerr << finl;
+    }
+
 
   return champs_compris_.get_champ_vectoriel(nom);
 }
@@ -2032,8 +2017,7 @@ void Postprocessing_IJK::calculer_gradient_indicatrice_et_pression(const IJK_Fie
 void Postprocessing_IJK::alloc_fields()
 {
   rebuilt_indic_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  potentiel_.allocate(domaine_ft_, Domaine_IJK::ELEM, 0);
-  if (!Option_IJK::DISABLE_DIPHASIQUE && (is_post_required("AIRE_INTERF") || is_stats_plans_activated()))
+  if (is_post_required("AIRE_INTERF") && (!Option_IJK::DISABLE_DIPHASIQUE || is_stats_plans_activated()))
     {
       IJK_Field_double& ai_ft = scalar_post_fields_.at("AIRE_INTERF");
       ai_ft.allocate(domaine_ft_, Domaine_IJK::ELEM, 0, "AIRE_INTERF");
@@ -2069,6 +2053,39 @@ void Postprocessing_IJK::alloc_fields()
     {
       allocate_cell_vector(normale_cell_ft_, domaine_ft_, 0);
     }
+
+
+  if (is_post_required("NUM_COMPO"))
+    {
+      IJK_Field_double& num_c = scalar_post_fields_.at("NUM_COMPO");
+      num_c.allocate(domaine_ft_, Domaine_IJK::ELEM, 0, "NUM_COMPO");
+      champs_compris_.ajoute_champ(num_c);
+    }
+
+  if (is_post_required("VELOCITY_ANA") or is_post_required("ECART_ANA") )
+    {
+      allocate_velocity(velocity_ana_, domaine_ijk_, 1, "VELOCITY_ANA");
+      champs_compris_.ajoute_champ_vectoriel(velocity_ana_);
+    }
+
+  if (is_post_required("ECART_ANA"))
+    {
+      allocate_velocity(ecart_ana_, domaine_ijk_, 1, "ECART_ANA");
+      champs_compris_.ajoute_champ_vectoriel(ecart_ana_);
+    }
+
+  if (is_post_required("PRESSURE_ANA") or is_post_required("ECART_P_ANA") )
+    {
+      scalar_post_fields_.at("PRESSURE_ANA").allocate(domaine_ijk_, Domaine_IJK::ELEM, 1, "PRESSURE_ANA");
+      champs_compris_.ajoute_champ(scalar_post_fields_.at("PRESSURE_ANA"));
+    }
+
+  if (is_post_required("ECART_P_ANA"))
+    {
+      ecart_p_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1, "ECART_P_ANA");
+      champs_compris_.ajoute_champ(ecart_p_ana_);
+    }
+
 
   // Allocation des champs derivee de vitesse :
   if (is_stats_plans_activated() || is_post_required("LAMBDA2")|| is_post_required("CRITERE_Q") || is_post_required("CURL"))
@@ -2130,12 +2147,9 @@ void Postprocessing_IJK::alloc_fields()
       allocate_cell_vector(ana_grad2Wi_, domaine_ijk_, 0);
       allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
     }
-  if (is_post_required("NUM_COMPO"))
-    {
-      IJK_Field_double& num_c = scalar_post_fields_.at("NUM_COMPO");
-      num_c.allocate(domaine_ft_, Domaine_IJK::ELEM, 0, "NUM_COMPO");
-      champs_compris_.ajoute_champ(num_c);
-    }
+
+
+
 //  if (liste_post_instantanes_.contient_("CELL_VELOCITY"))
 //    allocate_cell_vector(cell_velocity_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
@@ -2160,16 +2174,8 @@ void Postprocessing_IJK::alloc_velocity_and_co()
   if ((liste_post_instantanes_.contient_("GRAD_INDICATRICE_FT")) || (liste_post_instantanes_.contient_("TOUS")))
     allocate_velocity(grad_I_ft_, domaine_ft_, 2);
 
-  if ((liste_post_instantanes_.contient_("VELOCITY_ANA")) || (liste_post_instantanes_.contient_("ECART_ANA")))
-    allocate_velocity(velocity_ana_, domaine_ijk_, 1);
-  if (liste_post_instantanes_.contient_("ECART_ANA"))
-    allocate_velocity(ecart_ana_, domaine_ijk_, 0);
   if (liste_post_instantanes_.contient_("D_VELOCITY_ANA"))
     allocate_velocity(d_velocity_ana_, domaine_ijk_, 1);
-  if ((liste_post_instantanes_.contient_("PRESSURE_ANA")) || (liste_post_instantanes_.contient_("ECART_P_ANA")))
-    pressure_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
-  if (liste_post_instantanes_.contient_("ECART_P_ANA"))
-    ecart_p_ana_.allocate(domaine_ijk_, Domaine_IJK::ELEM, 1);
   if (liste_post_instantanes_.contient_("OP_CONV"))
     {
       allocate_velocity(op_conv_, domaine_ijk_, ref_ijk_ft_->eq_ns().d_velocity_[0].ghost()); // Il y a 1 ghost chez d_velocity_

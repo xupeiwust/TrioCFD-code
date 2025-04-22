@@ -258,8 +258,11 @@ void Navier_Stokes_FTD_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>
 
     { "VELOCITY", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "VITESSE", Entity::FACE, Nature_du_champ::vectoriel, false },
+    { "VELOCITY_FT", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "PRESSURE", Entity::ELEMENT, Nature_du_champ::scalaire, false },
-    { "PRESSION", Entity::ELEMENT, Nature_du_champ::scalaire, false }
+    { "PRESSION", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSURE_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false },
+    { "PRESSION_RHS", Entity::ELEMENT, Nature_du_champ::scalaire, false }
   };
   chps.insert(chps.end(), c.begin(), c.end());
 }
@@ -539,7 +542,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     }
 
 
-  allocate_velocity(d_velocity_, dom_ijk, 1);
+  allocate_velocity(d_velocity_, dom_ijk, 1, "D_VELOCITY");
+  champs_compris_.ajoute_champ_vectoriel(d_velocity_);
 
   if (test_etapes_et_bilan_)
     {
@@ -582,7 +586,11 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // On utilise aussi rhov pour le bilan de forces et pour d'autres formes de convection...
   allocate_velocity(rho_v_, dom_ijk, 2);
 
-  pressure_rhs_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
+  pressure_rhs_.allocate(dom_ijk, Domaine_IJK::ELEM, 1, "PRESSURE_RHS");
+  pressure_rhs_.add_synonymous("PRESSION_RHS");
+  champs_compris_.ajoute_champ(pressure_rhs_);
+
+
   I_ns_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
   kappa_ns_.allocate(dom_ijk, Domaine_IJK::ELEM, 2);
 
@@ -636,22 +644,18 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     div_rhou_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
   allocate_velocity(psi_velocity_, dom_ijk, 2);
 
-  // champs pour post-traitement :
-  // post_.alloc_fields();
-  probleme_ijk().get_post().alloc_fields();
-
   // Allocation du terme source variable spatialement:
   if ((expression_variable_source_[0] != "??") || (expression_variable_source_[1] != "??") || (expression_variable_source_[2] != "??") || (expression_potential_phi_ != "??"))
     {
-      allocate_velocity(variable_source_, dom_ijk, 1);
+      allocate_velocity(variable_source_, dom_ijk, 1, "VARIABLE_SOURCE");
       flag_variable_source_ = true;
       potential_phi_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
       for (int dir = 0; dir < 3; dir++)
         variable_source_[dir].data() = 0.;
       potential_phi_.data() = 0.;
+      champs_compris_.ajoute_champ_vectoriel(variable_source_);
     }
 
-  // thermals_.initialize(dom_ijk);
 
   // GB : Je ne sais pas si on a besoin d'un ghost... Je crois que oui. Lequel?
   // Si la a vitesse ft doit transporter les sommets virtuels des facettes reelles,
@@ -662,7 +666,7 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
    * as the thermal probes necessitates several ghost cells to interpolate velocity !
    * Check the difference between elem and faces ? and for interpolation of the velocity ?
    */
-  int ft_ghost_cells = 4;
+  constexpr int ft_ghost_cells = 4;
   allocate_velocity(velocity_ft_, pb_ijk.get_domaine_ft(), ft_ghost_cells);
 
   kappa_ft_.allocate(pb_ijk.get_domaine_ft(), Domaine_IJK::ELEM, 2);
@@ -701,8 +705,10 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
   // Register champs compris
   velocity_.nommer("VELOCITY");
   velocity_.add_synonymous("VITESSE");
+  velocity_.add_synonymous("VELOCITY_FT");
   velocity_ft_.nommer("VELOCITY");
   velocity_ft_.add_synonymous("VITESSE");
+  velocity_ft_.add_synonymous("VELOCITY_FT");
   if (Option_IJK::DISABLE_DIPHASIQUE)
     champs_compris_.ajoute_champ_vectoriel(velocity_);
   else

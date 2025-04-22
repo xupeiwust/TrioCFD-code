@@ -82,7 +82,6 @@ public:
   void activate_cut_cell() { cut_cell_activated_ = 1; };
 
   IJK_Field_double& rebuilt_indic() { return rebuilt_indic_;  }
-  IJK_Field_double& potentiel()     { return potentiel_;  }
   IJK_Field_vector3_double& coords()  { return coords_;  }
   IJK_Field_double& integrated_timescale() { return integrated_timescale_; }
   bool postraiter_sous_pas_de_temps() const { return postraiter_sous_pas_de_temps_; }
@@ -225,15 +224,13 @@ protected:
   IJK_Field_vector3_double cell_rho_Ssigma_;
 
   IJK_Field_vector3_double d_velocity_ana_;
-  IJK_Field_double pressure_ana_,ecart_p_ana_;
+  IJK_Field_double ecart_p_ana_;
 
   // Celui la est discretise sur le maillage etendu:
   IJK_Field_vector3_double grad_I_ft_;
 
   // Pour postraitement :
   IJK_Field_double rebuilt_indic_;
-  IJK_Field_double potentiel_;
-//  IJK_Field_double ai_ft_;
   int extended_pressure_computed_ = 0;
   IJK_Field_double pressure_ft_;
   IJK_Field_double extended_pl_ft_;
