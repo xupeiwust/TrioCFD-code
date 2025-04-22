@@ -1,3 +1,4 @@
+# PARALLEL NOT #
 dimension 3
 Probleme_FTD_IJK pb
 
@@ -165,10 +166,26 @@ lire pb
   }
 
   {
-  dt_post 100
-  dt_post_stats_bulles 5
-  dt_post_stats_plans 5
-  champs_a_postraiter 6 COMPO_CONNEXE INDICATRICE VELOCITY PRESSURE COURBURE INTERFACES
+  }
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 100
+    nb_pas_dt_post_stats_bulles 5
+    nb_pas_dt_post_stats_plans 5
+    
+    fields 
+    {
+       indicatrice elem
+       num_compo elem
+       VELOCITY FACES
+       PRESSURE elem
+    }
+
+    interfaces interf
+    {
+       courbure som
+    } 
   }
 
 

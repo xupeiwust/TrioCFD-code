@@ -1,6 +1,6 @@
 #!/bin/bash
-lata=`ls shear_boundary_conditions_jdd[1-9]\.lata 2>/dev/null`
-tar xzf ref.tar.gz
-compare_lata $lata  ref/$lata
+
+${TrioCFD_project_directory}/share/bin/verifie_lata.sh $1
+
 exit $?
 
