@@ -166,7 +166,6 @@ lire pb
   }
 
   {
-    champs_a_postraiter 3 INDICATRICE TEMPERATURE DIV_LAMBDA_GRAD_T_VOLUME
     seuil_indicatrice_petite_fixe 0.01
     type_surface_efficace_face algebrique_simple
     type_surface_efficace_interface algebrique_simple
@@ -174,6 +173,19 @@ lire pb
     facettes_interpolation
     {
       scaled_distance_interpolation_1 1.0
+    }
+  }
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1000
+    
+    fields 
+    {
+       indicatrice elem
+       TEMPERATURE_0 elem
+       CUT_FIELDS_BARY_L elem
+       DIV_LAMBDA_GRAD_T_VOLUME_0 elem
     }
   }
 }

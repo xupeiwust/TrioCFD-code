@@ -166,10 +166,22 @@ lire pb
   }
 
   {
-    champs_a_postraiter 3 INDICATRICE TEMPERATURE DIV_LAMBDA_GRAD_T_VOLUME
     seuil_indicatrice_petite_fixe 0.01
     type_surface_efficace_face conservation_volume_iteratif
     type_surface_efficace_interface conservation_volume
+  }
+  
+  post_processing 
+  {
+    format lata
+    nb_pas_dt_post 1000
+    
+    fields 
+    {
+       indicatrice elem
+       TEMPERATURE_0 elem
+       CUT_FIELDS_BARY_L elem
+    }
   }
 }
 solve pb
