@@ -2159,11 +2159,25 @@ double Statistiques_dns_ijk::face_to_cell_gradient(const IJK_Field_double& vites
 // Calcul le gradient de U aux cellules a partir de la vitesse aux faces
 void Statistiques_dns_ijk::compute_and_store_gradU_cell(const IJK_Field_double& vitesse_i,
                                                         const IJK_Field_double& vitesse_j,
-                                                        const IJK_Field_double& vitesse_k,
-                                                        /* Et les champs en sortie */
-                                                        IJK_Field_double& dudx, IJK_Field_double& dvdy, IJK_Field_double& dwdx,
-                                                        IJK_Field_double& dudz, IJK_Field_double& dvdz, IJK_Field_double& dwdz)
+                                                        const IJK_Field_double& vitesse_k)
 {
+  IJK_Field_vector3_double& gradU=vect_post_fields_.at("dUd");
+  IJK_Field_vector3_double& gradV=vect_post_fields_.at("dVd");
+  IJK_Field_vector3_double& gradW=vect_post_fields_.at("dWd");
+
+  // TODO : Should be centralised here:
+  if (0)
+    {
+      compute_and_store_gradU_cell(vitesse_i, vitesse_j, vitesse_k);
+      return;
+    }
+  IJK_Field_double& dudx = gradU[0];
+  IJK_Field_double& dvdy = gradV[1];
+  IJK_Field_double& dwdx = gradW[0];
+  IJK_Field_double& dudz = gradU[2];
+  IJK_Field_double& dvdz = gradV[2];
+  IJK_Field_double& dwdz = gradW[2];
+
   const Domaine_IJK& splitting = vitesse_i.get_domaine();
 
   // Nombre total de mailles en K

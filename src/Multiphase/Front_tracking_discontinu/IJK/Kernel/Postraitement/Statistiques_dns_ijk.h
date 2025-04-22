@@ -134,10 +134,7 @@ public:
   }
   void compute_and_store_gradU_cell(const IJK_Field_double& vitesse_i,
                                     const IJK_Field_double& vitesse_j,
-                                    const IJK_Field_double& vitesse_k,
-                                    /* Et les champs en sortie */
-                                    IJK_Field_double& dudx, IJK_Field_double& dvdy, IJK_Field_double& dwdx,
-                                    IJK_Field_double& dudz, IJK_Field_double& dvdz, IJK_Field_double& dwdz);
+                                    const IJK_Field_double& vitesse_k);
 
   void cell_to_cell_gradient(const int i, const int j, const int k,
                              const IJK_Field_double& dudx, const IJK_Field_double& dvdy, const IJK_Field_double& dwdx,

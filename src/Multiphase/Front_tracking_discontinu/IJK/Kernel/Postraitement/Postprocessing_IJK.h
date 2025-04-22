@@ -78,7 +78,7 @@ public:
   void ecrire_statistiques_cisaillement(int reset, const Nom& nom_cas, const double current_time) const;
   void ecrire_statistiques_rmf(int reset, const Nom& nom_cas, const double current_time) const;
   void update_stat_ft(const double dt);
-  void get_update_lambda2();
+  void update_gradU_lambda2(const bool need_lambda2=false);
   void get_update_lambda2_and_rot_and_Q();
   void activate_cut_cell() { cut_cell_activated_ = 1; };
 

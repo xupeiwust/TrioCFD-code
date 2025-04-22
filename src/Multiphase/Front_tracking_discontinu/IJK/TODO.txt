@@ -21,4 +21,9 @@
         - dans IJK_Field_template<_TYPE_, _TYPE_ARRAY_>::exchange_data(), mettre les modulos qui vont bien
         - ecrire un test ! (bon candidat pour GTest)
 
+- Nettoyer les 17 Mots clé et 3 options de la diffusion : 
+	Dans Operateur_IJK_faces_diff.cpp, je pense que Laminar_transpose et full_arithmetic sont synonymes.
+	Dans les deux cas ([14] ou [0]), la classe est de type simple (sans suffixe).
+	Dans les deux cas ([15] ou [3]), la classe est de type StdWithLaminarTranspose.
 
+- Verifier la formule du critere_Q par rapport a Jeong 1995 (coeffs 2 et 0.5)

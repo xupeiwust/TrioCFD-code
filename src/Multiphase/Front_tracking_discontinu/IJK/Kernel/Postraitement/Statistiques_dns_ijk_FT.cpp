@@ -1066,10 +1066,7 @@ void Statistiques_dns_ijk_FT::update_stat(Probleme_FTD_IJK_base& cas, const doub
 
 
   // Calcul le gradient de U aux cellules a partir de la vitesse aux faces :
-  compute_and_store_gradU_cell(vitesse_i, vitesse_j, vitesse_k,
-                               /* Et les champs en sortie */
-                               gradU[0], gradV[1], gradW[0], /* field_dudx, field_dvdy, field_dwdx, */
-                               gradU[2], gradV[2], gradW[2]); /* field_dudz, field_dvdz, field_dwdz, */
+  compute_and_store_gradU_cell(vitesse_i, vitesse_j, vitesse_k);
 
 #ifdef STAT_VERBOSE
   // Pour verifications :

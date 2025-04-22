@@ -408,16 +408,6 @@ void Postprocessing_IJK::prepare_lata_and_stats()
       // pour faire la vraie indicatrice + les groupes
       update_stat_ft(0.);
     }
-//  else if (!(liste_post_instantanes_.contient_("CURL")) && !(liste_post_instantanes_.contient_("CRITERE_Q")) && (liste_post_instantanes_.contient_("LAMBDA2")))
-//    {
-//      // On ne calcul pas encore les stats, mais on veut post-traiter Lambda2 seulement...
-//      get_update_lambda2();
-//    }
-//  else if ((liste_post_instantanes_.contient_("CURL")) || (liste_post_instantanes_.contient_("CRITERE_Q")) || (liste_post_instantanes_.contient_("LAMBDA2")))
-//    {
-//      // On ne calcul pas encore les stats, mais on veut deja post-traiter le rotationnel ou Lambda2 ou critere_Q...
-//      get_update_lambda2_and_rot_and_curl();
-//    }
 }
 
 void Postprocessing_IJK::postraiter(int forcer)
@@ -964,12 +954,6 @@ void Postprocessing_IJK::posttraiter_champs_instantanes(const char *lata_name, d
 
   if (liste_post_instantanes_.contient_("COORDS"))
     n--, dumplata_vector(lata_name, "COORDS", coords_[0], coords_[1], coords_[2], latastep);
-//  if (liste_post_instantanes_.contient_("LAMBDA2"))
-//    {
-//      get_update_lambda2();
-//      n--, dumplata_scalar(lata_name, "LAMBDA2", lambda2_, latastep);
-//    }
-
 
   if (liste_post_instantanes_.contient_("D_VELOCITY_ANA"))
     {
@@ -1570,36 +1554,56 @@ void Postprocessing_IJK::update_stat_ft(const double dt)
 // Calcul du lambda2 a partir du gradient.
 // A optimiser simplement en mutualisant avec la methode d'update_stats.
 // Et en ne faisant le calcul que si besoin, cad si les champs de gradient ne sont pas a jour...
-void Postprocessing_IJK::get_update_lambda2()
+void Postprocessing_IJK::update_gradU_lambda2(const bool need_lambda2)
 {
   IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
   // TODO : Clean theses : dudx_  and vectorise with what's in statistiques ... gradU[2]
-  compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2],
-                               /* Et les champs en sortie */
-                               dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */, dudy_, dvdx_, dwdy_, lambda2);
+  if (need_lambda2)
+    compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2],
+                                 /* Et les champs en sortie */
+                                 dudx_, dvdy_, dwdx_, dudz_, dvdz_, dwdz_, 1 /* yes compute_all */,
+                                 dudy_, dvdx_, dwdy_, lambda2);
+  statistiques_FT_.compute_and_store_gradU_cell(velocity_.valeur()[0], velocity_.valeur()[1], velocity_.valeur()[2]);
 }
 
 void Postprocessing_IJK::get_update_lambda2_and_rot_and_Q()
 {
   IJK_Field_vector3_double& rot = vect_post_fields_.at("CURL");
   IJK_Field_double& critere_Q = scalar_post_fields_.at("CRITERE_Q");
-  IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
-  get_update_lambda2();
+  //IJK_Field_double& lambda2 = scalar_post_fields_.at("LAMBDA2");
+
+  const IJK_Field_vector3_double& gradU=statistiques_FT_.get_IJK_field_vector("dUd");
+  const IJK_Field_vector3_double& gradV=statistiques_FT_.get_IJK_field_vector("dVd");
+  const IJK_Field_vector3_double& gradW=statistiques_FT_.get_IJK_field_vector("dWd");
+  const IJK_Field_double& dudx = gradU[0];
+  const IJK_Field_double& dudy = gradU[1];
+  const IJK_Field_double& dudz = gradU[2];
+  const IJK_Field_double& dvdx = gradV[0];
+  const IJK_Field_double& dvdy = gradV[1];
+  const IJK_Field_double& dvdz = gradV[2];
+  const IJK_Field_double& dwdx = gradW[0];
+  const IJK_Field_double& dwdy = gradW[1];
+  const IJK_Field_double& dwdz = gradW[2];
+  update_gradU_lambda2();
   // Nombre local de mailles en K
-  const int kmax = lambda2.nk();
-  const int imax = lambda2.ni();
-  const int jmax = lambda2.nj();
+  const int kmax = critere_Q.nk();
+  const int imax = critere_Q.ni();
+  const int jmax = critere_Q.nj();
   for (int k = 0; k < kmax; k++)
     for (int j = 0; j < jmax; j++)
       for (int i = 0; i < imax; i++)
         {
-          rot[0](i, j, k) = dwdy_(i, j, k) - dvdz_(i, j, k);
-          rot[1](i, j, k) = dudz_(i, j, k) - dwdx_(i, j, k);
-          rot[2](i, j, k) = dvdx_(i, j, k) - dudy_(i, j, k);
+          rot[0](i, j, k) = dwdy(i, j, k) - dvdz(i, j, k);
+          rot[1](i, j, k) = dudz(i, j, k) - dwdx(i, j, k);
+          rot[2](i, j, k) = dvdx(i, j, k) - dudy(i, j, k);
           // Calcul du critere Q selon (Jeong & Hussain 1995)
           critere_Q(i, j, k) = -0.5
-                               * (dudx_(i, j, k) * dudx_(i, j, k) + 2. * dudy_(i, j, k) * dvdx_(i, j, k) + 2. * dudz_(i, j, k) * dwdx_(i, j, k) + dvdy_(i, j, k) * dvdy_(i, j, k) + 2. * dvdz_(i, j, k) * dwdy_(i, j, k)
-                                  + dwdz_(i, j, k) * dwdz_(i, j, k));
+                               * (dudx(i, j, k) * dudx(i, j, k)
+                                  + 2. * dudy(i, j, k) * dvdx(i, j, k)
+                                  + 2. * dudz(i, j, k) * dwdx(i, j, k)
+                                  + dvdy(i, j, k) * dvdy(i, j, k)
+                                  + 2. * dvdz(i, j, k) * dwdy(i, j, k)
+                                  + dwdz(i, j, k) * dwdz(i, j, k));
         }
 }
 
@@ -1715,8 +1719,8 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
   // TODO pas optimal :
   if (nom == "LAMBDA2")
-    get_update_lambda2();
-  if (nom == "CRITERE_Q" || nom == "CURL")
+    update_gradU_lambda2();
+  if (nom == "CRITERE_Q")
     get_update_lambda2_and_rot_and_Q();
 
   if (nom == "NUM_COMPO")
@@ -1902,6 +1906,8 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
 const IJK_Field_vector3_double& Postprocessing_IJK::get_IJK_field_vector(const Motcle& nom)
 {
+  if (nom == "CURL")
+    get_update_lambda2_and_rot_and_Q();
 
   if (statistiques_FT_.has_champ_vectoriel(nom))
     {
@@ -1993,12 +1999,6 @@ void Postprocessing_IJK::sauvegarder_post(const Nom& lata_name)
 
   if (is_post_required("INTEGRATED_TIMESCALE"))
     dumplata_scalar(lata_name, "INTEGRATED_TIMESCALE", integrated_timescale_, 0);
-//  // Not necessary, but convenient for picturing...
-//  if (liste_post_instantanes_.contient_("LAMBDA2"))
-//    {
-//      get_update_lambda2();
-//      dumplata_scalar(lata_name, "LAMBDA2", lambda2_, 0);
-//    }
 }
 
 void Postprocessing_IJK::sauvegarder_post_maitre(const Nom& lata_name, SFichier& fichier) const
