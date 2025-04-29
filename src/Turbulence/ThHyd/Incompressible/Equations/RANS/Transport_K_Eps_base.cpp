@@ -347,5 +347,5 @@ int Transport_K_Eps_base::controler_K_Eps()
  */
 void Transport_K_Eps_base::valider_iteration()
 {
-  controler_K_Eps();
+  // controler_K_Eps();
 }
