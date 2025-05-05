@@ -21,10 +21,10 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Viscosite_turbulente_k_omega.h>
-#include <Pb_Multiphase.h>
 #include <Masse_ajoutee_base.h>
+#include <Milieu_composite.h>
 #include <TRUSTTab_parts.h>
-#include <Probleme_base.h>
+#include <Pb_Multiphase.h>
 #include <Champ_base.h>
 #include <Param.h>
 
@@ -78,16 +78,20 @@ void Viscosite_turbulente_k_omega::eddy_viscosity(DoubleTab& nu_t) const
 
   if (gas_turb_)
     {
-      DoubleTab coeff = DoubleTab(nu_t.dimension(1));
-      for (int i = 0; i < nu_t.dimension(0); i++)
+      const Milieu_composite& mil = ref_cast(Milieu_composite, ref_cast(Pb_Multiphase, pb_.valeur()).milieu());
+      if (mil.are_fluid_properties_initialised())
         {
-          const Masse_ajoutee_base& corr_ma_ = ref_cast(Masse_ajoutee_base, correlation_.valeur());
-          corr_ma_.coefficient( & (*alpha)(i,0), &rho(i,0), coeff);
-          for (int n = k.dimension(1) ; n < nu_t.dimension(1) ; n++)
-            nu_t(i, n) =  nu_t(i, 0.)  * (1. + coeff(n)* rho(i,0)/rho(i,n)) * std::min((*alpha)(i,n)*10, 1.) ;
+          DoubleTrav coeff(nu_t.dimension(1));
+          for (int i = 0; i < nu_t.dimension(0); i++)
+            {
+              const Masse_ajoutee_base& corr_ma_ = ref_cast(Masse_ajoutee_base, correlation_.valeur());
+              corr_ma_.coefficient( & (*alpha)(i,0), &rho(i,0), coeff);
+              for (int n = k.dimension(1) ; n < nu_t.dimension(1) ; n++)
+                nu_t(i, n) =  nu_t(i, 0.)  * (1. + coeff(n)* rho(i,0)/rho(i,n)) * std::min((*alpha)(i,n)*10, 1.) ;
+            }
         }
-    }
 
+    }
 }
 
 void Viscosite_turbulente_k_omega::reynolds_stress(DoubleTab& R_ij) const // Renvoie <u_i'u_j'>
