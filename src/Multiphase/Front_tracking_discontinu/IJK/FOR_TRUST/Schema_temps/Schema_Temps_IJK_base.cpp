@@ -19,7 +19,8 @@
 #include <Param.h>
 
 Implemente_base(Schema_Temps_IJK_base,"Schema_Temps_IJK_base",Schema_Temps_base);
-
+// XD schema_temps_base_IJK objet_u schema_temps_base_IJK -1 Basic class for time schemes. This scheme will be associated with a problem and the equations of this problem.
+//
 Sortie& Schema_Temps_IJK_base::printOn(Sortie& os) const
 {
   os << "dt " << dt_ << finl;

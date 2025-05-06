@@ -28,6 +28,7 @@
 // #define PROJECTION_DE_LINCREMENT_DV
 
 Implemente_instanciable_sans_constructeur(Navier_Stokes_FTD_IJK, "Navier_Stokes_FTD_IJK", Equation_base);
+// XD Navier_Stokes_FTD_IJK eqn_base Navier_Stokes_FTD_IJK -1 Navier-Stokes equations.
 
 Navier_Stokes_FTD_IJK::Navier_Stokes_FTD_IJK()
 {
