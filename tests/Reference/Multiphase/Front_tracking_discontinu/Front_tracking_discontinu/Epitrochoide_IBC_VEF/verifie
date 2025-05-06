@@ -1,6 +1,6 @@
+#!/bin/bash
 # Verification qu'une reprise dans le fichier .xyz du maillage lagrangien fonctionne #
-jdd=`pwd`
-jdd=`basename $jdd`
+jdd=$1
 # On recupere le temps de sauvegarde #
 err=`ls -rt *.err | tail -1`
 [ "$err" = "" ] && exit -1
@@ -9,7 +9,7 @@ tinit=`grep "Backup of the field" $err | tail -1 | awk '{print $NF}'`
 xyz=`ls -rt *.xyz | tail -1`
 [ "$xyz" = "" ] && exit -1
 # Sequentiel ou parallele ? #
-NB_PROCS="" && [ ${err#PAR_} != $err ] && NB_PROCS=`ls *.Zones | wc -l` && jdd=PAR_$jdd
+NB_PROCS="" && [ ${err#PAR_} != $err ] && NB_PROCS=`ls *.Zones | wc -l`
 # On construit le jeu de donnees #
 cat $jdd.data | $TRUST_Awk -v tinit=$tinit -v xyz=$xyz ' !/tinit/ {print $0} /tinit/ {print "tinit "tinit}' | sed "s/fonction -((x-1.5)^2+y^2-(2^2))/reprise $xyz/" > reprise.data
 [ "`grep $xyz reprise.data`" = "" ] && echo mal modifie && exit -1
