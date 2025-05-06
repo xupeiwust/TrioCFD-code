@@ -277,7 +277,7 @@ public :
     if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
       {
         maillage_ft_ijk_.update_gradient_laplacien_Surfactant();
-        DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
+        maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
       }
     return;
   };

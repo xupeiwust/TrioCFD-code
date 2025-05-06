@@ -95,8 +95,8 @@ void Operator_FT_Disc::Compute_interfaciale_source(const ArrOfDouble& sigma_Face
   int dim = Objet_U::dimension;
   int nbfa7=FTmesh.nb_facettes();
   int nbsom=FTmesh.nb_sommets();
-  DoubleTab sommets=FTmesh.sommets();
-  IntTab facettes=FTmesh.facettes();
+  //DoubleTab sommets=FTmesh.sommets();
+  // IntTab facettes=FTmesh.facettes();
   //const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
   const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
 
@@ -169,8 +169,8 @@ void Operator_FT_Disc::Operator_Gradient_FT_sommets(const ArrOfDouble& Phi_Facet
   int dim = Objet_U::dimension;
   int nbfa7=FTmesh.nb_facettes();
   int nbsom=FTmesh.nb_sommets();
-  DoubleTab sommets=FTmesh.sommets();
-  IntTab facettes=FTmesh.facettes();
+  //DoubleTab sommets=FTmesh.sommets();
+  //IntTab facettes=FTmesh.facettes();
   //const ArrOfDouble& Sfa7 = FTmesh.get_update_surface_facettes();
   const Desc_Structure_FT& desc_sommets = FTmesh.desc_sommets();
 

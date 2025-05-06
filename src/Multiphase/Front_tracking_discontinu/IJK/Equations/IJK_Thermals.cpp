@@ -32,7 +32,6 @@ Entree& IJK_Thermals::readOn( Entree& is )
   if (liste_thermique_.size())
     liste_thermique_.vide();
 
-  Nom accouverte = "{", accfermee = "}", virgule = ",";
   Motcle nom;
   is >> nom;
 
@@ -52,7 +51,6 @@ Entree& IJK_Thermals::readOn( Entree& is )
         }
     }
 
-  return is;
 }
 
 void IJK_Thermals::set_fichier_reprise(const char *lataname)
@@ -515,7 +513,7 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
 {
   throw; // THIS METHOD SHOULD NOT BE CALLED ANYMORE
 
-  Cerr << "Post-process Eulerian fields related to the temperature resolution" << finl;
+  /* Cerr << "Post-process Eulerian fields related to the temperature resolution" << finl;
   int idx_th = 0;
   for (auto &itr : liste_thermique_)
     {
@@ -534,7 +532,7 @@ void IJK_Thermals::posttraiter_champs_instantanes_thermal(const Motcles& liste_p
       if (idx_th == 0)
         n -= nb; // On compte comme "un" tous les CHAMPS_N (ou N est la longueur de la liste)
       ++idx_th;
-    }
+    } */
 }
 
 void IJK_Thermals::init_switch_thermals(const Domaine_IJK& splitting)

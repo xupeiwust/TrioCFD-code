@@ -3460,7 +3460,7 @@ void IJK_Interfaces::transporter_maillage_remaillage(int correction_semi_locale_
       //creer_duplicata_bulles();
       //mesh.parcourir_maillage();
       mesh.update_gradient_laplacien_Surfactant();
-      DoubleTab interfacial_source_term_sommet = mesh.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
+      mesh.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
 
     }
 
@@ -8626,7 +8626,7 @@ void IJK_Interfaces::calculer_phi_repuls_sommet(
   //Il faut quil passe en sigma variable ici dans le cas de surfactant
   if (!maillage_ft_ijk_.Surfactant_facettes().get_disable_surfactant())
     {
-      DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
+      //DoubleTab interfacial_source_term_sommet = maillage_ft_ijk_.update_sigma_and_interfacial_source_term_sommet(ref_domaine_, false, use_tryggvason_interfacial_source_);
       const ArrOfDouble& sigma_sommets = maillage_ft_ijk_.Surfactant_facettes().get_sigma_sommets();
       for (int i = 0; i < nb_som; i++)
         {
