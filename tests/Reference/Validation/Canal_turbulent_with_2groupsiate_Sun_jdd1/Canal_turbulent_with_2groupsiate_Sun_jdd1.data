@@ -1,0 +1,363 @@
+# PARALLEL NOT #
+# OPENMP NOT #
+
+Dimension 3
+
+Domaine dom
+
+# BEGIN MESH #
+Mailler dom 
+{ 
+	Pave canal  
+	{ 
+		Origine 0. 0. 0.
+		Nombre_de_Noeuds 4 20 140 
+		Longueurs  0.005 0.1 2.0955 
+	} 
+	{ 
+		bord symetrie1 X = 0 0 <= Y <= 0.1 0 <= Z <= 2.0955
+		bord symetrie2 Y = 0.1 0 <= X <= 0.005 0 <= Z <= 2.0955
+		bord top Z = 2.0955 0 <= X <= 0.005 0 <= Y <= 0.1 
+		bord bottom Z = 0 0 <= X <= 0.005 0 <= Y <= 0.1 
+		bord wall1 Y = 0 0 <= X <= 0.005 0 <= Z <= 2.0955
+		bord wall2 X = 0.005 0 <= Y <= 0.1 0 <= Z <= 2.0955
+	} 
+} 
+Polyedriser dom
+# END MESH #
+
+# BEGIN PARTITION
+Partition dom
+{
+        /* Choose Nb_parts so to have ~ 25000 cells per processor */
+        Partition_tool metis { nb_parts 4 }
+        Larg_joint 2
+        zones_name DOM
+}
+End
+END PARTITION #
+
+# BEGIN SCATTER
+Scatter DOM.Zones dom
+END SCATTER #
+
+ PolyMAC_P0  dis option_PolyMAC { } 
+
+Schema_euler_implicite sch
+Read sch
+{
+    tinit 0
+	nb_pas_dt_max 3
+    tmax 100
+    dt_impr 1e-8
+    facsec 0.1
+    facsec_max 0.1
+    seuil_statio 1.e-3
+    dt_start dt_fixe 2.e-5
+    solveur ICE
+    {
+        criteres_convergence { alpha 1e-5 pression 1. vitesse 1e-5 temperature 1e8 k 1e-5 omega 1. interfacial_area 1e-5 }
+        iter_min 2
+        solveur petsc cholesky { }
+        seuil_convergence_implicite 1e30
+	
+    }
+}
+
+Pb_Multiphase pb
+Associate  pb dom
+Associate  pb sch
+Discretize pb dis
+
+Lire pb
+{
+    milieu_composite
+    {
+     liquide_eau Fluide_Incompressible { mu champ_uniforme 1 1.e-3 rho champ_uniforme 1  1.e3 lambda Champ_Uniforme  1 0.604 Cp Champ_Uniforme 1 75.366 beta_th Champ_Uniforme 1 0 } 
+         gaz_air_group1 Fluide_Incompressible { mu champ_uniforme 1 1.e-5 rho champ_uniforme 1  1.   lambda Champ_Uniforme  1 0.023 Cp Champ_Uniforme 1 1006   beta_th Champ_Uniforme 1 0 } 
+         gaz_air_group2 Fluide_Incompressible { mu champ_uniforme 1 1.e-5 rho champ_uniforme 1  1.   lambda Champ_Uniforme  1 0.023 Cp Champ_Uniforme 1 1006   beta_th Champ_Uniforme 1 0 } 
+    interface_eau_air interface_sigma_constant  { tension_superficielle 0.0728 }
+    }
+    correlations
+    {
+    	loi_paroi adaptative { }
+    	flux_interfacial coef_constant { liquide_eau 1e10 gaz_air_group1 1e10 gaz_air_group2 1e10 } 
+	masse_ajoutee Cai { limiter_liquid 1000. }
+	frottement_interfacial  Tomiyama_complet { contamination 2 } 
+    	portance_interfaciale  Tomiyama_complet { }
+    	dispersion_bulles  turbulente_Bazin { }  
+    	flux_2groupes Smith { } 
+    }
+    QDM_Multiphase
+    {
+        evanescence { homogene { alpha_res 5.e-5 alpha_res_min 1.e-5 } }
+        solveur_pression petsc cholesky { quiet }
+        convection { amont }
+        diffusion  { turbulente k_omega { } }
+        initial_conditions
+        {
+            vitesse  champ_fonc_xyz dom 9  0  0  0  0  0  0  4.853 4.853*1.53 4.853*1.53 
+            pression Champ_Fonc_xyz dom 1 1e5
+        }
+		conditions_limites	
+		{
+			wall1 paroi_frottante_loi { }
+			wall2 paroi_frottante_loi { }
+			bottom frontiere_ouverte_vitesse_imposee_sortie Champ_front_Fonc_xyz 9  0  0  0  0  0  0  4.853 4.853*1.53 4.853*1.53 
+			top frontiere_ouverte_pression_imposee champ_front_uniforme 1 1e5
+			symetrie1 symetrie
+			symetrie2 symetrie
+		}
+		sources
+		{ 
+			source_qdm Champ_Fonc_xyz dom 9  0  0  0  0  0  0  -9.81 -9.81 -9.81  ,
+			frottement_interfacial { } ,
+			portance_interfaciale { beta 1 } ,
+			Dispersion_bulles { beta 1 } ,
+			Correction_Tomiyama {  } 
+			
+		}
+    }
+    Masse_Multiphase
+    {
+        initial_conditions { alpha Champ_Fonc_xyz dom 3 (1.-1.*(X<0.0033)*(Y>0.002))+0.7224659483035265*(X<0.0033)*(Y>0.002) 0.0777442741684494*(X<0.0033)*(Y>0.002) 0.19978977752802413*(X<0.0033)*(Y>0.002) }
+        convection { amont }
+		conditions_limites	
+		{
+			wall1 paroi
+			wall2 paroi
+			bottom	frontiere_ouverte a_ext Champ_Front_fonc_xyz 3 (1.-1.*(X<0.0033)*(Y>0.002))+0.7224659483035265*(X<0.0033)*(Y>0.002) 0.0777442741684494*(X<0.0033)*(Y>0.002) 0.19978977752802413*(X<0.0033)*(Y>0.002)
+			top	frontiere_ouverte a_ext Champ_Front_fonc_xyz 3 (1.-1.*(X<0.0033)*(Y>0.002))+0.7224659483035265*(X<0.0033)*(Y>0.002) 0.0777442741684494*(X<0.0033)*(Y>0.002) 0.19978977752802413*(X<0.0033)*(Y>0.002)
+			symetrie1  paroi 
+			symetrie2  paroi 
+		}
+		sources 
+		{ 
+                  flux_2groupes { dh 0.01905 } 
+		}
+    }
+    Energie_Multiphase
+    {
+	equation_non_resolue 1
+        diffusion { turbulente SGDH { sigma 0. } }
+        convection { amont }
+        initial_conditions { temperature Champ_Uniforme 3 0 0 0 }
+        boundary_conditions
+        {
+            wall1 paroi_adiabatique
+            wall2 paroi_adiabatique
+	    	bottom	frontiere_ouverte T_ext Champ_Front_Uniforme 3 0 0 0
+	    	top	frontiere_ouverte T_ext Champ_Front_Uniforme 3 0 0 0
+	    	symetrie1  paroi_adiabatique 
+	    	symetrie2  paroi_adiabatique 
+        }
+        sources 
+        { 
+        	flux_interfacial 
+        }
+    }
+    taux_dissipation_turbulent
+    {
+        diffusion { turbulente SGDH { sigma 0.5 } }
+        convection { amont }
+        initial_conditions { omega Champ_Fonc_xyz dom 1 181.96475440569927 }
+        boundary_conditions
+        {
+			wall1	Cond_lim_omega_demi { }
+			wall2	Cond_lim_omega_demi { }
+			bottom	frontiere_ouverte omega_ext Champ_Front_Uniforme 1 181.96475440569927
+			top	frontiere_ouverte omega_ext Champ_Front_Uniforme 1 181.96475440569927
+			symetrie1 	 paroi 
+			symetrie2 	 paroi 
+        }
+	sources
+		{
+			Production_echelle_temp_taux_diss_turb { alpha_omega 0.5 } ,
+			Dissipation_echelle_temp_taux_diss_turb { beta_omega 0.075 }  ,
+			Diffusion_croisee_echelle_temp_taux_diss_turb { sigma_d 0.5 } 
+		}
+    }
+    energie_cinetique_turbulente
+    {
+        diffusion { turbulente SGDH { sigma 0.67 } }
+        convection { amont }
+        initial_conditions { k champ_fonc_xyz dom 1 0.23551608999999998 }
+        boundary_conditions
+        {
+			wall1 Cond_lim_k_complique_transition_flux_nul_demi
+			wall2 Cond_lim_k_complique_transition_flux_nul_demi
+			bottom	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.23551608999999998
+			top	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.23551608999999998
+			symetrie1 	 paroi 
+			symetrie2 	 paroi 
+        }
+	sources
+		{
+			Production_energie_cin_turb { } ,
+			Terme_dissipation_energie_cinetique_turbulente { beta_k 0.09 }
+		}
+    }
+    aire_interfaciale
+    {
+        diffusion { turbulente aire_interfaciale { ng2 2 } }
+        initial_conditions { interfacial_area Champ_Fonc_xyz dom 3 0. 147.6157104464229 68.89302673380142 }
+        convection { amont }
+	conditions_limites	
+		{
+			wall1	paroi
+			wall2	paroi
+			symetrie1   paroi 
+			symetrie2   paroi 
+			bottom	frontiere_ouverte a_i_ext Champ_Front_fonc_xyz 3 0. 147.6157104464229 68.89302673380142
+			top	frontiere_ouverte a_i_ext Champ_Front_fonc_xyz 3 0. 147.6157104464229 68.89302673380142
+		}
+        sources
+        {
+			  coalescence_bulles_2groupes { dh 0.01905 } Smith , 
+			  rupture_bulles_2groupes { dh 0.01905 } Smith , 
+			  flux_2groupes { dh 0.01905 } 
+
+        }
+	}
+    Postraitement
+	{
+		Definition_champs 	{
+					d_bulles	refChamp { Pb_champ pb diametre_bulles }
+                                      gradient_p        refChamp { Pb_champ pb gradient_pression }		
+                                      dp 			refChamp { Pb_champ pb distance_paroi_globale }		
+					diff_v		operateur_eqn	{
+									numero_op 0
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					conv_v		operateur_eqn	{
+									numero_op 1
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					grav_v		operateur_eqn	{
+									numero_source 0
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					drag		operateur_eqn	{
+									numero_source 1
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					lift		operateur_eqn	{
+									numero_source 2
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					disp		operateur_eqn	{
+									numero_source 3
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					lub		operateur_eqn	{
+									numero_source 4
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					}
+		sondes			{
+				  k_881 k periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ k_882 k periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ k_883 k periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ k_1421 k periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ k_1242 k periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ k_1423 k periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ omega_881 omega periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ omega_882 omega periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ omega_883 omega periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ omega_1421 omega periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ omega_1242 omega periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ omega_1423 omega periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ vitesse_liquide_eau_881 vitesse_liquide_eau periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ vitesse_liquide_eau_882 vitesse_liquide_eau periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ vitesse_liquide_eau_883 vitesse_liquide_eau periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ vitesse_liquide_eau_1421 vitesse_liquide_eau periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ vitesse_liquide_eau_1242 vitesse_liquide_eau periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ vitesse_liquide_eau_1423 vitesse_liquide_eau periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ vitesse_gaz_air_group1_881 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ vitesse_gaz_air_group1_882 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ vitesse_gaz_air_group1_883 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ vitesse_gaz_air_group1_1421 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ vitesse_gaz_air_group1_1242 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ vitesse_gaz_air_group1_1423 vitesse_gaz_air_group1 periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ vitesse_gaz_air_group2_881 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ vitesse_gaz_air_group2_882 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ vitesse_gaz_air_group2_883 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ vitesse_gaz_air_group2_1421 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ vitesse_gaz_air_group2_1242 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ vitesse_gaz_air_group2_1423 vitesse_gaz_air_group2 periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ alpha_gaz_air_group1_881 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ alpha_gaz_air_group1_882 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ alpha_gaz_air_group1_883 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ alpha_gaz_air_group1_1421 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ alpha_gaz_air_group1_1242 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ alpha_gaz_air_group1_1423 alpha_gaz_air_group1 periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ alpha_gaz_air_group2_881 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ alpha_gaz_air_group2_882 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ alpha_gaz_air_group2_883 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ alpha_gaz_air_group2_1421 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ alpha_gaz_air_group2_1242 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ alpha_gaz_air_group2_1423 alpha_gaz_air_group2 periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ pression_881 pression periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ pression_882 pression periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ pression_883 pression periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ pression_1421 pression periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ pression_1242 pression periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ pression_1423 pression periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ dp_881 dp periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ dp_882 dp periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ dp_883 dp periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ dp_1421 dp periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ dp_1242 dp periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ dp_1423 dp periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ lift_881 lift periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ lift_882 lift periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ lift_883 lift periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ lift_1421 lift periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ lift_1242 lift periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ lift_1423 lift periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ disp_881 disp periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ disp_882 disp periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ disp_883 disp periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ disp_1421 disp periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ disp_1242 disp periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ disp_1423 disp periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ vorticite_881 vorticite periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ vorticite_882 vorticite periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ vorticite_883 vorticite periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ vorticite_1421 vorticite periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ vorticite_1242 vorticite periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ vorticite_1423 vorticite periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ d_bulles_881 d_bulles periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ d_bulles_882 d_bulles periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ d_bulles_883 d_bulles periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ d_bulles_1421 d_bulles periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ d_bulles_1242 d_bulles periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ d_bulles_1423 d_bulles periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+ interfacial_area_881 interfacial_area periode 1.e-2 segment 50 0.00125 0.0 1.0096500000000002 0.00125 0.1 1.0096500000000002  
+ interfacial_area_882 interfacial_area periode 1.e-2 segment 50 0.0025 0.0 1.0096500000000002 0.0025 0.1 1.0096500000000002  
+ interfacial_area_883 interfacial_area periode 1.e-2 segment 50 0.00375 0.0 1.0096500000000002 0.00375 0.1 1.0096500000000002  
+ interfacial_area_1421 interfacial_area periode 1.e-2 segment 50 0.00125 0.0 2.03835 0.00125 0.00125 2.03835  
+ interfacial_area_1242 interfacial_area periode 1.e-2 segment 50 0.0025 0.0 2.03835 0.0025 0.1 2.03835  
+ interfacial_area_1423 interfacial_area periode 1.e-2 segment 50 0.00375 0.0 2.03835 0.00375 0.1 2.03835  
+
+					}
+		format lml
+		champs binaire dt_post .01
+					{
+					k elem
+					omega elem
+					alpha elem
+					vitesse elem
+					pression elem
+					alpha_residu elem
+					k_residu elem
+					omega_residu elem
+					d_bulles elem 
+					}
+	}
+}
+
+Resoudre pb
+
+Fin
+
