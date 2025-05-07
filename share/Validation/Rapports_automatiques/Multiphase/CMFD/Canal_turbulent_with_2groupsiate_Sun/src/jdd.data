@@ -1,0 +1,279 @@
+# PARALLEL NOT #
+# OPENMP NOT #
+
+Dimension 3
+
+Domaine dom
+
+# BEGIN MESH #
+Mailler dom 
+{ 
+	Pave canal  
+	{ 
+		Origine 0. 0. 0.
+		Nombre_de_Noeuds 4 51 351 
+		Longueurs  0.005 0.1 2.0955 
+	} 
+	{ 
+		bord symetrie1 X = 0 0 <= Y <= 0.1 0 <= Z <= 2.0955
+		bord symetrie2 Y = 0.1 0 <= X <= 0.005 0 <= Z <= 2.0955
+		bord top Z = 2.0955 0 <= X <= 0.005 0 <= Y <= 0.1 
+		bord bottom Z = 0 0 <= X <= 0.005 0 <= Y <= 0.1 
+		bord wall1 Y = 0 0 <= X <= 0.005 0 <= Z <= 2.0955
+		bord wall2 X = 0.005 0 <= Y <= 0.1 0 <= Z <= 2.0955
+	} 
+} 
+Polyedriser dom
+# END MESH #
+
+# BEGIN PARTITION
+Partition dom
+{
+        /* Choose Nb_parts so to have ~ 25000 cells per processor */
+        Partition_tool metis { nb_parts 4 }
+        Larg_joint 2
+        zones_name DOM
+}
+End
+END PARTITION #
+
+# BEGIN SCATTER
+Scatter DOM.Zones dom
+END SCATTER #
+
+$schema
+
+Schema_euler_implicite sch
+Read sch
+{
+    tinit 0
+    tmax $tmax
+    dt_impr 1e-8
+    facsec $facsec
+    facsec_max $facsec
+    nb_pas_dt_max $nb_pas_dt_max
+    seuil_statio $seuil_statio
+    dt_start dt_fixe 2.e-5
+    solveur $solveur
+    {
+        criteres_convergence { alpha 1e-5 pression 1. vitesse 1e-5 temperature 1e8 k 1e-5 omega 1. interfacial_area 1e-5 }
+        iter_min 2
+        solveur petsc cholesky { }
+        seuil_convergence_implicite 1e30
+	$facsec_diffusion_for_sets
+    }
+}
+
+Pb_Multiphase pb
+Associate  pb dom
+Associate  pb sch
+Discretize pb dis
+
+Lire pb
+{
+    milieu_composite
+    {
+    $carrying_phase
+    $dispersed_phase_1
+    $dispersed_phase_2
+    $interface
+    }
+    correlations
+    {
+    	loi_paroi adaptative { }
+    	flux_interfacial coef_constant { liquide_eau 1e10 gaz_air_group1 1e10 gaz_air_group2 1e10 } 
+	masse_ajoutee Cai { limiter_liquid 1000. }
+	frottement_interfacial $frottement_interfacial
+    	portance_interfaciale $portance_interfaciale
+    	dispersion_bulles $dispersion_bulles 
+    	flux_2groupes Smith { } 
+    }
+    QDM_Multiphase
+    {
+        evanescence { homogene { alpha_res 5.e-5 alpha_res_min 1.e-5 } }
+        solveur_pression petsc cholesky { quiet }
+        convection { amont }
+        diffusion  { turbulente k_omega { } }
+        initial_conditions
+        {
+            vitesse  champ_fonc_xyz dom $u_0
+            pression Champ_Fonc_xyz dom 1 1e5
+        }
+		conditions_limites	
+		{
+			wall1 paroi_frottante_loi { }
+			wall2 paroi_frottante_loi { }
+			bottom frontiere_ouverte_vitesse_imposee_sortie Champ_front_Fonc_xyz $u_0
+			top frontiere_ouverte_pression_imposee champ_front_uniforme 1 1e5
+			symetrie1 symetrie
+			symetrie2 symetrie
+		}
+		sources
+		{ 
+			source_qdm Champ_Fonc_xyz dom $grav ,
+			frottement_interfacial { } ,
+			portance_interfaciale { beta $beta_portance } ,
+			Dispersion_bulles { beta $beta_disp } ,
+			Correction_Tomiyama {  } 
+			
+		}
+    }
+    Masse_Multiphase
+    {
+        initial_conditions { alpha Champ_Fonc_xyz dom 3 (1.-1.*(X<0.0033)*(Y>0.002))+$alpha_l0*(X<0.0033)*(Y>0.002) $alpha_v01*(X<0.0033)*(Y>0.002) $alpha_v02*(X<0.0033)*(Y>0.002) }
+        convection { amont }
+		conditions_limites	
+		{
+			wall1 paroi
+			wall2 paroi
+			bottom	frontiere_ouverte a_ext Champ_Front_fonc_xyz 3 (1.-1.*(X<0.0033)*(Y>0.002))+$alpha_l0*(X<0.0033)*(Y>0.002) $alpha_v01*(X<0.0033)*(Y>0.002) $alpha_v02*(X<0.0033)*(Y>0.002)
+			top	frontiere_ouverte a_ext Champ_Front_fonc_xyz 3 (1.-1.*(X<0.0033)*(Y>0.002))+$alpha_l0*(X<0.0033)*(Y>0.002) $alpha_v01*(X<0.0033)*(Y>0.002) $alpha_v02*(X<0.0033)*(Y>0.002)
+			symetrie1 $paroi
+			symetrie2 $paroi
+		}
+		sources 
+		{ 
+                  flux_2groupes { dh 0.01905 } 
+		}
+    }
+    Energie_Multiphase
+    {
+	equation_non_resolue 1
+        diffusion { turbulente SGDH { sigma 0. } }
+        convection { amont }
+        initial_conditions { temperature Champ_Uniforme 3 0 0 0 }
+        boundary_conditions
+        {
+            wall1 paroi_adiabatique
+            wall2 paroi_adiabatique
+	    	bottom	frontiere_ouverte T_ext Champ_Front_Uniforme 3 0 0 0
+	    	top	frontiere_ouverte T_ext Champ_Front_Uniforme 3 0 0 0
+	    	symetrie1 $paroi_adiabatique
+	    	symetrie2 $paroi_adiabatique
+        }
+        sources 
+        { 
+        	flux_interfacial 
+        }
+    }
+    taux_dissipation_turbulent
+    {
+        diffusion { turbulente SGDH { sigma 0.5 } }
+        convection { amont }
+        initial_conditions { omega Champ_Fonc_xyz dom 1 $CI_diss }
+        boundary_conditions
+        {
+			wall1	Cond_lim_omega_demi { }
+			wall2	Cond_lim_omega_demi { }
+			bottom	frontiere_ouverte omega_ext Champ_Front_Uniforme 1 $CI_diss
+			top	frontiere_ouverte omega_ext Champ_Front_Uniforme 1 $CI_diss
+			symetrie1 	$paroi
+			symetrie2 	$paroi
+        }
+	sources
+		{
+			Production_echelle_temp_taux_diss_turb { alpha_omega 0.5 } ,
+			Dissipation_echelle_temp_taux_diss_turb { beta_omega 0.075 }  ,
+			Diffusion_croisee_echelle_temp_taux_diss_turb { sigma_d 0.5 } 
+		}
+    }
+    energie_cinetique_turbulente
+    {
+        diffusion { turbulente SGDH { sigma 0.67 } }
+        convection { amont }
+        initial_conditions { k champ_fonc_xyz dom 1 $CI_k }
+        boundary_conditions
+        {
+			wall1 Cond_lim_k_complique_transition_flux_nul_demi
+			wall2 Cond_lim_k_complique_transition_flux_nul_demi
+			bottom	frontiere_ouverte k_ext Champ_Front_Uniforme 1 $CI_k
+			top	frontiere_ouverte k_ext Champ_Front_Uniforme 1 $CI_k
+			symetrie1 	$paroi
+			symetrie2 	$paroi
+        }
+	sources
+		{
+			Production_energie_cin_turb { } ,
+			Terme_dissipation_energie_cinetique_turbulente { beta_k 0.09 }
+		}
+    }
+    aire_interfaciale
+    {
+        diffusion { turbulente aire_interfaciale { ng2 2 } }
+        initial_conditions { interfacial_area Champ_Fonc_xyz dom 3 0. $ci_ai1 $ci_ai2 }
+        convection { amont }
+	conditions_limites	
+		{
+			wall1	paroi
+			wall2	paroi
+			symetrie1  $paroi
+			symetrie2  $paroi
+			bottom	frontiere_ouverte a_i_ext Champ_Front_fonc_xyz 3 0. $ci_ai1 $ci_ai2
+			top	frontiere_ouverte a_i_ext Champ_Front_fonc_xyz 3 0. $ci_ai1 $ci_ai2
+		}
+        sources
+        {
+			  coalescence_bulles_2groupes { dh 0.01905 } Smith , 
+			  rupture_bulles_2groupes { dh 0.01905 } Smith , 
+			  flux_2groupes { dh 0.01905 } 
+
+        }
+	}
+    Postraitement
+	{
+		Definition_champs 	{
+					d_bulles	refChamp { Pb_champ pb diametre_bulles }
+                                      gradient_p        refChamp { Pb_champ pb gradient_pression }		
+                                      dp 			refChamp { Pb_champ pb distance_paroi_globale }		
+					diff_v		operateur_eqn	{
+									numero_op 0
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					conv_v		operateur_eqn	{
+									numero_op 1
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					grav_v		operateur_eqn	{
+									numero_source 0
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					drag		operateur_eqn	{
+									numero_source 1
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					lift		operateur_eqn	{
+									numero_source 2
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					disp		operateur_eqn	{
+									numero_source 3
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					lub		operateur_eqn	{
+									numero_source 4
+									sources { refChamp { pb_champ pb vitesse } }
+									}
+					}
+		sondes			{
+				$sondes
+					}
+		format lata
+		champs binaire dt_post .01
+					{
+					k elem
+					omega elem
+					alpha elem
+					vitesse elem
+					pression elem
+					alpha_residu elem
+					k_residu elem
+					omega_residu elem
+					d_bulles elem 
+					}
+	}
+}
+
+Resoudre pb
+
+Fin
+
