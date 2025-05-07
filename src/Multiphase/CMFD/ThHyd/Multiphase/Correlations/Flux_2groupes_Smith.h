@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2021, CEA
+* Copyright (c) 2024, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,45 +12,46 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Rupture_Yao_Morel.h
-// Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
-// Version:     /main/18
-//
-//////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
-#include <Correlation_base.h>
-#include <math.h>
+#ifndef Flux_2groupes_Smith_included
+#define Flux_2groupes_Smith_included
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+#include <Flux_2groupes_base.h>
+#include <TRUSTTabs_forward.h>
+#include <TRUSTTab.h>
+
+/*! @brief Flux interfacial a coefficient constant par phase
  *
  */
 
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Flux_2groupes_Smith : public Flux_2groupes_base
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
-
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
+  Declare_instanciable(Flux_2groupes_Smith);
+public:
+  void coeffs(const input_coeffs& input, output_coeffs& output) const override;
+  void therm(const input_therms& input, output_therms& output) const override;
 protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
+  const double g = 9.81;
+  const double b = 0.597;
+  const double p = 0.01;
+  const double alpha_max = 0.62 ;
+  const double C_RC1 = 0.005 ;
+  const double C_RC0 = 3.0 ;
+  const double C_RC122 = 0.005 ;
+  const double C_WE1 = 0.002 ;
+  const double C_TI21 = 0.02 ;
+  const double C_S0 = 0.000038 ;
+  const double We_SO = 4500. ;
+  const double We_cr1 = 6.5 ;
+  const double We_cr2 = 7.0 ;
+  double Xi_h_ = 0.;
+  double A_c_ = 1.;
+  double hPNVG_ = 0.;
+  double betac=0.4;
+  double pc = 0.055;
+  double R_ = 462. ;
+  double theta_rad = M_PI/2. ;
 
-  double beta_k_ = 0.09;
-  int n_l = -1 ; // liquid phase
 };
 
 #endif
-

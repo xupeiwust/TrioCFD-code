@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2021, CEA
+* Copyright (c) 2024, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,45 +12,17 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Rupture_Yao_Morel.h
-// Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
-// Version:     /main/18
-//
-//////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
-#include <Correlation_base.h>
-#include <math.h>
+#include <Flux_2groupes_base.h>
+Implemente_base(Flux_2groupes_base, "Flux_2groupes_base", Correlation_base);
+// XD Flux_2groupes source_base Flux_2groupes 0 Source term of mass transfer between phases connected by the saturation object defined in saturation_xxxx
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
- *
- */
-
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+Sortie& Flux_2groupes_base::printOn(Sortie& os) const
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  return os;
+}
 
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
-protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
-
-  double beta_k_ = 0.09;
-  int n_l = -1 ; // liquid phase
-};
-
-#endif
-
+Entree& Flux_2groupes_base::readOn(Entree& is)
+{
+  return is;
+}

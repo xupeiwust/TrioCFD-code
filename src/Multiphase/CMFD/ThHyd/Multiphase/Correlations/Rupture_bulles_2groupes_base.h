@@ -13,39 +13,36 @@
 *
 *****************************************************************************/
 
-#ifndef Coalescence_bulles_1groupe_Yao_Morel_included
-#define Coalescence_bulles_1groupe_Yao_Morel_included
+#ifndef Rupture_bulles_2groupes_base_included
+#define Rupture_bulles_2groupes_base_included
 
 #include <TRUSTTabs_forward.h>
-#include <Coalescence_bulles_1groupe_base.h>
+#include <Correlation_base.h>
 #include <TRUSTTab.h>
 
 /*! @brief
  *
  */
 
-class Coalescence_bulles_1groupe_Yao_Morel : public Coalescence_bulles_1groupe_base
+class Rupture_bulles_2groupes_base : public Correlation_base
 {
-  Declare_instanciable(Coalescence_bulles_1groupe_Yao_Morel);
+  Declare_base(Rupture_bulles_2groupes_base);
 public:
-  void coefficient(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
-                   const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
-                   const DoubleTab& ndv, const DoubleTab& d_bulles,
-                   const DoubleTab& eps, const DoubleTab& k_turb,
-                   DoubleTab& coeff) const  override ;
-
-private:
-  int n_l = -1;
-
-  double Kc1 = 2.86 ;
-  double Kc2 = 1.922 ;
-  double Kc3 = 1.017 ;
-  double alpha_max_1_3 = std::cbrt(M_PI/6.) ;
-  double We_cr = 1.24 ;
-  double alpha_sec = 2./3.;
-
-
+  virtual void coefficient_TI(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
+                              const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, const double Dh,
+                              const DoubleTab& ndv, const DoubleTab& d_bulles,
+                              const DoubleTab& eps, const DoubleTab& k_turb, const int n_l, const int n_g1, const int n_g2,
+                              DoubleTab& coeff) const =0;
+  virtual void coefficient_SI(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
+                              const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, const double Dh,
+                              const DoubleTab& ndv, const DoubleTab& d_bulles,
+                              const DoubleTab& eps, const DoubleTab& k_turb, const int n_l, const int n_g1, const int n_g2,
+                              DoubleTab& coeff) const =0;
+  virtual void coefficient_SO(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
+                              const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
+                              const DoubleTab& ndv, const DoubleTab& d_bulles,
+                              const DoubleTab& eps, const DoubleTab& k_turb, const int n_l, const int n_g1, const int n_g2,
+                              DoubleTab& coeff) const=0;
 };
 
 #endif
-

@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2021, CEA
+* Copyright (c) 2022, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,45 +12,33 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Rupture_Yao_Morel.h
-// Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
-// Version:     /main/18
-//
-//////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
-#include <Correlation_base.h>
-#include <math.h>
+#ifndef Masse_ajoutee_Cai_included
+#define Masse_ajoutee_Cai_included
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+#include <Masse_ajoutee_base.h>
+#include <TRUSTTabs_forward.h>
+
+/*! @brief Masse ajoutee de la forme ma(k, l) = +/- beta * alpha_k * alpha_l * rho_m
+ *
+ *     avec beta un coefficient constant (0.5 par defaut) et rho_m la masse volumique du melange
+ *
  *
  */
-
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Masse_ajoutee_Cai : public Masse_ajoutee_base
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  Declare_instanciable(Masse_ajoutee_Cai);
 
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
+public:
+  void ajouter(const double *alpha, const double *rho, DoubleTab& a_r) const override;
+  void ajouter_inj(const double *flux_alpha, const double *alpha, const double *rho, DoubleTab& f_a_r) const override;
+  void coeff(const DoubleTab& alpha, const DoubleTab& rho, DoubleTab& coeff) const override;
+
 protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
-
-  double beta_k_ = 0.09;
-  int n_l = -1 ; // liquid phase
+  double beta = 0.5;
+  int n_l = -1; //liquid phase
+  double inj_ajoutee_liquide_ = 1.;
+  double inj_ajoutee_gaz_ = 1.;
 };
 
 #endif
-

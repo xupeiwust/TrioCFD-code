@@ -14,43 +14,54 @@
 *****************************************************************************/
 //////////////////////////////////////////////////////////////////////////////
 //
-// File:        Rupture_Yao_Morel.h
+// File:        Flux_parietal_Hibiki.h
 // Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
 // Version:     /main/18
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
+#ifndef Flux_parietal_Hibiki_included
+#define Flux_parietal_Hibiki_included
+#include <TRUSTTab.h>
+#include <Flux_parietal_base.h>
 #include <Correlation_base.h>
-#include <math.h>
+#include <Param.h>
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+/*! @brief classe Flux_parietal_Hibiki classe qui implemente une correlation de flux parietal monophasique
+ *
+ *       pour un ecoulement turbulent avec une loi de paroi adaptative
+ *       (i.e. qui peut gerer la zone visqueuse comme la zone log en proche paroi)
+ *       cf page 123 de la these de Hibiki
+ *
  *
  */
-
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Flux_parietal_Hibiki : public Flux_parietal_base
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  Declare_instanciable(Flux_parietal_Hibiki);
+public:
+  virtual void qp(const input_t& input, output_t& output) const override;
 
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
-protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
+  virtual void completer() override;
 
-  double beta_k_ = 0.09;
+  int calculates_bubble_nucleation_diameter() const override {return 1;} ;
+  int needs_saturation() const override {return 1;} ;
+  virtual int T_at_wall() const override {return 1;};
+
+protected :
+  OWN_PTR(Correlation_base) correlation_monophasique_;
+  double theta_ = 90.; //contact angle on the surface
+  double molar_mass_ ; //molar mass (unit: kg/mol)
+  double Qw_ = 0. ;
+  double G_ = 1. ;
+
   int n_l = -1 ; // liquid phase
+  int n_g1 = -1 ; // group 1
+  int n_g2 = -1 ; // group 2
+
+  double Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
+  double dTg_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
+  double dTl_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
+  double dTp_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
 };
 
 #endif
-

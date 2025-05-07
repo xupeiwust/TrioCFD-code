@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2021, CEA
+* Copyright (c) 2022, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,45 +12,33 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
-//
-// File:        Rupture_Yao_Morel.h
-// Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
-// Version:     /main/18
-//
-//////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
+#ifndef Coalescence_bulles_2groupes_base_included
+#define Coalescence_bulles_2groupes_base_included
+
+#include <TRUSTTabs_forward.h>
 #include <Correlation_base.h>
-#include <math.h>
+#include <TRUSTTab.h>
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+/*! @brief
  *
  */
 
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Coalescence_bulles_2groupes_base : public Correlation_base
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  Declare_base(Coalescence_bulles_2groupes_base);
+public:
+  virtual void coefficient_WE(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
+                              const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, const double Dh,
+                              const DoubleTab& ndv, const DoubleTab& d_bulles,
+                              const DoubleTab& eps, const DoubleTab& k_turb, const int n_l, const int n_g1, const int n_g2,
+                              DoubleTab& coeff) const  = 0;
+  virtual void coefficient_RC(const DoubleTab& alpha, const DoubleTab& alpha_p, const DoubleTab& p, const DoubleTab& T,
+                              const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
+                              const DoubleTab& ndv, const DoubleTab& d_bulles,
+                              const DoubleTab& eps, const DoubleTab& k_turb, const int n_l, const int n_g1, const int n_g2,
+                              DoubleTab& coeff) const  = 0;
 
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
-protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
-
-  double beta_k_ = 0.09;
-  int n_l = -1 ; // liquid phase
 };
 
 #endif
-

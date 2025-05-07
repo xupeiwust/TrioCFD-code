@@ -1,5 +1,5 @@
 /****************************************************************************
-* Copyright (c) 2022, CEA
+* Copyright (c) 2023, CEA
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -12,55 +12,53 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
-//////////////////////////////////////////////////////////////////////////////
+// Neptune CFD like force no publication
 
-/// Wei Yao, Christophe Morel, Volumetric interfacial area prediction in upward bubbly two-phase flow, International Journal of Heat and Mass Transfer, 2004, https://doi.org/10.1016/j.ijheatmasstransfer.2003.06.004
-
-//////////////////////////////////////////////////////////////////////////////
-
-#include <Rupture_bulles_1groupe_Yao_Morel.h>
+#include <Portance_interfaciale_Tomiyama_complet.h>
 #include <Pb_Multiphase.h>
+#include <math.h>
 
-Implemente_instanciable(Rupture_bulles_1groupe_Yao_Morel, "Rupture_bulles_1groupe_Yao_Morel", Rupture_bulles_1groupe_base);
+Implemente_instanciable(Portance_interfaciale_Tomiyama_complet, "Portance_interfaciale_Tomiyama_complet", Portance_interfaciale_base);
 
-Sortie& Rupture_bulles_1groupe_Yao_Morel::printOn(Sortie& os) const
+Sortie& Portance_interfaciale_Tomiyama_complet::printOn(Sortie& os) const
 {
   return os;
 }
 
-Entree& Rupture_bulles_1groupe_Yao_Morel::readOn(Entree& is)
+Entree& Portance_interfaciale_Tomiyama_complet::readOn(Entree& is)
 {
+  Param param(que_suis_je());
+  param.ajouter("constante_gravitation", &g_);
+  param.lire_avec_accolades_depuis(is);
+
   const Pb_Multiphase *pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr;
 
   if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
     if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
+
   if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
 
   return is;
 }
 
-void Rupture_bulles_1groupe_Yao_Morel::coefficient(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
-                                                   const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
-                                                   const DoubleTab& ndv, const DoubleTab& d_bulles,
-                                                   const DoubleTab& eps, const DoubleTab& k_turb,
-                                                   DoubleTab& coeff) const
+void Portance_interfaciale_Tomiyama_complet::coefficient(const input_t& in, output_t& out) const
 {
-  int N = alpha.dimension(0);
-  double fac_sec =1.e4;
-  for (int k = 0 ; k<N ; k++)
-    if (k != n_l) //phase gazeuse
-      if (alpha(k) > 1./fac_sec)
-        {
+  int k, N = out.Cl.dimension(0);
 
-          double We = 2 * rho(n_l) * (std::cbrt(eps(n_l)*d_bulles(k)) * std::cbrt(eps(n_l)*d_bulles(k))) * d_bulles(k) / sigma(k, n_l) ;
+  for (k = 0; k < N; k++)
+    if (k!=n_l) // k gas phase
+      {
+        int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
 
-          // TI coefficient for secmem
-          coeff(k, n_l) = Kb1 *1/std::min(1+Kb2 *alpha(n_l)*std::sqrt(We/We_cr),fac_sec)*std::exp(-std::sqrt(We_cr/We));
+        double Re = in.rho[n_l] * in.nv(n_l, k) * in.d_bulles[k]/in.mu[n_l];
+        double Eo = g_ * std::abs(in.rho[n_l]-in.rho[k]) * in.d_bulles[k]*in.d_bulles[k]/in.sigma[ind_trav];
+        double f_Eo = std::max(.00105*Eo*Eo*Eo - .0159*Eo*Eo - .0204*Eo + .474,-0.27);
+        double Cl;
+        if (Eo<4) Cl = std::min( .288*std::tanh( .121*Re ), f_Eo) ;
+        else      Cl = f_Eo ;
 
-          // dTI/dalpha coefficient for mat
-          coeff(n_l, k) = Kb1 * Kb2 *std::sqrt(We/We_cr) /std::min(1.+Kb2 *std::sqrt(We/We_cr)*(1.-alpha(k)),fac_sec) / std::min(1.+Kb2 *std::sqrt(We/We_cr)*(1.-alpha(k)),fac_sec) *std::exp(-std::sqrt(We_cr/We)) ;
-        }
+        out.Cl(k, n_l) = Cl * in.rho[n_l] * in.alpha[k] ;
+        out.Cl(n_l, k) =  out.Cl(k, n_l);
+      }
 }
-
-

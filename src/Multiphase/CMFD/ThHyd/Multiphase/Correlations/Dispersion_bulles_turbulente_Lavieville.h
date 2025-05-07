@@ -14,43 +14,34 @@
 *****************************************************************************/
 //////////////////////////////////////////////////////////////////////////////
 //
-// File:        Rupture_Yao_Morel.h
+// File:        Dispersion_bulles_turbulente_Lavieville.h
 // Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
 // Version:     /main/18
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
-#include <Source_base.h>
+#ifndef Dispersion_bulles_turbulente_Lavieville_included
+#define Dispersion_bulles_turbulente_Lavieville_included
+#include <Dispersion_bulles_base.h>
 #include <Correlation_base.h>
-#include <math.h>
+#include <TRUST_Ref.h>
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+/*! @brief classe Dispersion_bulles_turbulente_Lavieville
+ *     coefficients de dispersion selon le modele Lavieville
  *
  */
 
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Dispersion_bulles_turbulente_Lavieville : public Dispersion_bulles_base
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
-public :
-  int has_interface_blocs() const override
-  {
-    return 1;
-  };
-  void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
-  void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  Declare_instanciable(Dispersion_bulles_turbulente_Lavieville);
+public:
+  void coefficient(const input_t& input, output_t& output) const override;
 
-  void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
-  void associer_pb(const Probleme_base& ) override { };
-  void mettre_a_jour(double temps) override { };
 protected:
-  OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
+  OWN_PTR(Correlation_base) correlation_drag_;
+  OWN_PTR(Correlation_base) correlation_masse_ajoutee_;
+  int n_l = -1; //phase liquide
 
-  double beta_k_ = 0.09;
-  int n_l = -1 ; // liquid phase
 };
 
 #endif
-

@@ -14,25 +14,26 @@
 *****************************************************************************/
 //////////////////////////////////////////////////////////////////////////////
 //
-// File:        Rupture_Yao_Morel.h
+// File:        Coalescence_Yao_Morel.h
 // Directory:   $TRUST_ROOT/src/ThHyd/Multiphase/Correlations
 // Version:     /main/18
 //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifndef Rupture_bulles_1groupe_PolyMAC_P0_included
-#define Rupture_bulles_1groupe_PolyMAC_P0_included
+#ifndef Coalescence_bulles_2groupes_PolyMAC_P0_included
+#define Coalescence_bulles_2groupes_PolyMAC_P0_included
 #include <Source_base.h>
 #include <Correlation_base.h>
 #include <math.h>
 
-/*! @brief classe Rupture_bulles_1groupe_PolyMAC_P0
+/*! @brief classe Coalescence_bulles_2groupes_PolyMAC_P0
  *
  */
 
-class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
+class Coalescence_bulles_2groupes_PolyMAC_P0: public Source_base
+
 {
-  Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
+  Declare_instanciable(Coalescence_bulles_2groupes_PolyMAC_P0);
 public :
   int has_interface_blocs() const override
   {
@@ -47,10 +48,11 @@ public :
   void mettre_a_jour(double temps) override { };
 protected:
   OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
-
   double beta_k_ = 0.09;
+  double dh_ = 1.e6;
   int n_l = -1 ; // liquid phase
+  int n_g1 = -1 ; // group 1
+  int n_g2 = -1 ; // group 2
 };
 
 #endif
-

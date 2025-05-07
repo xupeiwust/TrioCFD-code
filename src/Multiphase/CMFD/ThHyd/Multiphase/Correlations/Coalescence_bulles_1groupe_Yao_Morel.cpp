@@ -12,6 +12,11 @@
 * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *
 *****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+
+/// Wei Yao, Christophe Morel, Volumetric interfacial area prediction in upward bubbly two-phase flow, International Journal of Heat and Mass Transfer, 2004, https://doi.org/10.1016/j.ijheatmasstransfer.2003.06.004
+
+//////////////////////////////////////////////////////////////////////////////
 
 #include <Coalescence_bulles_1groupe_Yao_Morel.h>
 #include <Pb_Multiphase.h>
@@ -44,17 +49,21 @@ void Coalescence_bulles_1groupe_Yao_Morel::coefficient(const DoubleTab& alpha, c
                                                        DoubleTab& coeff) const
 {
   int N = alpha.dimension(0);
-
+  const double fac_sec =1.e4;
   for (int k = 0 ; k<N ; k++)
     if (k != n_l) //phase gazeuse
-      if (alpha(k) > 1.e-6)
+      if (alpha(k) > 1./fac_sec)
         {
 
-          double We = 2 * rho(n_l) * std::pow(eps(n_l)*d_bulles(k), 2./3.) * d_bulles(k) / sigma(k, n_l) ;
-          double g_alpha = (alpha_max_1_3 - std::pow(alpha(k), 1./3.) ) / alpha_max_1_3 ;
+          const double We = 2 * rho(n_l) * (std::cbrt(eps(n_l)*d_bulles(k))*std::cbrt(eps(n_l)*d_bulles(k))) * d_bulles(k) / sigma(k, n_l) ;
+          const double g_alpha = (alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec )) / alpha_max_1_3 ;
 
-          coeff(k, n_l) = - Kc1 *1/(g_alpha+Kc2 *alpha(k)*std::sqrt(We/We_cr))*std::exp(-Kc3*std::sqrt(We/We_cr));
-          coeff(n_l, k) = coeff(k, n_l);
+          // RC coefficient for mat
+          coeff(k, n_l) = - Kc1 *1/std::min(g_alpha+Kc2 *alpha(k)*std::sqrt(We/We_cr),fac_sec)*std::exp(-Kc3*std::sqrt(We/We_cr));
+
+          // dRC/dalpha cofficient for mat
+          coeff(n_l, k) = (alpha(k) < alpha_sec) ? - Kc1 * alpha_max_1_3 * (3.*alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * (std::cbrt(alpha(k))*std::cbrt(alpha(k)))-1. )/std::min(3. * (std::cbrt(std::max(alpha(k),1./fac_sec))*std::cbrt(std::max(alpha(k),1./fac_sec))),fac_sec)/ std::max(alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * alpha(k)+ alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec ),1./fac_sec) / std::min(alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * alpha(k)+ alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec ),fac_sec) * std::exp(-Kc3*std::sqrt(We/We_cr)) : 0. ;
         }
 }
+
 

@@ -30,6 +30,7 @@
 #include <Array_tools.h>
 #include <Coalescence_bulles_1groupe_base.h>
 #include <Domaine_PolyMAC_P0.h>
+#include <Champ_Face_base.h>
 #include <math.h>
 
 Implemente_instanciable(Coalescence_bulles_1groupe_PolyMAC_P0, "Coalescence_bulles_1groupe_elem_PolyMAC_P0", Source_base);
@@ -93,19 +94,19 @@ void Coalescence_bulles_1groupe_PolyMAC_P0::ajouter_blocs(matrices_t matrices, D
   const DoubleTab& inco = equation().inconnue().valeurs(),
                    &d_bulles_p = equation().probleme().get_champ("diametre_bulles").passe(),
                     &alpha = pbm.equation_masse().inconnue().valeurs(),
-                     &alpha_p = pbm.equation_masse().inconnue().passe(),
-                      &press_p = ref_cast(QDM_Multiphase,pbm.equation_qdm()).pression().passe(),
-                       &temp_p  = pbm.equation_energie().inconnue().passe(),
-                        &rho_p   = equation().milieu().masse_volumique().passe(),
-                         &nu_p = equation().probleme().get_champ("viscosite_cinematique").passe(),
-                          *tab_k_p = equation().probleme().has_champ("k") ? &equation().probleme().get_champ("k").passe() : nullptr,
-                           *tab_k = equation().probleme().has_champ("k") ? &equation().probleme().get_champ("k").valeurs() : nullptr,
-                            *tau = equation().probleme().has_champ("tau") ? &equation().probleme().get_champ("tau").valeurs() : nullptr,
-                             *omega = equation().probleme().has_champ("omega") ? &equation().probleme().get_champ("omega").valeurs() : nullptr ;
+                     &press_p = ref_cast(QDM_Multiphase,pbm.equation_qdm()).pression().passe(),
+                      &temp_p  = pbm.equation_energie().inconnue().passe(),
+                       &rho_p   = equation().milieu().masse_volumique().passe(),
+                        &nu_p = equation().probleme().get_champ("viscosite_cinematique").passe(),
+                         *tab_k_p = equation().probleme().has_champ("k") ? &equation().probleme().get_champ("k").passe() : nullptr,
+                          *tab_k = equation().probleme().has_champ("k") ? &equation().probleme().get_champ("k").valeurs() : nullptr,
+                           *tau = equation().probleme().has_champ("tau") ? &equation().probleme().get_champ("tau").valeurs() : nullptr,
+                            *omega = equation().probleme().has_champ("omega") ? &equation().probleme().get_champ("omega").valeurs() : nullptr ;
 
   const Milieu_composite& milc = ref_cast(Milieu_composite, equation().milieu());
   int N = pbm.nb_phases(), Nk = (tab_k) ? (*tab_k).line_size() : -1, Np = equation().probleme().get_champ("pression").valeurs().line_size();
 
+  // Models use epsilon but with omega and tau we induce new variations of tau/omega and k
   std::string Type_diss = "other"; // omega, tau or other dissipation
   if (tau) Type_diss = "tau";
   else if (omega) Type_diss = "omega";
@@ -122,16 +123,26 @@ void Coalescence_bulles_1groupe_PolyMAC_P0::ajouter_blocs(matrices_t matrices, D
                     *Momega = matrices.count("omega") ? matrices.at("omega") : nullptr,
                      *Mai = matrices.count("interfacial_area") ? matrices.at("interfacial_area") : nullptr;
 
-  int cR = (rho_p.dimension_tot(0) == 1), cM = (nu_p.dimension_tot(0) == 1), n, k, e;
+  int cR = (rho_p.dimension_tot(0) == 1), cM = (nu_p.dimension_tot(0) == 1), n, k, e, d, D = dimension;
   DoubleTrav a_l(N), p_l(N), T_l(N), rho_l(N), nu_l(N), sigma_l(N,N), dv(N, N), d_bulles_l(N), eps_l(Nk), k_l(Nk), coeff(N, N); //arguments pour coeff
   const Coalescence_bulles_1groupe_base& correlation_coal = ref_cast(Coalescence_bulles_1groupe_base, correlation_.valeur());
+
+  // fill velocity at elem tab
+  DoubleTab pvit_elem(0, N * D);
+  domaine.domaine().creer_tableau_elements(pvit_elem);
+  const Champ_Face_base& ch_vit = ref_cast(Champ_Face_base,ref_cast(Pb_Multiphase, equation().probleme()).equation_qdm().inconnue());
+  ch_vit.get_elem_vector_field(pvit_elem);
+
+  const double fac_sec = 1.e4 ; // numerical security
+  const double alpha_min = 1.e-3 ; // to avoid numerical problems
 
   /* elements */
   for (e = 0; e < domaine.nb_elem(); e++)
     {
+      // Get field values for correlations-------------------------------------------------------------------------------------------------------------------------------------------------------
       for (n = 0; n < N; n++)
         {
-          a_l(n)   = alpha_p(e, n);
+          a_l(n)   = alpha(e, n); // to further implicit the source term
           p_l(n)   = press_p(e, n * (Np > 1));
           T_l(n)   =  temp_p(e, n);
           rho_l(n) =   rho_p(!cR * e, n);
@@ -150,8 +161,14 @@ void Coalescence_bulles_1groupe_PolyMAC_P0::ajouter_blocs(matrices_t matrices, D
           eps_l(n) =epsilon(e, n) ;
           k_l(n)   = (tab_k_p)   ? (*tab_k_p)(e,n) : 0;
         }
+      for (dv =0, d = 0; d < D; d++)
+        for ( n = 0; n < N; n++)
+          for (k = 0 ; k<N ; k++) dv(n, k) += (pvit_elem(e, N * d + n) - ((n!=k) ? pvit_elem(e, N * d + k) : 0)) * (pvit_elem(e, N * d + n) - ((n!=k) ? pvit_elem(e, N * d + k) : 0)); // nv(n,n) = ||v(n)||, nv(n, k!=n) = ||v(n)-v(k)||
+      for (n = 0; n < N; n++)
+        for ( k = 0 ; k<N ; k++) dv(n, k) = sqrt(dv(n, k)) ;
 
-      correlation_coal.coefficient(a_l, p_l, T_l, rho_l, nu_l, sigma_l, dh, dv, d_bulles_l, eps_l, k_l, coeff); // Explicit coeff
+      // Get correlations-------------------------------------------------------------------------------------------------------------------------------------------------------
+      correlation_coal.coefficient(a_l, p_l, T_l, rho_l, nu_l, sigma_l, dh, dv, d_bulles_l, eps_l, k_l, coeff); // Semi-Explicit coeff : alpha is implicit
 
       for (k = 0 ; k<N ; k++)
         {
@@ -160,29 +177,81 @@ void Coalescence_bulles_1groupe_PolyMAC_P0::ajouter_blocs(matrices_t matrices, D
           else if (Type_diss == "omega") eps_valeurs = beta_k_ * ((*tab_k)(e, n_l)*(*omega)(e, n_l)) ;
           else eps_valeurs = epsilon(e, n_l);
 
-          double fac = pe(e) * ve(e) * M_PI /(3*std::pow(6., 5./3.)) * coeff(k, n_l);
+          // Recuring functions for source terms
 
-          secmem(e , k) += fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) * std::pow(eps_valeurs, 1./3.) ;
+          const double fac = (alpha(e, k)>alpha_min) ?  pe(e) * ve(e) * M_PI /( 3. * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) ) * coeff(k, n_l) : 0. ;
+          const double dalpha_fac = (alpha(e, k)>alpha_min) ? pe(e) * ve(e) * M_PI /( 3. * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) * std::cbrt(6.) ) * coeff(n_l, k) : 0. ;
+          const double ai = std::max(inco(e, k), 0.) ; //security inco negative
+          const double alpha_1_over3 = std::cbrt(alpha(e, k)) ;
+          const double eps_1_over3 = std::cbrt(eps_valeurs) ;
+          const double ai_5_over3 = std::cbrt(ai) * std::cbrt(ai) * std::cbrt(ai) * std::cbrt(ai) * std::cbrt(ai) ;
 
-          if (Ma)  (*Ma)(N * e + k , N * e + k) -= fac * 1./3. * std::pow(alpha(e, k),-2./3.) * std::pow(inco(e, k), 5./3.) * std::pow(eps_valeurs, 1./3.) ;
-          if (Mai)(*Mai)(N * e + k , N * e + k) -= fac * std::pow(alpha(e, k), 1./3.) * 5./3. * std::pow(inco(e, k), 2./3.) * std::pow(eps_valeurs, 1./3.) ;
-          if (Type_diss == "tau")
+
+          // Fill the matrix--------------------------------------------------------------------------------------------------------------------------------------------------
+
+          secmem(e , k) += (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 * eps_1_over3 : 0. ; // (alpha, ai, epsilon) implicit dependance
+
+          if (Ma)//-----------------------------------------------------------------------------------------------------------------------------------------------------------
             {
-              if ((*tab_k)(e, n_l) * (*tau)(e, n_l) > limiter * nu_p(e, n_l)) // derivee en k ; depend de l'activation ou non du limiteur
-                {
-                  if (Mk) (*Mk)(N * e + k, Nk * e + n_l)   -=
-                      fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) * 1./3. * std::pow(beta_k_, 1./3.) * std::pow((*tab_k)(e, n_l),-2./3.) /std::pow((*tau)(e, n_l), 1./3.);
-                  if (Mtau)(*Mtau)(N * e + k, Nk * e + n_l)-=
-                      fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) *-1./3. * std::pow(beta_k_, 1./3.) * std::pow((*tab_k)(e, n_l), 1./3.) *std::pow((*tau)(e, n_l),-4./3.);
-                }
-              else if (Mk) (*Mk)(N * e + k, Nk * e + n_l)   -=
-                  fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) * 1./3. * std::pow(beta_k_, 1./3.) * std::pow((*tab_k)(e, n_l),-1./3.) /std::pow(limiter * nu_p(e, n_l), 1./3.);
+
+              (*Ma)(N * e + k , N * e + k) -= (fac > 0. ) ? fac * 1./3. / std::min(alpha_1_over3 * alpha_1_over3,fac_sec) * ai_5_over3 * eps_1_over3 + dalpha_fac * alpha_1_over3 * ai_5_over3 * eps_1_over3 : 0. ;
+
             }
-          if (Type_diss == "omega")
+
+          if (Mai)//----------------------------------------------------------------------------------------------------------------------------------------------------------
             {
-              if (Momega)(*Momega)(N * e + k , Nk * e + n_l) -= fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) * 1./3. * std::pow(beta_k_, 1./3.) * std::pow((*tab_k)(e, n_l), 1./3.) * std::pow((*omega)(e, n_l),-2./3.);
-              if (Mk)        (*Mk)(N * e + k , Nk * e + n_l) -= fac * std::pow(alpha(e, k), 1./3.) * std::pow(inco(e, k), 5./3.) * 1./3. * std::pow(beta_k_, 1./3.) * std::pow((*tab_k)(e, n_l),-2./3.) * std::pow((*omega)(e, n_l), 1./3.);
+
+              (*Mai)(N * e + k , N * e + k) -= (fac > 0. ) ? fac * alpha_1_over3 * 5./3. * std::cbrt(ai) * std::cbrt(ai)  * eps_1_over3 : 0. ;
+
+            }
+
+          if (Type_diss == "tau")//-------------------------------------------------------------------------------------------------------------------------------------------
+            {
+              if ((*tab_k)(e, n_l) * (*tau)(e, n_l) > limiter * nu_p(e, n_l)) // derivative according to k due to epsilon
+                {
+                  if (Mk)//-----------------------------------------------------------------------------------------------------------------------------------------------------
+                    {
+
+                      (*Mk)(N * e + k, Nk * e + n_l) -= (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 * 1./3. * std::cbrt(beta_k_) / std::min(std::cbrt((*tab_k)(e, n_l)) * std::cbrt((*tab_k)(e, n_l)),fac_sec) / std::min(std::cbrt((*tau)(e, n_l)),fac_sec) : 0.;
+
+                    }
+
+                  if (Mtau)//------------------------------------------------------------------------------------------------------------------------------------------------
+                    {
+
+                      (*Mtau)(N * e + k, Nk * e + n_l) -= (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 *-1./3. * std::cbrt(beta_k_) * std::cbrt((*tab_k)(e, n_l)) / std::min(std::cbrt((*tau)(e, n_l)) * std::cbrt((*tau)(e, n_l)) * std::cbrt((*tau)(e, n_l)) * std::cbrt((*tau)(e, n_l)),fac_sec) : 0.;
+
+                    }
+                }
+
+              else
+                {
+                  if (Mk)//-----------------------------------------------------------------------------------------------------------------------------------
+                    {
+
+                      (*Mk)(N * e + k, Nk * e + n_l) -= (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 * 1./3. * std::cbrt(beta_k_) / std::min(std::cbrt((*tab_k)(e, n_l)),fac_sec) / std::min(std::cbrt(limiter * nu_p(e, n_l)),fac_sec) : 0. ;
+
+                    }
+                }
+            }
+
+          if (Type_diss == "omega")//---------------------------------------------------------------------------------------------------------------------------------------
+            {
+              if (Momega)//-------------------------------------------------------------------------------------------------------------------------------------
+                {
+
+                  (*Momega)(N * e + k , Nk * e + n_l) -= (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 * 1./3. * std::cbrt(beta_k_) * std::cbrt((*tab_k)(e, n_l)) / std::min(std::cbrt((*omega)(e, n_l)) * std::cbrt((*omega)(e, n_l)),fac_sec) : 0.;
+
+                }
+
+              if (Mk)//-----------------------------------------------------------------------------------------------------------------------------------------
+                {
+
+                  (*Mk)(N * e + k , Nk * e + n_l) -= (fac > 0. ) ? fac * alpha_1_over3 * ai_5_over3 * 1./3. * std::cbrt(beta_k_) / std::min(std::cbrt((*tab_k)(e, n_l)) * std::cbrt((*tab_k)(e, n_l)) ,fac_sec) * std::cbrt((*omega)(e, n_l)) : 0.;
+
+                }
             }
         }
     }
 }
+

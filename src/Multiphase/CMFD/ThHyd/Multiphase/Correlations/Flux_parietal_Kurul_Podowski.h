@@ -49,6 +49,10 @@ public:
 
 protected :
   OWN_PTR(Correlation_base) correlation_monophasique_;
+
+  int n_l = 0 ;
+  int n_g1 = -1 ; // group 1
+  int n_g2 = -1 ; // group 2
 };
 
 #endif
