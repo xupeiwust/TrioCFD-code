@@ -21,8 +21,10 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-
+#ifndef __APPLE__
 #include <boost/math/special_functions/gamma.hpp>
+#endif
+
 #include <Flux_2groupes_Smith.h>
 #include <Pb_Multiphase.h>
 Implemente_instanciable(Flux_2groupes_Smith, "Flux_2groupes_Smith", Flux_2groupes_base);
@@ -34,6 +36,10 @@ Sortie& Flux_2groupes_Smith::printOn(Sortie& os) const
 
 Entree& Flux_2groupes_Smith::readOn(Entree& is)
 {
+#ifdef __APPLE__
+  Process::exit("Flux_2groupes_Smith could not be used with Mac. Contact the support !");
+#endif
+
   Param param(que_suis_je());
   param.ajouter("hPNVG", &hPNVG_);
   param.ajouter("Xi_h", &Xi_h_);
@@ -46,6 +52,7 @@ Entree& Flux_2groupes_Smith::readOn(Entree& is)
 
 void Flux_2groupes_Smith::coeffs(const input_coeffs& in, output_coeffs& out) const
 {
+#ifndef __APPLE__
   // Initialisation--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   double eta = 0 ;
@@ -188,7 +195,7 @@ void Flux_2groupes_Smith::coeffs(const input_coeffs& in, output_coeffs& out) con
 
   out.inter3g2 =  khi_d * D_etoile2 * D_etoile2 * D_etoile2 * ((in.alpha(in.n_g2)>1./fac_sec) ? in.alpha(in.n_g1)/in.alpha(in.n_g2) * (in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1)) : 0.)  ;
   out.da_inter3g2 =  khi_d * D_etoile2 * D_etoile2 * D_etoile2 * ((in.alpha(in.n_g2)>1./fac_sec) ? -in.alpha(in.n_g1)/in.alpha(in.n_g2)/in.alpha(in.n_g2) * (in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1)) : 0.) ;
-
+#endif
 }
 
 void Flux_2groupes_Smith::therm(const input_therms& in, output_therms& out) const
