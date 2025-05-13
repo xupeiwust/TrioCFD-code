@@ -85,7 +85,7 @@ Read pb
 			        EST paroi
 			        OUEST paroi
                          }
-                         initial_conditions { k_Eps Champ_Fonc_Reprise keps_2D_VEF_Def_PDI_pb.xyz pb K_Eps fonction 2 1000*val 1000*val last_time }
+                         initial_conditions { k_Eps Champ_Fonc_Reprise keps_2D_VEF_Def_PDI_pb.xyz pb k_eps fonction 2 1000*val 1000*val last_time }
                          }
                          turbulence_paroi loi_standard_hydr
                 } 
