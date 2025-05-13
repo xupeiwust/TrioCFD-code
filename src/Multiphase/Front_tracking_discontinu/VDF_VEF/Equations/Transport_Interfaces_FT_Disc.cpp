@@ -357,6 +357,7 @@ int Transport_Interfaces_FT_Disc_interne::sauvegarder(Sortie& os) const
 
 int Transport_Interfaces_FT_Disc_interne::reprendre(Entree& is)
 {
+  Cerr << "Transport_Interfaces_FT_Disc_interne::reprendre" << finl;
   Nom ident, type;
   if(TRUST_2_PDI::is_PDI_restart())
     {
@@ -8164,6 +8165,11 @@ int Transport_Interfaces_FT_Disc::sauvegarder(Sortie& os) const
                     os<<particles_velocity_collision_(i,j);
               }
           }
+        else if (TRUST_2_PDI::is_PDI_checkpoint())
+          {
+            Cerr << "Backup of collision model not supported with pdi format" << finl;
+            Process::exit();
+          }
         else
           {
             os << particles_position_collision_;
@@ -8216,6 +8222,11 @@ int Transport_Interfaces_FT_Disc::reprendre(Entree& is)
               for (int j=0; j<particles_velocity_collision_.dimension(1); j++)
                 is>>particles_velocity_collision_(i,j);
             return 1;
+          }
+        else if (TRUST_2_PDI::is_PDI_restart())
+          {
+            Cerr << "Backup of collision model not supported with pdi format" << finl;
+            Process::exit();
           }
         else
           {
