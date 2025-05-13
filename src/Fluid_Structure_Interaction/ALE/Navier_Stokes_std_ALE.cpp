@@ -54,11 +54,13 @@ std::vector<YAML_data> Navier_Stokes_std_ALE::data_a_sauvegarder() const
   std::vector<YAML_data> data = Navier_Stokes_std::data_a_sauvegarder();
 
   std::string name = probleme().le_nom().getString() + "_JacobianOld";
+  std::transform(name.begin(), name.end(), name.begin(), ::toupper);
   int nb_dim = vitesse().valeurs().nb_dim(); // Initialize with same discretization
   YAML_data jold(name, "double", nb_dim);
   data.push_back(jold);
 
   name = probleme().le_nom().getString() + "_JacobianNew";
+  std::transform(name.begin(), name.end(), name.begin(), ::toupper);
   nb_dim = vitesse().valeurs().nb_dim();
   YAML_data jnew(name, "double", nb_dim);
   data.push_back(jnew);
