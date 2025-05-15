@@ -144,7 +144,7 @@ void Flux_2groupes_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& sec
   const int cR = (rho_p.dimension_tot(0) == 1), cM = (mu_p.dimension_tot(0) == 1), cL = (lambda.dimension_tot(0) == 1), cCp = (Cp.dimension_tot(0) == 1) ;
 
   const Flux_2groupes_base& correlation_flux = ref_cast(Flux_2groupes_base, correlation_.valeur());
-  DoubleTrav nut(domaine.nb_elem_tot(), N);
+  //DoubleTrav nut(domaine.nb_elem_tot(), N);
 
   double pas_tps = equation().probleme().schema_temps().pas_de_temps();
 
