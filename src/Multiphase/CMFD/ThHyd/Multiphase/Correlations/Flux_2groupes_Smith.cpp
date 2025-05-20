@@ -21,12 +21,77 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#ifndef __APPLE__
-#include <boost/math/special_functions/gamma.hpp>
-#endif
 
 #include <Flux_2groupes_Smith.h>
 #include <Pb_Multiphase.h>
+
+
+namespace
+{
+
+double gamma_incomplete_lower_series(double s, double x)
+{
+
+  const double epsilon=1e-14;
+  const int max_iter=1000 ;
+  double sum = 1.0 / s;
+  double term = sum;
+  for (int n = 1; n < max_iter; ++n)
+    {
+      term *= x / (s + n);
+      sum += term;
+      if (term < epsilon * sum) break;
+    }
+  return sum * std::exp(-x + s * std::log(x));
+};
+
+
+double gamma_incomplete_upper_cf(double s, double x)
+{
+
+  const double epsilon=1e-14;
+  const int max_iter=1000 ;
+  const double FPMIN = 1e-30; // petite constante pour éviter division par zéro
+  double ba = x + 1.0 - s;
+  double c = 1.0 / FPMIN;
+  double d = 1.0 / ba;
+  double h = d;
+
+  for (int i = 1; i < max_iter; ++i)
+    {
+      double an = -i * (i - s);
+      ba += 2.0;
+      d = an * d + ba;
+      if (std::abs(d) < FPMIN) d = FPMIN;
+      c = ba + an / c;
+      if (std::abs(c) < FPMIN) c = FPMIN;
+      d = 1.0 / d;
+      double delta = d * c;
+      h *= delta;
+      if (std::abs(delta - 1.0) < epsilon) break;
+    }
+  return h * std::exp(-x + s * std::log(x));
+};
+
+double gamma_regularized_lower(double s, double x)
+{
+  if (x == 0.0) return 0.0;
+
+  if (x < s + 1.0)
+    {
+      double gl = gamma_incomplete_lower_series(s, x);
+      return gl / std::tgamma(s);
+    }
+  else
+    {
+      double gu = gamma_incomplete_upper_cf(s, x);
+      return 1.0 - gu / std::tgamma(s);
+    }
+};
+
+}
+
+
 Implemente_instanciable(Flux_2groupes_Smith, "Flux_2groupes_Smith", Flux_2groupes_base);
 
 Sortie& Flux_2groupes_Smith::printOn(Sortie& os) const
@@ -36,10 +101,6 @@ Sortie& Flux_2groupes_Smith::printOn(Sortie& os) const
 
 Entree& Flux_2groupes_Smith::readOn(Entree& is)
 {
-#ifdef __APPLE__
-  Process::exit("Flux_2groupes_Smith could not be used with Mac. Contact the support !");
-#endif
-
   Param param(que_suis_je());
   param.ajouter("hPNVG", &hPNVG_);
   param.ajouter("Xi_h", &Xi_h_);
@@ -52,7 +113,6 @@ Entree& Flux_2groupes_Smith::readOn(Entree& is)
 
 void Flux_2groupes_Smith::coeffs(const input_coeffs& in, output_coeffs& out) const
 {
-#ifndef __APPLE__
   // Initialisation--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   double eta = 0 ;
@@ -86,7 +146,7 @@ void Flux_2groupes_Smith::coeffs(const input_coeffs& in, output_coeffs& out) con
   const double D_crit = 4. * std::sqrt(in.sigma(in.n_l, in.n_g1) / g / (in.rho(in.n_l)-in.rho(in.n_g1)));
   const double D_etoile = D_crit/in.d_bulles(in.n_g1);
   const double D_etoile2 = D_crit/in.d_bulles(in.n_g2);
-  const double khi_d =  b/3. *((3./2. * D_etoile) * std::pow(b*3./2. * D_etoile , p) * std::exp(-b * 3./2.* D_etoile)) / (boost::math::tgamma(p+1.,0.)-boost::math::tgamma(p+1.,b * 3./2. * D_etoile));
+  const double khi_d =  b/3. *((3./2. * D_etoile) * std::pow(b*3./2. * D_etoile , p) * std::exp(-b * 3./2.* D_etoile)) / (gamma_regularized_lower(p+1.,0.)-gamma_regularized_lower(p+1.,b * 3./2. * D_etoile));
   const double C_D1 = std::max(2./3. * in.d_bulles(in.n_g1) * std::sqrt( g * std::abs(in.rho(in.n_l) - in.rho(in.n_g1) ) / in.sigma(in.n_g1, in.n_l) ) * ( (1.+ 17.67 * std::pow(1.-in.alpha(in.n_g1), 9./7.) )/ (18.67 * alphafonction_3_over2 ) ) * ( (1.+ 17.67 * std::pow(1.-in.alpha(in.n_g1), 9./7.) )/ (18.67 * alphafonction_3_over2 ) ) , 1./fac_sec);
   const double Ur1 = std::min(in.nv(in.n_l,in.n_g1),std::sqrt(4./3. * in.d_bulles(in.n_g1) / C_D1 * g *std::abs(in.rho(in.n_l) - in.rho(in.n_g1) ) / in.rho(in.n_l) * (in.alpha(in.n_l))));
   const double Ur2 = std::max(in.nv(in.n_l,in.n_g2),std::sqrt(1./2. * D_crit *  g *std::abs(in.rho(in.n_l) - in.rho(in.n_g2) ) / in.rho(in.n_l) ));
@@ -195,7 +255,7 @@ void Flux_2groupes_Smith::coeffs(const input_coeffs& in, output_coeffs& out) con
 
   out.inter3g2 =  khi_d * D_etoile2 * D_etoile2 * D_etoile2 * ((in.alpha(in.n_g2)>1./fac_sec) ? in.alpha(in.n_g1)/in.alpha(in.n_g2) * (in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1)) : 0.)  ;
   out.da_inter3g2 =  khi_d * D_etoile2 * D_etoile2 * D_etoile2 * ((in.alpha(in.n_g2)>1./fac_sec) ? -in.alpha(in.n_g1)/in.alpha(in.n_g2)/in.alpha(in.n_g2) * (in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1))*(in.d_bulles(in.n_g2)/in.d_bulles(in.n_g1)) : 0.) ;
-#endif
+
 }
 
 void Flux_2groupes_Smith::therm(const input_therms& in, output_therms& out) const
