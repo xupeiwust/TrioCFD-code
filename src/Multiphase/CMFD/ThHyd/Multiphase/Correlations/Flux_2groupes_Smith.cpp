@@ -43,7 +43,7 @@ double gamma_incomplete_lower_series(double s, double x)
       if (term < epsilon * sum) break;
     }
   return sum * std::exp(-x + s * std::log(x));
-};
+}
 
 
 double gamma_incomplete_upper_cf(double s, double x)
@@ -71,7 +71,7 @@ double gamma_incomplete_upper_cf(double s, double x)
       if (std::abs(delta - 1.0) < epsilon) break;
     }
   return h * std::exp(-x + s * std::log(x));
-};
+}
 
 double gamma_regularized_lower(double s, double x)
 {
@@ -87,7 +87,7 @@ double gamma_regularized_lower(double s, double x)
       double gu = gamma_incomplete_upper_cf(s, x);
       return 1.0 - gu / std::tgamma(s);
     }
-};
+}
 
 }
 
