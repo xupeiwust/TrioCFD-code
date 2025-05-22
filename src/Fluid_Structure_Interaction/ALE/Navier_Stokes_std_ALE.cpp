@@ -74,7 +74,7 @@ int Navier_Stokes_std_ALE::sauvegarder(Sortie& os) const
   bytes += Navier_Stokes_std::sauvegarder(os);
   EcritureLectureSpecial::is_ecriture_special(special,a_faire);
   const Domaine_ALE& dom_ale=ref_cast(Domaine_ALE, probleme().domaine());
-  if (a_faire || TRUST_2_PDI::is_PDI_checkpoint())
+  if (a_faire)
     {
       OWN_PTR(Champ_Inc_base) JacobianOld = vitesse(); // Initialize with same discretization
       JacobianOld->nommer("JacobianOld");
@@ -91,6 +91,29 @@ int Navier_Stokes_std_ALE::sauvegarder(Sortie& os) const
           bytes += JacobianOld->sauvegarder(os);
           bytes += JacobianNew->sauvegarder(os);
         }
+    }
+  else if(TRUST_2_PDI::is_PDI_checkpoint())
+    {
+      //TODO Anida: gather this in TRUSTTab or enable saving on the go for temporary values
+      auto write_tab = [](const DoubleTab& d, const Nom& name)
+      {
+        TRUST_2_PDI pdi_interface;
+        pdi_interface.share_TRUSTTab_dimensions(d, name, 1 /*write mode*/);
+        if( d.dimension_tot(0) )
+          pdi_interface.TRUST_start_sharing(name.getString(), d.addr());
+        else
+          {
+            ArrOfDouble garbage( d.nb_dim() );
+            pdi_interface.TRUST_start_sharing(name.getString(), garbage.addr());
+          }
+
+        int mem = 8 * d.size_array();
+        return mem;
+      };
+      Nom name = probleme().le_nom() + "_JacobianOld";
+      bytes += write_tab(dom_ale.getOldJacobian(), name.majuscule());
+      name = probleme().le_nom() + "_JacobianNew";
+      bytes += write_tab(dom_ale.getNewJacobian(), name.majuscule());
     }
   return bytes;
 }
