@@ -390,13 +390,38 @@ def getStats(caract="moy"):
     return ltimes, lz, lvar, resu, tintegration
 
 
-def getValue(key, fic, pre="^", default=None):
+def getValue(key, fic, pre="", default=None):
     f = open(fic, "r")
     lines = f.readlines()
     f.close()
     nb = len(lines)
+    #
+    if "liquid" in key:
+        rliq = re.compile(".*fluide1.*")
+        for i, st in enumerate(lines):
+            m = rliq.match(st)
+            if m:
+                for j in range(6):
+                    lkey=key.split("_")[0]
+                    li = lines[i+2+j]
+                    if lkey in li:
+                        return float(li.split()[3])
+                    if "}" in li:
+                        raise Exception("too bad")
+        raise Exception(f"should have found {key} in {fic}")
+        
+    #
+    #
+    if key.endswith("_k"):
+        key = key[:-2]
+        rank = 2
+        for i, st in enumerate(lines):
+            if key in st:
+                return float(st.split()[rank+1])
+        raise Exception("too bad, not found")
+    #
     rc = re.compile(
-        pre + "\s*" + key + "\s*(?P<value>[\-]?[\d]*.?[\d]*[eE]?[+\-]?[\d]*)"
+        pre + ".*" + key + ".*(?P<value>[\-]?[\d]*.?[\d]*[eE]?[+\-]?[\d]*)"
     )
     for i, st in enumerate(lines):
         m = rc.match(st)
@@ -440,7 +465,7 @@ def evaluateRetau(U, z, jdd=None):
         jdd = getJddName() + ".data"
     rhol = getValue("rho_liquide", jdd)
     mul = getValue("mu_liquide", jdd)
-    Lz = getValue("uniform_domain_size_k", jdd)
+    Lz = getValue("size_dom_k", jdd)
     h = Lz / 2.0
     tauwp = mul * U[:, 0] / z[0]
     tauwm = mul * U[:, -1] / (Lz - z[-1])

@@ -12,7 +12,7 @@ jdd = head+".data"
 
 rhol = dns.getValue("rho_liquide", jdd)
 mul = dns.getValue("mu_liquide", jdd)
-Lz = dns.getValue("uniform_domain_size_k", jdd) 
+Lz = dns.getValue("size_dom_k", jdd) 
 h =  Lz / 2.
 
 # Recuperation des donnees moyennes : 

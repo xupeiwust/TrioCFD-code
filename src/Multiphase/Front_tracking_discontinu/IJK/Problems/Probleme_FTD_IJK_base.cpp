@@ -441,7 +441,8 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
   Param param(que_suis_je());
   ns.set_param_reprise_pb(param);
   schema_temps_ijk().set_param_reprise_pb(param);
-  interf.set_param_reprise_pb(param);
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
+    interf.set_param_reprise_pb(param);
 
   get_post().reprendre_post(param);
 
@@ -457,7 +458,8 @@ void Probleme_FTD_IJK_base::reprendre_probleme(const char *fichier_reprise)
 
   Nom prefix = dirname(fichier_reprise);
 
-  interf.set_fichier_reprise_interface(prefix);
+  if (!Option_IJK::DISABLE_DIPHASIQUE)
+    interf.set_fichier_reprise_interface(prefix);
 
   if (has_thermals_)
     get_ijk_thermals().set_fichier_reprise(prefix + get_ijk_thermals().get_fichier_reprise());
