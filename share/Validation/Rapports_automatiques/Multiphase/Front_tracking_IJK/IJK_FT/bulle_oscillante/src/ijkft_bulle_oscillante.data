@@ -1,77 +1,116 @@
-IJK_Grid_Geometry DOM
+dimension 3
+Probleme_FTD_IJK pb
 
+Domaine_IJK DOM
 Lire DOM
 {
-  nbelem_i 64
-  nbelem_j 64
-  nbelem_k 64
-  uniform_domain_size_i 0.010666666666666666
-  uniform_domain_size_j 0.010666666666666666
-  uniform_domain_size_k 0.010666666666666666
-  perio_i
-  perio_j
-  perio_k
-}
-
-IJK_Splitting grid_splitting
-Lire grid_splitting
-{
-  ijk_grid_geometry DOM
-  nproc_i 2
-  nproc_j 2
-  nproc_k 2
-}
-
-IJK_FT_double
-{
-  Boundary_Conditions {
-                bctype_kmin Paroi
-                bctype_kmax Paroi
-  }
-  ijk_splitting grid_splitting
+  nbelem 64 64 64
+  size_dom 0.010666666666666666 0.010666666666666666 0.010666666666666666
+  perio 1 1 1
+  nproc 2 2 2
   ijk_splitting_ft_extension 0
-  # timestep 0.0001 #
-  # timestep 0.0005 #
-  timestep 0.00025
-  timestep_facsec 0.4
-  dt_post 10 # 1 24 #
-  champs_a_postraiter 4 INDICATRICE INTERFACES COURBURE COMPO_CONNEXE
-  dt_sauvegarde 1000
+}
+
+schema_euler_explicite_IJK sch
+
+lire sch 
+{
+  tinit 0.0
+  timestep 0.00025 # 0.000025 #
+  timestep_facsec 1.0
   nb_pas_dt_max 800
-  # disable_convection_qdm #
-  # disable_source_interf #
-  
-  multigrid_solver {
-    coarsen_operators 0
-    solver_precision double
-    # ca doit marcher si tu ne mets pas de coarsen_operator :
-       coarsen_operators 0
-       mettre aussi solver_precision double ...
-       
-      pour faire converger des problemes un peu raides,
-      augmenter pre_smooth_steps et smooth_steps
-      
-      essayer en mettant 2 coarsen operators au lieu de 3
-    #
-    # 
-    coarsen_operators 3
-      Coarsen_Operator_Uniform {  }
-      Coarsen_Operator_Uniform {  }
-      Coarsen_Operator_Uniform {  }
-    #
-    ghost_size 1
-    pre_smooth_steps 1 7
-    smooth_steps 1 7
-    relax_jacobi 1 0.7
-    # Seuil du solveur_grossier par rapport au seuil gloabal : facteur 1/10 #
-    solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 } }
-    # Seuil par rapport au residu initial : facteur 1e5 #
-    seuil 1e-8
-    nb_full_mg_steps 2 4 1
-    #    IMPR #
+  cfl 1
+  fo  1
+  oh  1
+  dt_sauvegarde 1000
+
+  # Smooth interface during the first time-step #
+  # first_step_interface_smoothing #
+}
+
+option_ijk { check_divergence }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+
+system "mkdir -p lata"
+
+lire pb
+{
+  Solved_Equations
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    IJK_interfaces interf
   }
-  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
-  interfaces 
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible # Vapour #
+    {
+      mu  Champ_Uniforme 1 1.e-7
+      rho Champ_Uniforme 1 1.
+    }
+    fluide1 Fluide_Incompressible # Liquid #
+    {
+      mu  Champ_Uniforme 1 1.e-5
+      rho Champ_Uniforme 1 1000.
+    }
+    # Surface tension #
+    sigma Champ_Uniforme 1 0.07
+
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 0.
+  }
+
+  hydraulique
+  {
+    Boundary_Conditions
+    {
+      bctype_kmin perio
+      bctype_kmax perio
+    }
+    # disable_solveur_poisson #
+    # disable_diffusion_qdm #
+    # disable_source_interf #
+    # disable_convection_qdm #
+    multigrid_solver {
+      coarsen_operators 0
+      solver_precision double
+      # ca doit marcher si tu ne mets pas de coarsen_operator :
+         coarsen_operators 0
+         mettre aussi solver_precision double ...
+         
+        pour faire converger des problemes un peu raides,
+        augmenter pre_smooth_steps et smooth_steps
+      
+        essayer en mettant 2 coarsen operators au lieu de 3
+      #
+      # 
+      coarsen_operators 3
+        Coarsen_Operator_Uniform {  }
+        Coarsen_Operator_Uniform {  }
+        Coarsen_Operator_Uniform {  }
+      #
+      ghost_size 1
+      pre_smooth_steps 1 7
+      smooth_steps 1 7
+      relax_jacobi 1 0.7
+      # Seuil du solveur_grossier par rapport au seuil gloabal : facteur 1/10 #
+      solveur_grossier GCP { seuil 1e-10  precond ssor { omega 1.5 } }
+      # Seuil par rapport au residu initial : facteur 1e5 #
+      seuil 1e-8
+      nb_full_mg_steps 2 4 1
+      #    IMPR #
+    }
+    expression_vx_init 0.
+    expression_vy_init 0.
+    expression_vz_init 0.
+    expression_derivee_force 0.0
+  }
+  interf 
   {
     fichier_reprise_interface prepare.sauv.lata
     timestep_reprise_interface       1
@@ -86,18 +125,31 @@ IJK_FT_double
 	nb_iter_barycentrage 1
 	relax_barycentrage 1
 	nb_iter_correction_volume 1
-	lissage_courbure_iterations_systematique 0
+	lissage_courbure_iterations_systematique 7 # Compromis a chercher 4<=n<=10 #
     } 
   }
-  check_divergence
-  gravite 3 0. 0. 0. 
-  rho_liquide 1000.
-  rho_vapeur  1.
-  mu_liquide 1.e-5
-  mu_vapeur 1.e-7
-  sigma 0.07
-  expression_vx_init 0.
-  expression_vy_init 0.
-  expression_vz_init 0.
+  {
+    
+  }
+  post_processing 
+  {
+    format LATA
+    fichier lata/post.lata
+    nb_pas_dt_post 10
+    nb_pas_dt_post_stats_bulles 1
+    fields 
+    {
+       INDICATRICE elem
+    }
+    interfaces interf
+    {
+       courbure som
+    }
+  }
 }
+solve pb
+Fin
+
+  # LECTURE DES INTERFACES DANS UN FICHIER LATA #
+
 Fin

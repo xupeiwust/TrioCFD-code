@@ -75,8 +75,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 1"
@@ -84,8 +84,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 2"
@@ -93,8 +93,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 3"
@@ -102,8 +102,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 4"
@@ -111,8 +111,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 5"
@@ -120,8 +120,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 6"
@@ -129,8 +129,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 7"
@@ -138,8 +138,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etats intermediaires 8"
@@ -147,8 +147,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 	visu {
 		titre "Etat final"
@@ -156,8 +156,8 @@ EOF
 		Normal3d 1 0 0
 		Up3D 0 1 0
 		zoom3D 0 0 1.
-		mesh        ijkft_bulle_oscillante.lata INTERFACES
-		pseudocolor ijkft_bulle_oscillante.lata INTERFACES COURBURE SOM
+		mesh        lata/post.lata INTERFACES
+		pseudocolor lata/post.lata INTERFACES COURBURE SOM
 	}
 
 }
@@ -188,6 +188,9 @@ post_run!!!)
 
 pulse = 764.10386476595102
 tau = 0.067454656905649238
+
+TODO: Sensibilite pour lissage_courbure_iterations_systematique Compromis a chercher 4<=n<=10
+
 EOF
 	Figure {
 		Titre "Aire interfaciale"
