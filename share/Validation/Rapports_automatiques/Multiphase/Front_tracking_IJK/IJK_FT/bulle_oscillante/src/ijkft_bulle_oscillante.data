@@ -101,7 +101,3 @@ IJK_FT_double
   expression_vz_init 0.
 }
 Fin
-	Sondes
-	{
-		sonde_pression nodes pression periode 2.e-3 Points 2 0.005 0.005 0.005 0.009 0.009 0.009
-	}
