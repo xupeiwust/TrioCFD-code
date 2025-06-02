@@ -39,13 +39,16 @@ void Flux_parietal_adaptatif::completer()
 void Flux_parietal_adaptatif::qp(const input_t& in, output_t& out) const
 {
   const Loi_paroi_adaptative& corr_loi_paroi = ref_cast(Loi_paroi_adaptative, correlation_loi_paroi_.valeur());
-  const double u_tau = corr_loi_paroi.get_utau(in.f);
+
+  double eps = std::numeric_limits<double>::epsilon();
+  const double u_tau =std::max( corr_loi_paroi.get_utau((in.f)),eps);
 
   double theta_plus = calc_theta_plus(in.y, u_tau, in.mu[0], in.lambda[0], in.rho[0], in.Cp[0], in.D_h),
          fac = in.rho[0] * in.Cp[0] * u_tau / theta_plus ;
   if (out.qpk) (*out.qpk)(0) = fac * (in.Tp - in.T[0]);
   if (out.dTf_qpk) (*out.dTf_qpk)(0,0) = -fac;
   if (out.dTp_qpk) (*out.dTp_qpk)(0)   = fac;
+
 }
 
 double Flux_parietal_adaptatif::calc_theta_plus(double y, double u_tau, double mu, double lambda, double rho, double Cp,double Diam_hyd_) const
@@ -56,6 +59,6 @@ double Flux_parietal_adaptatif::calc_theta_plus(double y, double u_tau, double m
   double beta = std::pow(3.85*std::pow(Prandtl, 1./3)-1.3, 2) + 2.12*std::log(Prandtl);
   double gamma = 0.01*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)/(1+5*Prandtl*Prandtl*Prandtl*y_plus);
   double y_on_D_h = 0 ; //(Diam_hyd_>0)? y/Diam_hyd_:0;
-  return Prandtl*y_plus*std::exp(-gamma) + (2.12*std::log((1+y_plus)*1.5*(2-y_on_D_h)/(1+2*(1-y_on_D_h)*(1-y_on_D_h)))+beta)*std::exp(-1/gamma);
+  return Prandtl*y_plus*std::exp(-gamma) + (2.12*std::log((1+y_plus)*1.5*(2-y_on_D_h)/(1+2*(1-y_on_D_h)*(1-y_on_D_h)))+beta)*std::exp(-1/(gamma));
 }
 
