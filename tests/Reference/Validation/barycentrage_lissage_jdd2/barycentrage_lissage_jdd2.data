@@ -125,6 +125,7 @@ lire pb
   post_processing 
   {
     format LATA
+    nb_pas_dt_post_stats_bulles 1
     nb_pas_dt_post 24
     
     fields 

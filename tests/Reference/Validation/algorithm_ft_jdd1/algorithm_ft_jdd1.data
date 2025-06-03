@@ -37,7 +37,6 @@ associer DOM pb
 Discretize pb dis
 
 system "mkdir -p lata"
-system "mkdir -p NEXT"
 
 lire pb
 {
@@ -149,7 +148,7 @@ lire pb
     }
   }
   {
-    nom_sauvegarde NEXT/planes_diffusion_lrs.repr
+    nom_sauvegarde algo_ft.sauv
     
   }
   post_processing 
