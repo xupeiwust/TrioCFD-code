@@ -115,6 +115,7 @@ lire pb
     fields 
     {
        Velocity faces
+	REPULSION_FT ELEM
     }
 interfaces interf
     {
