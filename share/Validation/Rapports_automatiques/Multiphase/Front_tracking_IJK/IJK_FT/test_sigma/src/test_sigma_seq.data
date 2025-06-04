@@ -101,7 +101,7 @@ lire pb
  
   post_processing 
   {
-    format lata
+    format LATA
     nb_pas_dt_post 10
     fields 
     {
@@ -111,7 +111,7 @@ lire pb
        SOURCE_QDM_INTERF ELEM
        RHO_SOURCE_QDM_INTERF ELEM
        RHO ELEM
-       Velocity faces
+       Velocity FACES
     }
 interfaces interf
     {

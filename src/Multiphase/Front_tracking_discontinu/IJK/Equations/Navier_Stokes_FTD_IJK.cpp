@@ -673,9 +673,6 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     div_rhou_.allocate(dom_ijk, Domaine_IJK::ELEM, 1);
   allocate_velocity(psi_velocity_, dom_ijk, 2);
 
-  // champs pour post-traitement :
-  // post_.alloc_fields();
-  //  probleme_ijk().get_post().alloc_fields();
 
   // Allocation du terme source variable spatialement:
   if ((expression_variable_source_[0] != "??") || (expression_variable_source_[1] != "??") || (expression_variable_source_[2] != "??") || (expression_potential_phi_ != "??"))
@@ -724,8 +721,6 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
       champs_compris_.ajoute_champ_vectoriel(terme_abs_repulsion_interfaces_ft_);
     }
 
-  // FIXME: on a oublie pleins de choses la !
-  probleme_ijk().get_post().alloc_velocity_and_co();
   if ( sub_type(Schema_RK3_IJK, schema_temps_ijk()) )
     {
       Cerr << "Schema temps de type : RK3_FT" << finl;

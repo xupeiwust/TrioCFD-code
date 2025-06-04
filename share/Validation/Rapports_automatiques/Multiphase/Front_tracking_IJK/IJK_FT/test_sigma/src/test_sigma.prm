@@ -57,7 +57,7 @@ Chapitre {
 		Cycles  1
 		titre "dt=  1"
 		mesh test_sigma_seq.lata INTERFACES
-                pseudocolor test_sigma_seq.lata DOM_EXT_dual_magnitude VELOCITY FACES
+                pseudocolor test_sigma_seq.lata DOM_dual norme_VELOCITY FACES
                 Operator_to_all Slice2D_z 0 0 0.17
 	}
 	Description "Le saut de pression theorique est de l'ordre de 20Pa pour la grande bulle et 28.6Pa pour les petites".
@@ -85,7 +85,7 @@ Chapitre {
 	visu {
 		Cycles  1
 		titre "dt=  1"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_seq.lata INTERFACES
                 pseudocolor test_sigma_seq.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
@@ -107,7 +107,7 @@ Chapitre {
 		Cycles  -1
 		titre "dt=  -1"
 		mesh test_sigma_seq.lata INTERFACES
-                pseudocolor test_sigma_seq.lata DOM_EXT_dual_magnitude VELOCITY FACES
+                pseudocolor test_sigma_seq.lata DOM_dual norme_VELOCITY FACES
                 Operator_to_all Slice2D_z 0 0 0.17
 	}
 	Description "Le saut de pression theorique est de l'ordre de 20Pa pour la grande bulle et 28.6Pa pour les petites".
@@ -135,7 +135,7 @@ Chapitre {
 	visu {
 		Cycles  -1
 		titre "dt=  -1"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_seq.lata INTERFACES
                 pseudocolor test_sigma_seq.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
@@ -157,7 +157,7 @@ Chapitre {
 		Cycles  1
 		titre "dt=  1"
 		mesh test_sigma_par8.lata INTERFACES
-                pseudocolor test_sigma_par8.lata DOM_EXT_dual_magnitude VELOCITY FACES
+                pseudocolor test_sigma_par8.lata DOM_dual norme_VELOCITY FACES
                 Operator_to_all Slice2D_z 0 0 0.17
 	}
 	Description "Le saut de pression theorique est de l'ordre de 20Pa pour la grande bulle et 28.6Pa pour les petites".
@@ -185,7 +185,7 @@ Chapitre {
 	visu {
 		Cycles  1
 		titre "dt=  1"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_par8.lata INTERFACES
                 pseudocolor test_sigma_par8.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
@@ -207,7 +207,7 @@ Chapitre {
 		Cycles  -1
 		titre "dt=  -1"
 		mesh test_sigma_par8.lata INTERFACES
-                pseudocolor test_sigma_par8.lata DOM_EXT_dual_magnitude VELOCITY FACES
+                pseudocolor test_sigma_par8.lata DOM_dual norme_VELOCITY FACES
                 Operator_to_all Slice2D_z 0 0 0.17
 	}
 	Description "Le saut de pression theorique est de l'ordre de 20Pa pour la grande bulle et 28.6Pa pour les petites".
@@ -235,7 +235,7 @@ Chapitre {
 	visu {
 		Cycles  -1
 		titre "dt=  -1"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_par8.lata INTERFACES
                 pseudocolor test_sigma_par8.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
@@ -250,7 +250,7 @@ Chapitre {
 	visu {
 		Cycles 1
 		titre "dt= 1 rhov==rhol"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_seq.lata INTERFACES
                 pseudocolor test_sigma_seq.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
@@ -259,7 +259,7 @@ Chapitre {
 	visu {
 		Cycles 1
 		titre "dt= 1 rhov!=rhol"
-		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","RHO_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
+		instruction_visit DefineScalarExpression("DELTA_ELEM_DOM","DENSITY_ELEM_DOM*CELL_SOURCE_QDM_INTERF_X_ELEM_DOM - CELL_RHO_SOURCE_QDM_INTERF_X_ELEM_DOM")
 		mesh test_sigma_seq.lata INTERFACES
                 pseudocolor test_sigma_seq.lata DOM DELTA ELEM
                 Operator_to_all Slice2D_z 0 0 0.17
