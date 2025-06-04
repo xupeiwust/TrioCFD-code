@@ -57,7 +57,7 @@ void Navier_Stokes_std_sensibility::set_param(Param& param)
   param.ajouter_non_std("state",(this),Param::REQUIRED); // XD_ADD_P bloc_lecture Block to indicate the state problem. Between the braces, you must specify the key word 'pb_champ_evaluateur' then the name of the state problem and the velocity unknown  NL2 Example:  state { pb_champ_evaluateur pb_state  velocity }
   param.ajouter_non_std("uncertain_variable",(this),Param::OPTIONAL); // XD_ADD_P bloc_lecture Block to indicate the name of the uncertain variable. Between the braces, you must specify the name of the unknown variable. Choice between velocity and mu.  NL2 Example: uncertain_variable { velocity }
   param.ajouter_non_std("polynomial_chaos",(this),Param::OPTIONAL); // XD_ADD_P floattant It is the method that we will use to study the sensitivity of the Navier Stokes equation: NL2 if poly_chaos=0, the sensitivity will be treated by the standard sentivity method. If different than 0, it will be treated by the polynomial chaos method
-  param.ajouter_non_std("adjoint",(this),Param::OPTIONAL);
+  param.ajouter_non_std("adjoint",(this),Param::OPTIONAL); // A keyword to indicate that the adjoint Navier-Stokes equations will be solved
   if( schema_temps().que_suis_je() != "Schema_euler_explicite" )
     {
       Cerr<<"Time  scheme: "<<schema_temps().que_suis_je() <<finl;

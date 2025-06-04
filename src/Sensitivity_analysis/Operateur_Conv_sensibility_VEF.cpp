@@ -107,6 +107,24 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
               ajouter_conv_term(state,inco ,resu, flux_b);
               ajouter_conv_term(la_vitesse,state_field ,resu, flux_b);
             }
+          else
+            {
+              Matrice_Morse mat;
+              opConvVEFFace.dimensionner(mat);
+              opConvVEFFace.contribuer_a_avec(inco, mat);
+              opConvVEFFace.modifier_pour_Cl(mat, resu);
+              DoubleTab Av;
+              const double coeff=-1.;
+              DoubleTab neg_state(state_field);
+              neg_state.operator*=(coeff);
+              Av=mat.ajouter_multvectT_(neg_state ,resu); // add -(v.grad^t)u where u=state (direct velocity) and v=adjoint velocity
+              opConvVEFFace.contribue_au_second_membre(resu);
+              /*Matrice_Morse  mat_tt(mat);
+              Matrice_Morse  mat_t(mat_tt.transpose(mat));
+              Av = mat_t.ajouter_multvect_(state_field ,resu);
+              opConvVEFFace.modifier_pour_Cl(mat_t, resu);*/
+              ajouter_conv_term(la_vitesse,state_field, resu, flux_b); // add (u.grad)v where u=state (direct velocity) and v=adjoint velocity
+            }
 
           //If we treat the Navier Stokes equations by the polynomial chaos method to calculate the sensitivity equations of this system,
           //we find that we have to add one more convection term on the Navier_Stokes_standard_sensibility which is +2*\sigma u_a. grad u_a
@@ -2438,3 +2456,5 @@ double Operateur_Conv_sensibility_VEF::application_LIMITEUR(double grad1, double
 
   return gradlim;
 }
+
+
