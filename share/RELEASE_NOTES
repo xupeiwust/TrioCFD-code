@@ -1,6 +1,8 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+11/06/25 (TrioCFD) New feature : Solve adjoint Navier-Stokes equations (keyword "adjoint" within the Navier_Stokes_std_sensibility class)
+11/06/25 (TrioCFD) New feature : k-omega is now compatible with Pb_Hydraulique_Turbulent_ALE (FSI,  mobile mesh with ALE)
 05/06/25 (TrioCFD) Removal     : Zoom was removed.
 05/06/25 (TrioCFD) Keyword     : FTD - keyword critere_remaillage was obsolete and did nothing, not allowed anymore in datafiles.
 05/06/25 (TrioCFD) Keyword     : FTD - keyword lissage_courbure_iterations is obsolete, to get same results as v1.9.5, set lissage_courbure_iterations_systematique and lissage_courbure_iterations_si_remaillage to the value you had for lissage_courbure_iterations in your datafile.
