@@ -148,7 +148,8 @@ Lire pb
             critere_arete 0.35
             critere_remaillage 0.2
             pas_lissage 0.0000001
-            lissage_courbure_iterations 3
+            lissage_courbure_iterations_systematique 3
+            lissage_courbure_iterations_si_remaillage 3
             lissage_courbure_coeff -0.1
             nb_iter_barycentrage 3
             relax_barycentrage 1
@@ -178,7 +179,8 @@ Lire pb
             critere_arete 0.5
             critere_remaillage 0.2
             pas_lissage -1
-            lissage_courbure_iterations 4
+            lissage_courbure_iterations_systematique 4
+            lissage_courbure_iterations_si_remaillage 4
             lissage_courbure_coeff -0.1
             nb_iter_barycentrage 4
             relax_barycentrage 1

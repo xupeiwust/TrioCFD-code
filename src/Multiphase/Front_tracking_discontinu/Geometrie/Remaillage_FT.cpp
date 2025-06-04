@@ -58,10 +58,12 @@ Entree& Remaillage_FT::readOn(Entree& is)
 
   if (lissage_courbure_iterations_old_>=0)
     {
-      Cerr << "Remaillage_FT: old keyword lissage_courbure_iterations:\n"
-           << " setting lissage_courbure_iterations_systematique and lissage_courbure_iterations_si_remaillage to same value" << finl;
-      lissage_courbure_iterations_si_remaillage_ = lissage_courbure_iterations_old_;
-      lissage_courbure_iterations_systematique_ = lissage_courbure_iterations_old_;
+      Cerr << "Error: Obsolete syntax read in the datafile:" << finl;
+      Cerr << "       \"lissage_courbure_iterations " << lissage_courbure_iterations_old_ << "\"" << finl;
+      Cerr << "To keep pre v1.9.6 behavior, replace it with:" << finl;
+      Cerr << "        lissage_courbure_iterations_systematique " << lissage_courbure_iterations_old_ <<finl;
+      Cerr << "        lissage_courbure_iterations_si_remaillage " << lissage_courbure_iterations_old_ << finl;
+      Process::exit();
     }
 
   if (facteur_longueur_ideale_ > 0. && valeur_longueur_fixe_ == -1.)

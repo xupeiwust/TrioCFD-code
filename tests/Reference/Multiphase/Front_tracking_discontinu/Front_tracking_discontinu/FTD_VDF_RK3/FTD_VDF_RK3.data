@@ -135,7 +135,8 @@ Lire pb
             relax_barycentrage 1
             critere_longueur_fixe 0.000230
             lissage_courbure_coeff -0.05
-            lissage_courbure_iterations 10
+            lissage_courbure_iterations_systematique 10
+            lissage_courbure_iterations_si_remaillage 10
             nb_iter_correction_volume 0
             seuil_dvolume_residuel 1e-20
         }

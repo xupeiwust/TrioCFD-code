@@ -97,14 +97,16 @@ Lire pb
         remaillage
         {
             # Dans un exemple 3D :
-            lissage_courbure_iterations 0
+            lissage_courbure_iterations_systematique 0
+            lissage_courbure_iterations_si_remaillage 0
             facteur_longueur_ideale 2. #
             pas 0.000001
             nb_iter_remaillage 1
             critere_arete 0.35
             critere_remaillage 0.2
             pas_lissage 0.000001
-            lissage_courbure_iterations	5
+            lissage_courbure_iterations_systematique 5
+            lissage_courbure_iterations_si_remaillage 5
             lissage_courbure_coeff -0.1
             nb_iter_barycentrage 3
             relax_barycentrage 1

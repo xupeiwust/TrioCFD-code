@@ -259,7 +259,8 @@ remaillage {
     nb_iter_barycentrage 3
     relax_barycentrage 1
     critere_longueur_fixe 0.015
-    lissage_courbure_iterations 1
+    lissage_courbure_iterations_systematique 1
+    lissage_courbure_iterations_si_remaillage 1
 
 
 }

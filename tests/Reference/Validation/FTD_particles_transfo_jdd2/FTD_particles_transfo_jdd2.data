@@ -165,7 +165,8 @@ Read pb
             critere_longueur_fixe 0.0015
 
             lissage_courbure_coeff -0.05
-            lissage_courbure_iterations 1
+            lissage_courbure_iterations_systematique 1
+            lissage_courbure_iterations_si_remaillage 1
 
             critere_arete 0.35
             critere_remaillage 0.2

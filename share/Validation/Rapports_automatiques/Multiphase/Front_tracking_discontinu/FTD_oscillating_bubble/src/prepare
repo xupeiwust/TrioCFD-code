@@ -48,7 +48,8 @@ for CAS in $LISTE_CAS ; do
 	if test "$MESH" = "M1" ; then
 	   cp $SRCMESH $DESTMESH
 	   sed "s/facsec 1./facsec 0.78/;
-		s/lissage_courbure_iterations 10/lissage_courbure_iterations_systematique 1 lissage_courbure_iterations_si_remaillage 5/;
+		s/lissage_courbure_iterations_systematique 10/lissage_courbure_iterations_systematique 1/;
+		s/lissage_courbure_iterations_si_remaillage 10/lissage_courbure_iterations_si_remaillage 5/;
 		s/critere_remaillage 0.20/critere_remaillage 0.35/;
 		s/lissage_courbure_coeff -0.1/lissage_courbure_coeff -0.05/;
 		s/facteur_longueur_ideale 0.8/facteur_longueur_ideale 1./;
@@ -58,7 +59,8 @@ for CAS in $LISTE_CAS ; do
 	   sed "s/Nombre_de_Noeuds 43 43 43/Nombre_de_Noeuds 61 61 61/;
 	        s/tranches 2 1 1/tranches 2 2 1/" $SRCMESH > $DESTMESH
 	   sed "s/facsec 1./facsec 0.38/;
-		s/lissage_courbure_iterations 10/lissage_courbure_iterations_systematique 1 lissage_courbure_iterations_si_remaillage 5/;
+		s/lissage_courbure_iterations_systematique 10/lissage_courbure_iterations_systematique 1/;
+		s/lissage_courbure_iterations_si_remaillage 10/lissage_courbure_iterations_si_remaillage 5/;
 		s/critere_remaillage 0.20/critere_remaillage 0.35/;
 		s/lissage_courbure_coeff -0.1/lissage_courbure_coeff -0.05/;
 		s/facteur_longueur_ideale 0.8/facteur_longueur_ideale 1./;
@@ -68,7 +70,8 @@ for CAS in $LISTE_CAS ; do
 	   sed "s/Nombre_de_Noeuds 43 43 43/Nombre_de_Noeuds 86 86 86/;
 	        s/tranches 2 1 1/tranches 3 3 3/" $SRCMESH > $DESTMESH
 	   sed "s/facsec 1./facsec 0.2/;
-	       s/lissage_courbure_iterations 10/lissage_courbure_iterations_systematique 1 lissage_courbure_iterations_si_remaillage 5/;
+	       s/lissage_courbure_iterations_systematique 10/lissage_courbure_iterations_systematique 1/;
+	       s/lissage_courbure_iterations_si_remaillage 10/lissage_courbure_iterations_si_remaillage 5/;
 	       s/critere_remaillage 0.20/critere_remaillage 0.35/;
 	       s/lissage_courbure_coeff -0.1/lissage_courbure_coeff -0.05/;
 	       s/facteur_longueur_ideale 0.8/facteur_longueur_ideale 1./;
@@ -78,7 +81,8 @@ for CAS in $LISTE_CAS ; do
 	   sed "s/Nombre_de_Noeuds 43 43 43/Nombre_de_Noeuds 121 121 121/;
 	       s/tranches 2 1 1/tranches 5 4 2/" $SRCMESH > $DESTMESH
 	   sed "s/facsec 1./facsec 0.08/;
-	       s/lissage_courbure_iterations 10/lissage_courbure_iterations_systematique 1 lissage_courbure_iterations_si_remaillage 5/;
+	       s/lissage_courbure_iterations_systematique 10/lissage_courbure_iterations_systematique 1/;
+	       s/lissage_courbure_iterations_si_remaillage 10/lissage_courbure_iterations_si_remaillage 5/;
 	       s/lissage_courbure_coeff -0.1/lissage_courbure_coeff -0.05/;
 	       s/critere_remaillage 0.20/critere_remaillage 0.35/;
 	       s/facteur_longueur_ideale 0.8/facteur_longueur_ideale 1./;
@@ -88,7 +92,8 @@ for CAS in $LISTE_CAS ; do
 	   sed "s/Nombre_de_Noeuds 43 43 43/Nombre_de_Noeuds 170 170 170/;
 	       s/tranches 2 1 1/tranches 5 5 5/" $SRCMESH > $DESTMESH
 	   sed "s/facsec 1./facsec 0.022/;
-	       s/lissage_courbure_iterations 10/lissage_courbure_iterations_systematique 1 lissage_courbure_iterations_si_remaillage 5/;
+	       s/lissage_courbure_iterations_systematique 10/lissage_courbure_iterations_systematique 1/;
+	       s/lissage_courbure_iterations_si_remaillage 10/lissage_courbure_iterations_si_remaillage 5/;
 	       s/critere_remaillage 0.20/critere_remaillage 0.35/;
 	       s/lissage_courbure_coeff -0.1/lissage_courbure_coeff -0.05/;
 	       s/facteur_longueur_ideale 0.8/facteur_longueur_ideale 1./;
