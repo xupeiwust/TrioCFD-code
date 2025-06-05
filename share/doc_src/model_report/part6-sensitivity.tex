@@ -134,6 +134,68 @@ CI_X = \left[\mu_X - \frac{\sigma_X}{\sqrt{\alpha}}, \mu_X + \frac{\sigma_X}{\sq
 \end{equation}
 
 
+\chapter{Optimisation of a Navier–Stokes Problem: Adjoint Method}
+\lhead{Adjoint Steady Navier–Stokes Equations}
+\label{sec_adjoint}
+
+The adjoint method is a mathematical technique widely used in optimization and sensitivity analysis, particularly in problems governed by partial differential equations. It enables efficient computation of gradients of objective functions with respect to a large number of design or control variables, making it especially valuable in high-dimensional optimization problems~\cite{giles2000introduction}.
+
+\section{Steady-State Problem}
+
+We consider the incompressible steady-state Navier–Stokes equations, which govern the motion of a viscous fluid. Let $\b_u$ be the velocity field and $p$ the pressure. The equations are defined in a domain $\Omega \subset \mathbb{R}^d$ with Dirichlet boundary conditions:
+
+\begin{equation}
+\begin{cases}
+- \nu \Delta \b_u + (\b_u \cdot \nabla) \b_u + \nabla p = \mathbf{f} & \text{in } \Omega, \\
+\nabla \cdot \b_u = 0 & \text{in } \Omega, \\
+\b_u = \b_u_D & \text{on } \partial \Omega,
+\end{cases}
+\label{state}
+\end{equation}
+
+where $\nu > 0$ is the kinematic viscosity, $\mathbf{f}$ is a given external force, and $\b_u_D$ denotes the imposed velocity on the boundary.
+
+\section{Adjoint Problem}
+
+To perform optimization, we define an objective function of the form
+
+\begin{equation}
+J(\alpha; \b_u) = \int_{\Omega} j_{\Omega}(\alpha; \b_u, \nabla \b_u)\, dx + \int_{\partial\Omega} j_{\partial\Omega}(\alpha; \b_u)\, ds,
+\end{equation}
+
+where $\alpha$ represents the design or control variable, and $j_{\Omega}$ and $j_{\partial\Omega}$ represent the volume and boundary contributions to the objective function, respectively.
+
+To derive the adjoint equations, we introduce the adjoint variables $\mathbf{v}$ and $q$ (acting as Lagrange multipliers) and define the Lagrangian functional:
+
+\[
+\mathcal{L}(\alpha; \b_u, p, \mathbf{v}, q) = J(\alpha; \b_u) + \text{constraints on } \b_u \text{ and } p.
+\]
+
+The adjoint equations are obtained by taking the first variation of the Lagrangian with respect to the state variable $\b_u$ and setting it to zero. This leads to the following adjoint system~\cite{galecki2022adjoint}:
+
+\begin{equation}
+\begin{cases}
+- \nu \Delta \mathbf{v} + \nabla^T \b_u \cdot \mathbf{v} - (\b_u \cdot \nabla) \mathbf{v} + \nabla q = - \frac{\partial j_{\Omega}}{\partial \b_u} + \nabla \cdot \left( \frac{\partial j_{\Omega}}{\partial \nabla \b_u} \right) & \text{in } \Omega, \\
+\nabla \cdot \mathbf{v} = 0 & \text{in } \Omega, \\
+\mathbf{v} = \mathbf{0} & \text{on } \partial \Omega,
+\end{cases}
+\label{adjoint}
+\end{equation}
+
+where the right-hand side contains the derivatives of the objective function with respect to the velocity and its gradient.
+
+Once the adjoint Navier–Stokes equations are solved, the gradient of the objective function with respect to the control variable $\alpha$ can be computed using the expression
+\[
+\frac{dJ}{d\alpha} = \frac{\partial J}{\partial \alpha} + \left\langle \mathbf{v}, \frac{\partial \mathcal{R}}{\partial \alpha} \right\rangle,
+\]
+where $\mathcal{R}$ represents the residual of the state equations, and the inner product involves the adjoint variable $\mathbf{v}$. The inner product quantifies how a change in 
+$\alpha$ affects the objective via its impact on the governing equations. The gradient of the objective function can then be used in a gradient-based optimization algorithm to update the design or control variable.
+
+
+The adjoint method is highly efficient because the cost of computing the gradient of the objective function with respect to all design parameters is essentially the same as solving a single flow problem. This efficiency is especially beneficial when the number of control parameters is large. Moreover, the method yields analytical gradients, which are significantly more accurate and stable than those obtained via finite difference methods.
+
+\textbf{Remark:} The adjoint formulation presented here is specific to the steady incompressible Navier–Stokes equations under the assumption that the objective function is independent of pressure and that only Dirichlet boundary conditions are imposed.  For more general problems involving pressure-dependent objectives, unsteady flow, or mixed boundary conditions, the formulation must be appropriately extended.
+
 
 %\bibliographystyle{alpha}
 
