@@ -175,7 +175,7 @@ The adjoint equations are obtained by taking the first variation of the Lagrangi
 
 \begin{equation}
 \begin{cases}
-- \nu \Delta \mathbf{v} + \nabla^T \b_u \cdot \mathbf{v} - (\b_u \cdot \nabla) \mathbf{v} + \nabla q = - \frac{\partial j_{\Omega}}{\partial \b_u} + \nabla \cdot \left( \frac{\partial j_{\Omega}}{\partial \nabla \b_u} \right) & \text{in } \Omega, \\
+- \nu \Delta \mathbf{v} + (\mathbf{v}  \cdot \nabla^T) \b_u - (\b_u \cdot \nabla) \mathbf{v} + \nabla q = - \frac{\partial j_{\Omega}}{\partial \b_u} + \nabla \cdot \left( \frac{\partial j_{\Omega}}{\partial \nabla \b_u} \right) & \text{in } \Omega, \\
 \nabla \cdot \mathbf{v} = 0 & \text{in } \Omega, \\
 \mathbf{v} = \mathbf{0} & \text{on } \partial \Omega,
 \end{cases}
