@@ -1,4 +1,4 @@
-# Hydraulique 2D laminar : Adjoint Stokes equation #
+# Hydraulique 2D laminar : Adjoint Navier-Stokes equation #
 # Adjoint #
 # Address a coupled problem composed of two subproblems:  pb_direct: representing the direct Stokes problem, and pb_ajdoint, the Stokes adjoint problem. #
 # At each time step, the source term is exchanged between the two subproblems #

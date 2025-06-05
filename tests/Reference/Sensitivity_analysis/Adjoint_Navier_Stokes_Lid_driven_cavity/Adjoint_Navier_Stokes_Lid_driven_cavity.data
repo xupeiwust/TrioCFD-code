@@ -1,4 +1,4 @@
-# Hydraulique 2D laminar : Adjoint Stokes equation #
+# Hydraulique 2D laminar : Adjoint Navier-Stokes equation #
 # Adjoint #
 # First, solve the direct Stokes problem. Then, save the source in a .med file for use in the adjoint Stokes equation #
 dimension 2    
