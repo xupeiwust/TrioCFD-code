@@ -181,7 +181,7 @@ public:
   void calcul_effort_fluide_interface(const DoubleTab& vpoint,const DoubleTab& rho_faces,
                                       DoubleTab& source_val,const int is_explicite,const double eta);
 
-  void impr_effort_fluide_interface( DoubleTab& source_val, DoubleTab& pressure_part, DoubleTab& friction_part ) ;
+  void impr_effort_fluide_interface( DoubleTab& source_val, DoubleTab& pressure_part, DoubleTab& friction_part, DoubleTab& diff_part ) ;
 
   //Calcul la vitesse imposee a l interface a partir de expression_vitesse_imposee
   virtual void calcul_vitesse(DoubleTab& vitesse_imp, const DoubleTab& champ_vitesse,

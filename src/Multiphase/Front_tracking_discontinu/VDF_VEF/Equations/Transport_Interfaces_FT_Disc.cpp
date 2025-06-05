@@ -3090,7 +3090,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
 
   if (flag==0)
     return ;
-  Noms files(13);
+  Noms files(14);
   Nom file=Objet_U::nom_du_cas();
   if (type=="force")
     files[0]=type,
@@ -3141,6 +3141,9 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
       files[12]=type,
                 file+= "_fluid_to_particle_heat_transfer_bed_";
     }
+  else if(type=="Friction_diff")
+    files[13]= type,
+               file+="_Friction_diff_sur_" ;
   else
     {
       Cerr << "The file " << type << " is not understood by Transport_Interfaces_FT_Disc::ouvrir_fichier. "
@@ -3336,7 +3339,7 @@ void Transport_Interfaces_FT_Disc::modifie_source(DoubleTab& termes_sources_face
     }
 }
 
-void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& source_val, DoubleTab& pressure_part, DoubleTab& friction_part  )
+void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& source_val, DoubleTab& pressure_part, DoubleTab& friction_part, DoubleTab& diff_part)
 {
   const DoubleTab& indicatrice_faces = get_indicatrice_faces().valeurs();
   const int n = source_val.dimension(0);
@@ -3350,8 +3353,8 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
   DoubleTab termes_sources_face(source_val);
   DoubleTab termes_pressure_face(pressure_part);
   DoubleTab termes_friction_face(friction_part);
-
-  DoubleTrav values(3,dimension);
+  DoubleTab termes_diff_face(diff_part);
+  DoubleTrav values(4,dimension);
   values=0.;
 
   const DoubleVect& vol_entrelaces = ref_cast(Domaine_VF,mon_dom_dis).volumes_entrelaces();
@@ -3369,6 +3372,7 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
           termes_sources_face(face,dim)=source_val(face,dim)*coef;
           termes_pressure_face(face,dim)=pressure_part(face,dim)*coef;
           termes_friction_face(face,dim)=friction_part(face,dim)*coef;
+          termes_diff_face(face,dim)=diff_part(face,dim)*coef;
         }
       // Calcul de dforce contribution de la force du fluide sur la face i
       // si ce n'est pas une face commune a plusieurs processeurs
@@ -3381,6 +3385,7 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
               values(0,j) -= termes_sources_face(face,0);
               values(1,j) -= termes_pressure_face(face,0);
               values(2,j) -= termes_friction_face(face,0);
+              values(3,j) -= termes_diff_face(face,0);
             }
           else // VEF
             {
@@ -3389,6 +3394,7 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
                   values(0,j) -= termes_sources_face(face,j);
                   values(1,j) -= termes_pressure_face(face,j);
                   values(2,j) -= termes_friction_face(face,j);
+                  values(3,j) -= termes_diff_face(face,j);
                 }
             }
         }
@@ -3432,6 +3438,15 @@ void Transport_Interfaces_FT_Disc::impr_effort_fluide_interface( DoubleTab& sour
 //            Friction << espace << friction(k);
           Friction << espace << values(2,k);
         Friction << finl;
+
+        SFichier Friction2;
+        ouvrir_fichier(Friction2,"Friction_diff",impr_mom,*this);
+        schema_temps().imprimer_temps_courant(Friction2);
+        Friction2.precision(10) ;
+//          for(int k=0; k<friction.size_array(); k++)
+        for(int k=0; k<dimension; k++)
+          Friction2 << espace << values(3,k);
+        Friction2 << finl;
       }
   }
 }

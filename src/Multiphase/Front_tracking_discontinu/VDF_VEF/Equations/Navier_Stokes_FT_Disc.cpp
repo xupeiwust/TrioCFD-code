@@ -3764,6 +3764,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
       DoubleTrav forces_tot_2(vpoint);
       DoubleTrav pressure_part(vpoint);
       DoubleTrav diffusion_part(vpoint);
+      DoubleTrav diffusion_part2(vpoint);
 
       //Calcul de la vitesse au temps n+1
       DoubleTab vv(vpoint);
@@ -3789,6 +3790,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
           {
             pressure_part(i, j) = gradP(i, j);
             diffusion_part(i, j) = -rho(i) * convection(i, j) - diffusion(i, j);
+            diffusion_part2(i, j) = - diffusion(i, j);
             forces_tot_2(i, j) = pressure_part(i, j) + diffusion_part(i, j);
           }
 
@@ -3798,7 +3800,7 @@ DoubleTab& Navier_Stokes_FT_Disc::derivee_en_temps_inco(DoubleTab& vpoint)
           OBS_PTR(Transport_Interfaces_FT_Disc) &refeq_transport = variables_internes().ref_eq_interf_vitesse_imposee[k];
           Transport_Interfaces_FT_Disc& eq_transport = refeq_transport.valeur();
           // Impression des efforts
-          eq_transport.impr_effort_fluide_interface(forces_tot_2, pressure_part, diffusion_part);
+          eq_transport.impr_effort_fluide_interface(forces_tot_2, pressure_part, diffusion_part, diffusion_part2);
         }
     }
 
