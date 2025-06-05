@@ -1,0 +1,31 @@
+
+# PARALLEL OK #
+dimension 2
+Probleme_FT_Disc_gen pb
+Domaine DOM
+Lire_MED {
+    domain DOM
+    file Mesh_0_05.med
+}
+
+
+domaine square
+Lire_MED {
+    domain square
+    file square.med
+}
+ecrire_fichier_formatte square square.geom
+
+
+# END MESH #
+
+# BEGIN PARTITION #
+Partition DOM
+{
+    Partitionneur metis { Nb_parts 2 }
+    Larg_joint 2
+    Nom_Zones DOM
+    single_hdf
+}
+Fin
+# END PARTITION #
