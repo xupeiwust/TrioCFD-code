@@ -255,7 +255,6 @@ Read pb3
                     pas 1e07
                     nb_iter_remaillage 2
                     critere_arete 0.4
-                    critere_remaillage 0.4
                     pas_lissage 1e-07
                     relax_barycentrage 1
                     critere_longueur_fixe 0.008

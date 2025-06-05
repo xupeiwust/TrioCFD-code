@@ -107,7 +107,6 @@ Lire pb
             nb_iter_barycentrage		3
             relax_barycentrage		1
             critere_arete			0.35
-            critere_remaillage		0.2
             facteur_longueur_ideale		0.85
             nb_iter_correction_volume	3
             seuil_dvolume_residuel		1e-12

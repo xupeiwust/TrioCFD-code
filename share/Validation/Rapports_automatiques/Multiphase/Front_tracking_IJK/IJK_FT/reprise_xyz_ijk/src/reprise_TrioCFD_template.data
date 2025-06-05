@@ -124,7 +124,6 @@ Lire pb
 		   pas_lissage -1e-8
                    nb_iter_remaillage 1
                    critere_arete 0.999999997
-                   critere_remaillage 0.20
                    lissage_courbure_iterations_systematique 0 
                    lissage_courbure_iterations_systematique 0
                    nb_iter_barycentrage 0

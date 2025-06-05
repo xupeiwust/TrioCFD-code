@@ -78,7 +78,6 @@ Chapter {
 	Description "Convection space scheme : quick"
 	Description "Remaillage"
 	Description "nb_iter_remaillage 2"
-        Description "critere_remaillage 0.2"	
 	Description "facteur_longueur_ideale 0.9"
 	Description "The most recommended option deals with the way gravity effects are taken into account. The option triokeyword(gravite rho_g) has been preferred, rather than triokeyword(grad_I)."
 }

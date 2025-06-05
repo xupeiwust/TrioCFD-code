@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+05/06/25 (TrioCFD) Keyword      : FTD - keyword critere_remaillage was obsolete and did nothing, not allowed anymore in datafiles.
 05/06/25 (TrioCFD) Keyword      : FTD - keyword lissage_courbure_iterations is obsolete, to get same results as v1.9.5, set lissage_courbure_iterations_systematique and lissage_courbure_iterations_si_remaillage to the value you had for lissage_courbure_iterations in your datafile.
 13/03/25 (TrioCFD) Change      : IJK probes: for elem fields, points are moved automatically to cell center, for face fields, moved to face centers. 'grav' keyword may be used to project a component of a face field to cell center. 
 11/09/24 (TrioCFD) New feature : k-omega and k-tau CMFD turbulence models are now compatible with pb_(thermo)hydraulique (VDF and PolyMAC_P0 only)

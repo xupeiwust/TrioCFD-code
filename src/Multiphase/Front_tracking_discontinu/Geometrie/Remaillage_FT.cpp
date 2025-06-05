@@ -51,10 +51,11 @@ Entree& Remaillage_FT::readOn(Entree& is)
   p.ajouter("equilateral", &equilateral_);
   facteur_longueur_ideale_ = -1.;
   valeur_longueur_fixe_ = -1.;
-  if ( critere_remaillage_compat!=-1)
-    Cerr<<"Warning : critere_remaillage is obsolete "<<finl;
 
   p.lire_avec_accolades_depuis(is);
+
+  if ( critere_remaillage_compat!=-1)
+    Process::exit("Error: critere_remaillage keyword did nothing and is therefore obsolete, remove it from your datafile");
 
   if (lissage_courbure_iterations_old_>=0)
     {

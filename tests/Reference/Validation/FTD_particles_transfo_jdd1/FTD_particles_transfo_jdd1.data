@@ -166,7 +166,6 @@ Read pb
             lissage_courbure_iterations_si_remaillage 1
 
             critere_arete 0.35
-            critere_remaillage 0.2
 
             nb_iter_correction_volume 5
             seuil_dvolume_residuel 1e-16

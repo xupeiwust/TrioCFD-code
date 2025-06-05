@@ -163,7 +163,6 @@ Read pb
             pas -1e8
             nb_iter_remaillage 5
             critere_arete 0.5
-            critere_remaillage 0.2
             pas_lissage -1
             nb_iter_barycentrage 5
             relax_barycentrage 1
@@ -193,7 +192,6 @@ Read pb
             pas -1e8
             nb_iter_remaillage 5
             critere_arete 0.5
-            critere_remaillage 0.2
             pas_lissage -1
             nb_iter_barycentrage 5
             relax_barycentrage 1
@@ -226,7 +224,6 @@ Read pb
             pas 1e8
             nb_iter_remaillage 5
             critere_arete 0.5
-            critere_remaillage 0.2
             pas_lissage -1
             nb_iter_barycentrage 5
             relax_barycentrage 1

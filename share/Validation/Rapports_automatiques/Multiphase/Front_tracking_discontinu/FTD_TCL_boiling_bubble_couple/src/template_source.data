@@ -294,7 +294,6 @@ Lire pb1
             pas 1e-12
             nb_iter_remaillage 3
             critere_arete 0.35
-            critere_remaillage 0.35
             pas_lissage 1e-12
             relax_barycentrage 0.1
             facteur_longueur_ideale 1.0

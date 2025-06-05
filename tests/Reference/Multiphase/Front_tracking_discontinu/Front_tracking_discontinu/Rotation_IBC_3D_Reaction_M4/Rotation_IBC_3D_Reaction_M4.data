@@ -136,7 +136,6 @@ If this does not solve the problem, try to stabilize a bit the flow by adding
             pas 1e-07
             nb_iter_remaillage 3
             critere_arete 0.35
-            critere_remaillage 0.35
             pas_lissage 1e-07
             relax_barycentrage 1
             facteur_longueur_ideale 1.0

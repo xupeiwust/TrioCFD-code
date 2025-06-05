@@ -116,7 +116,6 @@ Lire pb
             pas				0.000001
             nb_iter_remaillage		1
             critere_arete			0.35
-            critere_remaillage		0.2
             pas_lissage			0.000001
             lissage_courbure_iterations_systematique 5
      	    lissage_courbure_iterations_si_remaillage 5
@@ -190,7 +189,6 @@ Postraitement
 pas				0.000001
 nb_iter_remaillage		1
 critere_arete			0.35
-critere_remaillage		0.2
 pas_lissage			0.0000001
 lissage_courbure_iterations_systematique 3
 lissage_courbure_iterations_si_remaillage 3
@@ -204,7 +202,6 @@ seuil_dvolume_residuel		1e-12
 pas				0.000001
 nb_iter_remaillage		1
 critere_arete			0.35
-critere_remaillage		0.2
 pas_lissage			0.0000001
 lissage_courbure_iterations_systematique 3
 lissage_courbure_iterations_si_remaillage 3

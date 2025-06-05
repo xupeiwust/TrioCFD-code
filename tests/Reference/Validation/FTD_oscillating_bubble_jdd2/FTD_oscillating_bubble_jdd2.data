@@ -88,7 +88,6 @@ Read pb
             pas 1e-8
             nb_iter_remaillage 5
             critere_arete 0.35
-            critere_remaillage 0.35
             pas_lissage 1e-8
             lissage_courbure_iterations_systematique 1
             lissage_courbure_iterations_si_remaillage 5
