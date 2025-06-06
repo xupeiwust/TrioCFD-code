@@ -30,7 +30,7 @@
 #include <Debog.h>
 
 Implemente_base(Transport_K_Eps_base, "Transport_K_Eps_base", Transport_2eq_base);
-
+// XD Transport_K_Eps_base Transport_2eq_base Transport_K_Eps_base 1 Base equation for RANS k-eps model. Should not be used directly
 
 /*! @brief
  *
@@ -50,7 +50,11 @@ Entree& Transport_K_Eps_base::readOn(Entree& is)
   Equation_base::readOn(is);
   return is;
 }
-
+void Transport_K_Eps_base::set_param(Param& param)
+{
+  Transport_2eq_base::set_param(param);
+  param.ajouter_flag("do_not_control_k_eps", &do_not_control_k_eps_); // XD_ADD_P flag Flag to prevent using the method 'controler_K_Eps' in method Transport_K_Eps_base::valider_iteration, which may cause errors at low Reynolds
+}
 
 
 void Transport_K_Eps_base::discretiser()
@@ -347,5 +351,8 @@ int Transport_K_Eps_base::controler_K_Eps()
  */
 void Transport_K_Eps_base::valider_iteration()
 {
-  // controler_K_Eps();
+  if (!do_not_control_k_eps_)
+    controler_K_Eps();
+  else
+    Cerr << "In Transport_K_Eps_base::valider_iteration, controler_K_Eps not used because of keyword do_not_control_k_eps";
 }

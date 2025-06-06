@@ -31,6 +31,7 @@
 
 Implemente_base(Transport_2eq_base, "Transport_2eq_base", Equation_base);
 
+// XD Transport_2eq_base eqn_base Transport_2eq_base 1 Special equation type, used to solve RANS models with two transport equation (eg k-eps)
 
 /*! @brief
  *

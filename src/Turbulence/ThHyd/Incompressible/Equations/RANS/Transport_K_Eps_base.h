@@ -51,7 +51,13 @@ public:
   inline Champ_Inc_base& inconnue() override;
 
 protected:
+
+  virtual void set_param(Param& ) override;
+
   OWN_PTR(Champ_Inc_base) le_champ_K_Eps;
+
+private:
+  bool do_not_control_k_eps_=false; // default is old behavior
 
 };
 
