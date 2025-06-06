@@ -4,6 +4,7 @@
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/DivaALE
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/RotationALE
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/SquareObstacleALE
+./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/TranslatingSquare_ALE_CoarseMesh
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/TwoCylindersALE
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/ALE/TwoOscillatingCylindersALE
 ./share/Validation/Rapports_automatiques/Fluid_Structure_Interaction/Beam/Beam_Free_Vibration
