@@ -20,32 +20,36 @@
 #include <Coalescence_bulles_1groupe_base.h>
 #include <TRUSTTab.h>
 
-/*! @brief
+/*! @brief Model for bubble coalescence from Yao and Morel (2003)
  *
+ * Model for bubble coalescence using the turbulence induced coalescence given in
+ * Yao, W. and Morel, C. (2003) Volumetric interfacial area prediction in upward bubbly
+ * two-phase ﬂow. International Journal of Heat and Mass Transfer 47 (2004) 307--328.
+ * The coefficient formula is given at page 312, equation (22).
  */
-
-class Coalescence_bulles_1groupe_Yao_Morel : public Coalescence_bulles_1groupe_base
+class Coalescence_bulles_1groupe_Yao_Morel: public Coalescence_bulles_1groupe_base
 {
   Declare_instanciable(Coalescence_bulles_1groupe_Yao_Morel);
+
 public:
+  // TODO change to input_t/output_t format
   void coefficient(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
                    const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
                    const DoubleTab& ndv, const DoubleTab& d_bulles,
                    const DoubleTab& eps, const DoubleTab& k_turb,
-                   DoubleTab& coeff) const  override ;
+                   DoubleTab& coeff) const override;
 
 private:
   int n_l = -1;
 
-  double Kc1 = 2.86 ;
-  double Kc2 = 1.922 ;
-  double Kc3 = 1.017 ;
-  double alpha_max_1_3 = std::cbrt(M_PI/6.) ;
-  double We_cr = 1.24 ;
-  double alpha_sec = 2./3.;
+  static constexpr double Kc1 = 2.86;
+  static constexpr double Kc2 = 1.922;
+  static constexpr double Kc3 = 1.017;
+  const double alpha_max_1_3 = std::cbrt(M_PI/6.);
+  static constexpr double We_cr = 1.24;
+  static constexpr double alpha_sec = 2./3.;
 
 
 };
 
 #endif
-

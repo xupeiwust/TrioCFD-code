@@ -51,7 +51,7 @@ public :
   void mettre_a_jour(double temps) override { };
 
 protected:
-  double g_=9.81;
+  double g_ = 9.81;
   double C_k = 1.;
   int n_l = -1 ;
 };

@@ -20,7 +20,10 @@
 
 Implemente_base(Source_injection_masse_base, "Source_injection_masse_base", Sources_Multiphase_base);
 
-Sortie& Source_injection_masse_base::printOn(Sortie& os) const {return os;}
+Sortie& Source_injection_masse_base::printOn(Sortie& os) const
+{
+  return os;
+}
 
 Entree& Source_injection_masse_base::readOn(Entree& is)
 {
@@ -37,10 +40,14 @@ Entree& Source_injection_masse_base::readOn(Entree& is)
 
   equation().probleme().discretisation().discretiser_champ("champ_elem", equation().domaine_dis(), "pp", "1",nb_comp,0., flux_masse_);
   flux_masse_lu_->fixer_nb_comp(nb_comp);
-  if (ch_flux_masse_lu_.le_nom()=="anonyme") ch_flux_masse_lu_.nommer("Flux_masse_injectee");
+  if (ch_flux_masse_lu_.le_nom()=="anonyme")
+    ch_flux_masse_lu_.nommer("Flux_masse_injectee");
 
-  for (int n = 0; n < nb_comp; n++) flux_masse_lu_->fixer_nom_compo(n, ch_flux_masse_lu_.le_nom() + (nb_comp > 1 ? Nom(n) :""));
-  for (int n = 0; n < nb_comp; n++) flux_masse_->fixer_nom_compo(n, ch_flux_masse_lu_.le_nom() + (nb_comp > 1 ? Nom(n) :""));
+  for (int n = 0; n < nb_comp; n++)
+    flux_masse_lu_->fixer_nom_compo(n, ch_flux_masse_lu_.le_nom() + (nb_comp > 1 ? Nom(n) :""));
+  for (int n = 0; n < nb_comp; n++)
+    flux_masse_->fixer_nom_compo(n, ch_flux_masse_lu_.le_nom() + (nb_comp > 1 ? Nom(n) :""));
+
   equation().discretisation().nommer_completer_champ_physique(equation().domaine_dis(),ch_flux_masse_lu_.le_nom(),"1/s",flux_masse_lu_,equation().probleme());
   equation().discretisation().nommer_completer_champ_physique(equation().domaine_dis(),ch_flux_masse_lu_.le_nom(),"1/s",flux_masse_,equation().probleme());
   flux_masse_->valeurs() = 0;
@@ -53,7 +60,10 @@ Entree& Source_injection_masse_base::readOn(Entree& is)
   return is;
 }
 
-void Source_injection_masse_base::mettre_a_jour(double temps) { flux_masse_->mettre_a_jour(temps); }
+void Source_injection_masse_base::mettre_a_jour(double temps)
+{
+  flux_masse_->mettre_a_jour(temps);
+}
 
 void Source_injection_masse_base::ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl) const
 {
@@ -68,6 +78,4 @@ void Source_injection_masse_base::ajouter_blocs(matrices_t matrices, DoubleTab& 
   for (e = 0; e < domaine.nb_elem(); e++)
     for (k = 0; k < N; k++)
       secmem(e, k) += pe[e] * ve[e] * tab_inj(!cI*e, k) * rho(!cR, k);
-
 }
-

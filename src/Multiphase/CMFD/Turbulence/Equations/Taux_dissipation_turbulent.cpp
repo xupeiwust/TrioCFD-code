@@ -73,12 +73,12 @@ Entree& Taux_dissipation_turbulent::readOn(Entree& is)
 
 const Champ_Don_base& Taux_dissipation_turbulent::diffusivite_pour_transport() const
 {
-  return ref_cast(Fluide_base,milieu()).viscosite_cinematique();
+  return ref_cast(Fluide_base, milieu()).viscosite_cinematique();
 }
 
 const Champ_base& Taux_dissipation_turbulent::diffusivite_pour_pas_de_temps() const
 {
-  return ref_cast(Fluide_base,milieu()).viscosite_cinematique();
+  return ref_cast(Fluide_base, milieu()).viscosite_cinematique();
 }
 
 /*! @brief Discretise l'equation.
@@ -86,12 +86,13 @@ const Champ_base& Taux_dissipation_turbulent::diffusivite_pour_pas_de_temps() co
  */
 void Taux_dissipation_turbulent::discretiser()
 {
-  int nb_valeurs_temp = schema_temps().nb_valeurs_temporelles();
-  double temps = schema_temps().temps_courant();
-  const Discret_Thyd& dis=ref_cast(Discret_Thyd, discretisation());
+  const int nb_valeurs_temp = schema_temps().nb_valeurs_temporelles();
+  const double temps = schema_temps().temps_courant();
+  const Discret_Thyd& dis = ref_cast(Discret_Thyd, discretisation());
   Cerr << "Turbulent dissipation rate discretization" << finl;
   //On utilise temperature pour la directive car discretisation identique
-  dis.discretiser_champ("temperature",domaine_dis(),"omega","s", 1,nb_valeurs_temp,temps,l_inco_ch);//une seule compo, meme en multiphase
+  dis.discretiser_champ("temperature", domaine_dis(), "omega", "s", 1,
+                        nb_valeurs_temp, temps, l_inco_ch);//une seule compo, meme en multiphase
   l_inco_ch->fixer_nature_du_champ(scalaire);
   l_inco_ch->fixer_nom_compo(0, Nom("omega"));
   champs_compris_.ajoute_champ(l_inco_ch);
@@ -99,24 +100,30 @@ void Taux_dissipation_turbulent::discretiser()
   Cerr << "Taux_dissipation_turbulent::discretiser() ok" << finl;
 }
 
-void Taux_dissipation_turbulent::calculer_omega(const Objet_U& obj, DoubleTab& val, DoubleTab& bval, tabs_t& deriv)
+void Taux_dissipation_turbulent::calculer_omega(const Objet_U& obj, DoubleTab& val,
+                                                DoubleTab& bval, tabs_t& deriv)
 {
   const Equation_base& eqn = ref_cast(Equation_base, obj);
   const DoubleTab& omega = eqn.inconnue().valeurs();
 
   /* valeurs du champ */
-  int i, n, N = val.line_size(), Nl = val.dimension_tot(0);
-  for (i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) val(i, n) = omega(i, n);
+  const int N = val.dimension_tot(1);
+  const int Nl = val.dimension_tot(0);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      val(i, n) = omega(i, n);
 
   /* on ne peut utiliser valeur_aux_bords que si ch_rho a un domaine_dis_base */
   const DoubleTab& b_omega = eqn.inconnue().valeur_aux_bords();
-  int Nb = b_omega.dimension_tot(0);
-  for (i = 0; i < Nb; i++)
-    for (n = 0; n < N; n++) bval(i, n) = b_omega(i, n);
+  const int Nb = b_omega.dimension_tot(0);
+  for (int i = 0; i < Nb; i++)
+    for (int n = 0; n < N; n++)
+      bval(i, n) = b_omega(i, n);
 
   //derivee en omega : 1.
   DoubleTab& d_omega = deriv["omega"];
-  for (d_omega.resize(Nl, N), i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) d_omega(i, n) = 1.;
+  d_omega.resize(Nl, N);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      d_omega(i, n) = 1.;
 }

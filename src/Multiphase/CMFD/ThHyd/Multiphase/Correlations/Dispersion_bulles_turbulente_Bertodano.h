@@ -22,17 +22,18 @@
 
 #ifndef Dispersion_bulles_turbulente_Bertodano_included
 #define Dispersion_bulles_turbulente_Bertodano_included
+
 #include <Dispersion_bulles_base.h>
 #include <Correlation_base.h>
 
-/*! @brief classe Dispersion_bulles_turbulente_Bertodano coefficients de dispersion turbulente de bulles slon le modele Lopez de Bertodano 1998
+/*! @brief class Dispersion_bulles_turbulente_Bertodano bubbles turbulent dispersion coefficients
  *
- *
- *
+ * based on the model from Lopez de Bertodano 1998.
  */
-class Dispersion_bulles_turbulente_Bertodano : public Dispersion_bulles_base
+class Dispersion_bulles_turbulente_Bertodano: public Dispersion_bulles_base
 {
   Declare_instanciable(Dispersion_bulles_turbulente_Bertodano);
+
 public:
   void coefficient(const input_t& input, output_t& output) const override;
 

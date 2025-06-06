@@ -36,12 +36,11 @@ class Cond_lim_k_complique_transition_flux_nul_demi  : public Echange_global_imp
   Declare_instanciable(Cond_lim_k_complique_transition_flux_nul_demi);
 
 public :
-
   void completer() override;
 
 protected :
   void me_calculer() override;
-  double calc_k(double y, double u_tau, double visc);
+  double calc_k(const double y, const double u_tau, const double visc) const;
 
   double limiteur_y_p = 0.01; // To prevent numerical issues ; no consequence on the calculation, as it falls in the region where the blending function is zero
   double beta_k_ = 0.09;

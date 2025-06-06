@@ -33,6 +33,7 @@
 class Rupture_bulles_1groupe_PolyMAC_P0: public Source_base
 {
   Declare_instanciable(Rupture_bulles_1groupe_PolyMAC_P0);
+
 public :
   int has_interface_blocs() const override
   {
@@ -45,11 +46,14 @@ public :
   void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
   void associer_pb(const Probleme_base& ) override { };
   void mettre_a_jour(double temps) override { };
+
 protected:
   OWN_PTR(Correlation_base) correlation_; //correlation donnant le coeff de coalescence
 
   double beta_k_ = 0.09;
   int n_l = -1 ; // liquid phase
+
+  const double fac_cst = M_PI/3*std::pow(6, 5/3.); // computed once at instanciation
 };
 
 #endif

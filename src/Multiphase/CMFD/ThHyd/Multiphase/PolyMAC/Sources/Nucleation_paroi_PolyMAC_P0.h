@@ -37,6 +37,7 @@
 class Nucleation_paroi_PolyMAC_P0: public Source_base
 {
   Declare_instanciable(Nucleation_paroi_PolyMAC_P0);
+
 public :
   int has_interface_blocs() const override
   {
@@ -44,7 +45,7 @@ public :
   };
   void dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl = {}) const override;
   void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
-  void check_multiphase_compatibility() const override {}; //of course
+  void check_multiphase_compatibility() const override {};
 
   void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
   void associer_pb(const Probleme_base& ) override { };

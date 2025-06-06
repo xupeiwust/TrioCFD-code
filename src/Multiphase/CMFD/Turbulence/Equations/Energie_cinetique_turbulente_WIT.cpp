@@ -44,7 +44,9 @@
 
 #define old_forme
 
-Implemente_instanciable(Energie_cinetique_turbulente_WIT,"Energie_cinetique_turbulente_WIT",Convection_Diffusion_std);
+Implemente_instanciable(Energie_cinetique_turbulente_WIT,
+                        "Energie_cinetique_turbulente_WIT",
+                        Convection_Diffusion_std);
 
 /*! @brief Simple appel a: Convection_Diffusion_std::printOn(Sortie&)
  *
@@ -169,27 +171,33 @@ void Energie_cinetique_turbulente_WIT::associer_fluide(const Fluide_base& un_flu
   le_fluide = un_fluide;
 }
 
-
 void Energie_cinetique_turbulente_WIT::calculer_alpha_rho_k_WIT(const Objet_U& obj, DoubleTab& val, DoubleTab& bval, tabs_t& deriv)
 {
+  // This function used to compute alpha_rho_k for the WIT contribution but like the
+  // Energie_cinetique_turbulente class it now computes k.
+
   const Equation_base& eqn = ref_cast(Equation_base, obj);
   const DoubleTab& k = eqn.inconnue().valeurs();
 
   /* valeurs du champ */
-  int i, n, N = val.line_size(), Nl = val.dimension_tot(0);
-  for (i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) val(i, n) = k(i, n);
+  const int N = val.line_size();
+  const int Nl = val.dimension_tot(0);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      val(i, n) = k(i, n);
 
   /* on ne peut utiliser valeur_aux_bords que si ch_rho a un domaine_dis_base */
   DoubleTab b_k = eqn.inconnue().valeur_aux_bords();
   int Nb = b_k.dimension_tot(0);
 
-  for (i = 0; i < Nb; i++)
-    for (n = 0; n < N; n++) bval(i, n) = b_k(i, n);
+  for (int i = 0; i < Nb; i++)
+    for (int n = 0; n < N; n++)
+      bval(i, n) = b_k(i, n);
 
   //derivee en k : 1
   DoubleTab& d_k = deriv["k_WIT"];
-  for (d_k.resize(Nl, N), i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) d_k(i, n) = 1.;
-
+  d_k.resize(Nl, N);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      d_k(i, n) = 1.;
 }

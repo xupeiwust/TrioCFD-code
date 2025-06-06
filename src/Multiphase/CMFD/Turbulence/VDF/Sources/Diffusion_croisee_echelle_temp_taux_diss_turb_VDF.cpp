@@ -43,21 +43,26 @@ void Diffusion_croisee_echelle_temp_taux_diss_turb_VDF::ajouter_blocs(matrices_t
   const Domaine_VF& domaine = ref_cast(Domaine_VF, equation().domaine_dis());
   const Champ_Inc_P0_base& ch_k = ref_cast(Champ_Inc_P0_base, equation().probleme().get_champ("k"));	// Champ k
   const DoubleTab& k_passe = ch_k.passe();
-  const DoubleVect& pe = equation().milieu().porosite_elem(), &ve = domaine.volumes();
+  const DoubleVect& pe = equation().milieu().porosite_elem();
+  const DoubleVect& ve = domaine.volumes();
 
-  const Champ_Inc_P0_base& ch_diss	= ref_cast(Champ_Inc_P0_base, equation().inconnue()); 		// Champ tau ou omega
+  const Champ_Inc_P0_base& ch_diss = ref_cast(Champ_Inc_P0_base, equation().inconnue()); 		// Champ tau ou omega
   const DoubleTab& diss_passe = ch_diss.passe();
   const DoubleTab& diss = ch_diss.valeurs();
 
-  const int nf_tot = domaine.nb_faces_tot(), D = dimension, ne = domaine.nb_elem(), ne_tot = domaine.nb_elem_tot() ;
+  const int nf_tot = domaine.nb_faces_tot();
+  const int D = dimension;
+  const int ne = domaine.nb_elem();
+  const int ne_tot = domaine.nb_elem_tot();
   const int N = diss_passe.line_size();
 
   std::string Type_diss = ""; // omega or tau dissipation
-  if sub_type(Echelle_temporelle_turbulente, equation()) Type_diss = "tau";
-  else if sub_type(Taux_dissipation_turbulent, equation()) Type_diss = "omega";
-  if (Type_diss == "") abort();
-
-//  Cerr <<"lol !! " ;
+  if (sub_type(Echelle_temporelle_turbulente, equation()))
+    Type_diss = "tau";
+  else if (sub_type(Taux_dissipation_turbulent, equation()))
+    Type_diss = "omega";
+  if (Type_diss == "")
+    Process::exit(que_suis_je() + ": dissipation must be either tau or omega.");
 
   assert(N == 1 || k_passe.line_size() == 1); // si Ntau > 1 il vaut mieux iterer sur les id_composites des phases turbulentes decrites par un modele k-tau dans le calcul de grad_f_k et dans le remplissage des matrices
 
@@ -80,8 +85,9 @@ void Diffusion_croisee_echelle_temp_taux_diss_turb_VDF::ajouter_blocs(matrices_t
   /* On interpole les champs aux elements */
   DoubleTab grad_e_diss(ne_tot, N, D);
   DoubleTab grad_e_k(ne_tot, N, D);
+  // TODO: replace with the Discretization_tools version
   face_to_elem(domaine, grad_f_diss, grad_e_diss);
-  face_to_elem(domaine, grad_f_k   , grad_e_k);
+  face_to_elem(domaine, grad_f_k, grad_e_k);
 
   /* Calcul de grad(tau/omega).(grad k) */
 
@@ -90,31 +96,32 @@ void Diffusion_croisee_echelle_temp_taux_diss_turb_VDF::ajouter_blocs(matrices_t
     for (int e = 0; e < ne; e++)
       {
         grad_f_diss_dot_grad_f_k(e, n) = 0;
-        for (int d = 0 ; d < D ; d++) grad_f_diss_dot_grad_f_k(e, n) += grad_e_diss(e,n,d) * grad_e_k(e,n,d); // produit scalaire
+        for (int d = 0; d < D ; d++)
+          grad_f_diss_dot_grad_f_k(e, n) += grad_e_diss(e,n,d) * grad_e_k(e,n,d); // produit scalaire
       }
 
   /* remplissage des matrices et du second membre */
 
   Matrice_Morse *M = matrices.count(ch_diss.le_nom().getString()) ? matrices.at(ch_diss.le_nom().getString()) : nullptr;
 
-  int e, n;
-
-  for ( e = 0; e < ne; e++)
-    for(n = 0; n<N ; n++)
+  for (int e = 0; e < ne; e++)
+    for(int n = 0; n < N ; n++)
       {
         if (Type_diss == "tau")
           {
-            double secmem_en = pe(e) * ve(e) * sigma_d * diss(e, n) * std::min(grad_f_diss_dot_grad_f_k(e, n), 0.);
+            const double secmem_en = pe(e)*ve(e) * sigma_d*diss(e, n)*std::min(grad_f_diss_dot_grad_f_k(e, n), 0.);
             secmem(e, n) += secmem_en;
-            if (!(M==nullptr))     (*M)(N * e + n, N * e + n)       -= pe(e) * ve(e) * sigma_d * std::min(grad_f_diss_dot_grad_f_k(e, n), 0.); // derivee en tau
+            if (M)
+              (*M)(N * e + n, N * e + n) -= pe(e)*ve(e) * sigma_d*std::min(grad_f_diss_dot_grad_f_k(e, n), 0.); // derivee en tau
           }
         else if (Type_diss == "omega")
           {
             if (diss(e,n)>1.e-8) // Else everything = 0
               {
-                double dp = std::max(diss_passe(e, n), 1.e-6);
-                secmem(e, n) += pe(e) * ve(e) * sigma_d / dp*(2-diss(e, n)/dp)* std::max(grad_f_diss_dot_grad_f_k(e, n), 0.) ;
-                if (!(M==nullptr))     (*M)(N * e + n, N * e + n)       -= pe(e) * ve(e) * sigma_d * (-1/(dp*dp)) * std::max(grad_f_diss_dot_grad_f_k(e, n), 0.); // derivee en omega
+                const double dp = std::max(diss_passe(e, n), 1.e-6);
+                secmem(e, n) += pe(e)*ve(e) * sigma_d/dp*(2 - diss(e, n)/dp)*std::max(grad_f_diss_dot_grad_f_k(e, n), 0.) ;
+                if (M)
+                  (*M)(N * e + n, N * e + n) -= pe(e)*ve(e) * sigma_d*(-1/(dp*dp)) * std::max(grad_f_diss_dot_grad_f_k(e, n), 0.); // derivee en omega
               }
           }
       }
@@ -125,19 +132,22 @@ void Diffusion_croisee_echelle_temp_taux_diss_turb_VDF::face_to_elem(const Domai
   const IntTab& elem_faces = domaine.elem_faces();
   const DoubleTab& nf = domaine.face_normales();
   const DoubleVect& fs = domaine.face_surfaces();
-  const int nb_face_elem = elem_faces.line_size(), ne_tot= domaine.nb_elem_tot(), N = tab_faces.line_size(), D = dimension;
+  const int nb_face_elem = elem_faces.line_size();
+  const int ne_tot= domaine.nb_elem_tot();
+  const int N = tab_faces.line_size();
+  const int D = dimension;
   assert (tab_elems.dimension_tot(0) == ne_tot && tab_faces.dimension_tot(0) == domaine.nb_faces_tot());
 
   tab_elems = 0.;
-  for (int ele=0; ele<ne_tot; ele++)
-    for (int n=0; n<N; n++)
-      for (int d=0; d<D; d++)
-        for (int s=0; s<nb_face_elem; s++)
+  for (int ele = 0; ele < ne_tot; ele++)
+    for (int n = 0; n < N; n++)
+      for (int d = 0; d < D; d++)
+        for (int s = 0; s < nb_face_elem; s++)
           {
             int f = elem_faces(ele, s);
-            if (fs[f]>1.e-12) tab_elems(ele, n, d) += tab_faces(f,n)*nf(f,d)/fs[f];
+            if (fs[f] > 1.e-12)
+              tab_elems(ele, n, d) += tab_faces(f,n)*nf(f,d)/fs[f];
           }
 
   tab_elems *= 0.5;
 }
-

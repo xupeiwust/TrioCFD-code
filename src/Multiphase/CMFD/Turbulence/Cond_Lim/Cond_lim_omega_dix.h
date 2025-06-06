@@ -40,12 +40,12 @@ public :
 
 protected :
   void me_calculer() override;
-  double calc_omega(double y, double u_tau, double visc);
+  double calc_omega(const double y, const double u_tau, const double visc);
 
-  double von_karman_ = 0.41 ;
+  double von_karman_ = 0.41;
   double beta_omega = 0.075;
   double beta_k = 0.09;
-  double facteur_paroi_=10.;
+  double facteur_paroi_ = 10.;
 };
 
 #endif

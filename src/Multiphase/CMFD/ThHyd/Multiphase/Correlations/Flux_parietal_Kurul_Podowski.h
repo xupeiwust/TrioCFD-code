@@ -22,6 +22,7 @@
 
 #ifndef Flux_parietal_Kurul_Podowski_included
 #define Flux_parietal_Kurul_Podowski_included
+
 #include <TRUSTTab.h>
 #include <Flux_parietal_base.h>
 #include <Correlation_base.h>
@@ -35,12 +36,12 @@
  *
  *
  */
-class Flux_parietal_Kurul_Podowski : public Flux_parietal_base
+class Flux_parietal_Kurul_Podowski: public Flux_parietal_base
 {
   Declare_instanciable(Flux_parietal_Kurul_Podowski);
+
 public:
   virtual void qp(const input_t& input, output_t& output) const override;
-
   virtual void completer() override;
 
   int calculates_bubble_nucleation_diameter() const override {return 1;}

@@ -37,7 +37,9 @@
 #include <Debog.h>
 #include <SETS.h>
 
-Implemente_instanciable(Energie_cinetique_turbulente,"Energie_cinetique_turbulente",Convection_diffusion_turbulence_multiphase);
+Implemente_instanciable(Energie_cinetique_turbulente,
+                        "Energie_cinetique_turbulente",
+                        Convection_diffusion_turbulence_multiphase);
 
 Sortie& Energie_cinetique_turbulente::printOn(Sortie& is) const
 {
@@ -56,28 +58,29 @@ Entree& Energie_cinetique_turbulente::readOn(Entree& is)
 void Energie_cinetique_turbulente::set_param(Param& param)
 {
   Convection_diffusion_turbulence_multiphase::set_param(param);
-  param.ajouter("limit_coef",&coef_limit_); // X_D attr limit_coef flottant limit_coef 1 Coefficient of the limiter (min (K, coef * v^2)). Default value of coef is set to 0.1
-  param.ajouter_flag("limit_K",&limit_k_); // X_D attr limit_K entier limit_K 1 Flag to activate the limiter on K. Default value is 0 (deactivated)
+  param.ajouter("limit_coef", &coef_limit_); // X_D attr limit_coef flottant limit_coef 1 Coefficient of the limiter (min (K, coef * v^2)). Default value of coef is set to 0.1
+  param.ajouter_flag("limit_K", &limit_k_); // X_D attr limit_K entier limit_K 1 Flag to activate the limiter on K. Default value is 0 (deactivated)
 }
 
 const Champ_Don_base& Energie_cinetique_turbulente::diffusivite_pour_transport() const
 {
-  return ref_cast(Fluide_base,milieu()).viscosite_cinematique();
+  return ref_cast(Fluide_base, milieu()).viscosite_cinematique();
 }
 
 const Champ_base& Energie_cinetique_turbulente::diffusivite_pour_pas_de_temps() const
 {
-  return ref_cast(Fluide_base,milieu()).viscosite_cinematique();
+  return ref_cast(Fluide_base, milieu()).viscosite_cinematique();
 }
 
 void Energie_cinetique_turbulente::discretiser()
 {
-  int nb_valeurs_temp = schema_temps().nb_valeurs_temporelles();
-  double temps = schema_temps().temps_courant();
-  const Discret_Thyd& dis=ref_cast(Discret_Thyd, discretisation());
+  const int nb_valeurs_temp = schema_temps().nb_valeurs_temporelles();
+  const double temps = schema_temps().temps_courant();
+  const Discret_Thyd& dis = ref_cast(Discret_Thyd, discretisation());
   Cerr << "Turbulent kinetic energy discretization" << finl;
   //On utilise temperature pour la directive car discretisation identique
-  dis.discretiser_champ("temperature",domaine_dis(),"k","J/kg", 1,nb_valeurs_temp,temps,l_inco_ch);//une seule compo, meme en multiphase
+  dis.discretiser_champ("temperature", domaine_dis(), "k", "J/kg", 1,
+                        nb_valeurs_temp, temps, l_inco_ch);//une seule compo, meme en multiphase
   l_inco_ch->fixer_nature_du_champ(scalaire);
   l_inco_ch->fixer_nom_compo(0, Nom("k"));
   champs_compris_.ajoute_champ(l_inco_ch);
@@ -105,8 +108,9 @@ void Energie_cinetique_turbulente::mettre_a_jour(double temps)
           for (int n = 0; n < N; n++)
             {
               double norm_v2 = 0;
-              for (int d = 0 ; d<D ; d++) norm_v2 += ch_vit.passe()(e, N*d+n);
-              k_val(e, n) = std::min(k_val(e, n), coef_limit_ * norm_v2 );
+              for (int d = 0 ; d < D ; d++)
+                norm_v2 += ch_vit.passe()(e, N*d + n);
+              k_val(e, n) = std::min(k_val(e, n), coef_limit_*norm_v2);
             }
         k_val.echange_espace_virtuel();
         inconnue().passe() = k_val;
@@ -115,6 +119,9 @@ void Energie_cinetique_turbulente::mettre_a_jour(double temps)
 
 void Energie_cinetique_turbulente::calculer_alpha_rho_k(const Objet_U& obj, DoubleTab& val, DoubleTab& bval, tabs_t& deriv)
 {
+  /*
+    Nota: this function used to compute alpha*rho*k but now it computes only k.
+   */
   const Equation_base& eqn = ref_cast(Equation_base, obj);
 
   /*  const Fluide_base& fl = ref_cast(Fluide_base, eqn.milieu());
@@ -123,21 +130,25 @@ void Energie_cinetique_turbulente::calculer_alpha_rho_k(const Objet_U& obj, Doub
                           *pch_rho = sub_type(Champ_Inc_base, ch_rho) ? &ref_cast(Champ_Inc_base, ch_rho) : nullptr; //pas toujours un Champ_Inc
     const DoubleTab* alpha = ch_alpha ? &ch_alpha->valeurs() : nullptr, &rho = ch_rho.valeurs(), &k = eqn.inconnue().valeurs();
   */
-  const DoubleTab& k = eqn.inconnue().valeurs();
 
   /* valeurs du champ */
-  int i, n, N = val.line_size(), Nl = val.dimension_tot(0);
-  for (i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) val(i, n) = k(i, n);
+  const DoubleTab& k = eqn.inconnue().valeurs();
+  const int N = val.line_size();
+  const int Nl = val.dimension_tot(0);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      val(i, n) = k(i, n);
 
   /* on ne peut utiliser valeur_aux_bords que si ch_rho a un domaine_dis_base */
   const DoubleTab& b_k = eqn.inconnue().valeur_aux_bords();
-  int Nb = b_k.dimension_tot(0);
-  for (i = 0; i < Nb; i++)
-    for (n = 0; n < N; n++) bval(i, n) = b_k(i, n);
+  const int Nb = b_k.dimension_tot(0);
+  for (int i = 0; i < Nb; i++)
+    for (int n = 0; n < N; n++) bval(i, n) = b_k(i, n);
 
   //derivee en k : 1.
   DoubleTab& d_k = deriv["k"];
-  for (d_k.resize(Nl, N), i = 0; i < Nl; i++)
-    for (n = 0; n < N; n++) d_k(i, n) = 1.;
+  d_k.resize(Nl, N);
+  for (int i = 0; i < Nl; i++)
+    for (int n = 0; n < N; n++)
+      d_k(i, n) = 1.;
 }

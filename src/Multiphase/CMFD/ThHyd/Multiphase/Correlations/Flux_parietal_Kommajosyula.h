@@ -22,6 +22,7 @@
 
 #ifndef Flux_parietal_Kommajosyula_included
 #define Flux_parietal_Kommajosyula_included
+
 #include <TRUSTTab.h>
 #include <Flux_parietal_base.h>
 #include <Correlation_base.h>
@@ -38,9 +39,9 @@
 class Flux_parietal_Kommajosyula : public Flux_parietal_base
 {
   Declare_instanciable(Flux_parietal_Kommajosyula);
+
 public:
   virtual void qp(const input_t& input, output_t& output) const override;
-
   virtual void completer() override;
 
   int calculates_bubble_nucleation_diameter() const override {return 1;}
@@ -52,10 +53,16 @@ protected :
   double theta_ ; //contact angle on the surface
   double molar_mass_ ; //molar mass (unit: kg/mol)
 
-  double Lambert_W_function(double x) const;
-  double dx_Lambert_W_function(double x) const;
-  double Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
-  double dTp_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
+  double Lambert_W_function(const double x) const;
+  double dx_Lambert_W_function(const double x) const;
+  double Hibiki_Ishii_Site_density(const double rho_v, const double rho_l, const double T_v,
+                                   const double T_l, const double p, const double Tp,
+                                   const double h_lv, const double T_sat, const double sigma,
+                                   const double theta, const double molar_mass) const;
+  double dTp_Hibiki_Ishii_Site_density(const double rho_v, const double rho_l, const double T_v,
+                                       const double T_l, const double p, const double Tp,
+                                       const double h_lv, const double T_sat, const double sigma,
+                                       const double theta, const double molar_mass) const;
   double dTl_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
   double dTk_Hibiki_Ishii_Site_density(double rho_v, double rho_l, double T_v, double T_l, double p, double Tp, double h_lv, double T_sat, double sigma, double theta, double molar_mass) const;
 };

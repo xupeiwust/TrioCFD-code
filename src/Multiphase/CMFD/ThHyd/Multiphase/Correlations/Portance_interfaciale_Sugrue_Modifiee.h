@@ -15,9 +15,10 @@
 
 #ifndef Portance_interfaciale_Sugrue_Modifiee_included
 #define Portance_interfaciale_Sugrue_Modifiee_included
+
 #include <Portance_interfaciale_base.h>
 
-/*! @brief classe Portance_interfaciale_Sugrue_Modifiee coefficients de portance interfaciale d'un ecoulement a bulles deformables
+/*! @brief classe Portance_interfaciale_Sugrue_Modifiee lift coefficient for a deformable bubbly flow
  *
  *       Le coefficient renvoye par cette classe est toujours >0, c'est Portanc_interfaciale_PolyMAC_P0 qui gere les signes
  *
@@ -27,12 +28,14 @@
 class Portance_interfaciale_Sugrue_Modifiee : public Portance_interfaciale_base
 {
   Declare_instanciable(Portance_interfaciale_Sugrue_Modifiee);
+
 public:
   void coefficient(const input_t& input, output_t& output) const override;
+
 protected:
-  double g_=9.81;
+  double g_ = 9.81;
   int n_l = -1; //phase liquide
-  double alpha_lim_=1.e-5;
+  const double alpha_lim_ = 1.e-5;
 };
 
 #endif

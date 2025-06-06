@@ -48,13 +48,11 @@ public :
   virtual void liste_faces_loi_paroi(IntTab&) override;
 
 protected :
-
   virtual double fac_coeff_grad(double y_p) const { return 1.;};
   OBS_PTR(Correlation_base) correlation_loi_paroi_;
 
   DoubleTab valeurs_coeff_;
   DoubleTab valeurs_coeff_grad_;
-
 };
 
 #endif

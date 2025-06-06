@@ -46,7 +46,7 @@ public:
   virtual int T_at_wall() const override {return 0;};
 
 protected :
-  double calc_theta_plus(double y, double u_tau, double mu, double lambda, double rho, double Cp, double Diam_hyd_) const;
+  double calc_theta_plus(const double y, const double u_tau, const double mu, const double lambda, const double rho, const double Cp, const double Diam_hyd_) const;
 
   OBS_PTR(Correlation_base) correlation_loi_paroi_;
 };

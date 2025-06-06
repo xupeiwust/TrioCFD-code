@@ -28,7 +28,10 @@
 
 Implemente_instanciable(Vitesse_derive_Spelt_Biesheuvel, "Vitesse_relative_derive_Spelt_Biesheuvel", Vitesse_derive_base);
 
-Sortie& Vitesse_derive_Spelt_Biesheuvel::printOn(Sortie& os) const { return os; }
+Sortie& Vitesse_derive_Spelt_Biesheuvel::printOn(Sortie& os) const
+{
+  return os;
+}
 
 Entree& Vitesse_derive_Spelt_Biesheuvel::readOn(Entree& is)
 {
@@ -39,14 +42,18 @@ Entree& Vitesse_derive_Spelt_Biesheuvel::readOn(Entree& is)
 void Vitesse_derive_Spelt_Biesheuvel::completer()
 {
   const Pb_Multiphase& pbm = ref_cast(Pb_Multiphase, pb_.valeur());
-  if (!pbm.has_correlation("frottement_interfacial")) Process::exit(que_suis_je() + " : there must be an interfacial friction correlation in the problem !");
-  if (pbm.has_correlation("dispersion_bulles")) needs_grad_alpha_ = 1;
+  if (!pbm.has_correlation("frottement_interfacial"))
+    Process::exit(que_suis_je() + " : there must be an interfacial friction correlation in the problem !");
+
+  if (pbm.has_correlation("dispersion_bulles"))
+    needs_grad_alpha_ = 1;
 }
 
 void Vitesse_derive_Spelt_Biesheuvel::evaluate_C0_vg0(const input_t& in) const
 {
   const Pb_Multiphase& pbm = ref_cast(Pb_Multiphase, pb_.valeur());
-  const int D = dimension, N = in.alpha.dimension(0);
+  const int D = dimension;
+  const int N = in.alpha.dimension(0);
   const double norm_g = sqrt(local_carre_norme_vect(in.g));
 
   // Newton method to determine dv along gravity
@@ -58,12 +65,13 @@ void Vitesse_derive_Spelt_Biesheuvel::evaluate_C0_vg0(const input_t& in) const
 
   do
     {
-      dv(n_g,n_l) = dv0;
-      dv(n_l,n_g) = dv0;
+      dv(n_g, n_l) = dv0;
+      dv(n_l, n_g) = dv0;
       correlation_fi.coefficient(alpha_l, p, T, in.rho, in.mu, in.sigma, in.dh, dv, in.d_bulles, coeff);
       dv0 = dv0 - (coeff(n_l, n_g, 0)*dv0 - norm_g*alpha_l(n_g)*(in.rho[n_l]*in.alpha[n_l]+in.rho[n_g]*in.alpha[n_g] - in.rho[n_g])) / (coeff(n_l, n_g, 1)*dv0 + coeff(n_l, n_g, 0));
-      step = step+1;
-      if(step > iter_max) Process::exit(que_suis_je() + " : Newton algorithm not converging to find relative velocity !");
+      step = step + 1;
+      if(step > iter_max)
+        Process::exit(que_suis_je() + " : Newton algorithm not converging to find relative velocity !");
     }
   while(std::abs(coeff(n_l, n_g, 0)*dv0 - norm_g*alpha_l(n_g)*(in.rho[n_l]*in.alpha[n_l]+in.rho[n_g]*in.alpha[n_g]- in.rho[n_g])) > epsilon);
 
@@ -71,19 +79,22 @@ void Vitesse_derive_Spelt_Biesheuvel::evaluate_C0_vg0(const input_t& in) const
   C0 = 1;
 
   /* drift velocity along gravity */
-  for (int d = 0; d < D; d++) vg0(d) = - dv0 * in.g(d) / norm_g;
+  for (int d = 0; d < D; d++)
+    vg0(d) = - dv0 * in.g(d) / norm_g;
 
   /* Turbulent diffusion ; possible stability issues in the future... */
-  double u_turb = std::pow(0.09, 0.25) * std::sqrt(in.k[n_l]) ;
-  double beta = u_turb / dv0 ;
-  double epsilon_turb = 0.09 * in.k[n_l]*in.k[n_l] /in.nut[n_l] ;
-  double L = std::pow(0.09, 0.75)  * std::pow(in.k[n_l], 1.5) / epsilon_turb ;
-  double tau_rel = dv0/(2*norm_g);
-  double lambda_turb = std::sqrt(10*in.mu[n_l]/in.rho[n_l]*in.k[n_l]/epsilon_turb);
-  double mu_turb = lambda_turb/tau_rel ;
-  double diffu_Spelt_Biesheuvel = 0.5*beta*u_turb*L + 3./8.*beta*u_turb*L*(tau_rel/mu_turb)*(tau_rel/mu_turb)*lambda_turb/L;
+  const double u_turb = std::pow(0.09, 0.25) * std::sqrt(in.k[n_l]) ;
+  const double beta = u_turb / dv0 ;
+  const double epsilon_turb = 0.09 * in.k[n_l]*in.k[n_l] /in.nut[n_l] ;
+  const double L = std::pow(0.09, 0.75)  * std::pow(in.k[n_l], 1.5) / epsilon_turb ;
+  const double tau_rel = dv0/(2*norm_g);
+  const double lambda_turb = std::sqrt(10*in.mu[n_l]/in.rho[n_l]*in.k[n_l]/epsilon_turb);
+  const double mu_turb = lambda_turb/tau_rel ;
+  const double diffu_Spelt_Biesheuvel = 0.5*beta*u_turb*L + 3./8.*beta*u_turb*L*(tau_rel/mu_turb)*(tau_rel/mu_turb)*lambda_turb/L;
 
-  for (int d = 0; d < D; d++) vg0(d) +=  - diffu_Spelt_Biesheuvel * in.gradAlpha(n_g, d)/std::max(in.alpha[n_g], 1.e-4) ;
+  for (int d = 0; d < D; d++)
+    vg0(d) +=  - diffu_Spelt_Biesheuvel * in.gradAlpha(n_g, d)/std::max(in.alpha[n_g], 1.e-4) ;
 
-  for (int d = 0; d < D; d++) vg0(d) *=  (1.0 - C0 * in.alpha[n_g]) ;
+  for (int d = 0; d < D; d++)
+    vg0(d) *=  (1.0 - C0*in.alpha[n_g]) ;
 }

@@ -37,14 +37,16 @@ Sortie& Paroi_frottante_simple::printOn(Sortie& s ) const
 
 Entree& Paroi_frottante_simple::readOn(Entree& s )
 {
-  if (app_domains.size() == 0) app_domains = { Motcle("turbulence") };
+  if (app_domains.size() == 0)
+    app_domains = { Motcle("turbulence") };
   le_champ_front.typer("Champ_front_vide");
   return s;
 }
 
 void Paroi_frottante_simple::completer()
 {
-  if (!ref_cast(Operateur_Diff_base, domaine_Cl_dis().equation().operateur(0).l_op_base()).is_turb()) Process::exit(que_suis_je() + " : diffusion operator must be turbulent !");
+  if (!ref_cast(Operateur_Diff_base, domaine_Cl_dis().equation().operateur(0).l_op_base()).is_turb())
+    Process::exit(que_suis_je() + " : diffusion operator must be turbulent !");
 }
 
 void Paroi_frottante_simple::liste_faces_loi_paroi(IntTab& tab)
@@ -52,8 +54,8 @@ void Paroi_frottante_simple::liste_faces_loi_paroi(IntTab& tab)
   int nf = la_frontiere_dis->frontiere().nb_faces(), f1 = la_frontiere_dis->frontiere().num_premiere_face();
   int N = tab.line_size();
 
-  for (int f =0 ; f < nf ; f++)
-    for (int n = 0 ; n<N ; n++)
+  for (int f = 0 ; f < nf ; f++)
+    for (int n = 0 ; n < N ; n++)
       tab(f + f1, n) |= 1;
 }
 
@@ -74,7 +76,11 @@ int Paroi_frottante_simple::initialiser(double temps)
 
 void Paroi_frottante_simple::mettre_a_jour(double tps)
 {
-  if (mon_temps < tps) {me_calculer() ; mon_temps=tps;}
+  if (mon_temps < tps)
+    {
+      me_calculer();
+      mon_temps=tps;
+    }
 }
 
 void Paroi_frottante_simple::me_calculer()
@@ -110,25 +116,29 @@ void Paroi_frottante_simple::me_calculer()
       ch.get_elem_vector_field(pvit_elem, true);
     }
 
-  int n = 0 ; // la phase turbulente frotte
-  for (int f =0 ; f < nf ; f++)
+  int n = 0; // The turbulent phase rubs.
+  for (int f = 0; f < nf; f++)
     {
-      int f_domaine = f + f1; // number of the face in the domaine
-      int e = f_e(f_domaine,0) >=0 ? f_e(f_domaine,0) : f_e(f_domaine,1);
+      const int f_domaine = f + f1; // number of the face in the domaine
+      const int e = f_e(f_domaine,0) >= 0 ? f_e(f_domaine, 0) : f_e(f_domaine, 1);
 
       double u_orth = 0 ;
       DoubleTrav u_parallel(D);
       if (mu_vdf)
         {
-          for (int d = 0; d <D ; d++) u_orth -= pvit_elem(e, N*d+n)*n_f(f_domaine,d)/fs(f_domaine); // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
-          for (int d = 0 ; d < D ; d++) u_parallel(d) = pvit_elem(e, N*d+n) - u_orth*(-n_f(f_domaine,d))/fs(f_domaine) ; // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
+          for (int d = 0; d <D ; d++)
+            u_orth -= pvit_elem(e, N*d + n)*n_f(f_domaine,d)/fs(f_domaine); // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
+          for (int d = 0 ; d < D ; d++)
+            u_parallel(d) = pvit_elem(e, N*d+n) - u_orth*(-n_f(f_domaine,d))/fs(f_domaine) ; // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
         }
-      else
+      else // mu_polymac
         {
-          for (int d = 0; d <D ; d++) u_orth -= vit(nf_tot + e * D+d, n)*n_f(f_domaine,d)/fs(f_domaine); // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
-          for (int d = 0 ; d < D ; d++) u_parallel(d) = vit(nf_tot + e * D + d, n) - u_orth*(-n_f(f_domaine,d))/fs(f_domaine) ; // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
+          for (int d = 0; d < D ; d++)
+            u_orth -= vit(nf_tot + e * D+d, n)*n_f(f_domaine,d)/fs(f_domaine); // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
+          for (int d = 0 ; d < D ; d++)
+            u_parallel(d) = vit(nf_tot + e * D + d, n) - u_orth*(-n_f(f_domaine, d))/fs(f_domaine) ; // ! n_f pointe vers la face 1 donc vers l'exterieur de l'element, d'ou le -
         }
-      double norm_u_parallel = std::sqrt(domaine.dot(&u_parallel(0), &u_parallel(0)));
+      const double norm_u_parallel = std::sqrt(domaine.dot(&u_parallel(0), &u_parallel(0)));
 
       double y_loc = f_e(f_domaine,0) >=0  ? domaine.dist_face_elem0(f_domaine,e) : domaine.dist_face_elem1(f_domaine,e);
       double y_plus_loc = y_loc * u_tau(f_domaine, n)/ nu_visc(!cnu * e, n) ;
@@ -146,8 +156,9 @@ void Paroi_frottante_simple::me_calculer()
         }
     }
 
-  for (n=1 ; n<N ; n++)
-    for (int f =0 ; f < nf ; f++)
+  // Treatment of other phases which are supposed not to be turbulent
+  for (n = 1; n < N; n++)
+    for (int f = 0; f < nf; f++)
       {
         valeurs_coeff_(f, n) = 0; // les phases non turbulentes sont non porteuses : pas de contact paroi => des symmetries
         valeurs_coeff_grad_(f, n) = 0; // les phases non turbulentes sont non porteuses : pas de contact paroi => des symmetries
@@ -156,4 +167,3 @@ void Paroi_frottante_simple::me_calculer()
   valeurs_coeff_.echange_espace_virtuel();
   valeurs_coeff_grad_.echange_espace_virtuel();
 }
-

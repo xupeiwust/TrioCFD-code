@@ -51,19 +51,27 @@ Entree& Viscosite_turbulente_k_omega::readOn(Entree& is)
 void Viscosite_turbulente_k_omega::completer()
 {
   const Pb_Multiphase* pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr ;
-  if ( (gas_turb_) && !(pbm) ) Process::exit(que_suis_je() + " : there must be multiphase problem if you want gas phase turbulence !");
-  if ( (gas_turb_) && (!pb_->has_correlation("masse_ajoutee")) ) Process::exit(que_suis_je() + " : there must be an added mass correlation if you want gas phase turbulence !");
-  if ( (gas_turb_) && (!int(pb_->has_champ("alpha"))) ) Process::exit(que_suis_je() + " : there must be void fraction if you want gas phase turbulence !");
-  if (pb_->has_correlation("masse_ajoutee")) correlation_ = pb_->get_correlation("masse_ajoutee");
+  if ( (gas_turb_) && !(pbm) )
+    Process::exit(que_suis_je() + " : there must be multiphase problem if you want gas phase turbulence !");
+
+  if ( (gas_turb_) && (!pb_->has_correlation("masse_ajoutee")) )
+    Process::exit(que_suis_je() + " : there must be an added mass correlation if you want gas phase turbulence !");
+
+  if ( (gas_turb_) && (!int(pb_->has_champ("alpha"))) )
+    Process::exit(que_suis_je() + " : there must be void fraction if you want gas phase turbulence !");
+
+  if (pb_->has_correlation("masse_ajoutee"))
+    correlation_ = pb_->get_correlation("masse_ajoutee");
 }
 
 void Viscosite_turbulente_k_omega::eddy_viscosity(DoubleTab& nu_t) const
 {
   //tout en explicite
-  const DoubleTab& k = pb_->get_champ("k").passe(), &omega = pb_->get_champ("omega").passe(),
-                   &nu = pb_->get_champ("viscosite_cinematique").passe(),
-                    &rho = pb_->get_champ("masse_volumique").passe(),
-                     *alpha = pb_->has_champ("alpha") ? &(pb_->get_champ("alpha").passe()) : nullptr ;
+  const DoubleTab& k = pb_->get_champ("k").passe();
+  const DoubleTab& omega = pb_->get_champ("omega").passe();
+  const DoubleTab& nu = pb_->get_champ("viscosite_cinematique").passe();
+  const DoubleTab& rho = pb_->get_champ("masse_volumique").passe();
+  const DoubleTab *alpha = pb_->has_champ("alpha") ? &(pb_->get_champ("alpha").passe()) : nullptr ;
   const int cnu = nu.dimension(0) == 1;
 
   //il faut que nu_t et k aient la meme localisation et que nu_t ait au moins autant de composantes que k
@@ -71,10 +79,9 @@ void Viscosite_turbulente_k_omega::eddy_viscosity(DoubleTab& nu_t) const
   //on met 0 pour les composantes au-dela de k.dimension(1) (ex. : vapeur dans Pb_Multiphase)
   for (int i = 0; i < nu_t.dimension(0); i++)
     for (int n = 0; n < nu_t.dimension(1); n++)
-      //      nu_t(i, n) = sigma_ * ( (omega(i,n*(k.dimension(1)-1)) > 0.) ?
-      //                   std::max(k(i, n*(k.dimension(1)-1)) / omega(i, n*(k.dimension(1)-1)), limiter_ * nu(i, n)):
-      //                   limiter_ * nu(i, n) )  ;
-      nu_t(i, n) = (n<k.dimension(1)) ? sigma_ * ( (omega(i,n) > 0.) ? std::max(k(i, n) / omega(i, n), limiter_ * nu(!cnu * i, n)): limiter_ * nu(!cnu * i, n) ) : 0. ;
+      nu_t(i, n) = (n < k.dimension(1))
+                   ? sigma_ * ( (omega(i,n) > 0.) ? std::max(k(i, n) / omega(i, n), limiter_ * nu(!cnu * i, n)): limiter_ * nu(!cnu * i, n) )
+                   : 0. ;
 
   if (gas_turb_)
     {
@@ -90,48 +97,76 @@ void Viscosite_turbulente_k_omega::eddy_viscosity(DoubleTab& nu_t) const
                 nu_t(i, n) =  nu_t(i, 0.)  * (1. + coeff(n)* rho(i,0)/rho(i,n)) * std::min((*alpha)(i,n)*10, 1.) ;
             }
         }
-
     }
 }
 
 void Viscosite_turbulente_k_omega::reynolds_stress(DoubleTab& R_ij) const // Renvoie <u_i'u_j'>
 {
-  const DoubleTab& k = pb_->get_champ("k").passe(), &omega = pb_->get_champ("omega").passe(),
-                   &nu = pb_->get_champ("viscosite_cinematique").passe(), &grad_u = pb_->get_champ("gradient_vitesse").passe();
+  const DoubleTab& k = pb_->get_champ("k").passe();
+  const DoubleTab& omega = pb_->get_champ("omega").passe();
+  const DoubleTab& nu = pb_->get_champ("viscosite_cinematique").passe();
+  const DoubleTab& grad_u = pb_->get_champ("gradient_vitesse").passe();
   ConstDoubleTab_parts p_gu(grad_u); //en PolyMAC_P0, grad_u contient (nf.grad)u_i aux faces, puis (d_j u_i) aux elements
   const int cnu = nu.dimension(0) == 1;
-  int i, d, db, D = dimension, i_part = -1, n, N = nu.dimension(1), Nk = k.dimension(1);
-  for (i = 0; i < p_gu.size(); i++)
-    if (p_gu[i].get_md_vector() == R_ij.get_md_vector()) i_part = i; //on cherche une partie ayant le meme support que k
-  if (i_part < 0) Process::exit("Viscosite_turbulente_k_omega : inconsistency between velocity gradient and k!");
+  const int D = dimension;
+  const int N = nu.dimension(1);
+  const int Nk = k.dimension(1);
+
+  int i_part = -1;
+  for (int i = 0; i < p_gu.size(); i++)
+    if (p_gu[i].get_md_vector() == R_ij.get_md_vector())
+      i_part = i; //on cherche une partie ayant le meme support que k
+
+  if (i_part < 0)
+    Process::exit("Viscosite_turbulente_k_omega : inconsistency between velocity gradient and k!");
+
   const DoubleTab& gu = p_gu[i_part]; //le bon tableau
-  for (i = 0; i < R_ij.dimension(0); i++)
-    for (n = 0; n < N; n++)
+  for (int i = 0; i < R_ij.dimension(0); i++)
+    for (int n = 0; n < N; n++)
       {
         double sum_diag = 0.;
         double nut_loc = n < Nk ? (omega(i,n) > 0.) ? std::max(k(i, n) / omega(i, n), limiter_ * nu(!cnu * i, n)): limiter_ * nu(!cnu * i, n) : 0 ;
-        for (d = 0; d < D; d++) sum_diag += gu(i, d, D * n + d) ;
-        for (d = 0; d < D; d++)
-          for (db = 0; db < D; db++) //on ne remplit que les phases concernees par k
-            R_ij(i, n, d, db) = (n < Nk)    ?    sigma_* (  2. / 3. * (k(i, n) + nut_loc * sum_diag) * (d ==db) - nut_loc * (gu(i, d, D * n + db) + gu(i, db, D * n + d))    ) : 0;
+        for (int d = 0; d < D; d++)
+          sum_diag += gu(i, d, D * n + d) ;
+
+        for (int d = 0; d < D; d++)
+          for (int db = 0; db < D; db++) //on ne remplit que les phases concernees par k
+            R_ij(i, n, d, db) = (n < Nk)
+                                ? sigma_* (  2. / 3. * (k(i, n) + nut_loc * sum_diag) * (d == db) - nut_loc * (gu(i, d, D * n + db) + gu(i, db, D * n + d)))
+                                : 0;
       }
 }
 
 void Viscosite_turbulente_k_omega::k_over_eps(DoubleTab& k_sur_eps) const
 {
   const DoubleTab& omega = pb_->get_champ("omega").passe();
-  int i, nl = k_sur_eps.dimension(0), n, N = k_sur_eps.dimension(1), Nt = omega.dimension(1);
+  const int nl = k_sur_eps.dimension(0);
+  const int N = k_sur_eps.dimension(1);
+  const int Nt = omega.dimension(1);
   assert(nl == omega.dimension(0) && Nt <= N);
-  for (i = 0; i < nl; i++)
-    for (n = 0; n < N; n++) k_sur_eps(i, n) = (n < Nt) ? ( (omega(i,n) > 0.) ? 1/(omega(i, n)*beta_k_) : 0) : 0;
+
+  for (int i = 0; i < nl; i++)
+    for (int n = 0; n < N; n++)
+      k_sur_eps(i, n) = (n < Nt)
+                        ? ((omega(i,n) > 0.) ? 1/(omega(i, n)*beta_k_) : 0)
+                        : 0;
 }
 
 void Viscosite_turbulente_k_omega::eps(DoubleTab& eps_) const
 {
-  const DoubleTab& omega = pb_->get_champ("omega").passe(),
-                   &k = pb_->get_champ("k").passe();
-  int i, nl = eps_.dimension(0), n, N = eps_.dimension(1), Nt = omega.dimension(1);
+  const DoubleTab& omega = pb_->get_champ("omega").passe();
+  const DoubleTab& k = pb_->get_champ("k").passe();
+  const int nl = eps_.dimension(0);
+  const int N = eps_.dimension(1);
+  const int Nt = omega.dimension(1);
   assert(nl == omega.dimension(0) && Nt <= N);
-  for (i = 0; i < nl; i++)
-    for (n = 0; n < N; n++) eps_(i, n) = beta_k_ * ((n < Nt) ? k(i,n) * omega(i, n) : 0);
+
+  for (int i = 0; i < nl; i++)
+    for (int n = 0; n < N; n++)
+      eps_(i, n) = beta_k_ * ((n < Nt) ? k(i,n) * omega(i, n) : 0);
+}
+
+void Viscosite_turbulente_k_omega::mettre_a_jour(double temps)
+{
+  // compute_blending_F1();
 }

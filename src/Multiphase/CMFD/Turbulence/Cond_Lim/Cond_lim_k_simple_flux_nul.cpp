@@ -32,22 +32,32 @@ Implemente_instanciable(Cond_lim_k_simple_flux_nul,"Cond_lim_k_simple_flux_nul",
 // XD Cond_lim_k_simple_flux_nul condlim_base Cond_lim_k_simple_flux_nul 0 Adaptive wall law boundary condition for turbulent kinetic energy
 
 
-Sortie& Cond_lim_k_simple_flux_nul::printOn(Sortie& s ) const {return Echange_global_impose_turbulent::printOn(s);}
+Sortie& Cond_lim_k_simple_flux_nul::printOn(Sortie& s ) const
+{
+  return Echange_global_impose_turbulent::printOn(s);
+}
 
-Entree& Cond_lim_k_simple_flux_nul::readOn(Entree& s ) {return Echange_global_impose_turbulent::readOn(s);}
+Entree& Cond_lim_k_simple_flux_nul::readOn(Entree& s )
+{
+  return Echange_global_impose_turbulent::readOn(s);
+}
 
 void Cond_lim_k_simple_flux_nul::completer()
 {
-  if (!sub_type(Energie_cinetique_turbulente, domaine_Cl_dis().equation())) Process::exit("Cond_lim_k_simple : equation must be k !");
-  if (domaine_Cl_dis().equation().inconnue().valeurs().line_size() != 1)  Process::exit("Cond_lim_k_simple : Only one phase for turbulent wall law is coded for now");
+  if (!sub_type(Energie_cinetique_turbulente, domaine_Cl_dis().equation()))
+    Process::exit("Cond_lim_k_simple : equation must be k !");
+
+  if (domaine_Cl_dis().equation().inconnue().valeurs().line_size() != 1)
+    Process::exit("Cond_lim_k_simple : Only one phase for turbulent wall law is coded for now");
 }
 
 int Cond_lim_k_simple_flux_nul::initialiser(double temps)
 {
-  int init = Echange_global_impose_turbulent::initialiser(temps);
+  const int init = Echange_global_impose_turbulent::initialiser(temps);
 
-  int nf = la_frontiere_dis->frontiere().nb_faces();
-  for (int f =0 ; f < nf ; f++) T_(f, 0) = 0 ; // K is 0 on the wall
+  const int nf = la_frontiere_dis->frontiere().nb_faces();
+  for (int f = 0; f < nf; f++)
+    T_(f, 0) = 0 ; // K is 0 on the wall
 
   return init;
 }
@@ -56,22 +66,25 @@ void Cond_lim_k_simple_flux_nul::me_calculer()
 {
   Loi_paroi_adaptative& corr_loi_paroi = ref_cast(Loi_paroi_adaptative, correlation_loi_paroi_.valeur());
   const Domaine_VF& domaine = ref_cast(Domaine_VF, domaine_Cl_dis().equation().domaine_dis());
-  const DoubleTab&   u_tau = corr_loi_paroi.get_tab("u_tau");
-  const DoubleTab&  visc_c = ref_cast(Convection_diffusion_turbulence_multiphase, domaine_Cl_dis().equation()).diffusivite_pour_pas_de_temps().passe(),
-                    &mu_visc  = ref_cast(Convection_diffusion_turbulence_multiphase, domaine_Cl_dis().equation()).diffusivite_pour_transport().passe();
+  const DoubleTab& u_tau = corr_loi_paroi.get_tab("u_tau");
+
+  const Convection_diffusion_turbulence_multiphase& equa = ref_cast(Convection_diffusion_turbulence_multiphase, domaine_Cl_dis().equation());
+  const DoubleTab& visc_c = equa.diffusivite_pour_pas_de_temps().passe();
+  const DoubleTab& mu_visc = equa.diffusivite_pour_transport().passe();
 
   const int cvisc = visc_c.dimension(0) == 1, cmu = mu_visc.dimension(0) == 1;
   // On va chercher le mu turbulent de polymac et celui de vdf et on prend le bon dans la suite
-  const DoubleTab* mu_poly = domaine.que_suis_je().debute_par("Domaine_PolyMAC") ? &ref_cast(Op_Diff_PolyMAC_P0_base, domaine_Cl_dis().equation().operateur(0).l_op_base()).nu() : nullptr,
-                   *mu_vdf = domaine.que_suis_je().debute_par("Domaine_VDF") ? &ref_cast(Op_Dift_Multiphase_VDF_Elem, domaine_Cl_dis().equation().operateur(0).l_op_base()).get_diffusivite_turbulente() : nullptr;
+  const DoubleTab* mu_poly = domaine.que_suis_je().debute_par("Domaine_PolyMAC") ? &ref_cast(Op_Diff_PolyMAC_P0_base, domaine_Cl_dis().equation().operateur(0).l_op_base()).nu() : nullptr;
+  const DoubleTab* mu_vdf = domaine.que_suis_je().debute_par("Domaine_VDF") ? &ref_cast(Op_Dift_Multiphase_VDF_Elem, domaine_Cl_dis().equation().operateur(0).l_op_base()).get_diffusivite_turbulente() : nullptr;
   assert((mu_poly) || (mu_vdf));
 
-  int nf = la_frontiere_dis->frontiere().nb_faces(), f1 = la_frontiere_dis->frontiere().num_premiere_face();
+  const int nf = la_frontiere_dis->frontiere().nb_faces();
+  const int f1 = la_frontiere_dis->frontiere().num_premiere_face();
   const IntTab& f_e = domaine.face_voisins();
 
-  int n=0; // Turbulence only in first phase for now
+  int n = 0; // Turbulence only in first phase for now
 
-  for (int f =0 ; f < nf ; f++)
+  for (int f = 0; f < nf; f++)
     {
       int f_domaine = f + f1; // number of the face in the domaine
       int e_domaine = (f_e(f_domaine,0)>=0) ? f_e(f_domaine,0) : f_e(f_domaine,1) ; // Make orientation vdf-proof

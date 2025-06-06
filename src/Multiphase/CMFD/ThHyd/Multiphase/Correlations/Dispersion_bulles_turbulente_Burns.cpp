@@ -26,7 +26,6 @@
 #include <TRUSTTrav.h>
 #include <Frottement_interfacial_base.h>
 #include <math.h>
-//#include <Energie_cinetique_turbulente_WIT.h>
 
 Implemente_instanciable(Dispersion_bulles_turbulente_Burns, "Dispersion_bulles_turbulente_Burns", Dispersion_bulles_base);
 
@@ -49,9 +48,12 @@ Entree& Dispersion_bulles_turbulente_Burns::readOn(Entree& is)
 
   if (!pbm || pbm->nb_phases() == 1)
     Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
       n_l = n;
+
   if (n_l < 0)
     Process::exit(que_suis_je() + " : liquid phase not found!");
 
@@ -65,9 +67,11 @@ Entree& Dispersion_bulles_turbulente_Burns::readOn(Entree& is)
 
 void Dispersion_bulles_turbulente_Burns::completer()
 {
-  if ((a_res_ == -1) && (ref_cast(QDM_Multiphase, pb_->equation(0)).alpha_res()<0.99) ) // Pas en homogene
+  if ((a_res_ == -1)
+      && (ref_cast(QDM_Multiphase, pb_->equation(0)).alpha_res()<0.99) ) // Not in homogeneous calculation
     a_res_ = std::min(1., std::max(1.e-4, ref_cast(QDM_Multiphase, pb_->equation(0)).alpha_res()*100.));
-  else if (a_res_ == -1) a_res_ = 1.e-6;
+  else if (a_res_ == -1)
+    a_res_ = 1.e-6;
 }
 
 void Dispersion_bulles_turbulente_Burns::coefficient(const input_t& in, output_t& out) const
@@ -76,30 +80,32 @@ void Dispersion_bulles_turbulente_Burns::coefficient(const input_t& in, output_t
   int N = out.Ctd.dimension(0);
 
   DoubleTrav coeff_drag(N, N, 2);
-  corr.coefficient( in.alpha, in.p, in.T, in.rho, in.mu, in.sigma, in.dh, in.nv, in.d_bulles, coeff_drag);
+  corr.coefficient(in.alpha, in.p, in.T, in.rho, in.mu, in.sigma, in.dh, in.nv, in.d_bulles, coeff_drag);
 
   out.Ctd = 0;
 
   for (int k = 0; k < N; k++)
-    if (k!=n_l)
+    if (k != n_l)
       {
         double nuBIA = 0.;
 
-        if (coefBIA_)
+        if ((bool)coefBIA_)
           {
-            // Calcul de nuBIA = (k_WIT+k_WIF)/omega_WIT
-            double u_r = in.nv(k,n_l); // vitesse relative
-            double Reb = in.rho[n_l]*in.d_bulles[k]*u_r/in.mu[n_l]; // Reynolds bulle
-            int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
-            double Eo = g_ * std::abs(in.rho[n_l] - in.rho[k]) * in.d_bulles[k] * in.d_bulles[k]/in.sigma[ind_trav]; // Eotvos
-            double Cd = (u_r!=0) ? std::max( std::min( 16./Reb*(1.+0.15*std::pow(Reb, 0.687)) , 48./Reb )   , 8.*Eo/(3.*(Eo+4.))) : 0.; // si u_r=0 alors pas de trainée, pas de WIT donc dissipation=0
-            double omega_WIT = 2.0 * in.mu[n_l] * Cd * Reb / (C_lambda_*C_lambda_*in.d_bulles[k]*in.d_bulles[k]); // dissipation spécifique de la WIT (definie comme epsilon_WIT/kWIT)
+            // Computation of nuBIA = (k_WIT + k_WIF)/omega_WIT
+            const double u_r = in.nv(k, n_l); // relative velocity
+            const double Reb = in.rho[n_l]*in.d_bulles[k]*u_r/in.mu[n_l]; // bubble Reynolds number
+            const int ind_trav = (k > n_l) ? (n_l*(N - 1) - (n_l - 1)*n_l/2) + (k - n_l - 1) : (k*(N - 1) - (k - 1)*k/2) + (n_l - k - 1); // TODO, comment ?
+            const double Eo = g_*std::abs(in.rho[n_l] - in.rho[k])*in.d_bulles[k]*in.d_bulles[k]/in.sigma[ind_trav]; // Eotvos number
+            const double Cd = (u_r != 0) ? std::max(std::min(16./Reb*(1. + 0.15*std::pow(Reb, 0.687)), 48./Reb), 8.*Eo/(3.*(Eo + 4.))) : 0.; // if u_r=0, no drag, so no WIT, so dissipation=0
+            const double omega_WIT = 2.0*in.mu[n_l]*Cd*Reb/(C_lambda_*C_lambda_*in.d_bulles[k]*in.d_bulles[k]); // specific dissipation of WIT (defined as epsilon_WIT/kWIT)
             //double k_WIF = 1./2. * in.alpha[k] * (u_r*u_r * 0.5 + 3./2.*0.25*gamma_*gamma_*gamma_); // energie cinetique turbulente de la composante WIF
-            nuBIA = coefBIA_ * (omega_WIT == 0.0 ? 0.0 : in.k_WIT/omega_WIT); // l'équivalent de nu_t pour l'agitation induite par les bulles (BIA)
+            nuBIA = coefBIA_ * (omega_WIT == 0.0 ? 0.0 : in.k_WIT/omega_WIT); // eddy viscosity equivalent for bubble induced agitation (BIA)
           }
 
-        // Calcul des coefficients de dispersion turbulente
-        out.Ctd(k, n_l) = std::max( minimum_, (in.alpha[k]  >a_res_) ? (nuBIA + in.nut[n_l])/Prt_ * coeff_drag(k, n_l, 0)/in.alpha[k]  : (nuBIA + in.nut[n_l])/Prt_ * coeff_drag(k, n_l, 0)*in.alpha[k]  /(a_res_*a_res_) );
-        out.Ctd(n_l, k) = std::max( minimum_, (in.alpha[n_l]>a_res_) ? (nuBIA + in.nut[n_l])/Prt_ * coeff_drag(n_l, k, 0)/in.alpha[n_l]: (nuBIA + in.nut[n_l])/Prt_ * coeff_drag(n_l, k, 0)*in.alpha[n_l]/(a_res_*a_res_) );
+        // Computation of turbulent dispersion coefficients
+        out.Ctd(k, n_l) = std::max(minimum_,
+                                   (in.alpha[k] > a_res_) ? (nuBIA + in.nut[n_l])/Prt_*coeff_drag(k, n_l, 0)/in.alpha[k] : (nuBIA + in.nut[n_l])/Prt_*coeff_drag(k, n_l, 0)*in.alpha[k]/(a_res_*a_res_));
+        out.Ctd(n_l, k) = std::max(minimum_,
+                                   (in.alpha[n_l] > a_res_) ? (nuBIA + in.nut[n_l])/Prt_*coeff_drag(n_l, k, 0)/in.alpha[n_l]: (nuBIA + in.nut[n_l])/Prt_*coeff_drag(n_l, k, 0)*in.alpha[n_l]/(a_res_*a_res_));
       }
 }

@@ -40,7 +40,7 @@ public :
 
 protected :
   void me_calculer() override;
-  double calc_omega(double y, double u_tau, double visc);
+  double calc_omega(const double y, const double u_tau, const double visc) const;
 
   double von_karman_ = 0.41 ;
   double beta_omega = 0.075;

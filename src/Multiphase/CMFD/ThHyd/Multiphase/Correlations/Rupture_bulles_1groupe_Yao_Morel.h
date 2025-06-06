@@ -27,6 +27,7 @@
 class Rupture_bulles_1groupe_Yao_Morel : public Rupture_bulles_1groupe_base
 {
   Declare_instanciable(Rupture_bulles_1groupe_Yao_Morel);
+
 public:
   void coefficient(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
                    const DoubleTab& rho, const DoubleTab& nu, const DoubleTab& sigma, double Dh,
@@ -37,10 +38,9 @@ public:
 private:
   int n_l = -1;
 
-  double Kb1 = 1.6 ;
-  double Kb2 = 0.42 ;
-  double We_cr = 1.24 ;
-
+  static constexpr double Kb1 = 1.6 ;
+  static constexpr double Kb2 = 0.42 ;
+  static constexpr double We_cr = 1.24 ;
 };
 
 #endif

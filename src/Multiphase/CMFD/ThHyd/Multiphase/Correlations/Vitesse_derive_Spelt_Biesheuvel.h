@@ -22,6 +22,7 @@
 
 #ifndef Vitesse_derive_Spelt_Biesheuvel_included
 #define Vitesse_derive_Spelt_Biesheuvel_included
+
 #include <Vitesse_derive_base.h>
 
 //////////////////////////////////////////////////////////////////////////////
@@ -44,7 +45,7 @@ protected:
   void evaluate_C0_vg0(const input_t& input) const override;
 
   bool needs_grad_alpha_ = 0;
-  double Prt_ = 1.;
+  const double Prt_ = 1.;
 };
 
 #endif

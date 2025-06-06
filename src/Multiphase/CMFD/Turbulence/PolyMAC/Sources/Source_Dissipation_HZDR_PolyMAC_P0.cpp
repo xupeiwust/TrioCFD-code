@@ -63,17 +63,21 @@ void Source_Dissipation_HZDR_PolyMAC_P0::ajouter_blocs(matrices_t matrices, Doub
   // le terme de dissipation s'écrit : C_epsilon / (C_nu * d_b * sqrt(k)) Prod_HZDR ; avec Prod_HZDR = C_k * (3/4 C_drag/d_b * alpha * rho_l * |u_r|**3) / (alpha_l * rho_l)
   // Le coefficient de trainée C_drag sera calculé avec le modèle de Tomiyama (codé en dur)
 
-  const Domaine_PolyMAC_P0&             domaine = ref_cast(Domaine_PolyMAC_P0, equation().domaine_dis());
-  const DoubleTab&                      tab_rho = equation().probleme().get_champ("masse_volumique").passe();
-  const DoubleTab&                      tab_alp = equation().probleme().get_champ("alpha").passe();
-  const DoubleTab&                          vit = equation().probleme().get_champ("vitesse").passe();
-  const DoubleTab&                         diam = equation().probleme().get_champ("diametre_bulles").valeurs();
-  const DoubleTab&                           nu = equation().probleme().get_champ("viscosite_cinematique").passe();
-  const Champ_Elem_PolyMAC_P0& 	          ch_k	= ref_cast(Champ_Elem_PolyMAC_P0, equation().probleme().get_champ("k"));	// Champ k
-  const DoubleTab& 	  		              k_passe	= ch_k.passe();
+  const Domaine_PolyMAC_P0& domaine = ref_cast(Domaine_PolyMAC_P0, equation().domaine_dis());
+  const DoubleTab& tab_rho = equation().probleme().get_champ("masse_volumique").passe();
+  const DoubleTab& tab_alp = equation().probleme().get_champ("alpha").passe();
+  const DoubleTab& vit = equation().probleme().get_champ("vitesse").passe();
+  const DoubleTab& diam = equation().probleme().get_champ("diametre_bulles").valeurs();
+  const DoubleTab& nu = equation().probleme().get_champ("viscosite_cinematique").passe();
+  const Champ_Elem_PolyMAC_P0& ch_k = ref_cast(Champ_Elem_PolyMAC_P0, equation().probleme().get_champ("k")); // Champ k
+  const DoubleTab& k_passe = ch_k.passe();
 
-  const DoubleVect& pe = equation().milieu().porosite_elem(), &ve = domaine.volumes();
-  int N = ref_cast(Pb_Multiphase, equation().probleme()).nb_phases(), ne = domaine.nb_elem(), nf_tot = domaine.nb_faces_tot(), D = dimension ;
+  const DoubleVect& pe = equation().milieu().porosite_elem();
+  const DoubleVect& ve = domaine.volumes();
+  const int N = ref_cast(Pb_Multiphase, equation().probleme()).nb_phases();
+  const int ne = domaine.nb_elem();
+  const int nf_tot = domaine.nb_faces_tot();
+  const int D = dimension;
 
   // On récupère la tension superficielle sigma
   const Milieu_composite& milc = ref_cast(Milieu_composite, equation().milieu());
@@ -86,9 +90,10 @@ void Source_Dissipation_HZDR_PolyMAC_P0::ajouter_blocs(matrices_t matrices, Doub
     {
       for (int l = k + 1; l < N; l++)
         {
-          Interface_base& sat = milc.get_interface(k,l);
-          const int ind_trav = (k*(N-1)-(k-1)*(k)/2) + (l-k-1); // Et oui ! matrice triang sup !
-          for (int i = 0 ; i<ne ; i++) Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k),press(i,k * (Np > 1))) ;
+          const Interface_base& sat = milc.get_interface(k,l);
+          const int ind_trav = (k*(N-1)-(k-1)*(k)/2) + (l-k-1);
+          for (int i = 0 ; i<ne ; i++)
+            Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k), press(i, k*(Np > 1))) ;
         }
     }
 
@@ -98,14 +103,15 @@ void Source_Dissipation_HZDR_PolyMAC_P0::ajouter_blocs(matrices_t matrices, Doub
       if (k!=n_l) // n_l est l'indice de la phase continue/liquide (n_l=0)
         {
           double u_r = 0;
-          for (int d = 0; d < D; d++) u_r += (vit(nf_tot + D*e+d, k) - vit(nf_tot + D*e+d, n_l))*(vit(nf_tot + D*e+d, k) - vit(nf_tot + D*e+d, n_l)); // relative speed = gas speed - liquid speed
+          for (int d = 0; d < D; d++)
+            u_r += (vit(nf_tot + D*e+d, k) - vit(nf_tot + D*e+d, n_l))*(vit(nf_tot + D*e+d, k) - vit(nf_tot + D*e+d, n_l)); // relative speed = gas speed - liquid speed
           u_r = std::sqrt(u_r);
-          double Reb = diam(e,k)*u_r/nu(e,n_l); // Reynolds bulle
-          int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
-          double Eo = g_ * std::abs(tab_rho(e, n_l)-tab_rho(e, k)) * diam(e, k)*diam(e, k)/Sigma_tab(e, ind_trav);
-          double Cd = (u_r!=0) ? std::max( std::min( 16./Reb*(1+0.15*std::pow(Reb, 0.687)) , 48./Reb )   , 8.*Eo/(3.*(Eo+4.))) : 0; // Coef de trainee - remarque: si u_r=0 alors pas de trainée, pas de BIA donc production=0
+          const double Reb = diam(e,k)*u_r/nu(e,n_l); // Reynolds bulle
+          const int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
+          const double Eo = g_ * std::abs(tab_rho(e, n_l)-tab_rho(e, k)) * diam(e, k)*diam(e, k)/Sigma_tab(e, ind_trav);
+          const double Cd = (u_r!=0) ? std::max( std::min( 16./Reb*(1+0.15*std::pow(Reb, 0.687)) , 48./Reb )   , 8.*Eo/(3.*(Eo+4.))) : 0; // Coef de trainee - remarque: si u_r=0 alors pas de trainée, pas de BIA donc production=0
           // Terme de production HZDR
-          double prod_HZDR = C_k * (3./4.) * Cd/diam(e,k) * tab_alp(e, k) / tab_alp(e, n_l) * std::pow(u_r, 3);
+          const double prod_HZDR = C_k * (3./4.) * Cd/diam(e,k) * tab_alp(e, k) / tab_alp(e, n_l) * std::pow(u_r, 3);
           secmem(e, n_l) += ve(e) * pe(e) * C_epsilon / C_mu / diam(e,k) / std::sqrt(k_passe(e,n_l)) * prod_HZDR;
         }
 }

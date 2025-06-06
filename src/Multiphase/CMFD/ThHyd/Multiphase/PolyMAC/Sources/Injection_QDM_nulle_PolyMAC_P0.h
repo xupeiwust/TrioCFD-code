@@ -34,6 +34,7 @@
 class Injection_QDM_nulle_PolyMAC_P0: public Source_injection_QDM_base
 {
   Declare_instanciable(Injection_QDM_nulle_PolyMAC_P0);
+
 public :
   void ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl = {}) const override;
 };

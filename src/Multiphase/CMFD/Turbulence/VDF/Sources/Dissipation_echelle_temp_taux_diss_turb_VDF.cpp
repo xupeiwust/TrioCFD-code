@@ -25,5 +25,12 @@
 Implemente_instanciable(Dissipation_echelle_temp_taux_diss_turb_VDF,"Dissipation_echelle_temp_taux_diss_turb_VDF_P0_VDF", Source_Dissipation_echelle_temp_taux_diss_turb);
 // X_D Dissipation_echelle_temp_taux_diss_turb_VDF_P0_VDF source_base Dissipation_echelle_temp_taux_diss_turb_VDF_P0_VDF 0 Source term which corresponds to the dissipation source term that appears in the transport equation for tau (in the k-tau turbulence model)
 
-Sortie& Dissipation_echelle_temp_taux_diss_turb_VDF::printOn(Sortie& os) const {  return Source_Dissipation_echelle_temp_taux_diss_turb::printOn(os); }
-Entree& Dissipation_echelle_temp_taux_diss_turb_VDF::readOn(Entree& is) { return Source_Dissipation_echelle_temp_taux_diss_turb::readOn(is); }
+Sortie& Dissipation_echelle_temp_taux_diss_turb_VDF::printOn(Sortie& os) const
+{
+  return Source_Dissipation_echelle_temp_taux_diss_turb::printOn(os);
+}
+
+Entree& Dissipation_echelle_temp_taux_diss_turb_VDF::readOn(Entree& is)
+{
+  return Source_Dissipation_echelle_temp_taux_diss_turb::readOn(is);
+}

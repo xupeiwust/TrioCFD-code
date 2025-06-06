@@ -74,7 +74,7 @@ void Diffusion_croisee_echelle_temp_taux_diss_turb_PolyMAC_P0::ajouter_blocs(mat
   std::string Type_diss = ""; // omega or tau dissipation
   if sub_type(Echelle_temporelle_turbulente, equation()) Type_diss = "tau";
   else if sub_type(Taux_dissipation_turbulent, equation()) Type_diss = "omega";
-  if (Type_diss == "") abort();
+  if (Type_diss == "") Process::abort();
 
 //  Cerr <<"lol !! " ;
 

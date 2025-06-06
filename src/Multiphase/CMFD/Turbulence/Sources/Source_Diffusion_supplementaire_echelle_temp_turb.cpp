@@ -34,9 +34,15 @@
 Implemente_base(Source_Diffusion_supplementaire_echelle_temp_turb,"Source_Diffusion_supplementaire_lin_echelle_temp_turb|Source_Diffusion_supplementaire_echelle_temp_turb", Sources_Multiphase_base);
 // XD Diffusion_supplementaire_lin_echelle_temp_turb source_base Diffusion_supplementaire_echelle_temp_turb 0 not_set
 
-Sortie& Source_Diffusion_supplementaire_echelle_temp_turb::printOn(Sortie& os) const { return os;}
+Sortie& Source_Diffusion_supplementaire_echelle_temp_turb::printOn(Sortie& os) const
+{
+  return os;
+}
 
-Entree& Source_Diffusion_supplementaire_echelle_temp_turb::readOn(Entree& is) {  return is;}
+Entree& Source_Diffusion_supplementaire_echelle_temp_turb::readOn(Entree& is)
+{
+  return is;
+}
 
 void Source_Diffusion_supplementaire_echelle_temp_turb::completer()
 {
@@ -56,14 +62,18 @@ void Source_Diffusion_supplementaire_echelle_temp_turb::dimensionner_blocs(matri
   for (auto &&n_m : matrices)
     if (n_m.first == "k")
       {
-        Matrice_Morse& mat = *n_m.second, mat2;
+        Matrice_Morse& mat = *n_m.second;
+        Matrice_Morse mat2;
         const DoubleTab& dep = equation().probleme().get_champ(n_m.first.c_str()).valeurs();
-        int nc = dep.dimension_tot(0),
-            M  = dep.line_size();
+        const int nc = dep.dimension_tot(0);
+        const int M  = dep.line_size();
         IntTab sten(0, 2);
+
         for (int e = 0; e < ne; e++)
           for (int n = 0; n < N; n++)
-            if (n < M) sten.append_line(N * e + n, M * e + n);
+            if (n < M)
+              sten.append_line(N * e + n, M * e + n);
+
         Matrix_tools::allocate_morse_matrix(N * ne_tot, M * nc, sten, mat2);
         mat.nb_colonnes() ? mat += mat2 : mat = mat2;
       }

@@ -21,7 +21,6 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Cond_lim_omega_dix.h>
-
 #include <Echelle_temporelle_turbulente.h>
 #include <Taux_dissipation_turbulent.h>
 #include <Loi_paroi_adaptative.h>
@@ -30,7 +29,6 @@
 #include <Domaine_VF.h>
 #include <TRUSTTrav.h>
 #include <Motcle.h>
-
 #include <math.h>
 
 Implemente_instanciable(Cond_lim_omega_dix,"Cond_lim_omega_dix",Dirichlet_loi_paroi);
@@ -57,11 +55,14 @@ Entree& Cond_lim_omega_dix::readOn(Entree& s )
 
 void Cond_lim_omega_dix::completer()
 {
-  if (sub_type(Echelle_temporelle_turbulente, domaine_Cl_dis().equation())) Process::exit(que_suis_je() + " : you cannot define such a BC for tau equation, only for omega. Use scalaire_impose_paroi Champ_front_uniforme 1 0 for tau.");
-  else if (!sub_type(Taux_dissipation_turbulent, domaine_Cl_dis().equation())) Process::exit(que_suis_je() + " : equation must be tau/omega !");
+  if (sub_type(Echelle_temporelle_turbulente, domaine_Cl_dis().equation()))
+    Process::exit(que_suis_je() + " : you cannot define such a BC for tau equation, only for omega. Use scalaire_impose_paroi Champ_front_uniforme 1 0 for tau.");
+  else if (!sub_type(Taux_dissipation_turbulent, domaine_Cl_dis().equation()))
+    Process::exit(que_suis_je() + " : equation must be tau/omega !");
 
-  int N = domaine_Cl_dis().equation().inconnue().valeurs().line_size();
-  if (N > 1)  Process::exit(que_suis_je() + " : Only one phase for turbulent wall law is coded for now");
+  const int N = domaine_Cl_dis().equation().inconnue().valeurs().line_size();
+  if (N > 1)
+    Process::exit(que_suis_je() + " : Only one phase for turbulent wall law is coded for now");
 
   correlation_loi_paroi_ = domaine_Cl_dis().equation().probleme().get_correlation("Loi_paroi");
 }
@@ -70,8 +71,8 @@ void Cond_lim_omega_dix::me_calculer()
 {
   Loi_paroi_adaptative& corr_loi_paroi = ref_cast(Loi_paroi_adaptative, correlation_loi_paroi_.valeur());
   const Domaine_VF& domaine = ref_cast(Domaine_VF, domaine_Cl_dis().equation().domaine_dis());
-  const DoubleTab&   u_tau = corr_loi_paroi.get_tab("u_tau");
-  const DoubleTab&      nu_visc = ref_cast(Convection_diffusion_turbulence_multiphase, domaine_Cl_dis().equation()).diffusivite_pour_pas_de_temps().passe();
+  const DoubleTab& u_tau = corr_loi_paroi.get_tab("u_tau");
+  const DoubleTab& nu_visc = ref_cast(Convection_diffusion_turbulence_multiphase, domaine_Cl_dis().equation()).diffusivite_pour_pas_de_temps().passe();
 
   const int cnu = nu_visc.dimension(0) == 1;
   int nf = la_frontiere_dis->frontiere().nb_faces(), f1 = la_frontiere_dis->frontiere().num_premiere_face();
@@ -79,19 +80,18 @@ void Cond_lim_omega_dix::me_calculer()
 
   int n = 0 ; // Carrying phase is 0 for turbulent flows
 
-  for (int f =0 ; f < nf ; f++)
+  for (int f = 0; f < nf; f++)
     {
-      int f_domaine = f + f1; // number of the face in the domaine
-      int e_domaine = (f_e(f_domaine,0)>=0) ? f_e(f_domaine,0) : f_e(f_domaine,1) ; // Make orientation vdf-proof
-      double y_loc = f_e(f_domaine,0)>=0 ? domaine.dist_face_elem0(f_domaine,e_domaine) : domaine.dist_face_elem1(f_domaine,e_domaine) ;
+      const int f_domaine = f + f1; // number of the face in the domaine
+      const int e_domaine = (f_e(f_domaine,0) >= 0) ? f_e(f_domaine, 0) : f_e(f_domaine, 1); // Make orientation vdf-proof
+      const double y_loc = f_e(f_domaine,0) >= 0 ? domaine.dist_face_elem0(f_domaine, e_domaine) : domaine.dist_face_elem1(f_domaine, e_domaine);
 
       d_(f, n) = facteur_paroi_*calc_omega(y_loc, u_tau(f_domaine, n), nu_visc(!cnu * e_domaine, n));
     }
   d_.echange_espace_virtuel();
 }
 
-double Cond_lim_omega_dix::calc_omega(double y, double u_tau, double visc)
+double Cond_lim_omega_dix::calc_omega(const double y, const double u_tau, const double visc)
 {
   return 6 * visc / (beta_omega * y * y);
 }
-

@@ -27,14 +27,16 @@
 #include <Correlation_base.h>
 #include <TRUST_Ref.h>
 
-/*! @brief classe Dispersion_bulles_turbulente_Burns
- *     coefficients de dispersion selon le modele Burns et al 2004
- *
+/*! @brief class Dispersion_bulles_turbulente_Burns from Burns et al. (2004)
+ +
+ * Bubble turbulent dispersion coefficients from Burns et al. (2004)
+ * The Favre Averaged Drag Model for Turbulent Dispersion in Eulerian Multi-Phase Flows
+ * 5th International Conference on Multiphase Flow, paper no. 392.
  */
-
-class Dispersion_bulles_turbulente_Burns : public Dispersion_bulles_base
+class Dispersion_bulles_turbulente_Burns: public Dispersion_bulles_base
 {
   Declare_instanciable(Dispersion_bulles_turbulente_Burns);
+
 public:
   void coefficient(const input_t& input, output_t& output) const override;
   void completer() override;
@@ -44,12 +46,10 @@ protected:
   int n_l = -1; //phase liquide
   double Prt_ = .9 ; // Turbulent Prandtl number
   double minimum_ = -1.;
-  double a_res_ = -1.;
   double g_ = 9.81;
   double C_lambda_ = 2.7;
-  double gamma_ = 1.; // rapport d'aspect moyen des bulles ; mis sous forme de daouble pour le moment ; possibilite d'ajouter une fermeture a l'avenir
   double coefBIA_ = 0.;
-
+  double a_res_ = -1.;
 };
 
 #endif

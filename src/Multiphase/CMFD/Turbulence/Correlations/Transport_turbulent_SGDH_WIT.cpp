@@ -45,35 +45,48 @@ Entree& Transport_turbulent_SGDH_WIT::readOn(Entree& is)
 }
 
 // Modifier_nu modifie mu : alpha et rho font partie du terme
-void Transport_turbulent_SGDH_WIT::modifier_mu(const Convection_Diffusion_std& eq, const Viscosite_turbulente_base& visc_turb, DoubleTab& nu) const
+void Transport_turbulent_SGDH_WIT::modifier_mu(const Convection_Diffusion_std& eq,
+                                               const Viscosite_turbulente_base& visc_turb,
+                                               DoubleTab& nu) const
 {
   // Cette methode calcule la diffusivité nu de k_WIT avec nu = 2/3 * delta^(-3) * d_bulles / (gamma^(2/3) * alpha * ur)  (voir Alméras 2014)
-  const DoubleTab& mu0 = eq.diffusivite_pour_transport().passe(), &nu0 = eq.diffusivite_pour_pas_de_temps().passe(), //viscosites moleculaires
-                   alp = pb_->get_champ("alpha").passe(), diam = pb_->get_champ("diametre_bulles").valeurs(),
-                   &tab_u = pb_->get_champ("vitesse").passe();
+  const DoubleTab& mu0 = eq.diffusivite_pour_transport().passe();
+  const DoubleTab& nu0 = eq.diffusivite_pour_pas_de_temps().passe(); //viscosites moleculaires
+  const DoubleTab& alp = pb_->get_champ("alpha").passe();
+  const DoubleTab& diam = pb_->get_champ("diametre_bulles").valeurs();
+  const DoubleTab& tab_u = pb_->get_champ("vitesse").passe();
 
-  int i, nl = nu.dimension(0), N = alp.dimension(1), d, D = dimension, i_part=-1;
+  const int nl = nu.dimension(0);
+  const int N = alp.dimension(1);
+  const int D = dimension;
 
   // Calcul de la vitesse relative
   DoubleTrav Rij(0, N, D, D);
   MD_Vector_tools::creer_tableau_distribue(nu.get_md_vector(), Rij);
 
   ConstDoubleTab_parts p_u(tab_u); //en PolyMAC_P0, tab_u contient (nf.u) aux faces, puis (u_i) aux elements
-  for (i = 0; i < p_u.size(); i++)
-    if (p_u[i].get_md_vector() == Rij.get_md_vector()) i_part = i; //on cherche une partie ayant le meme support
-  if (i_part < 0) Process::exit("Transport_turbulent_SGDH_WIT : inconsistency between velocity and Rij!");
+  int i_part = -1;
+  for (int i = 0; i < p_u.size(); i++)
+    if (p_u[i].get_md_vector() == Rij.get_md_vector())
+      i_part = i; //on cherche une partie ayant le meme support
+  if (i_part < 0)
+    Process::exit("Transport_turbulent_SGDH_WIT : inconsistency between velocity and Rij!");
+
   const DoubleTab& u = p_u[i_part]; //le bon tableau
   DoubleTrav u_r(u.dimension(0), 1);
-  for (i = 0; i < u_r.dimension(0); i++)
+  for (int i = 0; i < u_r.dimension(0); i++)
     {
-      for (d = 0; d < D; d++) u_r(i, 0) += (u(i, d, 1) - u(i, d, 0))*(u(i, d, 1) - u(i, d, 0)); // relative speed = gas speed - liquid speed
+      for (int d = 0; d < D; d++)
+        u_r(i, 0) += (u(i, d, 1) - u(i, d, 0))*(u(i, d, 1) - u(i, d, 0)); // relative speed = gas speed - liquid speed
       u_r(i, 0) = std::sqrt(u_r(i, 0));
     }
 
-  //formule pour passer de nu a mu : mu0 / nu0 * C_s * temps_carac
-  for (i = 0; i < nl; i++)
+  // formule pour passer de nu a mu : mu0 / nu0 * C_s * temps_carac
+  for (int i = 0; i < nl; i++)
     {
-      double temps_carac = (u_r(i,0)!=0) ? 2./3. * 1./(delta_*delta_*delta_)*diam(i, 1) / (pow(gamma_, 2./3.)*alp(i, 1)*u_r(i,0)) : 0 ; // si u_r=0 alors pas de WIT donc pas de diffusion du WIT
+      const double tmp1 = 1./(delta_*delta_*delta_)*diam(i, 1);
+      const double tmp2 = pow(gamma_, 2./3.)*alp(i, 1)*u_r(i,0);
+      const double temps_carac = (u_r(i, 0) != 0) ? 2./3. * tmp1 / tmp2 : 0; // si u_r=0 alors pas de WIT donc pas de diffusion du WIT
       nu(i, 0) = mu0(i, 0) / nu0(i, 0) * C_s * temps_carac ; // ici mu0/nu0 = 1 car l'inconnue de l'équation est k_WIT (voir Energie_cinetique_turbulente_WIT.cpp)
     }
 }

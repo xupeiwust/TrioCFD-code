@@ -15,17 +15,18 @@
 
 #ifndef Frottement_interfacial_Ishii_Zuber_Deformable_included
 #define Frottement_interfacial_Ishii_Zuber_Deformable_included
+
 #include <Frottement_interfacial_base.h>
 
-/*! @brief classe Frottement_interfacial_C2 coefficients de frottement interfacial d'un ecoulement a bulles
+/*! @brief classe Frottement_interfacial_C2 interfacial friction coefficients for bubbly flow
  *
  *
  *
  */
-
 class Frottement_interfacial_Ishii_Zuber_Deformable : public Frottement_interfacial_base
 {
   Declare_instanciable(Frottement_interfacial_Ishii_Zuber_Deformable);
+
 public:
   void coefficient(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
                    const DoubleTab& rho, const DoubleTab& mu, const DoubleTab& sigma, double Dh,
@@ -35,7 +36,7 @@ public:
                       const DoubleTab& ndv, const DoubleTab& d_bulles, DoubleTab& coeff) const  override;
 
 protected:
-  double g_=9.81;
+  double g_ = 9.81;
   double beta_ = 1.;
   int n_l = -1; //liquid phase
 };

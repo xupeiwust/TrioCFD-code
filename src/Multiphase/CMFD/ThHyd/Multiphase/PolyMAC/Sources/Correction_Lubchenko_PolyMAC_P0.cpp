@@ -63,11 +63,16 @@ Entree& Correction_Lubchenko_PolyMAC_P0::readOn(Entree& is)
   //identification des phases
   Pb_Multiphase *pbm = sub_type(Pb_Multiphase, equation().probleme()) ? &ref_cast(Pb_Multiphase, equation().probleme()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
-  for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
 
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
+  for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
 
   pbm->creer_champ("distance_paroi_globale"); // Besoin de distance a la paroi
 
@@ -91,15 +96,18 @@ void Correction_Lubchenko_PolyMAC_P0::completer() // We must wait for all readOn
 
   if sub_type(Op_Diff_Turbulent_PolyMAC_P0_Face, equation().operateur(0).l_op_base()) is_turb = 1;
 
-  if (!pbm.has_champ("diametre_bulles")) Process::exit("Correction_Lubchenko_PolyMAC_P0::completer() : a bubble diameter must be defined !");
+  if (!pbm.has_champ("diametre_bulles"))
+    Process::exit("Correction_Lubchenko_PolyMAC_P0::completer() : a bubble diameter must be defined !");
 }
 
 
-void Correction_Lubchenko_PolyMAC_P0::dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl) const // The necessary dimensionner_bloc is taken care of in the dispersion_bulles_PolyMAC_P0 and Portance_interfaciale_PolyMAC_P0 functions
+void Correction_Lubchenko_PolyMAC_P0::dimensionner_blocs(matrices_t matrices,
+                                                         const tabs_t& semi_impl) const // The necessary dimensionner_bloc is taken care of in the dispersion_bulles_PolyMAC_P0 and Portance_interfaciale_PolyMAC_P0 functions
 {
 }
 
-void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl) const
+void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& secmem,
+                                                    const tabs_t& semi_impl) const
 {
   ajouter_blocs_disp(matrices, secmem, semi_impl);
   ajouter_blocs_lift(matrices, secmem, semi_impl);
@@ -108,7 +116,8 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleT
     ajouter_blocs_BIF(matrices, secmem, semi_impl);
 }
 
-void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl ) const
+void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, DoubleTab& secmem,
+                                                         const tabs_t& semi_impl) const
 {
   const Pb_Multiphase& pbm = ref_cast(Pb_Multiphase, equation().probleme());
   const Champ_Face_PolyMAC_P0& ch = ref_cast(Champ_Face_PolyMAC_P0, equation().inconnue());
@@ -131,11 +140,17 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, Do
                               * k_WIT = (equation().probleme().has_champ("k_WIT")) ? &equation().probleme().get_champ("k_WIT").passe() : nullptr ;
   const Milieu_composite& milc = ref_cast(Milieu_composite, equation().milieu());
 
-  int N = pvit.line_size() , Np = press.line_size(), Nk = (k_turb) ? (*k_turb).dimension(1) : 1, D = dimension,
-      nf_tot = domaine.nb_faces_tot(), nf = domaine.nb_faces(), ne_tot = domaine.nb_elem_tot(),
-      cR = (rho.dimension_tot(0) == 1), cM = (mu.dimension_tot(0) == 1);
+  const int N = pvit.line_size();
+  int Np = press.line_size();
+  int Nk = (k_turb) ? (*k_turb).dimension(1) : 1;
+  int D = dimension;
+  int nf_tot = domaine.nb_faces_tot();
+  const int nf = domaine.nb_faces();
+  int ne_tot = domaine.nb_elem_tot();
+  const int cR = (rho.dimension_tot(0) == 1);
+  const int cM = (mu.dimension_tot(0) == 1);
 
-  DoubleTrav nut(domaine.nb_elem_tot(), N); //viscosite turbulente
+  DoubleTrav nut(domaine.nb_elem_tot(), N); // turbulent viscosity
   if (is_turb)
     ref_cast(Viscosite_turbulente_base, ref_cast(Op_Diff_Turbulent_PolyMAC_P0_Face, equation().operateur(0).l_op_base()).correlation()).eddy_viscosity(nut); //remplissage par la correlation
 
@@ -158,9 +173,10 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, Do
   // There is no need to calculate the gradient of alpha here
 
   // Et pour les methodes span de la classe Interface pour choper la tension de surface
-  const int nb_max_sat =  N * (N-1) /2; // oui !! suite arithmetique !!
-  DoubleTrav Sigma_tab(ne_tot,nb_max_sat);
+  const int nb_max_sat =  N*(N - 1)/2;
+  DoubleTrav Sigma_tab(ne_tot, nb_max_sat);
 
+  // TODO: make a function from this k-loop
   // remplir les tabs ...
   for (int k = 0; k < N; k++)
     for (int l = k + 1; l < N; l++)
@@ -172,13 +188,15 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, Do
             // recuperer sigma ...
             const DoubleTab& sig = z_sat.get_sigma_tab();
             // fill in the good case
-            for (int ii = 0; ii < ne_tot; ii++) Sigma_tab(ii, ind_trav) = sig(ii);
+            for (int ii = 0; ii < ne_tot; ii++)
+              Sigma_tab(ii, ind_trav) = sig(ii);
           }
         else if (milc.has_interface(k, l))
           {
-            Interface_base& sat = milc.get_interface(k,l);
+            Interface_base& sat = milc.get_interface(k, l);
             const int ind_trav = (k*(N-1)-(k-1)*(k)/2) + (l-k-1); // Et oui ! matrice triang sup !
-            for (int i = 0 ; i<ne_tot ; i++) Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k),press(i,k * (Np > 1))) ;
+            for (int i = 0 ; i<ne_tot ; i++)
+              Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k),press(i,k * (Np > 1))) ;
           }
       }
 
@@ -187,7 +205,7 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, Do
     if (fcl(f, 0) < 2)
       {
         in.alpha=0., in.T=0., in.p=0., in.rho=0., in.mu=0., in.sigma=0., in.k_turb=0., in.nut=0., in.d_bulles=0., in.nv=0.;
-        int e;
+        int e {0};
         for (int c = 0; c < 2 && (e = f_e(f, c)) >= 0; c++)
           {
             for (int n = 0; n < N; n++)
@@ -199,8 +217,8 @@ void Correction_Lubchenko_PolyMAC_P0::ajouter_blocs_disp(matrices_t matrices, Do
                 in.mu[n]    += vf_dir(f, c)/vf(f) * mu(!cM * e, n);
                 in.nut[n]   += is_turb    ? vf_dir(f, c)/vf(f) * nut(e,n) : 0;
                 in.d_bulles[n] += vf_dir(f, c)/vf(f) * d_bulles(e,n);
-                for (int k = n+1; k < N; k++)
-                  if (milc.has_interface(n,k))
+                for (int k = n + 1; k < N; k++)
+                  if (milc.has_interface(n, k))
                     {
                       const int ind_trav = (n*(N-1)-(n-1)*(n)/2) + (k-n-1);
                       in.sigma[ind_trav] += vf_dir(f, c) / vf(f) * Sigma_tab(e, ind_trav);

@@ -51,14 +51,15 @@ void Flux_parietal_adaptatif::qp(const input_t& in, output_t& out) const
 
 }
 
-double Flux_parietal_adaptatif::calc_theta_plus(double y, double u_tau, double mu, double lambda, double rho, double Cp,double Diam_hyd_) const
+double Flux_parietal_adaptatif::calc_theta_plus(const double y, const double u_tau, const double mu,
+                                                const double lambda, const double rho,
+                                                const double Cp, const double Diam_hyd_) const
 {
-  double Prandtl = mu*Cp/lambda;
-  double visc = mu/rho;
-  double y_plus = y * u_tau/visc;
-  double beta = std::pow(3.85*std::pow(Prandtl, 1./3)-1.3, 2) + 2.12*std::log(Prandtl);
-  double gamma = 0.01*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)/(1+5*Prandtl*Prandtl*Prandtl*y_plus);
-  double y_on_D_h = 0 ; //(Diam_hyd_>0)? y/Diam_hyd_:0;
-  return Prandtl*y_plus*std::exp(-gamma) + (2.12*std::log((1+y_plus)*1.5*(2-y_on_D_h)/(1+2*(1-y_on_D_h)*(1-y_on_D_h)))+beta)*std::exp(-1/(gamma));
+  const double Prandtl = mu*Cp/lambda;
+  const double visc = mu/rho;
+  const double y_plus = y * u_tau/visc;
+  const double beta = std::pow(3.85*std::cbrt(Prandtl) - 1.3, 2) + 2.12*std::log(Prandtl);
+  const double gamma = 0.01*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)*(Prandtl*y_plus)/(1+5*Prandtl*Prandtl*Prandtl*y_plus);
+  const double y_on_D_h = 0 ; //(Diam_hyd_>0)? y/Diam_hyd_:0;
+  return Prandtl*y_plus*std::exp(-gamma) + (2.12*std::log((1 + y_plus)*1.5*(2 - y_on_D_h)/(1 + 2*(1 - y_on_D_h)*(1 - y_on_D_h))) + beta)*std::exp(-1/gamma);
 }
-

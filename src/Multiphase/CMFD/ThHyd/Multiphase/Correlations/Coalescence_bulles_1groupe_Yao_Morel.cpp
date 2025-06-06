@@ -21,9 +21,7 @@
 #include <Coalescence_bulles_1groupe_Yao_Morel.h>
 #include <Pb_Multiphase.h>
 
-
 Implemente_instanciable(Coalescence_bulles_1groupe_Yao_Morel, "Coalescence_bulles_1groupe_Yao_Morel", Coalescence_bulles_1groupe_base);
-
 
 Sortie& Coalescence_bulles_1groupe_Yao_Morel::printOn(Sortie& os) const
 {
@@ -34,10 +32,16 @@ Entree& Coalescence_bulles_1groupe_Yao_Morel::readOn(Entree& is)
 {
   const Pb_Multiphase *pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
 
   return is;
 }
@@ -48,22 +52,20 @@ void Coalescence_bulles_1groupe_Yao_Morel::coefficient(const DoubleTab& alpha, c
                                                        const DoubleTab& eps, const DoubleTab& k_turb,
                                                        DoubleTab& coeff) const
 {
-  int N = alpha.dimension(0);
-  const double fac_sec =1.e4;
-  for (int k = 0 ; k<N ; k++)
-    if (k != n_l) //phase gazeuse
-      if (alpha(k) > 1./fac_sec)
-        {
+  const int N = alpha.dimension(0);
+  const double fac_sec = 1.e4;
+  for (int k = 0 ; k < N ; k++)
+    if (k != n_l && alpha(k) > 1./fac_sec) //phase gazeuse
+      {
+        const double We = 2 * rho(n_l) * (std::cbrt(eps(n_l)*d_bulles(k))*std::cbrt(eps(n_l)*d_bulles(k))) * d_bulles(k) / sigma(k, n_l) ;
+        const double g_alpha = (alpha_max_1_3 - std::min(std::cbrt(alpha(k)), alpha_sec)) / alpha_max_1_3;
 
-          const double We = 2 * rho(n_l) * (std::cbrt(eps(n_l)*d_bulles(k))*std::cbrt(eps(n_l)*d_bulles(k))) * d_bulles(k) / sigma(k, n_l) ;
-          const double g_alpha = (alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec )) / alpha_max_1_3 ;
+        // RC coefficient for mat
+        coeff(k, n_l) = - Kc1 *1/std::min(g_alpha + Kc2 *alpha(k)*std::sqrt(We/We_cr), fac_sec)*std::exp(-Kc3*std::sqrt(We/We_cr));
 
-          // RC coefficient for mat
-          coeff(k, n_l) = - Kc1 *1/std::min(g_alpha+Kc2 *alpha(k)*std::sqrt(We/We_cr),fac_sec)*std::exp(-Kc3*std::sqrt(We/We_cr));
-
-          // dRC/dalpha cofficient for mat
-          coeff(n_l, k) = (alpha(k) < alpha_sec) ? - Kc1 * alpha_max_1_3 * (3.*alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * (std::cbrt(alpha(k))*std::cbrt(alpha(k)))-1. )/std::min(3. * (std::cbrt(std::max(alpha(k),1./fac_sec))*std::cbrt(std::max(alpha(k),1./fac_sec))),fac_sec)/ std::max(alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * alpha(k)+ alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec ),1./fac_sec) / std::min(alpha_max_1_3* Kc2 *std::sqrt(We/We_cr) * alpha(k)+ alpha_max_1_3 - std::min(std::cbrt(alpha(k)),alpha_sec ),fac_sec) * std::exp(-Kc3*std::sqrt(We/We_cr)) : 0. ;
-        }
+        // dRC/dalpha cofficient for mat
+        coeff(n_l, k) = (alpha(k) < alpha_sec)
+                        ? - Kc1 * alpha_max_1_3 * (3.*alpha_max_1_3*Kc2 *std::sqrt(We/We_cr)*(std::cbrt(alpha(k))*std::cbrt(alpha(k))) -1.)/std::min(3.*(std::cbrt(std::max(alpha(k), 1./fac_sec))*std::cbrt(std::max(alpha(k), 1./fac_sec))), fac_sec)/std::max(alpha_max_1_3*Kc2 *std::sqrt(We/We_cr)*alpha(k) + alpha_max_1_3 - std::min(std::cbrt(alpha(k)), alpha_sec ), 1./fac_sec)/std::min(alpha_max_1_3*Kc2*std::sqrt(We/We_cr)*alpha(k) + alpha_max_1_3 - std::min(std::cbrt(alpha(k)), alpha_sec), fac_sec)*std::exp(-Kc3*std::sqrt(We/We_cr))
+                        : 0.;
+      }
 }
-
-

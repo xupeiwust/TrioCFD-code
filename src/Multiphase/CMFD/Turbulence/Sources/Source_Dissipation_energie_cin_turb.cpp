@@ -58,8 +58,9 @@ Entree& Source_Dissipation_energie_cin_turb::readOn(Entree& is)
 
 void Source_Dissipation_energie_cin_turb::completer()
 {
-  const Navier_Stokes_std&     eq_qdm 	= ref_cast(Navier_Stokes_std, equation().probleme().equation(0));
-  if (ref_cast(Operateur_Diff_base, eq_qdm.operateur(0).l_op_base()).correlation_viscosite_turbulente()==nullptr) Process::exit(que_suis_je() + " : the momentum diffusion must be turbulent !");
+  const Navier_Stokes_std& eq_qdm = ref_cast(Navier_Stokes_std, equation().probleme().equation(0));
+  if (ref_cast(Operateur_Diff_base, eq_qdm.operateur(0).l_op_base()).correlation_viscosite_turbulente()==nullptr)
+    Process::exit(que_suis_je() + " : the momentum diffusion must be turbulent !");
 }
 
 void Source_Dissipation_energie_cin_turb::dimensionner_blocs(matrices_t matrices, const tabs_t& semi_impl) const
@@ -71,36 +72,48 @@ void Source_Dissipation_energie_cin_turb::dimensionner_blocs(matrices_t matrices
   std::string Type_diss = ""; // omega or tau dissipation
   for (int i = 0 ; i < equation().probleme().nombre_d_equations() ; i++)
     {
-      if sub_type(Echelle_temporelle_turbulente, equation().probleme().equation(i)) Type_diss = "tau";
-      else if sub_type(Taux_dissipation_turbulent, equation().probleme().equation(i)) Type_diss = "omega";
+      if (sub_type(Echelle_temporelle_turbulente, equation().probleme().equation(i)))
+        Type_diss = "tau";
+      else if (sub_type(Taux_dissipation_turbulent, equation().probleme().equation(i)))
+        Type_diss = "omega";
     }
-  if (Type_diss == "") abort();
+  if (Type_diss == "")
+    Process::abort();
 
   assert(Nk == 1); // si plus d'une phase turbulente, il vaut mieux iterer sur les id_composites des phases turbulentes modelisees par un modele k-tau
-  if (Type_diss == "tau") assert(equation().probleme().get_champ("tau").valeurs().line_size() == 1);
-  if (Type_diss == "omega") assert(equation().probleme().get_champ("omega").valeurs().line_size() == 1);
+  if (Type_diss == "tau")
+    assert(equation().probleme().get_champ("tau").valeurs().line_size() == 1);
+  if (Type_diss == "omega")
+    assert(equation().probleme().get_champ("omega").valeurs().line_size() == 1);
 
   for (auto &&n_m : matrices)
-    if (n_m.first == "alpha" || n_m.first == "tau" || n_m.first == "omega" || n_m.first == "temperature" || n_m.first == "pression")
+    if (n_m.first == "alpha" || n_m.first == "tau" ||
+        n_m.first == "omega" || n_m.first == "temperature" || n_m.first == "pression")
       {
         Matrice_Morse& mat = *n_m.second, mat2;
         const DoubleTab& dep = equation().probleme().get_champ(n_m.first.c_str()).valeurs();
-        int nc = dep.dimension_tot(0),
-            M  = dep.line_size();
+        const int nc = dep.dimension_tot(0);
+        const int M  = dep.line_size();
         IntTab sten(0, 2);
+
         if (n_m.first == "alpha" || n_m.first == "temperature" || n_m.first == "tau"|| n_m.first == "omega")
           for (int e = 0; e < ne; e++)
             for (int n = 0; n < Nk; n++)
-              if (n < M) sten.append_line(Nk * e + n, M * e + n);
+              if (n < M)
+                sten.append_line(Nk * e + n, M * e + n);
+
         if (n_m.first == "pression" )
           for (int e = 0; e < ne; e++)
-            for (int n = 0, m = 0; n < Nk; n++, m+=(M>1)) sten.append_line(Nk * e + n, M * e + m);
+            for (int n = 0, m = 0; n < Nk; n++, m+=(M>1))
+              sten.append_line(Nk * e + n, M * e + m);
+
         Matrix_tools::allocate_morse_matrix(Nk * ne_tot, M * nc, sten, mat2);
         mat.nb_colonnes() ? mat += mat2 : mat = mat2;
       }
 }
 
-void Source_Dissipation_energie_cin_turb::ajouter_blocs(matrices_t matrices, DoubleTab& secmem, const tabs_t& semi_impl)  const
+void Source_Dissipation_energie_cin_turb::ajouter_blocs(matrices_t matrices, DoubleTab& secmem,
+                                                        const tabs_t& semi_impl) const
 {
   const Domaine_VF&             domaine = ref_cast(Domaine_VF, equation().domaine_dis());
   const DoubleTab&                    k = equation().inconnue().valeurs();
@@ -116,12 +129,16 @@ void Source_Dissipation_energie_cin_turb::ajouter_blocs(matrices_t matrices, Dou
   std::string Type_diss = ""; // omega or tau dissipation
   for (int i = 0 ; i < equation().probleme().nombre_d_equations() ; i++)
     {
-      if sub_type(Echelle_temporelle_turbulente, equation().probleme().equation(i)) Type_diss = "tau";
-      else if sub_type(Taux_dissipation_turbulent, equation().probleme().equation(i)) Type_diss = "omega";
+      if (sub_type(Echelle_temporelle_turbulente, equation().probleme().equation(i)))
+        Type_diss = "tau";
+      else if (sub_type(Taux_dissipation_turbulent, equation().probleme().equation(i)))
+        Type_diss = "omega";
     }
-  if (Type_diss == "") abort();
-  const DoubleTab&                diss = equation().probleme().get_champ(Nom(Type_diss.c_str())).passe() ;
-  const DoubleTab&               pdiss = equation().probleme().get_champ(Nom(Type_diss.c_str())).passe() ;
+  if (Type_diss == "")
+    Process::abort();
+
+  const DoubleTab& diss = equation().probleme().get_champ(Nom(Type_diss.c_str())).passe() ;
+  const DoubleTab& pdiss = equation().probleme().get_champ(Nom(Type_diss.c_str())).passe() ;
 
   Matrice_Morse *Ma = matrices.count("alpha") ? matrices.at("alpha") : nullptr,
                  *Mk = matrices.count("k") ? matrices.at("k") : nullptr,
@@ -142,22 +159,29 @@ void Source_Dissipation_energie_cin_turb::ajouter_blocs(matrices_t matrices, Dou
                              ? 1./diss(e,mk)
                              : k(e, mk) / (visc_turb.limiteur() * nu(!cnu * e, mk)) ;
             secmem(e, mk) -= pe(e) * ve(e) * beta_k * alpha_rho_k(e,mk) * inv_tau;
-            if (!(Ma==nullptr)) 	(*Ma)(Nk * e + mk, Na * e + mk)   	  += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("alpha") ?       der_alpha_rho_k.at("alpha")(e,mk) : 0 )        * inv_tau;	// derivee en alpha
-            if (!(Mt==nullptr)) 	(*Mt)(Nk * e + mk, Nt * e + mk)       += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("temperature") ? der_alpha_rho_k.at("temperature")(e, mk) : 0 ) * inv_tau;	// derivee par rapport a la temperature
-            if (!(Mp==nullptr)) 	(*Mp)(Nk * e + mk, Np * e + mp)       += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("pression") ?    der_alpha_rho_k.at("pression")(e, mp) : 0 )    * inv_tau;		// derivee par rapport a la pression
-            if (!(Mk==nullptr))
+            if (Ma) // derivation in alpha
+              (*Ma)(Nk * e + mk, Na * e + mk) += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("alpha") ?       der_alpha_rho_k.at("alpha")(e,mk) : 0 )        * inv_tau;
+
+            if (Mt) // derivation in temperature
+              (*Mt)(Nk * e + mk, Nt * e + mk) += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("temperature") ? der_alpha_rho_k.at("temperature")(e, mk) : 0 ) * inv_tau;
+
+            if (Mp) // derivation in pressure
+              (*Mp)(Nk * e + mk, Np * e + mp) += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("pression") ?    der_alpha_rho_k.at("pression")(e, mp) : 0 )    * inv_tau;
+
+            if (Mk)
               {
                 if (k(e, mk) * diss(e,mk) > visc_turb.limiteur() * nu(!cnu * e, mk))
                   (*Mk)(Nk * e + mk, Nk * e + mk)       += pe(e) * ve(e) * beta_k * (der_alpha_rho_k.count("k") ? der_alpha_rho_k.at("k")(e,mk) : 0 ) * inv_tau; // derivee en k ; depend de l'activation ou non du limiteur
                 else
                   (*Mk)(Nk * e + mk, Nk * e + mk)       += pe(e) * ve(e) * 2 * beta_k * alpha_rho_k(e, mk) / (visc_turb.limiteur() * nu(!cnu * e, mk)); // derivee en k
               }
-            if (!(Mdiss==nullptr))
+
+            if (Mdiss)
               {
                 if ( k(e, mk) * diss(e,mk) > visc_turb.limiteur() * nu(!cnu * e, mk))
                   (*Mdiss)(Nk * e + mk, Nk * e + mk)       += pe(e) * ve(e) * beta_k * alpha_rho_k(e, mk) * (-1)/(diss(e,mk)*diss(e,mk)); // derivee en tau  ; depend de l'activation ou non du limiteur
                 else
-                  (*Mdiss)(Nk * e + mk, Nk * e + mk)       += 0*pdiss(e, mk);
+                  (*Mdiss)(Nk * e + mk, Nk * e + mk) += 0*pdiss(e, mk);
               }
           }
         else if (Type_diss == "omega")
@@ -172,4 +196,3 @@ void Source_Dissipation_energie_cin_turb::ajouter_blocs(matrices_t matrices, Dou
           }
       }
 }
-

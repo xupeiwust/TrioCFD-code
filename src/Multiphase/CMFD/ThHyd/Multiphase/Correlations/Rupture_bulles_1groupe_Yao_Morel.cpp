@@ -32,10 +32,16 @@ Entree& Rupture_bulles_1groupe_Yao_Morel::readOn(Entree& is)
 {
   const Pb_Multiphase *pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
 
   return is;
 }
@@ -46,21 +52,18 @@ void Rupture_bulles_1groupe_Yao_Morel::coefficient(const DoubleTab& alpha, const
                                                    const DoubleTab& eps, const DoubleTab& k_turb,
                                                    DoubleTab& coeff) const
 {
-  int N = alpha.dimension(0);
-  double fac_sec =1.e4;
-  for (int k = 0 ; k<N ; k++)
+  const int N = alpha.dimension(0);
+  const double fac_sec = 1.e4;
+  for (int k = 0; k < N ; k++)
     if (k != n_l) //phase gazeuse
       if (alpha(k) > 1./fac_sec)
         {
-
-          double We = 2 * rho(n_l) * (std::cbrt(eps(n_l)*d_bulles(k)) * std::cbrt(eps(n_l)*d_bulles(k))) * d_bulles(k) / sigma(k, n_l) ;
+          const double We = 2.0*rho(n_l)*(std::cbrt(eps(n_l)*d_bulles(k))*std::cbrt(eps(n_l)*d_bulles(k)))*d_bulles(k) / sigma(k, n_l);
 
           // TI coefficient for secmem
-          coeff(k, n_l) = Kb1 *1/std::min(1+Kb2 *alpha(n_l)*std::sqrt(We/We_cr),fac_sec)*std::exp(-std::sqrt(We_cr/We));
+          coeff(k, n_l) = Kb1*1/std::min(1.0 + Kb2*alpha(n_l)*std::sqrt(We/We_cr), fac_sec)*std::exp(-std::sqrt(We_cr/We));
 
           // dTI/dalpha coefficient for mat
-          coeff(n_l, k) = Kb1 * Kb2 *std::sqrt(We/We_cr) /std::min(1.+Kb2 *std::sqrt(We/We_cr)*(1.-alpha(k)),fac_sec) / std::min(1.+Kb2 *std::sqrt(We/We_cr)*(1.-alpha(k)),fac_sec) *std::exp(-std::sqrt(We_cr/We)) ;
+          coeff(n_l, k) = Kb1*Kb2*std::sqrt(We/We_cr)/std::min(1. + Kb2*std::sqrt(We/We_cr)*(1. - alpha(k)), fac_sec) / std::min(1. + Kb2*std::sqrt(We/We_cr)*(1. - alpha(k)), fac_sec)*std::exp(-std::sqrt(We_cr/We));
         }
 }
-
-

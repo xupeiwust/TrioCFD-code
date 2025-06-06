@@ -33,33 +33,48 @@ Entree& Portance_interfaciale_Sugrue_Modifiee::readOn(Entree& is)
 
   const Pb_Multiphase *pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
-  for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
 
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
+  for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
 
   return is;
 }
 
 void Portance_interfaciale_Sugrue_Modifiee::coefficient(const input_t& in, output_t& out) const
 {
-  int k, N = out.Cl.dimension(0);
+  const int N = out.Cl.dimension(0);
   const Pb_Multiphase& pbm = ref_cast(Pb_Multiphase, pb_.valeur());
 
-  for (k = 0; k < N; k++)
-    if (k!=n_l) // k gas phase
+  for (int k = 0; k < N; k++)
+    if (k != n_l) // k gas phase
       {
-        int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
+        const int ind_trav = (k > n_l)
+                             ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1)
+                             : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
+
+        DoubleTab alpha_l(N);
 
         // Newton method to determine dv along gravity
         double dv0 = 0.2, epsilon = 1.e-4; // Initialize dv at random
         int step = 1, iter_max = 20;
-        DoubleTab dv(N, N), coeff(N, N, 2), alpha_l(N);
-        const Frottement_interfacial_base& correlation_fi = ref_cast(Frottement_interfacial_base, pbm.get_correlation("frottement_interfacial"));
+        DoubleTab dv(N, N), coeff(N, N, 2);
+        const Frottement_interfacial_base& correlation_fi = ref_cast(Frottement_interfacial_base,
+                                                                     pbm.get_correlation("frottement_interfacial"));
         double sum_alpha = 0;
-        for (int n=0; n<N ; n++) alpha_l(n)= std::max(in.alpha(n), alpha_lim_), sum_alpha+=alpha_l(n);
-        for (int n=0; n<N ; n++) alpha_l(n)/=sum_alpha;
+        for (int n = 0; n < N ; n++)
+          {
+            alpha_l(n)= std::max(in.alpha(n), alpha_lim_);
+            sum_alpha += alpha_l(n);
+          }
+        for (int n = 0; n < N ; n++)
+          alpha_l(n) /= sum_alpha;
 
         do
           {
@@ -73,13 +88,11 @@ void Portance_interfaciale_Sugrue_Modifiee::coefficient(const input_t& in, outpu
         while(std::abs(coeff(n_l, k, 0)*dv0 - g_*alpha_l(k)*(in.rho[n_l]*in.alpha[n_l]+in.rho[k]*in.alpha[k]- in.rho[k])) > epsilon);
 
         // Rest of the correlation
-
-        const double Eo = g_ * std::abs(in.rho[n_l]-in.rho[k]) * in.d_bulles[k]*in.d_bulles[k]/in.sigma[ind_trav];
-
-        double Wo = std::min(Eo * in.k_turb[n_l]/std::max(dv0*dv0, 1.e-8) , 6.); // Experimental validation up to Wo=6
-        double f_Wo = std::min(0.03, 5.0404 - 5.0781*std::pow(Wo, 0.0108));
-        double f_alp= in.alpha[k] < .7 ? 1 : ( in.alpha[k] > .95 ? 0 : (.95-in.alpha[k])/.25 );
-        double Cl = f_Wo*f_alp ;
+        const double Eo = g_ * std::abs(in.rho[n_l]-in.rho[k]) * in.d_bulles[k]*in.d_bulles[k]/in.sigma[ind_trav]; // Eotvos number
+        const double Wo = std::min(Eo * in.k_turb[n_l]/std::max(dv0*dv0, 1.e-8) , 6.); // Experimental validation up to Wo=6
+        const double f_Wo = std::min(0.03, 5.0404 - 5.0781*std::pow(Wo, 0.0108));
+        const double f_alp = in.alpha[k] < .7 ? 1 : (in.alpha[k] > .95 ? 0 : (.95 - in.alpha[k])/.25);
+        const double Cl = f_Wo*f_alp ;
 
         out.Cl(k, n_l) = Cl * in.rho[n_l] * in.alpha[k] ;
         out.Cl(n_l, k) = out.Cl(k, n_l);

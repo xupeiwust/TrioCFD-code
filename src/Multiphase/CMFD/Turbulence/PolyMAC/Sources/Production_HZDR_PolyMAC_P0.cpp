@@ -62,16 +62,21 @@ void Production_HZDR_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& s
   // le terme de production s'écrit : C_k * (3/4 C_drag/d_b * alpha * rho_l * |u_r|**3) / (alpha_l * rho_l)
   // Le coefficient de trainée C_drag sera calculé avec le modèle de Tomiyama (codé en dur)
 
-  const Domaine_PolyMAC_P0&             domaine = ref_cast(Domaine_PolyMAC_P0, equation().domaine_dis());
-  const DoubleTab&                      tab_rho = equation().probleme().get_champ("masse_volumique").passe();
-  const DoubleTab&                      tab_alp = equation().probleme().get_champ("alpha").passe();
-  const DoubleTab&                          vit = equation().probleme().get_champ("vitesse").passe();
-  const DoubleTab&                         diam = equation().probleme().get_champ("diametre_bulles").valeurs();
-  const DoubleTab&                           nu = equation().probleme().get_champ("viscosite_cinematique").passe();
+  const Domaine_PolyMAC_P0& domaine = ref_cast(Domaine_PolyMAC_P0, equation().domaine_dis());
 
+  const DoubleTab& tab_rho = equation().probleme().get_champ("masse_volumique").passe();
+  const DoubleTab& tab_alp = equation().probleme().get_champ("alpha").passe();
+  const DoubleTab& vit = equation().probleme().get_champ("vitesse").passe();
+  const DoubleTab& diam = equation().probleme().get_champ("diametre_bulles").valeurs();
+  const DoubleTab& nu = equation().probleme().get_champ("viscosite_cinematique").passe();
 
-  const DoubleVect& pe = equation().milieu().porosite_elem(), &ve = domaine.volumes();
-  int N = ref_cast(Pb_Multiphase, equation().probleme()).nb_phases(), ne = domaine.nb_elem(), nf_tot = domaine.nb_faces_tot(), D = dimension ;
+  const DoubleVect& pe = equation().milieu().porosite_elem();
+  const DoubleVect& ve = domaine.volumes();
+
+  const int N = ref_cast(Pb_Multiphase, equation().probleme()).nb_phases();
+  const int ne = domaine.nb_elem();
+  const int nf_tot = domaine.nb_faces_tot();
+  const int D = dimension ;
 
   // On récupère la tension superficielle sigma
   const Milieu_composite& milc = ref_cast(Milieu_composite, equation().milieu());
@@ -79,14 +84,15 @@ void Production_HZDR_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& s
   const DoubleTab& temp  = equation().probleme().get_champ("temperature").passe();
   const int nb_max_sat =  N * (N-1) /2; // oui !! suite arithmetique !!
   DoubleTrav Sigma_tab(ne,nb_max_sat);
-  int Np = press.line_size();
+  const int Np = press.line_size();
   for (int k = 0; k < N; k++)
     {
       for (int l = k + 1; l < N; l++)
         {
           Interface_base& sat = milc.get_interface(k,l);
-          const int ind_trav = (k*(N-1)-(k-1)*(k)/2) + (l-k-1); // Et oui ! matrice triang sup !
-          for (int i = 0 ; i<ne ; i++) Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k),press(i,k * (Np > 1))) ;
+          const int ind_trav = (k*(N-1)-(k-1)*(k)/2) + (l-k-1);
+          for (int i = 0 ; i<ne ; i++)
+            Sigma_tab(i,ind_trav) = sat.sigma(temp(i,k),press(i,k * (Np > 1))) ;
         }
     }
 

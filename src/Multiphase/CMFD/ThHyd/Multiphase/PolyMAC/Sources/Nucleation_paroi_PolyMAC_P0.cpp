@@ -45,23 +45,36 @@ Entree& Nucleation_paroi_PolyMAC_P0::readOn(Entree& is)
 {
   Pb_Multiphase *pbm = sub_type(Pb_Multiphase, equation().probleme()) ? &ref_cast(Pb_Multiphase, equation().probleme()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
-  if (n_l != 0) Process::exit(que_suis_je() + " : liquid phase must be the first declared phase !");
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
+
+  if (n_l != 0)
+    Process::exit(que_suis_je() + " : liquid phase must be the first declared phase !");
+
+  if (!pbm->has_correlation("flux_parietal"))
+    Process::exit("Nucleation_paroi_PolyMAC_P0 : wall heat flux correlation needed !");
 
   if (!pbm->has_correlation("flux_parietal")) Process::exit("Nucleation_paroi_PolyMAC_P0 : wall heat flux correlation needed !");
   const Flux_parietal_base& correlation_fp = ref_cast(Flux_parietal_base, pbm->get_correlation("flux_parietal"));
 
-  if (!correlation_fp.calculates_bubble_nucleation_diameter()) Process::exit("Nucleation_paroi_PolyMAC_P0 : wall heat flux correlation must calculate the nucleated bubble diameter !");
+  if (!correlation_fp.calculates_bubble_nucleation_diameter())
+    Process::exit("Nucleation_paroi_PolyMAC_P0 : wall heat flux correlation must calculate the nucleated bubble diameter !");
 
   const Sources& les_sources_loc = pbm->equation(2).sources();
   for (int j = 0 ; j<les_sources_loc.size(); j++)
-    {
-      if sub_type(Flux_interfacial_PolyMAC_P0P1NC, les_sources_loc(j).valeur()) src_flux_interfacial_ = les_sources_loc(j).valeur();
-    }
-  if (!src_flux_interfacial_.non_nul()) Process::exit(que_suis_je() + " : there must be an interfacial flux source for nucleation to be possible !");
+    if (sub_type(Flux_interfacial_PolyMAC_P0P1NC, les_sources_loc(j).valeur()))
+      src_flux_interfacial_ = les_sources_loc(j).valeur();
+
+  if (!src_flux_interfacial_.non_nul())
+    Process::exit(que_suis_je() + " : there must be an interfacial flux source for nucleation to be possible !");
 
   return is;
 }
@@ -76,24 +89,24 @@ void Nucleation_paroi_PolyMAC_P0::ajouter_blocs(matrices_t matrices, DoubleTab& 
   const Domaine_PolyMAC_P0& domaine = ref_cast(Domaine_PolyMAC_P0, equation().domaine_dis());
   const IntTab& f_e = domaine.face_voisins();
 
-  const DoubleTab& rho = pbm.milieu().masse_volumique().passe(),
-                   &press = ref_cast(QDM_Multiphase, pbm.equation_qdm()).pression().passe(),
-                    &qpi = ref_cast(Flux_interfacial_PolyMAC_P0P1NC, src_flux_interfacial_.valeur()).qpi(),
-                     &dnuc = ref_cast(Op_Diff_PolyMAC_P0_Elem, pbm.equation(2).operateur(0).l_op_base()).d_nucleation();
+  const DoubleTab& rho = pbm.milieu().masse_volumique().passe();
+  const DoubleTab& press = ref_cast(QDM_Multiphase, pbm.equation_qdm()).pression().passe();
+  const DoubleTab& qpi = ref_cast(Flux_interfacial_PolyMAC_P0P1NC, src_flux_interfacial_.valeur()).qpi();
+  const DoubleTab& dnuc = ref_cast(Op_Diff_PolyMAC_P0_Elem, pbm.equation(2).operateur(0).l_op_base()).d_nucleation();
 
-  int N = pbm.nb_phases(), Np = pbm.get_champ("pression").valeurs().line_size();
+  const int N = pbm.nb_phases();
+  const int Np = pbm.get_champ("pression").valeurs().line_size();
 
   const Milieu_composite& milc = ref_cast(Milieu_composite, pbm.milieu());
 
   /* elements */
-  for (int f = 0; f < domaine.premiere_face_int(); f++) // On n'injecte que dans les elems de bord
-    for (int k = 0, mp = 0 ; k<N ; k++ , mp += (Np > 1))
+  for (int f = 0; f < domaine.premiere_face_int(); f++) // We inject only in first element
+    for (int k = 0, mp = 0 ; k < N ; k++, mp += (Np > 1))
       if (k != n_l)
-        if (milc.has_saturation(n_l, k)) //phase vapeur
+        if (milc.has_saturation(n_l, k)) // vapor phase
           {
             Saturation_base& sat = milc.get_saturation(n_l, k);
             int e = f_e(f, 0);
-            secmem(e , k) += 6. * qpi(e, n_l, k) / ( std::max(dnuc(e,k), 1.e-8) * rho(e, k) * sat.Lvap(press(e, mp))) ;
+            secmem(e , k) += 6. * qpi(e, n_l, k) / (std::max(dnuc(e,k), 1.e-8) * rho(e, k) * sat.Lvap(press(e, mp)));
           }
-
 }

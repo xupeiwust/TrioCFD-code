@@ -34,14 +34,21 @@ Entree& Frottement_interfacial_Ishii_Zuber_Deformable::readOn(Entree& is)
 
   const Pb_Multiphase *pbm = sub_type(Pb_Multiphase, pb_.valeur()) ? &ref_cast(Pb_Multiphase, pb_.valeur()) : nullptr;
 
-  if (!pbm || pbm->nb_phases() == 1) Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+  if (!pbm || pbm->nb_phases() == 1)
+    Process::exit(que_suis_je() + " : not needed for single-phase flow!");
+
   for (int n = 0; n < pbm->nb_phases(); n++) //recherche de n_l, n_g : phase {liquide,gaz}_continu en priorite
-    if (pbm->nom_phase(n).debute_par("liquide") && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))  n_l = n;
-  if (n_l < 0) Process::exit(que_suis_je() + " : liquid phase not found!");
+    if (pbm->nom_phase(n).debute_par("liquide")
+        && (n_l < 0 || pbm->nom_phase(n).finit_par("continu")))
+      n_l = n;
+
+  if (n_l < 0)
+    Process::exit(que_suis_je() + " : liquid phase not found!");
 
   for (int k = 0; k < pbm->nb_phases(); k++)
     if (k != n_l)
-      if (!(ref_cast(Milieu_composite, pbm->milieu()).has_interface(n_l, k))) Process::exit(que_suis_je() + " : one must define an interface and have a surface tension !");
+      if (!(ref_cast(Milieu_composite, pbm->milieu()).has_interface(n_l, k)))
+        Process::exit(que_suis_je() + " : one must define an interface and have a surface tension !");
 
   return is;
 }
@@ -50,44 +57,46 @@ void Frottement_interfacial_Ishii_Zuber_Deformable::coefficient(const DoubleTab&
                                                                 const DoubleTab& rho, const DoubleTab& mu, const DoubleTab& sigma, double Dh,
                                                                 const DoubleTab& ndv, const DoubleTab& d_bulles, DoubleTab& coeff) const
 {
-  int N = ndv.dimension(0);
+  const int N = ndv.dimension(0);
 
   coeff = 0;
 
   for (int k = 0; k < N; k++)
-    if (k!=n_l)
+    if (k != n_l)
       {
-        int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
+        const int ind_trav = (k > n_l)
+                             ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1)
+                             : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
 
-        double capillary = std::sqrt((rho[n_l]-rho[k])*9.81/sigma[ind_trav]);
-        double bubbly =  alpha[k]*rho[n_l]*0.5*capillary*std::pow( std::max(1-alpha[k], 1.e-3), -.5);
+        const double capillary = std::sqrt((rho[n_l] - rho[k])*9.81/sigma[ind_trav]);
+        const double bubbly =  alpha[k]*rho[n_l]*0.5*capillary*std::pow(std::max(1-alpha[k], 1.e-3), -.5);
 
         coeff(k, n_l, 1) = bubbly ;
         coeff(k, n_l, 0) = bubbly * ndv(n_l,k);
         coeff(n_l, k, 0) = coeff(k, n_l, 0);
         coeff(n_l, k, 1) = coeff(k, n_l, 1);
-
       }
 }
-
 
 void Frottement_interfacial_Ishii_Zuber_Deformable::coefficient_CD(const DoubleTab& alpha, const DoubleTab& p, const DoubleTab& T,
                                                                    const DoubleTab& rho, const DoubleTab& mu, const DoubleTab& sigma, double Dh,
                                                                    const DoubleTab& ndv, const DoubleTab& d_bulles, DoubleTab& coeff) const
 {
-  int N = ndv.dimension(0);
+  const int N = ndv.dimension(0);
 
   coeff = 0;
 
   for (int k = 0; k < N; k++)
-    if (k!=n_l)
+    if (k != n_l)
       {
-        int ind_trav = (k>n_l) ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1) : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
+        const int ind_trav = (k > n_l)
+                             ? (n_l*(N-1)-(n_l-1)*(n_l)/2) + (k-n_l-1)
+                             : (k*(N-1)-(k-1)*(k)/2) + (n_l-k-1);
 
-        double capillary = std::sqrt((rho[n_l]-rho[k])*9.81/sigma[ind_trav]);
-        double bubbly =  alpha[k]*rho[n_l]*0.5*capillary*std::pow(1-alpha[k], -.5);
+        const double capillary = std::sqrt((rho[n_l]-rho[k])*9.81/sigma[ind_trav]);
+        const double bubbly =  alpha[k]*rho[n_l]*0.5*capillary*std::pow(1-alpha[k], -.5);
 
-        double Cd = bubbly / (  3./4./d_bulles(k) * alpha(k) * rho(n_l) );
+        const double Cd = bubbly / (3./4./d_bulles(k) * alpha(k) * rho(n_l));
 
         coeff(k, n_l) = (coeff(n_l, k) = Cd);
       }

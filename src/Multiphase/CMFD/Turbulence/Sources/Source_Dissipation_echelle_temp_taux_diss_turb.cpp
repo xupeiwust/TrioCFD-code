@@ -31,10 +31,13 @@
 #include <Array_tools.h>
 #include <Domaine_VF.h>
 
-Implemente_base(Source_Dissipation_echelle_temp_taux_diss_turb,"Source_Dissipation_echelle_temp_taux_diss_turb", Sources_Multiphase_base);
+Implemente_base(Source_Dissipation_echelle_temp_taux_diss_turb, "Source_Dissipation_echelle_temp_taux_diss_turb", Sources_Multiphase_base);
 // XD Source_Dissipation_echelle_temp_taux_diss_turb source_base Source_Dissipation_echelle_temp_taux_diss_turb 0 Source term which corresponds to the dissipation source term that appears in the transport equation for tau (in the k-tau turbulence model)
 
-Sortie& Source_Dissipation_echelle_temp_taux_diss_turb::printOn(Sortie& os) const {   return os;}
+Sortie& Source_Dissipation_echelle_temp_taux_diss_turb::printOn(Sortie& os) const
+{
+  return os;
+}
 
 Entree& Source_Dissipation_echelle_temp_taux_diss_turb::readOn(Entree& is)
 {
@@ -51,33 +54,34 @@ void Source_Dissipation_echelle_temp_taux_diss_turb::ajouter_blocs(matrices_t ma
   const DoubleTab& pdiss    = equation().inconnue().passe() ;
   const DoubleVect& pe      = equation().milieu().porosite_elem(), &ve = domaine.volumes();
 
-  const int nb_elem = domaine.nb_elem(), N = diss.line_size();
+  const int nb_elem = domaine.nb_elem();
+  const int N = diss.line_size();
 
   std::string Type_diss = ""; // omega or tau dissipation
-  if sub_type(Echelle_temporelle_turbulente, equation()) Type_diss = "tau";
-  else if sub_type(Taux_dissipation_turbulent, equation()) Type_diss = "omega";
-  if (Type_diss == "") abort();
-
-  int n;
+  if (sub_type(Echelle_temporelle_turbulente, equation()))
+    Type_diss = "tau";
+  else if (sub_type(Taux_dissipation_turbulent, equation()))
+    Type_diss = "omega";
+  if (Type_diss == "")
+    Process::abort();
 
   assert( N == 1 );
 
   for (int e = 0; e < nb_elem; e++)
-    for (n = 0; n<N; n++)
+    for (int n = 0; n < N; n++)
       {
         if (Type_diss == "tau")
           {
-            double secmem_en  = pe(e) * ve(e) * beta_omega ;
+            const double secmem_en  = pe(e) * ve(e) * beta_omega ;
             secmem(e, n) += secmem_en ;
           }
         else if (Type_diss == "omega")
           {
-            double secmem_en  = - pe(e) * ve(e) * beta_omega * pdiss(e,n) * (  pdiss(e,n) + 2 * (diss(e,n) - pdiss(e,n) ) );
+            const double secmem_en  = - pe(e) * ve(e) * beta_omega * pdiss(e,n) * (  pdiss(e,n) + 2 * (diss(e,n) - pdiss(e,n) ) ); // cAlan : pourquoi cette forme ?
             secmem(e, n) += secmem_en ;
             for (auto &&i_m : matrices)
-              if (i_m.first == "omega") (*i_m.second)(N*e+n, N*e+n) += pe(e) * ve(e) * beta_omega * 2* pdiss(e,n) ;
+              if (i_m.first == "omega")
+                (*i_m.second)(N*e+n, N*e+n) += pe(e) * ve(e) * beta_omega * 2* pdiss(e,n) ;
           }
       }
 }
-
-

@@ -30,6 +30,7 @@
 class Variation_rho: public Source_base
 {
   Declare_instanciable(Variation_rho);
+
 public :
   int has_interface_blocs() const override
   {
@@ -42,6 +43,7 @@ public :
   void associer_domaines(const Domaine_dis_base& ,const Domaine_Cl_dis_base& ) override { };
   void associer_pb(const Probleme_base& ) override { };
   void mettre_a_jour(double temps) override { };
+
 protected:
 
 };
