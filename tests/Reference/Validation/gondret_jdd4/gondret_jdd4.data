@@ -1,41 +1,24 @@
-# SEQUENTIAL ONLY #
+# PARALLEL ONLY 12 #
 
 dimension 3
 domaine dom
 Probleme_FT_Disc_gen pb
 
-Mailler dom
-{
-	Pave Cavite
-		{
-		Origine -4.5e-3  0. -4.5e-3
-		Nombre_de_Noeuds 16 21 16
-		Longueurs 9e-3 12e-3 9e-3
-		}
-		{
-		Bord Gauche	        X =  -4.5e-3	+0.0e-3 <= Y <= +12e-3	  -4.5e-3 <= Z <= +4.5e-3
-		Bord Haut	        Y =  +12e-3	-4.5e-3 <= X <= +4.5e-3	  -4.5e-3 <= Z <= +4.5e-3
-		Bord Bas		Y =  0		-4.5e-3 <= X <= +4.5e-3	  -4.5e-3 <= Z <= +4.5e-3
-		Bord Droit	        X =  +4.5e-3	0 	<= Y <= +12e-3	  -4.5e-3 <= Z <= +4.5e-3
-		Bord Devant	        Z =  -4.5e-3	-4.5e-3 <= X <= +4.5e-3	  0	  <= Y <= +12e-3
-		Bord Derriere	    	Z =  +4.5e-3	-4.5e-3 <= X <= +4.5e-3	  0	  <= Y <= +12e-3
-		}
-}
-
+Scatter mesh/DOM.Zones dom
 VDF dis
 
 Schema_Euler_explicite sch
 Lire sch
 {
 	tinit 0
-	tmax 0.02
- 	nb_pas_dt_max 100
+	nb_pas_dt_max 3
+	tmax 0.1
     	dt_min 1e-7
-	dt_max 3.75e-5
+	dt_max 1.e-5
 	diffusion_implicite 1
     	seuil_diffusion_implicite 1e-6
     	impr_diffusion_implicite 1
-	dt_impr 0.01
+	dt_impr 1e-11
 	dt_sauv 100
 	seuil_statio -1
 
@@ -85,7 +68,7 @@ Lire pb
 			turbulence_paroi negligeable
 		}
 		solveur_pression GCP { precond ssor { omega 1.5 } seuil 1.e-8 impr }
-		convection           { centre }
+		convection           { quick }
 		diffusion            { }
 		clipping_courbure_interface 100
 		terme_gravite rho_g
@@ -104,18 +87,18 @@ Lire pb
 	}
 	interf
 	{
-		interpolation_repere_local
+		# interpolation_repere_local #
 		methode_transport vitesse_interpolee hydraulique
 		conditions_initiales
 		{
 
-		   fonction  (+1*((x)^2+(y-1.51e-3)^2+(z)^2-(1.5e-3)^2))
+		   fonction  (+1*((x)^2+(y-8.88e-3)^2+(z)^2-(1.5e-3)^2))
 
        		}
         	iterations_correction_volume 0
        		n_iterations_distance 0
         	# parcours_interface { correction_parcours_thomas } #
-		methode_interpolation_v VDF_lineaire
+		methode_interpolation_v MEAN_VOLUMIC_VELOCITY
 		remaillage
                 {
                         pas 1e15
@@ -131,14 +114,13 @@ Lire pb
                 }
 		collision_model_fpi Collision_Model_FT_sphere
 		{
-			collision_model hybrid_esi
+			collision_model breugem
                      	detection_method
                         {
                                 check_all
-                                detection_thickness_Verlet 9e-4 # =30% of the diameter #
-                                nb_pas_dt_max_Verlet 50
+                                detection_thickness_Verlet 9e-4 # =30% of the diameter. not considered here #
                         }			
-			collision_duration 3.e-4 # 8 delta_t # 
+			collision_duration 3.2e-4 # 8 delta_t # 
 		 	activate_collision_before_impact 1 
 			activation_distance_percentage_diameter 2 # 2% of the diameter #
 			force_on_two_phase_elem	1
@@ -168,13 +150,13 @@ Lire pb
 		Postraitement_ft_lata post2
 		{
 			fichier lata/post_dom
-			format lata_v2
-			champs dt_post 3.75e-4
+			format lml
+			champs dt_post 6.e-4
 	        	{ 
 				indicatrice_interf elem
 				vitesse  elem
 				pression elem
-				vitesse faces
+				vitesse
 			}
 			
 			interfaces interf

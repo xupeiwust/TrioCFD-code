@@ -95,7 +95,7 @@ int Post_Processing_Hydrodynamic_Forces::lire_motcle_non_standard(const Motcle& 
   else if (mot=="method_friction_force_computation")
     {
       Motcles mots;
-      mots.add("trilinear_linear_complet_tensor");
+      mots.add("trilinear_linear_complete_tensor");
       mots.add("trilinear_linear_projected_tensor");
       Motcle motbis;
       is >> motbis;

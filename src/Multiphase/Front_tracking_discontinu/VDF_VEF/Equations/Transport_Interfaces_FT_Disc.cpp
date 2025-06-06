@@ -3232,7 +3232,7 @@ void ouvrir_fichier(SFichier& os,const Nom& type, const int flag, const Transpor
           fic << "# Collision force discretized on the particle volume [N] (fcx fcy fcz)" << finl;
           fic << finl;
           fic << "# Time" <<espace <<"total collision number" << finl;
-          fic << "particle_id px py pz vx vy vz fcx fcy fcz number_of_particles_in_collision"<< finl;
+          fic << "# particle_id px py pz vx vy vz fcx fcy fcz number_of_particles_in_collision"<< finl;
           fic << finl;
         }
       else if (rang==8)

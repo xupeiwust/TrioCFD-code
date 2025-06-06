@@ -29,14 +29,14 @@ Lire sch
 {
 	tinit 0.
 	tmax 1e-3
- 	nb_pas_dt_max 10
+ 	# nb_pas_dt_max 10 #
         dt_min 4e-11
 	dt_max 1e-6
 	dt_start dt_min
 	diffusion_implicite 1
     	seuil_diffusion_implicite 1e-11
     	impr_diffusion_implicite 1
-	dt_impr 0.01
+	dt_impr 1e-6
 	dt_sauv 100
 	seuil_statio -1
 }
@@ -73,7 +73,7 @@ Lire pb
 		}
 		
 		sigma   Champ_Uniforme 1 0.
-		formule_mu harmonic
+		formule_mu $formule_mu
 		gravite Champ_Uniforme 3 0. 0. -10
 	}
 	hydraulique
@@ -152,7 +152,7 @@ Lire pb
 			interpolation_distance_gradU_P1 1
 			interpolation_distance_gradU_P2 2
 			method_pressure_force_computation trilinear_linear
-			method_friction_force_computation trilinear_linear_complete_tensor
+			method_friction_force_computation $method_friction_force_computation
 			location_stress_tensor elements
 		}
 		
@@ -217,40 +217,6 @@ Lire pb
 				U_P2_Stokes_th_interp elem
 				U_P1_Stokes_th elem
 				U_P2_Stokes_th elem
-				
-				# tenseur des contraintes visqueuses #
-				sigma_xx elem	sigma_xx_stokes_th elem  sigma_xx_stokes_th_interp elem
-				sigma_xy elem   sigma_xy_stokes_th elem  sigma_xy_stokes_th_interp elem
-				sigma_xz elem   sigma_xz_stokes_th elem  sigma_xz_stokes_th_interp elem
-				sigma_yx elem   			 sigma_yx_stokes_th_interp elem
-				sigma_yy elem   sigma_yy_stokes_th elem  sigma_yy_stokes_th_interp elem
-				sigma_yz elem   sigma_yz_stokes_th elem  sigma_yz_stokes_th_interp elem
-				sigma_zx elem 			         sigma_zx_stokes_th_interp elem
-				sigma_zy elem				 sigma_zy_stokes_th_interp elem
-				sigma_zz elem   sigma_zz_stokes_th elem  sigma_zz_stokes_th_interp elem
-
-				# composantes du tenseur gradient en P1 #
-				dUdx_P1 elem	dUdx_P1_stokes_th_interp elem  dUdx_P1_stokes_th elem
-				dUdy_P1 elem    dUdy_P1_stokes_th_interp elem  
-				dUdz_P1 elem    dUdz_P1_stokes_th_interp elem  dUdz_P1_stokes_th elem
-				dVdx_P1 elem    dVdx_P1_stokes_th_interp elem  
-				dVdy_P1 elem    dVdy_P1_stokes_th_interp elem  
-				dVdz_P1 elem    dVdz_P1_stokes_th_interp elem  dVdz_P1_stokes_th elem
-				dWdx_P1 elem    dWdx_P1_stokes_th_interp elem  dWdx_P1_stokes_th elem
-				dWdy_P1 elem    dWdy_P1_stokes_th_interp elem  dWdy_P1_stokes_th elem
-				dWdz_P1 elem    dWdz_P1_stokes_th_interp elem  dWdz_P1_stokes_th elem
-
-                                # composantes du tenseur gradient en P2 #
-                                dUdx_P2 elem    dUdx_P2_stokes_th_interp elem  dUdx_P2_stokes_th elem
-                                dUdy_P2 elem    dUdy_P2_stokes_th_interp elem  
-                                dUdz_P2 elem    dUdz_P2_stokes_th_interp elem  dUdz_P2_stokes_th elem
-                                dVdx_P2 elem    dVdx_P2_stokes_th_interp elem  
-                                dVdy_P2 elem    dVdy_P2_stokes_th_interp elem  
-                                dVdz_P2 elem    dVdz_P2_stokes_th_interp elem  dVdz_P2_stokes_th elem
-                                dWdx_P2 elem    dWdx_P2_stokes_th_interp elem  dWdx_P2_stokes_th elem
-                                dWdy_P2 elem    dWdy_P2_stokes_th_interp elem  dWdy_P2_stokes_th elem
-                                dWdz_P2 elem    dWdz_P2_stokes_th_interp elem  dWdz_P2_stokes_th elem
-
                         }
                 }
 

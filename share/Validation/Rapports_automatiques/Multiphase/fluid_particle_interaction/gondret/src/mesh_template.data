@@ -1,0 +1,30 @@
+system "mkdir -p mesh/"
+dimension 3
+Domaine dom
+Mailler dom
+{
+        Pave Cavite
+                {
+                Origine $Ox  $Oy $Ox
+                Nombre_de_Noeuds 31 41 31
+                Longueurs $length
+                }
+                {
+                Bord Gauche             X =  $left      0. <= Y <= $h_dom         $left <= Z <= $right
+                Bord Haut               Y =  $h_dom     $left <= X <= $right      $left <= Z <= $right
+                Bord Bas                Y =  0.         $left <= X <= $right      $left <= Z <= $right
+                Bord Droit              X =  $right     0.      <= Y <= $h_dom    $left <= Z <= $right
+                Bord Devant             Z =  $left      $left <= X <= $right      0.      <= Y <= $h_dom
+                Bord Derriere           Z =  $right     $left <= X <= $right      0.      <= Y <= $h_dom
+                }
+}
+
+Partition dom
+{
+        Partitionneur tranche { tranches 2 3 2 }
+        Larg_joint 2
+        Nom_Zones mesh/DOM
+}
+
+Fin
+

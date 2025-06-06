@@ -28,15 +28,15 @@ Schema_Euler_explicite sch
 Lire sch
 {
 	tinit 0.
+	nb_pas_dt_max 3
 	tmax 1e-3
- 	nb_pas_dt_max 10
         dt_min 4e-11
 	dt_max 1e-6
 	dt_start dt_min
 	diffusion_implicite 1
     	seuil_diffusion_implicite 1e-11
     	impr_diffusion_implicite 1
-	dt_impr 0.01
+	dt_impr 1e-6
 	dt_sauv 100
 	seuil_statio -1
 }
@@ -73,7 +73,7 @@ Lire pb
 		}
 		
 		sigma   Champ_Uniforme 1 0.
-		formule_mu harmonic
+		formule_mu arithmetic
 		gravite Champ_Uniforme 3 0. 0. -10
 	}
 	hydraulique
@@ -182,7 +182,7 @@ Lire pb
                 Postraitement_ft_lata post2
                 {
                         fichier lata/post_dom
-                        format lata_v2
+                        format lml
 
                         champs dt_post 1e-4
                         {
@@ -190,7 +190,7 @@ Lire pb
                                 vitesse elem
                                 particles_eulerian_id_number elem
                                 pression elem
-                                vitesse faces
+                                vitesse
                         }
                         interfaces interf
                         {
