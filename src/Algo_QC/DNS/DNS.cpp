@@ -11949,7 +11949,7 @@ void DNS_QC_double::rk3_sub_step(const int rk_step, const double total_timestep)
               for (int i = 0; i < ni; i++)
                 {
                   const double volume = get_channel_control_volume(dv, k, delta_z_local_);
-                  const double force = volumic_force * volume;
+                  const double force = volumic_force * volume * (rho_(i, j, k) + rho_(i, j-1, k))*0.5;
                   dv(i, j, k) += force;
                 }
             }
