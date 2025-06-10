@@ -1,11 +1,37 @@
-# PARALLEL OK #
+# PARALLEL OK 2 #
+
 dimension 2
 Probleme_FT_Disc_gen pb
+
 Domaine DOM
 
-# BEGIN SCATTER #
+# BEGIN MESH #
+Lire_MED {
+    domain DOM
+    file Mesh_0_05.med
+}
+domaine square
+Lire_MED {
+    domain square
+    file square.med
+}
+ecrire_fichier_formatte square square.geom
+# END MESH #
+
+# BEGIN PARTITION
+Partition DOM
+{
+    Partitionneur metis { Nb_parts 2 }
+    Larg_joint 2
+    Nom_Zones DOM
+    single_hdf
+}
+Fin
+END PARTITION #
+
+# BEGIN SCATTER
 Scatter DOM.Zones DOM
-# END SCATTER # 
+END SCATTER #
 
 VEFPreP1B dis
 
@@ -14,11 +40,11 @@ Lire sch
 {
     tinit 0.
     tmax  1.
-	dt_impr 3.e-3
+    dt_impr 3.e-3
     dt_min   3.e-7
     dt_max   3.e-3
-	dt_sauv 100
-	seuil_statio 1.e-8 
+    dt_sauv 100
+    seuil_statio 1.e-8
 
 }
 
@@ -26,129 +52,132 @@ Associate pb DOM
 Associate pb sch
 Discretize pb dis
 
-
-
-
 Lire pb
 {
-solved_equations
-{
-Navier_Stokes_FT_Disc              hydraulique
-Transport_Interfaces_FT_Disc       square
-}
+    solved_equations
+    {
+        Navier_Stokes_FT_Disc              hydraulique
+        Transport_Interfaces_FT_Disc       square
+    }
 
-Fluide_Incompressible
-{
-mu  Champ_Uniforme 1 0.02
-rho Champ_Uniforme 1 1.
-}
-hydraulique
-{
-modele_turbulence sous_maille_wale
-{
-Cw 0.
-turbulence_paroi negligeable
-}
+    Fluide_Incompressible
+    {
+        mu  Champ_Uniforme 1 0.02
+        rho Champ_Uniforme 1 1.
+    }
+    hydraulique
+    {
+        modele_turbulence sous_maille_wale
+        {
+            Cw 0.
+            turbulence_paroi negligeable
+        }
 
-solveur_pression GCP { precond ssor { omega -1.5 } seuil 1.e-10 impr }
-convection           { amont }
-diffusion            { }
-conditions_initiales { vitesse champ_uniforme 2 0.00001 0.
-                       pression champ_uniforme 1 0.0
-                      }
-equations_interfaces_vitesse_imposee 1 square
-boundary_conditions 	 { paroi paroi_fixe 
-                           outlet Frontiere_ouverte_pression_imposee Champ_front_Uniforme 1 0.
-}
-}
-square
-{
-conditions_initiales { fichier_geom { fichier_geom square.geom
-point_phase 0 0.5 0.5  default_phase 1 }
-}
-boundary_conditions { paroi Paroi_FT_disc symetrie 
-                      outlet Paroi_FT_disc symetrie
-}
-type_vitesse_imposee analytique
-methode_transport vitesse_imposee  5332.1060948531*t^14-32298.6022288094*t^13+82536.4975918952*t^12-113601.598522952*t^11+87092.7829977197*t^10-30701.3161138279*t^9-4149.8806731801*t^8+9018.0763311767*t^7-4116.7644578227*t^6+1021.4242442502*t^5-143.2563722683*t^4+11.9491505207*t^3-0.4279584487*t^2+0.009455793*t 0.
-interpolation_champ_face base
-vitesse_imposee_regularisee 1
-n_iterations_interpolation_ibc 5
+        solveur_pression GCP { precond ssor { omega -1.5 } seuil 1.e-10 impr }
+        convection           { amont }
+        diffusion            { }
+        conditions_initiales {
+            vitesse champ_uniforme 2 0.00001 0.
+            pression champ_uniforme 1 0.0
+        }
+        equations_interfaces_vitesse_imposee 1 square
+        boundary_conditions 	 {
+            paroi paroi_fixe
+            outlet Frontiere_ouverte_pression_imposee Champ_front_Uniforme 1 0.
+        }
+    }
+    square
+    {
+        conditions_initiales {
+            fichier_geom {
+                fichier_geom square.geom
+                point_phase 0 0.5 0.5  default_phase 1
+            }
+        }
+        boundary_conditions {
+            paroi Paroi_FT_disc symetrie
+            outlet Paroi_FT_disc symetrie
+        }
+        type_vitesse_imposee analytique
+        methode_transport vitesse_imposee  5332.1060948531*t^14-32298.6022288094*t^13+82536.4975918952*t^12-113601.598522952*t^11+87092.7829977197*t^10-30701.3161138279*t^9-4149.8806731801*t^8+9018.0763311767*t^7-4116.7644578227*t^6+1021.4242442502*t^5-143.2563722683*t^4+11.9491505207*t^3-0.4279584487*t^2+0.009455793*t 0.
+        interpolation_champ_face base
+        vitesse_imposee_regularisee 1
+        n_iterations_interpolation_ibc 5
 
-}
-Postraitement
-{
-    /* Definition_champs
-		{
-				# Creation of the 0D field: surface averaged pressure on the boundary wall #
-				averaged_pressure_SquareEast Reduction_0D { 
-					methode moyenne 
-					source Extraction { 
-							domaine square nom_frontiere left methode trace  
-							source RefChamp { Pb_champ pb pression } 
-                                        }
-                                }
-				averaged_pressure_SquareWest Reduction_0D { 
-					methode moyenne 
-					source Extraction { 
-							domaine square nom_frontiere right methode trace  
-							source RefChamp { Pb_champ pb pression } 
-                                        }
-                                }
-				# Calculating drag coef. pressure comp. (rho=1,v=1) #
-				drag_coef_pressure_comp Transformation { 
-					methode formule expression 1 2*(averaged_pressure_SquareEast-averaged_pressure_SquareWest) 
-					sources_reference { averaged_pressure_SquareWest , averaged_pressure_SquareEast }  
-				 } 
-		} */
-champs dt_post 0.1
-{
-indicatrice_square
-vitesse
-}
-}
-liste_postraitements
-{
-postraitement_ft_lata sphere {
+    }
+    Postraitement
+    {
+        /* Definition_champs
+        {
+            # Creation of the 0D field: surface averaged pressure on the boundary wall #
+            averaged_pressure_SquareEast Reduction_0D {
+                methode moyenne
+                source Extraction {
+                    domaine square nom_frontiere left methode trace
+                    source RefChamp { Pb_champ pb pression }
+                }
+            }
+            averaged_pressure_SquareWest Reduction_0D {
+                methode moyenne
+                source Extraction {
+                    domaine square nom_frontiere right methode trace
+                    source RefChamp { Pb_champ pb pression }
+                }
+            }
+            # Calculating drag coef. pressure comp. (rho=1,v=1) #
+            drag_coef_pressure_comp Transformation {
+                methode formule expression 1 2*(averaged_pressure_SquareEast-averaged_pressure_SquareWest)
+                sources_reference { averaged_pressure_SquareWest , averaged_pressure_SquareEast }
+            }
+        } */
+        champs dt_post 0.1
+        {
+            indicatrice_square
+            vitesse
+        }
+    }
+    liste_postraitements
+    {
+        postraitement_ft_lata sphere {
 
-Probes
-{
-	
-    # sonde_drag_coef_pressure_comp drag_coef_pressure_comp periode 0.0005 numero_elem_sur_maitre 1 #
-    sonde_pression_segment_h1 grav   pression periode 0.5 segment 100 0. 1.5  10. 1.5
-    sonde_pression_segment_h2 grav   pression periode 0.5 segment 100 0. 2.5  10. 2.5
-    sonde_pression_segment_h3 grav   pression periode 0.5 segment 100 0. 3.5  10. 3.5
-    sonde_pression_segment_v1 grav   pression periode 0.5 segment 100 0.8 0.  1. 5.
-    sonde_pression_segment_v2 grav   pression periode 0.5 segment 100 2.5 0.  2.5 5.
+            Probes
+            {
 
-    sonde_vitessex_segment_h1 nodes   vitessex periode 0.5 segment 100 0. 1.5  10. 1.5
-    sonde_vitessex_segment_h2 nodes   vitessex periode 0.5 segment 100 0. 2.5  10. 2.5
-    sonde_vitessex_segment_h3 nodes   vitessex periode 0.5 segment 100 0. 3.5  10. 3.5
-    sonde_vitessex_segment_v1 nodes   vitessex periode 0.5 segment 100 0.8 0.  1. 5.
-    sonde_vitessex_segment_v2 nodes   vitessex periode 0.5 segment 100 2.5 0.  2.5 5.
+                # sonde_drag_coef_pressure_comp drag_coef_pressure_comp periode 0.0005 numero_elem_sur_maitre 1 #
+                sonde_pression_segment_h1 grav   pression periode 0.5 segment 100 0. 1.5  10. 1.5
+                sonde_pression_segment_h2 grav   pression periode 0.5 segment 100 0. 2.5  10. 2.5
+                sonde_pression_segment_h3 grav   pression periode 0.5 segment 100 0. 3.5  10. 3.5
+                sonde_pression_segment_v1 grav   pression periode 0.5 segment 100 0.8 0.  1. 5.
+                sonde_pression_segment_v2 grav   pression periode 0.5 segment 100 2.5 0.  2.5 5.
 
-    sonde_vitessey_segment_h1 nodes   vitessey periode 0.5 segment 100 0. 1.5  10. 1.5
-    sonde_vitessey_segment_h2 nodes   vitessey periode 0.5 segment 100 0. 2.5  10. 2.5
-    sonde_vitessey_segment_h3 nodes   vitessey periode 0.5 segment 100 0. 3.5  10. 3.5
-    sonde_vitessey_segment_v1 nodes   vitessey periode 0.5 segment 100 0.8 0.  1. 5.
-    sonde_vitessey_segment_v2 nodes   vitessey periode 0.5 segment 100 2.5 0.  2.5 5.
+                sonde_vitessex_segment_h1 nodes   vitessex periode 0.5 segment 100 0. 1.5  10. 1.5
+                sonde_vitessex_segment_h2 nodes   vitessex periode 0.5 segment 100 0. 2.5  10. 2.5
+                sonde_vitessex_segment_h3 nodes   vitessex periode 0.5 segment 100 0. 3.5  10. 3.5
+                sonde_vitessex_segment_v1 nodes   vitessex periode 0.5 segment 100 0.8 0.  1. 5.
+                sonde_vitessex_segment_v2 nodes   vitessex periode 0.5 segment 100 2.5 0.  2.5 5.
 
-}
+                sonde_vitessey_segment_h1 nodes   vitessey periode 0.5 segment 100 0. 1.5  10. 1.5
+                sonde_vitessey_segment_h2 nodes   vitessey periode 0.5 segment 100 0. 2.5  10. 2.5
+                sonde_vitessey_segment_h3 nodes   vitessey periode 0.5 segment 100 0. 3.5  10. 3.5
+                sonde_vitessey_segment_v1 nodes   vitessey periode 0.5 segment 100 0.8 0.  1. 5.
+                sonde_vitessey_segment_v2 nodes   vitessey periode 0.5 segment 100 2.5 0.  2.5 5.
+
+            }
 
 
 
-format Lata
-fichier IBM
-champs dt_post 0.5 {
-vitesse elem
-pression som
-pression elem
-vorticite elem
-}
-interfaces square {
-}
-}
-}
+            format Lata
+            fichier IBM
+            champs dt_post 0.5 {
+                vitesse elem
+                pression som
+                pression elem
+                vorticite elem
+            }
+            interfaces square {
+            }
+        }
+    }
 }
 
 Solve pb
