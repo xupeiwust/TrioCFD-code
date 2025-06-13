@@ -118,6 +118,24 @@ Lire pb
             sortie frontiere_ouverte_pression_imposee champ_front_uniforme 1 100000.0
         }
     }
+    energie_cinetique_turbulente
+    {
+        diffusion { turbulente SGDH { sigma 0.67 } }
+        convection { amont }
+        initial_conditions { k champ_fonc_xyz dom 1 0.01 }
+        boundary_conditions
+        {
+            bas Cond_lim_k_simple_flux_nul 
+            haut symetrie
+            entree	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.01
+            sortie	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.01
+        }
+        sources
+        {
+            Production_energie_cin_turb { } ,
+            Terme_dissipation_energie_cinetique_turbulente { beta_k 0.09 }
+        }
+    }
 	echelle_temporelle_turbulente
     {
         diffusion { turbulente SGDH { sigma 0.5 } }
@@ -136,24 +154,6 @@ Lire pb
             Dissipation_echelle_temp_taux_diss_turb { beta_omega 0.075 }  ,
             Diffusion_croisee_echelle_temp_taux_diss_turb { sigma_d 0.5 }
              , Diffusion_supplementaire_echelle_temp_turb 
-        }
-    }
-    energie_cinetique_turbulente
-    {
-        diffusion { turbulente SGDH { sigma 0.67 } }
-        convection { amont }
-        initial_conditions { k champ_fonc_xyz dom 1 0.01 }
-        boundary_conditions
-        {
-            bas Cond_lim_k_simple_flux_nul 
-            haut symetrie
-            entree	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.01
-            sortie	frontiere_ouverte k_ext Champ_Front_Uniforme 1 0.01
-        }
-        sources
-        {
-            Production_energie_cin_turb { } ,
-            Terme_dissipation_energie_cinetique_turbulente { beta_k 0.09 }
         }
     }
 
