@@ -1,7 +1,1 @@
-#!/bin/sh
-
-${TrioCFD_project_directory}/share/bin/verifie_lata_cut_cell.sh $1
-
-exit 0
-
-
+../../../../../../share/bin/verifie_lata.sh

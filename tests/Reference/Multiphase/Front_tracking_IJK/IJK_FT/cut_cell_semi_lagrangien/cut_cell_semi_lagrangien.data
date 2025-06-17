@@ -166,7 +166,7 @@ lire pb
 
   {
     seuil_indicatrice_petite_fixe 0.01
-    type_surface_efficace_face conservation_volume_iteratif
+    type_surface_efficace_face algebrique_simple
     type_surface_efficace_interface conservation_volume
 
     facettes_interpolation

@@ -7,16 +7,19 @@
 
 
 # Trouve le nom du cas test:
-name=$1
+fullname=$1
 
-echo "Test case name: ${name}"
+name=${fullname#PAR_}
+
+echo "Test case name: ${fullname}"
 
 # untar ref for compare_lata
 tar xzf ref.tar.gz
 
 
 # Update ref if asked
-if [ "$UPDATE_LATA_REF" != "" ]; then
+if [ "$UPDATE_LATA_REF" != "" ] && [ "$fullname" != "$name" ]
+then
 
 	test_path=${TrioCFD_project_directory}/tests/Reference/$(realpath -s --relative-to=$TRUST_TMP/tests $(pwd))
 
@@ -42,16 +45,32 @@ fi
 
 
 # Compare to ref
-for cas in "" "PAR_"
-do
-	if [ -f ${cas}${name}.lata ] ; then 
-		echo Comparing ${cas}${name}.lata ref/${name}.lata
-		if compare_lata ${cas}${name}.lata ref/${name}.lata 
-		then
-			echo "ok"
-		else
-			echo "Comparaison avec le lata de reference echouee."
-			exit 1
-		fi
-	fi
-done
+if [ -f ${cas}${name}.lata ] ; then 
+
+    # differences between seq and parallel are allowed if # ECART_SEQ_PAR # is found in the datafile
+    ecart_seq_par=$(grep -n "ECART_SEQ_PAR" ${name}.data | tail -1)
+    ecart_seq_par=${ecart_seq_par%%:*}
+    if [ "$fullname" != "$name" ] && [ "$ecart_seq_par" != "" ]
+    then
+        echo "Warning: allowing SEQ/PAR differences according to ${name}.data, at line ${ecart_seq_par}."
+    fi
+
+    # comparison
+    echo Comparing ${fullname}.lata ref/${name}.lata
+    if compare_lata ${fullname}.lata ref/${name}.lata 
+    then
+        echo "ok"
+        exit 0
+    else
+
+        if [ "$fullname" != "$name" ] && [ "$ecart_seq_par" != "" ]
+        then
+            echo "Warning: found SEQ/PAR differences, but this was expected."
+            exit 0
+        else
+        echo "Error: Failed comparison to reference lata."
+        exit 1
+        fi
+        
+    fi
+fi

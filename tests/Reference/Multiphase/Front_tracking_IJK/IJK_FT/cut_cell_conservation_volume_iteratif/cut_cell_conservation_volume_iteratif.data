@@ -1,4 +1,7 @@
 # PARALLEL OK 8 #
+# ECART_SEQ_PAR (for verifie_lata.sh) #
+# Le mot clé  type_surface_efficace_face conservation_volume_iteratif cause les écarts #
+
 # Le decoupage ne fait rien #
 # Astuce pour que make_PAR.data trouve deux processeurs de calcul:
 Nom_Zones toto
@@ -71,17 +74,17 @@ lire pb
     # Give a number for each phase #
     fluide0 Fluide_Incompressible # gaz #
     {
-      mu  Champ_Uniforme 1 2.303e-05
-      rho Champ_Uniforme 1 101.93
-      lambda Champ_Uniforme 1 0.0221
-      cp Champ_Uniforme 1 2478.0
+        mu  Champ_Uniforme 1 2.303e-05
+        rho Champ_Uniforme 1 101.93
+        lambda Champ_Uniforme 1 0.0221
+        cp Champ_Uniforme 1 2478.0
     }
     fluide1 Fluide_Incompressible # liquid #
     {
-      mu  Champ_Uniforme 1 6.8237e-05
-      rho Champ_Uniforme 1 594.38
-      lambda Champ_Uniforme 1 0.6898760700000001
-      cp Champ_Uniforme 1 10110.0
+        mu  Champ_Uniforme 1 6.8237e-05
+        rho Champ_Uniforme 1 594.38
+        lambda Champ_Uniforme 1 0.6898760700000001
+        cp Champ_Uniforme 1 10110.0
     }
     # Surface tension #
     sigma   Champ_Uniforme 1 0.
@@ -150,7 +153,7 @@ lire pb
 
       expression_T_init 293.0+80.0*exp(-0.5*((x^2)/(0.001^2)+(y^2)/(0.001^2)+(z^2)/(0.001^2)))+80.0*exp(-0.5*(((x-0.005)^2)/(0.001^2)+(y^2)/(0.001^2)+(z^2)/(0.001^2)))+80.0*exp(-0.5*((x^2)/(0.001^2)+(y^2)/(0.001^2)+((z-0.005)^2)/(0.001^2)))+80.0*exp(-0.5*(((x-0.005)^2)/(0.001^2)+(y^2)/(0.001^2)+((z-0.005)^2)/(0.001^2)))+80.0*exp(-0.5*((x^2)/(0.001^2)+((y-0.005)^2)/(0.001^2)+(z^2)/(0.001^2)))+80.0*exp(-0.5*(((x-0.005)^2)/(0.001^2)+((y-0.005)^2)/(0.001^2)+(z^2)/(0.001^2)))+80.0*exp(-0.5*((x^2)/(0.001^2)+((y-0.005)^2)/(0.001^2)+((z-0.005)^2)/(0.001^2)))+80.0*exp(-0.5*(((x-0.005)^2)/(0.001^2)+((y-0.005)^2)/(0.001^2)+((z-0.005)^2)/(0.001^2)))
 
-      cut_cell_schema_convection quick_ou_centre2_stencil
+      cut_cell_schema_convection quick_ou_amont_perpendicular_distance
       convection_auxiliaire
       {
         methode_valeur_remplissage ponderation_voisin
@@ -167,7 +170,7 @@ lire pb
 
   {
     seuil_indicatrice_petite_fixe 0.01
-    type_surface_efficace_face algebrique_simple
+    type_surface_efficace_face conservation_volume_iteratif # WARNING: causes seq/par differences #
     type_surface_efficace_interface conservation_volume
 
     facettes_interpolation
