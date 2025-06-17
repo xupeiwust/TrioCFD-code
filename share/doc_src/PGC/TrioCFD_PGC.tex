@@ -1,7 +1,7 @@
 \documentclass[10pt,twoside,a4paper]{memoir}
 \usepackage[T1]{fontenc}
-\usepackage{longtable}
 \usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
 \usepackage{lmodern}
 \usepackage{lettrine}
 \usepackage{geometry}
@@ -16,11 +16,13 @@
 \usepackage[open=true]{bookmark}
 \usepackage{caption}
 \usepackage{listings}
+\usepackage{tabularx}
+\usepackage{pdflscape}
 \usepackage{array,multirow,multicol}
+\usepackage{longtable}
 \usepackage{lastpage}
 \usepackage{cellspace}
 \usepackage{enumitem}
-\usepackage[french]{babel}
 \usepackage{float}
 \usepackage{microtype}
 \usepackage{chngcntr}
@@ -152,7 +154,7 @@
 
 % Variables definition
 % - TrioCFD version
-\newcommand\codeVersion{1.9.5}
+\newcommand\codeVersion{1.9.6}
 
 \makeindex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -166,8 +168,8 @@
 %\renewcommand{\headrulewidth}{0pt}
 %\renewcommand{\footrulewidth}{0pt}
 \begin{multicols}{2}
-\includegraphics[scale=0.75]{pictures/cealogo.png}
-\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LMSF}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
+\includegraphics[scale=0.75]{../pictures/cealogo.png}
+\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LDEL}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \begin{flushright}\Ovalbox{\begin{minipage}{4cm} \begin{center} \vspace{0.4cm}\Large{\thepage/\pageref{LastPage}}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \end{multicols}
 \cornersize{.2}
@@ -178,23 +180,26 @@
 \hspace{2.8cm}\LARGE{\textbf{Plan de Gestion de Configuration de  TrioCFD v\codeVersion}}}
 \end{center}
 \vspace{0.3cm}
-\begin{center}\includegraphics[scale=0.7]{pictures/TrioCFD.png} \end{center}
-\vspace{0.3cm}
-\begin{center}\includegraphics[scale=0.2]{pictures/logo_DM2S.png} \end{center}
+\begin{center}
+\includegraphics[height=3cm]{pictures/TrioCFD.png} 
+\hspace{0.3cm}
+\includegraphics[height=3cm]{pictures/logo_DM2S.png}
+\end{center}
 \vspace{0.4cm}
 \setlength{\tabcolsep}{0.5cm}
 \begin{tabular}{ Sc|Sc|Sc|Sc }
 \hline
 Code Version & Date & Code manager & Authors \\
 \hline
-v\codeVersion & \today & A. B. DU CLUZEAU & J.DARONA\\
+v\codeVersion & \today & A. B. DU CLUZEAU & J. DARONA \\
+              &        &                  & T. BOUTIN \\
 \hline
 \multicolumn{2}{Sc|}{ } & \multicolumn{2}{Sl}{\textit{Input file : } PGC\_TrioCFD.tex } \\
 \multicolumn{2}{c|}{\textbf{DES/ISAS/DM2S} } & \multicolumn{2}{l}{\textit{Software : } TrioCFD } \\
 \multicolumn{2}{c|}{\textbf{CEA SACLAY} } & \multicolumn{2}{c}{ } \\
 \cline{3-4}
 \multicolumn{2}{c|}{\textbf{91191 GIF-SUR-YVETTE CEDEX} } & \multicolumn{2}{c}{ } \\
-\multicolumn{2}{Sc|}{ } & \multicolumn{2}{Sc}{\large{\textbf{DES/ISAS/DM2S/STMF/LMSF/UD}} } \\
+\multicolumn{2}{Sc|}{ } & \multicolumn{2}{Sc}{\large{\textbf{DES/ISAS/DM2S/STMF/LDEL/UD}} } \\
 \multicolumn{2}{c|}{ } & \multicolumn{2}{c}{ } \\
 \end{tabular}
 \end{minipage}}
@@ -228,7 +233,7 @@ v\codeVersion & \today & A. B. DU CLUZEAU & J.DARONA\\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\part{\label{partie:outils}Bo\^ite \`a Outils}
 %\normalsize \normalfont
-%\input{./part4-boite.tex}
+% \input{./part4-boite.tex}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \part{\label{partie:v&v}Description des Outils de V\'erification et Validation}
 \normalsize \normalfont
@@ -245,10 +250,6 @@ v\codeVersion & \today & A. B. DU CLUZEAU & J.DARONA\\
 \part{\label{partie:com}Communication}
 \normalsize \normalfont
 \input{./part8-communication.tex}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\part{Conclusion}
-\normalsize \normalfont
-\input{./part9-conclusion.tex}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \lhead{}

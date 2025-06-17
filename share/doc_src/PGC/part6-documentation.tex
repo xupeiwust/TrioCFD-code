@@ -46,11 +46,31 @@ soit dans le répertoire \texttt{doc/TRUST} de TRUST. Cette documentation est co
 \rhead{DOCUMENTATION}
 Outre cette documentation de TRUST, TrioCFD dispose de sa propre documentation en complément. Une grande partie de celle-ci a été mise en place récemment (à partir de 2019) afin de fournir d'avantage de supports à la communauté TrioCFD mais également d'accroître la qualité du code. Jusqu'alors les ressources humaines n'étaient pas suffisantes pour mener de front l'enrichissement des modèles et la mise en qualité. L'ensemble de ces documents sont gérés en gestion de configuration (sous GIT). Ils sont régulièrement enrichis et mis à jour au fur et à mesure des évolutions du code. En effet, leur mise à jour est une étape obligatoire dans tous les processus d'actions menées sur TrioCFD et ils sont relus, au même titre que le code à proprement parler, avant d'être intégrés dans la version. Mise à part la Release Notes qui est un simple document texte, ils sont tous en latex et disposent de leur propre script de génération. Les sources latex de ces documents sont accessibles dans le répertoire \texttt{/share/doc\_src} et disposent d'un répertoire spécifique chacun. Les fichiers PDF correspondants sont, quant à eux, disponibles dans le répertoire \texttt{/share/doc}. Tout comme TRUST, TrioCFD dispose d'une page Html facilitant l'accès à ces différents documents, qui peut être ouverte par la commande \texttt{triocfd -index} après avoir chargé l'environnement TrioCFD.
 
+\subsection{Site de documentation sur la plateforme ReadTheDocs}
+
+Depuis la version 1.9.6 (juin 2025), TrioCFD dispose d'une documentation publique sous forme de site web, hébergé sur la plateforme ReadTheDocs et basé sur l'outil Sphinx. Ce format permet une présentation plus ergonomique et accessible, par comparaison au format pdf.
+
+Cette documentation est accessible via ce lien : \url{https://triocfd-documentation.readthedocs.io/en/latest/}.
+La mise à jour et l'ajout de contenu se fait via le dépot github \href{https://github.com/cea-trust-platform/triocfd-documentation}{triocfd-documentation}\footnote{Lien complet: \url{https://github.com/cea-trust-platform/triocfd-documentation}}, qui fait partie du projet \href{https://github.com/cea-trust-platform}{cea-trust-platform}.
+
+Cette documentation s'articule en deux parties majeures:
+\begin{itemize}
+\item \textit{Partie utilisateur} : cette partie à pour but de documenter l'utilisation du code: installation, structure du jeu de données d'entrée de TrioCFD et mots-clés, description des modèles.
+\item \textit{Partie Développeur} : cette partie vise principalement à documenter la méthodologie de travail à suivre pour les développeurs, sur les aspects V\&V, documentation, écriture de code et usage de l'outil git.
+\end{itemize}
+
+Cette documentation contient également le document "TrioCFD Reference Manual" décrit plus bas dans ce document (sous un format bien plus ergonomique et convivial que le pdf), ainsi que la documentation Doxygen détaillant la hiérarchie des classes et méthodes implémentées dans le code.
+
+Un point fort de ce format est la possibilité de réunir tout les documents utiles au même endroit et d'ajouter des références croisées cliquables entre les différentes catégories de documentation (mots-clés du "TrioCFD Reference Manual", équations et méthodes numériques du document "Description des mod\`eles", et classes/méthodes de Doxygen).
+
+\`A terme, les documentations "Description des mod\`eles" et "Pb\_Multiphase" seront transférées vers ce site avec l'ajout de références précises aux code et mots-clés.
+Le contenu du PGC sera également en partie copié dans cette documentation, dans la partie développeur, sous un format plus didactique, ayant pour but de donner direzctement les instructions à suivre lors du développement dans TrioCFD. Actuellement, ce document est trop peu consulté par les développeurs.
+
 \subsection{Release Notes}
-TrioCFD dispose de sa propre Release notes qui présente la même structure que celle de TRUST : date d'intégration dans le code - code concerné - nature du travail - bref descriptif. Elle présente l'ensemble des modifications/évolutions majeures faites dans le code depuis la version v1.4.0 (mi-2002), version dans laquelle, elle a été mise en place pour la première fois. Elle est organisée par livraison afin que l'utilisateur soit bien informé des changements d'une version à l'autre.\\
+TrioCFD dispose de sa propre Release notes qui présente la même structure que celle de TRUST : date d'intégration dans le code - code concerné - nature du travail - bref descriptif. Elle présente l'ensemble des modifications/évolutions majeures faites dans le code depuis la version v1.4.0 (mi-2002), version dans laquelle elle a été mise en place pour la première fois. Elle est organisée par livraison afin que l'utilisateur soit bien informé des changements d'une version à l'autre.\\
 Elle est également mise à jour par le développeur lorsque ses travaux font apparaître de nouvelles fonctionnalités dans le code ou modifient le fonctionnement ou les résultats des fonctionnalités existantes. Elle est relue au moment de l'intégration de la branche d'un développement dans le code. Il est recommandé à l'utilisateur de la consulter avant l'utilisation de toute nouvelle version. Des renseignements supplémentaires sur chacun des points peuvent être obtenus auprès de l'équipe de TMA ou du Responsable de Code.
 
-\subsection{TrioCFD Reference Manuel}
+\subsection{TrioCFD Reference Manual}
 Tout comme le Manuel de Reference de TRUST, celui de TrioCFD est généré automatiquement à partir les balises XDATA présentes dans le code et définies par les développeurs pour chaque implémentation de nouveau mot clé. En effet, ce manuel répertorie l'ensemble des mots-clés de TrioCFD à disposition des utilisateurs pour la construction des jeux de données. Il précise la syntaxe exacte à employer pour chacun et décrit brièvement leur utilité.\\
 Si ce document n'est pas extrêmement ergonomique et convivial, il présente néanmoins l'intérêt d'avoir les informations sur les mots-clés directement dans le code, ce qui facilite son évolution et sa maintenance. Des travaux sont actuellement en cours afin de mettre en place une documentation des mots-clé plus accessible et riche.
 

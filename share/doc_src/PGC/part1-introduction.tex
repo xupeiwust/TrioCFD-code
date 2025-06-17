@@ -40,12 +40,12 @@ En ce qui concerne l'unification des codes, celle-ci ne s'est finalement pas fai
 Au fil des ann\'ees, les mod\`eles, fonctionnalit\'es et outils du code ont \'et\'e enrichis progressivement. L'historique de ces principales am\'eliorations sont pr\'ecis\'ees dans la frise chronologique \ref{figure:Histo-triou}.\smallskip\newline
 En 2015, TRIO\_U v1.7.1 a \'et\'e scind\'e en deux parties : TrioCFD et TRUST. 
 Cette s\'eparation entre TRUST et TrioCFD a \'et\'e faite de mani\`ere à ce que le code TRUST contienne toute la partie \texttt{noyau logiciel (kernel)} \'a savoir les op\'erateurs, les solveurs, la discr\'etisation, les outils de maillage et de post-traitement, les sch\'emas en espace et en temps et le parall\'elisme. TRUST est ainsi capable de r\'esoudre de mani\`ere autonome des probl\`emes laminaires monophasiques incompressibles ou quasi-compressibles en 2D ou 3D. TrioCFD regroupe, quant \`a lui, la partie \texttt{mod\`eles physiques pouss\'es pour la CFD} comme la turbulence
-(LES et RANS), le diphasique (Front-tracking et Interface diffuse), les interactions fluide-structure (m\'ethode ALE),... Ces mod\`eles physiques sont rang\'es dans des modules distincts appel\'es \texttt{Baltik} faisant de TrioCFD un code modulaire.\newpage
-\footnotesize
-%\scriptsize
+(LES et RANS), le diphasique (Front-tracking et Interface diffuse), les interactions fluide-structure (m\'ethode ALE),... Ces mod\`eles physiques sont rang\'es dans des modules distincts appel\'es \texttt{Baltik} faisant de TrioCFD un code modulaire.
+
+\begin{figure}[p]
+\centering
 \begin{tikzpicture}
 	\draw (8,0) -- (8,18.52) ;
-	\draw (0,0) -- (0,0.01) ;
 	\draw (7.8,18.52) -- (8.2,18.52) ;
 	\draw (7.8,18.52) node[left]{$1994$} ;
 	\draw[blue,thick,dashed] (8.0,18.52) -- (8.7,18.52) ;
@@ -77,8 +77,8 @@ Cette s\'eparation entre TRUST et TrioCFD a \'et\'e faite de mani\`ere à ce que
 	\draw[magenta,thick,dashed] (6.4,15.37) -- (6.4,14.85) ;
 	\draw[magenta,thick,dashed] (6.4,15.37) -- (6.3,15.37) ;
 	\draw[magenta,thick,dashed] (6.4,14.85) -- (6.3,14.85) ;
-	\draw[magenta] (6.2,15.37) node[left]{$1^{\`ere}$ Version Linux} ;
-	\draw[magenta] (6.2,14.95) node[left]{$1^{\`ere}$ Maquette de parall\'elisme pour les machines CRAY} ;
+	\draw[magenta] (6.2,15.37) node[left]{$1^{\text{\`ere}}$ Version Linux} ;
+	\draw[magenta] (6.2,14.95) node[left]{$1^{\text{\`ere}}$ Maquette de parall\'elisme pour les machines CRAY} ;
 	\draw (7.8,14.74) -- (8.0,14.74) ;
 	\draw[blue,thick,dashed] (8.0,14.74) -- (8.7,14.74) ;
 	\draw (8.8,14.74) node[right]{\textcolor{blue}{v1.1} Ajout de la discr\'etisation VEF} ;
@@ -94,7 +94,7 @@ Cette s\'eparation entre TRUST et TrioCFD a \'et\'e faite de mani\`ere à ce que
 	\draw (7.8,13.48) node[left]{$2000$} ;
 	\draw (7.8,13.06) -- (8.0,13.06) ;
 	\draw[blue,thick,dashed] (8.0,13.06) -- (8.7,13.06) ;
-	\draw[magenta] (8.8,13.06) node[right]{\textcolor{blue}{v1.2} $1^{\`ere}$ Version parall\`ele officielle} ;
+	\draw[magenta] (8.8,13.06) node[right]{\textcolor{blue}{v1.2} $1^{\text{\`ere}}$ Version parall\`ele officielle} ;
 	\draw (7.8,12.64) -- (8.2,12.64) ;
 	\draw (7.8,12.64) node[left]{$2001$} ;
 	\draw (7.8,12.22) -- (8.0,12.22) ;
@@ -109,7 +109,7 @@ Cette s\'eparation entre TRUST et TrioCFD a \'et\'e faite de mani\`ere à ce que
 	\draw (7.8,10.96) -- (8.2,10.96) ;
 	\draw (7.8,10.96) node[left]{$2003$} ;
 	\draw[black,thick,dashed] (6.3,10.96) -- (7.0,10.96) ;
-	\draw (6.2,10.96) node[left]{$1^{\`ere}$ version utilisable du Quasi-Compressible} ;
+	\draw (6.2,10.96) node[left]{$1^{\text{\`ere}}$ version utilisable du Quasi-Compressible} ;
 	\draw (7.8,10.54) -- (8.0,10.54) ;
 	\draw (7.8,10.12) -- (8.2,10.12) ;
 	\draw (7.8,10.12) node[left]{$2004$} ;
@@ -177,139 +177,196 @@ Cette s\'eparation entre TRUST et TrioCFD a \'et\'e faite de mani\`ere à ce que
 	\draw[magenta] (6.2,00.46) node[left]{Passage en OpenSource} ;
 	\draw (7.8,00.04) -- (8.2,00.04) ;
 	\draw (7.8,00.04) node[left]{$2016$} ;
-\end{tikzpicture}\smallskip
-\normalsize
-\begin{center}\captionof{figure}{\label{figure:Histo-triou}Historique de Trio\_U. \small code couleur : \textcolor{blue}{version livr\'ee} -
-\textcolor{cyan}{outils de visualistion et mailage} - \textcolor{green}{outils de documentation et validation} -
-\textcolor{magenta}{outils informatiques et de couplage} - physique et num\'erique}\end{center}\smallskip
+\end{tikzpicture}
+
+\caption{Historique de Trio\_U. Code couleur : \textcolor{blue}{version livr\'ee} - \textcolor{cyan}{outils de visualistion et mailage} - \textcolor{green}{outils de documentation et validation} - \textcolor{magenta}{outils informatiques et de couplage} - physique et num\'erique }
+
+\label{figure:Histo-triou}
+
+
+\end{figure}
+
 \normalsize
 
-Malgr\`e cette scission, TrioCFD reste tr\`es proche de TRUST autant au niveau
+Malgr\'e cette scission, TrioCFD reste tr\`es proche de TRUST autant au niveau
 des outils que de la gestion quotidienne. Les deux équipes de développement s'attachent \`a sortir les versions en 
 m\^eme temps pour faciliter le processus de livraison. Chaque projet est g\'er\'e par 
 une forge TULEAP propre (TRUST \& TrioCFD), il existe une forge d\'edi\'ee \`a l'administration des deux projets (TRUST admin CEA). Une bonne partie des documents utiles tout comme les formations utilisateurs et d\'eveloppeurs sont communes pour TrioCFD \& TRUST.\smallskip\newline
 
-Depuis 2015 et la scission de TRUST et TrioCFD, les 2 codes ont continu\'e \`a \'evoluer, pour TRUST, sur les aspects outils, performances et optimisations et pour TrioCFD, sur les mod\`eles physiques et la documentation. Les \'evolutions de TRUST depuis 2015 ne sont pas d\'etaill\'es dans ce pr\'esent document puisque ce Plan de Gestion Logiciel concerne TrioCFD. Il est toutefois \`a noter qu'en 2020, deux am\'eliorations majeures ont \'et\'e apportées à TRUST :
+Depuis 2015 et la scission de TRUST et TrioCFD, les deux codes ont continu\'e \`a \'evoluer, pour TRUST, sur les aspects outils, performances et optimisations et pour TrioCFD, sur les mod\`eles physiques et la documentation. Les \'evolutions de TRUST depuis 2015 ne sont pas d\'etaill\'es dans ce pr\'esent document puisque ce Plan de Gestion Logiciel concerne TrioCFD. Il est toutefois \`a noter qu'en 2020, deux am\'eliorations majeures ont \'et\'e apportées à TRUST :
 \begin{itemize}
 	\item possibilit\'e de lancement de calculs sur la partie GPU des processeurs
 	\item passage du code en 64 bits
 \end{itemize}
 \vspace{1cm}
-Pour TrioCFD, les \'evolutions majeures sont explicit\'ees sur la frise chronologique
-\ref{figure:Histo-triocfd}.\smallskip
+Pour TrioCFD, les \'evolutions majeures sont explicit\'ees sur la frise chronologique \ref{figure:Histo-triocfd}.
 
-\begin{tikzpicture}
-	\draw[<-,>=stealth] (8,-1.63) -- (8,14.12) ;
-	\draw (0,0) -- (0,0.01) ; 
-	\draw (7.8,14.12) -- (8.2,14.12) ;
-	\draw (7.8,14.12) node[left]{$2015$} ;
-	\draw (7.8,13.70) -- (8.0,13.70) ;
-	\draw (7.8,13.28) -- (8.0,13.28) ;
-	\draw[blue,thick,dashed] (8.0,13.28) -- (8.7,13.28) ;
-	\draw (8.8,13.28) node[right]{\textcolor{blue}{v1.7.1} S\'eparation de Trio\_U en TRUST \& TrioCFD} ;
-	\draw[green,thick,dashed] (6.3,13.28) -- (8.0,13.28) ;
-	\draw (6.2,13.28) node[left]{Passage en OpenSource} ;
-	\draw (7.8,12.86) -- (8.0,12.86) ;
-	\draw (7.8,12.44) -- (8.2,12.44) ;
-	\draw[blue,thick,dashed] (8.0,12.58) -- (8.7,12.58) ;
-	\draw (8.8,12.58) node[right]{\textcolor{blue}{v1.7.2}};
-	\draw (7.8,12.44) node[left]{$2016$} ;
-	\draw (7.8,12.02) -- (8.0,12.02) ;
-	\draw (7.8,11.60) -- (8.0,11.60) ;
-	\draw[blue,thick,dashed] (8.0,11.60) -- (8.7,11.60) ;
-	\draw (8.8,11.60) node[right]{\textcolor{blue}{v1.7.3} Ajout d'un mod\`ele non-lin\'eaire k-epsilon (turbulence)} ;
-	\draw[blue,thick,dashed] (6.3,11.74) -- (8.0,11.74) ;
-	\draw (6.2,11.94) node[left]{Ajout d'un nouveau mod\`ele } ;
-	\draw (6.2,11.54) node[left]{de turbulence Bas-Reynolds} ;
-	\draw (7.8,11.18) -- (8.0,11.18) ;
-	\draw[blue,thick,dashed] (8.0,10.90) -- (8.7,10.90) ;
-	\draw (8.8,10.90) node[right]{\textcolor{blue}{v1.7.4}};
-	\draw[green,thick,dashed] (6.3,10.90) -- (8.0,10.90) ;
-	\draw (6.2,10.90) node[left]{\textcolor{green}{Nouvelle doc} : Reference Guide} ;
-	\draw (7.8,10.76) -- (8.2,10.76) ;
-	\draw (7.8,10.76) node[left]{$2017$} ;
-	\draw (7.8,10.34) -- (8.0,10.34) ;
-	\draw[blue,thick,dashed] (8.0,10.34) -- (8.7,10.34) ;
-	\draw (8.8,10.34) node[right]{Front-Tracking Discontinu : couplage avec la thermique} ;
-	\draw (7.8,09.92) -- (8.0,09.92) ;
-	\draw[blue,thick,dashed] (8.0,09.92) -- (8.7,09.92) ;
-	\draw (8.8,09.92) node[right]{\textcolor{blue}{v1.7.5} \textbf{Baltik} Schema\_Euler\_Implicite\_Stationnaire} ;
-	\draw (7.8,09.50) -- (8.0,09.50) ;
-	\draw[blue,thick,dashed] (8.0,09.22) -- (8.7,09.22) ;
-	\draw (8.8,09.22) node[right]{\textcolor{blue}{v1.7.6}};
-	\draw (7.8,09.08) -- (8.2,09.08) ;
-	\draw (7.8,09.08) node[left]{$2018$} ;
-	\draw (7.8,08.66) -- (8.0,08.66) ;
-	\draw (7.8,08.24) -- (8.0,08.24) ;
-	\draw[blue,thick,dashed] (8.0,08.24) -- (8.7,08.24) ;
-	\draw (8.8,08.24) node[right]{\textcolor{blue}{v1.7.7}} ;
-	\draw (7.8,07.82) -- (8.0,07.82) ;
-	\draw[blue,thick,dashed] (8.0,07.54) -- (8.7,07.54) ;
-	\draw (8.8,07.74) node[right]{\textcolor{blue}{v1.7.8} \textbf{Baltik} P1NCP0RT : sch\'ema P1NC-P0 avec} ;
-	\draw (8.8,07.34) node[right]{projection de Raviart-Thomas} ;
-	\draw (7.8,07.40) -- (8.2,07.40) ;
-	\draw (7.8,07.40) node[left]{$2019$} ;
-	\draw (7.8,06.98) -- (8.0,06.98) ;
-	\draw (7.8,06.56) -- (8.0,06.56) ;
-	\draw[blue,thick,dashed] (8.0,06.56) -- (8.7,06.56) ;
-	\draw (8.8,06.56) node[right]{\textcolor{blue}{v1.7.9} \textbf{Baltik} ALE pour interactions fluide/structure} ;
-	\draw (7.8,06.14) -- (8.0,06.14) ;
-	\draw[blue,thick,dashed] (8.0,05.86) -- (8.7,05.86) ;
-	\draw (8.8,06.06) node[right]{\textcolor{blue}{v1.8.0} D\'eplacement des mod\`eles de Turbulence } ;
-	\draw (8.8,05.66) node[right]{de TRUST vers TrioCFD} ;
-	\draw (7.8,05.72) -- (8.2,05.72) ;
-	\draw (7.8,05.72) node[left]{$2020$} ;
-	\draw (7.8,05.30) -- (8.0,05.30) ;
-	\draw (7.8,04.88) -- (8.0,04.88) ;
-	\draw[blue,thick,dashed] (8.0,04.88) -- (8.7,04.88) ;
-	\draw (8.8,04.88) node[right]{\textcolor{blue}{v1.8.1}} ;
-	\draw (7.8,04.46) -- (8.0,04.46) ;
-	\draw (7.8,04.04) -- (8.2,04.04) ;
-	\draw[blue,thick,dashed] (8.0,04.18) -- (8.7,04.18) ;
-	\draw (8.8,04.18) node[right]{\textcolor{blue}{v1.8.2} \textbf{Baltik} Sensitivity\_analysis} ;
-	\draw[green,thick,dashed] (6.3,04.18) -- (8.0,04.18) ;
-	\draw (6.2,04.18) node[left]{\textcolor{green}{Nouvelle doc} : Rapport de validation} ;
-	\draw (7.8,04.04) node[left]{$2021$} ;
-	\draw (7.8,03.62) -- (8.0,03.62) ;
-	\draw (7.8,03.20) -- (8.0,03.20) ;
-	\draw[green,thick,dashed] (8.0,03.20) -- (8.7,03.20) ;
-	\draw (8.8,03.20) node[right]{\textcolor{blue}{v1.8.3} Restructuration des Baltiks} ;
-	\draw[green,thick,dashed] (6.3,03.20) -- (7.98,03.20) ;
-	\draw (6.2,03.20) node[left]{\textcolor{green}{Nouvelle doc} : Description des mod\`eles} ;
-	\draw (7.8,02.78) -- (8.0,02.78) ;
-	\draw[green,thick,dashed] (6.3,02.50) -- (8.0,02.50) ;
-	\draw (6.2,02.70) node[left]{\textcolor{green}{Nouvelle doc} : Plan de Gestion } ;
-	\draw (6.2,02.30) node[left]{ de Configuration} ;
-	\draw[blue,thick,dashed] (8.0,02.50) -- (8.7,02.50) ;
-	\draw (8.8,02.50) node[right]{\textcolor{blue}{v1.8.4}};
-	\draw (7.8,02.36) -- (8.2,02.36) ;
-	\draw (7.8,02.36) node[left]{$2022$} ;
-	\draw (7.8,01.94) -- (8.0,01.94) ;
-	\draw (9.8,01.86) node[right]{\textbf{Baltik} Optimisation/Aposteriori};
-	\draw (7.8,01.52) -- (8.0,01.52) ;
-	\draw[blue,thick,dashed] (8.0,01.52) -- (8.7,01.52) ;
-	\draw[green,thick,dashed] (6.3,01.52) -- (8.0,01.52) ;	
-	\draw (6.2,01.52) node[left]{R\'eorganisation des fiches de validation} ;	
-	\draw (8.8,01.52) node[right]{\textcolor{blue}{v1.9.0} \textbf{Baltik} Multiphase/CMFD};
-	\draw (9.8,01.18) node[right]{\textbf{Baltik} Multiphase/Front\_tracking\_IJK};
-	\draw (7.8,01.10) -- (8.0,01.10) ;
-	\draw[blue,thick,dashed] (8.0,00.82) -- (8.7,00.82) ;
-	\draw (8.8,00.82) node[right]{\textcolor{blue}{v1.9.1} \textbf{Baltik} Fluid\_Structure\_Interaction};
-	\draw (7.8,00.68) -- (8.2,00.68) ;
-	\draw (7.8,00.68) node[left]{$2023$} ;
-	\draw (7.8,00.26) -- (8.0,00.26);
-	\draw (7.8,-00.16) -- (8.0,-00.16);
-	\draw (7.8,-00.58) -- (8.0,-00.58);
-	\draw[blue,thick,dashed] (8.0,-00.16) -- (8.7,-00.16);
-	\draw (8.8,-00.16) node[right]{\textcolor{blue}{v1.9.2} R\'eorganisation des fichiers sources};
-	\draw (7.8,-1.00) -- (8.2, -1.00);
-	\draw (7.8,-1.00) node[left]{$2024$};
-	\draw[blue,thick,dashed] (8.0,-1.00) -- (8.7,-1.00);
-	\draw (8.8,-1.00) node[right]{\textcolor{blue}{v1.9.3} Am\'eliorations Turbulence, FSI, FT, CMFD};
-\end{tikzpicture}\smallskip
-\begin{center}\captionof{figure}{\label{figure:Histo-triocfd}Historique de TrioCFD}\end{center}\smallskip
+\usetikzlibrary{math}
 
-\newpage
+\begin{figure}[p]
+
+\centering
+
+% TODO: document these macro for the chronology
+\def\chronoYearSpacing{1.68}
+\def\leftTextWidth{5cm}
+\def\rightTextWidth{8cm}
+
+\newcommand{\drawYear}[1]{
+    \tikzmath{
+        \h = (\startYear-#1)*\chronoYearSpacing;
+    }
+    \draw (-0.2,\h) -- (0.2,\h) ;
+    \draw (-0.2,\h) node[left] {$ #1 $};
+}
+\newcommand{\drawQuarter}[1]{
+    \tikzmath{
+        \h = (\startYear-#1)*\chronoYearSpacing;
+    }
+    \draw (-0.2,\h) -- (0,\h) ;
+}
+\newcommand{\drawChrono}[2]{
+    \def\startYear{#1}
+    \def\endYear{#2}
+    \tikzmath{
+        \h = (\startYear-\endYear-1)*\chronoYearSpacing;
+    }
+    \draw[-stealth] (0,0) -- (0,\h);
+    
+    \foreach \y in {\startYear,...,\endYear} {
+        \drawYear{\y}
+        \foreach \q in {0.25,0.5,0.75} {
+        \drawQuarter{\y-\q}
+        }
+    }
+}
+\newcommand{\coordAtDate}[1]{
+    \tikzmath{
+        \h = (\startYear-#1)*\chronoYearSpacing;
+    }
+}
+\begin{tikzpicture}[, every node/.style={scale=0.8}]
+    \drawChrono{2015}{2025}
+    \coordAtDate{2015.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.1} S\'eparation de Trio\_U en TRUST \& TrioCFD} ;
+    \draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;
+	\draw (-1.8,\h) node[left]{Passage en OpenSource} ;
+    
+    \coordAtDate{2015.9}
+    \draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.2}};
+    
+    \coordAtDate{2016.4}
+    \draw[blue,thick,dashed] (-1.7,\h) -- (0,\h);
+	\draw (-1.8,\h) node[left,align=center,text width=\leftTextWidth]{Ajout du mod\`ele de turbulence Bas-Reynolds} ;
+    
+    \coordAtDate{2016.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.3} Ajout du mod\`ele non-lin\'eaire k-epsilon (turbulence)} ;
+    
+    \coordAtDate{2016.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.4}};
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;
+	\draw (-1.8,\h) node[left]{\textcolor{green}{Nouvelle doc} : Reference Guide} ;
+    
+    
+    \coordAtDate{2017.25}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{Front-Tracking Discontinu : couplage avec la thermique} ;
+
+    \coordAtDate{2017.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.5} \textbf{Baltik} Schema\_Euler\_Implicite\_Stationnaire} ;
+    
+    \coordAtDate{2017.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.6}};
+    
+    \coordAtDate{2018.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.7}} ;
+    
+    \coordAtDate{2018.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right,align=left,text width=\rightTextWidth]{\textcolor{blue}{v1.7.8} \textbf{Baltik} P1NCP0RT : sch\'ema P1NC-P0 avec projection de Raviart-Thomas} ;
+    
+    \coordAtDate{2019.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.7.9} \textbf{Baltik} ALE pour interactions fluide/structure} ;
+    
+    \coordAtDate{2019.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right,align=left,text width=\rightTextWidth]{\textcolor{blue}{v1.8.0} D\'eplacement des mod\`eles de Turbulence de TRUST vers TrioCFD} ;
+
+    \coordAtDate{2020.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.8.1}} ;
+    
+    \coordAtDate{2020.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.8.2} \textbf{Baltik} Sensitivity\_analysis} ;
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;
+	\draw (-1.8,\h) node[left]{\textcolor{green}{Nouvelle doc} : Rapport de validation} ;
+    
+    
+    \coordAtDate{2021.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.8.3} Restructuration des Baltiks} ;
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;
+	\draw (-1.8,\h) node[left]{\textcolor{green}{Nouvelle doc} : Description des mod\`eles} ;
+    
+    \coordAtDate{2021.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.8.4}};
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;
+	\draw (-1.8,\h) node[left,align=right,text width=\leftTextWidth]{\textcolor{green}{Nouvelle doc} : Plan de Gestion de Configuration } ;
+    
+    \coordAtDate{2022.5}
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;	
+	\draw (-1.8,\h) node[left]{R\'eorganisation des fiches de validation} ;	
+    
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right] (v190) {\textcolor{blue}{v1.9.0}};
+	\draw (v190.east) node[right,inner sep=0,align=left,text width=\rightTextWidth]{\textbf{Baltik} Multiphase/CMFD \\ \textbf{Baltik} Optimisation/Aposteriori};
+    
+    \coordAtDate{2022.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h) ;
+	\draw (0.8,\h) node[right] (v191) {\textcolor{blue}{v1.9.1}};
+	\draw (v191.east) node[right,inner sep=0,align=left,text width=\rightTextWidth]{\textbf{Baltik} Fluid\_Structure\_Interaction \\ \textbf{Baltik} Multiphase/Front\_tracking\_IJK};
+    
+    \coordAtDate{2023.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h);
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.9.2} R\'eorganisation des fichiers sources};
+    
+    \coordAtDate{2023.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h);
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.9.3} Am\'eliorations Turbulence, FSI, FT, CMFD};
+    
+    \coordAtDate{2024.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h);
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.9.4}};
+    
+    \coordAtDate{2024.9}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h);
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.9.5}};
+    
+    \coordAtDate{2025.5}
+	\draw[blue,thick,dashed] (0,\h) -- (0.7,\h);
+	\draw (0.8,\h) node[right]{\textcolor{blue}{v1.9.6} Refactorisation IJK};
+    \coordAtDate{2025.7}
+	\draw[green,thick,dashed] (-1.7,\h) -- (0,\h) ;	
+	\draw (-1.8,\h) node[left,inner sep=0,align=right,text width=\leftTextWidth]{Elaboration du Plan de Développement pour la période 2026-2030} ;	
+\end{tikzpicture}
+
+
+\caption{ Historique de TrioCFD depuis la scission Trio\_U vers TRUST/TrioCFD. Code couleur : \textcolor{blue}{version livr\'ee} - \textcolor{cyan}{outils de visualistion et mailage} - \textcolor{green}{outils de documentation et validation} - \textcolor{magenta}{outils informatiques et de couplage} - physique et num\'erique }
+
+\label{figure:Histo-triocfd}
+
+\end{figure}
+
 Il est \`a noter que m\^eme si TRUST supporte la partie "sch\'emas num\'eriques", lorsqu'un nouveau sch\'ema est amen\'e \`a \^etre d\'evelopp\'e pour des besoins TrioCFD, l'\'elaboration de ce nouveau sch\'ema est, dans un premier temps d\'evelopp\'e, v\'erif\'e et valid\'e dans TrioCFD avant d'\^etre revers\'e dans TRUST si d'autres Baltiks sous base TRUST (FLICA5, Genepi2,...) sont int\'eress\'es par ce sch\'ema.
 
 Depuis la cr\'eation du projet, de nombreuses améliorations sur la parallélisme du produit ont permis d'augmenter, de manière très importante, les capacités de calcul. La plateforme TRUST/TrioCFD est maintenant en mesure d'effectuer des calculs haute performance (en anglais : High Performance Computing ou HPC). Les progrès récents (2020-2021) sur cet aspect viennent de 3 améliorations majeures :
@@ -399,7 +456,7 @@ et toutes les ex\'ecutions (compilation du code, lancement du jeu de donn\'ees,.
 
 Depuis la r\'eorganisation du code intervenue dans la version v1.9.2, TrioCFD est un seul et unique Baltik
 compos\'e de plusieurs modules et sous-modules ayant tous un domaine de comp\'etence sp\'ecifique.
-Ils sont \`a l'heure actuelle au nombre de 9.
+Ils sont \`a l'heure actuelle au nombre de 8.
 Deux d'entre eux (Multiphase et Rayonnement) contiennent eux-m\^eme des sous-modules.
 Le tableau \ref{tab:carto-modules} dresse la liste de ces modules et sous-modules et leur domaine de comp\'etence.
 
@@ -442,8 +499,7 @@ $\hookrightarrow$ Rayonnement\_semi\_transp        & milieux \tabularnewline
 \textbf{Turbulence} & tous les autres modules utilisent. Il contient l'ensemble \tabularnewline
                     & des modèles de turbulence (Bas-Reynolds, k-epsilon, \tabularnewline
                     & lois de parois,...) quelle que soit la discrétisation considérée \tabularnewline
-\hline
-\textbf{Zoom} & \tabularnewline
+
 \hline\hline
 \end{tabular}
 \normalsize
