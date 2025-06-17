@@ -21,7 +21,7 @@ it leads to the relation
 with $\mathcal{M}_a$ the local Mach number. $\Delta_{t,acs} \ll \Delta_{t,conv}$ if $\mathcal{M}_a \ll 1$.
 
 To overcome this difficulty pressure-based methods have been developed. In contrast to density-based methods, which solve the Navier-Stokes equation for density and compute the pressure thanks to an equation of state, the main idea of pressure-based methods is to use the pressure gradient as a constraint on the velocity in the momentum equations. The pressure gradient, calculated from a Helmholtz-type wave equation, has thus the great advantage of remaining finite in low-Mach number flows. Hence, such methods are commonly used to compute compressible phenomena in low-Mach number flows. 
-This section presents the two pressure-based methods available within CFMD called ICE (Implicit Continuity Equation) and initially developed by \textcite{harlow1968numerical,harlow1971numerical}. It is a pressure-based approach used in solving the Navier-Stokes equations for numerical simulation of fluid flows. 
+This section presents the two pressure-based methods available within CFMD called ICE (Implicit Continuity Equation) and initially developed by \cite{harlow1968numerical,harlow1971numerical}. It is a pressure-based approach used in solving the Navier-Stokes equations for numerical simulation of fluid flows. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{The ICE/SETS methods} \label{time:ice}
@@ -145,7 +145,7 @@ The keyword to activate the \textsc{ice} method in a multiphase computation in T
 \end{table} 
 
 \subsection{Principle of the time discretization}
-The following steps are also presented in \textcite{GerschenfeldPolyMAC2022}. \\
+The following steps are also presented in \cite{GerschenfeldPolyMAC2022}. \\
 We can write the time discretized mass, momentum and energy conservation equations along with the continuity axiom:
 % \begin{equation}
 % \begin{aligned}

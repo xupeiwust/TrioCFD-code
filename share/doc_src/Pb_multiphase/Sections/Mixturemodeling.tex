@@ -76,7 +76,7 @@ The drift velocity operator must fill $vr$ and $dvr$ tabs for each dimension $d$
 
 %%%
 \subsubsection{Constant}
-The model is described in \textcite{ishii1977one}.\\
+The model is described in \cite{ishii1977one}.\\
 The model is implemented in:
 \begin{lstlisting}[language=c++]
 void Vitesse_derive_constante::set_param(Param& param)
@@ -90,7 +90,7 @@ void Vitesse_derive_constante::set_param(Param& param)
 
 %%%
 \subsubsection{Ishii-Hibiki : Bubbly flow}
-The model is described in \textcite{HIBIKI2002707}.\\
+The model is described in \cite{HIBIKI2002707}.\\
 The model is implemented in:
 \begin{lstlisting}[language=c++]
 void Vitesse_derive_Ishii::set_param(Param& param)
@@ -106,7 +106,7 @@ The implemented model is:
 \end{align}
 
 \subsubsection{Spelt Biesheuvel}
-The model is described in \textcite{Spelt1997}.\\
+The model is described in \cite{Spelt1997}.\\
 The model is implemented in:
 \begin{lstlisting}[language=c++]
 void Vitesse_derive_Spelt_Biesheuvel::set_param(Param& param)
@@ -187,7 +187,7 @@ With $Frag\_g=min(max(\frac{\alpha_g-\texttt{alpha\_min\_}}{\texttt{alpha\_max\_
 
 %%
 \subsubsection{Fridel: horizontal and vertical smooth tubes with $\mu_l/\mu_g<1000$ }
-The model is described in \textcite{friedel1979improved}.\\
+The model is described in \cite{friedel1979improved}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Multiplicateur_diphasique_Friedel::set_param(Param& param)
@@ -225,7 +225,7 @@ With $Frag\_g=min(max(\frac{\alpha_g-\texttt{alpha\_min\_}}{\texttt{alpha\_max\_
 
 %%
 \subsubsection{Lottes and Flinn: sodium two-phase pressure drop}
-The model is described in \textcite{lottes1956method}.\\
+The model is described in \cite{lottes1956method}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Multiplicateur_diphasique_Lottes_Flinn::set_param(Param& param)
@@ -247,7 +247,7 @@ The model implemented is :
 
 %%
 \subsubsection{Muller-Steinhagen: air–water, water-hydrocarbons and refrigerants in pipes}
-The model is described in \textcite{MULLERSTEINHAGEN1986297}.\\
+The model is described in \cite{MULLERSTEINHAGEN1986297}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Multiplicateur_diphasique_Muhler_Steinhagen::set_param(Param& param)

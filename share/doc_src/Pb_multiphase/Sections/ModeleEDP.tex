@@ -1,6 +1,6 @@
 \chapter{Governing equations}
 
-This chapter gives a general introduction to the theoretical framework of the multiphase system of averaged equations (Section~\ref{sec:multi-sys-ave}), the two-fluid and drift-flux approches (Section~\ref{sec:two-fluid-drift}) and a few details on turbulence equation (Section~\ref{sec:intro-turbulence}). The curious reader can find extensive details on the multiphase Navier-Stokes framework in the books of \textcite{LivreIH}, \textcite{Morel2015}, \textcite{LivreDrewPassman}. 
+This chapter gives a general introduction to the theoretical framework of the multiphase system of averaged equations (Section~\ref{sec:multi-sys-ave}), the two-fluid and drift-flux approches (Section~\ref{sec:two-fluid-drift}) and a few details on turbulence equation (Section~\ref{sec:intro-turbulence}). The curious reader can find extensive details on the multiphase Navier-Stokes framework in the books of \cite{LivreIH}, \cite{Morel2015}, \cite{LivreDrewPassman}. 
 
 \section{Multiphase system averaged equations\label{sec:multi-sys-ave}}
 
@@ -111,7 +111,7 @@ The conservation equation for the internal energy in each phase is:
 with  $\psi_k$ and $\psi^t_k$ respectively the heat and turbulent fluxes, and $\mathbf{q_k}$ a source of heat.
 
 \subsection{Interfacial momentum transfers with dispersed hypothesis}
-According to \textcite{LivreIH}, the interfacial transfer between two phases in the momentum balance equation can be expressed as follows:
+According to \cite{LivreIH}, the interfacial transfer between two phases in the momentum balance equation can be expressed as follows:
 \begin{equation}
 \begin{aligned}
 \mathbf{I}_k & =-\frac{1}{\Delta t}\sum_j \frac{1}{u_{ni}}\parent{\rho_k\mathbf{n}_k\parent{\mathbf{u}_k-\mathbf{u}_i}\mathbf{u}_k-\ull{T}_k\mathbf{n}_k}\\ 
@@ -169,7 +169,7 @@ A new fundamental relation arises by summing the differential equations of each 
    \sum_k \overline{\rho_k \phi_k \mathbf{u}_k} &= \sum_k \alpha_k(\overline{\overline{\rho_k}}\overline{\overline{\phi_k \mathbf{u}_k}}+\overline{\overline{\rho_k' \phi_k \mathbf{u}_k}}) = \sum_k \alpha_k\parent{\overline{\overline{\rho_k}}\tilde{\phi_k} \tilde{\mathbf{u}_k}+\overline{\overline{\rho_k \phi_k' \mathbf{u}_k'}}}\\ &=\underbrace{\rho_m\phi_m \mathbf{u}_m}_{\color{mydarkorchid}\text{Mean transport}} + \underbrace{\sum_k\alpha_k\overline{\overline{\rho_k}}\tilde{\phi_k}\parent{\mathbf{u}_k-\mathbf{u}_m}}_{\color{mydarkorchid}\text{Phase transport}} + \underbrace{\sum_k\alpha_k\overline{\overline{\rho_k\phi_k'\mathbf{u}_k'}}}_{\color{myteal}\substack{\text{Turbulent and}\\\text{interfacial transport}}}.
    \end{aligned}
 \end{equation}
-This relation provides the basis for separating the mixture and individual phases into distinct sets of equations. Two approaches stem from this separation: simulating only the mixture while modeling phase phenomena with a drift model, known as the \emph{drift-flux} model, or simulating the behavior of each phase while incorporating turbulent and interfacial phenomena, known as the \emph{two-fluid} model. According to \textcite{LivreIH}, the last approach offers several advantages, including the ability to simulate segregated dynamics and non-equilibrium interactions between phases. However, the drift-flux main advantage is that it drastically decrease the number of equations to only one set of equation for the mixture while the two-fluid must handle a set of equation for each phase.
+This relation provides the basis for separating the mixture and individual phases into distinct sets of equations. Two approaches stem from this separation: simulating only the mixture while modeling phase phenomena with a drift model, known as the \emph{drift-flux} model, or simulating the behavior of each phase while incorporating turbulent and interfacial phenomena, known as the \emph{two-fluid} model. According to \cite{LivreIH}, the last approach offers several advantages, including the ability to simulate segregated dynamics and non-equilibrium interactions between phases. However, the drift-flux main advantage is that it drastically decrease the number of equations to only one set of equation for the mixture while the two-fluid must handle a set of equation for each phase.
 
 To summarize:
 \begin{itemize}
@@ -179,16 +179,16 @@ To summarize:
 
 \subsection{Example of modeling for liquid-gaz systems}
 
-Modeling the dynamics of two-phase flows presents significant challenges due to the diverse range of scenarios encountered, including steady and transient behaviors, as well as losses in homogeneity and thermal effects. One notable approach is the four-fields model, initially introduced by \textcite{Lahey2001}. The four-fields model partitions the flow into distinct regions, each associated with specific characteristics. These regions include the liquid phase, bubbly phase, droplet phase, and gas phase. Within this model, a continuous liquid field ($lc$) is managed to represent the presence of liquid, a continuous gas field ($gc$) captures the behavior of large gas pockets, a dispersed gas field ($gd$) models the dispersed bubbles, and a dispersed liquid field ($ld$) represents the behavior of liquid droplets (as illustrated in Figure~\ref{fig:lahey}).
+Modeling the dynamics of two-phase flows presents significant challenges due to the diverse range of scenarios encountered, including steady and transient behaviors, as well as losses in homogeneity and thermal effects. One notable approach is the four-fields model, initially introduced by \cite{Lahey2001}. The four-fields model partitions the flow into distinct regions, each associated with specific characteristics. These regions include the liquid phase, bubbly phase, droplet phase, and gas phase. Within this model, a continuous liquid field ($lc$) is managed to represent the presence of liquid, a continuous gas field ($gc$) captures the behavior of large gas pockets, a dispersed gas field ($gd$) models the dispersed bubbles, and a dispersed liquid field ($ld$) represents the behavior of liquid droplets (as illustrated in Figure~\ref{fig:lahey}).
 
 While the four-fields model offers a comprehensive approach to capture the complex dynamics of two-phase flows, it can be computationally intensive. This model requires the solution of twelve balance equations, accounting for mass, momentum, and energy conservation. Additionally, closure laws are needed to describe the interfacial transfers and interactions between the different fields. Implementing the four-fields model accurately demands careful consideration of the closure laws and numerical techniques to ensure reliable predictions of the system behavior.
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale=0.4]{Figure/Lahey.png}
-    \caption{Principle of a four-field model handling any kind of topology of interest. From~\textcite{Lahey2001}. The subscripts $v$ and $l$ refer respectively to vapor and liquid whereas $d$ and $c$ denote respectively the dispersed and the continuous phases.}
+    \caption{Principle of a four-field model handling any kind of topology of interest. From~\cite{Lahey2001}. The subscripts $v$ and $l$ refer respectively to vapor and liquid whereas $d$ and $c$ denote respectively the dispersed and the continuous phases.}
     \label{fig:lahey}
 \end{figure}
-To reduce the number of equations, \textcite{Morel2007} proposed two degenerate four-fields to two-fields models that combines the two-fluid and drift-flux approaches. The first proposition involves using two dispersed fields of bubbles carried by liquid ($bm$) and droplets carried by gas ($dm$), and then drifting the mixture made by the dispersed field. Another proposition is to use two separated fields for gas ($g$) and liquid ($l$), with each field being a hybrid of dispersed and continuous phases.
+To reduce the number of equations, \cite{Morel2007} proposed two degenerate four-fields to two-fields models that combines the two-fluid and drift-flux approaches. The first proposition involves using two dispersed fields of bubbles carried by liquid ($bm$) and droplets carried by gas ($dm$), and then drifting the mixture made by the dispersed field. Another proposition is to use two separated fields for gas ($g$) and liquid ($l$), with each field being a hybrid of dispersed and continuous phases.
 The benefit is the reduction of the number of closure laws to 6 balance equations. However, these approaches have limitations, such as the inability to handle non-equilibrium physical phenomena.
 
 Table~\ref{tab:Modelchamp} provides a summary of the current possibilities in TrioCFD two-phase flow computation.

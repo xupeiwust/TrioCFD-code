@@ -113,7 +113,7 @@ The model implemented is:
 %%%
 \subsubsection{R12_C1 and Eau_c3}
 The models are implemented in \texttt{Fluide\_R12\_c1\_liquide}, \texttt{Fluide\_R12\_c1\_gaz}, \texttt{Fluide\_eau\_c3\_liquide} and \texttt{Fluide\_eau\_c3\_gaz}. The low boiling of refrigerant R12 (dichlorodifluoromethane) mimics Pressurized water reactor dimensionless numbers. Those values are available in Cathare code.
-For example, in \textcite{KREPPER20113851}, one can find : \\
+For example, in \cite{KREPPER20113851}, one can find : \\
 \begin{center}
 \begin{tabular}{c c c }
 \toprule
@@ -135,7 +135,7 @@ $L_{vap}$ [kJ/kg] & $966.2$ & $86.48$ \\ \bottomrule
 
 %%%
 \subsubsection{MUSIG fluid and medium}
-In homogeneous MUlti-SIze Group (MUSIG), a distribution of bubbles or droplets between $r_{min}$ and $r_{max}$ is characterized by a statistical law (linear, exponential or log) and its discretization in $n$ sub groups with the same velocity, as depicted in Figures \ref{msgdis} from \textcite{cheung}.
+In homogeneous MUlti-SIze Group (MUSIG), a distribution of bubbles or droplets between $r_{min}$ and $r_{max}$ is characterized by a statistical law (linear, exponential or log) and its discretization in $n$ sub groups with the same velocity, as depicted in Figures \ref{msgdis} from \cite{cheung}.
 \begin{figure}[!ht]
     \centering
     \includegraphics[scale =0.8]{Figure/musigdistri.jpg}
@@ -523,7 +523,7 @@ The model implemented is :
 \end{equation}
 with $\rho_m=\sum_k \alpha_k \rho_k$ and $i \neq j$.
 \subsubsection{Ishii-Zuber : viscous regime}
-The model is described in \textcite{IshiiZuber}.\\
+The model is described in \cite{IshiiZuber}.\\
 The model is implemented in:
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Ishii_Zuber_Deformable::set_param(Param& param)
@@ -540,7 +540,7 @@ The model implemented is :
 If $\alpha_l < \num{1.e-6}$, then $f^D\times{}\alpha_l\times{}\num{1e6}$.
 
 \subsubsection{Ishii-Zuber : viscous regime and particle regime}
-The model is also described in \textcite{IshiiZuber}.\\
+The model is also described in \cite{IshiiZuber}.\\
 The model is implemented as :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Ishii_Zuber::set_param(Param& param)
@@ -556,7 +556,7 @@ The model implemented is :
 \end{equation}
 with $Re_b=\frac{\rho_l d (u_g-u_l)}{\mu_l}$.
 \subsubsection{Tomiyama : contaminated drag coefficient}
-The model is described in \textcite{Tomiyama1998}.\\
+The model is described in \cite{Tomiyama1998}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Tomiyama::set_param(Param& param)
@@ -579,10 +579,10 @@ with
     \item[\small \textcolor{blue}{\ding{109}}]$Re_b=\frac{\rho_l d_b (u_g-u_l)}{\mu_l}$.
 \end{itemize}
 If $\alpha_l < \num{1.e-6}$, then $f^D\times{}\alpha_l\times{}\num{1e6}$.\\
-This formulation was chosen as shown in \textcite{Sugrue2017}, it yields similar results as other closures and one can adjust the level of contamination.
+This formulation was chosen as shown in \cite{Sugrue2017}, it yields similar results as other closures and one can adjust the level of contamination.
 
 \subsubsection{Bubble critical diameter (incoming)}
-The model is described partially in \textcite{KUO1988547}.\\
+The model is described partially in \cite{KUO1988547}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Weber::set_param(Param& param)
@@ -599,7 +599,7 @@ with $d_b^*= \frac{\sigma}{\rho_l(u_g-u_l)^2}We_c$, $Re_b=\frac{\rho_l d_b^* (u_
 {\color{red} Warning} : not homogeneous
 
 \subsubsection{Wallis : annular flow}
-The model is described in \textcite{wallis}.\\
+The model is described in \cite{wallis}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Wallis::set_param(Param& param)
@@ -622,7 +622,7 @@ The model implemented is :
 with $\alpha_g^*=min(max(\alpha_g,0.001),0.999)$
 
 \subsubsection{Garnier : bubble swarm correction}
-The model is described in \textcite{GARNIER2002811}.\\
+The model is described in \cite{GARNIER2002811}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Garnier::set_param(Param& param)
@@ -636,7 +636,7 @@ The model implemented is :
 {\color{red} Warning} : Validated for $\alpha_g  < 0.35$, $D_{sm} < 5.5mm$.
 
 \subsubsection{Rusche : swarm correction}
-The model is described in \textcite{Rusche}.\\
+The model is described in \cite{Rusche}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Rusche::set_param(Param& param)
@@ -648,7 +648,7 @@ The model implemented is :
 {\color{red} Warning} : Validated for $\alpha_g  < 0.5$.
 
 \subsubsection{Simonnet : bubble swarm correction}
-The model is described in \textcite{SIMONNET2007858}.\\
+The model is described in \cite{SIMONNET2007858}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Simonnet::set_param(Param& param)
@@ -660,7 +660,7 @@ The model implemented is :
 {\color{red} Warning} : Validated for $\alpha_g  < 0.3$, $D_{sm} < 10 mm$.
 
 \subsubsection{Zenit : bubble swarm correction}
-The model is described in \textcite{zenit}.\\
+The model is described in \cite{zenit}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Frottement_interfacial_Zenit::set_param(Param& param)
@@ -771,7 +771,7 @@ with
 
 %
 \subsubsection{Tomiyama : lift sign reversal}
-The model is described in \textcite{Tomiyama2002}.\\
+The model is described in \cite{Tomiyama2002}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Portance_interfaciale_Tomiyama::set_param(Param& param)
@@ -866,7 +866,7 @@ If $\alpha_g< 0.0001$, no limiter part.
 
 %
 \subsubsection{Wijngaarden : two bubbles interaction}
-The model is described in \textcite{Biesheuvel1984}.\\
+The model is described in \cite{Biesheuvel1984}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Masse_ajoutee_Wijngaarden::set_param(Param& param)
@@ -895,11 +895,11 @@ For the injected mass flux $\dot{m}_{inj}$,
    \end{cases}
 \end{equation}
 If $\alpha_g< 0.0001$, no limiter part.\\
-{\color{red} Warning} : Corrected value in \textcite{Biesheuvel1984} is 3.32 instead of 2.78.
+{\color{red} Warning} : Corrected value in \cite{Biesheuvel1984} is 3.32 instead of 2.78.
 
 %
 \subsubsection{Zuber : swarm of compliant bubbles}
-The model is described in \textcite{ZUBER1964897}.\\
+The model is described in \cite{ZUBER1964897}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Masse_ajoutee_Zuber::set_param(Param& param)
@@ -983,7 +983,7 @@ The added mass operator must add to out.Ctd tab so that :
 
 %
 \subsubsection{Constant bubble dispersion coefficient}
-The model is described in \textcite{MARFAING2016579}.\\
+The model is described in \cite{MARFAING2016579}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Dispersion_bulles_turbulente_constante::set_param(Param& param)
@@ -998,7 +998,7 @@ The model implemented is :
 
 %
 \subsubsection{Constant turbulent dispersion coefficient}
-The model is described in \textcite{LOPEZDEBERTODANO1994805}.\\
+The model is described in \cite{LOPEZDEBERTODANO1994805}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Dispersion_bulles_turbulente_constante::set_param(Param& param)
@@ -1014,7 +1014,7 @@ The model implemented is :
 
 %
 \subsubsection{Lopez de Bertodano : Stokes regime}
-The model is described in \textcite{LOPEZDEBERTODANO199865}.\\
+The model is described in \cite{LOPEZDEBERTODANO199865}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Dispersion_bulles_turbulente_Bertodano::set_param(Param& param)
@@ -1033,7 +1033,7 @@ with $\tau^t=C_{\mu}^{3/4}\frac{k_l}{\varepsilon_l}$.
 
 %
 \subsubsection{Burns : Favre averaged drag}
-The model is described in \textcite{burns2004favre}.\\
+The model is described in \cite{burns2004favre}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Dispersion_bulles_turbulente_constante::set_param(Param& param)
@@ -1065,7 +1065,7 @@ with
 
 %
 \subsubsection{Antal : wall lubrication}
-The model is described in \textcite{ANTAL1991635}.\\
+The model is described in \cite{ANTAL1991635}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Correction_Antal_PolyMAC_P0::set_param(Param& param)
@@ -1086,7 +1086,7 @@ with
 {\color{red} Warning} This force was developped for fully developed laminar bubbly two-phase flows.
 
 \subsubsection{Lubchenko : wall force dumping}
-Tht model is partially described in \textcite{LUBCHENKO201836}.\\
+Tht model is partially described in \cite{LUBCHENKO201836}.\\
 The dumping is implemented in :
 \begin{lstlisting}[language=c++]
 void Correction_Lubchenko_PolyMAC_P0::set_param(Param& param)
@@ -1099,7 +1099,7 @@ void Correction_Lubchenko_PolyMAC_P0::set_param(Param& param)
 }
 \end{lstlisting}
 Default values :   $\texttt{beta\_lift\_} =  1. $, $\texttt{beta\_disp\_}=  1. $, $\texttt{portee\_disp\_}= 1.$, $\texttt{portee\_lift\_}= 1.$.\\
-The wall force dumping implemented is a mix between the one proposed by \textcite{Lubchenko2018} and BIF near-wall dumping.
+The wall force dumping implemented is a mix between the one proposed by \cite{Lubchenko2018} and BIF near-wall dumping.
 The first part is a lift dumping close to the wall as :
 \begin{equation}
 	C_L \rightarrow \begin{cases} 0 \text{,~} y/d_b<1/2*portee\_lift\_  \\
@@ -1400,7 +1400,7 @@ with
 \end{itemize}
 
 \subsubsection{Kim and park}
-The model is also described in \textcite{}.\\
+The model is also described in \cite{}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_Kim_Park::set_param(Param& param)
@@ -1429,7 +1429,7 @@ with
 \end{itemize}
 
 \subsubsection{Ranz Marshall}
-The model is also described in \textcite{}.\\
+The model is also described in \cite{}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_Ranz_Marshall::set_param(Param& param)
@@ -1460,7 +1460,7 @@ with
 \end{itemize}
 
 \subsubsection{Wolfert}
-The model is also described in \textcite{}.\\
+The model is also described in \cite{}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_Wolfert::set_param(Param& param)
@@ -1489,7 +1489,7 @@ with
 \end{itemize}
 
 \subsubsection{Wolfert compsant (To be erased)}
-The model is also described in \textcite{}.\\
+The model is also described in \cite{}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_Wolfert_composant::set_param(Param& param)
@@ -1522,7 +1522,7 @@ with
 \end{itemize}
 
 \subsubsection{Zeitoun}
-The model is also described in \textcite{}.\\
+The model is also described in \cite{}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_interfacial_Zeitoun::set_param(Param& param)
@@ -1669,7 +1669,7 @@ The interfacial heat flux operator must fill qpk and qpi tabs and there derivati
 \end{table}
 
 \subsubsection{Kommajosyula (to be erased)}
-The model is described in \textcite{Ravik2020}.\\
+The model is described in \cite{Ravik2020}.\\
 The model is implemented in :
 \begin{lstlisting}[language=c++]
 void Flux_parietal_Kommajosyula::set_param(Param& param)
@@ -1681,12 +1681,12 @@ void Flux_parietal_Kommajosyula::set_param(Param& param)
 {\color{red} Warning} : the model was implemented but dropped because we could not fit the original data and so is not validated.
 
 \subsubsection{Kurul Podowski}
-The model is described in \textcite{kurul1991modeling} and depicted in Figure~\ref{kurul}.
+The model is described in \cite{kurul1991modeling} and depicted in Figure~\ref{kurul}.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics{Figure/Kurul.jpg}
-    \caption{Depiction of the wall heat flux partitioning model for subcooled flow boiling from \textcite{ZHOU2021121295}.}
+    \caption{Depiction of the wall heat flux partitioning model for subcooled flow boiling from \cite{ZHOU2021121295}.}
     \label{kurul}
 \end{figure}
 The model is implemented in :
@@ -2051,7 +2051,7 @@ For the other source terms, refer to the models.
 
 %
 \subsubsection{The Yao Morel model}
-The model is described in \textcite{YAO2004307}.
+The model is described in \cite{YAO2004307}.
 
 The equation is:
 \begin{equation}
@@ -2221,11 +2221,11 @@ The different mass transfer are:
 All source term models are based on five categories of mechanism: the Random Collisions (RC), the Wake Entrainment (WE), the Turbulent Impacts (TI), the Shearing-off (SO) and the Surface Instability (SI) (see Figure \ref{bulles}). The RC is a bubble coalescence phenomenon where $2$ bubbles collide and merge because of a turbulent eddy of comparable size. The WE happens when one smaller bubble is in the wake of a bigger one, accelerates and collides it. The TI is due to turbulent eddies that break-up bubbles. The SO is a break-up phenomenon that source from the shearing-off of cap bubbles. The SI is due to the break-up of large bubbles due to their surface instability.\\
 The number of processes and the dimensionless coefficient can strongly differ from one model to another :
 \begin{itemize}
-\item[\small \textcolor{blue}{\ding{109}}] The \textcite{SUN2} model was developed for a $2$ group configuration with a $200 \times  10$ $mm^2$ confined rectangular channel data. The effect of the wall is then very significant. It was performed for liquid superficial velocity between $0.32$ and $2.84$ m/s and gas velocity between $0.39$ and $2.01$ m/s. It deals with cap-bubbly and churn-turbulent flows.\\
-\item[\small \textcolor{blue}{\ding{109}}] The \textcite{Smith1} model was developed for a $2$ group configuration with $0.102$ mm and $0.152$ mm diameter pipes. It deals with bubbly, cap-bubbly and churn-turbulent flows. \\
-\item[\small \textcolor{blue}{\ding{109}}] The \textcite{Schlegel1} model was developed for a $2$ group configuration with large diameter channels. It deals with bubbly and cap-bubbly flows. Several constitutive relations and correlations were used to tune this model.\\
-\item[\small \textcolor{blue}{\ding{109}}] The \textcite{Fu2002} model was developed for a $2$ group configuration for small round pipe.\\
-\item[\small \textcolor{blue}{\ding{109}}] \textcite{Dave2016a} proposed new Smith coefficient based on optimization with genetic algorithm on all TOPFLOW DN200 (pipe $195.3$ mm).
+\item[\small \textcolor{blue}{\ding{109}}] The \cite{SUN2} model was developed for a $2$ group configuration with a $200 \times  10$ $mm^2$ confined rectangular channel data. The effect of the wall is then very significant. It was performed for liquid superficial velocity between $0.32$ and $2.84$ m/s and gas velocity between $0.39$ and $2.01$ m/s. It deals with cap-bubbly and churn-turbulent flows.\\
+\item[\small \textcolor{blue}{\ding{109}}] The \cite{Smith1} model was developed for a $2$ group configuration with $0.102$ mm and $0.152$ mm diameter pipes. It deals with bubbly, cap-bubbly and churn-turbulent flows. \\
+\item[\small \textcolor{blue}{\ding{109}}] The \cite{Schlegel1} model was developed for a $2$ group configuration with large diameter channels. It deals with bubbly and cap-bubbly flows. Several constitutive relations and correlations were used to tune this model.\\
+\item[\small \textcolor{blue}{\ding{109}}] The \cite{Fu2002} model was developed for a $2$ group configuration for small round pipe.\\
+\item[\small \textcolor{blue}{\ding{109}}] \cite{Dave2016a} proposed new Smith coefficient based on optimization with genetic algorithm on all TOPFLOW DN200 (pipe $195.3$ mm).
 \end{itemize}
 \begin{figure}[!ht]
     \centering

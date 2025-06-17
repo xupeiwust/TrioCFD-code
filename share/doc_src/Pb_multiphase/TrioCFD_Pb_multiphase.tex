@@ -1,4 +1,6 @@
 \documentclass[a4paper,12pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
 %\usepackage[utf8]{inputenc}
 %\usepackage{fontspec}
 %\usepackage{polyglossia}
@@ -7,7 +9,7 @@
 \usepackage{microtype}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{listings}
-\usepackage{amsmath,amsthm,amssymb,amsfonts,stmaryrd,bbold,stackrel,dsfont,mathrsfs,soul,tcolorbox,verbatimbox,textcomp}
+\usepackage{amsmath,amsthm,amssymb,amsfonts,stmaryrd,stackrel,mathrsfs,soul,tcolorbox,verbatimbox,textcomp}
 %\usepackage{tabularx}
 \usepackage{mathtools}
 \usepackage{makecell} %
@@ -37,30 +39,30 @@
 \usepackage[edges]{forest}
 \usepackage{dirtree}
 \usepackage[english]{babel} % To obtain English text with the blindtext package
-\usepackage{blindtext}
 \usepackage{pdflscape}
+\usepackage{lmodern}
 \newcommand\ull[1]{\underline{\underline{#1}}}
 
 
 \usepackage{csquotes}
-\usepackage[
-backend=bibtex,      % On utilise biber pour la compilation biblatex
-citestyle=numeric,  % citation de la forme [1] ou pour plusieurs, [1], [2]
-bibstyle=numeric,   % complementaire à citestyle numeric pour la biblio finale
-sorting=nyt,        % Tri dans l'ordre : nom, année, titre.
-maxnames=2,         % Les citations dans le texte avec \textcite n'affiche que le nom du premier auteur et met un "et al.".n
-maxbibnames=99,     % Limite haute pour mettre tous les noms dans la biblio (ne met pas de et al. dans la bibliographie)
-giveninits=true,    % ne mets que les initiales
-language=french,    % test du français
-alldates=year,      % la date n'affiche que l'année
-isbn=false,         % Ne pas afficher l'isbn
-url=false,          % Ne pas afficher l'url
-doi=false,          % Ne pas afficher le lien DOI
-eprint=false,       % Ne pas afficher le numéro eprint
-%refsegment=chapter, % pour faire des bibliographies par chapitre
-backref=false       % Ajouter une mention renvoyant où la publication a été citée
-]{biblatex}
-\addbibresource{BiblioCMFDdiphasique.bib}
+% \usepackage[
+% backend=bibtex,      % On utilise biber pour la compilation biblatex
+% citestyle=numeric,  % citation de la forme [1] ou pour plusieurs, [1], [2]
+% bibstyle=numeric,   % complementaire à citestyle numeric pour la biblio finale
+% sorting=nyt,        % Tri dans l'ordre : nom, année, titre.
+% maxnames=2,         % Les citations dans le texte avec \cite n'affiche que le nom du premier auteur et met un "et al.".n
+% maxbibnames=99,     % Limite haute pour mettre tous les noms dans la biblio (ne met pas de et al. dans la bibliographie)
+% giveninits=true,    % ne mets que les initiales
+% language=french,    % test du français
+% alldates=year,      % la date n'affiche que l'année
+% isbn=false,         % Ne pas afficher l'isbn
+% url=false,          % Ne pas afficher l'url
+% doi=false,          % Ne pas afficher le lien DOI
+% eprint=false,       % Ne pas afficher le numéro eprint
+% %refsegment=chapter, % pour faire des bibliographies par chapitre
+% backref=false       % Ajouter une mention renvoyant où la publication a été citée
+% ]{biblatex}
+% \addbibresource{BiblioCMFDdiphasique.bib}
 
 %% AVANT DERNIER PACKAGE
 \usepackage[english]{babel} % use polyglossia
@@ -90,7 +92,7 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 %% == Déclaration de variables et commandes
 \DeclareGraphicsExtensions{.pdf}
 \graphicspath{{./}{src/}}
-\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
+% \DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
 %\newcommand\l|{\left|\left|} % use \vert
 %\newcommand\r|{\right|\right|} % use \vert
 % \def\R{\mathds R} % Très mauvaise pratique !! Impossible à retrouver
@@ -122,11 +124,11 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 \newcommand{\accod}{\rbrace }
 \newcommand{\chevg}{\left<}
 \newcommand{\chevd}{\right>}
-\newcommand {\parent} [1] {\parg #1 \pard}
-\newcommand {\croc} [1] {\crocg #1 \crocd}
-\newcommand {\acco} [1] {\accog #1 \accod}
-\newcommand {\chev} [1] {\chevg #1 \chevd}
-\newcommand {\norm} [1] {\vert #1 \vert}
+\newcommand{\parent}[1]{\parg #1 \pard}
+\newcommand{\croc}[1]{\crocg #1 \crocd}
+\newcommand{\acco}[1]{\accog #1 \accod}
+\newcommand{\chev}[1]{\chevg #1 \chevd}
+\newcommand{\norm}[1]{\vert #1 \vert}
 
 \renewcommand{\vec}{\overrightarrow}
 
@@ -206,7 +208,7 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 }
 
 \lstset{style=mystyle}
-\newcommand\codeVersion{1.9.4}
+\newcommand\codeVersion{1.9.6}
 
 %\input{conf.sty}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -219,8 +221,8 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 %\renewcommand{\headrulewidth}{0pt}
 %\renewcommand{\footrulewidth}{0pt}
 \begin{multicols}{2}
-\includegraphics[scale=0.75]{Figure/cealogo.png}
-\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LMSF}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
+\includegraphics[scale=0.75]{../pictures/cealogo.png}
+\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LDEL}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \begin{flushright}\Ovalbox{\begin{minipage}{4cm} \begin{center} \vspace{0.4cm}\Large{\thepage/\pageref{LastPage}}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \end{multicols}
 \cornersize{.2}
@@ -228,7 +230,7 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 \begin{center} \vspace{1.8cm}
 \parbox[t]{12cm}{\hspace{1.2cm}\huge{\textbf{USER DOCUMENTATION :}}
 \vspace{0.4cm}\\
-\hspace{2.8cm}\LARGE{\textbf{TRUST-TrioCFD : Multiphase Module v1.9.4}}}\end{center}
+\hspace{2.8cm}\LARGE{\textbf{TRUST-TrioCFD : Multiphase Module v\codeVersion}}}\end{center}
 \vspace{0.3cm}
 \begin{center}\includegraphics[scale=0.7]{Figure/TrioCFD.png} \end{center}
 \vspace{0.4cm}
@@ -238,19 +240,15 @@ backref=false       % Ajouter une mention renvoyant où la publication a été c
 \hline
  Version & Date & Code manager & Authors \\
 \hline
-v1.9.4 & 24 juin 2024   &               & A BURLOT \\
-             &          &  A DU CLUZEAU & C BAZIN \\
-             &          &               & A PEITAVY \\
-             &          &               & C REISS \\
-             &          &               & A GERSCHENFELD \\
-             &          &               & F PECQUERY \\
+v\codeVersion & 17 juin 2025   & A DU CLUZEAU  & TrioCFD Team\\
+             &          &               &  \\
 \hline
 \multicolumn{2}{c|}{ } & \multicolumn{2}{l}{\textit{Input file : } TrioCFD\_Pb\_multiphase.tex } \\
 \multicolumn{2}{c|}{\textbf{DES/ISAS/DM2S} } & \multicolumn{2}{l}{\textit{Software : } TrioCFD } \\
 \multicolumn{2}{c|}{\textbf{CEA SACLAY} } & \multicolumn{2}{c}{ } \\
 \cline{3-4}
 \multicolumn{2}{c|}{\textbf{91191 GIF-SUR-YVETTE} } & \multicolumn{2}{c}{ } \\
-\multicolumn{2}{c|}{ } & \multicolumn{2}{l}{\large{\textbf{DES/ISAS/DM2S/STMF/LMSF/UD}} } \\
+\multicolumn{2}{c|}{ } & \multicolumn{2}{l}{\large{\textbf{DES/ISAS/DM2S/STMF/LDEL/UD}} } \\
 \multicolumn{2}{c|}{ } & \multicolumn{2}{c}{ } \\
 \end{tabular}
 \end{minipage}}
@@ -381,7 +379,7 @@ v1.9.4 & 24 juin 2024   &               & A BURLOT \\
 \input{Sections/Appendix.tex}
 \cleardoublepage
 
-%\bibliographystyle{plain}
-%\bibliography{BiblioCMFDdiphasique.bib}
-\printbibliography
+\bibliographystyle{plain}
+\bibliography{BiblioCMFDdiphasique.bib}
+% \printbibliography
 \end{document}
