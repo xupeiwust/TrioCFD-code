@@ -116,12 +116,8 @@ DoubleTab& Operateur_Conv_sensibility_VEF::ajouter(const DoubleTab& inco, Double
               const double coeff=-1.;
               DoubleTab neg_state(state_field);
               neg_state.operator*=(coeff);
-              DoubleVect Av=mat.ajouter_multvectT_(neg_state ,resu); // add -(v. grad^t).u where u=state (direct velocity) and v=adjoint velocity
+              mat.ajouter_multvectT_(neg_state ,resu); // add -(v. grad^t).u where u=state (direct velocity) and v=adjoint velocity
               opConvVEFFace.contribue_au_second_membre(resu);
-              /*Matrice_Morse  mat_tt(mat);
-              Matrice_Morse  mat_t(mat_tt.transpose(mat));
-              Av = mat_t.ajouter_multvect_(state_field ,resu);
-              opConvVEFFace.modifier_pour_Cl(mat_t, resu);*/
               ajouter_conv_term(la_vitesse,state_field, resu, flux_b); // add (u.grad)v where u=state (direct velocity) and v=adjoint velocity
             }
 
