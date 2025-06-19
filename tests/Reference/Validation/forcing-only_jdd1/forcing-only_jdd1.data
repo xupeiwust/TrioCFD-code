@@ -1,0 +1,218 @@
+dimension 3
+Probleme_FTD_IJK pb
+
+Domaine_IJK DOM
+Lire DOM
+{
+  nbelem 64 64 64
+  size_dom 3.17e-02 3.17e-02 3.17e-02
+  origin -1.585e-02 -1.585e-02 -1.585e-02
+  perio 1 1 1
+  nproc 1 1 1
+  ijk_splitting_ft_extension 10
+}
+
+Schema_RK3_IJK sch
+
+lire sch 
+{
+  tinit 0.0
+	nb_pas_dt_max 3
+  timestep 1
+  timestep_facsec 1.0 # 0.25 -> For Euler only? #
+  cfl 1
+  fo  1
+  oh  1
+  dt_sauvegarde 10
+
+}
+
+option_ijk { 
+  disable_diphasique
+  check_divergence }
+IJK dis
+
+associer sch pb
+associer DOM pb
+Discretize pb dis
+lire pb
+{
+  Solved_Equations
+  {
+    Navier_Stokes_FTD_IJK hydraulique
+    IJK_interfaces interf
+  }
+
+  Fluide_Diphasique_IJK
+  {
+    # Give a number for each phase #
+    fluide0 Fluide_Incompressible # Vapour #
+    {
+      mu  Champ_Uniforme 1 3.73e-04
+      rho Champ_Uniforme 1 87.545
+    }
+    fluide1 Fluide_Incompressible # Liquid #
+    {
+      mu  Champ_Uniforme 1 3.73e-04
+      rho Champ_Uniforme 1 1171.3
+    }
+    # Surface tension #
+    sigma Champ_Uniforme 1 0.018055
+    # Gravity field #
+    gravite Champ_Uniforme 3 0. 0. 0.
+
+  }
+
+  interf
+{
+    fichier_reprise_interface init.lata
+    timestep_reprise_interface 1
+    remaillage_ft_ijk {
+      pas_remaillage 9.99999999999999955e-07
+      nb_iter_barycentrage 1
+      relax_barycentrage 1.00000000000000000e+00
+      critere_arete 3.49999999999999978e-01
+      seuil_dvolume_residuel 0.00000000000000000e+00
+      nb_iter_correction_volume 6
+      nb_iter_remaillage 6
+      facteur_longueur_ideale 7.50000000000000000e-01
+      equilateral 1
+      lissage_courbure_coeff -2.50000000000000014e-02
+      lissage_courbure_iterations_systematique 1
+      lissage_courbure_iterations_si_remaillage 10
+    }
+    terme_gravite rho_g
+  }
+
+  hydraulique
+  {
+  
+  
+  vol_bulle_monodisperse .00000000052359877559
+  
+  
+      velocity_convection_op Centre
+      Boundary_Conditions {
+        bctype_kmin perio
+        bctype_kmax perio
+      }
+      
+  test_etapes_et_bilan  # Recuperation des termes du bilan de qdm #
+
+
+  multigrid_solver {
+    solver_precision mixed
+    coarsen_operators 1
+    Coarsen_Operator_Uniform { coarsen_i 2 coarsen_j 2 coarsen_k 2 }
+    #   Coarsen_Operator_Uniform { coarsen_i 2 coarsen_j 2 coarsen_k 2 }  #
+    ghost_size 1
+    pre_smooth_steps 1 7
+    smooth_steps 1 7
+    relax_jacobi 1 0.7
+    solveur_grossier GCP { seuil 1e-10 precond ssor { omega 1.5 } }  # 8 # # 1.e-3 au premier pas de temps post switch, puis 1e-8 #
+    seuil 1e-8 # 7 # # 1.e-2 au premier pas de temps post switch, puis 1.e-7 #
+    nb_full_mg_steps 2 20 2
+    iterations_mixed_solver 10
+  }
+
+  corrections_qdm {
+    type none
+    correction_x {
+      type_correction cible_constante
+      parametres_cible_constante {
+        vitesse_cible 0.0
+      }
+      parametres_moyenne_par_morceaux {
+        duree_morceau 0.1
+        v_init_guess -0.17
+      }
+      parametres_moyenne_glissante {
+        duree_intervalle 0.15
+        v_init_guess -0.15
+      }
+    }
+    correction_y {
+      type_correction cible_constante
+      parametres_cible_constante {
+        vitesse_cible -0.
+      }
+      parametres_moyenne_par_morceaux { }
+      parametres_moyenne_glissante { }
+    }
+    correction_z {
+      type_correction cible_constante
+      parametres_cible_constante {
+        vitesse_cible -0.
+      }
+      parametres_moyenne_par_morceaux { }
+      parametres_moyenne_glissante {
+        duree_intervalle 0.04
+        v_init_guess 0.
+      }
+    }
+  }
+  
+  forcage { # 216 mailles : Re_l = 67.27; 864 mailles : Re_l = 169.5 ... #
+    type 3
+    # facteur 0:all, 1:chi, 2:rho... #
+    # random_fixed #
+    forced_advection 0   # -1 : advection with mean_u_liq, 1 : advection using advection_velocity, 0 : no advection #
+    advection_velocity 3
+    123 123 123 # Domaine de 4mm, adv de 20mm.s-1 : une structure parcourt le domaine en 0.005s #
+    stops_at_time_step -1
+    stops_at_time -1
+    minimal_forced_mode 1
+    maximal_forced_mode 3
+    amplitude 1e0
+    dissipation 0.0011125 # dissipation_F / 16 #
+    temps_grande_echelle .28
+    random_process {
+      semi_gen_et_modulo_reprise 2
+      1 1
+    }
+  }
+  
+
+  terme_force_init 0 # 11173.730658164664 # # rm = 1138.786 #
+  expression_derivee_force 0.
+
+
+
+  # ajout_init_a_reprise #
+  expression_vx_init 0.
+  expression_vy_init 0.
+  expression_vz_init 0.
+  }
+  {
+    
+  }
+  post_processing 
+  {
+    format LATA
+    nb_pas_dt_post 200
+    
+    
+
+
+  post_par_paires
+  nb_pas_dt_post_stats_bulles 50
+  nb_pas_dt_post_stats_plans 50
+
+  t_debut_statistiques 0.0
+  champs_a_postraiter 7 CELL_VELOCITY CELL_GRAD_P CELL_FORCE_PH CELL_GRAD_P PRESSURE INDICATRICE LAMBDA2
+    fields 
+    {
+
+
+       FORCE_PH ELEM
+       PRESSURE ELEM
+       INDICATRICE ELEM
+       LAMBDA2 ELEM
+
+    }
+  }
+}
+solve pb
+
+Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
+Fin

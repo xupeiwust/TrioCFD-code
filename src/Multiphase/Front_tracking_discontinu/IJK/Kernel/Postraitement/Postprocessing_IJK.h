@@ -304,7 +304,6 @@ protected:
   // Pour post-traitement :
   IJK_Field_double dudy_, dvdx_, dwdy_;
   IJK_Field_vector3_double cell_velocity_;
-  IJK_Field_vector3_double cell_source_spectrale_;
   IJK_Field_vector3_double cell_bk_tsi_ns_;
   //  IJK_Field_vector3_double cell_source_interface_totale_;   // non-const because some echange_espace_virtuel()
   IJK_Field_vector3_double cell_grad_p_;
@@ -323,7 +322,6 @@ protected:
   OBS_PTR( IJK_Interfaces) interfaces_;
   OBS_PTR(IJK_Field_double) pressure_;                   // non-const because some echange_espace_virtuel()
   OBS_PTR(IJK_Field_vector3_double) velocity_;   // non-const because some echange_espace_virtuel()
-  OBS_PTR(IJK_Field_vector3_double) source_spectrale_;   // non-const because some echange_espace_virtuel()
   OBS_PTR(IJK_Field_vector3_double) bk_tsi_ns_;
   IJK_Field_vector3_double source_interface_ft_;   // non-const because some echange_espace_virtuel()
   IJK_Field_vector3_double source_interface_ns_;   // non-const because some echange_espace_virtuel()

@@ -397,6 +397,7 @@ void Navier_Stokes_FTD_IJK::completer()
   parser_derivee_facteur_variable_source_.addVar("rhov_moyen");
   parser_derivee_facteur_variable_source_.addVar("tauw");
   parser_derivee_facteur_variable_source_.parseString();
+
 }
 
 void Navier_Stokes_FTD_IJK::initialise_velocity_from_file(const Nom& fichier_reprise_vitesse)
@@ -748,6 +749,8 @@ void Navier_Stokes_FTD_IJK::initialise_ns_fields()
     }
   champs_compris_.ajoute_champ_vectoriel(velocity_);
 
+
+
 }
 
 void Navier_Stokes_FTD_IJK::projeter()
@@ -932,6 +935,14 @@ void Navier_Stokes_FTD_IJK::initialise_ijk_fields()
       std::cout << "in initialise i_offset : " << gbz_splitting.get_offset_local(DIRECTION_I) << std::endl;
       std::cout << "Process::me()" << Process::me() << std::endl;
       forcage_.compute_initial_chouippe(nproc_tot, my_geom, my_ni, my_nj, my_nk, gbz_splitting, pb_ijk.nom_sauvegarde());
+
+
+
+
+      // TODO (teo.boutin) move this by adding forcage_ to the tree of champs_compris
+      champs_compris_.ajoute_champ_vectoriel(forcage_.get_force_ph2());
+
+
       statistiques().begin_count(m2_counter_);
       Cout << "AF compute_initial_chouippe" << finl;
     }

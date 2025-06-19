@@ -89,7 +89,6 @@ void Postprocessing_IJK::associer_probleme(const Probleme_FTD_IJK_base& ijk_ft)
   interfaces_ = ref_ijk_ft_->get_interface();
   pressure_ = ref_ijk_ft_->eq_ns().pressure_;
   velocity_ = ref_ijk_ft_->eq_ns().velocity_;
-  source_spectrale_ = ref_ijk_ft_->eq_ns().forcage_.get_force_ph2();
   bk_tsi_ns_ = ref_ijk_ft_->eq_ns().backup_terme_source_interfaces_ns_;
   d_velocity_ = ref_ijk_ft_->eq_ns().d_velocity_;
 
@@ -1224,7 +1223,6 @@ void Postprocessing_IJK::Fill_postprocessable_fields(std::vector<FieldInfo_t>& c
   {
     // Name     /     Localisation (elem, face, ...) /    Nature (scalare, vector)   /  Located on interface?
 
-    { "FORCE_PH", Entity::FACE, Nature_du_champ::vectoriel, false },
     { "CURL", Entity::ELEMENT, Nature_du_champ::vectoriel, false },
     { "CRITERE_Q", Entity::ELEMENT, Nature_du_champ::scalaire, false },
     { "NUM_COMPO", Entity::ELEMENT, Nature_du_champ::scalaire, false },
@@ -1438,24 +1436,6 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
   //        return gradW[2];
   //    }
   //
-  //  // GAB, sondes THI
-  //  if (nom.debute_par("FORCE_PH"))
-  //    {
-  //      // A priori inutile : tester si sonde ok avec champ_a_postrer sans FORCE_PH
-  //      // Reponse GB : le vrai test a faire c'est si le field force_ph existe, ie s'il y a un forcage
-  //      if (!liste_post_instantanes_.contient_("FORCE_PH"))
-  //        {
-  //          Cerr << "A probe is attempting to access a field FORCE_PH while it has not been computed in the post-processed fields" << endl;
-  //          Process::exit();
-  //        }
-  ////      IJK_Field_vector3_double& source_spectrale = ref_ijk_ft_.forcage_.get_force_ph2();
-  //      if (nom == "FORCE_PH_X")
-  //        return source_spectrale_.valeur()[0];
-  //      if (nom == "FORCE_PH_Y")
-  //        return source_spectrale_.valeur()[1];
-  //      if (nom == "FORCE_PH_Z")
-  //        return source_spectrale_.valeur()[2];
-  //    }
   //  //
   //  // if (Option_IJK::DISABLE_DIPHASIQUE)
   //  {
@@ -1487,22 +1467,7 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
   //      Process::exit();
   //    }
   //
-  //  const Motcle& mot = liste_champs_thermiques_possibles[rang];
-  //  if ((mot == field_name) && (idx_wanted >= 0))
-  //    {
-  //      Cerr << "found as planned " << endl;
-  //    }
-  //  else
-  //    {
-  //      Cerr << "Some issue with the name provided for the sonde. Unrecognised." << finl;
-  //      Process::exit();
-  //    }
-  //
-  //  Cerr << "Erreur dans Postprocessing_IJK::get_IJK_field : " << endl;
-  //  Cerr << "Champ demande : " << nom << endl;
-  //  Cerr << "Liste des champs possibles pour la thermique : " << liste_champs_thermiques_possibles << finl;
-  //  Process::exit();
-  //  throw;
+
 
 
 }
@@ -1837,19 +1802,7 @@ void Postprocessing_IJK::alloc_fields()
       allocate_cell_vector(ana_grad2Wc_, domaine_ijk_, 0);
     }
 
-  if (liste_post_instantanes_.contient_("CELL_FORCE_PH")||liste_post_instantanes_.contient_("TOUS"))
-    allocate_cell_vector(cell_source_spectrale_, domaine_ijk_, 0);
-  if (liste_post_instantanes_.contient_("CELL_GRAD_P"))
-    allocate_cell_vector(cell_grad_p_, domaine_ijk_, 0);
-  if (liste_post_instantanes_.contient_("CELL_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
-    allocate_cell_vector(cell_source_interface_,domaine_ijk_, 0);
-  if (liste_post_instantanes_.contient_("CELL_SHIELD_REPULSION")||liste_post_instantanes_.contient_("TOUS"))
-    allocate_cell_vector(cell_repulsion_interface_,domaine_ijk_, 0);
-  if (liste_post_instantanes_.contient_("CELL_RHO_SOURCE_QDM_INTERF")||liste_post_instantanes_.contient_("TOUS"))
-    {
-      allocate_cell_vector(cell_bk_tsi_ns_,domaine_ijk_, 1);
-      allocate_cell_vector(cell_rho_Ssigma_,domaine_ijk_, 1);
-    }
+
 }
 
 void Postprocessing_IJK::alloc_velocity_and_co()

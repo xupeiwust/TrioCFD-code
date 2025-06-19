@@ -78,12 +78,9 @@ void Force_ph::initialise(int a_nproc_tot, int a_ni,int a_nj,int a_nk,int a_nl,i
 
 // NB : Normalement force est juste reel, mais on verifie qd mm ...
   force = set_dimensions(force,2,3,n_ijk);
-// TO DO : -->  si on colocalise allocate_cell_velocity au lieu de allocate_velocity  ...
-//             voir IJK_FT_post.
-  // allocate_velocity(force_, splitting, 2); //: 2 a la fin -> 2 cellules ghost a la fin
-  // TENTER CA
-  allocate_velocity(force_, splitting, 2); //: 2 a la fin -> 2 cellules ghost a la fin
 
+  allocate_velocity(force_, splitting, 2); //: 2 a la fin -> 2 cellules ghost a la fin
+  force_.nommer("FORCE_PH");
 ///////////////////////////////////////////////////////////////
   std::ofstream Physical_flux(nom_fichier.c_str());
   if(Physical_flux)
@@ -92,6 +89,7 @@ void Force_ph::initialise(int a_nproc_tot, int a_ni,int a_nj,int a_nk,int a_nl,i
       Physical_flux << std::endl << "i,j,k \t : f_x, \tf_y, \tf_z,\t";
     }
 ///////////////////////////////////////////////////////////////
+// TODO fix that path wtf
   std::ofstream Offset_flux("/volatile/FFTW/creeping_flow/creeping_flow_bis/src/offset.txt");
   if(Offset_flux)
     {
