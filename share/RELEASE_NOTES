@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------------------------
 Release notes version 1.9.6_beta : Enhancements, modifications and corrected bugs since version 1.9.5 :
 --------------------------------------------------------------------------------------------------
+15/06/25 (TrioCFD) Keyword     : New keywords do_not_control_k_eps and do_not_control_k_omega, may improve results at low Reynolds numbers
 11/06/25 (TrioCFD) New feature : Solve adjoint Navier-Stokes equations (keyword "adjoint" within the Navier_Stokes_std_sensibility class)
 11/06/25 (TrioCFD) New feature : k-omega is now compatible with Pb_Hydraulique_Turbulent_ALE (FSI,  mobile mesh with ALE)
 05/06/25 (TrioCFD) Removal     : Zoom was removed.

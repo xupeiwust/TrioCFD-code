@@ -53,7 +53,7 @@ Entree& Transport_K_Eps_base::readOn(Entree& is)
 void Transport_K_Eps_base::set_param(Param& param)
 {
   Transport_2eq_base::set_param(param);
-  param.ajouter_flag("do_not_control_k_eps", &do_not_control_k_eps_); // XD_ADD_P flag Flag to prevent using the method 'controler_K_Eps' in method Transport_K_Eps_base::valider_iteration, which may cause errors at low Reynolds
+  param.ajouter_flag("do_not_control_k_eps", &do_not_control_k_eps_); // XD_ADD_P flag Flag to prevent corrections which may cause errors at low Reynolds from the method 'Transport_K_Eps_base::controler_K_Eps'
 }
 
 
@@ -141,7 +141,7 @@ int Transport_K_Eps_base::controler_K_Eps()
     {
       double& k   = K_Eps(n, 0);
       double& eps = K_Eps(n, 1);
-      if (k < 0 || eps < 0)
+      if (!do_not_control_k_eps_ && (k < 0 || eps < 0) )
         {
           neg[0] += (  k<0 ? 1 : 0);
           neg[1] += (eps<0 ? 1 : 0);
@@ -351,8 +351,6 @@ int Transport_K_Eps_base::controler_K_Eps()
  */
 void Transport_K_Eps_base::valider_iteration()
 {
-  if (!do_not_control_k_eps_)
-    controler_K_Eps();
-  else
-    Cerr << "In Transport_K_Eps_base::valider_iteration, controler_K_Eps not used because of keyword do_not_control_k_eps";
+  controler_K_Eps();
+
 }
