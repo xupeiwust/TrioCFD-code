@@ -8,7 +8,7 @@ Lire DOM
   nbelem 64 64 10
   size_dom 0.064 0.064 0.032
   perio 1 1 1
-  nproc 1 1 1
+  nproc 2 2 2
   ijk_splitting_ft_extension 0
 }
 
@@ -16,10 +16,10 @@ schema_euler_explicite_IJK sch
 
 lire sch 
 {
-  tinit 0.0
-  timestep .00128  # .00001  #
+  tinit 0.0  
+	nb_pas_dt_max 3
+  timestep .01
   timestep_facsec 1.e12 # 0.9 #
-  nb_pas_dt_max 4  #  512 #
   cfl 1
   fo  1
   oh  1
@@ -29,7 +29,7 @@ lire sch
   # first_step_interface_smoothing #
 }
 
-option_ijk { check_divergence disable_diphasique }
+option_ijk {  disable_diphasique }
 IJK dis
 
 associer sch pb
@@ -54,12 +54,12 @@ lire pb
     # Give a number for each phase #
     fluide0 Fluide_Incompressible # Vapour #
     {
-      mu  Champ_Uniforme 1 2.e-5
+      mu  Champ_Uniforme 1 2.e-4
       rho Champ_Uniforme 1 500.
     }
     fluide1 Fluide_Incompressible # Liquid #
     {
-      mu  Champ_Uniforme 1 2.e-5
+      mu  Champ_Uniforme 1 2.e-4
       rho Champ_Uniforme 1 500.
     }
     sigma Champ_Uniforme 3 0. 0. 0.
@@ -76,9 +76,11 @@ lire pb
                 bctype_kmax Symetrie
   }
 
+  disable_solveur_poisson
 
-  disable_diffusion_qdm
+  disable_convection_qdm
   
+
   multigrid_solver {
     solver_precision mixed
     coarsen_operators 0
@@ -93,10 +95,10 @@ lire pb
     
   }
 
-
   # A = 2 pi / Lx = 67.01063635488659 ou 98.17477042468103 # 
-  expression_vx_init 0.01*(1.+2.*sin(y*98.17477042468103))
-  expression_vy_init -0.01
+				# acos(0.5)-pi/2 = -0.5235987755982987     et    acos(0.5)-pi/4 = 0.2617993877991496  #
+  expression_vx_init  2.*0.001*cos(x*98.17477042468103+0.2617993877991496)*cos(y*98.17477042468103-0.5235987755982987)
+  expression_vy_init  2.*0.001*sin(x*98.17477042468103+0.2617993877991496)*sin(y*98.17477042468103-0.5235987755982987)
   expression_vz_init 0.
   }
 
@@ -110,8 +112,10 @@ lire pb
     nb_pas_dt_post 3000
   t_debut_statistiques 100.
   
-  expression_vx_ana  0.01*(1.+2.*sin((Y+0.01*T)*98.17477042468103))
-  expression_vy_ana -0.01
+
+  # -4*pi*pi*(2/Lx**2)  = -19276.571095877651  #
+  expression_vx_ana  2.*0.001*cos(x*98.17477042468103+0.2617993877991496)*cos(y*98.17477042468103-0.5235987755982987)*exp(-19276.571095877651*1.e-6*T)
+  expression_vy_ana  2.*0.001*sin(x*98.17477042468103+0.2617993877991496)*sin(y*98.17477042468103-0.5235987755982987)*exp(-19276.571095877651*1.e-6*T)
   expression_vz_ana 0.
   
     fields 
@@ -127,16 +131,16 @@ lire pb
     {
        # Il faut mettre +epsilon pour etre sur d'avoir la vitesse sur la bonne face... 
        IL ecrit dans le fichier sonde la coord precise de la position post-traitee (face ici). #
-       pp_vx velocity_x periode 1e-9 points 1 0.003201 0.01325001 0.01245303125 # selon x: + epsilon.. #
-       pp_vy velocity_y periode 1e-9 points 1 0.003325 0.016001 0.01245303125 # selon y: + epsilon.. #
-       p velocity_x periode 1e-9 points 1 0.0032001 0.01325001 0.01245303125 # selon x: + epsilon.. #
+       pp_vx velocity_x periode 1e-9 points 1 0.008001 0.015875 0.01245303125 # selon x: + epsilon.. #
+       pp_vy velocity_y periode 1e-9 points 1 0.008125 0.016001 0.01245303125 # selon y: + epsilon.. #
     }
 
 
   }
 }
 solve pb
-
 Lata_to_other lml NOM_DU_CAS NOM_DU_CAS
 Fin
+
+
 

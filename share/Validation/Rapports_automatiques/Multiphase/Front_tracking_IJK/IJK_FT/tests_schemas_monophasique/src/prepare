@@ -36,15 +36,5 @@ do
    # sh ./$fic.sh
    # Il faut penser pour le ghost a avoir assez de mailles par proc 
    # (ie au moins  5)
-   sed -e "s/nproc_i .*/nproc_i 2/g" \
-       -e "s/nproc_j .*/nproc_j 2/g" \
-       -e "s/nproc_k .*/nproc_k 2/g" \
-       -e "s/nbelem_k 5/nbelem_k 10/g" \
-       -e "s/nbelem_i 5/nbelem_i 10/g" \
-          $fic.data > PAR/${fic}_par8.data
-   if [ $fic == "schema_temps" ] ; then 
-       sed -i \
-           -e "s/nbelem_i 5/nbelem_i 10/g" \
-           -e "s/nbelem_j 5/nbelem_j 10/g" PAR/${fic}_par8.data
-   fi 
+   sed -e "s/nproc 1 1 1/nproc 2 2 2/g" $fic.data > PAR/${fic}_par8.data
 done

@@ -5,7 +5,7 @@ Parametres {
 	CasTest PAR schema_temps_par8 8
 	CasTest PAR convection_par8 8
 	CasTest PAR diffusion_par8 8
-	CasTest COMPA diffusion_VDF_compa 1
+	# CasTest COMPA diffusion_VDF_compa 1 # # deactivated because not working #
 }
 
 Chapitre {

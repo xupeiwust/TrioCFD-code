@@ -23,7 +23,7 @@ cp -f ../${jdd}.data .
 ######################
 rm -rf DT*
 nx=5
-sed -i -e "s/nbelem_i .*/nbelem_i $nx/g" -e "s/nbelem_j .*/nbelem_j $nx/g" ${jdd}.data
+sed -i -e "s/nbelem .*/nbelem $nx $nx 10/g" ${jdd}.data
 \cp -f ${jdd}.data ${jdd}.data.ori
 for n in 1 2 4 8 16 32 64 128 256 512 
 do
@@ -47,7 +47,7 @@ do
    fi
    #
    # RK3 :
-   sed -e "/time_scheme/s/#//g" ${jdd}.data > ${jdd}_RK3.data 
+   sed -e "s/schema_euler_explicite_IJK/schema_RK3_IJK/g" ${jdd}.data > ${jdd}_RK3.data 
    echo -n "Calculating DT_RK_$n....."
    trust ${jdd}_RK3 1> out 2> err
    echo "Done!"

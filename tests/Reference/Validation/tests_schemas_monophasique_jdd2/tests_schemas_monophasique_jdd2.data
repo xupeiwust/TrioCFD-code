@@ -8,7 +8,7 @@ Lire DOM
   nbelem 64 64 10
   size_dom 0.064 0.064 0.032
   perio 1 1 1
-  nproc 1 1 1
+  nproc 2 2 2
   ijk_splitting_ft_extension 0
 }
 
@@ -17,9 +17,9 @@ schema_euler_explicite_IJK sch
 lire sch 
 {
   tinit 0.0
+	nb_pas_dt_max 3
   timestep .00128  # .00001  #
   timestep_facsec 1.e12 # 0.9 #
-  nb_pas_dt_max 4  #  512 #
   cfl 1
   fo  1
   oh  1
