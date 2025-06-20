@@ -1320,7 +1320,7 @@ const IJK_Field_double& Postprocessing_IJK::get_IJK_field(const Motcle& nom)
 
   // TODO pas optimal :
   if (nom == "LAMBDA2")
-    update_gradU_lambda2();
+    update_gradU_lambda2(true);
   if (nom == "CRITERE_Q")
     get_update_lambda2_and_rot_and_Q();
 
