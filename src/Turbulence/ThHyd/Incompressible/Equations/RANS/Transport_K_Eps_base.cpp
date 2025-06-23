@@ -141,20 +141,10 @@ int Transport_K_Eps_base::controler_K_Eps()
     {
       double& k   = K_Eps(n, 0);
       double& eps = K_Eps(n, 1);
-      if (!do_not_control_k_eps_ && (k < 0 || eps < 0) )
+      if ((k < 0 || eps < 0) )
         {
           neg[0] += (  k<0 ? 1 : 0);
           neg[1] += (eps<0 ? 1 : 0);
-
-//          position="x=";
-//          position+=(Nom)domaine_vf.xv(n,0);
-//          position+=" y=";
-//          position+=(Nom)domaine_vf.xv(n,1);
-//          if (dimension==3)
-//            {
-//              position+=" z=";
-//              position+=(Nom)domaine_vf.xv(n,2);
-//            }
 
           get_position_faces(position, n);
 
@@ -166,70 +156,37 @@ int Transport_K_Eps_base::controler_K_Eps()
           int nb_faces_elem = elem_faces.line_size();
           if (size == face_voisins.dimension(0))
             {
-              // K-Eps on faces (eg:VEF)
-              for (int i = 0; i < 2; i++)
+              if (!do_not_control_k_eps_)
                 {
-                  int elem = face_voisins(n, i);
-                  if (elem != -1)
-                    for (int j = 0; j < nb_faces_elem; j++)
-                      if (j != n)
-                        {
-                          double& k_face = K_Eps(elem_faces(elem, j), 0);
-                          if (k_face > LeK_MIN)
+                  // K-Eps on faces (eg:VEF)
+                  for (int i = 0; i < 2; i++)
+                    {
+                      int elem = face_voisins(n, i);
+                      if (elem != -1)
+                        for (int j = 0; j < nb_faces_elem; j++)
+                          if (j != n)
                             {
-                              k += k_face;
-                              nk++;
+                              double& k_face = K_Eps(elem_faces(elem, j), 0);
+                              if (k_face > LeK_MIN)
+                                {
+                                  k += k_face;
+                                  nk++;
+                                }
+                              double& e_face = K_Eps(elem_faces(elem, j), 1);
+                              if (e_face > LeEPS_MIN)
+                                {
+                                  eps += e_face;
+                                  neps++;
+                                }
                             }
-                          double& e_face = K_Eps(elem_faces(elem, j), 1);
-                          if (e_face > LeEPS_MIN)
-                            {
-                              eps += e_face;
-                              neps++;
-                            }
-                        }
+                    }
                 }
             }
           else // (size != face_voisins.dimension(0))
             {
-              // K-Eps on cells (eg:VDF)
-//              position="x=";
-//              position+=(Nom)domaine_vf.xp(n,0);
-//              position+=" y=";
-//              position+=(Nom)domaine_vf.xp(n,1);
-//              if (dimension==3)
-//                {
-//                  position+=" z=";
-//                  position+=(Nom)domaine_vf.xp(n,2);
-//                }
-
               get_position_cells(position, n);
-
               nk = 0;   // k -> k_min
               neps = 0; // eps -> eps_min
-              /* Error in algorithm ?
-              for (int j=0;j<nb_faces_elem;j++)
-              {
-                 int face = elem_faces(n,j);
-              for (int i=0; i<2; i++)
-              {
-               int elem = face_voisins(face,i);
-               if (elem!=-1 && elem!=n)
-               {
-                  double& k_elem = K_Eps(elem,0);
-                              if (k_elem > LeK_MIN)
-                                {
-                                  k += k_elem;
-                                  nk++;
-                                }
-                              double& e_elem = K_Eps(elem,1);
-                              if (e_elem > LeEPS_MIN)
-                                {
-                                  eps += e_elem;
-                                  neps++;
-                                }
-               }
-              }
-              }*/
             } // fin de (size != face_voisins.dimension(0))
 
           if (nk != 0) k /= nk;
@@ -252,32 +209,11 @@ int Transport_K_Eps_base::controler_K_Eps()
           if (size == face_voisins.dimension(0))
             {
               // K-Eps on faces (eg:VEF)
-
-//              position="x=";
-//              position+=(Nom)domaine_vf.xv(n,0);
-//              position+=" y=";
-//              position+=(Nom)domaine_vf.xv(n,1);
-//              if (dimension==3)
-//                {
-//                  position+=" z=";
-//                  position+=(Nom)domaine_vf.xv(n,2);
-//                }
-
               get_position_faces(position, n);
             }
           else
             {
               // K-Eps on cells (eg:VDF)
-//              position="x=";
-//              position+=(Nom)domaine_vf.xp(n,0);
-//              position+=" y=";
-//              position+=(Nom)domaine_vf.xp(n,1);
-//              if (dimension==3)
-//                {
-//                  position+=" z=";
-//                  position+=(Nom)domaine_vf.xp(n,2);
-//                }
-
               get_position_cells(position, n);
             }
 

@@ -133,7 +133,7 @@ int Transport_K_Omega_base::controler_K_Omega()
     {
       double& enerK = K_Omega(n, 0);
       double& omega = K_Omega(n, 1);
-      if (!do_not_control_k_omega_ && (enerK < 0 || omega < 0))
+      if ((enerK < 0 || omega < 0))
         {
           neg[0] += (enerK < 0 ? 1 : 0);
           neg[1] += (omega < 0 ? 1 : 0);
@@ -148,28 +148,31 @@ int Transport_K_Omega_base::controler_K_Omega()
           const int nb_faces_elem = elem_faces.line_size();
           if (size == face_voisins.dimension(0))
             {
-              // cAlan : faire une fonction dans Transport_RANS_2eq qui fait la meme chose ?
-              // K-Eps on faces (eg:VEF)
-              for (int i = 0; i < 2; i++)
+              if (!do_not_control_k_omega_)
                 {
-                  int elem = face_voisins(n, i);
-                  if (elem != -1)
-                    for (int j = 0; j < nb_faces_elem; j++)
-                      if (j != n)
-                        {
-                          double& k_face = K_Omega(elem_faces(elem, j), 0);
-                          if (k_face > K_MIN)
+                  // cAlan : faire une fonction dans Transport_RANS_2eq qui fait la meme chose ?
+                  // K-Eps on faces (eg:VEF)
+                  for (int i = 0; i < 2; i++)
+                    {
+                      int elem = face_voisins(n, i);
+                      if (elem != -1)
+                        for (int j = 0; j < nb_faces_elem; j++)
+                          if (j != n)
                             {
-                              enerK += k_face;
-                              nenerK++;
+                              double& k_face = K_Omega(elem_faces(elem, j), 0);
+                              if (k_face > K_MIN)
+                                {
+                                  enerK += k_face;
+                                  nenerK++;
+                                }
+                              double& o_face = K_Omega(elem_faces(elem, j), 1);
+                              if (o_face > OMEGA_MIN)
+                                {
+                                  omega += o_face;
+                                  nomega++;
+                                }
                             }
-                          double& o_face = K_Omega(elem_faces(elem, j), 1);
-                          if (o_face > OMEGA_MIN)
-                            {
-                              omega += o_face;
-                              nomega++;
-                            }
-                        }
+                    }
                 }
             }
           else // (size != face_voisins.dimension(0))
