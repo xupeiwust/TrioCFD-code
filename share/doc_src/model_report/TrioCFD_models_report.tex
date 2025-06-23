@@ -1,14 +1,13 @@
 \documentclass[10pt,twoside,a4paper]{memoir}
-\usepackage[ascii]{}
 \usepackage[french]{babel}
 \usepackage[T1]{fontenc}
-\usepackage{longtable}
 \usepackage[utf8]{inputenc}
+\usepackage{longtable}
 \usepackage{lmodern}
 \usepackage{lettrine}
 \usepackage{geometry}
 \usepackage{amsmath,amssymb,amsfonts,amsgen,amsbsy,textcomp,pifont}
-\usepackage{bbold,stackrel,dsfont,mathrsfs,soul,tcolorbox,verbatimbox}
+\usepackage{stackrel,mathrsfs,soul,tcolorbox,verbatimbox}
 \usepackage{amsthm}
 \usepackage{color}
 \usepackage{xcolor}
@@ -65,7 +64,7 @@
 %%%%%   CMFD   %%%%%
 
 \DeclareMathAlphabet{\mathpzc}{OT1}{pzc}{m}{it}
-\def\l|{\left|\left|}
+% \def\l|{\left|\left|}
 \def\r|{\right|\right|}
 \def\R{\mathds R}
 \def\P{\mathds P}
@@ -292,7 +291,7 @@
  
 % Variables definition
 % - TrioCFD version
-\newcommand\codeVersion{1.9.5}
+\newcommand\codeVersion{1.9.6}
 
 \makeindex
 
@@ -304,8 +303,8 @@
 %\renewcommand{\headrulewidth}{0pt}
 %\renewcommand{\footrulewidth}{0pt}
 \begin{multicols}{2}
-%%\includegraphics[scale=0.75]{../pictures/cealogo.png}
-\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LMSF}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
+\includegraphics[scale=0.75]{../pictures/cealogo.png}
+\begin{flushright}\Ovalbox{\begin{minipage}{8cm} \begin{center} \vspace{0.4cm}\Large{DES/ISAS/DM2S/STMF/LDEL}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \begin{flushright}\Ovalbox{\begin{minipage}{4cm} \begin{center} \vspace{0.4cm}\Large{\thepage/\pageref{LastPage}}\vspace{0.4cm}\end{center}\end{minipage}}\end{flushright}
 \end{multicols}
 \cornersize{.2}
@@ -315,9 +314,11 @@
 \newline
 \hspace{3cm}\LARGE{\textbf{Models Documentation TrioCFD v\codeVersion}}} \end{center}
 \vspace{0.4cm}
-\begin{center}\includegraphics[scale=0.5]{../pictures/TrioCFD.png} \end{center}
-\vspace{0.4cm}
-\begin{center}\includegraphics[scale=0.35]{../pictures/logo_DM2S.png} \end{center}
+\begin{center}
+\includegraphics[scale=0.5]{../pictures/TrioCFD.png}
+\hspace{0.4cm}
+\includegraphics[scale=0.35]{../pictures/logo_DM2S.png}
+\end{center}
 \vspace{0.4cm}
 \setlength{\tabcolsep}{0.5cm}
 
@@ -334,7 +335,7 @@ v\codeVersion & \today & A. B du CLUZEAU & TrioCFD Team\\
 \multicolumn{2}{c|}{\textbf{CEA SACLAY} } & \multicolumn{2}{c}{ } \\
 \cline{3-4}
 \multicolumn{2}{c|}{\textbf{91191 GIF-SUR-YVETTE CEDEX} } & \multicolumn{2}{c}{ } \\
-\multicolumn{2}{Sc|}{ } & \multicolumn{2}{Sc}{\large{\textbf{DES/ISAS/DM2S/STMF/LMSF/UD}} } \\
+\multicolumn{2}{Sc|}{ } & \multicolumn{2}{Sc}{\large{\textbf{DES/ISAS/DM2S/STMF/LDEL/UD}} } \\
 \multicolumn{2}{c|}{ } & \multicolumn{2}{c}{ } \\
 \end{tabular}
 \end{minipage}}
