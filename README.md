@@ -11,19 +11,19 @@ There are different physical modules such as:
 
 This software is OpenSource (BSD license).
 
+Online documentation can be found at [https://triocfd-documentation.readthedocs.io/en/latest/](https://triocfd-documentation.readthedocs.io/en/latest/).
 
+# **How to install TrioCFD-1.9.6 version ?**
 
-# **How to install TrioCFD-1.9.5 version ?**
+### If TRUST-1.9.6 is not already installed, [please follow TRUST install instructions](https://github.com/cea-trust-platform/trust-code#readme).
 
-### If TRUST-1.9.5 is not already installed, [please follow TRUST install instructions](https://github.com/cea-trust-platform/trust-code#readme).
-
-### Once TRUST installed, install TrioCFD-1.9.5 using one of these methods:
+### Once TRUST installed, install TrioCFD-1.9.6 using one of these methods:
 
 ### **First method**
 ```bash
-git clone https://github.com/cea-trust-platform/TrioCFD-code.git TrioCFD-1.9.5
-cd TrioCFD-1.9.5
-source PathToTRUST-1.9.5/env_TRUST.sh
+git clone https://github.com/cea-trust-platform/TrioCFD-code.git TrioCFD-1.9.6
+cd TrioCFD-1.9.6
+source PathToTRUST-1.9.6/env_TRUST.sh
 baltik_build_configure -execute
 make optim
 make debug # TRUST should be built in debug mode
@@ -31,11 +31,11 @@ make debug # TRUST should be built in debug mode
 
 ### **Second method**
 ```bash
-wget ftp://ftp.cea.fr/pub/TRUST/TrioCFD/versions/v1.9.5/TrioCFD-1.9.5.tar.gz
-tar xzf TrioCFD-1.9.5.tar.gz
-mv TrioCFD TrioCFD-1.9.5
-cd TrioCFD-1.9.5
-source PathToTRUST-1.9.5/env_TRUST.sh
+wget ftp://ftp.cea.fr/pub/TRUST/TrioCFD/versions/v1.9.6/TrioCFD-1.9.6.tar.gz
+tar xzf TrioCFD-1.9.6.tar.gz
+mv TrioCFD TrioCFD-1.9.6
+cd TrioCFD-1.9.6
+source PathToTRUST-1.9.6/env_TRUST.sh
 baltik_build_configure -execute
 make optim
 make debug # TRUST should be built in debug mode
@@ -69,14 +69,8 @@ make ctest_optim  # or make check_optim (slower)
 # All non-regression test cases in debug mode:
 make ctest_debug # or make check_debug (slower)
 
-# A given non-regression test list
-make check_optim TESTLIST="./share/testList/{nameOfTheTestList}"
-
-# All validation report (warning it may take many days!):
-make check_validation
-
-# A given list of validation reports
-make check_validation TESTLIST="./share/testList/{nameOfTheValidationList}
+# A given non-regression test list (Some lists are available in ./share/testList/)
+trust -ctest ./path/to/testList
 ```
 
 To see documentation:
